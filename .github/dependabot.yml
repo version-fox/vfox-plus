@@ -21,6 +21,20 @@ updates:
     groups:
       flutter-packages:
         patterns: ["*"]
+  - package-ecosystem: npm
+    directories: [/web, /tauri]
+    schedule:
+      interval: weekly
+    groups:
+      npm-packages:
+        patterns: ["*"]
+  - package-ecosystem: cargo
+    directory: /tauri/src-tauri
+    schedule:
+      interval: weekly
+    groups:
+      cargo-crates:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

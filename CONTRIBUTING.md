@@ -30,8 +30,9 @@ all of them.
 
 1. Open an issue or comment on an existing one before large changes.
 2. Create a branch from `main` and keep pull requests focused.
-3. Run the checks of the implementation you changed; they are the same as in CI.
-   For Flutter, see [`flutter/README.md`](flutter/README.md#everyday-commands):
+3. Run the checks of the implementation you changed; they are the same as in CI
+   and listed in the README of each implementation. For Flutter, see
+   [`flutter/README.md`](flutter/README.md#everyday-commands):
 
    ```sh
    cd flutter
@@ -42,8 +43,9 @@ all of them.
 
    To run every check, the end-to-end tests and the packaging without installing
    anything but Docker, and without any risk for the vfox installation on your
-   machine, use the sandbox: `flutter/sandbox/sandbox.sh all` (see
-   [flutter/README.md](flutter/README.md#sandbox)).
+   machine, use the sandbox of the implementation, for example
+   `flutter/sandbox/sandbox.sh all` or `tauri/sandbox/sandbox.sh all` (see
+   [shared/sandbox](shared/sandbox/README.md)).
 
 4. Describe what changed and how you tested it in the pull request. Include
    screenshots for visual changes, in light and dark themes.
@@ -55,9 +57,12 @@ all of them.
 | [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), shell scripts (ShellCheck), shared JSON, no committed binary files |
 | [`flutter.yml`](.github/workflows/flutter.yml) | `flutter/`, `shared/` | Lock file, formatting, generated translations, analysis, tests with an 85 % coverage gate, end-to-end tests on Linux under Xvfb against captured output and against the real vfox, release build with a smoke test, `.deb` and `.tar.gz` packages validated with lintian |
 | [`flutter-sandbox.yml`](.github/workflows/flutter-sandbox.yml) | `flutter/sandbox/`, `flutter/versions.env` | Builds the Docker sandbox and runs `sandbox.sh all` in it |
+| [`web.yml`](.github/workflows/web.yml) | `web/`, `shared/` | Formatting (Prettier), lint (ESLint), type checking, unit tests with an 85 % coverage gate, the production builds |
+| [`tauri.yml`](.github/workflows/tauri.yml) | `tauri/`, `web/`, `shared/` | Formatting (rustfmt), Clippy, tests, the end-to-end scenarios of the web front end in the application against captured output and against the real vfox, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container |
+| [`sandboxes.yml`](.github/workflows/sandboxes.yml) | `*/sandbox/`, `*/versions.env`, `shared/sandbox/` | Builds the Docker sandboxes of the affected implementations and runs `sandbox.sh all` in them |
 
-Dependabot keeps the pub packages and the GitHub Actions up to date; actions are
-pinned to commit SHAs.
+Dependabot keeps the pub, npm and cargo packages and the GitHub Actions up to
+date; actions are pinned to commit SHAs.
 
 ## Common changes
 
@@ -74,8 +79,10 @@ including the glossary. Flutter regenerates its accessors with
 Add the Material Symbol to [`shared/icons.json`](shared/icons.json) under a
 name that describes its meaning, then regenerate the icons of each
 implementation (Flutter: `dart run tool/generate_icon_font.dart`, then commit
-`lib/src/ui/icons/app_icons.g.dart`; the font itself is generated at build time
-and not committed).
+`lib/src/ui/icons/app_icons.g.dart`; the other implementations cut their fonts
+with [`shared/tools/icon_font.py`](shared/tools/icon_font.py) when they build,
+for example `npm run assets` in `web/`). Fonts are generated at build time and
+not committed.
 
 ### vfox output
 

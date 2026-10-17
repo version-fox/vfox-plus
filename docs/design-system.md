@@ -9,7 +9,9 @@ defines them.
 ## Colour
 
 - Colour schemes are generated from a **seed colour** with the Material colour
-  utilities, *tonal spot* variant, for light and dark themes.
+  utilities, *tonal spot* variant, for light and dark themes, in the **2021**
+  specification of the colour utilities (Flutter's `ColorScheme.fromSeed`), so
+  that every implementation shows the same colours.
 - The seed is the **desktop accent colour** when the user allows it and the
   desktop exposes one (XDG desktop portal `org.freedesktop.appearance
   accent-color`, falling back to the GTK theme), otherwise the colour chosen in
@@ -20,7 +22,9 @@ defines them.
   statistic tiles and avatars.
 - Destructive actions use `error`.
 
-Flutter: `AppTheme.scheme` in `flutter/lib/src/ui/theme/app_theme.dart`.
+Flutter: `AppTheme.scheme` in `flutter/lib/src/ui/theme/app_theme.dart`. Web:
+`colorTokens` in `web/src/ui/theme.ts`, which overrides the 2025 scheme of
+`@m3e/web`.
 
 ## Shape
 
@@ -133,7 +137,10 @@ spring needs to settle. When the platform asks for reduced motion, springs jump
 to their target and indeterminate indicators stop.
 
 Flutter: `MotionScheme`, `Spring` and `SpringBuilder` in
-`flutter/lib/src/ui/theme/motion.dart`.
+`flutter/lib/src/ui/theme/motion.dart`. Web: `web/src/ui/motion.ts` samples
+each spring into a CSS `linear()` easing over its settling time and sets the
+motion tokens of `@m3e/web`, so that its components move on these springs;
+`SpringAnimation` keeps the velocity for animations driven by script.
 
 ### Transitions
 
@@ -181,6 +188,12 @@ are outlined (`FILL` 0). The icons and their meanings are listed in
 [`shared/icons.json`](../shared/icons.json). Implementations ship only these
 glyphs; the Flutter implementation generates a 155 KB subset of the font that
 keeps every variable axis at build time (`flutter/tool/generate_icon_font.dart`).
+The other implementations use [`shared/tools/icon_font.py`](../shared/tools/icon_font.py),
+which cuts the same glyphs, with their ligatures, out of a pinned version of
+the font; pinning the weight, grade and optical size and keeping only the fill
+axis gives a 9 KB WOFF2 font.
 
 The application icon is the 12-sided cookie shape in vfox orange with a white
-"v+" mark (`flutter/assets/brand/vfox-plus.svg`).
+"v+" mark ([`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../shared/packaging/linux/dev.vfox.VfoxPlus.svg);
+Flutter bundles a copy as `flutter/assets/brand/vfox-plus.svg`, which CI keeps
+identical).

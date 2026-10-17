@@ -18,9 +18,16 @@ equal terms.
 
 ## Implementations
 
-| Directory | Technology | Platforms | Status |
-| --- | --- | --- | --- |
-| [`flutter/`](flutter) | Flutter 3.47 with `material_ui` | Linux desktop (`.deb`, `.tar.gz`) | Working |
+| Directory | Technology | Platforms | Package | Status |
+| --- | --- | --- | --- | --- |
+| [`flutter/`](flutter) | Flutter 3.47 with `material_ui` | Linux desktop | `vfox-plus` | Working |
+| [`tauri/`](tauri) | Tauri 2 (Rust) with the [web front end](web) | Linux desktop | `vfox-plus-tauri` | Working |
+
+[`web/`](web) is not an implementation of its own: it is the front end that
+the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
+Expressive web components of [@m3e/web](https://github.com/matraic/m3e)). Every
+implementation ships a `.deb` for Ubuntu 26.04 and a `.tar.gz`; the packages
+share the application ID `dev.vfox.VfoxPlus` and replace each other.
 
 New implementations follow [docs/new-implementation.md](docs/new-implementation.md).
 
@@ -40,28 +47,34 @@ New implementations follow [docs/new-implementation.md](docs/new-implementation.
 vfox+ drives the vfox command line tool, which must be installed separately
 (see the [vfox installation guide](https://vfox.dev/guides/quick-start.html)).
 
-## Getting the Flutter version
+## Getting vfox+
 
-Download the `vfox-plus-linux-x64` artifact of the latest successful
-[Flutter workflow](https://github.com/version-fox/vfox-plus/actions/workflows/flutter.yml)
-run, then:
+Every implementation's workflow builds its packages for every change. Download
+the `vfox-plus-<implementation>-linux-x64` artifact (`vfox-plus-linux-x64` for
+Flutter) of the latest successful run of its workflow, for example
+[Flutter](https://github.com/version-fox/vfox-plus/actions/workflows/flutter.yml)
+or [Tauri](https://github.com/version-fox/vfox-plus/actions/workflows/tauri.yml),
+then:
 
 ```sh
-sudo apt install ./vfox-plus_*_amd64.deb   # Ubuntu 26.04
+sudo apt install ./vfox-plus*_amd64.deb   # Ubuntu 26.04
 vfox-plus
 ```
 
-or extract `vfox-plus-*-linux-x64.tar.gz` anywhere and run `./vfox-plus`.
-To build from source, see [flutter/README.md](flutter/README.md); with nothing
-but Docker, `flutter/sandbox/sandbox.sh package` builds both files into
-`dist/sandbox/package/`.
+or extract the `.tar.gz` anywhere and run `./vfox-plus`. To build from source,
+see the README of the implementation; with nothing but Docker,
+`<implementation>/sandbox/sandbox.sh package` builds both files into
+`dist/sandbox/` without changing anything on your machine.
 
 ## Repository layout
 
 ```text
 docs/       Shared specification: architecture, vfox CLI contract, UI, design system, i18n
-shared/     Shared resources: translations, icons, captured vfox output (test fixtures), an offline test plugin
+shared/     Shared resources: translations, icons, captured vfox output (test fixtures), an offline
+            test plugin, packaging files, the icon font tool and the shared parts of the sandboxes
 flutter/    The Flutter implementation
+web/        The web front end of the Tauri and Wails implementations
+tauri/      The Tauri implementation
 .github/    CI workflows: repository checks and one workflow per implementation
 ```
 

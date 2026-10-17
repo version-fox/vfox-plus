@@ -145,7 +145,7 @@ case "${1:-}" in
     as_tester flutter build linux --no-pub --release
     smoke_test "$APP/build/linux/x64/release/bundle/vfox-plus" runuser -u tester -- env HOME=/home/tester
     as_tester env SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date +%s)}" packaging/linux/build_deb.sh /home/tester/dist
-    desktop-file-validate "$APP/packaging/linux/dev.vfox.VfoxPlus.desktop"
+    desktop-file-validate "$WORK/shared/packaging/linux/dev.vfox.VfoxPlus.desktop"
     as_tester lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog \
       /home/tester/dist/*.deb
     publish /home/tester/dist/*

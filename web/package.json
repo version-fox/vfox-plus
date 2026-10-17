@@ -1,0 +1,57 @@
+{
+  "name": "vfox-plus-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The web front end of vfox-plus, shared by the Tauri and Wails implementations.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/version-fox/vfox-plus.git",
+    "directory": "web"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "assets": "node tools/icon-font.mjs && node tools/licenses.mjs",
+    "dev": "vite --mode development",
+    "build": "npm run build:tauri && npm run build:wails",
+    "build:tauri": "vite build --mode tauri --outDir dist/tauri",
+    "build:wails": "vite build --mode wails --outDir dist/wails",
+    "build:e2e:tauri": "VFOX_PLUS_E2E=1 vite build --mode tauri --outDir dist/tauri-e2e",
+    "build:e2e:wails": "VFOX_PLUS_E2E=1 vite build --mode wails --outDir dist/wails-e2e",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --max-warnings 0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "licenses": "node tools/licenses.mjs"
+  },
+  "dependencies": {
+    "@lit-labs/virtualizer": "^2.1.1",
+    "@m3e/web": "^2.10.1",
+    "@material/material-color-utilities": "^0.4.0",
+    "@tauri-apps/api": "^2.12.4",
+    "@wailsio/runtime": "^3.0.0-beta.30",
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.0",
+    "@types/ws": "^8.18.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.13.0",
+    "eslint-plugin-lit": "^2.3.1",
+    "eslint-plugin-wc": "^3.1.0",
+    "globals": "^17.13.0",
+    "happy-dom": "^21.0.3",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5",
+    "ws": "^8.22.0"
+  }
+}

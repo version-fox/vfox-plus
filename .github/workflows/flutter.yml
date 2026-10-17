@@ -192,7 +192,7 @@ jobs:
           SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" packaging/linux/build_deb.sh "$GITHUB_WORKSPACE/dist"
       - name: Validate the packages
         run: |
-          desktop-file-validate packaging/linux/dev.vfox.VfoxPlus.desktop
+          desktop-file-validate ../shared/packaging/linux/dev.vfox.VfoxPlus.desktop
           # CI packages carry a placeholder maintainer; releases set DEB_MAINTAINER.
           lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog \
             "$GITHUB_WORKSPACE"/dist/*.deb

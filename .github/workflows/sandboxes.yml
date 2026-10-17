@@ -1,0 +1,101 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Docker sandboxes that build on shared/sandbox: whenever a sandbox, its
+# pinned versions or the shared parts change, builds the images of the
+# affected implementations and runs `sandbox.sh all` in them, so that the
+# sandboxes keep working for contributors. Flutter has flutter-sandbox.yml.
+name: Sandboxes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*/sandbox/**"
+      - "*/versions.env"
+      - shared/sandbox/**
+      - shared/tools/**
+      - .github/workflows/sandboxes.yml
+  pull_request:
+    paths:
+      - "*/sandbox/**"
+      - "*/versions.env"
+      - shared/sandbox/**
+      - shared/tools/**
+      - .github/workflows/sandboxes.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Find the affected sandboxes
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    outputs:
+      implementations: ${{ steps.select.outputs.implementations }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            common: &common
+              - shared/sandbox/**
+              - shared/tools/**
+              - .github/workflows/sandboxes.yml
+            web:
+              - *common
+              - web/sandbox/**
+              - web/versions.env
+            tauri:
+              - *common
+              - web/sandbox/**
+              - web/versions.env
+              - tauri/sandbox/**
+              - tauri/versions.env
+      - name: Select the sandboxes to run
+        id: select
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT" == workflow_dispatch ]]; then
+            implementations='["web","tauri"]'
+          else
+            implementations="$(jq -c 'map(select(. != "common"))' <<< "$CHANGES")"
+          fi
+          echo "implementations=$implementations" >> "$GITHUB_OUTPUT"
+
+  sandbox:
+    name: ${{ matrix.implementation }}
+    needs: changes
+    if: needs.changes.outputs.implementations != '[]'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        implementation: ${{ fromJSON(needs.changes.outputs.implementations) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run the sandbox
+        run: ${{ matrix.implementation }}/sandbox/sandbox.sh all

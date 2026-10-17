@@ -1,0 +1,71 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[package]
+name = "vfox-plus"
+version = "0.1.0"
+description = "Material 3 Expressive desktop GUI for the vfox version manager, built with Tauri."
+license = "Apache-2.0"
+repository = "https://github.com/version-fox/vfox-plus"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[lib]
+name = "vfox_plus_lib"
+crate-type = ["rlib"]
+
+# Every runtime dependency must be licensed under terms that are compatible
+# with, or no more restrictive than, the Apache License 2.0. See
+# ../../docs/architecture.md#dependencies before adding a new one.
+[dependencies]
+# MIT OR Apache-2.0. The application shell: window, web view and IPC.
+tauri = { version = "2.12", features = [] }
+# MIT OR Apache-2.0. Native file and folder choosers.
+tauri-plugin-dialog = "2.8"
+# MIT OR Apache-2.0. Opens links in the default browser.
+tauri-plugin-opener = "2.7"
+# MIT OR Apache-2.0. Copies text to the clipboard.
+tauri-plugin-clipboard-manager = "2.5"
+# MIT OR Apache-2.0. The JSON messages of the host protocol.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# MIT OR Apache-2.0. Process output travels to the front end as base64.
+base64 = "0.22"
+# MIT. Sends SIGTERM to vfox, as the CLI contract asks, without unsafe code.
+nix = { version = "0.30", default-features = false, features = ["signal"] }
+# MIT OR Apache-2.0. Creates private directories for copies of plugins.
+tempfile = "3"
+# MIT. Reads the accent colour from the XDG desktop portal.
+zbus = { version = "5", default-features = false, features = ["blocking-api", "tokio"] }
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+needless_pass_by_value = "allow"
+
+[profile.release]
+# Smaller and faster binaries; see docs/architecture.md#memory.
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "vfox+",
+  "mainBinaryName": "vfox-plus",
+  "version": "0.1.0",
+  "identifier": "dev.vfox.VfoxPlus",
+  "build": {
+    "frontendDist": "../../web/dist/tauri",
+    "beforeBuildCommand": "npm --prefix ../web run build:tauri"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "vfox+",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 360,
+        "minHeight": 480
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"]
+  }
+}

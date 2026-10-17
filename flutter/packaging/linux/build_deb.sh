@@ -24,7 +24,9 @@ set -euo pipefail
 umask 022
 
 FLUTTER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PACKAGING_DIR="$FLUTTER_DIR/packaging/linux"
+# The desktop entry, the AppStream metadata and the icon are shared by every
+# implementation.
+SHARED_PACKAGING_DIR="$FLUTTER_DIR/../shared/packaging/linux"
 OUTPUT_DIR="$(mkdir -p "${1:-$FLUTTER_DIR/../dist}" && cd "${1:-$FLUTTER_DIR/../dist}" && pwd)"
 APP_ID="dev.vfox.VfoxPlus"
 PACKAGE="vfox-plus"
@@ -63,9 +65,9 @@ fi
 # snapshot are already stripped.
 strip --strip-unneeded "$ROOT/usr/lib/$PACKAGE/$PACKAGE" "$ROOT/usr/lib/$PACKAGE"/lib/lib*_plugin.so
 
-install -Dm644 "$PACKAGING_DIR/$APP_ID.desktop" "$ROOT/usr/share/applications/$APP_ID.desktop"
-install -Dm644 "$PACKAGING_DIR/$APP_ID.metainfo.xml" "$ROOT/usr/share/metainfo/$APP_ID.metainfo.xml"
-install -Dm644 "$FLUTTER_DIR/assets/brand/vfox-plus.svg" "$ROOT/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
+install -Dm644 "$SHARED_PACKAGING_DIR/$APP_ID.desktop" "$ROOT/usr/share/applications/$APP_ID.desktop"
+install -Dm644 "$SHARED_PACKAGING_DIR/$APP_ID.metainfo.xml" "$ROOT/usr/share/metainfo/$APP_ID.metainfo.xml"
+install -Dm644 "$SHARED_PACKAGING_DIR/$APP_ID.svg" "$ROOT/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
 install -d "$ROOT/usr/share/doc/$PACKAGE"
 cat > "$ROOT/usr/share/doc/$PACKAGE/copyright" <<EOF
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/

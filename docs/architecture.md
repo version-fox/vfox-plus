@@ -21,14 +21,28 @@ vfox-plus/
 │   ├── i18n/              Translation catalogues (ARB: JSON with ICU messages)
 │   ├── icons.json         Material Symbols used by the user interface
 │   ├── fixtures/          Captured vfox output and the expected parser results
-│   └── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
+│   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
+│   ├── packaging/linux/   Desktop entry, AppStream metadata, icon, .deb script
+│   ├── tools/             The icon font tool
+│   └── sandbox/           Shared parts of the Docker sandboxes
 ├── flutter/               The Flutter implementation (Linux desktop)
-└── <stack>/               Future implementations, one directory each
+├── web/                   The web front end shared by tauri/ and wails/
+├── tauri/                 The Tauri implementation
+└── <stack>/               The other implementations, one directory each
 ```
 
 An implementation owns exactly one top-level directory. It reads the shared
 resources from `../shared` and must not copy them, so that a translation or a
 fixture is changed in one place only.
+
+The one exception is [`web/`](../web): Tauri and Wails are both native shells
+around a web view, whose user interface is "bring your own web front end".
+They share one front end — the vfox client, the task queue and the user
+interface in TypeScript — and each adds only its native side, which answers a
+small host protocol (spawning processes, a few file operations, dialogs, links,
+the clipboard and the accent colour). Their comparison is then about what
+actually differs between them: the language of the native side, packaging and
+memory.
 
 ## Layers
 
@@ -78,7 +92,8 @@ interface so that UI tests can replace it.
 
 In the Flutter implementation the layers are `lib/src/core`, `lib/src/state`
 and `lib/src/ui`, and `test/project_test.dart` fails the build if a layer
-imports a layer above it.
+imports a layer above it. In the web front end they are `src/core`,
+`src/state` and `src/ui`, and ESLint enforces the same rule.
 
 ## Talking to vfox
 
@@ -108,6 +123,9 @@ Unknown keys must be preserved or ignored, never rejected.
 | `vfoxExecutable`   | string          | absent       | Path of vfox; absent means "detect".                       |
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
 | `railExpanded`     | boolean         | `false`      | Whether the navigation rail shows its labels.              |
+
+The web front end keeps unknown keys when it saves the file, so settings
+written by a newer implementation survive.
 
 The vfox configuration (proxy, registry, storage directory, …) is **not** part
 of these settings: it belongs to vfox and is edited through `vfox config`.

@@ -43,7 +43,9 @@ state layer, and the UI on top.
   When the technology lacks a Material 3 Expressive component, implement it
   following the specification rather than substituting a Material 2 or 3 one.
 - Use the Material Symbols Rounded icons listed in
-  [`shared/icons.json`](../shared/icons.json), and ship only those glyphs.
+  [`shared/icons.json`](../shared/icons.json), and ship only those glyphs:
+  [`shared/tools/icon_font.py`](../shared/tools/icon_font.py) cuts them out of
+  a pinned version of the font at build time.
 - Read the translations from [`shared/i18n`](../shared/i18n); do not copy them.
   See [the i18n guide](i18n.md).
 - Support English and Simplified Chinese, light and dark themes, the desktop
@@ -58,8 +60,9 @@ state layer, and the UI on top.
   [`shared/test-plugin`](../shared/test-plugin), which needs no network and
   touches no vfox installation (see
   [the CLI contract](vfox-cli-contract.md#testing-against-the-real-vfox)).
-- A way to run all checks without changing the developer's machine, like the
-  Docker sandbox in [`flutter/sandbox`](../flutter/sandbox).
+- A way to run all checks without changing the developer's machine: a Docker
+  sandbox built on [`shared/sandbox`](../shared/sandbox) (see
+  [`tauri/sandbox`](../tauri/sandbox) for a small example).
 - A formatter and a linter, both enforced in CI.
 - A workflow `.github/workflows/<directory>.yml` that only runs for changes in
   the directory, `shared/` and the workflow itself, and that builds the
@@ -70,14 +73,18 @@ state layer, and the UI on top.
 
 The issue asks for:
 
-- a `.deb` for Ubuntu 26.04 (application ID `dev.vfox.VfoxPlus`, desktop file
-  and icon as in [`flutter/packaging/linux`](../flutter/packaging/linux));
+- a `.deb` for Ubuntu 26.04 (application ID `dev.vfox.VfoxPlus`, with the
+  desktop file, AppStream metadata and icon of
+  [`shared/packaging/linux`](../shared/packaging/linux));
+  [`build-deb.sh`](../shared/packaging/linux/build-deb.sh) packages a release
+  build with the common layout, names the package `vfox-plus-<directory>` and
+  makes it replace the other implementations;
 - an `.msixbundle` for Windows 11;
 - an `.apk` for remote use from Android.
 
 Install the `.deb` into a clean Ubuntu 26.04 container and start the application
-there, as the `install-test` task of
-[`flutter/sandbox/run-task.sh`](../flutter/sandbox/run-task.sh) does: GUI
+there, as `install_deb_test` of
+[`shared/sandbox/task-lib.sh`](../shared/sandbox/task-lib.sh) does: GUI
 toolkits load some libraries at run time, which `ldd` does not show (Flutter
 needs `libegl1` and `libgles2`), so only a clean system proves that the declared
 dependencies are complete. Ship the licenses of bundled third-party assets, such
@@ -85,7 +92,9 @@ as icon fonts, with the application.
 
 Each implementation should also report its memory use: the resident set size
 after start-up on the Home page and after opening the version list of Node.js,
-measured on the same machine as the other implementations.
+measured on the same machine as the other implementations. The `measure` task
+of the sandboxes does this in Docker, with Xvfb and software rendering, and
+adds the memory of child processes such as the processes of a web view.
 
 ## 6. Document
 

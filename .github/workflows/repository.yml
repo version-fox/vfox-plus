@@ -58,8 +58,8 @@ jobs:
           ./actionlint -color
       - name: Lint shell scripts
         run: |
-          shellcheck --external-sources shared/fixtures/capture.sh flutter/packaging/linux/build_deb.sh \
-            flutter/sandbox/sandbox.sh flutter/sandbox/run-task.sh
+          # shellcheck disable=SC2046 # Every tracked script, split into arguments.
+          shellcheck --external-sources $(git ls-files '*.sh')
       - name: Keep binary files out of the repository
         run: |
           # Images belong on an image host, and build outputs such as the icon
@@ -69,6 +69,10 @@ jobs:
             echo "::error::Do not commit binary files; host images and generate build outputs instead: $binaries"
             exit 1
           fi
+      - name: Keep the application icon in one version
+        run: |
+          # Flutter bundles the icon as an asset, which must live in its package.
+          cmp flutter/assets/brand/vfox-plus.svg shared/packaging/linux/dev.vfox.VfoxPlus.svg
       - name: Validate shared JSON resources
         run: |
           for file in shared/icons.json shared/i18n/*.arb shared/fixtures/*/cases.json; do
