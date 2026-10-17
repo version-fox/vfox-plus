@@ -31,6 +31,9 @@
 #   --notice FILE         third-party licenses, installed as
 #                         /usr/share/doc/<package>/THIRD-PARTY-LICENSES
 #   --override TEXT       a lintian override, may be repeated
+#   --strip               removes the symbols of the ELF files of the stage, for
+#                         stages that bundle unstripped native code, such as a
+#                         Java runtime
 #
 # Every package provides, conflicts with and replaces "vfox-plus", so that the
 # implementations, which share the application ID dev.vfox.VfoxPlus, replace
@@ -45,9 +48,14 @@ REPO="$(cd "$PACKAGING_DIR/../../.." && pwd)"
 APP_ID="dev.vfox.VfoxPlus"
 MAINTAINER="${DEB_MAINTAINER:-Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>}"
 
-package="" version="" stage="" executable="" depends="" technology="" notice=""
+package="" version="" stage="" executable="" depends="" technology="" notice="" strip=false
 overrides=()
 while [[ $# -gt 1 ]]; do
+  if [[ "$1" == --strip ]]; then
+    strip=true
+    shift
+    continue
+  fi
   case "$1" in
     --package) package="$2" ;;
     --version) version="$2" ;;
@@ -82,6 +90,13 @@ ROOT="$TEMPORARY/$package"
 install -d "$ROOT/usr/lib/vfox-plus" "$ROOT/usr/bin"
 cp -a "$stage/." "$ROOT/usr/lib/vfox-plus/"
 ln -s "../lib/vfox-plus/$executable" "$ROOT/usr/bin/vfox-plus"
+if [[ "$strip" == true ]]; then
+  while IFS= read -r -d '' file; do
+    if file --brief "$file" | grep -q '^ELF'; then
+      strip --strip-unneeded "$file"
+    fi
+  done < <(find "$ROOT/usr/lib/vfox-plus" -type f -print0)
+fi
 
 install -Dm644 "$PACKAGING_DIR/$APP_ID.desktop" "$ROOT/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$PACKAGING_DIR/$APP_ID.metainfo.xml" "$ROOT/usr/share/metainfo/$APP_ID.metainfo.xml"
@@ -154,7 +169,7 @@ DEB="$output/${package}_${version}_${DEB_ARCH}.deb"
 TARBALL="$output/${package}-${version}-linux-${ARCH}.tar.gz"
 dpkg-deb --root-owner-group -Zxz --build "$ROOT" "$DEB" > /dev/null
 # The tarball also carries the licenses, which the .deb has in its documentation.
-tar --owner=0 --group=0 -czf "$TARBALL" -C "$stage" . -C "$REPO" LICENSE \
+tar --owner=0 --group=0 -czf "$TARBALL" -C "$ROOT/usr/lib/vfox-plus" . -C "$REPO" LICENSE \
   ${notice:+-C "$(dirname "$notice")" "$(basename "$notice")"}
 echo "$DEB"
 echo "$TARBALL"

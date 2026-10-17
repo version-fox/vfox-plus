@@ -54,9 +54,10 @@ give the interface its character:
 - **Avatars** of plugins use a shape derived from a stable hash of the plugin
   name (9-sided cookie, 4-leaf clover, sunny, soft burst, 6-sided cookie, gem,
   pentagon, flower, puffy diamond, 4-sided cookie, arch, 8-leaf clover) and one
-  of three colour pairs: primary container, secondary and tertiary container
-  (not secondary container, which marks selected list items). Hovering spins the
-  shape by 30° on the fast spatial spring.
+  of three colour pairs: primary fixed dim, secondary and tertiary container.
+  Not secondary container, which marks selected list items, nor primary
+  container, which some seeds (the vfox orange among them) make just as light.
+  Hovering spins the shape by 30° on the fast spatial spring.
 - **Empty and error states** show their icon on a large shape.
 - **Statistic tiles** show a large shape partly hidden behind their edge.
 - **Colour swatches** morph from a circle into a flower, turning slightly, when

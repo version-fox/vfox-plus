@@ -205,10 +205,12 @@ class _ShapeAvatarState extends State<ShapeAvatar> {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     final int hash = stableHash(widget.name);
-    // Selected list items use the secondary container colour, so avatars
-    // avoid it and stay visible on them.
+    // Selected list items use the secondary container colour. Avatars avoid
+    // it, and the primary container too, which some seeds (the vfox orange
+    // among them) make just as light, so that they stay visible on selected
+    // items.
     final (Color background, Color foreground) = switch (hash % 3) {
-      0 => (colors.primaryContainer, colors.onPrimaryContainer),
+      0 => (colors.primaryFixedDim, colors.onPrimaryFixed),
       1 => (colors.secondary, colors.onSecondary),
       _ => (colors.tertiaryContainer, colors.onTertiaryContainer),
     };

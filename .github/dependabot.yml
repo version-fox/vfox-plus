@@ -28,6 +28,13 @@ updates:
     groups:
       npm-packages:
         patterns: ["*"]
+  - package-ecosystem: gradle
+    directory: /compose
+    schedule:
+      interval: weekly
+    groups:
+      gradle-dependencies:
+        patterns: ["*"]
   - package-ecosystem: gomod
     directory: /wails
     schedule:

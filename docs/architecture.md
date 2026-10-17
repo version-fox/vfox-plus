@@ -29,6 +29,7 @@ vfox-plus/
 ├── web/                   The web front end shared by tauri/ and wails/
 ├── tauri/                 The Tauri implementation
 ├── wails/                 The Wails implementation
+├── compose/               The Compose Multiplatform implementation
 └── <stack>/               The other implementations, one directory each
 ```
 

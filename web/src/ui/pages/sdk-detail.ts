@@ -102,7 +102,9 @@ export class SdkDetail extends LitElement {
       .narrow .actions .spacer {
         flex: 1 1 auto;
       }
+      /* The tabs keep their own width, as in the other implementations. */
       .tabs {
+        display: flex;
         padding: 0 var(--gap-xl) var(--gap-l);
       }
       .list {
@@ -199,6 +201,7 @@ export class SdkDetail extends LitElement {
       }
       .danger {
         color: var(--md-sys-color-error);
+        --m3e-menu-item-color: var(--md-sys-color-error);
       }
     `,
   ];

@@ -110,13 +110,14 @@ export class Avatar extends LitElement {
 
   override render(): TemplateResult {
     const hash = stableHash(this.name);
-    // Selected list items use the secondary container colour, so avatars avoid
-    // it and stay visible on them.
+    // Selected list items use the secondary container colour. Avatars avoid it,
+    // and the primary container too, which some seeds (the vfox orange among
+    // them) make just as light, so that they stay visible on selected items.
     const [background, foreground] = [
-      ['primary-container', 'on-primary-container'],
+      ['primary-fixed-dim', 'on-primary-fixed'],
       ['secondary', 'on-secondary'],
       ['tertiary-container', 'on-tertiary-container'],
-    ][hash % 3] ?? ['primary-container', 'on-primary-container'];
+    ][hash % 3] ?? ['primary-fixed-dim', 'on-primary-fixed'];
     const first = new Intl.Segmenter().segment(this.name)[Symbol.iterator]().next().value?.segment;
     const initial = (first ?? '?').toUpperCase();
     return html`<div
