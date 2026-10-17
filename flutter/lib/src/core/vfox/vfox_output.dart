@@ -278,29 +278,32 @@ double? parseDownloadProgress(String line) {
 
 /// Picks a short, human readable error message from a failed command.
 ///
-/// vfox prints most errors to standard output (`fmt.Println(err)`) and some
-/// to standard error (`cli.Exit`), so both are considered. Progress bar
-/// redraws and blank lines are ignored, and the last meaningful line wins,
-/// unless it is the generic `failed to install <name>` trailer, in which case
-/// the more specific line printed before it is used.
+/// Usage errors (`cli.Exit`) go to standard error. The error a command returns
+/// goes to standard output up to vfox 1.0.12 (`fmt.Println(err)`) and to
+/// standard error from 1.0.13, while what a command prints before failing,
+/// such as the reason of a failed installation, stays on standard output. So
+/// the lines of standard output are read first and those of standard error
+/// last. Progress bar redraws and blank lines are ignored, and the last
+/// meaningful line wins, unless it is the generic `failed to install <name>`
+/// trailer, in which case the more specific line printed before it is used.
 String summarizeError(String stdout, String stderr) {
-  for (final String text in <String>[stderr, stdout]) {
-    final List<String> lines = _lines(text)
-        .map((String line) => line.trim())
-        .where((String line) => line.isNotEmpty && parseDownloadProgress(line) == null)
-        .toList();
-    if (lines.isEmpty) {
-      continue;
-    }
-    if (lines.length > 1 && _genericInstallFailure.hasMatch(lines.last)) {
-      return lines[lines.length - 2];
-    }
-    return lines.last;
+  final List<String> lines = <String>[..._meaningfulLines(stdout), ..._meaningfulLines(stderr)];
+  if (lines.isEmpty) {
+    return '';
   }
-  return '';
+  if (lines.length > 1 && _genericInstallFailure.hasMatch(lines.last)) {
+    return lines[lines.length - 2];
+  }
+  return lines.last;
 }
 
 final RegExp _genericInstallFailure = RegExp(r'^failed to install\b');
+
+List<String> _meaningfulLines(String text) =>
+    _lines(text)
+        .map((String line) => line.trim())
+        .where((String line) => line.isNotEmpty && parseDownloadProgress(line) == null)
+        .toList();
 
 String _stripVPrefix(String version) => version.startsWith('v') && version.length > 1 ? version.substring(1) : version;
 

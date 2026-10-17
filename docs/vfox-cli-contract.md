@@ -2,10 +2,10 @@
 
 This document specifies how a vfox-plus implementation drives the vfox command
 line tool: which commands it runs, in which environment, how it reads their
-output and how it reports errors. It was written against **vfox 1.0.12**; the
-captured outputs it refers to are in
-[`shared/fixtures/vfox-1.0.12`](../shared/fixtures), together with the expected
-parser results in `cases.json`.
+output and how it reports errors. It describes **vfox 1.0.13** and notes where
+1.0.12 behaves differently; the captured outputs of both versions are in
+[`shared/fixtures`](../shared/fixtures), together with the expected parser
+results in `cases.json`.
 
 The minimum supported vfox version is **1.0.0** (the `.vfox.toml` layout and the
 non-interactive behaviour used below exist since then; `info --format` since
@@ -59,8 +59,10 @@ invocations share one directory per day; vfox removes stale ones itself.
 
 ## Output conventions
 
-- Errors returned by a command are printed to **standard output** by
-  `fmt.Println`, with exit code 1.
+- Errors returned by a command are printed with exit code 1: to **standard
+  error** since vfox 1.0.13, to **standard output** (`fmt.Println`) up to
+  1.0.12. What a command prints before it fails, such as the reason why an
+  installation failed, stays on standard output.
 - Usage errors (`cli.Exit`) are printed to **standard error**, with exit code 1.
 - The download progress bar is printed to **standard error**. It ignores
   `NO_COLOR`, contains ANSI colour codes and redraws itself with carriage
@@ -79,11 +81,12 @@ Parsers therefore:
 The message shown to the user for a failed command (exit code ≠ 0) is computed
 from its output:
 
-1. Take the meaningful lines of standard error: non-blank and not a download
-   progress line. If there are none, take those of standard output.
+1. Take the meaningful lines of standard output followed by those of standard
+   error: non-blank and not a download progress line.
 2. Use the last line, unless it is the generic trailer `failed to install …`
    and there is a line before it, which is then more specific
-   (`failed to download maven@3.9.16 file, err:unexpected EOF`).
+   (`failed to download maven@3.9.16 file, err:unexpected EOF`). Since vfox
+   1.0.13 the trailer is on standard error and that line on standard output.
 3. If no line is left, report the exit code.
 
 If the executable cannot be started at all, report vfox as missing.
@@ -96,7 +99,7 @@ Queries are read-only and may run concurrently.
 
 ```console
 $ vfox --version
-vfox version 1.0.12
+vfox version 1.0.13
 ```
 
 The version is the first `\d+.\d+.\d+…` token. Fixture: `version`.
@@ -199,7 +202,7 @@ proxy.enable = false
 
 Each line is `<key> = <value>`; the value may be empty. Unknown keys must be
 shown and editable as text, so that the GUI keeps working when vfox adds
-settings. The keys of vfox 1.0.12:
+settings. The keys of vfox 1.0.13, the same as in 1.0.12:
 
 | Key                           | Type                                  | Notes                                             |
 | ----------------------------- | ------------------------------------- | ------------------------------------------------- |
@@ -234,7 +237,7 @@ output streamed to the user.
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
 | Stop using       | `vfox unuse --global <name>`                         | `/` or project    | |
 | Add plugin       | `vfox add <name>`                                    | `/`               | |
-| Add from source  | `vfox add --source <url-or-path> [--alias <alias>] [<name>]` | `/`       | The name defaults to the plugin's own. Pass a copy of a local `.lua` file, see [the quirks](#known-quirks-of-vfox-1012). |
+| Add from source  | `vfox add --source <url-or-path> [--alias <alias>] [<name>]` | `/`       | The name defaults to the plugin's own. Pass a copy of a local `.lua` file, see [the quirks](#known-quirks). |
 | Remove plugin    | `vfox remove --yes <name>`                           | `/`               | Also deletes every installed version. Without `--yes` it fails (`remove-without-yes`). |
 | Update plugin    | `vfox update <name>`                                 | `/`               | |
 | Update all       | `vfox update --all`                                  | `/`               | |
@@ -274,7 +277,25 @@ While installing, read standard error line by line (splitting on `\r`) and match
 `Downloading\.\.\.\s+(\d{1,3})%`. Show the last value as determinate progress,
 and do not add these lines to the visible log. Fixture: `install`.
 
-## Known quirks of vfox 1.0.12
+### Cancelling
+
+A running command is cancelled by sending `SIGTERM` to vfox; the task then
+counts as cancelled whatever the exit code. What an interrupted `vfox install`
+leaves behind depends on the version:
+
+- up to 1.0.12, vfox catches the signal, deletes the partial version directory
+  and exits with code 0;
+- since 1.0.13, the signal ends vfox. The partial directory stays, next to a
+  `.v-<version>.installing` marker; `vfox list` does not show that version, and
+  the next `vfox install` of it removes the leftovers first.
+
+Since 1.0.13, vfox also refuses to install a version while another vfox
+process, for example in a terminal, installs it:
+`cannot install <name>@<version>: installation is in progress or cannot be locked: …`.
+
+## Known quirks
+
+These hold for vfox 1.0.12 and 1.0.13.
 
 - `vfox add a b` reports per-plugin failures but exits with 0. The GUI adds one
   plugin per command.
@@ -291,8 +312,10 @@ and do not add these lines to the visible log. Fixture: `install`.
   copies a local `.lua` file into a new directory in vfox's temporary directory
   and passes the copy; vfox never cleans up directories there whose names do not
   start with a date.
-- `vfox --version` and most errors go to standard output; usage errors and
-  progress go to standard error (see [Output conventions](#output-conventions)).
+- Output is split over both streams: `vfox --version` goes to standard output,
+  progress and usage errors to standard error, and the errors that commands
+  return to standard output up to 1.0.12 but to standard error since 1.0.13
+  (see [Output conventions](#output-conventions)).
 
 ## Testing against the real vfox
 

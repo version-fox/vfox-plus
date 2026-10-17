@@ -24,7 +24,7 @@ import 'package:vfox_plus/src/core/vfox/vfox_output.dart';
 import 'package:vfox_plus/src/ui/platform_services.dart';
 
 /// The captured vfox outputs in `shared/fixtures`.
-const String fixturesVersion = '1.0.12';
+const String fixturesVersion = '1.0.13';
 
 /// Reads a capture of `shared/fixtures`, in which control characters are
 /// written as `\xHH` and backslashes as `\\`.

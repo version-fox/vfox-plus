@@ -43,7 +43,7 @@ void main() {
 
   setUp(() async {
     sandbox = Directory.systemTemp.createTempSync('vfox-plus-fake-e2e');
-    final String fixtures = '${sharedDirectory().path}/fixtures/vfox-1.0.12';
+    final String fixtures = '${sharedDirectory().path}/fixtures/vfox-1.0.13';
     final File vfox = await writeExecutable('${sandbox.path}/vfox', fakeVfoxScript(fixtures));
     final settings = JsonFileSettingsStore(File('${sandbox.path}/config/vfox-plus/settings.json'));
     await settings.save(AppSettings(language: LanguagePreference.english, vfoxExecutable: vfox.path));
@@ -69,7 +69,7 @@ void main() {
     await tester.pumpWidget(VfoxPlusApp(model: model));
     await model.start();
     await pumpUntil(tester, find.text('Versions in use'));
-    expect(find.text('vfox 1.0.12 · ${sandbox.path}/vfox'), findsOneWidget);
+    expect(find.text('vfox 1.0.13 · ${sandbox.path}/vfox'), findsOneWidget);
 
     await tester.tap(railDestination('SDKs'));
     await pumpUntil(tester, find.text('nodejs'));

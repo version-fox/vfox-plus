@@ -52,6 +52,8 @@ defaults:
 jobs:
   check:
     name: Format, analyze and test
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
@@ -99,6 +101,8 @@ jobs:
 
   integration:
     name: End-to-end test on Linux
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
@@ -142,6 +146,8 @@ jobs:
 
   package:
     name: Linux packages
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
     needs: check
     runs-on: ubuntu-26.04
     timeout-minutes: 25

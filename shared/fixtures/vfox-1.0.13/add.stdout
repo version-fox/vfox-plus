@@ -1,0 +1,10 @@
+Fetching nodejs manifest... 
+Downloading vfox-nodejs-0.5.1.zip... 
+Validating /tmp/vfox-sb/home/.vfox/plugin/vfox-nodejs-0.5.1.zip ...
+Plugin info:
+Name     -> nodejs
+Version  -> 0.5.1
+Homepage -> https://github.com/version-fox/vfox-nodejs
+Desc     -> Node.js runtime environment.
+Add nodejs plugin successfully! 
+Please use `vfox install nodejs@<version>` to install the version you need.

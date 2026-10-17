@@ -77,7 +77,10 @@ error summary follows the rules in the
    `flutter/sandbox/sandbox.sh fixtures`: it captures in a container, where
    nothing has to be installed, and writes to `dist/sandbox/fixtures/`.
 2. Copy `cases.json` from the previous version, then compare the new output
-   with the old output (`diff -r`) and adjust the expected values.
+   with the old output (`diff -r`) and adjust the expected values. Keep the
+   directory of the previous version when its output differs, so that the
+   parsers stay tested against both (vfox 1.0.13 moved errors from standard
+   output to standard error).
 3. Run the parser tests of every implementation, for example
    `cd flutter && flutter test test/core`.
 4. Document any change of the output format in

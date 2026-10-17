@@ -1,0 +1,10 @@
+plugin.http.timeout = 0s
+plugin.http.downloadTimeout = 0s
+proxy.url = 
+proxy.enable = false
+storage.sdkPath = 
+registry.address = 
+legacyVersionFile.enable = true
+legacyVersionFile.strategy = specified
+cache.availableHookDuration = 12h
+gitignore.enable = true

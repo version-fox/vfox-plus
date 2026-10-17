@@ -31,7 +31,7 @@ void main() {
   testWidgets('the home page summarises the installed SDKs', (WidgetTester tester) async {
     await pumpApp(tester);
     expect(find.text('vfox+'), findsWidgets);
-    expect(find.text('vfox 1.0.12 · /usr/bin/vfox'), findsOneWidget);
+    expect(find.text('vfox 1.0.13 · /usr/bin/vfox'), findsOneWidget);
     // 3 plugins, 4 installed versions, 2 in use.
     expect(find.text('3'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);

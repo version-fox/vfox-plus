@@ -154,7 +154,7 @@ Dialogs scale in on a spring.
   `.lua` script, with a file chooser limited to these types, labelled
   `pluginsCustomFileType`) and an optional alias. vfox moves local `.lua` files
   away, so the application passes it a temporary copy (see
-  [the CLI contract](vfox-cli-contract.md#known-quirks-of-vfox-1012)).
+  [the CLI contract](vfox-cli-contract.md#known-quirks)).
 
 ## Tasks
 
