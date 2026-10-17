@@ -90,6 +90,12 @@ jobs:
               - tauri/versions.env
               - dioxus/sandbox/**
               - dioxus/versions.env
+            capacitor:
+              - *common
+              - web/sandbox/**
+              - web/versions.env
+              - capacitor/sandbox/**
+              - capacitor/versions.env
       - name: Select the sandboxes to run
         id: select
         env:
@@ -97,7 +103,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           if [[ "$EVENT" == workflow_dispatch ]]; then
-            implementations='["web","tauri","wails","compose","dioxus"]'
+            implementations='["web","tauri","wails","compose","dioxus","capacitor"]'
           else
             implementations="$(jq -c 'map(select(. != "common"))' <<< "$CHANGES")"
           fi

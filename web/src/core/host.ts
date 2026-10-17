@@ -88,4 +88,9 @@ export interface Host extends ProcessRunner, PlatformServices {
   exit(code: number): Promise<void>;
   /** Writes `message` to the standard output of the application. Used by the end-to-end tests. */
   log(message: string): Promise<void>;
+  /**
+   * Resizes the window to `width` × `height` logical pixels. Used by the
+   * screenshots scenario; rejects in shells that do not support it.
+   */
+  resizeWindow(width: number, height: number): Promise<void>;
 }

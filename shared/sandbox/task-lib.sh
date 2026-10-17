@@ -32,6 +32,9 @@ SCREEN=(-screen 0 1280x800x24)
 # namespaces that containers do not have. The applications only show their own
 # front end, so the confinement is not needed for the tests.
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+# The same holds for the sandbox of Chromium in Electron, whose setuid helper
+# and user namespaces do not work in containers.
+export ELECTRON_DISABLE_SANDBOX=1
 
 # as_tester <directory> <command...>: runs a command as tester in a directory.
 as_tester() {

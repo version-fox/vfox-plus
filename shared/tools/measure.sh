@@ -40,7 +40,14 @@ APP_PID=""
 # shellcheck disable=SC2329 # Invoked by the trap below.
 cleanup() {
   [[ -z "$APP_PID" ]] || kill "$APP_PID" 2> /dev/null || true
-  rm -rf "$SANDBOX"
+  # The processes of a web view may write their caches for a moment after the
+  # application has ended; the result of the test does not depend on them.
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    rm -rf "$SANDBOX" 2> /dev/null && return 0
+    sleep "$attempt"
+  done
+  echo "Could not remove $SANDBOX" >&2
 }
 trap cleanup EXIT
 

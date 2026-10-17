@@ -43,6 +43,8 @@ export interface DesktopOperations {
   log(message: string): Promise<void>;
   /** The environment the front end sees; defaults to `process.env`. */
   environment?(): Record<string, string>;
+  /** Resizes the window, if the desktop has one to resize. */
+  resizeWindow?(width: number, height: number): Promise<void>;
 }
 
 /** The executable of `child` could not be started. */
@@ -153,6 +155,12 @@ export class NodeHost {
         return null;
       case 'log':
         await this.desktop.log(text(0));
+        return null;
+      case 'resizeWindow':
+        if (this.desktop.resizeWindow === undefined) {
+          throw new Error('The window cannot be resized.');
+        }
+        await this.desktop.resizeWindow(Number(p[0]), Number(p[1]));
         return null;
       default:
         throw new Error(`Unknown method ${String(method)}`);

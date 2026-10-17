@@ -7,6 +7,10 @@ what a web view cannot do — spawning vfox, a few file operations and the
 desktop integration — through the small [host protocol](src/hosts/protocol.ts).
 Sharing the front end keeps the comparison of the two shells about what
 differs between them: the language of the native side, packaging and memory.
+The [Capacitor implementation](../capacitor) shares everything here but the
+Lit elements: the core, the state, `src/ui/context.ts`, `theme.ts` and
+`motion.ts`, the Node.js host of [`dev-host/`](dev-host) and the end-to-end
+scenarios. Keep those free of Lit.
 
 It follows the shared specification in [`../docs`](../docs) and uses the shared
 resources in [`../shared`](../shared).
@@ -96,11 +100,15 @@ application:
 | `fake`    | The application against the fake vfox, which also checks the environment the CLI contract requires                                                                                             |
 | `real`    | Every operation against the real vfox named by `VFOX_PLUS_E2E_VFOX`, with the offline plugin of [`shared/test-plugin`](../shared/test-plugin) and [`e2e/test-server.mjs`](e2e/test-server.mjs) |
 | `measure` | Prints the memory use of the application on the Home page and with the versions of Node.js listed                                                                                              |
+| `screenshots` | Shows every page for [`shared/tools/screenshots.sh`](../shared/tools/screenshots.sh), which captures the screen at each of them; the compact pages need a shell that can resize its window |
 
 The Tauri and Wails workflows and sandboxes run them in their applications.
-The [Dioxus implementation](../dioxus) ports the scenarios to Rust and drives
-its page with the same driver, [`src/e2e/driver.ts`](src/e2e/driver.ts), so
-`e2e/run.sh` runs its end-to-end build too; changes to either reach both.
+The [Capacitor implementation](../capacitor) runs them in its Ionic user
+interface, so the driver ([`src/e2e/driver.ts`](src/e2e/driver.ts)) knows
+Ionic's components and the scenarios pick elements of both libraries. The
+[Dioxus implementation](../dioxus) ports the scenarios to Rust and drives its
+page with the same driver, so `e2e/run.sh` runs its end-to-end build too;
+changes to either reach all of them.
 
 ## Project layout
 

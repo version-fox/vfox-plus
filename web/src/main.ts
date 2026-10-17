@@ -43,6 +43,7 @@ import '@m3e/web/theme';
 import '@m3e/web/tooltip';
 
 import type { Host } from './core/host';
+import { systemLocales } from './core/i18n/localizations';
 import { JsonFileSettingsStore, settingsPath } from './core/settings/settings-store';
 import { AppModel } from './state/app-model';
 import { LocaleController, setApp, ShellController } from './ui/context';
@@ -58,20 +59,6 @@ async function createHost(): Promise<Host> {
   }
 }
 
-/**
- * The locales of the desktop, most preferred first, as GLib reads them, then
- * those of the web view.
- */
-function systemLocales(environment: Readonly<Record<string, string>>): string[] {
-  const locales = [
-    ...(environment['LANGUAGE'] ?? '').split(':'),
-    environment['LC_ALL'] ?? '',
-    environment['LC_MESSAGES'] ?? '',
-    environment['LANG'] ?? '',
-  ].filter((locale) => locale !== '' && locale !== 'C' && locale !== 'POSIX' && !locale.startsWith('C.'));
-  return [...locales, ...navigator.languages];
-}
-
 async function main(): Promise<void> {
   const host = await createHost();
   const environment = await host.environment();
@@ -82,7 +69,12 @@ async function main(): Promise<void> {
     settingsStore: new JsonFileSettingsStore(host.files, settingsPath(environment, temporary)),
     environment,
   });
-  setApp({ model, host, shell: new ShellController(), locale: new LocaleController(systemLocales(environment)) });
+  setApp({
+    model,
+    host,
+    shell: new ShellController(),
+    locale: new LocaleController(systemLocales(environment, navigator.languages)),
+  });
   // Defines <vfox-plus-app>, which the page already contains.
   await import('./ui/app');
   await model.start();

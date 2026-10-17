@@ -18,15 +18,28 @@
  * root, clicks them and types into fields.
  */
 
-/** Every element below `root`, including those in shadow roots. */
+/**
+ * Every element below `root`, including those in shadow roots, which follow
+ * their host. Stencil, which Ionic is built with, makes `children` of
+ * components without a shadow root list only the elements slotted into them;
+ * `querySelectorAll` still finds the elements the components render.
+ */
 function* allElements(root: Document | ShadowRoot | Element): Generator<Element> {
-  for (const child of Array.from(root.children)) {
-    yield child;
-    if (child.shadowRoot !== null) {
-      yield* allElements(child.shadowRoot);
+  for (const element of Array.from(root.querySelectorAll('*'))) {
+    yield element;
+    if (element.shadowRoot !== null) {
+      yield* allElements(element.shadowRoot);
     }
-    yield* allElements(child);
   }
+}
+
+/** Whether `element` is an open modal dialog of `@m3e/web` or of Ionic. */
+function isOpenDialog(element: Element): boolean {
+  return (
+    (element.tagName === 'M3E-DIALOG' && element.hasAttribute('open')) ||
+    // Ionic hides overlays that are not presented with this class.
+    (element.tagName === 'ION-MODAL' && !element.classList.contains('overlay-hidden'))
+  );
 }
 
 /**
@@ -34,9 +47,7 @@ function* allElements(root: Document | ShadowRoot | Element): Generator<Element>
  * make everything else inert; otherwise the whole document.
  */
 function* interactiveElements(): Generator<Element> {
-  const dialogs = [...allElements(document)].filter(
-    (element) => element.tagName === 'M3E-DIALOG' && element.hasAttribute('open'),
-  );
+  const dialogs = [...allElements(document)].filter(isOpenDialog);
   if (dialogs.length === 0) {
     yield* allElements(document);
     return;
@@ -79,9 +90,17 @@ export function ownText(element: Element): string {
   return element.textContent.replace(/\s+/g, ' ').trim();
 }
 
-/** The accessible name of `element`: its label, or its text. */
+/**
+ * The accessible name of `element`: its label, or its text. Ionic moves the
+ * label of a component to the native element of its shadow root.
+ */
 function nameOf(element: Element): string {
-  return element.getAttribute('aria-label') ?? element.getAttribute('label') ?? ownText(element);
+  return (
+    element.getAttribute('aria-label') ??
+    element.getAttribute('label') ??
+    element.shadowRoot?.querySelector(':is(button, a, input)[aria-label]')?.getAttribute('aria-label') ??
+    ownText(element)
+  );
 }
 
 const INTERACTIVE = new Set([
@@ -94,6 +113,10 @@ const INTERACTIVE = new Set([
   'M3E-LIST-ACTION',
   'M3E-MENU-ITEM',
   'M3E-SWITCH',
+  'ION-BUTTON',
+  'ION-ITEM',
+  'ION-SEGMENT-BUTTON',
+  'ION-TOGGLE',
 ]);
 
 /** Visible elements, optionally limited to those matching `selector`. */
@@ -198,17 +221,28 @@ export async function clickElement(
   (element as HTMLElement).click();
 }
 
-/** Types `value` into the visible input labelled or described by `label`. */
+/**
+ * Types `value` into the visible input labelled or described by `label`. An
+ * empty field may hide itself under its floating label, as Ionic's do, as
+ * long as the element around it is visible.
+ */
 export async function fill(label: string, value: string, { submit = false } = {}): Promise<void> {
   const input = await waitFor(`a field "${label}"`, () =>
-    visibleElements('input, textarea').find((element) => {
+    [...interactiveElements()].find((element) => {
+      const around = parentOf(element);
+      if (!element.matches('input, textarea') || !(isVisible(element) || (around !== null && isVisible(around)))) {
+        return false;
+      }
       const field = element as HTMLInputElement;
       if (field.getAttribute('aria-label') === label || field.placeholder === label) {
         return true;
       }
       const root = field.getRootNode() as Document | ShadowRoot;
       const labels = field.id === '' ? [] : Array.from(root.querySelectorAll(`label[for="${field.id}"]`));
-      return labels.some((element) => ownText(element) === label);
+      const labelledBy = (field.getAttribute('aria-labelledby') ?? '').split(/\s+/).filter((id) => id !== '');
+      return [...labels, ...labelledBy.map((id) => root.getElementById(id))].some(
+        (element) => element !== null && ownText(element) === label,
+      );
     }),
   );
   const field = input as HTMLInputElement;

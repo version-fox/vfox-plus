@@ -95,7 +95,7 @@ case "${1:-}" in
     build --features e2e
     start_display
     as_tester "$WORK" env DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
-      bash dioxus/tools/screenshots.sh "$BINARY" /home/tester/screenshots
+      bash shared/tools/screenshots.sh /home/tester/screenshots "$BINARY"
     publish /home/tester/screenshots/*.png
     stop_display
     ;;

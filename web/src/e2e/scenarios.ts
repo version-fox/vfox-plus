@@ -34,6 +34,14 @@ import {
   waitForText,
 } from './driver';
 
+/**
+ * The elements the scenarios pick by their text, in the components of
+ * `@m3e/web` and in those of the Ionic front end of `capacitor/`.
+ */
+const LIST_ACTION = 'm3e-list-action, ion-item.list-action';
+const MENU_ITEM = 'm3e-menu-item, ion-popover ion-item';
+const BUTTON = 'm3e-button, ion-button';
+
 /** What a scenario can use. */
 export interface ScenarioContext {
   readonly host: Host;
@@ -75,7 +83,7 @@ export async function fakeScenario(context: ScenarioContext): Promise<void> {
   );
 
   await clickButton('SDKs');
-  await clickElement('the SDK nodejs', 'm3e-list-action', (element) => ownText(element).startsWith('nodejs'));
+  await clickElement('the SDK nodejs', LIST_ACTION, (element) => ownText(element).startsWith('nodejs'));
   await waitForText('Node.js runtime environment.');
   await context.step('detail');
 
@@ -145,7 +153,7 @@ export async function realScenario(context: ScenarioContext): Promise<void> {
   // Search and install both versions.
   await context.step('install');
   await clickButton('SDKs');
-  await clickElement('the SDK testsdk', 'm3e-list-action', (element) => ownText(element).startsWith('testsdk'));
+  await clickElement('the SDK testsdk', LIST_ACTION, (element) => ownText(element).startsWith('testsdk'));
   await waitForText('An offline SDK for the vfox-plus end-to-end tests.');
   await clickButton('Available');
   await waitForText('2 versions');
@@ -189,20 +197,20 @@ export async function realScenario(context: ScenarioContext): Promise<void> {
   // Uninstall 1.0.0.
   await context.step('uninstall');
   await clickButton('More actions for 1.0.0');
-  await clickElement('the menu item Uninstall', 'm3e-menu-item', (element) => ownText(element) === 'Uninstall');
+  await clickElement('the menu item Uninstall', MENU_ITEM, (element) => ownText(element) === 'Uninstall');
   await waitForText('Uninstall testsdk 1.0.0?');
-  await clickElement('the confirmation', 'm3e-button', (element) => ownText(element) === 'Uninstall');
+  await clickElement('the confirmation', BUTTON, (element) => ownText(element) === 'Uninstall');
   await waitForTask('Uninstall testsdk@1.0.0');
   await waitForText('Installed (1)');
 
   // Remove the second plugin.
   await context.step('remove');
-  await clickElement('the SDK localsdk', 'm3e-list-action', (element) => ownText(element).startsWith('localsdk'));
+  await clickElement('the SDK localsdk', LIST_ACTION, (element) => ownText(element).startsWith('localsdk'));
   await waitForText('localsdk runtime environment.', 5000).catch(() => waitForText('localsdk'));
   await clickButton('More actions');
-  await clickElement('the menu item Remove plugin', 'm3e-menu-item', (element) => ownText(element) === 'Remove plugin');
+  await clickElement('the menu item Remove plugin', MENU_ITEM, (element) => ownText(element) === 'Remove plugin');
   await waitForText('Remove localsdk?');
-  await clickElement('the confirmation', 'm3e-button', (element) => ownText(element) === 'Remove');
+  await clickElement('the confirmation', BUTTON, (element) => ownText(element) === 'Remove');
   await waitForTask('Remove plugin localsdk');
   await waitForText('Select an SDK to manage its versions.');
   check(!app().model.installed.value?.some((sdk) => sdk.name === 'localsdk'), 'the removed plugin is no longer listed');
@@ -235,11 +243,107 @@ export async function measureScenario(context: ScenarioContext): Promise<void> {
   await context.step('MEASURE home');
   await pause(5000);
   await clickButton('SDKs');
-  await clickElement('the SDK nodejs', 'm3e-list-action', (element) => ownText(element).startsWith('nodejs'));
+  await clickElement('the SDK nodejs', LIST_ACTION, (element) => ownText(element).startsWith('nodejs'));
   await clickButton('Available');
   await waitForText('872 versions');
   await pause(3000);
   await context.step('MEASURE nodejs');
   await pause(5000);
   await clickText('Home').catch(() => undefined);
+}
+
+/** Waits for the page to settle and asks the harness to capture the screen. */
+async function shot(context: ScenarioContext, name: string): Promise<void> {
+  await pause(1500);
+  await context.step(`SHOT ${name}`);
+  await pause(1500);
+}
+
+/**
+ * Shows every page against the fake vfox, the same as the screenshots
+ * scenario of the Dioxus implementation; the harness captures the screen at
+ * every `e2e: SHOT <name>` (see `shared/tools/screenshots.sh`). With
+ * `VFOX_PLUS_FAKE_DELAY`, it shows an installation in progress instead. The
+ * compact pages need a host that can resize its window.
+ */
+export async function screenshotsScenario(context: ScenarioContext): Promise<void> {
+  const { model } = app();
+  await waitForText('Versions in use');
+  if ((context.environment['VFOX_PLUS_FAKE_DELAY'] ?? '') !== '') {
+    await clickButton('SDKs');
+    await clickElement('the SDK nodejs', LIST_ACTION, (element) => ownText(element).startsWith('nodejs'));
+    await clickButton('Available');
+    await waitForText('872 versions');
+    await clickButtonNear('26.12.0', 'Install');
+    await waitFor('the download to start', () => (model.tasks.tasks[0]?.progress ?? 0) > 0);
+    await shot(context, 'installing');
+    return;
+  }
+  await shot(context, 'home');
+  await clickButton('SDKs');
+  await clickElement('the SDK nodejs', LIST_ACTION, (element) => ownText(element).startsWith('nodejs'));
+  await waitForText('Node.js runtime environment.');
+  await shot(context, 'sdks');
+  await clickButton('More actions for 22.21.0');
+  await waitForText('Copy installation path');
+  await shot(context, 'menu');
+  await clickElement('the menu item', MENU_ITEM, (element) => ownText(element) === 'Copy installation path');
+  await clickButton('Available');
+  await waitForText('872 versions');
+  await shot(context, 'available');
+  await fill('Filter versions', '24.11.0');
+  await waitForText('1 version');
+  await clickButtonNear('24.11.0', 'Install');
+  await waitForTask('Install nodejs@24.11.0');
+  await clickButton('Tasks');
+  await clickButton('Show output');
+  await waitForText('Install nodejs@24.11.0 success!').catch(() => undefined);
+  await shot(context, 'tasks');
+  await clickButton('Plugins');
+  await waitForText('dotnet');
+  await shot(context, 'plugins');
+  await clickButton('Add from source…');
+  await waitForText('Add a plugin from source');
+  await shot(context, 'dialog');
+  await clickButton('Cancel');
+  await clickButton('Settings');
+  await waitForText('Plugin registry');
+  await shot(context, 'settings');
+  await model.settings.update((settings) => ({ ...settings, theme: 'dark', railExpanded: true }));
+  await clickButton('Home');
+  await shot(context, 'dark-expanded');
+  await clickButton('SDKs');
+  await clickElement('the SDK maven', LIST_ACTION, (element) => ownText(element).startsWith('maven'));
+  await waitForText('3.8.9');
+  await shot(context, 'dark-sdks');
+  await model.settings.update((settings) => ({
+    ...settings,
+    theme: 'light',
+    railExpanded: false,
+    language: 'simplifiedChinese',
+  }));
+  await clickButton('首页');
+  await waitForText('正在使用的版本');
+  await shot(context, 'zh-home');
+  await clickButton('设置');
+  await waitForText('插件仓库');
+  await shot(context, 'zh-settings');
+  await model.settings.update((settings) => ({ ...settings, language: 'english' }));
+  if (
+    !(await context.host.resizeWindow(412, 800).then(
+      () => true,
+      () => false,
+    ))
+  ) {
+    await context.step('the window cannot be resized: no compact screenshots');
+    return;
+  }
+  await clickButton('Home');
+  await waitForText('Versions in use');
+  await shot(context, 'compact-home');
+  // Maven is still selected on the SDKs page, which compact windows would
+  // show; the versions in use on the Home page lead to their SDK instead.
+  await clickElement('the SDK nodejs', LIST_ACTION, (element) => ownText(element).startsWith('nodejs'));
+  await waitForText('Node.js runtime environment.');
+  await shot(context, 'compact-detail');
 }

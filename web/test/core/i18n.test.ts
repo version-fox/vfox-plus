@@ -17,7 +17,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import { Localizations, messageKeys, resolveLanguage } from '../../src/core/i18n/localizations';
+import { Localizations, messageKeys, resolveLanguage, systemLocales } from '../../src/core/i18n/localizations';
 import { formatMessage, MessageFormatError, parseMessage, type MessagePart } from '../../src/core/i18n/message-format';
 import { SHARED } from '../support/fakes';
 
@@ -121,5 +121,12 @@ describe('Localizations', () => {
     expect(resolveLanguage('system', ['fr'])).toBe('en');
     expect(resolveLanguage('english', ['zh-CN'])).toBe('en');
     expect(resolveLanguage('simplifiedChinese', ['en'])).toBe('zh');
+  });
+
+  it('reads the desktop locales in the order of GLib', () => {
+    const environment = { LANGUAGE: 'zh_CN:en', LC_ALL: '', LC_MESSAGES: 'C.UTF-8', LANG: 'de_DE.UTF-8' };
+    expect(systemLocales(environment, ['fr-FR'])).toEqual(['zh_CN', 'en', 'de_DE.UTF-8', 'fr-FR']);
+    expect(systemLocales({ LANG: 'C' })).toEqual([]);
+    expect(systemLocales({ LANG: 'POSIX' }, ['en-US'])).toEqual(['en-US']);
   });
 });

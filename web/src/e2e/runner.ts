@@ -21,12 +21,13 @@
  */
 
 import type { Host } from '../core/host';
-import { fakeScenario, measureScenario, realScenario, type ScenarioContext } from './scenarios';
+import { fakeScenario, measureScenario, realScenario, screenshotsScenario, type ScenarioContext } from './scenarios';
 
 const SCENARIOS: Readonly<Record<string, (context: ScenarioContext) => Promise<void>>> = {
   fake: fakeScenario,
   real: realScenario,
   measure: measureScenario,
+  screenshots: screenshotsScenario,
 };
 
 /** Runs the scenario named by the environment and exits. */

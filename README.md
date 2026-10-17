@@ -25,10 +25,12 @@ equal terms.
 | [`wails/`](wails) | Wails 3 (Go) with the [web front end](web) | Linux desktop | `vfox-plus-wails` | Working |
 | [`compose/`](compose) | Compose Multiplatform (Kotlin) | Linux desktop | `vfox-plus-compose` | Working |
 | [`dioxus/`](dioxus) | Dioxus 0.7 (Rust) with the web components of @m3e/web | Linux desktop | `vfox-plus-dioxus` | Working |
+| [`capacitor/`](capacitor) | Ionic 9 (Vue) and Capacitor 8 in an Electron shell | Linux desktop | `vfox-plus-capacitor` | Working |
 
 [`web/`](web) is not an implementation of its own: it is the front end that
 the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
-Expressive web components of [@m3e/web](https://github.com/matraic/m3e)). Every
+Expressive web components of [@m3e/web](https://github.com/matraic/m3e)); the
+Capacitor implementation has its own user interface on its core and state. Every
 implementation ships a `.deb` for Ubuntu 26.04 and a `.tar.gz`; the packages
 share the application ID `dev.vfox.VfoxPlus` and replace each other.
 
@@ -58,8 +60,9 @@ Flutter) of the latest successful run of its workflow, for example
 [Flutter](https://github.com/version-fox/vfox-plus/actions/workflows/flutter.yml),
 [Tauri](https://github.com/version-fox/vfox-plus/actions/workflows/tauri.yml),
 [Wails](https://github.com/version-fox/vfox-plus/actions/workflows/wails.yml),
-[Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml) or
-[Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml),
+[Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml),
+[Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml) or
+[Capacitor](https://github.com/version-fox/vfox-plus/actions/workflows/capacitor.yml),
 then:
 
 ```sh
@@ -79,11 +82,13 @@ docs/       Shared specification: architecture, vfox CLI contract, UI, design sy
 shared/     Shared resources: translations, icons, captured vfox output (test fixtures), an offline
             test plugin, packaging files, the icon font tool and the shared parts of the sandboxes
 flutter/    The Flutter implementation
-web/        The web front end of the Tauri and Wails implementations
+web/        The web front end of the Tauri and Wails implementations, whose core
+            and state the Capacitor implementation shares
 tauri/      The Tauri implementation
 wails/      The Wails implementation
 compose/    The Compose Multiplatform implementation
 dioxus/     The Dioxus implementation
+capacitor/  The Capacitor implementation
 .github/    CI workflows: repository checks and one workflow per implementation
 ```
 

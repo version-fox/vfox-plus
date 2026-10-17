@@ -28,6 +28,8 @@
 #                   dependencies between runs (an array)
 #   PARENT_IMPLS    optional: implementations whose images this one builds on,
 #                   in order (an array); their sandbox directories are built first
+#   RUN_OPTIONS     optional: docker run options of the containers of every task
+#                   and of the installation test (an array)
 #
 # and may override the steps of each command with these functions:
 #
@@ -135,7 +137,8 @@ run_task() {
   mkdir -p "$RESULTS/$task"
   options+=(--volume "$RESULTS/$task:/out")
   # shellcheck disable=SC2046 # owner_args prints zero or one argument.
-  docker run "${options[@]}" $(owner_args) "$@" "$(impl_image)" bash "/src/$IMPL/sandbox/run-task.sh" "$task"
+  docker run "${options[@]}" ${RUN_OPTIONS[@]+"${RUN_OPTIONS[@]}"} $(owner_args) "$@" "$(impl_image)" \
+    bash "/src/$IMPL/sandbox/run-task.sh" "$task"
   # Keep only the result directories that received something.
   rmdir "$RESULTS/$task" 2> /dev/null || true
 }
@@ -149,7 +152,7 @@ install_test() {
     --volume "$RESULTS/package:/pkg:ro" \
     --env "UBUNTU_MIRROR=${SANDBOX_UBUNTU_MIRROR:-}" \
     --env "TASK_LIB=/task-lib.sh" \
-    "$CLEAN_BASE_IMAGE" bash /run-task.sh install-test
+    ${RUN_OPTIONS[@]+"${RUN_OPTIONS[@]}"} "$CLEAN_BASE_IMAGE" bash /run-task.sh install-test
 }
 
 sandbox_check() {

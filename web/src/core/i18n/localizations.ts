@@ -33,6 +33,20 @@ export const SUPPORTED_LANGUAGES = ['en', 'zh'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 /**
+ * The locales of the desktop, most preferred first, as GLib reads them from
+ * `environment`, followed by `others`, such as the languages of the web view.
+ */
+export function systemLocales(environment: Readonly<Record<string, string>>, others: readonly string[] = []): string[] {
+  const locales = [
+    ...(environment['LANGUAGE'] ?? '').split(':'),
+    environment['LC_ALL'] ?? '',
+    environment['LC_MESSAGES'] ?? '',
+    environment['LANG'] ?? '',
+  ].filter((locale) => locale !== '' && locale !== 'C' && locale !== 'POSIX' && !locale.startsWith('C.'));
+  return [...locales, ...others];
+}
+
+/**
  * Picks the catalogue for `preference`. With `system`, the desktop locales are
  * matched against the catalogues; every Chinese locale gets Simplified
  * Chinese and English is the fallback.

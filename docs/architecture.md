@@ -26,11 +26,13 @@ vfox-plus/
 │   ├── tools/             The icon font tool, the license collector of Rust crates and the memory measurement
 │   └── sandbox/           Shared parts of the Docker sandboxes
 ├── flutter/               The Flutter implementation (Linux desktop)
-├── web/                   The web front end shared by tauri/ and wails/
+├── web/                   The web front end shared by tauri/ and wails/, whose core and
+│                          state capacitor/ shares
 ├── tauri/                 The Tauri implementation
 ├── wails/                 The Wails implementation
 ├── compose/               The Compose Multiplatform implementation
 ├── dioxus/                The Dioxus implementation
+├── capacitor/             The Capacitor implementation
 └── <stack>/               The other implementations, one directory each
 ```
 
@@ -46,6 +48,12 @@ small host protocol (spawning processes, a few file operations, dialogs, links,
 the clipboard and the accent colour). Their comparison is then about what
 actually differs between them: the language of the native side, packaging and
 memory.
+
+The Capacitor implementation shares the parts of `web/` that no user interface
+framework depends on: the core, the state, the running application, the colour
+scheme and the springs of `web/src/ui`, and the end-to-end scenarios. Its user
+interface is its own, in Vue on Ionic's components, and its Electron main
+process answers the host protocol with the Node.js host of `web/dev-host`.
 
 ## Layers
 
@@ -154,6 +162,13 @@ only shipped unmodified and in binary form, as the Apache Software Foundation
 allows for its own products, with a note on where its source code is
 ([`shared/tools/cargo_licenses.py`](../shared/tools/cargo_licenses.py)
 checks and collects the licenses of Rust crates).
+Electron, the runtime of the Capacitor implementation, is under the MIT
+license, and so is most of what it bundles, but Chromium in it contains
+third-party components under other licenses, among them FFmpeg under the LGPL
+2.1, which Electron links dynamically as the separate library `libffmpeg.so`.
+Like the MPL code above, it is weak copyleft that the framework cannot do
+without, shipped unmodified and in binary form; Electron's list of those
+licenses, `LICENSES.chromium.html`, ships next to the executable.
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 
@@ -174,4 +189,7 @@ The issue also asks for a web UI and an Android client that connect to a
 machine running vfox. The process runner and the vfox client are the seams for
 that: a remote implementation of the process runner (or of the client) can
 forward the same commands to an agent on the machine, and the state and UI
-layers stay unchanged. The CLI contract then becomes the protocol.
+layers stay unchanged. The CLI contract then becomes the protocol. The
+Capacitor implementation already keeps its native side in one Capacitor
+plugin, whose native implementation on Android would be such an agent's
+client, with the Vue and Ionic user interface unchanged.

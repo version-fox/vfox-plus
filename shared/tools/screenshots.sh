@@ -14,19 +14,22 @@
 # limitations under the License.
 
 # Takes screenshots of every page: runs the "screenshots" scenario of an
-# application built with the e2e feature against the fake vfox of
+# application built with the end-to-end tests (web/src/e2e/scenarios.ts, or
+# the Rust port of the Dioxus implementation) against the fake vfox of
 # shared/fixtures, with a new, empty HOME, and captures the screen with
 # ImageMagick whenever the application prints "e2e: SHOT <name>". A second run
 # with a slow fake vfox shows an installation in progress.
 #
-# Usage: dioxus/tools/screenshots.sh <application> <output directory>
+# Usage: shared/tools/screenshots.sh <output directory> <application command...>
 #
 # The application runs on the current display, which should be 1280 × 800.
 set -euo pipefail
 
-SHARED="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../shared" && pwd)"
-APPLICATION="${1:?Usage: screenshots.sh <application> <output directory>}"
-OUTPUT="${2:?Usage: screenshots.sh <application> <output directory>}"
+SHARED="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUTPUT="${1:?Usage: screenshots.sh <output directory> <application command...>}"
+shift
+[[ $# -gt 0 ]] || { echo "Usage: screenshots.sh <output directory> <application command...>" >&2; exit 2; }
+APPLICATION=("$@")
 mkdir -p "$OUTPUT"
 
 # run [variable=value...]: runs the scenario once and captures its shots.
@@ -38,7 +41,7 @@ run() {
   printf '{\n  "language": "english",\n  "vfoxExecutable": "%s"\n}\n' "$sandbox/vfox" \
     > "$sandbox/home/.config/vfox-plus/settings.json"
   env -u VFOX_HOME -u XDG_CONFIG_HOME HOME="$sandbox/home" LANG=C.UTF-8 VFOX_PLUS_E2E_SCENARIO=screenshots \
-    VFOX_PLUS_FIXTURES="$SHARED/fixtures/vfox-1.0.13" "$@" "$APPLICATION" > "$sandbox/app.log" 2>&1 &
+    VFOX_PLUS_FIXTURES="$SHARED/fixtures/vfox-1.0.13" "$@" "${APPLICATION[@]}" > "$sandbox/app.log" 2>&1 &
   local application=$!
   while kill -0 "$application" 2> /dev/null; do
     lines="$(wc -l < "$sandbox/app.log")"

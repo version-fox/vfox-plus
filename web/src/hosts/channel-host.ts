@@ -188,5 +188,8 @@ export function channelHost(name: string, channel: Channel): Host {
     log: async (message) => {
       await call('log', message);
     },
+    resizeWindow: async (width, height) => {
+      await call('resizeWindow', width, height);
+    },
   };
 }

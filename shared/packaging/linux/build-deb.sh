@@ -31,6 +31,8 @@
 #   --notice FILE         third-party licenses, installed as
 #                         /usr/share/doc/<package>/THIRD-PARTY-LICENSES
 #   --override TEXT       a lintian override, may be repeated
+#   --setuid FILE         a program of the stage that runs as root, such as the
+#                         sandbox helper of Chromium, may be repeated
 #   --strip               removes the symbols of the ELF files of the stage, for
 #                         stages that bundle unstripped native code, such as a
 #                         Java runtime
@@ -50,6 +52,7 @@ MAINTAINER="${DEB_MAINTAINER:-Han Li and contributors <https://github.com/versio
 
 package="" version="" stage="" executable="" depends="" technology="" notice="" strip=false
 overrides=()
+setuid=()
 while [[ $# -gt 1 ]]; do
   if [[ "$1" == --strip ]]; then
     strip=true
@@ -65,6 +68,7 @@ while [[ $# -gt 1 ]]; do
     --technology) technology="$2" ;;
     --notice) notice="$2" ;;
     --override) overrides+=("$2") ;;
+    --setuid) setuid+=("$2") ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
   shift 2
@@ -165,6 +169,11 @@ Description: Material 3 Expressive desktop GUI for vfox ($technology)
 EOF
 
 chmod -R u+rwX,go+rX,go-w "$ROOT"
+# After stripping, which rewrites the files; dpkg-deb makes root their owner.
+for file in ${setuid[@]+"${setuid[@]}"}; do
+  [[ -f "$ROOT/usr/lib/vfox-plus/$file" ]] || { echo "$file is not in the stage" >&2; exit 1; }
+  chmod 4755 "$ROOT/usr/lib/vfox-plus/$file"
+done
 DEB="$output/${package}_${version}_${DEB_ARCH}.deb"
 TARBALL="$output/${package}-${version}-linux-${ARCH}.tar.gz"
 dpkg-deb --root-owner-group -Zxz --build "$ROOT" "$DEB" > /dev/null

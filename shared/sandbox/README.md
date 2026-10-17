@@ -23,8 +23,13 @@ directory of whoever runs it.
   `/src`, copies it and works on the copy as `tester`. Results go to
   `dist/sandbox/<implementation>/<task>/`.
 - The `deps` task downloads the dependencies into Docker volumes (npm, cargo,
-  Go, Gradle, NuGet or pip caches) with network access; the checks, the tests
-  and the builds then run with `--network none`.
+  Go, Gradle, NuGet or pip caches, the Electron runtime) with network access;
+  the checks, the tests and the builds then run with `--network none`.
+- An implementation can give the containers of its tasks and of its
+  installation test more docker run options with `RUN_OPTIONS`; the Capacitor
+  sandbox gives Chromium 1 GB of `/dev/shm`. The sandboxes of WebKitGTK and of
+  Chromium are switched off in the containers, which have neither user
+  namespaces nor a working setuid helper (`task-lib.sh`).
 - The installation test installs the `.deb` into a clean `ubuntu:26.04`
   container, which downloads the declared dependencies, and starts the
   application there: GUI toolkits load some libraries at run time, which `ldd`

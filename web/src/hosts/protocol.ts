@@ -49,6 +49,8 @@ export interface HostMethods {
   copyText: { params: [text: string]; result: null };
   exit: { params: [code: number]; result: null };
   log: { params: [message: string]; result: null };
+  /** Optional: hosts that do not know it answer with an error. */
+  resizeWindow: { params: [width: number, height: number]; result: null };
 }
 
 /** The name of a host operation. */

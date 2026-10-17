@@ -22,7 +22,7 @@ updates:
       flutter-packages:
         patterns: ["*"]
   - package-ecosystem: npm
-    directories: [/web, /tauri, /dioxus/components]
+    directories: [/web, /tauri, /dioxus/components, /capacitor]
     schedule:
       interval: weekly
     groups:

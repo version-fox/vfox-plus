@@ -98,7 +98,7 @@ VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a dbus-run-session -- ../web/e2e/run.
 
 They exercise the whole stack: the components, the state, process spawning,
 streaming, cancellation with `SIGTERM`, the settings file and vfox itself.
-[`tools/screenshots.sh`](tools/screenshots.sh) runs the `screenshots` scenario
+[`shared/tools/screenshots.sh`](../shared/tools/screenshots.sh) runs the `screenshots` scenario
 of the same build.
 
 ## Packaging
