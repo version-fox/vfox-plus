@@ -156,6 +156,32 @@ export async function clickButton(name: string, index = 0): Promise<void> {
   (button as HTMLElement).click();
 }
 
+/**
+ * Waits until a button named `name` is shown next to `text`, such as the
+ * install button of a version, and clicks it. Of several such buttons, the one
+ * closest to the text wins, so the rows of a list that is still being updated
+ * cannot be mistaken for each other.
+ */
+export async function clickButtonNear(text: string, name: string): Promise<void> {
+  const button = await waitFor(`a button "${name}" next to "${text}"`, () => {
+    let best: { element: Element; distance: number } | null = null;
+    for (const candidate of findButtons(name)) {
+      let distance = 0;
+      for (let current = parentOf(candidate); current !== null && distance < 6; current = parentOf(current)) {
+        if (ownText(current).includes(text)) {
+          if (best === null || distance < best.distance) {
+            best = { element: candidate, distance };
+          }
+          break;
+        }
+        distance++;
+      }
+    }
+    return best?.element;
+  });
+  (button as HTMLElement).click();
+}
+
 /** Waits until `text` is shown and clicks it. */
 export async function clickText(text: string): Promise<void> {
   const element = await waitForText(text);

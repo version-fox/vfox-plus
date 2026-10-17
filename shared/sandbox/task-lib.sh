@@ -28,6 +28,10 @@ SRC=/src
 OUT=/out
 WORK=/home/tester/work
 SCREEN=(-screen 0 1280x800x24)
+# WebKitGTK 6.0 confines its web processes with bubblewrap, which needs user
+# namespaces that containers do not have. The applications only show their own
+# front end, so the confinement is not needed for the tests.
+export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
 
 # as_tester <directory> <command...>: runs a command as tester in a directory.
 as_tester() {
@@ -36,18 +40,28 @@ as_tester() {
   (cd "$directory" && runuser -u tester -- env HOME=/home/tester "$@")
 }
 
-# copy_repository [tar exclude patterns...]: copies the repository to $WORK,
-# without version control, results and what the host has built. Every
-# implementation passes the build directories it must not see.
-# shellcheck disable=SC2120 # The exclude patterns are optional.
+# What the host may have built or downloaded in the copied directories, which a
+# task must neither see nor spend time on copying. A run-task.sh may add
+# patterns before it calls copy_repository.
+COPY_EXCLUDES=(
+  --exclude-vcs --exclude=.idea --exclude='*.iml'
+  # Dependencies and caches of the package managers.
+  --exclude=node_modules --exclude=.gradle --exclude=.dart_tool --exclude=__pycache__ --exclude=.venv
+  # Build outputs.
+  --exclude='*/target' --exclude=./web/dist --exclude=./web/coverage --exclude=./web/public/fonts
+  --exclude=./web/public/licenses.txt
+)
+
+# copy_repository <directory...>: copies the shared resources, the license and
+# the given top-level directories of the repository to $WORK, without what the
+# host has built in them. Tasks never see the other implementations.
 copy_repository() {
   install -d -o tester -g tester "$WORK"
-  local excludes=(--exclude-vcs --exclude=./dist --exclude=./.idea --exclude='*.iml' --exclude='node_modules')
-  local pattern
-  for pattern in "$@"; do
-    excludes+=("--exclude=$pattern")
+  local directories=(./shared ./LICENSE) directory
+  for directory in "$@"; do
+    directories+=("./$directory")
   done
-  tar -C "$SRC" --create "${excludes[@]}" . | runuser -u tester -- tar -C "$WORK" --extract
+  tar -C "$SRC" --create "${COPY_EXCLUDES[@]}" "${directories[@]}" | runuser -u tester -- tar -C "$WORK" --extract
 }
 
 # publish <path...>: copies results to /out for the user on the host.
@@ -100,27 +114,6 @@ smoke_test() {
   kill "$app"
   stop_display
   echo "vfox+ started: $executable"
-}
-
-# memory_of <pid>: the resident and proportional set size of a process and its
-# descendants, in MB.
-memory_of() {
-  local pids=("$1") pid child rss=0 pss=0
-  local i=0
-  while [[ $i -lt ${#pids[@]} ]]; do
-    # shellcheck disable=SC2013 # The files list process IDs separated by spaces.
-    for child in $(cat "/proc/${pids[$i]}/task/"*/children 2> /dev/null); do
-      pids+=("$child")
-    done
-    i=$((i + 1))
-  done
-  for pid in "${pids[@]}"; do
-    if [[ -r "/proc/$pid/smaps_rollup" ]]; then
-      rss=$((rss + $(awk '/^Rss:/ {print $2}' "/proc/$pid/smaps_rollup")))
-      pss=$((pss + $(awk '/^Pss:/ {print $2}' "/proc/$pid/smaps_rollup")))
-    fi
-  done
-  echo "RSS $((rss / 1024)) MB, PSS $((pss / 1024)) MB (${#pids[@]} processes)"
 }
 
 # install_deb_test <package> <executables...>: runs in a clean Ubuntu container

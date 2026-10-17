@@ -120,6 +120,13 @@ run_task() {
   local network="$1" task="$2"
   shift 2
   local options=(--rm --init --network "$network" --volume "$REPO:/src:ro" --env "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH")
+  # The mirror settings (SANDBOX_NPM_REGISTRY, SANDBOX_GOPROXY, …) reach the tasks.
+  local name
+  for name in $(compgen -e); do
+    if [[ "$name" == SANDBOX_* ]]; then
+      options+=(--env "$name")
+    fi
+  done
   local volume
   for volume in ${CACHE_VOLUMES[@]+"${CACHE_VOLUMES[@]}"}; do
     options+=(--volume "$volume")

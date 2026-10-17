@@ -19,11 +19,11 @@
 #
 # Usage: web/e2e/run.sh <scenario> <application command...>
 #
-#   fake     against e2e/fake-vfox.sh, which replays shared/fixtures
+#   fake     against shared/fixtures/fake-vfox.sh, which replays the fixtures
 #   real     against the real vfox in VFOX_PLUS_E2E_VFOX, with the offline
 #            plugin of shared/test-plugin and e2e/test-server.mjs (needs node)
-#   measure  against the fake vfox; prints the memory use of the application
-#            on the Home page and with the versions of Node.js listed
+#   measure  prints the memory use of the application on the Home page and
+#            with the versions of Node.js listed, with shared/tools/measure.sh
 #
 # The application runs on the current display with a new, empty HOME, so it
 # never sees the vfox installation and the settings of whoever runs the test.
@@ -35,6 +35,9 @@ REPO="$(cd "$E2E_DIR/../.." && pwd)"
 SCENARIO="${1:?Usage: run.sh <scenario> <application command...>}"
 shift
 [[ $# -gt 0 ]] || { echo "Usage: run.sh <scenario> <application command...>" >&2; exit 2; }
+if [[ "$SCENARIO" == measure ]]; then
+  exec bash "$REPO/shared/tools/measure.sh" "$@"
+fi
 
 SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/vfox-plus-e2e.XXXXXX")"
 HOME_DIR="$SANDBOX/home"
@@ -51,9 +54,9 @@ trap cleanup EXIT
 
 environment=(HOME="$HOME_DIR" VFOX_PLUS_E2E_SCENARIO="$SCENARIO" LANG=C.UTF-8)
 case "$SCENARIO" in
-  fake | measure)
+  fake)
     vfox="$SANDBOX/vfox"
-    install -m 755 "$E2E_DIR/fake-vfox.sh" "$vfox"
+    install -m 755 "$REPO/shared/fixtures/fake-vfox.sh" "$vfox"
     # Simulate a GUI started from a terminal in which vfox is activated.
     environment+=(VFOX_PLUS_FIXTURES="$REPO/shared/fixtures/vfox-1.0.13" __VFOX_PID=1 __VFOX_SHELL=bash)
     ;;
@@ -79,26 +82,6 @@ esac
 environment+=(VFOX_PLUS_E2E_VFOX="$vfox")
 printf '{\n  "language": "english",\n  "vfoxExecutable": "%s"\n}\n' "$vfox" > "$HOME_DIR/.config/vfox-plus/settings.json"
 
-# memory_of <pid>: the resident and proportional set size of a process and its
-# descendants.
-memory_of() {
-  local pids=("$1") i=0 child pid rss=0 pss=0
-  while [[ $i -lt ${#pids[@]} ]]; do
-    # shellcheck disable=SC2013 # The files list process IDs separated by spaces.
-    for child in $(cat "/proc/${pids[$i]}/task/"*/children 2> /dev/null); do
-      pids+=("$child")
-    done
-    i=$((i + 1))
-  done
-  for pid in "${pids[@]}"; do
-    if [[ -r "/proc/$pid/smaps_rollup" ]]; then
-      rss=$((rss + $(awk '/^Rss:/ {print $2}' "/proc/$pid/smaps_rollup")))
-      pss=$((pss + $(awk '/^Pss:/ {print $2}' "/proc/$pid/smaps_rollup")))
-    fi
-  done
-  echo "RSS $((rss / 1024)) MB, PSS $((pss / 1024)) MB in ${#pids[@]} processes"
-}
-
 # VFOX_HOME would make vfox use a shared vfox directory instead of HOME.
 env -u VFOX_HOME -u XDG_CONFIG_HOME "${environment[@]}" "$@" > "$SANDBOX/app.log" 2>&1 &
 APP_PID=$!
@@ -107,12 +90,7 @@ deadline=$((SECONDS + ${VFOX_PLUS_E2E_TIMEOUT:-300}))
 while kill -0 "$APP_PID" 2> /dev/null; do
   lines="$(wc -l < "$SANDBOX/app.log")"
   if [[ $lines -gt $printed ]]; then
-    tail -n "+$((printed + 1))" "$SANDBOX/app.log" | head -n "$((lines - printed))" | while IFS= read -r line; do
-      echo "$line"
-      if [[ "$line" == *"e2e: MEASURE "* ]]; then
-        echo "memory (${line##*MEASURE }): $(memory_of "$APP_PID")"
-      fi
-    done
+    sed -n "$((printed + 1)),${lines}p" "$SANDBOX/app.log"
     printed=$lines
   fi
   if [[ $SECONDS -gt $deadline ]]; then

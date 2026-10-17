@@ -11,6 +11,7 @@ what vfox output means.
 ```text
 fixtures/
 ├── capture.sh                 # Recreates the captures for the installed vfox
+├── fake-vfox.sh               # A stand-in for vfox that replays the captures
 └── vfox-<version>/
     ├── cases.json             # Commands, exit codes and expected results
     ├── <case>.stdout          # Standard output of the command
@@ -85,3 +86,16 @@ error summary follows the rules in the
    `cd flutter && flutter test test/core`.
 4. Document any change of the output format in
    [the CLI contract](../../docs/vfox-cli-contract.md).
+
+## The fake vfox
+
+[`fake-vfox.sh`](fake-vfox.sh) behaves like vfox 1.0.13 towards a GUI: it
+answers the read-only commands with the captures of `vfox-1.0.13/` (or of
+`VFOX_PLUS_FIXTURES`), pretends to install versions with a progress bar on
+standard error, and fails like vfox when `vfox use` runs without the hook
+environment. It also checks what the CLI contract requires of the caller:
+`NO_COLOR=1`, no `__VFOX_PID` of an activated shell and the working directory
+`/` for commands that are not about a project. It keeps no state.
+Implementations use it to try the application without touching a real vfox
+installation, in end-to-end tests and in
+[`../tools/measure.sh`](../tools/measure.sh).

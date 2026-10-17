@@ -21,7 +21,7 @@
  * vfox runs with a private home directory (`VFOX_PLUS_DEV_HOME`, by default a
  * new temporary directory), so the vfox installation of the developer is never
  * touched; `VFOX_PLUS_DEV_VFOX` chooses the vfox executable, by default the
- * fake vfox of `e2e/fake-vfox.sh`, which replays `shared/fixtures`. Never
+ * fake vfox of `shared/fixtures/fake-vfox.sh`, which replays the fixtures. Never
  * expose the development server beyond the machine: anybody who reaches it
  * can run vfox.
  */
@@ -43,7 +43,8 @@ export const DEV_HOST_PATH = '/__vfox-plus-host';
 
 function prepareHome(): { home: string; vfox: string } {
   const home = process.env['VFOX_PLUS_DEV_HOME'] ?? mkdtempSync(join(tmpdir(), 'vfox-plus-dev-'));
-  const vfox = process.env['VFOX_PLUS_DEV_VFOX'] ?? fileURLToPath(new URL('../e2e/fake-vfox.sh', import.meta.url));
+  const vfox =
+    process.env['VFOX_PLUS_DEV_VFOX'] ?? fileURLToPath(new URL('../../shared/fixtures/fake-vfox.sh', import.meta.url));
   // The locator finds vfox in the PATH of the front end.
   const bin = join(home, 'bin');
   mkdirSync(bin, { recursive: true });

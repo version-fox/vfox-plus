@@ -14,7 +14,7 @@
 
 /**
  * The host of the Wails implementation (`wails/`). Every request of the host
- * protocol goes to the `Call` method of the bound Go service `HostService`;
+ * protocol goes to the `Call` method of the bound Go service `host.Service`;
  * the output and the exit of started processes arrive as `vfox-plus:process`
  * events, in order.
  */
@@ -26,7 +26,7 @@ import { channelHost } from './channel-host';
 import type { HostEvent, HostResponse } from './protocol';
 
 /** The fully qualified name of the Go method that answers the host protocol. */
-const CALL = 'github.com/version-fox/vfox-plus/wails/internal/host.HostService.Call';
+const CALL = 'github.com/version-fox/vfox-plus/wails/internal/host.Service.Call';
 
 /** The event that carries process output and exits. */
 const PROCESS_EVENT = 'vfox-plus:process';

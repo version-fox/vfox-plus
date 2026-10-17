@@ -92,9 +92,12 @@ as icon fonts, with the application.
 
 Each implementation should also report its memory use: the resident set size
 after start-up on the Home page and after opening the version list of Node.js,
-measured on the same machine as the other implementations. The `measure` task
-of the sandboxes does this in Docker, with Xvfb and software rendering, and
-adds the memory of child processes such as the processes of a web view.
+measured on the same machine as the other implementations.
+[`shared/tools/measure.sh`](../shared/tools/measure.sh) measures every
+implementation the same way, adding the memory of child processes such as the
+processes of a web view, if the application supports the end-to-end scenario
+`measure` that the script describes. The `measure` task of the sandboxes runs
+it in Docker, with Xvfb and software rendering.
 
 ## 6. Document
 

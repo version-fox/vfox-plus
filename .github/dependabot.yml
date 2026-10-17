@@ -28,6 +28,13 @@ updates:
     groups:
       npm-packages:
         patterns: ["*"]
+  - package-ecosystem: gomod
+    directory: /wails
+    schedule:
+      interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
   - package-ecosystem: cargo
     directory: /tauri/src-tauri
     schedule:

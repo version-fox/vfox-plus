@@ -4350,6 +4350,7 @@ name = "vfox-plus"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "glib",
  "nix",
  "serde",
  "serde_json",

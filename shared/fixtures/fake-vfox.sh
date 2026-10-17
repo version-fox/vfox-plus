@@ -15,14 +15,15 @@
 
 # A stand-in for vfox that replays the captured outputs of shared/fixtures and
 # enforces the environment that the CLI contract (docs/vfox-cli-contract.md)
-# requires. Used by the development host and the end-to-end tests against the
-# fixtures. It keeps no state: installing a version does not add it to the
-# output of `vfox list`.
+# requires. Implementations use it in development and in end-to-end tests
+# against the fixtures, and shared/tools/measure.sh measures the memory of the
+# applications with it. It keeps no state: installing a version does not add it
+# to the output of `vfox list`.
 #
 # VFOX_PLUS_FIXTURES is the fixture directory, by default the one of vfox 1.0.13.
 set -u
 
-fixtures="${VFOX_PLUS_FIXTURES:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../shared/fixtures/vfox-1.0.13" && pwd)}"
+fixtures="${VFOX_PLUS_FIXTURES:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/vfox-1.0.13" && pwd)}"
 
 # The captures escape control characters as \xHH and backslashes as \\;
 # printf %b turns them back into the bytes that vfox printed.

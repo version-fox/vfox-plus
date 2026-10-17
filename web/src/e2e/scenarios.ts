@@ -23,6 +23,7 @@ import { app, taskTitle } from '../ui/context';
 import {
   check,
   clickButton,
+  clickButtonNear,
   clickElement,
   clickText,
   fill,
@@ -62,7 +63,7 @@ async function waitForTask(title: string): Promise<void> {
   });
 }
 
-/** The application against the fake vfox of `e2e/fake-vfox.sh`, which replays `shared/fixtures`. */
+/** The application against the fake vfox of `shared/fixtures/fake-vfox.sh`, which replays the fixtures. */
 export async function fakeScenario(context: ScenarioContext): Promise<void> {
   const { model } = app();
   await waitForText('Versions in use');
@@ -87,7 +88,7 @@ export async function fakeScenario(context: ScenarioContext): Promise<void> {
   await waitForText('872 versions');
   await fill('Filter versions', '24.11.0');
   await waitForText('1 version');
-  await clickButton('Install');
+  await clickButtonNear('24.11.0', 'Install');
   await waitForTask('Install nodejs@24.11.0');
 
   const tasks = model.tasks.tasks;
@@ -152,7 +153,7 @@ export async function realScenario(context: ScenarioContext): Promise<void> {
   await waitForText('LTS');
   await waitForText('testtool 2.0');
   check(findText('LTS').length === 1, 'the note is shown once');
-  await clickButton('Install');
+  await clickButtonNear('2.0.0', 'Install');
   await waitForTask('Install testsdk@2.0.0');
   check(model.tasks.tasks[0]?.progress === 1, 'vfox reports the download progress on standard error');
 
@@ -161,7 +162,7 @@ export async function realScenario(context: ScenarioContext): Promise<void> {
   // refuse to install the version again.
   await context.step('cancel an installation');
   await control('hold');
-  await clickButton('Install');
+  await clickButtonNear('1.0.0', 'Install');
   await waitFor('the download to start', () => (model.tasks.tasks[0]?.progress ?? 0) > 0);
   await clickButton('Cancel');
   await waitFor('vfox to exit', () => model.tasks.tasks[0]?.finishedAt !== null);
@@ -169,14 +170,14 @@ export async function realScenario(context: ScenarioContext): Promise<void> {
   check(!(await vfox(context, ['list', 'testsdk'])).includes('1.0.0'), 'vfox does not list the partial version');
   await control('release');
   await pause(500);
-  await clickButton('Install');
+  await clickButtonNear('1.0.0', 'Install');
   await waitForTask('Install testsdk@1.0.0');
 
   // Make 2.0.0 the global default.
   await context.step('use');
   await clickButton('Installed (2)');
   await waitForText('1.0.0');
-  await clickButton('Use');
+  await clickButtonNear('2.0.0', 'Use');
   await waitForTask('Use testsdk@2.0.0');
   await waitForText('In use: 2.0.0');
   check(

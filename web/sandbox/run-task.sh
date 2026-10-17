@@ -33,14 +33,14 @@ npm_install() {
 }
 
 prepare() {
-  copy_repository
+  copy_repository web
   npm_install --offline
   as_tester "$APP" npm run assets
 }
 
 case "${1:-}" in
   deps)
-    copy_repository
+    copy_repository web
     npm_install
     ;;
 

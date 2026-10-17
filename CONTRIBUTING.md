@@ -59,10 +59,11 @@ all of them.
 | [`flutter-sandbox.yml`](.github/workflows/flutter-sandbox.yml) | `flutter/sandbox/`, `flutter/versions.env` | Builds the Docker sandbox and runs `sandbox.sh all` in it |
 | [`web.yml`](.github/workflows/web.yml) | `web/`, `shared/` | Formatting (Prettier), lint (ESLint), type checking, unit tests with an 85 % coverage gate, the production builds |
 | [`tauri.yml`](.github/workflows/tauri.yml) | `tauri/`, `web/`, `shared/` | Formatting (rustfmt), Clippy, tests, the end-to-end scenarios of the web front end in the application against captured output and against the real vfox, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container |
+| [`wails.yml`](.github/workflows/wails.yml) | `wails/`, `web/`, `shared/` | Formatting and lint (golangci-lint), tests, the end-to-end scenarios of the web front end in the application against captured output and against the real vfox, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container |
 | [`sandboxes.yml`](.github/workflows/sandboxes.yml) | `*/sandbox/`, `*/versions.env`, `shared/sandbox/` | Builds the Docker sandboxes of the affected implementations and runs `sandbox.sh all` in them |
 
-Dependabot keeps the pub, npm and cargo packages and the GitHub Actions up to
-date; actions are pinned to commit SHAs.
+Dependabot keeps the pub, npm, cargo and Go packages and the GitHub Actions up
+to date; actions are pinned to commit SHAs.
 
 ## Common changes
 

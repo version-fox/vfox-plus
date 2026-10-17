@@ -1,0 +1,4 @@
+# The web front end, copied here by build.sh.
+/frontend/dist/
+# Build outputs.
+/build/

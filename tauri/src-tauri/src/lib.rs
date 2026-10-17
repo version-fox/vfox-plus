@@ -33,6 +33,9 @@ pub const APP_ID: &str = "dev.vfox.VfoxPlus";
 ///
 /// Panics if the window or the web view cannot be created.
 pub fn run() {
+    // Before GTK starts: X11 takes WM_CLASS and Wayland the app ID from it.
+    #[cfg(target_os = "linux")]
+    glib::set_prgname(Some(APP_ID));
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

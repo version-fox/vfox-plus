@@ -1,0 +1,167 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Wails implementation: formatting, golangci-lint and tests of the Go side,
+# the end-to-end scenarios of the web front end in the application (against
+# captured output and against the real vfox) and the Linux packages.
+# wails/sandbox/run-task.sh runs the same steps locally; keep them in sync.
+# The tool versions are in wails/versions.env and web/versions.env.
+name: Wails
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - wails/**
+      - web/**
+      - shared/**
+      - .github/workflows/wails.yml
+  pull_request:
+    paths:
+      - wails/**
+      - web/**
+      - shared/**
+      - .github/workflows/wails.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Packages needed to build and run Wails applications on Linux.
+  LINUX_PACKAGES: >-
+    build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+    fonttools python3-brotli xvfb xauth dbus-x11 lintian desktop-file-utils
+  # The C code of Wails calls GTK functions that GTK 4 deprecates.
+  CGO_CFLAGS: -O2 -g -Wno-deprecated-declarations
+  # WebKitGTK 6.0 confines its web processes with bubblewrap, which needs
+  # user namespaces that the runners do not grant.
+  WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: "1"
+
+jobs:
+  build:
+    name: Check, test end to end and package
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' web/versions.env wails/versions.env >> "$GITHUB_ENV"
+      - name: Install the Linux packages
+        run: |
+          sudo apt-get update
+          # shellcheck disable=SC2086 # The list is meant to be split.
+          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: wails/go.sum
+      - name: Install golangci-lint
+        run: |
+          archive="golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+            "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/$archive.tar.gz"
+          echo "$GOLANGCI_LINT_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/$archive" >> "$GITHUB_PATH"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/material-symbols
+          key: material-symbols-${{ hashFiles('shared/tools/icon_font.py') }}
+      - name: Prepare the front end
+        run: |
+          python3 shared/tools/icon_font.py download ~/.cache/material-symbols
+          export VFOX_PLUS_SYMBOLS="$HOME/.cache/material-symbols"
+          cd web
+          npm ci
+          npm run assets
+      - name: Build the release
+        run: bash wails/build.sh
+      - name: Verify the modules
+        working-directory: wails
+        run: go mod verify
+      - name: Check formatting
+        working-directory: wails
+        run: golangci-lint fmt --diff
+      - name: Lint
+        working-directory: wails
+        run: golangci-lint run
+      - name: Test
+        working-directory: wails
+        run: go test -race ./...
+      - name: Install vfox
+        run: |
+          archive="vfox_${VFOX_VERSION}_linux_x86_64"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+            "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/$archive.tar.gz"
+          echo "$VFOX_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
+      - name: Run the end-to-end scenarios in a virtual display
+        run: |
+          bash wails/build.sh --e2e "$RUNNER_TEMP/vfox-plus-e2e"
+          for scenario in fake real measure; do
+            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+              bash web/e2e/run.sh "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
+          done
+      - name: Smoke test the release
+        run: |
+          binary="$PWD/wails/build/vfox-plus"
+          xvfb-run -a -s "-screen 0 1280x800x24" "$binary" > app.log 2>&1 &
+          sleep 15
+          if ! pgrep -f "^$binary" > /dev/null; then
+            cat app.log
+            echo "::error::vfox+ exited during startup"
+            exit 1
+          fi
+          pkill -f "^$binary"
+      - name: Build the .deb and the tarball
+        run: |
+          install -D -m 755 wails/build/vfox-plus "$RUNNER_TEMP/stage/vfox-plus"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" bash shared/packaging/linux/build-deb.sh \
+            --package vfox-plus-wails --version "$(jq -r .version web/package.json)" \
+            --stage "$RUNNER_TEMP/stage" --executable vfox-plus --technology Wails \
+            --depends "$(sed -n 's/^DEPENDS="\(.*\)"$/\1/p' wails/sandbox/run-task.sh)" \
+            --notice web/public/licenses.txt dist
+      - name: Validate the packages
+        run: |
+          desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
+          # CI packages carry a placeholder maintainer; releases set DEB_MAINTAINER.
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb
+      - name: Install the .deb into a clean Ubuntu container
+        # The application must start with nothing but the declared dependencies.
+        run: |
+          docker run --rm --init \
+            --volume "$PWD/shared/sandbox/task-lib.sh:/task-lib.sh:ro" \
+            --volume "$PWD/wails/sandbox/run-task.sh:/run-task.sh:ro" \
+            --volume "$PWD/dist:/pkg:ro" \
+            --env TASK_LIB=/task-lib.sh \
+            ubuntu:26.04 bash /run-task.sh install-test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-wails-linux-x64
+          path: dist/*
+          if-no-files-found: error

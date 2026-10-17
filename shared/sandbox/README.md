@@ -11,7 +11,7 @@ directory of whoever runs it.
 | --- | --- |
 | [`base.Dockerfile`](base.Dockerfile) | The base image: Ubuntu 26.04, a virtual display, fonts, the Debian packaging tools, fontTools, the Material Symbols font that icon fonts are cut from, a pinned vfox and the unprivileged user `tester` |
 | [`sandbox-lib.sh`](sandbox-lib.sh) | Host side, sourced by `<implementation>/sandbox/sandbox.sh`: builds the images, runs tasks in containers, runs the installation test |
-| [`task-lib.sh`](task-lib.sh) | Container side, sourced by `<implementation>/sandbox/run-task.sh`: copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages, measures memory |
+| [`task-lib.sh`](task-lib.sh) | Container side, sourced by `<implementation>/sandbox/run-task.sh`: copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages |
 
 ## How a sandbox works
 

@@ -27,6 +27,7 @@ WEB="$WORK/web"
 APP="$WORK/tauri"
 CRATE="$APP/src-tauri"
 BINARY="$CRATE/target/release/vfox-plus"
+COPY_EXCLUDES+=(--exclude=./tauri/src-tauri/gen --exclude=./tauri/src-tauri/icons)
 # Runtime dependencies of the release binary on Ubuntu 26.04; the installation
 # test checks that they are complete.
 DEPENDS="libwebkit2gtk-4.1-0, libgtk-3-0t64 | libgtk-3-0, libglib2.0-0t64 | libglib2.0-0, libsoup-3.0-0, libjavascriptcoregtk-4.1-0, libcairo2, libgdk-pixbuf-2.0-0, libpango-1.0-0, libc6, libgcc-s1"
@@ -41,7 +42,7 @@ npm_install() {
 # prepare [frontend build script]: installs the packages from the caches,
 # generates the assets and icons and builds the front end, which Tauri embeds.
 prepare() {
-  copy_repository ./tauri/src-tauri/target ./tauri/src-tauri/gen ./tauri/src-tauri/icons ./web/dist ./web/public/fonts
+  copy_repository web tauri
   npm_install --offline
   as_tester "$WEB" npm run assets
   as_tester "$WEB" npm run "${1:-build:tauri}"
@@ -58,7 +59,7 @@ build() {
 
 case "${1:-}" in
   deps)
-    copy_repository
+    copy_repository web tauri
     npm_install
     as_tester "$CRATE" cargo fetch --locked
     ;;

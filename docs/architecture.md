@@ -28,6 +28,7 @@ vfox-plus/
 ├── flutter/               The Flutter implementation (Linux desktop)
 ├── web/                   The web front end shared by tauri/ and wails/
 ├── tauri/                 The Tauri implementation
+├── wails/                 The Wails implementation
 └── <stack>/               The other implementations, one directory each
 ```
 

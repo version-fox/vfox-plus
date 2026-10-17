@@ -36,16 +36,17 @@ as_tester() {
   (cd "$APP" && runuser -u tester -- env HOME=/home/tester "$@")
 }
 
-# Copies the repository to $WORK, without version control, results and what
-# the host has built.
+# Copies the Flutter implementation, the shared resources and the license to
+# $WORK, without version control and what the host has built. The other
+# implementations, and whatever they have built, are left out.
 copy_repository() {
   install -d -o tester -g tester "$WORK"
   tar -C "$SRC" --create --exclude-vcs \
-    --exclude=./dist --exclude=./.idea --exclude='*.iml' \
+    --exclude=.idea --exclude='*.iml' --exclude=node_modules --exclude=__pycache__ \
     --exclude=./flutter/build --exclude=./flutter/coverage --exclude=./flutter/.dart_tool \
     --exclude=./flutter/.flutter-plugins-dependencies --exclude=./flutter/linux/flutter/ephemeral \
     --exclude=./flutter/assets/fonts/MaterialSymbolsRounded.ttf \
-    . | runuser -u tester -- tar -C "$WORK" --extract
+    ./flutter ./shared ./LICENSE | runuser -u tester -- tar -C "$WORK" --extract
 }
 
 # get_packages [--offline]: gets the packages of pubspec.lock. The deps task

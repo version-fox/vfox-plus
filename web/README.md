@@ -58,8 +58,8 @@ Run them from this directory.
 ([`dev-host/`](dev-host)): Node.js does what Tauri or Wails would do, over a
 WebSocket. vfox runs with a new temporary `HOME`, so your vfox installation is
 never touched; by default it is the fake vfox of
-[`e2e/fake-vfox.sh`](e2e/fake-vfox.sh), which replays
-[`shared/fixtures`](../shared/fixtures). Set `VFOX_PLUS_DEV_VFOX` to use another
+[`shared/fixtures/fake-vfox.sh`](../shared/fixtures/fake-vfox.sh), which
+replays the captured output of vfox. Set `VFOX_PLUS_DEV_VFOX` to use another
 executable. Never expose the development server beyond your machine.
 
 The npm registry is set to `https://registry.npmjs.org/` in
