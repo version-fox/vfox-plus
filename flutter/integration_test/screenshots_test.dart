@@ -52,7 +52,7 @@ void main() {
     sandbox = Directory.systemTemp.createTempSync('vfox-plus-screenshots');
     vfox = await writeExecutable(
       _installedVfox ?? '${sandbox.path}/vfox',
-      fakeVfoxScript('${sharedDirectory().path}/fixtures/vfox-1.0.12'),
+      fakeVfoxScript('${sharedDirectory().path}/fixtures/vfox-1.0.13'),
     );
   });
 

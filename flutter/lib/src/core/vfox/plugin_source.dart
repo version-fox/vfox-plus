@@ -22,9 +22,9 @@ bool isRemotePluginSource(String source) => source.startsWith('http://') || sour
 
 /// Whether vfox would move [source] instead of reading it.
 ///
-/// vfox 1.0.12 renames a local `.lua` plugin into its temporary directory,
-/// which deletes the user's file and fails when the file is on another
-/// filesystem; local `.zip` archives and URLs are only read. See
+/// vfox (still in 1.0.13) renames a local `.lua` plugin into its temporary
+/// directory, which deletes the user's file and fails when the file is on
+/// another filesystem; local `.zip` archives and URLs are only read. See
 /// `docs/vfox-cli-contract.md`.
 bool vfoxMovesPluginSource(String source) => !isRemotePluginSource(source) && source.toLowerCase().endsWith('.lua');
 

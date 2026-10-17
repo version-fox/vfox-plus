@@ -1,0 +1,9 @@
+All installed sdk versions
+├─┬maven
+│ ├──3.9.16
+│ └──3.8.9
+├──mvn2
+└─┬nodejs
+  ├──24.11.1
+  └──22.21.0
+

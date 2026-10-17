@@ -14,13 +14,13 @@
 
 // End-to-end test of the Linux application against the real vfox.
 //
-// The test drives every operation of the application through the real vfox
-// executable named by the VFOX_PLUS_E2E_VFOX environment variable; it is
-// skipped when the variable is not set. vfox runs with HOME set to a new
-// temporary directory, and the offline test plugin of shared/test-plugin
-// downloads its SDK from a local server, so the test needs no network and
-// never touches an existing vfox installation. Run it with a display, for
-// example:
+// The test drives every operation of the application, including cancelling an
+// installation, through the real vfox executable named by the
+// VFOX_PLUS_E2E_VFOX environment variable; it is skipped when the variable is
+// not set. vfox runs with HOME set to a new temporary directory, and the
+// offline test plugin of shared/test-plugin downloads its SDK from a local
+// server, so the test needs no network and never touches an existing vfox
+// installation. Run it with a display, for example:
 //
 //   VFOX_PLUS_E2E_VFOX=/usr/local/bin/vfox xvfb-run -a flutter test integration_test/real_vfox_test.dart -d linux
 
@@ -138,6 +138,19 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Install').first);
     await pumpUntil(tester, find.text('Install testsdk@2.0.0: done'));
     expect(model.tasks.tasks.first.progress, 1, reason: 'vfox reports the download progress on standard error.');
+
+    // Cancel the installation of 1.0.0 during the download. From 1.0.13 vfox
+    // leaves the partial installation behind, but must neither list it nor
+    // refuse to install the version again.
+    server.holdDownloads();
+    await tester.tap(find.widgetWithText(FilledButton, 'Install'));
+    await pumpUntilTrue(tester, () => (model.tasks.tasks.first.progress ?? 0) > 0, reason: 'the download started');
+    await tester.tap(find.byTooltip('Cancel'));
+    await pumpUntilTrue(tester, () => model.tasks.tasks.first.finishedAt != null, reason: 'vfox exited');
+    expect(model.tasks.tasks.first.status, TaskStatus.cancelled);
+    expect(await vfox(<String>['list', 'testsdk']), isNot(contains('1.0.0')));
+    server.releaseDownloads();
+    await pumpUntil(tester, find.widgetWithText(FilledButton, 'Install'));
     await tester.tap(find.widgetWithText(FilledButton, 'Install'));
     await pumpUntil(tester, find.text('Install testsdk@1.0.0: done'));
 
@@ -171,8 +184,14 @@ void main() {
     await pumpUntil(tester, find.text('Select an SDK to manage its versions.'));
     expect(find.text('localsdk'), findsNothing);
 
-    // Every task succeeded, and vfox agrees with what the application shows.
-    expect(model.tasks.tasks.map((VfoxTask task) => task.status), everyElement(TaskStatus.succeeded));
+    // Every task but the cancelled one succeeded, and vfox agrees with what the
+    // application shows.
+    expect(
+      model.tasks.tasks
+          .map((VfoxTask task) => task.status)
+          .where((TaskStatus status) => status != TaskStatus.succeeded),
+      <TaskStatus>[TaskStatus.cancelled],
+    );
     expect(
       Directory('$home/.vfox/tmp')
           .listSync()

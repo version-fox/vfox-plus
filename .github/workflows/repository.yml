@@ -31,6 +31,8 @@ concurrency:
 jobs:
   license-header:
     name: License headers
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -44,6 +46,8 @@ jobs:
 
   lint:
     name: Workflows and scripts
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

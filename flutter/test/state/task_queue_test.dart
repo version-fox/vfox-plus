@@ -103,9 +103,11 @@ void main() {
     final VfoxTask task = queue.enqueue(cli.install('maven', '3.9.16'));
     await settle();
     expect(task.status, TaskStatus.failed);
+    // vfox 1.0.13 prints the reason on standard output and the generic
+    // "failed to install maven" on standard error.
     expect(
       task.errorMessage,
-      'failed to create directory, err:mkdir /tmp/vfox-sb/home/.vfox/cache/maven/v-3.9.16: permission denied',
+      'mark installation in progress: open /tmp/vfox-sb/home/.vfox/cache/maven/.v-3.9.16.installing: permission denied',
     );
     expect(finished, <VfoxTask>[task]);
   });

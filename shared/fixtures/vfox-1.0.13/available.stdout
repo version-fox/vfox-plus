@@ -1,0 +1,47 @@
+AVAILABLE PLUGINS
+
+  bun                 ✗  https://github.com/arfaWong/vfox-bun
+  clang               ✓  https://github.com/version-fox/vfox-clang
+  cmake               ✓  https://github.com/version-fox/vfox-cmake
+  crystal             ✗  https://github.com/yanecc/vfox-crystal
+  dart                ✓  https://github.com/version-fox/vfox-dart
+  deno                ✓  https://github.com/version-fox/vfox-deno
+  dotnet              ✓  https://github.com/version-fox/vfox-dotnet
+  elixir              ✓  https://github.com/version-fox/vfox-elixir
+  erlang              ✓  https://github.com/version-fox/vfox-erlang
+  etcd                ✓  https://github.com/version-fox/vfox-etcd
+  flutter             ✓  https://github.com/version-fox/vfox-flutter
+  gcc-arm-none-eabi   ✗  https://github.com/leoliu0605/vfox-gcc-arm-none-eabi
+  golang              ✓  https://github.com/version-fox/vfox-golang
+  gradle              ✓  https://github.com/version-fox/vfox-gradle
+  grails              ✗  https://github.com/verglor/vfox-grails
+  groovy              ✓  https://github.com/version-fox/vfox-groovy
+  java                ✓  https://github.com/version-fox/vfox-java
+  julia               ✗  https://github.com/ahai-code/vfox-julia
+  kotlin              ✓  https://github.com/version-fox/vfox-kotlin
+  kubectl             ✗  https://github.com/ahai-code/vfox-kubectl
+  lua                 ✗  https://github.com/yeshan333/vfox-lua
+  make                ✗  https://github.com/leoli0605/vfox-make
+  maven               ✓  https://github.com/version-fox/vfox-maven
+  mingw64             ✗  https://github.com/brechtsanders/winlibs_mingw
+  mongo               ✗  https://github.com/yeshan333/vfox-mongo
+  mongod              ✗  https://github.com/echocat/vfox-mongod
+  moonbit             ✗  https://github.com/morning-start/moonbit
+  nim                 ✗  https://github.com/elijahr/vfox-nim
+  ninja               ✗  https://github.com/leoli0605/vfox-ninja
+  nodejs              ✓  https://github.com/version-fox/vfox-nodejs
+  php                 ✓  https://github.com/version-fox/vfox-php
+  protobuf            ✗  https://github.com/ahai-code/vfox-protobuf
+  python              ✓  https://github.com/version-fox/vfox-python
+  ruby                ✗  https://github.com/yanecc/vfox-ruby
+  rust                ✗  https://github.com/andersou/vfox-rust
+  scala               ✓  https://github.com/version-fox/vfox-scala
+  terraform           ✗  https://github.com/enochchau/vfox-terraform
+  tinygo              ✗  https://github.com/tinygo-org/tinygo
+  tomcat              ✗  https://github.com/sixmillions/vfox-tomcat
+  typst               ✗  https://github.com/GuilleX7/vfox-typst
+  vagrant             ✗  https://github.com/johnxu16/vfox-vagrant
+  vlang               ✗  https://github.com/ahai-code/vfox-vlang
+  zig                 ✓  https://github.com/version-fox/vfox-zig
+
+  Use 'vfox add <plugin>' to install

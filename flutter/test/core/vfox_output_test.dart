@@ -162,6 +162,17 @@ void main() {
       );
     });
 
+    test('finds the reason on standard output when the trailer is on standard error', () {
+      // vfox 1.0.13 prints the error a command returns to standard error.
+      expect(
+        summarizeError(
+          'Preinstalling x@1...\nfailed to download x@1 file, err:EOF\n',
+          '\rDownloading...  3% [>   ]\r      \rfailed to install x\n',
+        ),
+        'failed to download x@1 file, err:EOF',
+      );
+    });
+
     test('returns an empty string without output', () {
       expect(summarizeError('', '  \n'), '');
     });

@@ -73,7 +73,7 @@ void main() {
     });
 
     test('version', () async {
-      expect(await cli.version(), '1.0.12');
+      expect(await cli.version(), '1.0.13');
     });
 
     test('installedSdks merges list and current', () async {
@@ -98,7 +98,7 @@ void main() {
 
     test('pluginInfo uses the format template', () async {
       final PluginInfo info = await cli.pluginInfo('nodejs');
-      expect(info.version, '0.5.0');
+      expect(info.version, '0.5.1');
       expect(runner.invocations.single.arguments.take(3), <String>['info', 'nodejs', '--format']);
     });
 

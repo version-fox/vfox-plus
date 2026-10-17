@@ -22,16 +22,28 @@ import 'dart:typed_data';
 ///
 /// It serves a plugin registry, the plugin and two SDK versions, following the
 /// protocol in shared/test-plugin/README.md. SDK archives are sent slowly, in
-/// chunks, so that vfox reports download progress.
+/// chunks, so that vfox reports download progress, and can be held back after
+/// their first chunk.
 class TestServer {
   TestServer._(this._server, this._plugin, this._archives);
 
   final HttpServer _server;
   final String _plugin;
   final Map<String, Uint8List> _archives;
+  Completer<void>? _held;
 
   /// Paths requested so far, in order.
   final List<String> requests = <String>[];
+
+  /// Makes SDK downloads stop after their first chunk until
+  /// [releaseDownloads], so that a test can act while vfox downloads.
+  void holdDownloads() => _held = Completer<void>();
+
+  /// Lets held downloads continue.
+  void releaseDownloads() {
+    _held?.complete();
+    _held = null;
+  }
 
   /// The base URL, to be passed to vfox in `VFOX_PLUS_TEST_SERVER`.
   String get url => 'http://${_server.address.address}:${_server.port}';
@@ -74,41 +86,47 @@ class TestServer {
     final String path = request.uri.path;
     requests.add(path);
     final HttpResponse response = request.response;
+    // A cancelled vfox closes the connection while its download is sent.
+    response.done.ignore();
     final RegExpMatch? sdk = RegExp(r'^/sdk/testsdk-([0-9.]+)\.tar\.gz$').firstMatch(path);
-    if (path == '/registry/index.json') {
-      _json(response, <Object?>[
-        <String, Object?>{
+    try {
+      if (path == '/registry/index.json') {
+        _json(response, <Object?>[
+          <String, Object?>{
+            'name': 'testsdk',
+            'desc': 'An offline SDK for the vfox-plus end-to-end tests.',
+            'homepage': 'https://github.com/version-fox/vfox-plus',
+          },
+        ]);
+      } else if (path == '/registry/testsdk.json') {
+        _json(response, <String, Object?>{
           'name': 'testsdk',
-          'desc': 'An offline SDK for the vfox-plus end-to-end tests.',
-          'homepage': 'https://github.com/version-fox/vfox-plus',
-        },
-      ]);
-    } else if (path == '/registry/testsdk.json') {
-      _json(response, <String, Object?>{
-        'name': 'testsdk',
-        'version': '0.1.0',
-        'license': 'Apache-2.0',
-        'author': 'vfox-plus',
-        'downloadUrl': '$url/plugin/testsdk.lua',
-        'minRuntimeVersion': '1.0.0',
-      });
-    } else if (path == '/plugin/testsdk.lua') {
-      response.write(_plugin);
-    } else if (sdk != null && _archives.containsKey(sdk.group(1))) {
-      final Uint8List bytes = _archives[sdk.group(1)]!;
-      response
-        ..contentLength = bytes.length
-        ..headers.contentType = ContentType('application', 'gzip');
-      const chunk = 64 * 1024;
-      for (var offset = 0; offset < bytes.length; offset += chunk) {
-        response.add(bytes.sublist(offset, min(offset + chunk, bytes.length)));
-        await response.flush();
-        await Future<void>.delayed(const Duration(milliseconds: 60));
+          'version': '0.1.0',
+          'license': 'Apache-2.0',
+          'author': 'vfox-plus',
+          'downloadUrl': '$url/plugin/testsdk.lua',
+          'minRuntimeVersion': '1.0.0',
+        });
+      } else if (path == '/plugin/testsdk.lua') {
+        response.write(_plugin);
+      } else if (sdk != null && _archives.containsKey(sdk.group(1))) {
+        final Uint8List bytes = _archives[sdk.group(1)]!;
+        response
+          ..contentLength = bytes.length
+          ..headers.contentType = ContentType('application', 'gzip');
+        const chunk = 64 * 1024;
+        for (var offset = 0; offset < bytes.length; offset += chunk) {
+          response.add(bytes.sublist(offset, min(offset + chunk, bytes.length)));
+          await response.flush();
+          await (_held?.future ?? Future<void>.delayed(const Duration(milliseconds: 60)));
+        }
+      } else {
+        response.statusCode = HttpStatus.notFound;
       }
-    } else {
-      response.statusCode = HttpStatus.notFound;
+      await response.close();
+    } on IOException {
+      // The client went away.
     }
-    await response.close();
   }
 
   static void _json(HttpResponse response, Object? body) {

@@ -41,6 +41,8 @@ concurrency:
 jobs:
   sandbox:
     name: Check, test and package in the sandbox
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:

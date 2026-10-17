@@ -117,7 +117,7 @@ void main() {
       final VfoxController vfox = controller(found: '/usr/local/bin/vfox');
       await vfox.apply(AppSettings(extraEnvironment: const <String, String>{'A': '1'}));
       expect(vfox.availability, VfoxAvailability.ready);
-      expect(vfox.version, '1.0.12');
+      expect(vfox.version, '1.0.13');
       expect(vfox.executable, '/usr/local/bin/vfox');
       expect(vfox.isCustomExecutable, isFalse);
       expect(cli.launchConfig.extraEnvironment, <String, String>{'A': '1'});

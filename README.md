@@ -10,11 +10,11 @@ implementation follows the same specification and uses the same translations,
 icons and test fixtures, so they look and behave alike and can be compared on
 equal terms.
 
-![vfox+ home page](https://files.catbox.moe/jan8d0.png)
+![vfox+ home page](https://files.catbox.moe/yjwjll.png)
 
 | SDK versions, dark theme | Settings in Simplified Chinese |
 | --- | --- |
-| ![SDK detail](https://files.catbox.moe/m4g6g3.png) | ![Settings](https://files.catbox.moe/lnl3jt.png) |
+| ![SDK detail](https://files.catbox.moe/et01kh.png) | ![Settings](https://files.catbox.moe/ijq2tt.png) |
 
 ## Implementations
 

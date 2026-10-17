@@ -1,0 +1,614 @@
+{
+  "vfox": "1.0.13",
+  "description": "Output of vfox 1.0.13 captured with NO_COLOR=1, stdin and stdout not attached to a terminal, HOME=/tmp/vfox-sb/home and the working directory '/'. See README.md for the meaning of every field.",
+  "cases": [
+    {
+      "name": "version",
+      "command": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "version": "1.0.13"
+      }
+    },
+    {
+      "name": "current",
+      "command": [
+        "current"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "current": {
+          "maven": "3.9.16",
+          "mvn2": null,
+          "nodejs": "24.11.1"
+        }
+      }
+    },
+    {
+      "name": "current-unset",
+      "command": [
+        "current"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "current": {
+          "maven": null,
+          "mvn2": null,
+          "nodejs": null
+        }
+      }
+    },
+    {
+      "name": "current-empty",
+      "command": [
+        "current"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "current": {}
+      }
+    },
+    {
+      "name": "current-sdk",
+      "command": [
+        "current",
+        "nodejs"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "current-sdk-unset",
+      "command": [
+        "current",
+        "maven"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "no current version of maven"
+      }
+    },
+    {
+      "name": "list",
+      "command": [
+        "list"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "list": {
+          "maven": [
+            "3.9.16",
+            "3.8.9"
+          ],
+          "mvn2": [],
+          "nodejs": [
+            "24.11.1",
+            "22.21.0"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list-empty",
+      "command": [
+        "list"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "list": {},
+        "error": "you don't have any sdk installed yet"
+      }
+    },
+    {
+      "name": "list-sdk",
+      "command": [
+        "list",
+        "nodejs"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "list-sdk-without-versions",
+      "command": [
+        "list",
+        "maven"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "no available version"
+      }
+    },
+    {
+      "name": "search-maven",
+      "command": [
+        "search",
+        "maven"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 5,
+          "items": {
+            "0": {
+              "version": "4.0.0-rc-7",
+              "note": null,
+              "additions": [],
+              "installed": false
+            },
+            "1": {
+              "version": "4.0.0-rc-6",
+              "note": null,
+              "additions": [],
+              "installed": false
+            },
+            "2": {
+              "version": "3.9.16",
+              "note": null,
+              "additions": [],
+              "installed": false
+            },
+            "3": {
+              "version": "3.10.0-rc-1",
+              "note": null,
+              "additions": [],
+              "installed": false
+            },
+            "4": {
+              "version": "3.10.0",
+              "note": null,
+              "additions": [],
+              "installed": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "search-maven-installed",
+      "command": [
+        "search",
+        "maven"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 5,
+          "items": {
+            "2": {
+              "version": "3.9.16",
+              "note": null,
+              "additions": [],
+              "installed": true
+            },
+            "3": {
+              "version": "3.10.0-rc-1",
+              "note": null,
+              "additions": [],
+              "installed": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "search-nodejs",
+      "command": [
+        "search",
+        "nodejs"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 872,
+          "items": {
+            "0": {
+              "version": "26.12.0",
+              "note": null,
+              "additions": [
+                {
+                  "name": "npm",
+                  "version": "11.20.0"
+                }
+              ],
+              "installed": false
+            },
+            "32": {
+              "version": "24.22.0",
+              "note": "LTS",
+              "additions": [
+                {
+                  "name": "npm",
+                  "version": "11.19.1"
+                }
+              ],
+              "installed": false
+            },
+            "871": {
+              "version": "0.1.14",
+              "note": null,
+              "additions": [
+                {
+                  "name": "npm",
+                  "version": ""
+                }
+              ],
+              "installed": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "search-unknown",
+      "command": [
+        "search",
+        "nosuchsdk"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "search": {
+          "count": 0,
+          "items": {}
+        },
+        "error": "nosuchsdk not supported, error: Plugin nosuchsdk is not installed. Use the -y flag to automatically install plugins in non-interactive environments"
+      }
+    },
+    {
+      "name": "available",
+      "command": [
+        "available"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "available": {
+          "count": 43,
+          "items": {
+            "0": {
+              "name": "bun",
+              "official": false,
+              "homepage": "https://github.com/arfaWong/vfox-bun"
+            },
+            "1": {
+              "name": "clang",
+              "official": true,
+              "homepage": "https://github.com/version-fox/vfox-clang"
+            },
+            "29": {
+              "name": "nodejs",
+              "official": true,
+              "homepage": "https://github.com/version-fox/vfox-nodejs"
+            },
+            "42": {
+              "name": "zig",
+              "official": true,
+              "homepage": "https://github.com/version-fox/vfox-zig"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info",
+      "command": [
+        "info",
+        "nodejs",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "name": "nodejs",
+          "version": "0.5.1",
+          "homepage": "https://github.com/version-fox/vfox-nodejs",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/nodejs",
+          "description": "Node.js runtime environment."
+        }
+      }
+    },
+    {
+      "name": "info-unknown",
+      "command": [
+        "info",
+        "nosuchsdk"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "nosuchsdk not supported, error: nosuchsdk not installed"
+      }
+    },
+    {
+      "name": "info-version-path",
+      "command": [
+        "info",
+        "nodejs@24.11.1"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "installPath": "/tmp/vfox-sb/home/.vfox/cache/nodejs/v-24.11.1"
+      }
+    },
+    {
+      "name": "info-version-not-installed",
+      "command": [
+        "info",
+        "nodejs@1.0.0"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "installPath": null
+      }
+    },
+    {
+      "name": "config-list",
+      "command": [
+        "config",
+        "--list"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "config": [
+          {
+            "key": "plugin.http.timeout",
+            "value": "0s"
+          },
+          {
+            "key": "plugin.http.downloadTimeout",
+            "value": "0s"
+          },
+          {
+            "key": "proxy.url",
+            "value": ""
+          },
+          {
+            "key": "proxy.enable",
+            "value": "false"
+          },
+          {
+            "key": "storage.sdkPath",
+            "value": ""
+          },
+          {
+            "key": "registry.address",
+            "value": ""
+          },
+          {
+            "key": "legacyVersionFile.enable",
+            "value": "true"
+          },
+          {
+            "key": "legacyVersionFile.strategy",
+            "value": "specified"
+          },
+          {
+            "key": "cache.availableHookDuration",
+            "value": "12h"
+          },
+          {
+            "key": "gitignore.enable",
+            "value": "true"
+          }
+        ]
+      }
+    },
+    {
+      "name": "config-get",
+      "command": [
+        "config",
+        "proxy.url"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "config-set",
+      "command": [
+        "config",
+        "proxy.url",
+        "http://127.0.0.1:7890"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "config-set-invalid-duration",
+      "command": [
+        "config",
+        "cache.availableHookDuration",
+        "notaduration"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "time: invalid duration \"notaduration\""
+      }
+    },
+    {
+      "name": "install",
+      "command": [
+        "install",
+        "--yes",
+        "maven@3.9.16"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "finalProgress": 1.0
+      }
+    },
+    {
+      "name": "install-failure",
+      "command": [
+        "install",
+        "--yes",
+        "maven@3.9.16"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "finalProgress": null,
+        "error": "mark installation in progress: open /tmp/vfox-sb/home/.vfox/cache/maven/.v-3.9.16.installing: permission denied"
+      }
+    },
+    {
+      "name": "install-without-version",
+      "command": [
+        "install",
+        "--yes",
+        "maven"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "finalProgress": null,
+        "error": "install requires specifying a version for maven"
+      }
+    },
+    {
+      "name": "use-global",
+      "command": [
+        "use",
+        "--global",
+        "maven@3.9.16"
+      ],
+      "environment": {
+        "__VFOX_SHELL": "bash"
+      },
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "use-without-hook",
+      "command": [
+        "use",
+        "--global",
+        "maven@3.9.16"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "vfox requires hook support. Please ensure vfox is properly initialized with 'vfox activate'"
+      }
+    },
+    {
+      "name": "unuse-global",
+      "command": [
+        "unuse",
+        "--global",
+        "maven"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "uninstall",
+      "command": [
+        "uninstall",
+        "maven@3.8.9"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "uninstall-not-installed",
+      "command": [
+        "uninstall",
+        "maven@1.2.3"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "maven@1.2.3 is not installed"
+      }
+    },
+    {
+      "name": "add",
+      "command": [
+        "add",
+        "nodejs"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "add-alias",
+      "command": [
+        "add",
+        "--alias",
+        "mvn2",
+        "maven"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "add-existing",
+      "command": [
+        "add",
+        "maven"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "plugin named maven already exists"
+      }
+    },
+    {
+      "name": "add-unknown",
+      "command": [
+        "add",
+        "nosuchplugin"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "manifest not found"
+      }
+    },
+    {
+      "name": "remove",
+      "command": [
+        "remove",
+        "--yes",
+        "mvn2"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "remove-without-yes",
+      "command": [
+        "remove",
+        "mvn2"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "Use the -y flag to skip confirmation in non-interactive environments"
+      }
+    },
+    {
+      "name": "update",
+      "command": [
+        "update",
+        "maven"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "update-all",
+      "command": [
+        "update",
+        "--all"
+      ],
+      "exitCode": 0,
+      "expect": {}
+    },
+    {
+      "name": "update-unknown",
+      "command": [
+        "update",
+        "nosuch"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "error": "nosuch plugin not installed"
+      }
+    }
+  ]
+}

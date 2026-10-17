@@ -38,6 +38,24 @@ Future<void> pumpUntil(WidgetTester tester, Finder finder, {Duration timeout = c
   fail('Timed out waiting for $finder');
 }
 
+/// Pumps frames until [condition] holds, or fails after [timeout] with
+/// [reason], which completes "Timed out waiting until".
+Future<void> pumpUntilTrue(
+  WidgetTester tester,
+  bool Function() condition, {
+  required String reason,
+  Duration timeout = const Duration(seconds: 30),
+}) async {
+  final DateTime end = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(end)) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (condition()) {
+      return;
+    }
+  }
+  fail('Timed out waiting until $reason');
+}
+
 /// Pumps frames for [duration] of real time, letting springs settle.
 Future<void> pumpFor(WidgetTester tester, Duration duration) async {
   final DateTime end = DateTime.now().add(duration);
