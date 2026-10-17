@@ -91,9 +91,11 @@ implementations (`/usr/lib/vfox-plus/vfox-plus`, started as `/usr/bin/vfox-plus`
 The package provides, conflicts with and replaces `vfox-plus`, so the
 implementations replace each other. Tauri's own bundler is not used because it
 names the desktop entry after the product and cannot produce this layout. The
-licenses of the bundled npm packages and of the icon font are installed as
-`/usr/share/doc/vfox-plus-tauri/THIRD-PARTY-LICENSES` and shown in the
-application.
+licenses of the bundled npm packages, of the icon font and of the Rust crates
+are installed as `/usr/share/doc/vfox-plus-tauri/THIRD-PARTY-LICENSES` and shown
+in the application: the `beforeBuildCommand` of [`tauri.conf.json`](src-tauri/tauri.conf.json)
+adds those of the crates, checked by [`shared/tools/cargo_licenses.py`](../shared/tools/cargo_licenses.py),
+to the licenses of the front end.
 
 ## Memory
 

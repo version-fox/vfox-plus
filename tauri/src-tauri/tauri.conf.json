@@ -6,7 +6,7 @@
   "identifier": "dev.vfox.VfoxPlus",
   "build": {
     "frontendDist": "../../web/dist/tauri",
-    "beforeBuildCommand": "npm --prefix ../web run build:tauri"
+    "beforeBuildCommand": "npm --prefix ../web run build:tauri && python3 ../shared/tools/cargo_licenses.py --manifest-path src-tauri/Cargo.toml --output ../web/dist/tauri/licenses.txt --append"
   },
   "app": {
     "windows": [

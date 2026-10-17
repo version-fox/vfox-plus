@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The Tauri implementation: formatting, Clippy and tests of the Rust side,
-# the end-to-end scenarios of the web front end in the application (against
-# captured output and against the real vfox) and the Linux packages.
+# The Tauri implementation: formatting, Clippy, tests and the licenses of the
+# Rust side, the end-to-end scenarios of the web front end in the application
+# (against captured output and against the real vfox) and the Linux packages.
 # tauri/sandbox/run-task.sh runs the same steps locally; keep them in sync.
 # The tool versions are in tauri/versions.env and web/versions.env.
 name: Tauri
@@ -94,6 +94,8 @@ jobs:
       - name: Clippy
         working-directory: tauri/src-tauri
         run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Check the licenses of the Rust crates
+        run: python3 shared/tools/cargo_licenses.py --manifest-path tauri/src-tauri/Cargo.toml --output "$RUNNER_TEMP/crate-licenses.txt"
       - name: Test
         working-directory: tauri/src-tauri
         run: cargo test --locked
@@ -140,7 +142,7 @@ jobs:
             --package vfox-plus-tauri --version "$(jq -r .version tauri/src-tauri/tauri.conf.json)" \
             --stage "$RUNNER_TEMP/stage" --executable vfox-plus --technology Tauri \
             --depends "$(sed -n 's/^DEPENDS="\(.*\)"$/\1/p' tauri/sandbox/run-task.sh)" \
-            --notice web/public/licenses.txt dist
+            --notice web/dist/tauri/licenses.txt dist
       - name: Validate the packages
         run: |
           desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop

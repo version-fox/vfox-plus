@@ -100,7 +100,12 @@ packages it as `vfox-plus-wails_<version>_amd64.deb` and a `.tar.gz`, with the
 same layout, desktop entry, AppStream metadata and icon as the other
 implementations; the version is the one of the front end. The window sets the
 application ID `dev.vfox.VfoxPlus` as its program name, so it matches the
-desktop entry on X11 and Wayland.
+desktop entry on X11 and Wayland. The licenses of the bundled npm packages, of
+the icon font, of the Go modules and of the Go standard library are installed
+as `/usr/share/doc/vfox-plus-wails/THIRD-PARTY-LICENSES` and shown in the
+application: [`build.sh`](build.sh) adds those of Go, checked by
+[`shared/tools/go_licenses.py`](../shared/tools/go_licenses.py), to the licenses
+of the front end.
 
 ## Memory
 

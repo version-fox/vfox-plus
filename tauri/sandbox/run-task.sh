@@ -39,13 +39,25 @@ npm_install() {
   done
 }
 
+# crate_licenses <output> [--append]: checks the licenses of the Rust crates
+# and writes their texts to <output>.
+crate_licenses() {
+  as_tester "$WORK" python3 shared/tools/cargo_licenses.py --offline \
+    --manifest-path tauri/src-tauri/Cargo.toml --output "$@"
+}
+
 # prepare [frontend build script]: installs the packages from the caches,
 # generates the assets and icons and builds the front end, which Tauri embeds.
+# The release front end also shows the licenses of the Rust crates, as the
+# beforeBuildCommand of tauri.conf.json adds them.
 prepare() {
   copy_repository web tauri
   npm_install --offline
   as_tester "$WEB" npm run assets
   as_tester "$WEB" npm run "${1:-build:tauri}"
+  if [[ "${1:-build:tauri}" == build:tauri ]]; then
+    crate_licenses "$WEB/dist/tauri/licenses.txt" --append
+  fi
   as_tester "$APP" npm run icons > /dev/null 2>&1
 }
 
@@ -66,6 +78,7 @@ case "${1:-}" in
 
   check)
     prepare
+    crate_licenses /tmp/crate-licenses.txt
     as_tester "$CRATE" cargo fmt --check
     as_tester "$CRATE" cargo clippy --offline --locked --all-targets -- -D warnings
     as_tester "$CRATE" cargo test --offline --locked
@@ -103,7 +116,7 @@ case "${1:-}" in
       bash "$WORK/shared/packaging/linux/build-deb.sh" \
       --package vfox-plus-tauri --version "$(jq -r .version "$CRATE/tauri.conf.json")" \
       --stage /home/tester/stage --executable vfox-plus --technology Tauri \
-      --depends "$DEPENDS" --notice "$WEB/public/licenses.txt" /home/tester/dist
+      --depends "$DEPENDS" --notice "$WEB/dist/tauri/licenses.txt" /home/tester/dist
     desktop-file-validate "$WORK/shared/packaging/linux/dev.vfox.VfoxPlus.desktop"
     as_tester "$APP" lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog \
       /home/tester/dist/*.deb

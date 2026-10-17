@@ -145,7 +145,7 @@ jobs:
             --package vfox-plus-wails --version "$(jq -r .version web/package.json)" \
             --stage "$RUNNER_TEMP/stage" --executable vfox-plus --technology Wails \
             --depends "$(sed -n 's/^DEPENDS="\(.*\)"$/\1/p' wails/sandbox/run-task.sh)" \
-            --notice web/public/licenses.txt dist
+            --notice wails/frontend/dist/licenses.txt dist
       - name: Validate the packages
         run: |
           desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop

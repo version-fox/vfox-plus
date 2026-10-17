@@ -23,7 +23,8 @@
 #   output   the binary to write, by default build/vfox-plus
 #
 # The front end needs its packages and assets first:
-# `npm ci && npm run assets` in ../web.
+# `npm ci && npm run assets` in ../web. The licenses of the Go modules are
+# checked with ../shared/tools/go_licenses.py, which needs Python 3.
 set -euo pipefail
 
 WAILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,7 +41,12 @@ output="${1:-$WAILS_DIR/build/vfox-plus}"
 npm --prefix "$WEB_DIR" run "$script"
 rm -rf "$WAILS_DIR/frontend/dist"
 cp -r "$WEB_DIR/dist/$dist" "$WAILS_DIR/frontend/dist"
+# The front end shows the licenses of the Go modules and of the Go standard
+# library, which the binary contains, after those of the npm packages.
+python3 "$WAILS_DIR/../shared/tools/go_licenses.py" --module "$WAILS_DIR" --tags production \
+  --output "$WAILS_DIR/frontend/dist/licenses.txt" --append
 mkdir -p "$(dirname "$output")"
-# The production tag removes the developer tools of Wails.
-(cd "$WAILS_DIR" && CGO_ENABLED=1 CGO_CFLAGS="${CGO_CFLAGS:--O2 -g} -Wno-deprecated-declarations" go build -trimpath -tags production -ldflags "-s -w" -o "$output" .)
+# The production tag removes the developer tools of Wails. Debian expects
+# position-independent executables.
+(cd "$WAILS_DIR" && CGO_ENABLED=1 CGO_CFLAGS="${CGO_CFLAGS:--O2 -g} -Wno-deprecated-declarations" go build -trimpath -buildmode=pie -tags production -ldflags "-s -w" -o "$output" .)
 echo "Built $output"

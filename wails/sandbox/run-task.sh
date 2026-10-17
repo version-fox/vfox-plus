@@ -91,7 +91,7 @@ case "${1:-}" in
       bash "$WORK/shared/packaging/linux/build-deb.sh" \
       --package vfox-plus-wails --version "$(jq -r .version "$WEB/package.json")" \
       --stage /home/tester/stage --executable vfox-plus --technology Wails \
-      --depends "$DEPENDS" --notice "$WEB/public/licenses.txt" /home/tester/dist
+      --depends "$DEPENDS" --notice "$APP/frontend/dist/licenses.txt" /home/tester/dist
     desktop-file-validate "$WORK/shared/packaging/linux/dev.vfox.VfoxPlus.desktop"
     as_tester "$APP" lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog \
       /home/tester/dist/*.deb
