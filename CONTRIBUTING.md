@@ -1,0 +1,106 @@
+# Contributing to vfox-plus
+
+Thank you for helping! This repository holds several implementations of the
+same application (see the [README](README.md)); most of what follows applies to
+all of them.
+
+## Ground rules
+
+- Code comments, documentation, commit messages and pull requests are written in
+  **English**. User-visible texts go through the translation catalogues in
+  [`shared/i18n`](shared/i18n) and are available in English and Simplified
+  Chinese.
+- Every source file starts with the Apache-2.0 license header used in this
+  repository. Check with
+  `docker run --rm -v "$PWD:/github/workspace" apache/skywalking-eyes:0.9.0 header check`
+  and add missing headers with `header fix`.
+- Runtime dependencies must be licensed under terms compatible with the Apache
+  License 2.0.
+- Behaviour that every implementation shares — the vfox CLI contract, screens,
+  design tokens, translations, icons, settings — is specified in [`docs`](docs)
+  and [`shared`](shared). Change the specification together with the code.
+- Files use UTF-8, LF line endings and a final newline (see
+  [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes)).
+- Binary files are not committed. Upload screenshots and other images to an
+  image host and link them (see [Screenshots](#screenshots)); generate binary
+  build inputs, such as the Flutter icon font, from their sources at build
+  time. CI rejects binary files.
+
+## Workflow
+
+1. Open an issue or comment on an existing one before large changes.
+2. Create a branch from `main` and keep pull requests focused.
+3. Run the checks of the implementation you changed; they are the same as in CI.
+   For Flutter, see [`flutter/README.md`](flutter/README.md#everyday-commands):
+
+   ```sh
+   cd flutter
+   dart format lib test tool integration_test
+   flutter analyze --fatal-infos --fatal-warnings
+   flutter test --coverage && dart run tool/coverage.dart --min=85
+   ```
+
+   To run every check, the end-to-end tests and the packaging without installing
+   anything but Docker, and without any risk for the vfox installation on your
+   machine, use the sandbox: `flutter/sandbox/sandbox.sh all` (see
+   [flutter/README.md](flutter/README.md#sandbox)).
+
+4. Describe what changed and how you tested it in the pull request. Include
+   screenshots for visual changes, in light and dark themes.
+
+## Continuous integration
+
+| Workflow | Runs on | Checks |
+| --- | --- | --- |
+| [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), shell scripts (ShellCheck), shared JSON, no committed binary files |
+| [`flutter.yml`](.github/workflows/flutter.yml) | `flutter/`, `shared/` | Lock file, formatting, generated translations, analysis, tests with an 85 % coverage gate, end-to-end tests on Linux under Xvfb against captured output and against the real vfox, release build with a smoke test, `.deb` and `.tar.gz` packages validated with lintian |
+| [`flutter-sandbox.yml`](.github/workflows/flutter-sandbox.yml) | `flutter/sandbox/`, `flutter/versions.env` | Builds the Docker sandbox and runs `sandbox.sh all` in it |
+
+Dependabot keeps the pub packages and the GitHub Actions up to date; actions are
+pinned to commit SHAs.
+
+## Common changes
+
+### Texts
+
+Add or change messages in [`shared/i18n/app_en.arb`](shared/i18n/app_en.arb)
+with a `description` (and placeholder metadata), then translate them in
+[`app_zh.arb`](shared/i18n/app_zh.arb). See [docs/i18n.md](docs/i18n.md),
+including the glossary. Flutter regenerates its accessors with
+`flutter gen-l10n`; commit the generated files.
+
+### Icons
+
+Add the Material Symbol to [`shared/icons.json`](shared/icons.json) under a
+name that describes its meaning, then regenerate the icons of each
+implementation (Flutter: `dart run tool/generate_icon_font.dart`, then commit
+`lib/src/ui/icons/app_icons.g.dart`; the font itself is generated at build time
+and not committed).
+
+### vfox output
+
+When vfox changes its output, recapture the fixtures with
+[`shared/fixtures/capture.sh`](shared/fixtures/capture.sh) (or in a container
+with `flutter/sandbox/sandbox.sh fixtures`) and follow
+[`shared/fixtures/README.md`](shared/fixtures/README.md). Document the change in
+[docs/vfox-cli-contract.md](docs/vfox-cli-contract.md).
+
+### Screenshots
+
+The images of the documentation are not committed: they are hosted on
+[catbox.moe](https://catbox.moe), a free image host that needs no account, and
+linked. `flutter/sandbox/sandbox.sh screenshots` renders the screenshots of the
+[README](README.md) into `dist/sandbox/screenshots/`, reproducibly. Upload a new
+image with
+
+```sh
+curl -F reqtype=fileupload -F fileToUpload=@dist/sandbox/screenshots/home-light.png https://catbox.moe/user/api.php
+```
+
+which prints its URL, and replace the link in the README. Every upload gets a
+new URL, so cached copies of an old image never show. Anonymous uploads cannot
+be deleted; upload nothing that must not stay public.
+
+### A new implementation
+
+Follow [docs/new-implementation.md](docs/new-implementation.md).

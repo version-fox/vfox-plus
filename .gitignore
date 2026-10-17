@@ -1,0 +1,15 @@
+# Operating system and editor files.
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Visual Studio Code settings are personal.
+.vscode/
+
+# IntelliJ IDEA project files are personal, in every directory.
+.idea/
+*.iml
+
+# Packaging output (see flutter/packaging/linux/build_deb.sh).
+/dist/

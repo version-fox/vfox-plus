@@ -1,0 +1,13 @@
+Fetching maven manifest... 
+Downloading vfox-maven-0.1.2.zip... 
+Validating /tmp/vfox-sb/home/.vfox/plugin/vfox-maven-0.1.2.zip ...
+Plugin info:
+Name     -> maven
+Version  -> 0.1.2
+Homepage -> https://github.com/version-fox/vfox-maven
+Desc     -> Maven runtime environment.
+Notes:
+======
+   
+Add mvn2 plugin successfully! 
+Please use `vfox install maven@<version>` to install the version you need.

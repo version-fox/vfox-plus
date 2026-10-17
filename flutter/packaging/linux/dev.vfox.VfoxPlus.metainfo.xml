@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2026 Han Li and contributors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<component type="desktop-application">
+  <id>dev.vfox.VfoxPlus</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>vfox+</name>
+  <summary>Install and switch SDK versions with vfox</summary>
+  <summary xml:lang="zh-CN">使用 vfox 安装和切换 SDK 版本</summary>
+  <description>
+    <p>
+      vfox+ is a Material 3 Expressive desktop application for the vfox version manager. It shows the
+      installed SDKs and the versions in use, installs and removes versions, pins versions in projects,
+      browses the plugin registry and edits the vfox configuration.
+    </p>
+    <p xml:lang="zh-CN">
+      vfox+ 是 vfox 版本管理器的 Material 3 Expressive 桌面应用。它展示已安装的 SDK 和正在使用的版本，
+      可以安装和卸载版本、在项目中固定版本、浏览插件仓库并编辑 vfox 配置。
+    </p>
+  </description>
+  <launchable type="desktop-id">dev.vfox.VfoxPlus.desktop</launchable>
+  <url type="homepage">https://github.com/version-fox/vfox-plus</url>
+  <url type="bugtracker">https://github.com/version-fox/vfox-plus/issues</url>
+  <developer id="dev.vfox">
+    <name>Han Li and contributors</name>
+  </developer>
+  <categories>
+    <category>Development</category>
+  </categories>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-17"/>
+  </releases>
+</component>
