@@ -1,0 +1,176 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Dioxus implementation: formatting, Clippy, the unit tests with the
+# coverage gate, the license check of the npm packages and the Rust crates,
+# the end-to-end scenarios (against captured output and against the real vfox),
+# the memory measurement and the Linux packages.
+# dioxus/sandbox/run-task.sh runs the same steps locally; keep them in sync.
+# The tool versions are in dioxus/versions.env, tauri/versions.env (Rust) and
+# web/versions.env (Node.js).
+name: Dioxus
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - dioxus/**
+      - web/e2e/**
+      - web/src/e2e/**
+      - shared/**
+      - .github/workflows/dioxus.yml
+  pull_request:
+    paths:
+      - dioxus/**
+      - web/e2e/**
+      - web/src/e2e/**
+      - shared/**
+      - .github/workflows/dioxus.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Packages needed to build and run Dioxus desktop applications on Linux, the
+  # icon font, the virtual display and the package checks.
+  LINUX_PACKAGES: >-
+    build-essential pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev libssl-dev
+    fonttools python3-brotli xvfb xauth dbus-x11 lintian desktop-file-utils
+
+jobs:
+  build:
+    name: Check, test end to end and package
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' web/versions.env tauri/versions.env dioxus/versions.env >> "$GITHUB_ENV"
+      - name: Install the Linux packages
+        run: |
+          sudo apt-get update
+          # shellcheck disable=SC2086 # The list is meant to be split.
+          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: dioxus/components/package-lock.json
+      - name: Install Rust and cargo-llvm-cov
+        run: |
+          rustup toolchain install "$RUST_VERSION" --profile minimal \
+            --component rustfmt --component clippy --component llvm-tools-preview
+          rustup default "$RUST_VERSION"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/cargo-llvm-cov.tar.gz" \
+            "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v$CARGO_LLVM_COV_VERSION/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$CARGO_LLVM_COV_SHA256  $RUNNER_TEMP/cargo-llvm-cov.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/cargo-llvm-cov.tar.gz" -C "$HOME/.cargo/bin"
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: dioxus
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/material-symbols
+          key: material-symbols-${{ hashFiles('shared/tools/icon_font.py') }}
+      - name: Build the assets and check the licenses
+        run: |
+          python3 shared/tools/icon_font.py download ~/.cache/material-symbols
+          export VFOX_PLUS_SYMBOLS="$HOME/.cache/material-symbols"
+          (cd dioxus/components && npm ci && npm run build)
+          (cd dioxus && cargo fetch --locked)
+          python3 shared/tools/cargo_licenses.py --manifest-path dioxus/Cargo.toml --output dioxus/assets/crate-licenses.txt
+      - name: Check formatting
+        run: |
+          (cd dioxus/components && npm run format:check)
+          (cd dioxus && cargo fmt --check)
+      - name: Clippy
+        working-directory: dioxus
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Test with the coverage gate
+        working-directory: dioxus
+        # The lines of core and state, which the unit tests cover; the
+        # end-to-end tests cover the user interface.
+        run: >-
+          cargo llvm-cov --locked --all-features --fail-under-lines 85
+          --ignore-filename-regex '/src/(ui/|main\.rs)|/(testing|tests|cli_tests|contract_tests)\.rs'
+      - name: Install vfox
+        run: |
+          archive="vfox_${VFOX_VERSION}_linux_x86_64"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+            "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/$archive.tar.gz"
+          echo "$VFOX_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
+      - name: Build the end-to-end test build
+        working-directory: dioxus
+        run: |
+          cargo build --release --locked --features e2e
+          cp target/release/vfox-plus "$RUNNER_TEMP/vfox-plus-e2e"
+      - name: Run the end-to-end scenarios in a virtual display
+        run: |
+          for scenario in fake real measure; do
+            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+              bash web/e2e/run.sh "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
+          done
+      - name: Build the release
+        working-directory: dioxus
+        run: cargo build --release --locked
+      - name: Smoke test the release
+        run: |
+          binary="$PWD/dioxus/target/release/vfox-plus"
+          xvfb-run -a -s "-screen 0 1280x800x24" "$binary" > app.log 2>&1 &
+          sleep 15
+          if ! pgrep -f "^$binary" > /dev/null; then
+            cat app.log
+            echo "::error::vfox+ exited during startup"
+            exit 1
+          fi
+          pkill -f "^$binary"
+      - name: Build the .deb and the tarball
+        run: |
+          install -D -m 755 dioxus/target/release/vfox-plus "$RUNNER_TEMP/stage/vfox-plus"
+          # The licenses of the bundled npm packages, the font and the Rust crates.
+          cat dioxus/assets/npm-licenses.txt dioxus/assets/crate-licenses.txt > "$RUNNER_TEMP/THIRD-PARTY-LICENSES"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" bash shared/packaging/linux/build-deb.sh \
+            --package vfox-plus-dioxus --version "$(sed -n 's/^version = "\(.*\)"$/\1/p' dioxus/Cargo.toml | head -n 1)" \
+            --stage "$RUNNER_TEMP/stage" --executable vfox-plus --technology Dioxus \
+            --depends "$(sed -n 's/^DEPENDS="\(.*\)"$/\1/p' dioxus/sandbox/run-task.sh)" \
+            --notice "$RUNNER_TEMP/THIRD-PARTY-LICENSES" dist
+      - name: Validate the packages
+        run: |
+          desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
+          # CI packages carry a placeholder maintainer; releases set DEB_MAINTAINER.
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb
+      - name: Install the .deb into a clean Ubuntu container
+        # The application must start with nothing but the declared dependencies.
+        run: |
+          docker run --rm --init \
+            --volume "$PWD/shared/sandbox/task-lib.sh:/task-lib.sh:ro" \
+            --volume "$PWD/dioxus/sandbox/run-task.sh:/run-task.sh:ro" \
+            --volume "$PWD/dist:/pkg:ro" \
+            --env TASK_LIB=/task-lib.sh \
+            ubuntu:26.04 bash /run-task.sh install-test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-dioxus-linux-x64
+          path: dist/*
+          if-no-files-found: error

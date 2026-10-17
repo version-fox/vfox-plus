@@ -23,13 +23,14 @@ vfox-plus/
 │   ├── fixtures/          Captured vfox output and the expected parser results
 │   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
 │   ├── packaging/linux/   Desktop entry, AppStream metadata, icon, .deb script
-│   ├── tools/             The icon font tool
+│   ├── tools/             The icon font tool, the license collector of Rust crates and the memory measurement
 │   └── sandbox/           Shared parts of the Docker sandboxes
 ├── flutter/               The Flutter implementation (Linux desktop)
 ├── web/                   The web front end shared by tauri/ and wails/
 ├── tauri/                 The Tauri implementation
 ├── wails/                 The Wails implementation
 ├── compose/               The Compose Multiplatform implementation
+├── dioxus/                The Dioxus implementation
 └── <stack>/               The other implementations, one directory each
 ```
 
@@ -146,6 +147,13 @@ and keeps the settings reachable.
 Every runtime dependency must be licensed under terms compatible with, or no
 more restrictive than, the Apache License 2.0 (for example Apache-2.0, MIT,
 BSD), as required by [issue #1](https://github.com/version-fox/vfox-plus/issues/1).
+The one exception is code under the file-based weak copyleft of the Mozilla
+Public License 2.0 that a framework cannot do without, such as `option-ext`,
+which the web view crate `wry` of the Rust implementations depends on: it is
+only shipped unmodified and in binary form, as the Apache Software Foundation
+allows for its own products, with a note on where its source code is
+([`shared/tools/cargo_licenses.py`](../shared/tools/cargo_licenses.py)
+checks and collects the licenses of Rust crates).
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

@@ -98,6 +98,9 @@ application:
 | `measure` | Prints the memory use of the application on the Home page and with the versions of Node.js listed                                                                                              |
 
 The Tauri and Wails workflows and sandboxes run them in their applications.
+The [Dioxus implementation](../dioxus) ports the scenarios to Rust and drives
+its page with the same driver, [`src/e2e/driver.ts`](src/e2e/driver.ts), so
+`e2e/run.sh` runs its end-to-end build too; changes to either reach both.
 
 ## Project layout
 

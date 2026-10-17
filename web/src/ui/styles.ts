@@ -155,6 +155,11 @@ export const base = css`
     --m3e-segmented-list-gap: var(--gap-hairline);
     padding: 0;
   }
+  /* Hints in the colour of Material 3. */
+  m3e-form-field input::placeholder,
+  m3e-form-field textarea::placeholder {
+    color: var(--md-sys-color-on-surface-variant);
+  }
   @media (prefers-reduced-motion: reduce) {
     * {
       transition: none !important;

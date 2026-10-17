@@ -22,7 +22,7 @@ updates:
       flutter-packages:
         patterns: ["*"]
   - package-ecosystem: npm
-    directories: [/web, /tauri]
+    directories: [/web, /tauri, /dioxus/components]
     schedule:
       interval: weekly
     groups:
@@ -43,7 +43,7 @@ updates:
       go-modules:
         patterns: ["*"]
   - package-ecosystem: cargo
-    directory: /tauri/src-tauri
+    directories: [/tauri/src-tauri, /dioxus]
     schedule:
       interval: weekly
     groups:

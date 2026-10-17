@@ -69,6 +69,17 @@ export class Shell extends LitElement {
         --m3e-nav-rail-compact-width: 96px;
         --m3e-nav-rail-expanded-width: 240px;
       }
+      /*
+       * The spacing that @m3e/web gives the buttons of the rail with a
+       * stylesheet of the document, which does not reach into this shadow root.
+       */
+      m3e-nav-rail > m3e-icon-button,
+      m3e-nav-rail > m3e-fab {
+        margin-block-end: var(--m3e-nav-rail-button-item-space, var(--md-sys-measurement-space200, 16px));
+      }
+      m3e-nav-rail > m3e-icon-button {
+        margin-inline-start: var(--m3e-nav-rail-icon-button-inset, var(--md-sys-measurement-space100, 8px));
+      }
       m3e-nav-bar {
         flex: none;
         /* Five destinations share the width of compact windows equally. */

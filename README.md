@@ -24,6 +24,7 @@ equal terms.
 | [`tauri/`](tauri) | Tauri 2 (Rust) with the [web front end](web) | Linux desktop | `vfox-plus-tauri` | Working |
 | [`wails/`](wails) | Wails 3 (Go) with the [web front end](web) | Linux desktop | `vfox-plus-wails` | Working |
 | [`compose/`](compose) | Compose Multiplatform (Kotlin) | Linux desktop | `vfox-plus-compose` | Working |
+| [`dioxus/`](dioxus) | Dioxus 0.7 (Rust) with the web components of @m3e/web | Linux desktop | `vfox-plus-dioxus` | Working |
 
 [`web/`](web) is not an implementation of its own: it is the front end that
 the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
@@ -54,10 +55,11 @@ vfox+ drives the vfox command line tool, which must be installed separately
 Every implementation's workflow builds its packages for every change. Download
 the `vfox-plus-<implementation>-linux-x64` artifact (`vfox-plus-linux-x64` for
 Flutter) of the latest successful run of its workflow, for example
-[Flutter](https://github.com/version-fox/vfox-plus/actions/workflows/flutter.yml)
+[Flutter](https://github.com/version-fox/vfox-plus/actions/workflows/flutter.yml),
 [Tauri](https://github.com/version-fox/vfox-plus/actions/workflows/tauri.yml),
-[Wails](https://github.com/version-fox/vfox-plus/actions/workflows/wails.yml) or
-[Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml),
+[Wails](https://github.com/version-fox/vfox-plus/actions/workflows/wails.yml),
+[Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml) or
+[Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml),
 then:
 
 ```sh
@@ -81,6 +83,7 @@ web/        The web front end of the Tauri and Wails implementations
 tauri/      The Tauri implementation
 wails/      The Wails implementation
 compose/    The Compose Multiplatform implementation
+dioxus/     The Dioxus implementation
 .github/    CI workflows: repository checks and one workflow per implementation
 ```
 
