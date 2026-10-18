@@ -97,7 +97,8 @@ measured on the same machine as the other implementations.
 implementation the same way, adding the memory of child processes such as the
 processes of a web view, if the application supports the end-to-end scenario
 `measure` that the script describes. The `measure` task of the sandboxes runs
-it in Docker, with Xvfb and software rendering. In the same way,
+it in Docker, with Xvfb and software rendering; add the result to
+[the memory page](memory.md), which compares the implementations. In the same way,
 [`shared/tools/screenshots.sh`](../shared/tools/screenshots.sh) captures every
 page of an application that supports the scenario `screenshots`, so that the
 implementations can be compared side by side.
@@ -106,4 +107,5 @@ implementations can be compared side by side.
 
 - `<directory>/README.md`: prerequisites, how to run, test, build and package,
   and the project layout.
-- Add the implementation to the table in the [root README](../README.md).
+- Add the implementation to the table in the [root README](../README.md) and its
+  memory use to [the memory page](memory.md).

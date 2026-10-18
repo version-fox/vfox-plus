@@ -16,6 +16,7 @@ vfox-plus/
 │   ├── ui-spec.md         Screens, flows and states
 │   ├── design-system.md   Material 3 Expressive tokens, components and motion
 │   ├── i18n.md            Translations and terminology
+│   ├── memory.md          The memory use of the implementations, measured the same way
 │   └── new-implementation.md  Checklist for a new technology stack
 ├── shared/                Machine-readable resources used by every implementation
 │   ├── i18n/              Translation catalogues (ARB: JSON with ICU messages)
@@ -240,6 +241,8 @@ Low memory use is a goal of the project. Implementations should:
 - stop animations that are not visible, and honour the platform's reduced
   motion setting;
 - avoid caching data that vfox can produce again cheaply.
+
+[The memory page](memory.md) compares what the implementations use.
 
 ## Future: remote and web front ends
 

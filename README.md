@@ -108,6 +108,7 @@ uno/        The Uno implementation
 | [docs/ui-spec.md](docs/ui-spec.md) | Screens, flows and states |
 | [docs/design-system.md](docs/design-system.md) | Material 3 Expressive colour, shape, type, motion and components |
 | [docs/i18n.md](docs/i18n.md) | Translation catalogues and glossary |
+| [docs/memory.md](docs/memory.md) | The memory use of the implementations, measured the same way |
 | [docs/new-implementation.md](docs/new-implementation.md) | Checklist for another GUI technology |
 
 ## Contributing
