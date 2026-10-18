@@ -134,14 +134,15 @@ jobs:
           done
       - name: Smoke test the release
         run: |
-          xvfb-run -a -s "-screen 0 1280x800x24" ./build/linux/vfox-plus > app.log 2>&1 &
+          binary="$PWD/build/linux/vfox-plus"
+          xvfb-run -a -s "-screen 0 1280x800x24" "$binary" > app.log 2>&1 &
           sleep 15
-          if ! pgrep -f "^$PWD/build/linux/vfox-plus" > /dev/null; then
+          if ! pgrep -f "^$binary" > /dev/null; then
             cat app.log
             echo "::error::vfox+ exited during startup"
             exit 1
           fi
-          pkill -f "^$PWD/build/linux/vfox-plus"
+          pkill -f "^$binary"
       - name: Build the .deb and the tarball
         # Reproducible timestamps in the package metadata.
         run: SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" bash tools/package.sh ../dist
