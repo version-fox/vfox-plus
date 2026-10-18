@@ -42,9 +42,9 @@ tauri-plugin-clipboard-manager = "2.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # MIT OR Apache-2.0. Process output travels to the front end as base64.
-base64 = "0.22"
+base64 = "0.23"
 # MIT. Sends SIGTERM to vfox, as the CLI contract asks, without unsafe code.
-nix = { version = "0.30", default-features = false, features = ["signal"] }
+nix = { version = "0.31", default-features = false, features = ["signal"] }
 # MIT OR Apache-2.0. Creates private directories for copies of plugins.
 tempfile = "3"
 # MIT. Reads the accent colour from the XDG desktop portal.
@@ -54,7 +54,7 @@ zbus = { version = "5", default-features = false, features = ["blocking-api", "t
 # the desktop entry (StartupWMClass and the Wayland app ID). The version is the
 # one that the GTK bindings of Tauri use.
 [target.'cfg(target_os = "linux")'.dependencies]
-glib = "0.18"
+glib = "0.21"
 
 [build-dependencies]
 tauri-build = { version = "2.7", features = [] }

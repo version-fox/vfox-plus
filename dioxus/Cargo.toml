@@ -38,9 +38,9 @@ serde = "1"
 # MIT OR Apache-2.0. The tonal spot scheme of the Material colour utilities.
 material-colors = "0.5"
 # MIT OR Apache-2.0. The icon font, inlined into the page.
-base64 = "0.22"
+base64 = "0.23"
 # MIT. Cancels vfox with SIGTERM.
-nix = { version = "0.30", default-features = false, features = ["signal"] }
+nix = { version = "0.31", default-features = false, features = ["signal"] }
 # MIT OR Apache-2.0. Private copies of local plugins.
 tempfile = "3"
 
@@ -48,7 +48,7 @@ tempfile = "3"
 # MIT. The program name, which names the window after the application ID,
 # the clipboard and the file choosers. The versions are those of the GTK
 # bindings of Dioxus.
-glib = "0.18"
+glib = "0.21"
 gtk = "0.18"
 
 [features]
