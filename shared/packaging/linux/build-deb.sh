@@ -80,6 +80,11 @@ for required in package version stage executable depends technology; do
   [[ -n "${!required}" ]] || { echo "--$required is required" >&2; exit 2; }
 done
 [[ -x "$stage/$executable" ]] || { echo "$stage/$executable is not an executable" >&2; exit 1; }
+if [[ -n "$notice" ]]; then
+  [[ -f "$notice" ]] || { echo "$notice is not a file" >&2; exit 1; }
+  # The tarball is made with several -C, and tar resolves each relative one against the one before it.
+  notice="$(cd "$(dirname "$notice")" && pwd)/$(basename "$notice")"
+fi
 
 case "$(uname -m)" in
   x86_64) DEB_ARCH=amd64; ARCH=x64 ;;

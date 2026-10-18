@@ -37,7 +37,7 @@ SHARED="$(dirname "$TOOLS_DIR")"
 SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/vfox-plus-measure.XXXXXX")"
 HOME_DIR="$SANDBOX/home"
 APP_PID=""
-# shellcheck disable=SC2329 # Invoked by the trap below.
+# shellcheck disable=SC2317,SC2329 # Invoked by the trap below.
 cleanup() {
   [[ -z "$APP_PID" ]] || kill "$APP_PID" 2> /dev/null || true
   # The processes of a web view may write their caches for a moment after the

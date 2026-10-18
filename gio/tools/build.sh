@@ -31,6 +31,8 @@ if [[ "${1:-}" == --e2e ]]; then
 fi
 output="${1:?Usage: build.sh [--e2e] <output>}"
 mkdir -p "$(dirname "$output")"
+# The output is relative to where the script was started, not to the module.
+output="$(cd "$(dirname "$output")" && pwd)/$(basename "$output")"
 cd "$ROOT"
 # Gio draws with OpenGL ES through EGL and talks to X11 and Wayland through C
 # libraries, so the build needs cgo. The executable is position independent, as

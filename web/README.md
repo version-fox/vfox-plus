@@ -95,12 +95,12 @@ clicking and typing — and ends the application with the result.
 [`e2e/run.sh`](e2e/run.sh) prepares a temporary home directory and starts the
 application:
 
-| Scenario  | What it tests                                                                                                                                                                                  |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fake`    | The application against the fake vfox, which also checks the environment the CLI contract requires                                                                                             |
-| `real`    | Every operation against the real vfox named by `VFOX_PLUS_E2E_VFOX`, with the offline plugin of [`shared/test-plugin`](../shared/test-plugin) and [`e2e/test-server.mjs`](e2e/test-server.mjs) |
-| `measure` | Prints the memory use of the application on the Home page and with the versions of Node.js listed                                                                                              |
-| `screenshots` | Shows every page for [`shared/tools/screenshots.sh`](../shared/tools/screenshots.sh), which captures the screen at each of them; the compact pages need a shell that can resize its window |
+| Scenario      | What it tests                                                                                                                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fake`        | The application against the fake vfox, which also checks the environment the CLI contract requires                                                                                             |
+| `real`        | Every operation against the real vfox named by `VFOX_PLUS_E2E_VFOX`, with the offline plugin of [`shared/test-plugin`](../shared/test-plugin) and [`e2e/test-server.mjs`](e2e/test-server.mjs) |
+| `measure`     | Prints the memory use of the application on the Home page and with the versions of Node.js listed                                                                                              |
+| `screenshots` | Shows every page for [`shared/tools/screenshots.sh`](../shared/tools/screenshots.sh), which captures the screen at each of them; the compact pages need a shell that can resize its window     |
 
 The Tauri and Wails workflows and sandboxes run them in their applications.
 The [Capacitor implementation](../capacitor) runs them in its Ionic user

@@ -42,12 +42,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The build dependencies of a Flutter Linux application, rsvg-convert for
-  # the application icon, the icon font tooling, the virtual display and the
-  # package checks.
+  # The build dependencies of a Flutter Linux application, ImageMagick and
+  # rsvg-convert for the application icon (the runner image has neither), the
+  # icon font tooling, the virtual display and the package checks.
   LINUX_PACKAGES: >-
     clang cmake ninja-build pkg-config libgtk-3-dev lld llvm binutils patchelf libsecret-1-dev
-    librsvg2-bin python3-fonttools xvfb xauth dbus-x11 lintian desktop-file-utils
+    imagemagick librsvg2-bin python3-fonttools xvfb xauth dbus-x11 lintian desktop-file-utils
 
 jobs:
   build:
@@ -87,8 +87,9 @@ jobs:
         run: uv sync --frozen
       - name: Generate the inputs of the build
         run: |
-          uv run python tools/patch_build_template.py
-          uv run python tools/prepare.py
+          # The system Python has fontTools (from apt); the virtual environment of the project does not.
+          python3 tools/patch_build_template.py
+          python3 tools/prepare.py
       - name: Check formatting
         run: |
           uv run ruff format --check .

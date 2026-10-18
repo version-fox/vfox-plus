@@ -28,13 +28,13 @@ iOS app would implement the same plugin natively and keep the rest.
 The code that does not depend on the user interface is the one of the web
 front end, imported as `@web/…`:
 
-| Part | What it holds |
-| --- | --- |
-| [`../web/src/core`](../web/src/core), [`../web/src/state`](../web/src/state) | The vfox client and its parsers, the settings, the translations, the task queue, the controllers and `AppModel` |
-| [`../web/src/ui`](../web/src/ui) (`context`, `theme`, `motion`) | The running application, the colour scheme and the springs |
-| [`src/capacitor`](src/capacitor) | The `VfoxHost` plugin and the host on top of it |
-| [`src/ui`](src/ui) | The Vue components: the shell, the pages, their parts, the dialogs and menus, snack bars, transitions, and [`reactivity.ts`](src/ui/reactivity.ts), which makes renders depend on the objects of the model they read |
-| [`electron`](electron) | The main process (window, `app:` protocol, IPC), the preload script and the desktop operations: dialogs, the clipboard, links and the accent colour of the XDG desktop portal |
+| Part                                                                         | What it holds                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../web/src/core`](../web/src/core), [`../web/src/state`](../web/src/state) | The vfox client and its parsers, the settings, the translations, the task queue, the controllers and `AppModel`                                                                                                      |
+| [`../web/src/ui`](../web/src/ui) (`context`, `theme`, `motion`)              | The running application, the colour scheme and the springs                                                                                                                                                           |
+| [`src/capacitor`](src/capacitor)                                             | The `VfoxHost` plugin and the host on top of it                                                                                                                                                                      |
+| [`src/ui`](src/ui)                                                           | The Vue components: the shell, the pages, their parts, the dialogs and menus, snack bars, transitions, and [`reactivity.ts`](src/ui/reactivity.ts), which makes renders depend on the objects of the model they read |
+| [`electron`](electron)                                                       | The main process (window, `app:` protocol, IPC), the preload script and the desktop operations: dialogs, the clipboard, links and the accent colour of the XDG desktop portal                                        |
 
 ## Requirements
 
@@ -58,19 +58,19 @@ front end, imported as `@web/…`:
 
 ## Everyday commands
 
-| Task | Command |
-| --- | --- |
-| Install the packages and the Electron runtime | `npm ci && npm run electron` |
-| Build the icon font and collect the licenses | `npm run assets` |
-| Run in Electron | `npm start` |
-| Develop in a browser at http://127.0.0.1:5174, with the development host of `../web` and the fake vfox | `npm run dev` |
-| Format (CI fails on a difference) | `npm run format` |
-| Type check | `npm run typecheck` |
-| ESLint (CI fails on warnings) | `npm run lint` |
-| Unit tests | `npm test` |
-| Unit tests with the coverage gate (85 % of the lines of the TypeScript modules) | `npm run test:coverage` |
-| Release build (`dist/app`) and the application with its Electron runtime (`dist/stage`) | `npm run build && npm run stage` |
-| `.deb` and `.tar.gz` | `bash tools/package.sh <output directory>`, see [Packaging](#packaging) |
+| Task                                                                                                   | Command                                                                 |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Install the packages and the Electron runtime                                                          | `npm ci && npm run electron`                                            |
+| Build the icon font and collect the licenses                                                           | `npm run assets`                                                        |
+| Run in Electron                                                                                        | `npm start`                                                             |
+| Develop in a browser at http://127.0.0.1:5174, with the development host of `../web` and the fake vfox | `npm run dev`                                                           |
+| Format (CI fails on a difference)                                                                      | `npm run format`                                                        |
+| Type check                                                                                             | `npm run typecheck`                                                     |
+| ESLint (CI fails on warnings)                                                                          | `npm run lint`                                                          |
+| Unit tests                                                                                             | `npm test`                                                              |
+| Unit tests with the coverage gate (85 % of the lines of the TypeScript modules)                        | `npm run test:coverage`                                                 |
+| Release build (`dist/app`) and the application with its Electron runtime (`dist/stage`)                | `npm run build && npm run stage`                                        |
+| `.deb` and `.tar.gz`                                                                                   | `bash tools/package.sh <output directory>`, see [Packaging](#packaging) |
 
 The licenses of the npm packages, Electron and the font must be compatible
 with the Apache License 2.0; `npm run assets` fails otherwise (see
@@ -87,16 +87,16 @@ npm cache and the Electron runtime in Docker volumes. Chromium needs more
 shared memory than Docker gives containers by default, so the containers get
 1 GB of `/dev/shm`.
 
-| Command | What it does |
-| --- | --- |
-| `sandbox/sandbox.sh check` | Formatting, type checks, ESLint, the licenses, and the unit tests with the coverage gate |
-| `sandbox/sandbox.sh e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
-| `sandbox/sandbox.sh package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
-| `sandbox/sandbox.sh measure` | The memory use on the Home page and with the versions of Node.js listed |
-| `sandbox/sandbox.sh screenshots` | Screenshots of every page |
-| `sandbox/sandbox.sh all` | `check`, `e2e` and `package` |
-| `sandbox/sandbox.sh shell` | A shell in the sandbox |
-| `sandbox/sandbox.sh clean` | Deletes the image, the cache volumes and the results |
+| Command                          | What it does                                                                                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `sandbox/sandbox.sh check`       | Formatting, type checks, ESLint, the licenses, and the unit tests with the coverage gate                                           |
+| `sandbox/sandbox.sh e2e`         | The end-to-end scenarios, against the fixtures and against the real vfox                                                           |
+| `sandbox/sandbox.sh package`     | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
+| `sandbox/sandbox.sh measure`     | The memory use on the Home page and with the versions of Node.js listed                                                            |
+| `sandbox/sandbox.sh screenshots` | Screenshots of every page                                                                                                          |
+| `sandbox/sandbox.sh all`         | `check`, `e2e` and `package`                                                                                                       |
+| `sandbox/sandbox.sh shell`       | A shell in the sandbox                                                                                                             |
+| `sandbox/sandbox.sh clean`       | Deletes the image, the cache volumes and the results                                                                               |
 
 Results are written to `dist/sandbox/capacitor/<command>/`.
 `SANDBOX_ELECTRON_MIRROR` sets a mirror of the Electron releases, for example
@@ -156,9 +156,9 @@ Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb with
 software rendering, a 1280 × 800 window, the Electron processes together (the
 browser, the zygotes, the GPU, network and renderer processes).
 
-| State | RSS | PSS |
-| --- | ---: | ---: |
-| Home page | 729 MB | 385 MB |
+| State                      |    RSS |    PSS |
+| -------------------------- | -----: | -----: |
+| Home page                  | 729 MB | 385 MB |
 | Versions of Node.js listed | 750 MB | 398 MB |
 
 Electron brings its own Chromium, so nothing is shared with the libraries of

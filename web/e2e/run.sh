@@ -44,7 +44,7 @@ HOME_DIR="$SANDBOX/home"
 mkdir -p "$HOME_DIR/.config/vfox-plus"
 SERVER_PID=""
 APP_PID=""
-# shellcheck disable=SC2329 # Invoked by the trap below.
+# shellcheck disable=SC2317,SC2329 # Invoked by the trap below.
 cleanup() {
   [[ -z "$APP_PID" ]] || kill "$APP_PID" 2> /dev/null || true
   [[ -z "$SERVER_PID" ]] || kill "$SERVER_PID" 2> /dev/null || true
