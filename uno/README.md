@@ -222,8 +222,8 @@ Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb, a
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 146 MB | 133 MB |
-| Versions of Node.js listed | 181 MB | 168 MB |
+| Home page | 138 MB | 126 MB |
+| Versions of Node.js listed | 169 MB | 157 MB |
 
 Skia draws with the processor. Uno would otherwise draw with OpenGL, and the
 graphics stack that this loads takes more memory than the application does:

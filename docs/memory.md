@@ -17,25 +17,25 @@ the SDKs page with the 872 available versions of Node.js listed.
 
 | Implementation                             | Technology                                      | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | ------------------------------------------ | ----------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU  |         1 |      133 |      146 |          168 |          181 |                 +35 |
-| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                  |         1 |      209 |      240 |          226 |          257 |                 +17 |
-| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia  |         1 |      263 |      290 |          275 |          301 |                 +12 |
-| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Impeller (OpenGL ES), GTK 3 |         2 |      340 |      379 |          355 |          394 |                 +15 |
-| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application      |         2 |      341 |      374 |          360 |          394 |                 +19 |
-| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron             |         6 |      385 |      729 |          398 |          750 |                 +13 |
-| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3)            |         3 |      397 |      598 |          482 |          683 |                 +85 |
-| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK                     |         3 |      418 |      618 |          497 |          698 |                 +79 |
-| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4)              |         3 |      480 |      686 |          554 |          758 |                 +74 |
+| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU  |         1 |      126 |      138 |          157 |          169 |                 +31 |
+| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                  |         1 |      215 |      240 |          228 |          253 |                 +13 |
+| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia  |         1 |      266 |      290 |          277 |          301 |                 +11 |
+| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Impeller (OpenGL ES), GTK 3 |         2 |      329 |      369 |          345 |          384 |                 +16 |
+| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application      |         2 |      346 |      378 |          383 |          415 |                 +37 |
+| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron             |         6 |      388 |      742 |          400 |          762 |                 +12 |
+| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3)            |         3 |      419 |      600 |          492 |          673 |                 +73 |
+| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK                     |         3 |      427 |      616 |          502 |          692 |                 +75 |
+| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4)              |         3 |      482 |      680 |          566 |          756 |                 +84 |
 
 - The three implementations that run in one process and draw themselves (Uno, Gio,
-  Compose) are the three smallest, with 133 to 263 MB of PSS on the Home page. Flutter
-  and Flet, whose client is a Flutter application too, follow with 340 and 341 MB, each
+  Compose) are the three smallest, with 126 to 266 MB of PSS on the Home page. Flutter
+  and Flet, whose client is a Flutter application too, follow with 329 and 346 MB, each
   in two processes. The four that bring a web view or a browser, in three to six
-  processes (Capacitor, Tauri, Dioxus, Wails), have 385 to 480 MB.
-- Showing the list of versions adds 12 to 35 MB of PSS to Compose, Capacitor, Gio,
-  Flutter, Flet and Uno, and 74 to 85 MB to Wails, Dioxus and Tauri, which show their
+  processes (Capacitor, Tauri, Dioxus, Wails), have 388 to 482 MB.
+- Showing the list of versions adds 11 to 37 MB of PSS to Compose, Capacitor, Gio,
+  Flutter, Uno and Flet, and 73 to 84 MB to Tauri, Dioxus and Wails, which show their
   pages in WebKitGTK.
-- WebKitGTK 6.0 with GTK 4 (Wails) needs about 80 MB more than WebKitGTK 4.1 with
+- WebKitGTK 6.0 with GTK 4 (Wails) needs 60 to 75 MB more than WebKitGTK 4.1 with
   GTK 3 (Tauri) for the same web front end.
 
 ## How it is measured
@@ -63,7 +63,7 @@ nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPU
 
 - **RSS and PSS.** RSS counts every page that a process has in memory, including
   those it shares with other processes, so the RSS of several processes counts a
-  shared page several times: 729 MB of RSS against 385 MB of PSS for Capacitor, in six
+  shared page several times: 742 MB of RSS against 388 MB of PSS for Capacitor, in six
   processes. PSS divides each shared page among the processes that map it, so the
   sum is what the application uses. Compare PSS.
 - **No GPU.** The virtual display has no GPU, so everything that draws with OpenGL
@@ -73,10 +73,14 @@ nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPU
   software GL and 165 MB without it, with every other setting equal. On a machine
   with a GPU the numbers, and perhaps the order, differ; measure there when it
   matters.
-- **One measurement per row.** Nothing is averaged over runs and the implementations
-  were not measured at the same time, so small differences mean little. Flutter, which
-  was measured six times, had 332 to 342 MB of PSS on the Home page and 344 to
-  369 MB with the list: the list added 4 to 30 MB.
+- **One measurement per row.** Nothing is averaged over runs, so small differences
+  mean little; the implementations were measured one after another, with nothing else
+  running. Flutter, which was measured six times on an earlier day, had 332 to 342 MB
+  of PSS on the Home page and 344 to 369 MB with the list: the list added 4 to 30 MB.
+- **One snapshot at a time.** The numbers of the same code change from one snapshot
+  to the next: measured again in sandbox images built from the Ubuntu archive of a
+  later day, Tauri took 419 MB of PSS on the Home page instead of 397 MB, and Uno
+  125 MB instead of 133 MB. Compare the rows of one snapshot, as this table is.
 - **What is not in them.** Only the process tree of the application is measured: the
   X server, the session bus and the desktop portal are not, and neither is vfox,
   which is the fake one here, so a real command adds the process of vfox while it
@@ -130,4 +134,6 @@ When an implementation is added, or its memory changes noticeably, run
 `dist/sandbox/<implementation>/measure/memory.txt` (`dist/sandbox/measure/memory.txt`
 for Flutter) into the table, where the PSS comes before the RSS, and into the Memory
 section of the README of the implementation, and keep the table sorted by the PSS of
-the Home page.
+the Home page. When the sandbox images are built again, measure every implementation
+again, one after another and with nothing else running, so that the table stays one
+snapshot (see [Reading the numbers](#reading-the-numbers)).

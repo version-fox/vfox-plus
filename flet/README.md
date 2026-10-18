@@ -165,8 +165,8 @@ software rendering, a 1280 × 800 window.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 374 MB | 341 MB |
-| Versions of Node.js listed | 394 MB | 360 MB |
+| Home page | 378 MB | 346 MB |
+| Versions of Node.js listed | 415 MB | 383 MB |
 
 The Flutter engine and the embedded interpreter share nothing with the
 libraries of the desktop; compare implementations measured the same way. Only

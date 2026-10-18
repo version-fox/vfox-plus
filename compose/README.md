@@ -114,8 +114,8 @@ software rendering, a 1280 × 800 window.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 290 MB | 263 MB |
-| Versions of Node.js listed | 301 MB | 275 MB |
+| Home page | 290 MB | 266 MB |
+| Versions of Node.js listed | 301 MB | 277 MB |
 
 The JVM runs with a heap of at most 256 MB and the serial collector; Skia
 draws the window itself, so there are no processes of a web view. Compare
