@@ -46,6 +46,11 @@ tar -C "$BUNDLE" --create --exclude=./share . | tar -C "$STAGE" --extract
 # The console scripts of the bundled Python packages point at the Python of
 # the build machine; nothing in the bundle runs them.
 rm -rf "$STAGE/site-packages/bin"
+# The jni package, which a dependency of a Flutter plugin brings, builds
+# libdartjni.so only where CMake finds a JDK, as it does on the runners of CI,
+# and links the library to that JDK, with a RUNPATH into it. Nothing uses JNI on
+# Linux, and what the package holds must not depend on the build machine.
+rm -f "$STAGE/lib/libdartjni.so"
 # The plugins find their libraries next to themselves.
 if command -v patchelf > /dev/null; then
   for library in "$STAGE"/lib/lib*_plugin.so; do
