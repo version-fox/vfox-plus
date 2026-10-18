@@ -77,7 +77,9 @@ Future<File> writeExecutable(String path, String content) async {
 }
 
 /// A stand-in for vfox that replays the captured outputs in [fixtures] and
-/// enforces the environment that the CLI contract requires.
+/// enforces the environment that the CLI contract requires. The steps of an
+/// installation take `VFOX_PLUS_FAKE_DELAY` seconds each (0.2 by default), as
+/// with shared/fixtures/fake-vfox.sh, so that a test can show one in progress.
 String fakeVfoxScript(String fixtures) =>
     '''
 #!/usr/bin/env bash
@@ -106,7 +108,7 @@ case "\$*" in
     echo "Preinstalling \${3}..."
     for percent in 10 45 80 100; do
       printf '\\rDownloading... %3d%% [=====>    ]\\r' "\$percent" >&2
-      sleep 0.2
+      sleep "\${VFOX_PLUS_FAKE_DELAY:-0.2}"
     done
     echo "Install \${3} success!" ;;
   "use --global "*)
