@@ -1,0 +1,39 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# A Flet extension: the Python controls in src/vfox_plus_m3e and the Flutter
+# package that renders them in src/flutter/vfox_plus_m3e, which `flet build`
+# finds in the installed package and adds to the Flutter app.
+[project]
+name = "vfox-plus-m3e"
+version = "0.1.0"
+description = "The Material 3 Expressive widgets of vfox+ that Flet lacks, as Flet controls."
+license = "Apache-2.0"
+requires-python = ">=3.14"
+dependencies = [
+  # Apache-2.0. The controls this package extends.
+  "flet==1.0.4",
+]
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"vfox_plus_m3e" = ["py.typed"]
+# The Flutter package, including the generated icon font.
+"flutter.vfox_plus_m3e" = ["pubspec.yaml", "analysis_options.yaml", "lib/**", "fonts/**"]
+
+[tool.setuptools]
+license-files = []

@@ -1,0 +1,167 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Flet implementation: formatting, type checks, the linter, the unit
+# tests with the coverage gate, the Dart analysis of the extension, the
+# end-to-end scenarios (against captured output and against the real vfox),
+# the memory measurement and the Linux packages.
+# flet/sandbox/run-task.sh runs the same steps locally; keep them in sync.
+# The tool versions are in flet/versions.env and flet/pyproject.toml (uv.lock).
+name: Flet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - flet/**
+      - shared/**
+      - .github/workflows/flet.yml
+  pull_request:
+    paths:
+      - flet/**
+      - shared/**
+      - .github/workflows/flet.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The build dependencies of a Flutter Linux application, rsvg-convert for
+  # the application icon, the icon font tooling, the virtual display and the
+  # package checks.
+  LINUX_PACKAGES: >-
+    clang cmake ninja-build pkg-config libgtk-3-dev lld llvm binutils patchelf libsecret-1-dev
+    librsvg2-bin python3-fonttools xvfb xauth dbus-x11 lintian desktop-file-utils
+
+jobs:
+  build:
+    name: Check, test end to end and package
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: flet
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The sandbox image builds from the working tree.
+          fetch-depth: 0
+      - name: Read the pinned versions
+        working-directory: .
+        run: grep -hE '^[A-Z0-9_]+=' flet/versions.env >> "$GITHUB_ENV"
+      - name: Install uv
+        run: |
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/uv.tar.gz" \
+            "https://github.com/astral-sh/uv/releases/download/$UV_VERSION/uv-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$UV_SHA256  $RUNNER_TEMP/uv.tar.gz" | sha256sum --check --strict -
+          sudo tar -xzf "$RUNNER_TEMP/uv.tar.gz" -C /usr/local/bin --strip-components=1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install the Linux packages
+        run: |
+          sudo apt-get update
+          # shellcheck disable=SC2086 # The list is meant to be split.
+          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+      - name: Install the Python packages
+        run: uv sync --frozen
+      - name: Generate the inputs of the build
+        run: |
+          uv run python tools/patch_build_template.py
+          uv run python tools/prepare.py
+      - name: Check formatting
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+      - name: Type check
+        run: uv run mypy
+      - name: Test with the coverage gate
+        run: |
+          uv run coverage run -m pytest tests/core tests/state -q
+          uv run coverage report --fail-under=85 --include='*/vfox_plus/core/*,*/vfox_plus/state/*'
+      - name: Check the Dart extension
+        working-directory: flet/m3e/src/flutter/vfox_plus_m3e
+        run: |
+          dart pub get --enforce-lockfile
+          dart format --set-exit-if-changed lib
+          flutter analyze --no-pub
+      - name: Install vfox
+        run: |
+          archive="vfox_${VFOX_VERSION}_linux_x86_64"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+            "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/$archive.tar.gz"
+          echo "$VFOX_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
+      - name: Build the application
+        run: |
+          for attempt in 1 2 3; do
+            if PIP_NO_BUILD_ISOLATION=1 uv run flet build linux --yes; then
+              break
+            fi
+            echo "flet build failed, retrying ($attempt)"
+            sleep "$attempt"
+            [ "$attempt" = 3 ] && exit 1
+          done
+      - name: Run the end-to-end scenarios in a virtual display
+        working-directory: .
+        run: |
+          for scenario in fake real measure; do
+            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+              env VFOX_PLUS_E2E_TIMEOUT=300 VFOX_PLUS_E2E_VFOX="$VFOX_PLUS_E2E_VFOX" \
+              bash web/e2e/run.sh "$scenario" "$PWD/flet/build/linux/vfox-plus"
+          done
+      - name: Smoke test the release
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" ./build/linux/vfox-plus > app.log 2>&1 &
+          sleep 15
+          if ! pgrep -f "^$PWD/build/linux/vfox-plus" > /dev/null; then
+            cat app.log
+            echo "::error::vfox+ exited during startup"
+            exit 1
+          fi
+          pkill -f "^$PWD/build/linux/vfox-plus"
+      - name: Build the .deb and the tarball
+        # Reproducible timestamps in the package metadata.
+        run: SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" bash tools/package.sh ../dist
+      - name: Validate the packages
+        working-directory: .
+        run: |
+          desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
+          # CI packages carry a placeholder maintainer; releases set DEB_MAINTAINER.
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb
+      - name: Install the .deb into a clean Ubuntu container
+        working-directory: .
+        # The application must start with nothing but the declared dependencies.
+        run: |
+          docker run --rm --init \
+            --volume "$PWD/shared/sandbox/task-lib.sh:/task-lib.sh:ro" \
+            --volume "$PWD/flet/sandbox/run-task.sh:/run-task.sh:ro" \
+            --volume "$PWD/dist:/pkg:ro" \
+            --env TASK_LIB=/task-lib.sh \
+            ubuntu:26.04 bash /run-task.sh install-test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-flet-linux-x64
+          path: dist/*
+          if-no-files-found: error

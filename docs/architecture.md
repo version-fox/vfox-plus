@@ -33,6 +33,7 @@ vfox-plus/
 ├── compose/               The Compose Multiplatform implementation
 ├── dioxus/                The Dioxus implementation
 ├── capacitor/             The Capacitor implementation
+├── flet/                  The Flet implementation (Python, with a Dart extension)
 └── <stack>/               The other implementations, one directory each
 ```
 
@@ -54,6 +55,12 @@ framework depends on: the core, the state, the running application, the colour
 scheme and the springs of `web/src/ui`, and the end-to-end scenarios. Its user
 interface is its own, in Vue on Ionic's components, and its Electron main
 process answers the host protocol with the Node.js host of `web/dev-host`.
+
+The Flet implementation shares nothing but the shared resources: its core and
+state are plain Python, and its user interface is declarative Flet components.
+What Flet lacks of Material 3 Expressive lives in `flet/m3e`, a Flet extension
+with the Python controls and the Dart widgets that render them, and the
+application drives its own end-to-end scenarios in the built bundle.
 
 ## Layers
 
@@ -169,6 +176,11 @@ third-party components under other licenses, among them FFmpeg under the LGPL
 Like the MPL code above, it is weak copyleft that the framework cannot do
 without, shipped unmodified and in binary form; Electron's list of those
 licenses, `LICENSES.chromium.html`, ships next to the executable.
+Flet, the framework of the Flet implementation, is under the Apache License
+2.0, as are its Python and Dart dependencies (MIT and BSD); the CPython it
+embeds is under the PSF license and the icon font under the Apache License
+2.0, all of which the application lists with the licenses of the bundled
+Flutter engine.
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

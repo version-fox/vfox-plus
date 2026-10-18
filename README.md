@@ -26,6 +26,7 @@ equal terms.
 | [`compose/`](compose) | Compose Multiplatform (Kotlin) | Linux desktop | `vfox-plus-compose` | Working |
 | [`dioxus/`](dioxus) | Dioxus 0.7 (Rust) with the web components of @m3e/web | Linux desktop | `vfox-plus-dioxus` | Working |
 | [`capacitor/`](capacitor) | Ionic 9 (Vue) and Capacitor 8 in an Electron shell | Linux desktop | `vfox-plus-capacitor` | Working |
+| [`flet/`](flet) | Flet 1.0.4 (Python) with a Dart extension | Linux desktop | `vfox-plus-flet` | Working |
 
 [`web/`](web) is not an implementation of its own: it is the front end that
 the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
@@ -61,8 +62,9 @@ Flutter) of the latest successful run of its workflow, for example
 [Tauri](https://github.com/version-fox/vfox-plus/actions/workflows/tauri.yml),
 [Wails](https://github.com/version-fox/vfox-plus/actions/workflows/wails.yml),
 [Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml),
-[Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml) or
-[Capacitor](https://github.com/version-fox/vfox-plus/actions/workflows/capacitor.yml),
+[Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml),
+[Capacitor](https://github.com/version-fox/vfox-plus/actions/workflows/capacitor.yml) or
+[Flet](https://github.com/version-fox/vfox-plus/actions/workflows/flet.yml),
 then:
 
 ```sh
@@ -89,6 +91,7 @@ wails/      The Wails implementation
 compose/    The Compose Multiplatform implementation
 dioxus/     The Dioxus implementation
 capacitor/  The Capacitor implementation
+flet/       The Flet implementation
 .github/    CI workflows: repository checks and one workflow per implementation
 ```
 
