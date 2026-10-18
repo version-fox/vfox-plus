@@ -63,6 +63,13 @@ updates:
     groups:
       cargo-crates:
         patterns: ["*"]
+  - package-ecosystem: nuget
+    directory: /uno
+    schedule:
+      interval: weekly
+    groups:
+      nuget-packages:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

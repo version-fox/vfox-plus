@@ -121,8 +121,9 @@ smoke_test() {
 
 # install_deb_test <package> <executables...>: runs in a clean Ubuntu container
 # with the .deb mounted at /pkg: the declared dependencies must be all the
-# application needs. Checks the shared libraries of the executables, the
-# desktop integration, starts the application and removes the package again.
+# application needs. Checks the shared libraries of the executables, which may
+# be patterns that are expanded after the installation, the desktop integration,
+# starts the application and removes the package again.
 install_deb_test() {
   local package="$1"
   shift
@@ -133,7 +134,12 @@ install_deb_test() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   apt-get install -y -qq --no-install-recommends /pkg/"$package"_*.deb > /dev/null
-  if ldd "$@" | grep 'not found'; then
+  local files=() pattern
+  for pattern in "$@"; do
+    # shellcheck disable=SC2206 # The patterns are meant to be expanded, now that the package is installed.
+    files+=($pattern)
+  done
+  if ldd "${files[@]}" | grep 'not found'; then
     echo "The dependencies of the package miss the libraries above." >&2
     exit 1
   fi

@@ -23,7 +23,8 @@ vfox-plus/
 │   ├── fixtures/          Captured vfox output and the expected parser results
 │   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
 │   ├── packaging/linux/   Desktop entry, AppStream metadata, icon, .deb script
-│   ├── tools/             The icon font tool, the license collector of Rust crates and the memory measurement
+│   ├── tools/             The icon font tool, the license collectors of the Rust crates, Go modules and NuGet
+│   │                      packages, the memory measurement and the screenshots
 │   └── sandbox/           Shared parts of the Docker sandboxes
 ├── flutter/               The Flutter implementation (Linux desktop)
 ├── web/                   The web front end shared by tauri/ and wails/, whose core and
@@ -35,6 +36,7 @@ vfox-plus/
 ├── capacitor/             The Capacitor implementation
 ├── flet/                  The Flet implementation (Python, with a Dart extension)
 ├── gio/                   The Gio implementation (Go)
+├── uno/                   The Uno implementation (C#, .NET)
 └── <stack>/               The other implementations, one directory each
 ```
 
@@ -71,6 +73,16 @@ the text shaping and the GPU renderer. The colour scheme, the shapes and the
 components of Material 3 Expressive are ports and implementations in Go
 (`gio/ui/mcu`, `gio/ui/shapes`, `gio/ui/kit`), and the application drives its
 own end-to-end scenarios.
+
+The Uno implementation shares the shared resources and the end-to-end runner
+`web/e2e/run.sh` with its test server, and nothing else: its core and state are
+plain C#, and its user interface is built in code, from the layout panels, text
+and shapes of WinUI as Uno Platform implements them on Skia, without XAML pages.
+The colour scheme, the shapes, the springs and the components of Material 3
+Expressive are ports and implementations in C# (`uno/src/VfoxPlus.Design`,
+`uno/src/VfoxPlus.App/Controls`), the XDG desktop portal is a small D-Bus client
+(`uno/src/VfoxPlus.Platform`), and the application drives its own end-to-end
+scenarios.
 
 ## Layers
 
@@ -199,6 +211,22 @@ BSD licenses, as is the Go standard library; the ports in `gio/ui/mcu` and
 license, and their notices ship with the application
 ([`gio/NOTICE.txt`](../gio/NOTICE.txt)). The Gio implementation has no weak
 copyleft dependency.
+Uno Platform, the framework of the Uno implementation, is under the Apache
+License 2.0, as are the Uno packages the application ships; SkiaSharp,
+HarfBuzzSharp and `Tmds.DBus.Protocol` are under the MIT license, and so is the
+.NET runtime that the application bundles. The notices of the native Skia
+library of SkiaSharp list the third-party code that Skia is built from (among it
+HarfBuzz, ICU, libjpeg-turbo, libpng, libwebp, zlib and expat), all under
+permissive licenses, and ship with the application. They also name libmicrohttpd
+(LGPL), whose code is not in the Linux binary (it has no symbol of it), so that
+one is left out. The fonts that the themes of Uno bring are not shipped, and the
+licenses of the NuGet packages and of the runtime are checked and collected by
+[`shared/tools/nuget_licenses.py`](../shared/tools/nuget_licenses.py), which fails
+on any that is not compatible with the Apache License 2.0. The Uno
+implementation has no weak copyleft dependency; the ports in
+`uno/src/VfoxPlus.Design` are of libraries under the Apache License 2.0 and the
+MIT license, and their notices ship with the application
+([`uno/NOTICE.txt`](../uno/NOTICE.txt)).
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

@@ -28,6 +28,7 @@ equal terms.
 | [`capacitor/`](capacitor) | Ionic 9 (Vue) and Capacitor 8 in an Electron shell | Linux desktop | `vfox-plus-capacitor` | Working |
 | [`flet/`](flet) | Flet 1.0.4 (Python) with a Dart extension | Linux desktop | `vfox-plus-flet` | Working |
 | [`gio/`](gio) | Gio 0.10 (Go), drawn with its own Material 3 Expressive toolkit | Linux desktop | `vfox-plus-gio` | Working |
+| [`uno/`](uno) | Uno Platform 6 (C#, .NET 10), built with its own Material 3 Expressive controls | Linux desktop | `vfox-plus-uno` | Working |
 
 [`web/`](web) is not an implementation of its own: it is the front end that
 the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
@@ -65,8 +66,9 @@ Flutter) of the latest successful run of its workflow, for example
 [Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml),
 [Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml),
 [Capacitor](https://github.com/version-fox/vfox-plus/actions/workflows/capacitor.yml),
-[Flet](https://github.com/version-fox/vfox-plus/actions/workflows/flet.yml) or
-[Gio](https://github.com/version-fox/vfox-plus/actions/workflows/gio.yml),
+[Flet](https://github.com/version-fox/vfox-plus/actions/workflows/flet.yml),
+[Gio](https://github.com/version-fox/vfox-plus/actions/workflows/gio.yml) or
+[Uno](https://github.com/version-fox/vfox-plus/actions/workflows/uno.yml),
 then:
 
 ```sh
@@ -95,6 +97,7 @@ dioxus/     The Dioxus implementation
 capacitor/  The Capacitor implementation
 flet/       The Flet implementation
 gio/        The Gio implementation
+uno/        The Uno implementation
 .github/    CI workflows: repository checks and one workflow per implementation
 ```
 
