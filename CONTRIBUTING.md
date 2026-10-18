@@ -102,9 +102,13 @@ with `flutter/sandbox/sandbox.sh fixtures`) and follow
 
 The images of the documentation are not committed: they are hosted on
 [catbox.moe](https://catbox.moe), a free image host that needs no account, and
-linked. `flutter/sandbox/sandbox.sh screenshots` renders the screenshots of the
-[README](README.md) into `dist/sandbox/screenshots/`, reproducibly. Upload a new
-image with
+linked. `flutter/sandbox/sandbox.sh screenshots` renders the screenshots into
+`dist/sandbox/screenshots/`, reproducibly: every page, in both themes and
+languages, the compact layout and an installation in progress
+([`screenshots_test.dart`](flutter/integration_test/screenshots_test.dart)). The
+[README](README.md) links `home-light`, `sdks-light`, `sdks-dark`,
+`installing-light`, `tasks-light`, `plugins-light`, `settings-zh`,
+`compact-home` and `compact-sdks`. Upload a new image with
 
 ```sh
 curl -F reqtype=fileupload -F fileToUpload=@dist/sandbox/screenshots/home-light.png https://catbox.moe/user/api.php
