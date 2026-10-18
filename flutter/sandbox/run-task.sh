@@ -139,6 +139,24 @@ case "${1:-}" in
     publish /home/tester/screenshots/*.png
     ;;
 
+  measure)
+    copy_repository
+    get_packages --offline
+    generate_icon_font
+    as_tester flutter build linux --no-pub --release
+    install -d -o tester -g tester /home/tester/measure
+    # The application has no scenario of its own for shared/tools/measure.sh:
+    # tool/measure.py drives the release build with the mouse, on the same
+    # kind of virtual display and with a session bus, as the sandboxes of the
+    # other implementations. The results are published even if it fails, as
+    # the screenshots show where it stopped.
+    status=0
+    as_tester xvfb-run -a -s "${SCREEN[*]}" dbus-run-session -- \
+      python3 tool/measure.py --output /home/tester/measure build/linux/x64/release/bundle/vfox-plus || status=$?
+    publish /home/tester/measure/*
+    exit "$status"
+    ;;
+
   package)
     copy_repository
     get_packages --offline

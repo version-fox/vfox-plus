@@ -57,6 +57,7 @@ vfox installation and home directory are neither used nor modified.
 | `sandbox/sandbox.sh e2e` | The end-to-end tests, against the fixtures and against the real vfox |
 | `sandbox/sandbox.sh package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container that checks the declared dependencies |
 | `sandbox/sandbox.sh all` | `check`, `e2e` and `package` |
+| `sandbox/sandbox.sh measure` | The memory use of the release build on the Home page and with the versions of Node.js listed, measured like the other implementations, with [`tool/measure.py`](tool/measure.py) driving the application with the mouse (see [the memory comparison](../docs/memory.md#measuring-flutter)) |
 | `sandbox/sandbox.sh screenshots` | Renders the screenshots of the README, which are kept on an image host (see [CONTRIBUTING](../CONTRIBUTING.md#screenshots)) |
 | `sandbox/sandbox.sh fixtures` | Captures the vfox output of [`shared/fixtures`](../shared/fixtures) with the pinned vfox |
 | `sandbox/sandbox.sh shell` | A shell in the sandbox, for debugging |
@@ -112,7 +113,7 @@ flutter/
 │   ├── support/                  Fakes and the app harness
 │   └── project_test.dart         Layering, translations, version and icon checks
 ├── integration_test/             End-to-end tests of the Linux app, and the documentation screenshots
-├── tool/                         Icon font generator, coverage gate
+├── tool/                         Icon font generator, coverage gate, memory measurement
 ├── assets/                       Application icon; the generated icon font subset
 ├── linux/                        GTK runner (application ID dev.vfox.VfoxPlus)
 ├── packaging/linux/              Desktop entry, AppStream metadata, .deb script
@@ -178,14 +179,27 @@ which `ldd` does not show).
 
 ## Memory
 
-Measured on Ubuntu 26.04 under WSLg, which renders in software with Mesa
-llvmpipe, 10 seconds after start-up with a 1280 × 820 window:
+`sandbox/sandbox.sh measure` measures the release build in Xvfb, without a GPU,
+with the fake vfox, while [`tool/measure.py`](tool/measure.py) opens the pages with
+the mouse. [The memory comparison](../docs/memory.md#measuring-flutter) describes
+the steps and puts the result next to the other implementations:
 
-| Application | RSS | PSS |
+| Page | RSS | PSS |
 | --- | ---: | ---: |
-| `flutter create` counter app, release | 254 MB | 247 MB |
-| vfox+ 0.1.0 on the Home page, release | 336 MB | 320 MB |
+| Home | 379 MB | 340 MB |
+| Available versions of Node.js (872) | 394 MB | 355 MB |
+
+The application runs in two processes: the second, `glycin-svg`, is the helper that
+gdk-pixbuf starts to load the SVG icon of the window, and has 18 MB of the RSS. In
+six runs the PSS was 332 to 342 MB on the Home page and 344 to 369 MB with the
+versions.
 
 Software rendering dominates these numbers; measure on the target hardware when
 comparing implementations, with
 `awk '/^Rss:|^Pss:/' /proc/$(pidof vfox-plus)/smaps_rollup`.
+
+Before `measure` existed, the application was measured under WSLg, which renders in
+software with Mesa llvmpipe too, 10 seconds after start-up with a 1280 × 820
+window, for the process of the application alone: 336 MB of RSS and 320 MB of PSS on
+the Home page, against 254 MB and 247 MB for the counter app that `flutter create`
+makes, which is what Flutter itself needs.
