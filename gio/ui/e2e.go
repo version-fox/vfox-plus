@@ -1,0 +1,100 @@
+// Copyright 2026 Han Li and contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build e2e
+
+package ui
+
+import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+)
+
+// e2eHooks is what the end-to-end tests add to the application: the calls that
+// the scenario makes, which run on the goroutine of the window once a frame is
+// complete, when the registry knows every widget.
+type e2eHooks struct {
+	calls chan func()
+}
+
+// startE2E runs the scenario that VFOX_PLUS_E2E_SCENARIO names, if there is
+// one, as web/e2e/run.sh, shared/tools/measure.sh and
+// shared/tools/screenshots.sh expect: every step is reported as `e2e: …` on
+// the standard output, and the application ends with the exit code 0 when the
+// scenario passed and 1 when it failed.
+func (a *App) startE2E() {
+	name := a.environment["VFOX_PLUS_E2E_SCENARIO"]
+	if name == "" {
+		return
+	}
+	a.e2e.calls = make(chan func(), 64)
+	a.env.Reg.CollectText = true
+	go a.runScenario(name)
+}
+
+// afterFrame runs the calls that wait for a complete frame.
+func (a *App) afterFrame() {
+	if a.e2e.calls == nil {
+		return
+	}
+	for {
+		select {
+		case call := <-a.e2e.calls:
+			call()
+		default:
+			return
+		}
+	}
+}
+
+// report writes a line for the harness.
+func report(format string, args ...any) {
+	_, _ = fmt.Fprintf(os.Stdout, "e2e: "+format+"\n", args...)
+}
+
+func (a *App) runScenario(name string) {
+	run, ok := scenarios[name]
+	if !ok {
+		names := make([]string, 0, len(scenarios))
+		for known := range scenarios {
+			names = append(names, known)
+		}
+		report("unknown scenario %q; use one of %s", name, strings.Join(names, ", "))
+		os.Exit(2)
+	}
+	started := time.Now()
+	report("scenario %s started", name)
+	current := newScenario(a)
+	if err := protect(func() { run(current) }); err != nil {
+		report("scenario %s FAILED: %v", name, err)
+		// What the user would have seen, to find out why.
+		_ = protect(func() { current.dump() })
+		os.Exit(1)
+	}
+	report("scenario %s passed in %d s", name, int(time.Since(started).Seconds()+0.5))
+	os.Exit(0)
+}
+
+// protect turns the panic of a failed check into an error.
+func protect(f func()) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("%v", recovered)
+		}
+	}()
+	f()
+	return nil
+}

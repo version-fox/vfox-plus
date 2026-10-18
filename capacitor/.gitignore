@@ -1,0 +1,7 @@
+# Dependencies and build outputs.
+/node_modules/
+/dist/
+/coverage/
+# The icon font is generated from shared/icons.json; see tools/icon-font.mjs.
+/public/fonts/
+/public/licenses.txt

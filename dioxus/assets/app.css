@@ -1,0 +1,1227 @@
+/*
+ * Copyright 2026 Han Li and contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * The styles of the user interface: the tokens of docs/design-system.md, the
+ * page parts and every page. The pages share one document, so the rules of a
+ * page start with its class. The type scale classes, the icon font and the
+ * colour and motion tokens are added by src/ui/style.rs and src/ui/app.rs.
+ * The styles follow those of the web front end (web/src/ui), whose elements
+ * style their shadow roots.
+ */
+
+:root {
+  --gap-hairline: 2px;
+  --gap-xs: 4px;
+  --gap-s: 8px;
+  --gap-m: 12px;
+  --gap-l: 16px;
+  --gap-xl: 24px;
+  --gap-xxl: 32px;
+  --corner-extra-small: 4px;
+  --corner-small: 8px;
+  --corner-medium: 12px;
+  --corner-large: 16px;
+  --corner-large-increased: 20px;
+  --corner-extra-large: 28px;
+}
+
+html,
+body,
+m3e-theme,
+#main {
+  display: block;
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  /* The font of the desktop: Ubuntu on Ubuntu, with Noto Sans CJK for Chinese. */
+  font-family: system-ui, Ubuntu, 'Noto Sans', 'Noto Sans CJK SC', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* Failed tasks report the message of vfox on a second line. */
+m3e-snackbar {
+  white-space: pre-line;
+}
+
+.muted {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.mono {
+  font-family: 'Ubuntu Mono', 'Noto Sans Mono', monospace;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A small label such as "In use: 24.11.1" or "LTS". */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-font-size);
+  font-weight: var(--md-sys-typescale-label-medium-font-weight);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+  letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+  max-width: 100%;
+  white-space: nowrap;
+}
+.tag.emphasized {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+.tag m3e-icon {
+  --m3e-icon-size: 16px;
+}
+
+/* The heading of a group of list items. */
+.group-header {
+  display: flex;
+  align-items: center;
+  padding: var(--gap-xl) var(--gap-xs) var(--gap-s) var(--gap-l);
+  color: var(--md-sys-color-primary);
+  font-size: var(--md-sys-typescale-title-small-font-size);
+  font-weight: var(--md-sys-typescale-title-small-font-weight);
+  line-height: var(--md-sys-typescale-title-small-line-height);
+  letter-spacing: var(--md-sys-typescale-title-small-tracking);
+}
+
+/* Segmented lists: items on their own surfaces, 2 dp apart. */
+m3e-list[variant='segmented'],
+m3e-action-list[variant='segmented'] {
+  --m3e-list-item-container-color: var(--md-sys-color-surface-container);
+  --m3e-segmented-list-gap: var(--gap-hairline);
+  padding: 0;
+}
+
+m3e-loading-indicator.small {
+  --m3e-loading-indicator-size: 40px;
+}
+
+/* Hints in the colour of Material 3, rather than in the colour of the text. */
+:root m3e-form-field :is(input, textarea)::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* The application: the shell with the navigation and the pages. */
+
+.app {
+  height: 100vh;
+}
+
+.shell {
+  display: flex;
+  height: 100%;
+}
+.shell.compact {
+  flex-direction: column;
+}
+.shell m3e-nav-rail {
+  flex: none;
+  height: 100%;
+  overflow-y: auto;
+  --m3e-nav-rail-compact-width: 96px;
+  --m3e-nav-rail-expanded-width: 240px;
+}
+.shell m3e-nav-bar {
+  flex: none;
+  /* Five destinations share the width of compact windows equally. */
+  --m3e-nav-bar-vertical-item-width: 0px;
+  --m3e-nav-bar-container-color: var(--md-sys-color-surface-container);
+}
+.shell m3e-nav-bar m3e-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.shell .stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+.shell:not(.compact) .stage {
+  margin: var(--gap-l) var(--gap-l) var(--gap-l) 0;
+}
+.shell .page {
+  position: absolute;
+  inset: 0;
+}
+/*
+ * Fade through: the old page fades out during the first 30 % of the slow
+ * effects spring, then the new one fades in and grows from 92 %.
+ */
+.shell .page.leaving {
+  animation: vfox-fade-out calc(var(--vfox-slow-effects-duration) * 0.3) linear forwards;
+}
+.shell .page.entering {
+  animation: vfox-fade-through calc(var(--vfox-slow-effects-duration) * 0.7) var(--vfox-slow-effects-easing)
+    calc(var(--vfox-slow-effects-duration) * 0.3) backwards;
+}
+.badge-host {
+  position: relative;
+  display: inline-flex;
+}
+.badge {
+  position: absolute;
+  top: -4px;
+  inset-inline-start: 14px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  text-align: center;
+}
+
+@keyframes vfox-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vfox-fade-through {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes vfox-axis-forward {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes vfox-axis-backward {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes vfox-expand {
+  from {
+    grid-template-rows: 0fr;
+  }
+  to {
+    grid-template-rows: 1fr;
+  }
+}
+
+/* The rounded surface that holds the content of a page, and its header. */
+
+.page-root {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+.pane {
+  height: 100%;
+  overflow: hidden auto;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--corner-extra-large);
+  scrollbar-gutter: stable;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-s);
+  padding: var(--gap-xl) var(--gap-l) var(--gap-l) var(--gap-xl);
+}
+.page-header .titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.page-header h1 {
+  color: var(--md-sys-color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page-header .subtitle {
+  margin-top: var(--gap-xs);
+  color: var(--md-sys-color-on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.page-header .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-s);
+}
+.page-content {
+  padding: 0 var(--gap-xl) var(--gap-xl);
+  margin: 0 auto;
+}
+
+/* Parts: avatars, status and loading messages, icon buttons. */
+
+.avatar {
+  position: relative;
+  flex: none;
+  width: var(--size);
+  height: var(--size);
+  display: inline-grid;
+  place-items: center;
+}
+.avatar m3e-shape {
+  position: absolute;
+  inset: 0;
+  --m3e-shape-size: var(--size);
+  transition: transform var(--md-sys-motion-spring-fast-spatial);
+}
+.avatar:hover m3e-shape {
+  transform: rotate(30deg);
+}
+.avatar .initial {
+  position: relative;
+  font-weight: 700;
+  font-size: calc(var(--size) * 0.42);
+  line-height: 1;
+}
+.avatar .initial::before {
+  content: attr(data-initial);
+}
+.avatar m3e-icon {
+  position: relative;
+  --m3e-icon-size: calc(var(--size) * 0.5);
+}
+
+.status-message {
+  display: grid;
+  place-items: center;
+  padding: var(--gap-xxl);
+  min-height: 100%;
+}
+.status-message .status {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.status-message .shape {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--gap-xl);
+}
+.status-message .shape m3e-shape {
+  position: absolute;
+  inset: 0;
+  --m3e-shape-size: 112px;
+  --m3e-shape-container-color: var(--md-sys-color-secondary-container);
+}
+.status-message .shape m3e-icon {
+  position: relative;
+  --m3e-icon-size: 48px;
+  color: var(--md-sys-color-on-secondary-container);
+}
+.status-message.error .shape m3e-shape {
+  --m3e-shape-container-color: var(--md-sys-color-error-container);
+}
+.status-message.error .shape m3e-icon {
+  color: var(--md-sys-color-on-error-container);
+}
+.status-message h2 {
+  color: var(--md-sys-color-on-surface);
+}
+.status-message p {
+  margin-top: var(--gap-s);
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.status-message .status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap-s);
+  margin-top: var(--gap-xl);
+}
+.status-message .status-actions:empty {
+  display: none;
+}
+
+.loading-message {
+  display: grid;
+  place-items: center;
+  padding: var(--gap-xxl);
+  min-height: 100%;
+}
+.loading-message .loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-l);
+  text-align: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.loading-message m3e-loading-indicator {
+  --m3e-loading-indicator-size: 64px;
+}
+
+.icon-button {
+  display: inline-flex;
+}
+
+/* Dialogs. */
+
+m3e-dialog {
+  --m3e-dialog-shape: var(--corner-extra-large);
+  --m3e-dialog-container-color: var(--md-sys-color-surface-container-high);
+}
+.dialog-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-l);
+  text-align: center;
+}
+.dialog-header m3e-icon {
+  color: var(--md-sys-color-secondary);
+}
+.dialog-header.destructive m3e-icon {
+  color: var(--md-sys-color-error);
+}
+.dialog-body {
+  max-width: 480px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap-s);
+}
+.field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-s);
+  margin-top: var(--gap-l);
+}
+.field-row m3e-form-field {
+  flex: 1 1 auto;
+}
+.field-row .icon-button {
+  margin-top: var(--gap-s);
+}
+m3e-dialog m3e-form-field {
+  width: 100%;
+}
+.destructive-button {
+  --m3e-filled-button-container-color: var(--md-sys-color-error);
+  --m3e-filled-button-label-text-color: var(--md-sys-color-on-error);
+  --m3e-filled-button-icon-color: var(--md-sys-color-on-error);
+}
+.text-dialog pre {
+  margin: 0;
+  max-width: min(720px, 80vw);
+  max-height: 60vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  user-select: text;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Home. */
+
+.home-page {
+  container-type: inline-size;
+}
+.home-page .page-content {
+  max-width: 1080px;
+}
+.home-page .stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap-m);
+}
+.home-page .tile {
+  position: relative;
+  overflow: hidden;
+  height: 136px;
+  padding: var(--gap-xl);
+  border: none;
+  border-radius: var(--corner-extra-large);
+  background: var(--tile-container);
+  color: var(--tile-on-container);
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: border-radius var(--md-sys-motion-spring-fast-spatial);
+}
+.home-page .tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-spring-fast-effects);
+}
+.home-page .tile:hover::after {
+  opacity: 0.08;
+}
+.home-page .tile:active {
+  border-radius: var(--corner-large);
+}
+.home-page .tile:active::after {
+  opacity: 0.1;
+}
+.home-page .tile:focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+.home-page .tile m3e-shape {
+  position: absolute;
+  inset-inline-end: -28px;
+  bottom: -36px;
+  --m3e-shape-size: 140px;
+  --m3e-shape-container-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+.home-page .tile .value {
+  margin-top: auto;
+  line-height: 1;
+  font-size: 36px;
+  font-weight: 500;
+}
+.home-page .tile .label {
+  margin-top: var(--gap-xs);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.home-page .tile > * {
+  position: relative;
+}
+.home-page .shortcuts {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--gap-m);
+  margin-top: var(--gap-xl);
+}
+.home-page .shortcuts .shell-card {
+  grid-row: span 2;
+}
+/* Narrow pages keep the three tiles in a row, in a compact size. */
+@container (max-width: 807.98px) {
+  .home-page .shortcuts {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .home-page .shortcuts .shell-card {
+    grid-row: auto;
+  }
+}
+@container (max-width: 607.98px) {
+  .home-page .stats {
+    gap: var(--gap-s);
+  }
+  .home-page .tile {
+    padding: var(--gap-l);
+  }
+  .home-page .tile .value {
+    font-size: 32px;
+  }
+}
+.home-page .shell-card {
+  padding: var(--gap-xl);
+  border-radius: var(--corner-large);
+  background: var(--md-sys-color-surface-container-highest);
+}
+.home-page .shell-card .heading {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-m);
+  color: var(--md-sys-color-on-surface);
+}
+.home-page .shell-card .heading m3e-icon {
+  color: var(--md-sys-color-primary);
+}
+.home-page .shell-card p {
+  margin: var(--gap-s) 0 var(--gap-m);
+}
+.home-page .command {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-s);
+  padding-inline: var(--gap-l) var(--gap-xs);
+  min-height: 48px;
+  border-radius: var(--corner-medium);
+  background: var(--md-sys-color-surface-container-lowest);
+}
+.home-page .command code {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  white-space: nowrap;
+  user-select: text;
+  cursor: text;
+}
+.home-page .shortcut {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-l);
+  padding: var(--gap-l);
+  border: none;
+  border-radius: var(--corner-large);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-radius var(--md-sys-motion-spring-fast-spatial);
+}
+.home-page .shortcut::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-sys-color-on-surface);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-spring-fast-effects);
+}
+.home-page .shortcut:hover::after {
+  opacity: 0.08;
+}
+.home-page .shortcut:active {
+  border-radius: var(--corner-small);
+}
+.home-page .shortcut:focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+.home-page .shortcut .shape {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: var(--md-sys-color-on-secondary-container);
+}
+.home-page .shortcut .shape m3e-shape {
+  position: absolute;
+  inset: 0;
+  --m3e-shape-size: 48px;
+  --m3e-shape-container-color: var(--md-sys-color-secondary-container);
+}
+.home-page .shortcut .shape m3e-icon {
+  position: relative;
+}
+.home-page .shortcut .text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.home-page .shortcut .text p {
+  margin-top: var(--gap-xs);
+}
+.home-page .shortcut > m3e-icon {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* SDKs: the list and the detail of the selected SDK. */
+
+.sdks-page .layout {
+  display: flex;
+  gap: var(--gap-xl);
+  height: 100%;
+}
+.sdks-page .list-pane {
+  flex: none;
+  width: 360px;
+}
+.sdks-page .detail-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sdks-page .detail-host {
+  height: 100%;
+}
+.sdks-page .detail-host.changed {
+  animation: vfox-fade-through calc(var(--vfox-slow-effects-duration) * 0.7) var(--vfox-slow-effects-easing)
+    calc(var(--vfox-slow-effects-duration) * 0.3) backwards;
+}
+.sdks-page .single {
+  height: 100%;
+}
+.sdks-page .single.forward {
+  animation: vfox-axis-forward var(--vfox-slow-effects-duration) var(--vfox-slow-effects-easing);
+}
+.sdks-page .single.backward {
+  animation: vfox-axis-backward var(--vfox-slow-effects-duration) var(--vfox-slow-effects-easing);
+}
+.sdks-page .search {
+  padding: 0 var(--gap-l) var(--gap-m);
+}
+m3e-search-bar {
+  --m3e-search-bar-container-color: var(--md-sys-color-surface-container-high);
+}
+m3e-search-bar input {
+  font: inherit;
+}
+.sdks-page .items {
+  padding: 0 var(--gap-l) var(--gap-l);
+}
+.sdks-page .two-lines {
+  white-space: pre-line;
+}
+.sdks-page m3e-list-action.selected {
+  --m3e-list-item-container-color: var(--md-sys-color-secondary-container);
+  --m3e-segmented-list-item-container-color: var(--md-sys-color-secondary-container);
+  --m3e-list-item-label-text-color: var(--md-sys-color-on-secondary-container);
+  --m3e-list-item-supporting-text-color: var(--md-sys-color-on-secondary-container);
+  --m3e-segmented-list-item-container-shape: var(--corner-medium);
+}
+
+.sdk-detail {
+  display: block;
+  height: 100%;
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
+}
+.sdk-detail .header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-l);
+  padding: var(--gap-xl) var(--gap-l) var(--gap-xl) var(--gap-s);
+}
+.sdk-detail .header.narrow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-s);
+}
+.sdk-detail .identity {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-l);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sdk-detail .header .text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sdk-detail .header h1 {
+  color: var(--md-sys-color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sdk-detail .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-xs) var(--gap-s);
+  margin-top: var(--gap-xs);
+}
+.sdk-detail .description {
+  margin-top: var(--gap-s);
+  color: var(--md-sys-color-on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sdk-detail .header .actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  flex: none;
+}
+.sdk-detail .narrow .actions .spacer {
+  flex: 1 1 auto;
+}
+/* The tabs keep their own width, as in the other implementations. */
+.sdk-detail .tabs {
+  display: flex;
+  padding: 0 var(--gap-xl) var(--gap-l);
+}
+.sdk-detail .list {
+  padding: 0 var(--gap-xl) var(--gap-xl);
+}
+.sdk-detail .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-s) var(--gap-m);
+  padding: 0 var(--gap-xl) var(--gap-m);
+}
+.sdk-detail .toolbar m3e-form-field {
+  width: 280px;
+  --m3e-form-field-container-color: var(--md-sys-color-surface-container-highest);
+}
+.sdk-detail .toolbar .count {
+  color: var(--md-sys-color-on-surface-variant);
+}
+.sdk-detail .version-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+.sdk-detail .current-icon {
+  color: var(--md-sys-color-primary);
+}
+.sdk-detail m3e-list-item {
+  --m3e-list-item-container-color: var(--md-sys-color-surface-container);
+}
+.sdk-detail .available {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-s);
+  min-width: 0;
+}
+/*
+ * The rows of the available versions all have the same height, so that only
+ * those in view are rendered (src/ui/pages/sdk_detail.rs, VERSION_ROW_PITCH).
+ */
+.sdk-detail .version-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-l);
+  height: 64px;
+  padding: var(--gap-s) var(--gap-l);
+  margin-bottom: var(--gap-hairline);
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--corner-extra-small);
+  transition: border-radius var(--md-sys-motion-spring-fast-spatial);
+}
+.sdk-detail .version-row:hover {
+  border-radius: var(--corner-medium);
+}
+.sdk-detail .version-row.first {
+  border-top-left-radius: var(--corner-large-increased);
+  border-top-right-radius: var(--corner-large-increased);
+}
+.sdk-detail .version-row.last {
+  border-bottom-left-radius: var(--corner-large-increased);
+  border-bottom-right-radius: var(--corner-large-increased);
+  margin-bottom: 0;
+}
+.sdk-detail .version-row .text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sdk-detail .version-row .title {
+  color: var(--md-sys-color-on-surface);
+  white-space: nowrap;
+}
+.sdk-detail .version-row .additions {
+  color: var(--md-sys-color-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sdk-detail .version-row > :not(.text) {
+  flex: none;
+}
+.danger {
+  color: var(--md-sys-color-error);
+  --m3e-menu-item-color: var(--md-sys-color-error);
+}
+
+.install-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  width: 220px;
+}
+.install-progress .bar {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.install-progress m3e-linear-progress-indicator {
+  width: 100%;
+}
+
+/* Plugins. */
+
+.plugins-page .filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-m);
+  padding: 0 var(--gap-xl) var(--gap-l);
+}
+.plugins-page m3e-search-bar {
+  flex: 0 1 420px;
+  min-width: 240px;
+}
+.plugins-page .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--gap-m);
+  padding: 0 var(--gap-xl) var(--gap-xl);
+}
+.plugins-page .card {
+  display: flex;
+  flex-direction: column;
+  height: 152px;
+  padding: var(--gap-l);
+  border-radius: var(--corner-large-increased);
+  background: var(--md-sys-color-surface-container);
+}
+.plugins-page .card.installed {
+  background: var(--md-sys-color-surface-container-highest);
+}
+.plugins-page .identity {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-m);
+  min-width: 0;
+}
+.plugins-page .names {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.plugins-page .name {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  color: var(--md-sys-color-on-surface);
+}
+.plugins-page .verified {
+  --m3e-icon-size: 18px;
+  color: var(--md-sys-color-primary);
+}
+.plugins-page .source {
+  color: var(--md-sys-color-on-surface-variant);
+}
+.plugins-page .bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+/* Tasks. */
+
+.tasks-page .list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-hairline);
+  padding: 0 var(--gap-xl) var(--gap-xl);
+}
+.task-item {
+  display: block;
+  --outer: var(--corner-large-increased);
+  --inner: var(--corner-extra-small);
+}
+.task-item .item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-l);
+  padding: var(--gap-m) var(--gap-l);
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--inner);
+  cursor: pointer;
+  transition: border-radius var(--md-sys-motion-spring-fast-spatial);
+  position: relative;
+}
+.task-item .item:hover {
+  --inner: var(--corner-medium);
+}
+.task-item.first .item {
+  border-top-left-radius: var(--outer);
+  border-top-right-radius: var(--outer);
+}
+.task-item.last:not(.expanded) .item {
+  border-bottom-left-radius: var(--outer);
+  border-bottom-right-radius: var(--outer);
+}
+.task-item .status {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.task-item .status.succeeded {
+  color: var(--md-sys-color-primary);
+}
+.task-item .status.failed {
+  color: var(--md-sys-color-error);
+}
+.task-item m3e-loading-indicator {
+  --m3e-loading-indicator-size: 32px;
+}
+.task-item .text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.task-item .title {
+  color: var(--md-sys-color-on-surface);
+}
+.task-item .detail {
+  color: var(--md-sys-color-on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.task-item .detail.failed {
+  color: var(--md-sys-color-error);
+}
+.task-item m3e-linear-progress-indicator {
+  display: block;
+  max-width: 480px;
+  margin-top: var(--gap-s);
+}
+.task-item .actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.task-item .toggle {
+  transition: transform var(--md-sys-motion-spring-fast-spatial);
+}
+.task-item.expanded .toggle {
+  transform: rotate(180deg);
+}
+/* The output grows to its height on the default spatial spring. */
+.task-item .output-frame {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: vfox-expand var(--vfox-default-spatial-duration) var(--vfox-default-spatial-easing);
+}
+.task-item .output-frame > * {
+  min-height: 0;
+  overflow: hidden;
+}
+.task-item .output {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-xs);
+  margin-top: var(--gap-hairline);
+  padding: var(--gap-s) var(--gap-xs) var(--gap-m) var(--gap-l);
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--inner);
+}
+.task-item.last .output {
+  border-bottom-left-radius: var(--outer);
+  border-bottom-right-radius: var(--outer);
+}
+.task-item pre {
+  flex: 1 1 auto;
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  user-select: text;
+  cursor: text;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Settings. */
+
+.settings-page .page-content {
+  max-width: 840px;
+  padding-bottom: var(--gap-xxl);
+}
+.settings-page .group + .group {
+  margin-top: var(--gap-l);
+}
+.settings-page .row-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-s) var(--gap-l);
+  min-height: 56px;
+  padding: var(--gap-m) var(--gap-l);
+  margin-bottom: var(--gap-hairline);
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--corner-extra-small);
+  transition: border-radius var(--md-sys-motion-spring-fast-spatial);
+}
+.settings-page .row-item:hover {
+  border-radius: var(--corner-medium);
+}
+.settings-page .row-item:first-child {
+  border-top-left-radius: var(--corner-large-increased);
+  border-top-right-radius: var(--corner-large-increased);
+}
+.settings-page .row-item:last-child {
+  border-bottom-left-radius: var(--corner-large-increased);
+  border-bottom-right-radius: var(--corner-large-increased);
+  margin-bottom: 0;
+}
+.settings-page .row-item.clickable {
+  cursor: pointer;
+}
+.settings-page .row-item > m3e-icon,
+.settings-page .row-item > .icon-space {
+  flex: none;
+  width: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.settings-page .row-item .text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.settings-page .row-item .title {
+  color: var(--md-sys-color-on-surface);
+}
+.settings-page .row-item .supporting {
+  color: var(--md-sys-color-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+.settings-page .row-item .trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  flex: 0 1 auto;
+  margin-inline-start: auto;
+}
+.settings-page .row-item .wide {
+  flex: 1 1 100%;
+  padding-inline-start: 40px;
+}
+.settings-page .swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-s);
+  margin-top: var(--gap-s);
+}
+.settings-page .swatch {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.settings-page .swatch:focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+.settings-page .swatch m3e-shape {
+  position: absolute;
+  inset: 0;
+  --m3e-shape-size: 40px;
+  --m3e-shape-transition: clip-path var(--md-sys-motion-spring-fast-spatial);
+  transition: transform var(--md-sys-motion-spring-fast-spatial);
+}
+.settings-page .swatch[aria-pressed='true'] m3e-shape {
+  transform: rotate(34deg);
+}
+.settings-page .swatch m3e-icon {
+  position: relative;
+  --m3e-icon-size: 20px;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-spring-fast-effects);
+}
+.settings-page .swatch[aria-pressed='true'] m3e-icon {
+  opacity: 1;
+}
+.settings-page m3e-form-field {
+  width: 300px;
+  max-width: 100%;
+  --m3e-form-field-container-color: var(--md-sys-color-surface-container-highest);
+}
+/* Weaker than .mono, as inside the shadow root of the web front end. */
+:where(.settings-page) textarea {
+  font: inherit;
+  resize: vertical;
+}
+.settings-page .environment m3e-form-field {
+  width: 100%;
+}
+.settings-page .environment .save {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--gap-s);
+}
+.settings-page .help {
+  padding: 0 var(--gap-l) var(--gap-m);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.settings-page m3e-loading-indicator.small {
+  --m3e-loading-indicator-size: 36px;
+}

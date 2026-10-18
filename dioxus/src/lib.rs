@@ -1,0 +1,25 @@
+// Copyright 2026 Han Li and contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//! vfox+, a Material 3 Expressive desktop GUI for the vfox version manager,
+//! built with Dioxus. The layers follow the Flutter implementation:
+//!
+//! - [`core`]: the models, the parsers of the output of vfox, the vfox
+//!   client, the process runner, the settings and the translations;
+//! - [`state`]: the application state in signals;
+//! - [`ui`]: the components, in the web view of the system.
+
+pub mod core;
+pub mod state;
+pub mod ui;

@@ -1,0 +1,52 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Every dependency must be licensed under terms compatible with the Apache
+# License 2.0; see ../../docs/architecture.md#dependencies. The license check of
+# the build (allowed-licenses.json) enforces it for everything that ships.
+
+[versions]
+kotlin = "2.4.21"
+compose = "1.12.2"
+# The Material 3 Expressive components (loading indicator, button groups, split
+# buttons, segmented lists, the wide navigation rail, …) are only in the alpha
+# releases of material3; this one is built for Compose 1.12.
+material3 = "1.12.0-alpha03"
+coroutines = "1.11.0"
+serialization = "1.11.0"
+color-utilities = "6.0.0"
+spotless = "8.10.4"
+ktlint = "1.8.0"
+kover = "0.9.9"
+license-report = "3.1.4"
+
+[libraries]
+# Apache-2.0. Material 3 Expressive components, including MaterialShapes.
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+# Apache-2.0. Runs the state layer on the Swing event dispatch thread.
+coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose" }
+# Apache-2.0. Reads and writes the settings file and the translation catalogues.
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+# MIT. The Material colour utilities in Kotlin: the tonal spot scheme of a seed.
+color-utilities = { module = "com.materialkolor:material-color-utilities", version.ref = "color-utilities" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+license-report = { id = "com.github.jk1.dependency-license-report", version.ref = "license-report" }

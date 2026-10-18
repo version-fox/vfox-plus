@@ -1,0 +1,6 @@
+# Build outputs. assets/ holds what components/build.mjs and
+# shared/tools/cargo_licenses.py generate, next to the committed stylesheet.
+/target/
+/assets/*
+!/assets/app.css
+/components/node_modules/

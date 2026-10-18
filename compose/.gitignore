@@ -1,0 +1,4 @@
+# Build outputs and the caches of Gradle and Kotlin.
+/build/
+/.gradle/
+/.kotlin/

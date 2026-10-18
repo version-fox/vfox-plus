@@ -36,16 +36,17 @@ as_tester() {
   (cd "$APP" && runuser -u tester -- env HOME=/home/tester "$@")
 }
 
-# Copies the repository to $WORK, without version control, results and what
-# the host has built.
+# Copies the Flutter implementation, the shared resources and the license to
+# $WORK, without version control and what the host has built. The other
+# implementations, and whatever they have built, are left out.
 copy_repository() {
   install -d -o tester -g tester "$WORK"
   tar -C "$SRC" --create --exclude-vcs \
-    --exclude=./dist --exclude=./.idea --exclude='*.iml' \
+    --exclude=.idea --exclude='*.iml' --exclude=node_modules --exclude=__pycache__ \
     --exclude=./flutter/build --exclude=./flutter/coverage --exclude=./flutter/.dart_tool \
     --exclude=./flutter/.flutter-plugins-dependencies --exclude=./flutter/linux/flutter/ephemeral \
     --exclude=./flutter/assets/fonts/MaterialSymbolsRounded.ttf \
-    . | runuser -u tester -- tar -C "$WORK" --extract
+    ./flutter ./shared ./LICENSE | runuser -u tester -- tar -C "$WORK" --extract
 }
 
 # get_packages [--offline]: gets the packages of pubspec.lock. The deps task
@@ -138,6 +139,24 @@ case "${1:-}" in
     publish /home/tester/screenshots/*.png
     ;;
 
+  measure)
+    copy_repository
+    get_packages --offline
+    generate_icon_font
+    as_tester flutter build linux --no-pub --release
+    install -d -o tester -g tester /home/tester/measure
+    # The application has no scenario of its own for shared/tools/measure.sh:
+    # tool/measure.py drives the release build with the mouse, on the same
+    # kind of virtual display and with a session bus, as the sandboxes of the
+    # other implementations. The results are published even if it fails, as
+    # the screenshots show where it stopped.
+    status=0
+    as_tester xvfb-run -a -s "${SCREEN[*]}" dbus-run-session -- \
+      python3 tool/measure.py --output /home/tester/measure build/linux/x64/release/bundle/vfox-plus || status=$?
+    publish /home/tester/measure/*
+    exit "$status"
+    ;;
+
   package)
     copy_repository
     get_packages --offline
@@ -145,7 +164,7 @@ case "${1:-}" in
     as_tester flutter build linux --no-pub --release
     smoke_test "$APP/build/linux/x64/release/bundle/vfox-plus" runuser -u tester -- env HOME=/home/tester
     as_tester env SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date +%s)}" packaging/linux/build_deb.sh /home/tester/dist
-    desktop-file-validate "$APP/packaging/linux/dev.vfox.VfoxPlus.desktop"
+    desktop-file-validate "$WORK/shared/packaging/linux/dev.vfox.VfoxPlus.desktop"
     as_tester lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog \
       /home/tester/dist/*.deb
     publish /home/tester/dist/*

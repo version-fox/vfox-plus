@@ -1,0 +1,11 @@
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+.idea/
+/src/VfoxPlus.App/Assets/Fonts/*.ttf
+/src/VfoxPlus.App/Assets/Generated/
+/build/
+/dist/
+coverage*/

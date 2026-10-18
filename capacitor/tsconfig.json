@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": false,
+    "useDefineForClassFields": false,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@shared/*": ["../shared/*"],
+      "@web/*": ["../web/src/*"],
+      "@material/material-color-utilities": ["./node_modules/@material/material-color-utilities"],
+      "vite": ["./node_modules/vite/dist/node/index.d.ts"],
+      "ws": ["./node_modules/@types/ws"]
+    }
+  },
+  "include": ["src", "electron", "test", "tools", "vite.config.ts", "eslint.config.js", "../web/src/types.d.ts"]
+}

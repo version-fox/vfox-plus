@@ -21,6 +21,55 @@ updates:
     groups:
       flutter-packages:
         patterns: ["*"]
+  - package-ecosystem: pub
+    directory: /flet/m3e/src/flutter/vfox_plus_m3e
+    schedule:
+      interval: weekly
+    groups:
+      flutter-packages:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directories: [/web, /tauri, /dioxus/components, /capacitor]
+    schedule:
+      interval: weekly
+    groups:
+      npm-packages:
+        patterns: ["*"]
+  - package-ecosystem: gradle
+    directory: /compose
+    schedule:
+      interval: weekly
+    groups:
+      gradle-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /flet
+    schedule:
+      interval: weekly
+    groups:
+      python-packages:
+        patterns: ["*"]
+  - package-ecosystem: gomod
+    directories: [/wails, /gio]
+    schedule:
+      interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
+  - package-ecosystem: cargo
+    directories: [/tauri/src-tauri, /dioxus]
+    schedule:
+      interval: weekly
+    groups:
+      cargo-crates:
+        patterns: ["*"]
+  - package-ecosystem: nuget
+    directory: /uno
+    schedule:
+      interval: weekly
+    groups:
+      nuget-packages:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

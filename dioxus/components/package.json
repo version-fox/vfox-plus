@@ -1,0 +1,20 @@
+{
+  "name": "vfox-plus-dioxus-components",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The web components of @m3e/web, the icon font and the license notices that the Dioxus implementation of vfox+ carries, built into ../assets.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@m3e/web": "^2.10.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "prettier": "^3.9.10"
+  }
+}

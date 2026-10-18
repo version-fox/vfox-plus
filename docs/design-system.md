@@ -9,7 +9,9 @@ defines them.
 ## Colour
 
 - Colour schemes are generated from a **seed colour** with the Material colour
-  utilities, *tonal spot* variant, for light and dark themes.
+  utilities, *tonal spot* variant, for light and dark themes, in the **2021**
+  specification of the colour utilities (Flutter's `ColorScheme.fromSeed`), so
+  that every implementation shows the same colours.
 - The seed is the **desktop accent colour** when the user allows it and the
   desktop exposes one (XDG desktop portal `org.freedesktop.appearance
   accent-color`, falling back to the GTK theme), otherwise the colour chosen in
@@ -20,7 +22,9 @@ defines them.
   statistic tiles and avatars.
 - Destructive actions use `error`.
 
-Flutter: `AppTheme.scheme` in `flutter/lib/src/ui/theme/app_theme.dart`.
+Flutter: `AppTheme.scheme` in `flutter/lib/src/ui/theme/app_theme.dart`. Web:
+`colorTokens` in `web/src/ui/theme.ts`, which overrides the 2025 scheme of
+`@m3e/web`.
 
 ## Shape
 
@@ -50,9 +54,10 @@ give the interface its character:
 - **Avatars** of plugins use a shape derived from a stable hash of the plugin
   name (9-sided cookie, 4-leaf clover, sunny, soft burst, 6-sided cookie, gem,
   pentagon, flower, puffy diamond, 4-sided cookie, arch, 8-leaf clover) and one
-  of three colour pairs: primary container, secondary and tertiary container
-  (not secondary container, which marks selected list items). Hovering spins the
-  shape by 30° on the fast spatial spring.
+  of three colour pairs: primary fixed dim, secondary and tertiary container.
+  Not secondary container, which marks selected list items, nor primary
+  container, which some seeds (the vfox orange among them) make just as light.
+  Hovering spins the shape by 30° on the fast spatial spring.
 - **Empty and error states** show their icon on a large shape.
 - **Statistic tiles** show a large shape partly hidden behind their edge.
 - **Colour swatches** morph from a circle into a flower, turning slightly, when
@@ -133,7 +138,10 @@ spring needs to settle. When the platform asks for reduced motion, springs jump
 to their target and indeterminate indicators stop.
 
 Flutter: `MotionScheme`, `Spring` and `SpringBuilder` in
-`flutter/lib/src/ui/theme/motion.dart`.
+`flutter/lib/src/ui/theme/motion.dart`. Web: `web/src/ui/motion.ts` samples
+each spring into a CSS `linear()` easing over its settling time and sets the
+motion tokens of `@m3e/web`, so that its components move on these springs;
+`SpringAnimation` keeps the velocity for animations driven by script.
 
 ### Transitions
 
@@ -181,6 +189,12 @@ are outlined (`FILL` 0). The icons and their meanings are listed in
 [`shared/icons.json`](../shared/icons.json). Implementations ship only these
 glyphs; the Flutter implementation generates a 155 KB subset of the font that
 keeps every variable axis at build time (`flutter/tool/generate_icon_font.dart`).
+The other implementations use [`shared/tools/icon_font.py`](../shared/tools/icon_font.py),
+which cuts the same glyphs, with their ligatures, out of a pinned version of
+the font; pinning the weight, grade and optical size and keeping only the fill
+axis gives a 9 KB WOFF2 font.
 
 The application icon is the 12-sided cookie shape in vfox orange with a white
-"v+" mark (`flutter/assets/brand/vfox-plus.svg`).
+"v+" mark ([`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../shared/packaging/linux/dev.vfox.VfoxPlus.svg);
+Flutter bundles a copy as `flutter/assets/brand/vfox-plus.svg`, which CI keeps
+identical).

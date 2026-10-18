@@ -16,19 +16,74 @@ vfox-plus/
 │   ├── ui-spec.md         Screens, flows and states
 │   ├── design-system.md   Material 3 Expressive tokens, components and motion
 │   ├── i18n.md            Translations and terminology
+│   ├── memory.md          The memory use of the implementations, measured the same way
 │   └── new-implementation.md  Checklist for a new technology stack
 ├── shared/                Machine-readable resources used by every implementation
 │   ├── i18n/              Translation catalogues (ARB: JSON with ICU messages)
 │   ├── icons.json         Material Symbols used by the user interface
 │   ├── fixtures/          Captured vfox output and the expected parser results
-│   └── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
+│   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
+│   ├── packaging/linux/   Desktop entry, AppStream metadata, icon, .deb script
+│   ├── tools/             The icon font tool, the license collectors of the Rust crates, Go modules and NuGet
+│   │                      packages, the memory measurement and the screenshots
+│   └── sandbox/           Shared parts of the Docker sandboxes
 ├── flutter/               The Flutter implementation (Linux desktop)
-└── <stack>/               Future implementations, one directory each
+├── web/                   The web front end shared by tauri/ and wails/, whose core and
+│                          state capacitor/ shares
+├── tauri/                 The Tauri implementation
+├── wails/                 The Wails implementation
+├── compose/               The Compose Multiplatform implementation
+├── dioxus/                The Dioxus implementation
+├── capacitor/             The Capacitor implementation
+├── flet/                  The Flet implementation (Python, with a Dart extension)
+├── gio/                   The Gio implementation (Go)
+├── uno/                   The Uno implementation (C#, .NET)
+└── <stack>/               The other implementations, one directory each
 ```
 
 An implementation owns exactly one top-level directory. It reads the shared
 resources from `../shared` and must not copy them, so that a translation or a
 fixture is changed in one place only.
+
+The one exception is [`web/`](../web): Tauri and Wails are both native shells
+around a web view, whose user interface is "bring your own web front end".
+They share one front end — the vfox client, the task queue and the user
+interface in TypeScript — and each adds only its native side, which answers a
+small host protocol (spawning processes, a few file operations, dialogs, links,
+the clipboard and the accent colour). Their comparison is then about what
+actually differs between them: the language of the native side, packaging and
+memory.
+
+The Capacitor implementation shares the parts of `web/` that no user interface
+framework depends on: the core, the state, the running application, the colour
+scheme and the springs of `web/src/ui`, and the end-to-end scenarios. Its user
+interface is its own, in Vue on Ionic's components, and its Electron main
+process answers the host protocol with the Node.js host of `web/dev-host`.
+
+The Flet implementation shares nothing but the shared resources: its core and
+state are plain Python, and its user interface is declarative Flet components.
+What Flet lacks of Material 3 Expressive lives in `flet/m3e`, a Flet extension
+with the Python controls and the Dart widgets that render them, and the
+application drives its own end-to-end scenarios in the built bundle.
+
+The Gio implementation shares the shared resources and the end-to-end runner
+`web/e2e/run.sh` with its test server, and nothing else: its core and state are
+plain Go, and its user interface is drawn by an immediate-mode toolkit of its
+own (`gio/ui/kit`) on top of Gio, which only provides the window, the input,
+the text shaping and the GPU renderer. The colour scheme, the shapes and the
+components of Material 3 Expressive are ports and implementations in Go
+(`gio/ui/mcu`, `gio/ui/shapes`, `gio/ui/kit`), and the application drives its
+own end-to-end scenarios.
+
+The Uno implementation shares the shared resources and the end-to-end runner
+`web/e2e/run.sh` with its test server, and nothing else: its core and state are
+plain C#, and its user interface is built in code, from the layout panels, text
+and shapes of WinUI as Uno Platform implements them on Skia, without XAML pages.
+The colour scheme, the shapes, the springs and the components of Material 3
+Expressive are ports and implementations in C# (`uno/src/VfoxPlus.Design`,
+`uno/src/VfoxPlus.App/Controls`), the XDG desktop portal is a small D-Bus client
+(`uno/src/VfoxPlus.Platform`), and the application drives its own end-to-end
+scenarios.
 
 ## Layers
 
@@ -78,7 +133,8 @@ interface so that UI tests can replace it.
 
 In the Flutter implementation the layers are `lib/src/core`, `lib/src/state`
 and `lib/src/ui`, and `test/project_test.dart` fails the build if a layer
-imports a layer above it.
+imports a layer above it. In the web front end they are `src/core`,
+`src/state` and `src/ui`, and ESLint enforces the same rule.
 
 ## Talking to vfox
 
@@ -109,6 +165,9 @@ Unknown keys must be preserved or ignored, never rejected.
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
 | `railExpanded`     | boolean         | `false`      | Whether the navigation rail shows its labels.              |
 
+The web front end keeps unknown keys when it saves the file, so settings
+written by a newer implementation survive.
+
 The vfox configuration (proxy, registry, storage directory, …) is **not** part
 of these settings: it belongs to vfox and is edited through `vfox config`.
 
@@ -126,6 +185,49 @@ and keeps the settings reachable.
 Every runtime dependency must be licensed under terms compatible with, or no
 more restrictive than, the Apache License 2.0 (for example Apache-2.0, MIT,
 BSD), as required by [issue #1](https://github.com/version-fox/vfox-plus/issues/1).
+The one exception is code under the file-based weak copyleft of the Mozilla
+Public License 2.0 that a framework cannot do without, such as `option-ext`,
+which the web view crate `wry` of the Rust implementations depends on: it is
+only shipped unmodified and in binary form, as the Apache Software Foundation
+allows for its own products, with a note on where its source code is
+([`shared/tools/cargo_licenses.py`](../shared/tools/cargo_licenses.py)
+checks and collects the licenses of Rust crates).
+Electron, the runtime of the Capacitor implementation, is under the MIT
+license, and so is most of what it bundles, but Chromium in it contains
+third-party components under other licenses, among them FFmpeg under the LGPL
+2.1, which Electron links dynamically as the separate library `libffmpeg.so`.
+Like the MPL code above, it is weak copyleft that the framework cannot do
+without, shipped unmodified and in binary form; Electron's list of those
+licenses, `LICENSES.chromium.html`, ships next to the executable.
+Flet, the framework of the Flet implementation, is under the Apache License
+2.0, as are its Python and Dart dependencies (MIT and BSD); the CPython it
+embeds is under the PSF license and the icon font under the Apache License
+2.0, all of which the application lists with the licenses of the bundled
+Flutter engine.
+Gio, the toolkit of the Gio implementation, is dual-licensed under the Unlicense
+and the MIT license, and the other Go modules it links (the text shaper
+`go-text/typesetting`, `godbus/dbus` and the `golang.org/x` modules) are under
+BSD licenses, as is the Go standard library; the ports in `gio/ui/mcu` and
+`gio/ui/shapes` are of libraries under the Apache License 2.0 and the MIT
+license, and their notices ship with the application
+([`gio/NOTICE.txt`](../gio/NOTICE.txt)). The Gio implementation has no weak
+copyleft dependency.
+Uno Platform, the framework of the Uno implementation, is under the Apache
+License 2.0, as are the Uno packages the application ships; SkiaSharp,
+HarfBuzzSharp and `Tmds.DBus.Protocol` are under the MIT license, and so is the
+.NET runtime that the application bundles. The notices of the native Skia
+library of SkiaSharp list the third-party code that Skia is built from (among it
+HarfBuzz, ICU, libjpeg-turbo, libpng, libwebp, zlib and expat), all under
+permissive licenses, and ship with the application. They also name libmicrohttpd
+(LGPL), whose code is not in the Linux binary (it has no symbol of it), so that
+one is left out. The fonts that the themes of Uno bring are not shipped, and the
+licenses of the NuGet packages and of the runtime are checked and collected by
+[`shared/tools/nuget_licenses.py`](../shared/tools/nuget_licenses.py), which fails
+on any that is not compatible with the Apache License 2.0. The Uno
+implementation has no weak copyleft dependency; the ports in
+`uno/src/VfoxPlus.Design` are of libraries under the Apache License 2.0 and the
+MIT license, and their notices ship with the application
+([`uno/NOTICE.txt`](../uno/NOTICE.txt)).
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 
@@ -140,10 +242,15 @@ Low memory use is a goal of the project. Implementations should:
   motion setting;
 - avoid caching data that vfox can produce again cheaply.
 
+[The memory page](memory.md) compares what the implementations use.
+
 ## Future: remote and web front ends
 
 The issue also asks for a web UI and an Android client that connect to a
 machine running vfox. The process runner and the vfox client are the seams for
 that: a remote implementation of the process runner (or of the client) can
 forward the same commands to an agent on the machine, and the state and UI
-layers stay unchanged. The CLI contract then becomes the protocol.
+layers stay unchanged. The CLI contract then becomes the protocol. The
+Capacitor implementation already keeps its native side in one Capacitor
+plugin, whose native implementation on Android would be such an agent's
+client, with the Vue and Ionic user interface unchanged.

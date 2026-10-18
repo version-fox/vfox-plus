@@ -27,6 +27,10 @@
 #   package      release build with a smoke test, .deb and .tar.gz checked by
 #                lintian, then an installation into a clean Ubuntu container
 #   all          check, e2e and package
+#   measure      the memory use of the release build on the Home page and with
+#                the versions of Node.js listed, measured like the other
+#                implementations (docs/memory.md): in Xvfb, with the fake vfox,
+#                driven with the mouse by tool/measure.py
 #   screenshots  renders the screenshots of the README, for the image host
 #   fixtures     captures the vfox outputs of shared/fixtures (uses the network)
 #   shell        an interactive shell in the sandbox
@@ -101,7 +105,7 @@ run_task() {
     --env "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
   )
   case "$task" in
-    check | screenshots | package | fixtures)
+    check | screenshots | package | fixtures | measure)
       rm -rf "${RESULTS:?}/$task"
       mkdir -p "$RESULTS/$task"
       options+=(--volume "$RESULTS/$task:/out") ;;
@@ -120,7 +124,7 @@ install_test() {
 }
 
 case "${1:-}" in
-  check | e2e | screenshots)
+  check | e2e | screenshots | measure)
     ensure_image
     run_task bridge deps
     run_task none "$1"
