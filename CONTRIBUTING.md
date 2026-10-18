@@ -101,22 +101,27 @@ with `flutter/sandbox/sandbox.sh fixtures`) and follow
 ### Screenshots
 
 The images of the documentation are not committed: they are hosted on
-[catbox.moe](https://catbox.moe), a free image host that needs no account, and
-linked. `flutter/sandbox/sandbox.sh screenshots` renders the screenshots into
-`dist/sandbox/screenshots/`, reproducibly: every page, in both themes and
-languages, the compact layout and an installation in progress
+[freeimage.host](https://freeimage.host), a free image host that needs no
+account, and linked. `flutter/sandbox/sandbox.sh screenshots` renders the
+screenshots into `dist/sandbox/screenshots/`, reproducibly: every page, in both
+themes and languages, the compact layout and an installation in progress
 ([`screenshots_test.dart`](flutter/integration_test/screenshots_test.dart)). The
 [README](README.md) links `home-light`, `sdks-light`, `sdks-dark`,
 `installing-light`, `tasks-light`, `plugins-light`, `settings-zh`,
 `compact-home` and `compact-sdks`. Upload a new image with
 
 ```sh
-curl -F reqtype=fileupload -F fileToUpload=@dist/sandbox/screenshots/home-light.png https://catbox.moe/user/api.php
+curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json \
+  -F source=@dist/sandbox/screenshots/home-light.png https://freeimage.host/api/1/upload |
+  python3 -c 'import json, sys; print(json.load(sys.stdin)["image"]["url"])'
 ```
 
-which prints its URL, and replace the link in the README. Every upload gets a
-new URL, so cached copies of an old image never show. Anonymous uploads cannot
-be deleted; upload nothing that must not stay public.
+which prints its URL (the key is the public one that freeimage.host gives to
+everyone on its [API page](https://freeimage.host/api)), and replace the link in
+the README. If curl stops with error 56, the connection broke: run it again.
+Every upload gets a new URL, so cached copies of an old image never show. The
+uploader of an anonymous image cannot delete it; upload nothing that must not
+stay public.
 
 ### A new implementation
 

@@ -8,13 +8,25 @@ vfox-plus explores several GUI technologies side by side
 ([issue #1](https://github.com/version-fox/vfox-plus/issues/1)). Every
 implementation follows the same specification and uses the same translations,
 icons and test fixtures, so they look and behave alike and can be compared on
-equal terms.
+equal terms. The screenshots show the Flutter implementation.
 
-![vfox+ home page](https://files.catbox.moe/yjwjll.png)
+![vfox+ home page](https://iili.io/nw2Xggj.png)
 
-| SDK versions, dark theme | Settings in Simplified Chinese |
+| Installed versions of an SDK | Available versions, dark theme |
 | --- | --- |
-| ![SDK detail](https://files.catbox.moe/et01kh.png) | ![Settings](https://files.catbox.moe/ijq2tt.png) |
+| ![Installed versions of nodejs](https://iili.io/nw2Wo6G.png) | ![Available versions of nodejs, dark theme](https://iili.io/nw2XmrJ.png) |
+
+| An installation in progress | Tasks, which can be followed and cancelled |
+| --- | --- |
+| ![Installing a version of nodejs](https://iili.io/nw2WRuS.png) | ![Tasks](https://iili.io/nw2WG8Q.png) |
+
+| The plugin registry | Settings in Simplified Chinese |
+| --- | --- |
+| ![Plugins](https://iili.io/nw2XEsn.png) | ![Settings](https://iili.io/nw2hn2f.png) |
+
+| Home in a compact window | An SDK in a compact window |
+| --- | --- |
+| ![Home in a compact window](https://iili.io/nw2Xj5l.png) | ![An SDK in a compact window](https://iili.io/nw2Ghtn.png) |
 
 ## Implementations
 
