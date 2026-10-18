@@ -34,6 +34,7 @@ vfox-plus/
 ├── dioxus/                The Dioxus implementation
 ├── capacitor/             The Capacitor implementation
 ├── flet/                  The Flet implementation (Python, with a Dart extension)
+├── gio/                   The Gio implementation (Go)
 └── <stack>/               The other implementations, one directory each
 ```
 
@@ -61,6 +62,15 @@ state are plain Python, and its user interface is declarative Flet components.
 What Flet lacks of Material 3 Expressive lives in `flet/m3e`, a Flet extension
 with the Python controls and the Dart widgets that render them, and the
 application drives its own end-to-end scenarios in the built bundle.
+
+The Gio implementation shares the shared resources and the end-to-end runner
+`web/e2e/run.sh` with its test server, and nothing else: its core and state are
+plain Go, and its user interface is drawn by an immediate-mode toolkit of its
+own (`gio/ui/kit`) on top of Gio, which only provides the window, the input,
+the text shaping and the GPU renderer. The colour scheme, the shapes and the
+components of Material 3 Expressive are ports and implementations in Go
+(`gio/ui/mcu`, `gio/ui/shapes`, `gio/ui/kit`), and the application drives its
+own end-to-end scenarios.
 
 ## Layers
 
@@ -181,6 +191,14 @@ Flet, the framework of the Flet implementation, is under the Apache License
 embeds is under the PSF license and the icon font under the Apache License
 2.0, all of which the application lists with the licenses of the bundled
 Flutter engine.
+Gio, the toolkit of the Gio implementation, is dual-licensed under the Unlicense
+and the MIT license, and the other Go modules it links (the text shaper
+`go-text/typesetting`, `godbus/dbus` and the `golang.org/x` modules) are under
+BSD licenses, as is the Go standard library; the ports in `gio/ui/mcu` and
+`gio/ui/shapes` are of libraries under the Apache License 2.0 and the MIT
+license, and their notices ship with the application
+([`gio/NOTICE.txt`](../gio/NOTICE.txt)). The Gio implementation has no weak
+copyleft dependency.
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

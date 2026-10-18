@@ -27,6 +27,7 @@
 #   --executable PATH     the program in the stage directory that
 #                         /usr/bin/vfox-plus points to (required)
 #   --depends LIST        the Depends field (required)
+#   --recommends LIST     packages to recommend besides vfox
 #   --technology TEXT     the technology, for the description (required)
 #   --notice FILE         third-party licenses, installed as
 #                         /usr/share/doc/<package>/THIRD-PARTY-LICENSES
@@ -50,7 +51,7 @@ REPO="$(cd "$PACKAGING_DIR/../../.." && pwd)"
 APP_ID="dev.vfox.VfoxPlus"
 MAINTAINER="${DEB_MAINTAINER:-Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>}"
 
-package="" version="" stage="" executable="" depends="" technology="" notice="" strip=false
+package="" version="" stage="" executable="" depends="" recommends="" technology="" notice="" strip=false
 overrides=()
 setuid=()
 while [[ $# -gt 1 ]]; do
@@ -65,6 +66,7 @@ while [[ $# -gt 1 ]]; do
     --stage) stage="$2" ;;
     --executable) executable="$2" ;;
     --depends) depends="$2" ;;
+    --recommends) recommends="$2" ;;
     --technology) technology="$2" ;;
     --notice) notice="$2" ;;
     --override) overrides+=("$2") ;;
@@ -154,7 +156,7 @@ Architecture: $DEB_ARCH
 Maintainer: $MAINTAINER
 Installed-Size: $(du -sk "$ROOT/usr" | cut -f1)
 Depends: $depends
-Recommends: vfox
+Recommends: vfox${recommends:+, $recommends}
 Provides: vfox-plus
 Conflicts: vfox-plus
 Replaces: vfox-plus

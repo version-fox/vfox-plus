@@ -1,0 +1,170 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Gio implementation: formatting, golangci-lint and the unit tests (with
+# coverage gates), the end-to-end scenarios in the application (against captured
+# output and against the real vfox) and the Linux packages.
+# gio/sandbox/run-task.sh runs the same steps locally; keep them in sync.
+# The tool versions are in gio/versions.env (Node.js, which only runs the test
+# server of the end-to-end scenarios, is the one of web/versions.env).
+name: Gio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - gio/**
+      - web/e2e/**
+      - web/src/e2e/**
+      - shared/**
+      - .github/workflows/gio.yml
+  pull_request:
+    paths:
+      - gio/**
+      - web/e2e/**
+      - web/src/e2e/**
+      - shared/**
+      - .github/workflows/gio.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Packages needed to build and run Gio applications on Linux: Gio draws with
+  # OpenGL ES through EGL on X11 and Wayland. Fontconfig and the fonts are what
+  # the interface looks up.
+  LINUX_PACKAGES: >-
+    build-essential pkg-config libwayland-dev libx11-dev libx11-xcb-dev
+    libxkbcommon-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev
+    libffi-dev libxcursor-dev libxfixes-dev libvulkan-dev fontconfig
+    fonts-ubuntu fonts-noto-cjk fonttools python3-brotli xvfb xauth dbus-x11
+    lintian desktop-file-utils
+
+jobs:
+  build:
+    name: Check, test end to end and package
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' web/versions.env gio/versions.env >> "$GITHUB_ENV"
+      - name: Install the Linux packages
+        run: |
+          sudo apt-get update
+          # shellcheck disable=SC2086 # The list is meant to be split.
+          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: gio/go.sum
+      - name: Install golangci-lint
+        run: |
+          archive="golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+            "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/$archive.tar.gz"
+          echo "$GOLANGCI_LINT_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/$archive" >> "$GITHUB_PATH"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/material-symbols
+          key: material-symbols-${{ hashFiles('shared/tools/icon_font.py') }}
+      - name: Prepare the embedded assets
+        # The icon font, the translations and the licenses of the Go modules.
+        run: bash gio/tools/prepare.sh
+      - name: Build the release
+        run: bash gio/tools/build.sh gio/build/vfox-plus
+      - name: Verify the modules
+        working-directory: gio
+        run: go mod verify
+      - name: Check formatting
+        working-directory: gio
+        run: golangci-lint fmt --diff
+      - name: Lint
+        working-directory: gio
+        run: |
+          golangci-lint run
+          golangci-lint run --build-tags e2e
+      - name: Test
+        working-directory: gio
+        run: |
+          go vet ./...
+          go test -race -coverprofile=coverage.out ./...
+          bash tools/coverage.sh coverage.out 85
+      - name: Install vfox
+        run: |
+          archive="vfox_${VFOX_VERSION}_linux_x86_64"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+            "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/$archive.tar.gz"
+          echo "$VFOX_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
+      - name: Run the end-to-end scenarios in a virtual display
+        run: |
+          bash gio/tools/build.sh --e2e "$RUNNER_TEMP/vfox-plus-e2e"
+          for scenario in fake real measure; do
+            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+              bash web/e2e/run.sh "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
+          done
+      - name: Smoke test the release
+        run: |
+          binary="$PWD/gio/build/vfox-plus"
+          xvfb-run -a -s "-screen 0 1280x800x24" "$binary" > app.log 2>&1 &
+          sleep 15
+          if ! pgrep -f "^$binary" > /dev/null; then
+            cat app.log
+            echo "::error::vfox+ exited during startup"
+            exit 1
+          fi
+          pkill -f "^$binary"
+      - name: Build the .deb and the tarball
+        run: |
+          install -D -m 755 gio/build/vfox-plus "$RUNNER_TEMP/stage/vfox-plus"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" bash shared/packaging/linux/build-deb.sh \
+            --package vfox-plus-gio --version "$(tr -d '[:space:]' < gio/VERSION)" \
+            --stage "$RUNNER_TEMP/stage" --executable vfox-plus --technology Gio \
+            --depends "$(sed -n 's/^DEPENDS="\(.*\)"$/\1/p' gio/sandbox/run-task.sh)" \
+            --recommends "$(sed -n 's/^RECOMMENDS="\(.*\)"$/\1/p' gio/sandbox/run-task.sh)" \
+            --notice gio/assets/licenses.txt dist
+      - name: Validate the packages
+        run: |
+          desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
+          # CI packages carry a placeholder maintainer; releases set DEB_MAINTAINER.
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb
+      - name: Install the .deb into a clean Ubuntu container
+        # The application must start with nothing but the declared dependencies.
+        run: |
+          docker run --rm --init \
+            --volume "$PWD/shared/sandbox/task-lib.sh:/task-lib.sh:ro" \
+            --volume "$PWD/gio/sandbox/run-task.sh:/run-task.sh:ro" \
+            --volume "$PWD/dist:/pkg:ro" \
+            --env TASK_LIB=/task-lib.sh \
+            ubuntu:26.04 bash /run-task.sh install-test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-gio-linux-x64
+          path: dist/*
+          if-no-files-found: error

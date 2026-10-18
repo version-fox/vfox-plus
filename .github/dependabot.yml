@@ -50,7 +50,7 @@ updates:
       python-packages:
         patterns: ["*"]
   - package-ecosystem: gomod
-    directory: /wails
+    directories: [/wails, /gio]
     schedule:
       interval: weekly
     groups:
