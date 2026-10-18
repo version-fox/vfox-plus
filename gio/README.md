@@ -207,8 +207,8 @@ one process.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 240 MB | 209 MB |
-| Versions of Node.js listed | 257 MB | 226 MB |
+| Home page | 240 MB | 215 MB |
+| Versions of Node.js listed | 253 MB | 228 MB |
 
 ## Limits
 

@@ -186,13 +186,13 @@ the steps and puts the result next to the other implementations:
 
 | Page | RSS | PSS |
 | --- | ---: | ---: |
-| Home | 379 MB | 340 MB |
-| Available versions of Node.js (872) | 394 MB | 355 MB |
+| Home | 369 MB | 329 MB |
+| Available versions of Node.js (872) | 384 MB | 345 MB |
 
 The application runs in two processes: the second, `glycin-svg`, is the helper that
 gdk-pixbuf starts to load the SVG icon of the window, and has 18 MB of the RSS. In
-six runs the PSS was 332 to 342 MB on the Home page and 344 to 369 MB with the
-versions.
+six runs on an earlier day, with the sandbox images of that day, the PSS was 332 to
+342 MB on the Home page and 344 to 369 MB with the versions.
 
 Software rendering dominates these numbers; measure on the target hardware when
 comparing implementations, with

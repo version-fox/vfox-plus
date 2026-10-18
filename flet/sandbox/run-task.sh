@@ -64,7 +64,9 @@ build_app() {
 # along for its end-to-end runner, which the Flet scenarios follow.
 prepare() {
   copy_repository flet web
-  as_tester "$APP" uv sync --frozen --offline
+  # uv caches what it found under the index it asked, so the mirror of the deps
+  # task has to be named again to find the build requirements of m3e.
+  as_tester "$APP" uv sync --frozen --offline ${SANDBOX_UV_MIRROR:+--index-url "$SANDBOX_UV_MIRROR"}
   as_tester "$APP" python3 tools/patch_build_template.py
   as_tester "$APP" python3 tools/prepare.py
   as_tester "$M3E" dart pub get --enforce-lockfile --offline

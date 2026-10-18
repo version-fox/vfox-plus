@@ -105,8 +105,8 @@ processes together.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 598 MB | 397 MB |
-| Versions of Node.js listed | 683 MB | 482 MB |
+| Home page | 600 MB | 419 MB |
+| Versions of Node.js listed | 673 MB | 492 MB |
 
 Software rendering dominates these numbers; compare implementations measured
 the same way.

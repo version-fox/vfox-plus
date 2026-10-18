@@ -115,10 +115,10 @@ processes together.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 686 MB | 480 MB |
-| Versions of Node.js listed | 758 MB | 554 MB |
+| Home page | 680 MB | 482 MB |
+| Versions of Node.js listed | 756 MB | 566 MB |
 
-WebKitGTK 6.0 with GTK 4 needs about 80 MB more than the WebKitGTK 4.1 with
+WebKitGTK 6.0 with GTK 4 needs 60 to 75 MB more than the WebKitGTK 4.1 with
 GTK 3 of the [Tauri implementation](../tauri/README.md#memory) for the same
 front end. Software rendering dominates these numbers; compare implementations
 measured the same way.

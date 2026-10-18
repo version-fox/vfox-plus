@@ -158,8 +158,8 @@ browser, the zygotes, the GPU, network and renderer processes).
 
 | State                      |    RSS |    PSS |
 | -------------------------- | -----: | -----: |
-| Home page                  | 729 MB | 385 MB |
-| Versions of Node.js listed | 750 MB | 398 MB |
+| Home page                  | 742 MB | 388 MB |
+| Versions of Node.js listed | 762 MB | 400 MB |
 
 Electron brings its own Chromium, so nothing is shared with the libraries of
 the desktop; compare implementations measured the same way. Only the rows of

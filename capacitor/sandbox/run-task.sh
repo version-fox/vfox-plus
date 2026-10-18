@@ -36,7 +36,9 @@ COPY_EXCLUDES+=(
 prepare() {
   copy_repository web capacitor
   as_tester "$APP" npm ci --no-audit --no-fund --offline
-  as_tester "$APP" npm run electron
+  # The cache keeps the runtime under the address it came from, so the mirror
+  # of the deps task has to be named again to find it.
+  as_tester "$APP" env ${SANDBOX_ELECTRON_MIRROR:+ELECTRON_MIRROR="$SANDBOX_ELECTRON_MIRROR"} npm run electron
   as_tester "$APP" npm run assets
 }
 
