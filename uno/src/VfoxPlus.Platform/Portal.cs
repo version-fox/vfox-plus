@@ -90,19 +90,15 @@ public sealed class Portal : IDisposable
             Member = "SettingChanged",
             Path = ObjectPath,
         };
-        watch = await connection.AddMatchAsync<int>(
+        watch = await connection.AddMatchAsync(
             rule,
-            static (Message message, object? state) => 0,
-            (Exception? error, int value, object? readerState, object? handlerState) =>
+            (Notification notification) =>
             {
-                if (error is null)
+                if (!notification.IsCompletion)
                 {
                     onChange();
                 }
             },
-            ObserverFlags.None,
-            readerState: null,
-            handlerState: null,
             emitOnCapturedContext: false).ConfigureAwait(false);
     }
 
@@ -129,20 +125,17 @@ public sealed class Portal : IDisposable
         using IDisposable match = await connection.AddMatchAsync<string>(
             rule,
             static (Message message, object? state) => ReadResponse(message),
-            (Exception? error, string uri, object? readerState, object? handlerState) =>
+            (Notification<string> notification) =>
             {
-                if (error is not null)
+                if (notification.IsCompletion)
                 {
-                    answer.TrySetException(error);
+                    answer.TrySetException(notification.Exception);
                 }
                 else
                 {
-                    answer.TrySetResult(uri);
+                    answer.TrySetResult(notification.Value);
                 }
             },
-            ObserverFlags.None,
-            readerState: null,
-            handlerState: null,
             emitOnCapturedContext: false).ConfigureAwait(false);
 
         try
