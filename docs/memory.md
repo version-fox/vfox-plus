@@ -10,21 +10,22 @@ README (the links in the first column).
 ## Results
 
 In MB, for the application and all of its child processes together, in Docker on
-Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). The table is sorted by the PSS of the
-Home page; "Versions" is the SDKs page with the 872 available versions of Node.js
-listed.
+Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). The table is sorted by the first of the
+memory columns, the PSS of the Home page, from the smallest to the largest (the RSS
+is not in that order: see [Reading the numbers](#reading-the-numbers)); "Versions" is
+the SDKs page with the 872 available versions of Node.js listed.
 
-| Implementation                             | Technology                                      | Processes | Home RSS | Home PSS | Versions RSS | Versions PSS | The list adds (PSS) |
+| Implementation                             | Technology                                      | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | ------------------------------------------ | ----------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU  |         1 |      146 |      133 |          181 |          168 |                 +35 |
-| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                  |         1 |      240 |      209 |          257 |          226 |                 +17 |
-| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia  |         1 |      290 |      263 |          301 |          275 |                 +12 |
-| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Impeller (OpenGL ES), GTK 3 |         2 |      379 |      340 |          394 |          355 |                 +15 |
-| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application      |         2 |      374 |      341 |          394 |          360 |                 +19 |
-| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron             |         6 |      729 |      385 |          750 |          398 |                 +13 |
-| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3)            |         3 |      598 |      397 |          683 |          482 |                 +85 |
-| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK                     |         3 |      618 |      418 |          698 |          497 |                 +79 |
-| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4)              |         3 |      686 |      480 |          758 |          554 |                 +74 |
+| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU  |         1 |      133 |      146 |          168 |          181 |                 +35 |
+| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                  |         1 |      209 |      240 |          226 |          257 |                 +17 |
+| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia  |         1 |      263 |      290 |          275 |          301 |                 +12 |
+| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Impeller (OpenGL ES), GTK 3 |         2 |      340 |      379 |          355 |          394 |                 +15 |
+| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application      |         2 |      341 |      374 |          360 |          394 |                 +19 |
+| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron             |         6 |      385 |      729 |          398 |          750 |                 +13 |
+| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3)            |         3 |      397 |      598 |          482 |          683 |                 +85 |
+| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK                     |         3 |      418 |      618 |          497 |          698 |                 +79 |
+| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4)              |         3 |      480 |      686 |          554 |          758 |                 +74 |
 
 - The three implementations that run in one process and draw themselves (Uno, Gio,
   Compose) are the three smallest, with 133 to 263 MB of PSS on the Home page. Flutter
@@ -127,5 +128,6 @@ What is different from the other implementations:
 When an implementation is added, or its memory changes noticeably, run
 `<implementation>/sandbox/sandbox.sh measure`, copy the lines of
 `dist/sandbox/<implementation>/measure/memory.txt` (`dist/sandbox/measure/memory.txt`
-for Flutter) into the table and into the Memory section of the README of the
-implementation, and keep the table sorted by the PSS of the Home page.
+for Flutter) into the table, where the PSS comes before the RSS, and into the Memory
+section of the README of the implementation, and keep the table sorted by the PSS of
+the Home page.
