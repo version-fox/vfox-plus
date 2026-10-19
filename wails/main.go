@@ -92,6 +92,12 @@ func (desktop) Exit(code int) {
 }
 
 func main() {
+	// Accelerated compositing maps Mesa's software OpenGL and its compiler
+	// when there is no real GPU; the pages of vfox+ do not need it. See
+	// docs/memory.md and the WebKitGTK documentation of this variable.
+	if _, set := os.LookupEnv("WEBKIT_DISABLE_COMPOSITING_MODE"); !set {
+		_ = os.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+	}
 	frontend, err := fs.Sub(assets, "frontend/dist")
 	if err == nil {
 		_, err = fs.Stat(frontend, "index.html")
