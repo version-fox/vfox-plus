@@ -42,8 +42,9 @@ limitations under the License.
       The published application is ahead-of-time compiled, so that it starts in half a second, and trimmed to what it
       uses: 104 MB instead of 158 MB. Publishing needs a runtime identifier (see docs/architecture.md).
     -->
-    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishAot>true</PublishAot>
     <PublishTrimmed>true</PublishTrimmed>
+    <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(E2E)' == 'true'">

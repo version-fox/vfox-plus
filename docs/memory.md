@@ -18,7 +18,7 @@ the SDKs page with the 872 available versions of Node.js listed.
 | Implementation                             | Technology                                      | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | ------------------------------------------ | ----------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
 | [mygo](../mygo/README.md#memory)           | mygo 0.5, Go, GTK 3 (purego), CPU renderer                |         1 |       41 |       54 |           47 |           60 |                  +6 |
-| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU             |         1 |      126 |      138 |          157 |          169 |                 +31 |
+| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU, Native AOT |         1 |       99 |      106 |          116 |          123 |                 +17 |
 | [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                             |         1 |      215 |      240 |          228 |          253 |                 +13 |
 | [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK, compositing off               |         3 |      258 |      434 |          296 |          473 |                 +38 |
 | [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia             |         1 |      266 |      290 |          277 |          301 |                 +11 |
@@ -28,14 +28,17 @@ the SDKs page with the 872 available versions of Node.js listed.
 | [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application                 |         2 |      346 |      378 |          383 |          415 |                 +37 |
 | [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4), compositing off        |         3 |      346 |      525 |          358 |          538 |                 +12 |
 
-- Turning off GPU-dependent rendering where the pages do not need it closes most of the
-  gap between the four implementations that run in one process and draw themselves
+- Turning off GPU-dependent rendering where the pages do not need it, and compiling
+  ahead of time where that lets trimming do a better job, closes most of the gap
+  between the four implementations that run in one process and draw themselves
   (mygo, Uno, Gio, Compose, 41 to 266 MB of PSS on the Home page) and the four that
   bring a web view or a browser: with WebKitGTK's accelerated compositing turned off,
   Dioxus and Tauri are 258 and 275 MB, in three processes, both now cheaper than
   Compose; Capacitor, with Electron's hardware acceleration off, is 303, in six
-  processes. mygo still uses a third of what Uno does, drawing on the processor from a
-  Go executable of 12 MB and loading GTK 3 from the system. Flutter and Flet, whose
+  processes. mygo still uses under half of what Uno does, drawing on the processor
+  from a Go executable of 12 MB and loading GTK 3 from the system; Uno, compiled with
+  Native AOT instead of ReadyToRun, is a single piece of machine code with no separate
+  managed runtime, and keeping no XAML pages suits that well. Flutter and Flet, whose
   client is a Flutter application too, follow at 329 and 346, each in two processes.
   Wails, in the same three processes and with the same fix as Tauri and Dioxus, stays
   at 346, tied with Flet: it links the heavier WebKitGTK 6.0 with GTK 4 instead of their

@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Publishes the application as a directory that runs on its own: the .NET
-# runtime is bundled, the code is compiled ahead of time (the application starts
-# in half a second instead of one) and trimmed to what it uses (under 90 MB
-# instead of 158 MB), and what a release does not need is left out.
+# Publishes the application as a directory that runs on its own: Native AOT
+# compiles the code and the .NET runtime it uses straight to machine code
+# (the application starts in a fraction of a second, and the memory of the
+# process is smaller than with a precompiled but still managed publish), and
+# what a release does not need is left out by trimming.
 #
 # Usage: tools/publish.sh [--e2e] <output directory>
 #
@@ -24,15 +25,21 @@
 #           runs the scenario that VFOX_PLUS_E2E_SCENARIO names
 #
 # Run tools/prepare.sh first. The licenses of the NuGet packages and of the .NET
-# runtime that the published application ships are added to its licenses.txt. The
-# packages must be restored for the runtime of the machine, in the
-# release configuration (`dotnet restore src/VfoxPlus.App --runtime linux-x64
-# -p:Configuration=Release`); this works offline then.
+# runtime that the published application ships are added to its licenses.txt:
+# which packages those are comes from shared/tools/mstat-assemblies, built here
+# (it has no dependencies, so this needs no network) and run against the
+# `.mstat` that `-p:IlcGenerateMstatFile=true` (set in VfoxPlus.App.csproj)
+# writes next to the build, the assemblies Native AOT's trimmer actually kept;
+# see shared/tools/nuget_licenses.py. The packages must be restored for the
+# runtime of the machine, in the release configuration
+# (`dotnet restore src/VfoxPlus.App --runtime linux-x64 -p:Configuration=Release`);
+# this works offline then.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SHARED="$ROOT/../shared"
 APP="$ROOT/src/VfoxPlus.App"
+MSTAT_TOOL="$SHARED/tools/mstat-assemblies"
 
 e2e=false
 if [[ "${1:-}" == --e2e ]]; then
@@ -50,10 +57,6 @@ rm -rf "$output"
 dotnet publish "$APP" --configuration Release --framework net10.0-desktop --runtime "$runtime" --self-contained \
   --no-restore -p:E2E="$e2e" --output "$output" --nologo
 
-# What the runtime ships for debuggers and diagnostics, and for an alternative
-# garbage collector that nothing asks for.
-rm -f "$output/createdump" "$output/libmscordbi.so" "$output/libmscordaccore.so" \
-  "$output/libcoreclrtraceptprovider.so" "$output/libclrgc.so" "$output/libclrgcexp.so"
 # The fonts that the themes of Uno bring (Fluent icons, and the text fonts Inter,
 # Open Sans and Roboto) are not used: the text is set in the fonts of the desktop
 # and the icons come from the icon font of the application. The screenshots of
@@ -66,7 +69,14 @@ find "$output" -type f -exec chmod 644 {} +
 chmod 755 "$output/VfoxPlus"
 
 if [[ "$e2e" == false ]]; then
-  python3 "$SHARED/tools/nuget_licenses.py" --deps "$output/VfoxPlus.deps.json" \
+  mstat="$APP/obj/Release/net10.0-desktop/$runtime/native/VfoxPlus.mstat"
+  test -f "$mstat" || { echo "$mstat is missing: is IlcGenerateMstatFile still set in VfoxPlus.App.csproj?" >&2; exit 1; }
+  dotnet build "$MSTAT_TOOL" -c Release --nologo -v quiet
+  used_assemblies="$(mktemp)"
+  dotnet exec "$MSTAT_TOOL/bin/Release/net10.0/MstatAssemblies.dll" "$mstat" > "$used_assemblies"
+  python3 "$SHARED/tools/nuget_licenses.py" --assets "$APP/obj/project.assets.json" \
+    --used-assemblies "$used_assemblies" \
     --license "$ROOT/../LICENSE" --output "$output/Assets/Generated/licenses.txt" --append
+  rm -f "$used_assemblies"
 fi
 echo "Published to $output ($(du -sh "$output" | cut -f1))"
