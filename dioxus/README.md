@@ -122,9 +122,12 @@ processes together.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 616 MB | 427 MB |
-| Versions of Node.js listed | 692 MB | 502 MB |
+| Home page | 434 MB | 258 MB |
+| Versions of Node.js listed | 473 MB | 296 MB |
 
-Software rendering dominates these numbers; compare implementations measured
-the same way. Only the rows of the available versions that are in view are
-rendered.
+`main.rs` sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` before the webview starts,
+unless it is already set: without it, accelerated compositing maps Mesa's
+software OpenGL and its compiler, which the pages of vfox+ do not need, and
+the same build took 427 MB of PSS on the Home page instead of 258. Software
+rendering dominates what is left; compare implementations measured the same
+way. Only the rows of the available versions that are in view are rendered.
