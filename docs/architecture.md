@@ -38,6 +38,7 @@ vfox-plus/
 ├── flet/                  The Flet implementation (Python, with a Dart extension)
 ├── gio/                   The Gio implementation (Go)
 ├── uno/                   The Uno implementation (C#, .NET)
+├── mygo/                  The mygo implementation (Go)
 └── <stack>/               The other implementations, one directory each
 ```
 
@@ -84,6 +85,16 @@ Expressive are ports and implementations in C# (`uno/src/VfoxPlus.Design`,
 `uno/src/VfoxPlus.App/Controls`), the XDG desktop portal is a small D-Bus client
 (`uno/src/VfoxPlus.Platform`), and the application drives its own end-to-end
 scenarios.
+
+The mygo implementation shares the shared resources and the end-to-end runner
+`web/e2e/run.sh` with its test server, and nothing else: its core, state, colour
+scheme and shapes are the Go code of the Gio implementation (copied, because the
+implementations do not depend on each other), and its user interface is built on
+the native user interface of mygo, a Go framework whose windows are drawn by
+its own renderer from elements that are laid out with flexbox, and that opens
+them through GTK 3 without cgo. The components of Material 3 Expressive are
+implemented in Go on mygo's elements and widgets without a look (`mygo/ui/kit`),
+and the application drives its own end-to-end scenarios.
 
 ## Layers
 
@@ -228,6 +239,17 @@ implementation has no weak copyleft dependency; the ports in
 `uno/src/VfoxPlus.Design` are of libraries under the Apache License 2.0 and the
 MIT license, and their notices ship with the application
 ([`uno/NOTICE.txt`](../uno/NOTICE.txt)).
+mygo, the framework of the mygo implementation, is under the MIT license, and
+the Go modules it links are purego under the Apache License 2.0, the text shaper
+`go-text/typesetting` under the Unlicense or a BSD license, and the
+`golang.org/x` modules under BSD licenses, as is the Go standard library; the
+ports in `mygo/ui/mcu` and `mygo/ui/shapes` are of libraries under the Apache
+License 2.0 and the MIT license, and their notices ship with the application
+([`mygo/NOTICE.txt`](../mygo/NOTICE.txt)). The application does not link GTK 3,
+GLib, Pango and Cairo, which are under the LGPL: mygo loads them from the system
+when it starts, and the package depends on them as the packages of the other
+implementations depend on the libraries of their toolkits. The mygo
+implementation ships no weak copyleft code.
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

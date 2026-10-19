@@ -17,6 +17,7 @@ the SDKs page with the 872 available versions of Node.js listed.
 
 | Implementation                             | Technology                                      | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | ------------------------------------------ | ----------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
+| [mygo](../mygo/README.md#memory)           | mygo 0.5, Go, GTK 3 (purego), CPU renderer      |         1 |       41 |       53 |           47 |           60 |                  +6 |
 | [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU  |         1 |      126 |      138 |          157 |          169 |                 +31 |
 | [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                  |         1 |      215 |      240 |          228 |          253 |                 +13 |
 | [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia  |         1 |      266 |      290 |          277 |          301 |                 +11 |
@@ -27,12 +28,14 @@ the SDKs page with the 872 available versions of Node.js listed.
 | [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK                     |         3 |      427 |      616 |          502 |          692 |                 +75 |
 | [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4)              |         3 |      482 |      680 |          566 |          756 |                 +84 |
 
-- The three implementations that run in one process and draw themselves (Uno, Gio,
-  Compose) are the three smallest, with 126 to 266 MB of PSS on the Home page. Flutter
-  and Flet, whose client is a Flutter application too, follow with 329 and 346 MB, each
-  in two processes. The four that bring a web view or a browser, in three to six
-  processes (Capacitor, Tauri, Dioxus, Wails), have 388 to 482 MB.
-- Showing the list of versions adds 11 to 37 MB of PSS to Compose, Capacitor, Gio,
+- The four implementations that run in one process and draw themselves (mygo, Uno, Gio,
+  Compose) are the four smallest, with 41 to 266 MB of PSS on the Home page, and mygo
+  uses a third of what Uno does: it draws on the processor, from a Go executable of
+  12 MB, and loads GTK 3 from the system. Flutter and Flet, whose client is a Flutter
+  application too, follow with 329 and 346 MB, each in two processes. The four that
+  bring a web view or a browser, in three to six processes (Capacitor, Tauri, Dioxus,
+  Wails), have 388 to 482 MB.
+- Showing the list of versions adds 6 to 37 MB of PSS to mygo, Compose, Capacitor, Gio,
   Flutter, Uno and Flet, and 73 to 84 MB to Tauri, Dioxus and Wails, which show their
   pages in WebKitGTK.
 - WebKitGTK 6.0 with GTK 4 (Wails) needs 60 to 75 MB more than WebKitGTK 4.1 with
@@ -70,9 +73,12 @@ nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPU
   uses the software rasterizer of Mesa (llvmpipe), and its memory is in the numbers
   (the Gio README says that it is most of what Gio uses). Uno was set to draw with Skia on the
   processor, and the same build of it took 295 MB on the Home page with Mesa's
-  software GL and 165 MB without it, with every other setting equal. On a machine
-  with a GPU the numbers, and perhaps the order, differ; measure there when it
-  matters.
+  software GL and 165 MB without it, with every other setting equal. mygo draws on the
+  processor too, and the application has GDK leave OpenGL alone: the same build took
+  about 78 MB when GDK opened its OpenGL connection, and about 43 MB when it did not.
+  On a machine with a GPU the numbers of the implementations that draw with OpenGL,
+  and perhaps the order, differ (Uno and mygo do not depend on the GPU); measure there
+  when it matters.
 - **One measurement per row.** Nothing is averaged over runs, so small differences
   mean little; the implementations were measured one after another, with nothing else
   running. Flutter, which was measured six times on an earlier day, had 332 to 342 MB
