@@ -275,4 +275,18 @@ because only the rows in view are built.
 - **Only Linux on x86-64 is run, tested and packaged.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on
   arm64 (`GOOS=windows CGO_ENABLED=0 go build` and the like), but nothing of that is
-  tried here: there is no `.msixbundle`, and mygo has no Android target.
+  tried here. `core` still assumes Linux where it stops a process (`SIGTERM`),
+  splits `PATH` (at `:`), looks for vfox (in Linux directories, as `vfox`) and
+  keeps the settings (in `~/.config`).
+- **`.msixbundle` and `.apk` are not made here.** On Windows `mygo build` makes an
+  executable and an NSIS installer, not an MSIX. An `.msixbundle` bundles one
+  `.msix` package per architecture, each with the executable, an `AppxManifest.xml`
+  and icons, which `MakeAppx.exe` of the Windows SDK packs and bundles, so it is
+  work still to do (the Windows code of `core`, the manifest, icons made from the
+  SVG, a certificate, a Windows runner), not something that mygo rules out. mygo has
+  no Android backend, so the interface cannot be a native Android app. It does
+  compile to WebAssembly for browsers: `GOOS=js GOARCH=wasm` builds this application
+  (13.6 MB, 3.5 MB compressed) and WebKitGTK draws its pages, but a browser cannot
+  start vfox, so a web UI, and an Android client that is a web view around it, need
+  a remote process runner and an agent on the machine that runs vfox (see
+  [Future: remote and web front ends](../docs/architecture.md#future-remote-and-web-front-ends)).
