@@ -131,3 +131,10 @@ software OpenGL and its compiler, which the pages of vfox+ do not need, and
 the same build took 427 MB of PSS on the Home page instead of 258. Software
 rendering dominates what is left; compare implementations measured the same
 way. Only the rows of the available versions that are in view are rendered.
+
+Dioxus Native (the experimental [Blitz](https://github.com/DioxusLabs/blitz)
+renderer, WGPU, no system webview) was tried, to see whether dropping
+`@m3e/web` and rewriting the pages in plain Dioxus RSX could be worth it: a
+one-`div` window built with it alone took 342 MB of PSS, more than this
+entire implementation. Not pursued further; porting the pages to it would
+likely cost memory, not save it.
