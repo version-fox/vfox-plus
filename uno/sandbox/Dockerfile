@@ -38,7 +38,7 @@ RUN if [ -n "$UBUNTU_MIRROR" ]; then \
       libx11-6 libxext6 libxfixes3 libxi6 libxrandr2 \
       libfontconfig1 fontconfig libfreetype6 libexpat1 zlib1g libbz2-1.0 libpng16-16t64 libbrotli1 \
       libicu78 libssl3t64 libgcc-s1 libstdc++6 \
-      nodejs \
+      nodejs clang \
  && rm -rf /var/lib/apt/lists/*
 
 # The .NET SDK, verified against the published checksum.

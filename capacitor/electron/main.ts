@@ -41,6 +41,8 @@ const RENDERER = join(__dirname, 'renderer');
 protocol.registerSchemesAsPrivileged([
   { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
+// EXPERIMENT(memory): no GPU process, Skia rasterizes on the CPU instead.
+app.disableHardwareAcceleration();
 // X11 takes WM_CLASS from the name, which the desktop entry names (StartupWMClass).
 app.setName(APP_ID);
 // Chromium keeps its profile apart from the settings of vfox+, among the caches.

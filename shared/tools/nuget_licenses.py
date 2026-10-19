@@ -17,26 +17,37 @@
 ships, and collects their notices and the license texts into one file, which
 the application shows and the packages install.
 
-The packages are those of the dependency file of the published application
-(`<name>.deps.json`, which a trimmed publish keeps accurate) and the .NET runtime
-that a self-contained application bundles. A license expression must consist of
-licenses compatible with, or no more restrictive than, the Apache License 2.0
-(docs/architecture.md#dependencies); a package that says nothing is checked
-against its own license file, or, if it has none, listed in KNOWN_LICENSES with
-where its license was found.
+The packages are those of project.assets.json (the restored dependency graph;
+run `dotnet restore` first) whose assemblies are among the ones a publish of
+the application actually kept after trimming — project.assets.json alone is
+the graph before trimming runs, and over-approximates what ships. Which
+assemblies survived comes from --used-assemblies, one assembly name per line:
+for a Native AOT publish, `-p:IlcGenerateMstatFile=true` writes `<name>.mstat`
+next to the binary, a .NET assembly whose AssemblyRef table names every
+assembly that is still referenced; shared/tools/mstat-assemblies reads it.
+The .NET runtime that a self-contained application bundles is credited from the
+installation of the SDK that published it (its own LICENSE.txt and
+ThirdPartyNotices.txt), not from a NuGet package: Native AOT compiles the
+runtime into the binary directly, with no runtime-pack package to read a
+license from, and crediting the SDK instead works the same way either way.
+A license expression must consist of licenses compatible with, or no more
+restrictive than, the Apache License 2.0 (docs/architecture.md#dependencies);
+a package that says nothing is checked against its own license file, or, if it
+has none, listed in KNOWN_LICENSES with where its license was found.
 
-Usage: nuget_licenses.py --deps <file> --license <file> --output <file>
-                         [--packages <directory>] [--append]
+Usage: nuget_licenses.py --assets <file> --used-assemblies <file>
+                         --license <file> --output <file>
+                         [--dotnet-root <directory>] [--packages <directory>] [--append]
 
 --license is the license of the application itself (the Apache License 2.0,
-which the packages under that license share). With --append, the licenses are
-added to the end of the file. Run `dotnet restore` first: the licenses are read
-from the NuGet cache.
+which the packages under that license share). --dotnet-root defaults to
+$DOTNET_ROOT. With --append, the licenses are added to the end of the file.
 """
 
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -109,28 +120,50 @@ def allowed(expression):
     return any(all(term in ALLOWED for term in alternative.split(" AND ")) for alternative in cleaned.split(" OR "))
 
 
-def shipped(deps):
-    """The packages of a dependency file that have code or native libraries."""
+def restored_target(assets):
+    """The one target of project.assets.json that names a runtime identifier
+    (`<framework>/<runtime identifier>`): the graph a self-contained publish
+    resolves, before trimming decides what of it survives."""
+    content = json.loads(assets.read_text(encoding="utf-8"))
+    candidates = [key for key in content["targets"] if "/" in key]
+    if len(candidates) != 1:
+        raise SystemExit(f"expected one runtime-specific target in {assets}, found {candidates}: "
+                          "restore with a runtime identifier first")
+    return content, content["targets"][candidates[0]]
+
+
+def package_assemblies(assets):
+    """Every NuGet package of project.assets.json's one runtime-specific
+    target, with the name (without the .dll) of every assembly it compiles
+    against, runs or loads natively: not always the name of the package
+    itself (Uno.WinUI.Runtime.Skia.X11 ships Uno.UI.Runtime.Skia.X11.dll)."""
     found = {}
-    content = json.loads(deps.read_text(encoding="utf-8"))
-    for target in content["targets"].values():
-        for key, library in target.items():
-            if content["libraries"].get(key, {}).get("type") != "package" or key.startswith("runtimepack."):
-                continue
-            if library.get("runtime") or library.get("native"):
-                name, version = key.split("/", 1)
-                found[name] = version
+    content, target = restored_target(assets)
+    for key, library in target.items():
+        if content["libraries"].get(key, {}).get("type") != "package":
+            continue
+        assemblies = {
+            Path(file).stem
+            for group in ("compile", "runtime", "native")
+            for file in library.get(group, {})
+            if file.lower().endswith(".dll")
+        }
+        name, version = key.split("/", 1)
+        found[name] = (version, assemblies)
     return found
 
 
-def runtime_pack(deps):
-    """The runtime pack that the dependency file says the application bundles."""
-    for target in json.loads(deps.read_text(encoding="utf-8"))["targets"].values():
-        for key in target:
-            if key.startswith("runtimepack."):
-                name, version = key[len("runtimepack."):].split("/", 1)
-                return name, version
-    return None
+def shipped(assets, used_assemblies):
+    """The packages of project.assets.json with at least one assembly in
+    `used_assemblies` (see --used-assemblies): trimming may have decided that
+    the rest of what was restored, project references and the packages that
+    exist on their own account for the build (such as Native AOT's compiler),
+    is not part of the published application."""
+    return {
+        name: version
+        for name, (version, assemblies) in package_assemblies(assets).items()
+        if assemblies & used_assemblies
+    }
 
 
 def omit(notices):
@@ -156,14 +189,21 @@ def omit(notices):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--deps", required=True, type=Path, help="the <name>.deps.json of the published application")
+    parser.add_argument("--assets", required=True, type=Path, help="the obj/project.assets.json of the project")
+    parser.add_argument("--used-assemblies", required=True, type=Path,
+                         help="assembly names the publish kept, one per line (see shared/tools/mstat-assemblies)")
+    parser.add_argument("--dotnet-root", type=Path, default=os.environ.get("DOTNET_ROOT"),
+                         help="the installation of the .NET SDK that published the application (default: $DOTNET_ROOT)")
     parser.add_argument("--license", required=True, type=Path, help="the Apache License 2.0")
     parser.add_argument("--packages", type=Path, default=Path.home() / ".nuget" / "packages", help="the NuGet cache")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--append", action="store_true", help="add to the end of the output file")
     arguments = parser.parse_args()
+    if not arguments.dotnet_root:
+        parser.error("--dotnet-root is required: $DOTNET_ROOT is not set")
 
-    names = shipped(arguments.deps)
+    used_assemblies = set(arguments.used_assemblies.read_text(encoding="utf-8").split())
+    names = shipped(arguments.assets, used_assemblies)
 
     errors, by_license, files = [], {}, []
     for name in sorted(names):
@@ -191,13 +231,10 @@ def main():
         sections.append(f"The packages below are licensed under the {license_id} license; their copyright notices:\n\n"
                         + "\n".join(lines) + f"\n\n{text}")
 
-    pack = runtime_pack(arguments.deps)
-    if pack:
-        directory = arguments.packages / pack[0].lower() / pack[1]
-        license_text = (directory / "LICENSE.TXT").read_text(encoding="utf-8", errors="replace").strip()
-        sections.append(f"The .NET runtime, {pack[0]} {pack[1]}, which the application bundles (MIT)\n\n{license_text}")
-        files.append((f"The third-party notices of the .NET runtime {pack[1]}",
-                      (directory / "THIRD-PARTY-NOTICES.TXT").read_text(encoding="utf-8", errors="replace")))
+    license_text = (arguments.dotnet_root / "LICENSE.txt").read_text(encoding="utf-8", errors="replace").strip()
+    sections.append(f"The .NET runtime that the application bundles (MIT)\n\n{license_text}")
+    files.append(("The third-party notices of the .NET runtime",
+                  (arguments.dotnet_root / "ThirdPartyNotices.txt").read_text(encoding="utf-8", errors="replace")))
 
     seen = set()
     for title, text in files:

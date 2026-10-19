@@ -39,15 +39,15 @@ DEPENDS="libc6, libstdc++6, libgcc-s1, libx11-6, libxext6, libxfixes3, libxi6, l
 # Chinese text needs a CJK font, files are chosen with the dialogs of the
 # desktop portal, zenity or kdialog, and links open in the browser.
 RECOMMENDS="fonts-noto-cjk, xdg-desktop-portal | zenity | kdialog, xdg-utils"
-# A self-contained .NET application bundles its runtime, and SkiaSharp its native
-# libraries; lintian takes that for the embedded copies of libraries that policy
-# forbids. The copies are those of the NuGet packages, whose licenses the package
-# lists.
+# SkiaSharp's native library embeds copies of these libraries; lintian takes
+# that for what Debian policy forbids. The copies are those of the SkiaSharp
+# NuGet package, whose license the package lists. SkiaSharp still links the
+# system's zlib dynamically (ldd libSkiaSharp.so shows libz.so.1), so zlib1g
+# stays a dependency without needing an override of its own.
 OVERRIDES=(
   "embedded-library freetype [usr/lib/vfox-plus/libSkiaSharp.so]"
   "embedded-library libjpeg [usr/lib/vfox-plus/libSkiaSharp.so]"
   "embedded-library libpng [usr/lib/vfox-plus/libSkiaSharp.so]"
-  "embedded-library zlib [usr/lib/vfox-plus/libSystem.IO.Compression.Native.so]"
 )
 override_args=()
 for override in "${OVERRIDES[@]}"; do

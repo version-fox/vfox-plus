@@ -29,6 +29,17 @@ const APP_ID: &str = "dev.vfox.VfoxPlus";
 fn main() {
     glib::set_prgname(Some(APP_ID));
     glib::set_application_name("vfox+");
+    // Accelerated compositing maps Mesa's software OpenGL and its compiler when
+    // there is no real GPU; the pages of vfox+ do not need it. See
+    // docs/memory.md and the WebKitGTK documentation of this variable. Nothing
+    // else runs yet, so this is the one place an exception to
+    // `unsafe_code = "deny"` is justified.
+    if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
+        #[allow(unsafe_code)]
+        unsafe {
+            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        }
+    }
     // The first frame already has the colours of the stored settings; the
     // application corrects them once it knows the appearance of the desktop.
     let environment: BTreeMap<String, String> = std::env::vars().collect();

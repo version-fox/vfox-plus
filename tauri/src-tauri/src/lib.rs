@@ -36,6 +36,19 @@ pub fn run() {
     // Before GTK starts: X11 takes WM_CLASS and Wayland the app ID from it.
     #[cfg(target_os = "linux")]
     glib::set_prgname(Some(APP_ID));
+    // Accelerated compositing maps Mesa's software OpenGL and its compiler when
+    // there is no real GPU; the pages of vfox+ do not need it. See
+    // docs/memory.md and the WebKitGTK documentation of this variable.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
+        // Nothing else runs yet (no other thread can read the environment
+        // while this sets it), so this is the one place an exception to
+        // `unsafe_code = "deny"` is justified.
+        #[allow(unsafe_code)]
+        unsafe {
+            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        }
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

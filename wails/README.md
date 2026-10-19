@@ -115,10 +115,15 @@ processes together.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 680 MB | 482 MB |
-| Versions of Node.js listed | 756 MB | 566 MB |
+| Home page | 525 MB | 346 MB |
+| Versions of Node.js listed | 538 MB | 358 MB |
 
-WebKitGTK 6.0 with GTK 4 needs 60 to 75 MB more than the WebKitGTK 4.1 with
-GTK 3 of the [Tauri implementation](../tauri/README.md#memory) for the same
-front end. Software rendering dominates these numbers; compare implementations
-measured the same way.
+`main.go` sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` before the application
+starts, unless it is already set: without it, accelerated compositing maps
+Mesa's software OpenGL and its compiler, which the pages of vfox+ do not
+need, and the same build took 482 MB of PSS on the Home page instead of 346.
+WebKitGTK 6.0 with GTK 4 still needs more than the WebKitGTK 4.1 with GTK 3 of
+the [Tauri implementation](../tauri/README.md#memory) for the same front end
+(275 MB, also with compositing off), by a larger margin than before this
+fix narrowed both. Software rendering dominates what is left; compare
+implementations measured the same way.

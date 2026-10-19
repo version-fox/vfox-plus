@@ -183,14 +183,16 @@ are.
 
 ## Packaging
 
-The release build is published self-contained (the .NET runtime is in it),
-compiled ahead of time (ReadyToRun) and trimmed (`PublishTrimmed`), which
-halves the start-up time (the window is up after 0.3 s and the Home page
-painted after 0.5 s, instead of 0.55 s and 1 s) and takes 89 MB instead of
-158 MB; the `.deb` is 27 MB. [`tools/publish.sh`](tools/publish.sh) also leaves out what a release
-does not need: the debugging libraries of the runtime and the fonts of Uno's
-themes, which the application does not use (the screenshots of every page are
-the same pixel for pixel without them).
+The release build is published self-contained and compiled ahead of time with
+Native AOT (`PublishAot`) and trimmed (`PublishTrimmed`): the application and
+the .NET runtime it uses are compiled straight to one piece of machine code,
+with no separate managed runtime to load reflection metadata into or to JIT
+anything from at start-up, which is why it is lighter still than a
+ReadyToRun build (see [Memory](#memory)); it takes 63 MB instead of 158 MB,
+and the `.deb` is 18 MB. [`tools/publish.sh`](tools/publish.sh) also leaves
+out what a release does not need: the fonts of Uno's themes, which the
+application does not use (the screenshots of every page are the same pixel
+for pixel without them).
 
 The shared script
 [`shared/packaging/linux/build-deb.sh`](../shared/packaging/linux/build-deb.sh)
@@ -205,6 +207,14 @@ installed as `/usr/share/doc/vfox-plus-uno/THIRD-PARTY-LICENSES` and shown in th
 application ([`NOTICE.txt`](NOTICE.txt) holds the notices of the ports; the rest
 is collected by [`shared/tools/nuget_licenses.py`](../shared/tools/nuget_licenses.py),
 which fails on a license that is not compatible with the Apache License 2.0).
+Native AOT trims the NuGet packages that are restored for the project down to
+the ones the application actually uses, but does not write a dependency file
+that says which, the way a non-AOT publish does: `publish.sh` builds
+[`shared/tools/mstat-assemblies`](../shared/tools/mstat-assemblies) (no
+dependencies of its own, so this needs no network) and runs it against
+`VfoxPlus.mstat`, which `-p:IlcGenerateMstatFile=true` writes next to the
+build, to read the assemblies that survived trimming; `nuget_licenses.py`
+credits the package that ships each one.
 
 The package depends on the libraries Uno and Skia load (X11, fontconfig,
 FreeType, ICU, OpenSSL for the runtime) and a font (`fonts-ubuntu` or
@@ -222,16 +232,22 @@ Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb, a
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 138 MB | 126 MB |
-| Versions of Node.js listed | 169 MB | 157 MB |
+| Home page | 106 MB | 99 MB |
+| Versions of Node.js listed | 123 MB | 116 MB |
 
 Skia draws with the processor. Uno would otherwise draw with OpenGL, and the
 graphics stack that this loads takes more memory than the application does:
 with Mesa's software GL (LLVM) it was 295 MB on the Home page instead of 165 MB
 for the same build, with every other setting equal. An interface this size does
 not need the GPU, and the memory does not depend on the driver of the machine.
-The compiled-ahead-of-time, trimmed release build takes about 20 MB less than the
-one that compiles when it starts.
+Native AOT takes the Home page from 126 MB of PSS with the same build compiled
+ahead of time but still managed (ReadyToRun) to 99: no separate runtime loads
+reflection metadata or JITs anything at start-up, because there is no separate
+runtime, only the one piece of machine code Native AOT compiles the
+application and the parts of the .NET runtime it uses into together. This
+implementation keeps no XAML pages and builds its controls in code, which
+Native AOT's trimming, driven by what is reachable from the code, suits
+better than an interface that leans on XAML's own reflection-based binding.
 
 ## Limits
 
