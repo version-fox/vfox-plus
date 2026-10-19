@@ -227,7 +227,7 @@ Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb, a
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 53 MB | 41 MB |
+| Home page | 54 MB | 41 MB |
 | Versions of Node.js listed | 60 MB | 47 MB |
 
 mygo draws with the processor, and the application keeps GTK from loading
