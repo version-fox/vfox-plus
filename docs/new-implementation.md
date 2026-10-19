@@ -2,7 +2,7 @@
 
 [Issue #1](https://github.com/version-fox/vfox-plus/issues/1) compares several
 GUI technologies (for example Gio, Tauri, Dioxus, Flutter, Capacitor with Ionic,
-Uno, Flet, Compose Multiplatform and Wails). This checklist keeps a new
+Uno, Flet, Compose Multiplatform, Wails and mygo). This checklist keeps a new
 implementation consistent with the existing ones, so the comparison stays fair
 and users get the same application whatever it is built with.
 
