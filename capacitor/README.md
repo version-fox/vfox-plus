@@ -154,17 +154,22 @@ of vfox+.
 
 Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb with
 software rendering, a 1280 × 800 window, the Electron processes together (the
-browser, the zygotes, the GPU, network and renderer processes).
+browser, the zygotes, the network and renderer processes).
 
 | State                      |    RSS |    PSS |
 | -------------------------- | -----: | -----: |
-| Home page                  | 742 MB | 388 MB |
-| Versions of Node.js listed | 762 MB | 400 MB |
+| Home page                  | 655 MB | 303 MB |
+| Versions of Node.js listed | 672 MB | 313 MB |
 
 Electron brings its own Chromium, so nothing is shared with the libraries of
-the desktop; compare implementations measured the same way. Only the rows of
-the available versions that are in view are rendered
-([TanStack Virtual](https://tanstack.com/virtual)).
+the desktop; compare implementations measured the same way. `main.ts` calls
+`app.disableHardwareAcceleration()` before the window is created: without it,
+Chromium's GPU process maps Mesa's software OpenGL and its compiler, the same
+tax that the Gio and Flutter implementations pay and that the Uno and mygo
+implementations avoid, and the same build took 388 MB of PSS on the Home page
+instead of 303. On a machine with a GPU the numbers differ; measure there when
+it matters. Only the rows of the available versions that are in view are
+rendered ([TanStack Virtual](https://tanstack.com/virtual)).
 
 ## Differences from the Flutter implementation
 

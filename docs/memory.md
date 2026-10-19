@@ -21,9 +21,9 @@ the SDKs page with the 872 available versions of Node.js listed.
 | [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU  |         1 |      126 |      138 |          157 |          169 |                 +31 |
 | [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                  |         1 |      215 |      240 |          228 |          253 |                 +13 |
 | [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia  |         1 |      266 |      290 |          277 |          301 |                 +11 |
+| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron             |         6 |      303 |      655 |          313 |          672 |                 +10 |
 | [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Impeller (OpenGL ES), GTK 3 |         2 |      329 |      369 |          345 |          384 |                 +16 |
 | [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application      |         2 |      346 |      378 |          383 |          415 |                 +37 |
-| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron             |         6 |      388 |      742 |          400 |          762 |                 +12 |
 | [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3)            |         3 |      419 |      600 |          492 |          673 |                 +73 |
 | [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK                     |         3 |      427 |      616 |          502 |          692 |                 +75 |
 | [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4)              |         3 |      482 |      680 |          566 |          756 |                 +84 |
@@ -31,10 +31,12 @@ the SDKs page with the 872 available versions of Node.js listed.
 - The four implementations that run in one process and draw themselves (mygo, Uno, Gio,
   Compose) are the four smallest, with 41 to 266 MB of PSS on the Home page, and mygo
   uses a third of what Uno does: it draws on the processor, from a Go executable of
-  12 MB, and loads GTK 3 from the system. Flutter and Flet, whose client is a Flutter
-  application too, follow with 329 and 346 MB, each in two processes. The four that
-  bring a web view or a browser, in three to six processes (Capacitor, Tauri, Dioxus,
-  Wails), have 388 to 482 MB.
+  12 MB, and loads GTK 3 from the system. Capacitor follows at 303 MB, in six processes:
+  its Electron shell turns hardware acceleration off, so Chromium's GPU process never
+  maps Mesa's software OpenGL, the tax that Tauri, Dioxus and Wails still pay for
+  WebKitGTK. Flutter and Flet, whose client is a Flutter application too, follow with
+  329 and 346 MB, each in two processes. Tauri, Dioxus and Wails, which also bring a web
+  view, in three processes, have 419 to 482 MB.
 - Showing the list of versions adds 6 to 37 MB of PSS to mygo, Compose, Capacitor, Gio,
   Flutter, Uno and Flet, and 73 to 84 MB to Tauri, Dioxus and Wails, which show their
   pages in WebKitGTK.
@@ -76,9 +78,11 @@ nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPU
   software GL and 165 MB without it, with every other setting equal. mygo draws on the
   processor too, and the application has GDK leave OpenGL alone: the same build took
   about 78 MB when GDK opened its OpenGL connection, and about 43 MB when it did not.
-  On a machine with a GPU the numbers of the implementations that draw with OpenGL,
-  and perhaps the order, differ (Uno and mygo do not depend on the GPU); measure there
-  when it matters.
+  Capacitor's Electron shell calls `app.disableHardwareAcceleration()` for the same
+  reason: the same build took 388 MB of PSS on the Home page with it on and 303 MB with
+  it off. On a machine with a GPU the numbers of the implementations that draw with
+  OpenGL, and perhaps the order, differ (Uno, mygo and Capacitor do not depend on the
+  GPU); measure there when it matters.
 - **One measurement per row.** Nothing is averaged over runs, so small differences
   mean little; the implementations were measured one after another, with nothing else
   running. Flutter, which was measured six times on an earlier day, had 332 to 342 MB
