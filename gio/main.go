@@ -18,6 +18,7 @@ package main
 import (
 	"log"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/version-fox/vfox-plus/gio/core"
@@ -27,6 +28,10 @@ import (
 )
 
 func main() {
+	// The live heap is 10 to 12 MB. The default of 100 % lets it double before
+	// the next collection, 25 % keeps what the application holds near what it
+	// needs, for a few collections more.
+	debug.SetGCPercent(25)
 	environment := make(map[string]string)
 	for _, entry := range os.Environ() {
 		if key, value, ok := strings.Cut(entry, "="); ok {

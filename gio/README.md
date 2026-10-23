@@ -207,8 +207,14 @@ one process.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 240 MB | 215 MB |
-| Versions of Node.js listed | 253 MB | 228 MB |
+| Home page | 202 MB | 165 MB |
+| Versions of Node.js listed | 208 MB | 171 MB |
+
+Gio only draws with OpenGL, so Mesa's software OpenGL and its compiler are most
+of the number, and it varies by some 20 MB from one run to the next. The heap
+of Go is about 20 MB: `main.go` lets it grow by 25 % between collections, not
+100 %, and the three weights of the variable font of the interface share the
+tables of one parse ([`ui/kit/fonts.go`](ui/kit/fonts.go)); it was 57 MB.
 
 ## Limits
 
