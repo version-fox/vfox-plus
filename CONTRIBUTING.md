@@ -54,7 +54,8 @@ all of them.
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
-| [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), shell scripts (ShellCheck), shared JSON, no committed binary files |
+| [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), shell scripts (ShellCheck), shared JSON, no committed binary files, the tests of the memory report |
+| [`memory.yml`](.github/workflows/memory.yml) | the end of the workflows of the implementations, on pull requests | One comment on the pull request with the memory of every implementation, sorted like [docs/memory.md](docs/memory.md#results), and the difference from `main` (see [Memory in pull requests](docs/memory.md#memory-in-pull-requests)) |
 | [`flutter.yml`](.github/workflows/flutter.yml) | `flutter/`, `shared/` | Lock file, formatting, generated translations, analysis, tests with an 85 % coverage gate, end-to-end tests on Linux under Xvfb against captured output and against the real vfox, release build with a smoke test and a memory measurement, `.deb` and `.tar.gz` packages validated with lintian |
 | [`flutter-sandbox.yml`](.github/workflows/flutter-sandbox.yml) | `flutter/sandbox/`, `flutter/versions.env` | Builds the Docker sandbox and runs `sandbox.sh all` in it |
 | [`web.yml`](.github/workflows/web.yml) | `web/`, `shared/` | Formatting (Prettier), lint (ESLint), type checking, unit tests with an 85 % coverage gate, the production builds |
@@ -70,6 +71,12 @@ all of them.
 
 Dependabot keeps the pub, npm, cargo, Go, Gradle and NuGet dependencies and the
 GitHub Actions up to date; actions are pinned to commit SHAs.
+
+A pull request that rebuilds an implementation gets a comment with the memory of all of
+them and the difference from `main`, which the next commit replaces instead of adding
+another one. A change that is more than the noise between CI runs is in bold; read
+[Memory in pull requests](docs/memory.md#memory-in-pull-requests) before you trust a small
+one.
 
 ## Common changes
 

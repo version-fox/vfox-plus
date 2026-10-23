@@ -78,3 +78,6 @@ jobs:
           for file in shared/icons.json shared/i18n/*.arb shared/fixtures/*/cases.json; do
             jq empty "$file" || { echo "::error file=$file::Invalid JSON"; exit 1; }
           done
+      - name: Test the memory report
+        # What memory.yml writes on pull requests.
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'

@@ -28,6 +28,10 @@
 # "e2e: scenario measure passed" and exit with code 0, waiting a few seconds
 # after each point so that the measurement sees a settled application. Prints
 # lines "memory (<point>): RSS <n> MB, PSS <n> MB in <n> processes".
+#
+# With VFOX_PLUS_MEASURE_OUTPUT set to a file name, the same lines also replace
+# the content of that file. CI uploads it for the memory report of pull
+# requests (.github/workflows/memory.yml).
 set -euo pipefail
 
 TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,6 +54,12 @@ cleanup() {
   echo "Could not remove $SANDBOX" >&2
 }
 trap cleanup EXIT
+
+OUTPUT="${VFOX_PLUS_MEASURE_OUTPUT:-}"
+if [[ -n "$OUTPUT" ]]; then
+  mkdir -p "$(dirname "$OUTPUT")"
+  : > "$OUTPUT"
+fi
 
 mkdir -p "$HOME_DIR/.config/vfox-plus"
 vfox="$SANDBOX/vfox"
@@ -85,13 +95,15 @@ APP_PID=$!
 printed=0
 deadline=$((SECONDS + ${VFOX_PLUS_E2E_TIMEOUT:-300}))
 show_new_lines() {
-  local lines
+  local lines result
   lines="$(wc -l < "$SANDBOX/app.log")"
   if [[ $lines -gt $printed ]]; then
     while IFS= read -r line; do
       echo "$line"
       if [[ "$line" == *"e2e: MEASURE "* ]]; then
-        echo "memory (${line##*MEASURE }): $(memory_of "$APP_PID")"
+        result="memory (${line##*MEASURE }): $(memory_of "$APP_PID")"
+        echo "$result"
+        [[ -z "$OUTPUT" ]] || echo "$result" >> "$OUTPUT"
       fi
     done < <(sed -n "$((printed + 1)),${lines}p" "$SANDBOX/app.log")
     printed=$lines
