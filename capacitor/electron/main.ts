@@ -41,8 +41,14 @@ const RENDERER = join(__dirname, 'renderer');
 protocol.registerSchemesAsPrivileged([
   { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
-// EXPERIMENT(memory): no GPU process, Skia rasterizes on the CPU instead.
+// No hardware acceleration: Skia rasterizes on the CPU, which keeps Mesa's software
+// OpenGL and its compiler out of the GPU process when there is no real GPU.
 app.disableHardwareAcceleration();
+// And fewer processes with memory of their own: the GPU and the network service run
+// in the browser process, and V8 leaves out its optimizing compiler.
+app.commandLine.appendSwitch('in-process-gpu');
+app.commandLine.appendSwitch('enable-features', 'NetworkServiceInProcess2');
+app.commandLine.appendSwitch('js-flags', '--lite-mode');
 // X11 takes WM_CLASS from the name, which the desktop entry names (StartupWMClass).
 app.setName(APP_ID);
 // Chromium keeps its profile apart from the settings of vfox+, among the caches.
