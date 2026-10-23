@@ -165,11 +165,19 @@ software rendering, a 1280 × 800 window.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 378 MB | 346 MB |
-| Versions of Node.js listed | 415 MB | 383 MB |
+| Home page | 257 MB | 216 MB |
+| Versions of Node.js listed | 266 MB | 224 MB |
 
 The Flutter engine and the embedded interpreter share nothing with the
-libraries of the desktop; compare implementations measured the same way. Only
+libraries of the desktop; compare implementations measured the same way. The
+patch of the Flet build template (`tools/patch_build_template.py`, which also
+sets the size of the window) makes `main` set `FLUTTER_LINUX_RENDERER=software`
+and `GDK_GL=disable`: Skia draws on the processor instead of OpenGL, which maps
+Mesa's software OpenGL and its compiler when there is no real GPU, and the same
+build took about 340 MB of PSS on the Home page instead of 216. `flet build`
+keeps the project that it generated from the template, so a cache of an older
+build (the `vfox-plus-sandbox-flet-build` volume of the sandbox) has to be
+deleted for a changed template to take effect. Only
 the rows of the available versions that are in view are built
 ([`src/vfox_plus/ui/widgets/virtual_list.py`](src/vfox_plus/ui/widgets/virtual_list.py)).
 
