@@ -232,8 +232,8 @@ Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb, a
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 106 MB | 99 MB |
-| Versions of Node.js listed | 123 MB | 116 MB |
+| Home page | 106 MB | 98 MB |
+| Versions of Node.js listed | 122 MB | 113 MB |
 
 Skia draws with the processor. Uno would otherwise draw with OpenGL, and the
 graphics stack that this loads takes more memory than the application does:
@@ -241,7 +241,7 @@ with Mesa's software GL (LLVM) it was 295 MB on the Home page instead of 165 MB
 for the same build, with every other setting equal. An interface this size does
 not need the GPU, and the memory does not depend on the driver of the machine.
 Native AOT takes the Home page from 126 MB of PSS with the same build compiled
-ahead of time but still managed (ReadyToRun) to 99: no separate runtime loads
+ahead of time but still managed (ReadyToRun) to 98: no separate runtime loads
 reflection metadata or JITs anything at start-up, because there is no separate
 runtime, only the one piece of machine code Native AOT compiles the
 application and the parts of the .NET runtime it uses into together. This
