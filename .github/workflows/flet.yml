@@ -126,12 +126,21 @@ jobs:
           done
       - name: Run the end-to-end scenarios in a virtual display
         working-directory: .
+        env:
+          # The "measure" scenario writes its numbers here for memory.yml.
+          VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory/memory.txt
         run: |
           for scenario in fake real measure; do
             xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
               env VFOX_PLUS_E2E_TIMEOUT=300 VFOX_PLUS_E2E_VFOX="$VFOX_PLUS_E2E_VFOX" \
               bash web/e2e/run.sh "$scenario" "$PWD/flet/build/linux/vfox-plus"
           done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memory-flet
+          path: ${{ runner.temp }}/memory/memory.txt
+          if-no-files-found: error
+          overwrite: true
       - name: Smoke test the release
         run: |
           binary="$PWD/build/linux/vfox-plus"

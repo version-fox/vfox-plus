@@ -146,6 +146,78 @@ What is different from the other implementations:
 - The memory is read when the screen has been still for 3 seconds, not when the
   application reports a page.
 
+## Memory in pull requests
+
+A pull request that rebuilds an implementation gets one comment with the memory of all
+of them: a table like [the one above](#results), sorted by the PSS of the Home page,
+with the difference from `main` next to the PSS. A new commit replaces that comment
+instead of adding another one.
+
+- The workflow of each implementation runs the `measure` scenario of [How it is
+  measured](#how-it-is-measured) (Flutter: `tool/measure.py`) and uploads the lines that
+  it prints as the artifact `memory-<implementation>`. `measure.sh` writes them to the file
+  named in `VFOX_PLUS_MEASURE_OUTPUT` as well.
+- [`memory.yml`](../.github/workflows/memory.yml) starts every time one of those workflows
+  ends and runs [`memory_report.py`](../.github/scripts/memory_report.py). While another
+  one is still running for the latest commit of the pull request, the script stops. The
+  run after the last one compares the artifacts of the pull request with those of the
+  latest run of the same workflow on `main` and writes the comment. The workflow runs in
+  the context of `main`, which is what lets it comment on pull requests of forks, and it
+  reads nothing but two lines of numbers from the artifacts. If its token cannot write the
+  comment, the run only warns, and the report is in its summary.
+- An implementation that the pull request did not rebuild, because its workflow only runs
+  for changes in its own paths, shows the numbers of `main` and is marked "(main)".
+- The numbers are not those of the table above. They come from the runners of GitHub and
+  from one run, not from Docker on a WSL2 host. Compare the rows of one comment with each
+  other and with `main`, not with this page.
+
+### The noise
+
+The same code does not use the same memory in every CI run. This is the largest
+difference between runs of identical code, from the 107 successful runs of 2026-10-18 and
+19 whose source was the same as that of at least one other run (30 groups of 2 to 8 runs),
+in MB and as a part of the lowest number:
+
+| Implementation |   Home PSS | Versions PSS |
+| -------------- | ---------: | -----------: |
+| mygo           |   1 (2.4%) |     0 (0.0%) |
+| Uno            |   4 (3.3%) |     5 (3.0%) |
+| Gio            | 20 (10.4%) |   23 (11.4%) |
+| Dioxus         |   5 (1.8%) |    13 (4.3%) |
+| Compose        |  15 (6.1%) |    14 (5.4%) |
+| Tauri          |  14 (3.3%) |    14 (2.9%) |
+| Capacitor      |   4 (1.0%) |     3 (0.7%) |
+| Flutter        | 35 (10.8%) |   43 (13.4%) |
+| Flet           |  16 (5.2%) |    25 (7.5%) |
+| Wails          |  11 (2.3%) |    13 (2.4%) |
+
+So the comment calls a difference a change, and prints it in bold, only when it is more
+than 5 MB and more than 5% of the number on `main`; for Compose and Flet more than 8%, for
+Gio more than 12% and for Flutter more than 15%, because they vary more. Of the 940
+comparisons of two runs of the same code (the Home and the Versions PSS of every pair, in
+both directions), none was a change by these limits. The number of processes never varied,
+so a different number is a change too. The sample is small: if the comment reports a
+change that the commit cannot have caused, measure how much identical code varies again
+and adjust `TOLERANCES` in the script.
+
+### Using it
+
+- The artifacts expire after 90 days. An implementation without a run on `main` for that
+  long has "no baseline" until its workflow runs on `main` again.
+- `gh workflow run memory.yml -f pull_request=<number>` writes the report of an open pull
+  request again. To only see it, run the script with `--dry-run`:
+
+  ```sh
+  GH_TOKEN="$(gh auth token)" python3 .github/scripts/memory_report.py --dry-run \
+    --repository version-fox/vfox-plus --pull-request <number> \
+    --implementations "capacitor compose dioxus flet flutter gio mygo tauri uno wails"
+  ```
+
+- The tests of the script run in the `Repository` workflow:
+  `python3 -m unittest discover -s .github/scripts`.
+- An implementation that is added uploads its numbers as `memory-<directory>` like the
+  others and goes into the two lists of `memory.yml`; one that is removed leaves them.
+
 ## Updating this page
 
 When an implementation is added, or its memory changes noticeably, run

@@ -107,6 +107,9 @@ jobs:
       - name: Build the application image
         run: gradle --console=plain createDistributable
       - name: Smoke test the application image and measure its memory
+        env:
+          # The measurement writes its numbers here for memory.yml.
+          VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory/memory.txt
         run: |
           binary="$PWD/build/compose/binaries/main/app/vfox-plus/bin/vfox-plus"
           xvfb-run -a -s "-screen 0 1280x800x24" "$binary" > app.log 2>&1 &
@@ -118,6 +121,12 @@ jobs:
           fi
           pkill -f "^$binary"
           xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- bash ../shared/tools/measure.sh "$binary"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memory-compose
+          path: ${{ runner.temp }}/memory/memory.txt
+          if-no-files-found: error
+          overwrite: true
       - name: Build the .deb and the tarball
         run: |
           # Reproducible timestamps in the package metadata.

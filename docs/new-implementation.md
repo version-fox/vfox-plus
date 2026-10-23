@@ -68,6 +68,13 @@ state layer, and the UI on top.
   the directory, `shared/` and the workflow itself, and that builds the
   installable packages as artifacts. Use [`flutter.yml`](../.github/workflows/flutter.yml)
   as a model.
+- In that workflow, the memory measurement (see below), uploaded as the artifact
+  `memory-<directory>` right after it, and the name of the workflow and
+  `<directory>` in the two lists of [`memory.yml`](../.github/workflows/memory.yml),
+  so that pull requests get the memory of the implementation in a comment (see
+  [the memory page](memory.md#memory-in-pull-requests)). `VFOX_PLUS_MEASURE_OUTPUT`
+  makes `measure.sh` write the numbers to the file that the artifact holds; copy the
+  steps of [`mygo.yml`](../.github/workflows/mygo.yml).
 
 ## 5. Package
 

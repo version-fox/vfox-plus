@@ -13,3 +13,8 @@ Thumbs.db
 
 # Packaging output (see flutter/packaging/linux/build_deb.sh).
 /dist/
+
+# Python bytecode, which running the tests of .github/scripts leaves behind. CI
+# rejects binary files.
+__pycache__/
+*.pyc
