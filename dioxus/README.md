@@ -122,15 +122,20 @@ processes together.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 434 MB | 258 MB |
-| Versions of Node.js listed | 473 MB | 296 MB |
+| Home page | 385 MB | 203 MB |
+| Versions of Node.js listed | 402 MB | 220 MB |
 
-`main.rs` sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` before the webview starts,
-unless it is already set: without it, accelerated compositing maps Mesa's
-software OpenGL and its compiler, which the pages of vfox+ do not need, and
-the same build took 427 MB of PSS on the Home page instead of 258. Software
-rendering dominates what is left; compare implementations measured the same
-way. Only the rows of the available versions that are in view are rendered.
+`main.rs` sets these variables before the webview starts, unless they are
+already set: `WEBKIT_DISABLE_COMPOSITING_MODE=1`, `WEBKIT_DISABLE_DMABUF_RENDERER=1`
+and `JSC_useJIT=false` for WebKitGTK and its JavaScript engine, and
+`GDK_GL=disable`, which keeps GDK from opening OpenGL for its windows on
+Wayland. Without them, accelerated compositing and the buffers that WebKit
+shares with the GPU map Mesa's software OpenGL and its compiler, which the
+pages of vfox+ do not need, and the JIT compiler of the web process keeps
+memory of its own: the same build took 261 MB of PSS on the Home page instead
+of 203 (and 427 MB in the snapshot before any of them was set). Compare
+implementations measured the same way. Only the rows of the available versions
+that are in view are rendered.
 
 Dioxus Native (the experimental [Blitz](https://github.com/DioxusLabs/blitz)
 renderer, WGPU, no system webview) was tried, to see whether dropping
