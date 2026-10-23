@@ -447,13 +447,13 @@ def baseline_of(gh: GitHub, implementation: str, default_branch: str) -> tuple[M
     """The latest numbers of an implementation that were measured on the default branch."""
     artifacts = gh.get("actions/artifacts", name=f"memory-{implementation}", per_page=100)["artifacts"]
     # A pull request from a fork can have a branch called like the default branch.
-    trusted = [
+    on_default_branch = [
         artifact
         for artifact in artifacts
         if (artifact.get("workflow_run") or {}).get("head_branch") == default_branch
         and artifact["workflow_run"].get("head_repository_id") == artifact["workflow_run"].get("repository_id")
     ]
-    for artifact in sorted(trusted, key=lambda candidate: candidate["created_at"], reverse=True):
+    for artifact in sorted(on_default_branch, key=lambda candidate: candidate["created_at"], reverse=True):
         memory = read_artifact(gh, artifact)
         if memory is not None:
             return memory, artifact
