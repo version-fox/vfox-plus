@@ -43,7 +43,9 @@ env:
   # Packages needed to build and run Flutter Linux desktop applications.
   LINUX_PACKAGES: >-
     clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
-    patchelf lintian desktop-file-utils xvfb xauth dbus-daemon
+    xvfb xauth dbus-daemon
+  # And to build and validate the packages.
+  PACKAGING_PACKAGES: patchelf lintian desktop-file-utils
 
 defaults:
   run:
@@ -108,10 +110,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          # shellcheck disable=SC2086 # The list is meant to be split.
-          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }}
       - name: Read the pinned versions
         run: grep -E '^[A-Z0-9_]+=' versions.env >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
@@ -154,10 +155,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          # shellcheck disable=SC2086 # The list is meant to be split.
-          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }} ${{ env.PACKAGING_PACKAGES }}
       - name: Read the pinned versions
         run: grep -E '^[A-Z0-9_]+=' versions.env >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0

@@ -60,9 +60,9 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Install the font tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends fonttools python3-brotli
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: fonttools python3-brotli
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/material-symbols
