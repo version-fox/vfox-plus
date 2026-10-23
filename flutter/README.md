@@ -186,20 +186,32 @@ the steps and puts the result next to the other implementations:
 
 | Page | RSS | PSS |
 | --- | ---: | ---: |
-| Home | 369 MB | 329 MB |
-| Available versions of Node.js (872) | 384 MB | 345 MB |
+| Home | 212 MB | 172 MB |
+| Available versions of Node.js (872) | 223 MB | 183 MB |
 
 The application runs in two processes: the second, `glycin-svg`, is the helper that
-gdk-pixbuf starts to load the SVG icon of the window, and has 18 MB of the RSS. In
-six runs on an earlier day, with the sandbox images of that day, the PSS was 332 to
-342 MB on the Home page and 344 to 369 MB with the versions.
+gdk-pixbuf starts to load the SVG icon of the window, and has 18 MB of the RSS.
 
-Software rendering dominates these numbers; measure on the target hardware when
-comparing implementations, with
+`linux/runner/main.cc` sets `FLUTTER_LINUX_RENDERER=software` and `GDK_GL=disable`,
+and `my_application.cc` turns Impeller off (the engine of Flutter 3.47 stops with
+"Impeller DlText cannot be drawn to a Skia canvas" otherwise): Skia draws on the
+processor instead of OpenGL, which maps Mesa's software OpenGL and its compiler when
+there is no real GPU. The same build took 339 MB of PSS on the Home page without
+them, and 4 to 5 seconds of processor time until the page was shown, against 0.6.
+The engine creates its OpenGL contexts when it starts, whatever it draws with
+(`fl_opengl_manager_new` in `fl_engine.cc`), so Mesa's compiler is still part of the
+172 MB. Without the SVG icon of the window, which `set_window_icon` of
+`my_application.cc` loads through gdk-pixbuf and its helper, the application takes
+about 18 MB less, in one process; the desktop entry gives the window its icon when
+the package is installed. In six runs on an earlier day, with the sandbox images of
+that day and OpenGL, the PSS was 332 to 342 MB on the Home page and 344 to 369 MB
+with the versions.
+
+Measure on the target hardware when comparing implementations, with
 `awk '/^Rss:|^Pss:/' /proc/$(pidof vfox-plus)/smaps_rollup`.
 
 Before `measure` existed, the application was measured under WSLg, which renders in
 software with Mesa llvmpipe too, 10 seconds after start-up with a 1280 × 820
-window, for the process of the application alone: 336 MB of RSS and 320 MB of PSS on
-the Home page, against 254 MB and 247 MB for the counter app that `flutter create`
-makes, which is what Flutter itself needs.
+window, for the process of the application alone, with OpenGL: 336 MB of RSS and
+320 MB of PSS on the Home page, against 254 MB and 247 MB for the counter app that
+`flutter create` makes, which is what Flutter itself needed with OpenGL.
