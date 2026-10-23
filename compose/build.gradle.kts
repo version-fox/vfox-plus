@@ -218,8 +218,20 @@ compose.desktop {
     application {
         mainClass = "dev.vfox.plus.MainKt"
         // Lets Main.kt name the window class after the application ID; a small
-        // heap and the serial collector keep the memory of the JVM low.
-        jvmArgs += listOf("--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED", "-Xms32m", "-Xmx256m", "-XX:+UseSerialGC")
+        // heap and the serial collector keep the memory of the JVM low, and so
+        // do the first compiler of the JIT alone (the optimizing one keeps tens
+        // of megabytes of its own), and Skia on the processor: Skiko draws with
+        // OpenGL by default, which maps Mesa's software OpenGL and its compiler
+        // when there is no real GPU.
+        jvmArgs +=
+            listOf(
+                "--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED",
+                "-Xms32m",
+                "-Xmx256m",
+                "-XX:+UseSerialGC",
+                "-XX:TieredStopAtLevel=1",
+                "-Dskiko.renderApi=SOFTWARE",
+            )
         nativeDistributions {
             packageName = "vfox-plus"
             packageVersion = version.toString()
