@@ -32,7 +32,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   # BSD-3-Clause. Flutter's maintained Material components, decoupled from the SDK.
-  material_ui: ^1.7.0
+  material_ui: ^1.8.0
   # BSD-3-Clause. Fade-through and shared-axis transitions.
   animations: ^3.0.0
   # Apache-2.0. System accent colour (XDG portal / GTK) for dynamic colour.
