@@ -13,32 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Comments on a pull request with the memory that every implementation uses.
+"""Comments on a pull request with the memory that the application uses.
 
-The workflow of each implementation (.github/workflows/<implementation>.yml)
-measures its application with shared/tools/measure.sh (Flutter:
-flutter/tool/measure.py) and uploads the result as the artifact
-memory-<implementation>, which holds one file, memory.txt, with the lines
+The workflow of the implementation (.github/workflows/mygo.yml) measures the
+application with shared/tools/measure.sh and uploads the result as the artifact
+memory-mygo, which holds one file, memory.txt, with the lines
 "memory (<point>): RSS <n> MB, PSS <n> MB in <n> processes" of the points home
-and nodejs. .github/workflows/memory.yml runs this script when one of those
-workflows ends. Once all of them have ended for the latest commit of the pull
-request, the script writes one comment: a table like the one of docs/memory.md,
-sorted by the PSS of the Home page, with the difference from the latest
-measurement on the default branch next to the numbers. A later run replaces
-that comment instead of adding another one.
-
-An implementation that the pull request did not rebuild, because its workflow
-only runs for changes in its own paths, shows the numbers of the default branch.
+and nodejs. .github/workflows/memory.yml runs this script when that workflow
+ends for the latest commit of a pull request, and the script writes one
+comment: a table like the one of docs/memory.md, with the difference from the
+latest measurement on the default branch next to the numbers. A later run
+replaces that comment instead of adding another one.
 
 Usage:
 
   memory_report.py --run RUN_ID [--dry-run]
-      Reports on the pull request of the workflow run RUN_ID, if that was the
-      last of the implementation workflows to end for the commit.
+      Reports on the pull request of the workflow run RUN_ID.
 
   memory_report.py --pull-request NUMBER [--dry-run]
-      Reports on that pull request now, with the implementations that are still
-      running marked as such.
+      Reports on that pull request now, with the implementation still running
+      marked as such.
 
 --dry-run prints the comment instead of writing it. The implementations come
 from --implementations or MEMORY_IMPLEMENTATIONS (names separated by spaces).
@@ -73,16 +67,13 @@ MEMORY_FILE = "memory.txt"
 MAX_ARTIFACT_BYTES = 64 * 1024
 MAX_MEMORY_FILE_BYTES = 4 * 1024
 
-# The same code does not use the same memory in every CI run. Comparing every
-# two of the 107 runs on 2026-10-18 and 19 that shared their source with another
-# one (30 groups of 2 to 8 runs of the ten implementations; see docs/memory.md),
-# the Home and the Versions PSS never differed by more than 5 MB and 5 % of the
-# first number for most of the implementations, and never by more than the
-# percentages below for the four others. Only a larger difference counts as a
-# change.
+# The same code does not use the same memory in every CI run. Runs of identical
+# code (see docs/memory.md) never differed by more than 5 MB and 5 % of the
+# first number, for the Home and the Versions PSS alike. Only a larger
+# difference counts as a change.
 MIN_CHANGE_MB = 5
 DEFAULT_TOLERANCE = 0.05
-TOLERANCES = {"compose": 0.08, "flet": 0.08, "gio": 0.12, "flutter": 0.15}
+TOLERANCES: dict[str, float] = {}
 
 LINE = re.compile(r"memory \((home|nodejs)\): RSS ([0-9]{1,6}) MB, PSS ([0-9]{1,6}) MB in ([0-9]{1,4}) processes")
 IMPLEMENTATION = re.compile(r"[a-z0-9][a-z0-9-]*")
@@ -331,7 +322,7 @@ def render(rows: list[Row], *, head_sha: str) -> str:
         f"[{row.name}]({row.baseline_url}) (`{row.baseline_sha[:7]}`)" for row in rows if row.baseline_url
     ]
     details = [
-        "- Measured by `shared/tools/measure.sh` (Flutter: `flutter/tool/measure.py`) in the workflow of each "
+        "- Measured by `shared/tools/measure.sh` in the workflow of the "
         "implementation, on a GitHub-hosted runner with Xvfb and no GPU. These are not the numbers of "
         "`docs/memory.md`, which come from another machine: compare the rows of one comment.",
         "- " + explanation(rows),
@@ -643,7 +634,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--implementations",
         default=os.environ.get("MEMORY_IMPLEMENTATIONS", ""),
-        help="the implementations, such as 'mygo tauri', separated by spaces",
+        help="the implementation, such as 'mygo', separated by spaces",
     )
     parser.add_argument("--docs", type=Path, default=Path("docs/memory.md"), help="the page with the Technology column")
     parser.add_argument("--dry-run", action="store_true", help="print the comment instead of writing it")
@@ -656,7 +647,7 @@ def main(argv: list[str] | None = None) -> int:
     if not REPOSITORY.fullmatch(arguments.repository):
         parser.error("--repository (or GITHUB_REPOSITORY) must be OWNER/NAME")
     if not implementations or not all(IMPLEMENTATION.fullmatch(name) for name in implementations):
-        parser.error("--implementations (or MEMORY_IMPLEMENTATIONS) must list names such as 'mygo tauri'")
+        parser.error("--implementations (or MEMORY_IMPLEMENTATIONS) must list names such as 'mygo'")
     technologies = {}
     if arguments.docs.is_file():
         technologies = read_technologies(arguments.docs.read_text(encoding="utf-8"))
