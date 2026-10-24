@@ -24,7 +24,7 @@ requires-python = ">=3.14"
 # See ../docs/architecture.md#dependencies before adding a new one.
 dependencies = [
   # Apache-2.0. The user interface framework.
-  "flet==1.0.4",
+  "flet==1.0.5",
   # Apache-2.0. The Material 3 Expressive widgets that Flet lacks (m3e/).
   "vfox-plus-m3e",
 ]
@@ -32,19 +32,19 @@ dependencies = [
 [dependency-groups]
 dev = [
   # Apache-2.0. `flet build` and the development client of `flet run`.
-  "flet-cli==1.0.4",
-  "flet-desktop==1.0.4",
+  "flet-cli==1.0.5",
+  "flet-desktop==1.0.5",
   # MIT, Apache-2.0 and MIT. Tests, asynchronous tests and their coverage.
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
   # MIT. Linter and formatter.
-  "ruff==0.17.1",
+  "ruff==0.17.2",
   # MIT. Type checker.
   "mypy==2.4.0",
   # MIT and MIT. Build backend of the local extension, used with
   # PIP_NO_BUILD_ISOLATION=1 so that `flet build` does not download it.
-  "setuptools==84.0.0",
+  "setuptools==84.2.1",
   "wheel==0.48.0",
 ]
 

@@ -1,6 +1,6 @@
 # vfox+ — Flet implementation
 
-vfox-plus built with [Flet](https://flet.dev) 1.0.4 (Python) on Flutter
+vfox-plus built with [Flet](https://flet.dev) 1.0.5 (Python) on Flutter
 3.44.8: the core and the state are plain Python without a user interface
 framework, and the user interface is declarative Flet components. Flet runs
 the Python program inside the Flutter application, so the release is one

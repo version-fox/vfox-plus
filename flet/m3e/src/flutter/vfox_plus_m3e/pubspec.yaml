@@ -28,7 +28,7 @@ dependencies:
   flutter:
     sdk: flutter
   # Apache-2.0. The Flutter side of Flet: controls, extensions and parsers.
-  flet: 1.0.4
+  flet: 1.0.5
   # MIT. Port of androidx.graphics.shapes: Material shapes and shape morphing,
   # the same package the Flutter implementation uses.
   material_new_shapes: 1.0.0

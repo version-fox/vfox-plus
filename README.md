@@ -38,7 +38,7 @@ equal terms. The screenshots show the Flutter implementation.
 | [`compose/`](compose) | Compose Multiplatform (Kotlin) | Linux desktop | `vfox-plus-compose` | Working |
 | [`dioxus/`](dioxus) | Dioxus 0.7 (Rust) with the web components of @m3e/web | Linux desktop | `vfox-plus-dioxus` | Working |
 | [`capacitor/`](capacitor) | Ionic 9 (Vue) and Capacitor 8 in an Electron shell | Linux desktop | `vfox-plus-capacitor` | Working |
-| [`flet/`](flet) | Flet 1.0.4 (Python) with a Dart extension | Linux desktop | `vfox-plus-flet` | Working |
+| [`flet/`](flet) | Flet 1.0.5 (Python) with a Dart extension | Linux desktop | `vfox-plus-flet` | Working |
 | [`gio/`](gio) | Gio 0.10 (Go), drawn with its own Material 3 Expressive toolkit | Linux desktop | `vfox-plus-gio` | Working |
 | [`uno/`](uno) | Uno Platform 6 (C#, .NET 10), built with its own Material 3 Expressive controls | Linux desktop | `vfox-plus-uno` | Working |
 | [`mygo/`](mygo) | mygo 0.6 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |

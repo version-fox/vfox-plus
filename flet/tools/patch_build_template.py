@@ -44,7 +44,7 @@ import sys
 import urllib.request
 import zipfile
 
-FLET_VERSION = "1.0.4"
+FLET_VERSION = "1.0.5"
 """Pinned in `pyproject.toml`; the template comes from its release."""
 
 WIDTH = 1280
