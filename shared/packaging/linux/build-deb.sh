@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Packages the release build of an implementation as a .deb and a .tar.gz,
-# with the same layout, desktop entry, AppStream metadata and icon for every
-# implementation: the application goes to /usr/lib/vfox-plus and is started
+# Packages the release build of the application as a .deb and a .tar.gz:
+# the application goes to /usr/lib/vfox-plus and is started
 # as /usr/bin/vfox-plus.
 #
 # Usage: shared/packaging/linux/build-deb.sh [options] <output directory>
 #
-#   --package NAME        Debian package name, e.g. vfox-plus-tauri (required)
+#   --package NAME        Debian package name, e.g. vfox-plus-mygo (required)
 #   --version VERSION     version of the application (required)
 #   --stage DIRECTORY     files of the application, installed to
 #                         /usr/lib/vfox-plus (required)

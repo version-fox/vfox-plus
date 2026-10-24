@@ -3,15 +3,15 @@
 vfox-plus follows [Material 3 Expressive](https://m3.material.io/), the 2025
 evolution of Material Design that adds springs, a richer shape library, emphasized
 typography and new components to Material 3. This document lists the tokens and
-components every implementation uses, and where the Flutter implementation
+components the application uses, and where the mygo implementation
 defines them.
 
 ## Colour
 
 - Colour schemes are generated from a **seed colour** with the Material colour
   utilities, *tonal spot* variant, for light and dark themes, in the **2021**
-  specification of the colour utilities (Flutter's `ColorScheme.fromSeed`), so
-  that every implementation shows the same colours.
+  specification of the colour utilities, so that the application shows the
+  same colours as the specification.
 - The seed is the **desktop accent colour** when the user allows it and the
   desktop exposes one (XDG desktop portal `org.freedesktop.appearance
   accent-color`, falling back to the GTK theme), otherwise the colour chosen in
@@ -22,9 +22,8 @@ defines them.
   statistic tiles and avatars.
 - Destructive actions use `error`.
 
-Flutter: `AppTheme.scheme` in `flutter/lib/src/ui/theme/app_theme.dart`. Web:
-`colorTokens` in `web/src/ui/theme.ts`, which overrides the 2025 scheme of
-`@m3e/web`.
+mygo: `PaletteFor` in `mygo/ui/kit/theme.go`, computed from `mygo/ui/mcu` (a
+Go port of the Material colour utilities, tonal spot).
 
 ## Shape
 
@@ -43,7 +42,7 @@ Flutter: `AppTheme.scheme` in `flutter/lib/src/ui/theme/app_theme.dart`. Web:
 | extra extra large      |  48 dp |                                                  |
 | full                   |  50 %  | Buttons at rest, search bars, tags               |
 
-Flutter: `Corners` in `flutter/lib/src/ui/theme/tokens.dart`.
+mygo: the `Corner*` constants in `mygo/ui/kit/draw.go`.
 
 ### Shape library and morphing
 
@@ -65,10 +64,9 @@ give the interface its character:
 - The **loading indicator** morphs through soft burst, 9-sided cookie, pentagon,
   pill, sunny, 4-sided cookie and oval.
 
-Shapes come from a port of `androidx.graphics.shapes` (Flutter:
-`material_new_shapes`); `PolygonBorder` and `MorphBorder` in
-`flutter/lib/src/ui/widgets/polygon_border.dart` turn a shape, or a morph
-between two shapes, into a border.
+Shapes come from `mygo/ui/shapes`, a Go port of `androidx.graphics.shapes`;
+its `Polygon` and `Morph` types turn a shape, or a morph between two shapes,
+into a path that the components of `mygo/ui/kit` draw.
 
 ### Shape morphing on interaction
 
@@ -98,7 +96,7 @@ version) and card titles.
 | Body L, body M             |             400 |               500 |
 | Label L, label M           |             500 |               700 |
 
-Flutter: `EmphasizedTextTheme` in `flutter/lib/src/ui/theme/app_theme.dart`.
+mygo: `Emph` in `mygo/ui/kit/theme.go`.
 
 ## Motion
 
@@ -137,33 +135,30 @@ page transitions, which bring their own curves, last as long as the slow effects
 spring needs to settle. When the platform asks for reduced motion, springs jump
 to their target and indeterminate indicators stop.
 
-Flutter: `MotionScheme`, `Spring` and `SpringBuilder` in
-`flutter/lib/src/ui/theme/motion.dart`. Web: `web/src/ui/motion.ts` samples
-each spring into a CSS `linear()` easing over its settling time and sets the
-motion tokens of `@m3e/web`, so that its components move on these springs;
-`SpringAnimation` keeps the velocity for animations driven by script.
+mygo: the springs and `AnimateTo` in `mygo/ui/kit/motion.go`, drawn only while
+they move, so the window is idle when nothing changes.
 
 ### Transitions
 
 - Between top-level destinations: **fade through**.
 - From the SDK list to an SDK on narrow windows: **shared axis**, horizontal.
 - Between SDKs in the detail pane: **fade through**.
-- Pages opened from Flutter's own routes (licenses): **fade forwards**.
+- Pages opened from the application's own routes (licenses): **fade forwards**.
 
 ## Components
 
-| Component | Specification | Flutter |
+| Component | Specification | mygo |
 | --- | --- | --- |
-| Navigation rail (collapsed 96 dp, expanded 240 dp, with menu button and FAB) | [Navigation rail](https://m3.material.io/components/navigation-rail) | `ExpressiveNavigationRail` |
-| Navigation bar (compact windows) | [Navigation bar](https://m3.material.io/components/navigation-bar) | `NavigationBar` |
-| Connected button group (single selection) | [Button groups](https://m3.material.io/components/button-groups) | `ConnectedButtonGroup` |
-| Split button | [Split button](https://m3.material.io/components/split-button) | `SplitButton` |
-| Icon buttons (expressive sizes and shapes) | [Icon buttons](https://m3.material.io/components/icon-buttons) | `IconButton` with `StyleVariant.material3Expressive` |
-| Common buttons with pressed shape morph | [Buttons](https://m3.material.io/components/buttons) | theme of `FilledButton`, `OutlinedButton`, … |
-| Loading indicator (contained and uncontained) | [Loading indicator](https://m3.material.io/components/loading-indicator) | `LoadingIndicator` |
-| Wavy linear progress indicator (determinate and indeterminate) | [Progress indicators](https://m3.material.io/components/progress-indicators) | `WavyProgressIndicator` |
-| Segmented lists | [Lists](https://m3.material.io/components/lists) | `ListGroup`, `ListGroupItem` |
-| Search bar, cards, dialogs, menus, snack bars, switches, text fields | Material 3 | `material_ui` widgets, themed in `AppTheme` |
+| Navigation rail (collapsed 96 dp, expanded 240 dp, with menu button and FAB) | [Navigation rail](https://m3.material.io/components/navigation-rail) | `NavRail` in `ui/kit/nav.go` |
+| Navigation bar (compact windows) | [Navigation bar](https://m3.material.io/components/navigation-bar) | `NavBar` in `ui/kit/nav.go` |
+| Connected button group (single selection) | [Button groups](https://m3.material.io/components/button-groups) | `ButtonGroup` in `ui/kit/group.go` |
+| Split button | [Split button](https://m3.material.io/components/split-button) | `Button` in `ui/kit/button.go` |
+| Icon buttons (expressive sizes and shapes) | [Icon buttons](https://m3.material.io/components/icon-buttons) | `IconButton` in `ui/kit/button.go` |
+| Common buttons with pressed shape morph | [Buttons](https://m3.material.io/components/buttons) | `Button` in `ui/kit/button.go` |
+| Loading indicator (contained and uncontained) | [Loading indicator](https://m3.material.io/components/loading-indicator) | `LoadingIndicator` in `ui/kit/loading.go` |
+| Wavy linear progress indicator (determinate and indeterminate) | [Progress indicators](https://m3.material.io/components/progress-indicators) | `WavyProgress` in `ui/kit/loading.go` |
+| Segmented lists | [Lists](https://m3.material.io/components/lists) | `ListGroup`, `ListItem` in `ui/kit/list.go` |
+| Search bar, cards, dialogs, menus, snack bars, switches, text fields | Material 3 | `SearchBar`, `Card`, `Menu`, dialogs and snack bars in `ui/kit`, themed in `ui/kit/theme.go` |
 
 ### Wavy progress indicator
 
@@ -186,15 +181,13 @@ Icons are [Material Symbols](https://fonts.google.com/icons), **Rounded** style,
 from the variable font, so that they can be animated along their axes: the
 icon of the selected navigation destination is filled (`FILL` 1) and the others
 are outlined (`FILL` 0). The icons and their meanings are listed in
-[`shared/icons.json`](../shared/icons.json). Implementations ship only these
-glyphs; the Flutter implementation generates a 155 KB subset of the font that
-keeps every variable axis at build time (`flutter/tool/generate_icon_font.dart`).
-The other implementations use [`shared/tools/icon_font.py`](../shared/tools/icon_font.py),
-which cuts the same glyphs, with their ligatures, out of a pinned version of
-the font; pinning the weight, grade and optical size and keeping only the fill
-axis gives a 9 KB WOFF2 font.
+[`shared/icons.json`](../shared/icons.json). The application ships only these
+glyphs: [`shared/tools/icon_font.py`](../shared/tools/icon_font.py) cuts the
+same glyphs, with their ligatures, out of a pinned version of the font at
+build time; pinning the weight, grade and optical size and keeping only the
+fill axis gives a 9 KB WOFF2 font. mygo cannot set the fill axis of a font, so
+it ships the subset twice — outlined and filled under another family name —
+and cross-fades between the two (36 KB together).
 
 The application icon is the 12-sided cookie shape in vfox orange with a white
-"v+" mark ([`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../shared/packaging/linux/dev.vfox.VfoxPlus.svg);
-Flutter bundles a copy as `flutter/assets/brand/vfox-plus.svg`, which CI keeps
-identical).
+"v+" mark ([`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../shared/packaging/linux/dev.vfox.VfoxPlus.svg)).

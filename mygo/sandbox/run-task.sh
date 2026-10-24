@@ -34,7 +34,7 @@ COPY_EXCLUDES+=(
 # Runtime dependencies of the release binary on Ubuntu 26.04; the installation
 # test checks that they are complete. The executable is linked to the C library
 # alone: mygo loads GTK 3, which brings GLib, Pango, Cairo and the rest, when it
-# starts (docs/architecture.md in mygo, "Native interop without cgo"). Fonts:
+# starts (see docs/architecture.md#dependencies). Fonts:
 # Ubuntu Sans, or any other sans-serif font of the desktop.
 DEPENDS="libc6, libgtk-3-0t64, libglib2.0-0t64, libpango-1.0-0, libpangoft2-1.0-0, libcairo2, libgdk-pixbuf-2.0-0, fontconfig, fonts-ubuntu | fonts-noto-core"
 # Chinese text needs a CJK font, the file choosers go through the desktop portal
@@ -45,17 +45,16 @@ RECOMMENDS="fonts-noto-cjk, xdg-desktop-portal, xdg-utils"
 # error rather than an attempt to download it.
 go_offline=(env GOPROXY=off GOFLAGS=-mod=readonly)
 
-# prepare: the generated inputs. web/ comes along for its end-to-end runner,
-# which every implementation shares. The licenses of the Go modules need the
+# prepare: the generated inputs. The licenses of the Go modules need the
 # module cache, which only the tasks that ship the application use.
 prepare() {
-  copy_repository mygo web
+  copy_repository mygo
   as_tester "$APP" "${go_offline[@]}" bash tools/prepare.sh
 }
 
 # prepare_light: the same without the licenses of the Go modules.
 prepare_light() {
-  copy_repository mygo web
+  copy_repository mygo
   as_tester "$APP" env MYGO_SKIP_LICENSES=1 bash tools/prepare.sh
 }
 
@@ -76,7 +75,7 @@ build() {
 
 case "${1:-}" in
   deps)
-    copy_repository mygo web
+    copy_repository mygo
     as_tester "$APP" env ${SANDBOX_GOPROXY:+GOPROXY="$SANDBOX_GOPROXY"} go mod download
     ;;
 
@@ -104,8 +103,8 @@ case "${1:-}" in
     prepare_light
     build e2e "$BINARY"
     start_display
-    in_display env VFOX_PLUS_E2E_TIMEOUT=300 bash web/e2e/run.sh fake "$BINARY"
-    in_display env VFOX_PLUS_E2E_TIMEOUT=300 VFOX_PLUS_E2E_VFOX=/usr/local/bin/vfox bash web/e2e/run.sh real "$BINARY"
+    in_display env VFOX_PLUS_E2E_TIMEOUT=300 bash shared/e2e/run.sh fake "$BINARY"
+    in_display env VFOX_PLUS_E2E_TIMEOUT=300 VFOX_PLUS_E2E_VFOX=/usr/local/bin/vfox bash shared/e2e/run.sh real "$BINARY"
     stop_display
     ;;
 
@@ -122,7 +121,26 @@ case "${1:-}" in
   screenshots)
     prepare
     build e2e "$BINARY"
+    # Taller than the window, so that the captures show the whole window with
+    # its title bar. The window manager draws it with the Greybird theme: a
+    # dark bar over the light content, the way modern GNOME applications look
+    # (this window has no custom title bar, so GTK leaves the decorations to
+    # the window manager).
+    SCREEN=(-screen 0 1280x860x24)
     start_display
+    # The settings daemon the window manager reads its theme from; it lives
+    # outside PATH.
+    in_display /usr/lib/x86_64-linux-gnu/xfce4/xfconf/xfconfd &
+    sleep 1
+    in_display xfconf-query -c xfwm4 -p /general/theme -n -t string -s Greybird
+    in_display xfwm4 &
+    # Wait until the window manager has taken over and settled, so that the
+    # first window it frames already has its decorations.
+    for _ in $(seq 60); do
+      in_display xprop -root _NET_SUPPORTING_WM_CHECK > /dev/null 2>&1 && break
+      sleep 0.5
+    done
+    sleep 3
     in_display bash shared/tools/screenshots.sh /home/tester/screenshots "$BINARY"
     publish /home/tester/screenshots/*.png
     stop_display

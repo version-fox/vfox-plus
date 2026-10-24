@@ -642,9 +642,9 @@ func TestProgressIndicatorsShapesAndAvatarsAreDrawn(t *testing.T) {
 	}
 }
 
-func TestAvatarsAreTheSameInEveryImplementation(t *testing.T) {
-	// FNV-1a over the UTF-16 code units; the other implementations compute the
-	// same numbers, which is what makes an avatar the same everywhere.
+func TestAvatarsAreStable(t *testing.T) {
+	// FNV-1a over the UTF-16 code units; the hash is stable, which is what
+	// makes an avatar the same everywhere.
 	for text, want := range map[string]uint32{
 		"": 0x811C9DC5, "a": 0xE40C292C, "nodejs": 0x1F748B62, "maven": 0xA6E29488, "你好": 0xD7BC7166,
 		// Characters outside the Basic Multilingual Plane are two code units.

@@ -1,56 +1,38 @@
 # vfox-plus
 
-Graphical front ends for [vfox](https://vfox.dev), the cross-platform version
+A graphical front end for [vfox](https://vfox.dev), the cross-platform version
 manager, built with the [Material 3 Expressive](https://m3.material.io/) design
 language.
 
-vfox-plus explores several GUI technologies side by side
-([issue #1](https://github.com/version-fox/vfox-plus/issues/1)). Every
-implementation follows the same specification and uses the same translations,
-icons and test fixtures, so they look and behave alike and can be compared on
-equal terms. The screenshots show the Flutter implementation.
+It is built with [mygo](https://github.com/egoist/mygo) 0.5 (Go), with its
+native user interface through GTK 3 and its own Material 3 Expressive
+components — no web view, no HTML, no JavaScript — in a single Go executable of
+about 12 MB. It uses about 41 MB of PSS on the Home page (see
+[docs/memory.md](docs/memory.md)). The screenshots show the application.
 
-![vfox+ home page](https://iili.io/nw2Xggj.png)
+![vfox+ home page](https://iili.io/nepQqdb.png)
 
 | Installed versions of an SDK | Available versions, dark theme |
 | --- | --- |
-| ![Installed versions of nodejs](https://iili.io/nw2Wo6G.png) | ![Available versions of nodejs, dark theme](https://iili.io/nw2XmrJ.png) |
+| ![Installed versions of nodejs](https://iili.io/nepQwvf.png) | ![Available versions of nodejs, dark theme](https://iili.io/nepZnFn.png) |
 
 | An installation in progress | Tasks, which can be followed and cancelled |
 | --- | --- |
-| ![Installing a version of nodejs](https://iili.io/nw2WRuS.png) | ![Tasks](https://iili.io/nw2WG8Q.png) |
+| ![Installing a version of nodejs](https://iili.io/nepZvHJ.png) | ![Tasks](https://iili.io/neptFHb.png) |
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nw2XEsn.png) | ![Settings](https://iili.io/nw2hn2f.png) |
+| ![Plugins](https://iili.io/nepthb4.png) | ![Settings](https://iili.io/nepD3BI.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |
-| ![Home in a compact window](https://iili.io/nw2Xj5l.png) | ![An SDK in a compact window](https://iili.io/nw2Ghtn.png) |
+| ![Home in a compact window](https://iili.io/nepDVEP.png) | ![An SDK in a compact window](https://iili.io/nepbJyb.png) |
 
-## Implementations
+## Implementation
 
 | Directory | Technology | Platforms | Package | Status |
 | --- | --- | --- | --- | --- |
-| [`flutter/`](flutter) | Flutter 3.47 with `material_ui` | Linux desktop | `vfox-plus` | Working |
-| [`tauri/`](tauri) | Tauri 2 (Rust) with the [web front end](web) | Linux desktop | `vfox-plus-tauri` | Working |
-| [`wails/`](wails) | Wails 3 (Go) with the [web front end](web) | Linux desktop | `vfox-plus-wails` | Working |
-| [`compose/`](compose) | Compose Multiplatform (Kotlin) | Linux desktop | `vfox-plus-compose` | Working |
-| [`dioxus/`](dioxus) | Dioxus 0.7 (Rust) with the web components of @m3e/web | Linux desktop | `vfox-plus-dioxus` | Working |
-| [`capacitor/`](capacitor) | Ionic 9 (Vue) and Capacitor 8 in an Electron shell | Linux desktop | `vfox-plus-capacitor` | Working |
-| [`flet/`](flet) | Flet 1.0.5 (Python) with a Dart extension | Linux desktop | `vfox-plus-flet` | Working |
-| [`gio/`](gio) | Gio 0.10 (Go), drawn with its own Material 3 Expressive toolkit | Linux desktop | `vfox-plus-gio` | Working |
-| [`uno/`](uno) | Uno Platform 6 (C#, .NET 10), built with its own Material 3 Expressive controls | Linux desktop | `vfox-plus-uno` | Working |
 | [`mygo/`](mygo) | mygo 0.6 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |
-
-[`web/`](web) is not an implementation of its own: it is the front end that
-the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
-Expressive web components of [@m3e/web](https://github.com/matraic/m3e)); the
-Capacitor implementation has its own user interface on its core and state. Every
-implementation ships a `.deb` for Ubuntu 26.04 and a `.tar.gz`; the packages
-share the application ID `dev.vfox.VfoxPlus` and replace each other.
-
-New implementations follow [docs/new-implementation.md](docs/new-implementation.md).
 
 ## What it does
 
@@ -70,20 +52,9 @@ vfox+ drives the vfox command line tool, which must be installed separately
 
 ## Getting vfox+
 
-Every implementation's workflow builds its packages for every change. Download
-the `vfox-plus-<implementation>-linux-x64` artifact (`vfox-plus-linux-x64` for
-Flutter) of the latest successful run of its workflow, for example
-[Flutter](https://github.com/version-fox/vfox-plus/actions/workflows/flutter.yml),
-[Tauri](https://github.com/version-fox/vfox-plus/actions/workflows/tauri.yml),
-[Wails](https://github.com/version-fox/vfox-plus/actions/workflows/wails.yml),
-[Compose](https://github.com/version-fox/vfox-plus/actions/workflows/compose.yml),
-[Dioxus](https://github.com/version-fox/vfox-plus/actions/workflows/dioxus.yml),
-[Capacitor](https://github.com/version-fox/vfox-plus/actions/workflows/capacitor.yml),
-[Flet](https://github.com/version-fox/vfox-plus/actions/workflows/flet.yml),
-[Gio](https://github.com/version-fox/vfox-plus/actions/workflows/gio.yml),
-[Uno](https://github.com/version-fox/vfox-plus/actions/workflows/uno.yml) or
-[mygo](https://github.com/version-fox/vfox-plus/actions/workflows/mygo.yml),
-then:
+The [`mygo`](.github/workflows/mygo.yml) workflow builds packages for every
+change. Download the `vfox-plus-mygo-linux-x64` artifact of the latest
+successful run, then:
 
 ```sh
 sudo apt install ./vfox-plus*_amd64.deb   # Ubuntu 26.04
@@ -91,40 +62,28 @@ vfox-plus
 ```
 
 or extract the `.tar.gz` anywhere and run `./vfox-plus`. To build from source,
-see the README of the implementation; with nothing but Docker,
-`<implementation>/sandbox/sandbox.sh package` builds both files into
-`dist/sandbox/` without changing anything on your machine.
+see the [mygo README](mygo/README.md); with nothing but Docker,
+`mygo/sandbox/sandbox.sh package` builds both files into `dist/sandbox/`
+without changing anything on your machine.
 
 ## Repository layout
 
 ```text
 docs/       Shared specification: architecture, vfox CLI contract, UI, design system, i18n
 shared/     Shared resources: translations, icons, captured vfox output (test fixtures), an offline
-            test plugin, packaging files, the icon font tool and the shared parts of the sandboxes
-flutter/    The Flutter implementation
-web/        The web front end of the Tauri and Wails implementations, whose core
-            and state the Capacitor implementation shares
-tauri/      The Tauri implementation
-wails/      The Wails implementation
-compose/    The Compose Multiplatform implementation
-dioxus/     The Dioxus implementation
-capacitor/  The Capacitor implementation
-flet/       The Flet implementation
-gio/        The Gio implementation
-uno/        The Uno implementation
-mygo/       The mygo implementation
-.github/    CI workflows: repository checks and one workflow per implementation
+            test plugin, the end-to-end runner, packaging files, the icon font tool and the shared parts of the sandbox
+mygo/       The application
+.github/    CI workflows: repository checks, the build, the memory report and the sandbox
 ```
 
 | Document | Content |
 | --- | --- |
 | [docs/architecture.md](docs/architecture.md) | Layers, settings file, dependencies, memory |
-| [docs/vfox-cli-contract.md](docs/vfox-cli-contract.md) | How a GUI runs vfox and parses its output |
+| [docs/vfox-cli-contract.md](docs/vfox-cli-contract.md) | How the GUI runs vfox and parses its output |
 | [docs/ui-spec.md](docs/ui-spec.md) | Screens, flows and states |
 | [docs/design-system.md](docs/design-system.md) | Material 3 Expressive colour, shape, type, motion and components |
 | [docs/i18n.md](docs/i18n.md) | Translation catalogues and glossary |
-| [docs/memory.md](docs/memory.md) | The memory use of the implementations, measured the same way |
-| [docs/new-implementation.md](docs/new-implementation.md) | Checklist for another GUI technology |
+| [docs/memory.md](docs/memory.md) | The memory use of the application, measured the same way |
 
 ## Contributing
 

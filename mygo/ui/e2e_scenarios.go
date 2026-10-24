@@ -30,8 +30,9 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/state"
 )
 
-// scenarios are the end-to-end scenarios, the same as those of the other
-// implementations (web/src/e2e/scenarios.ts, flutter/integration_test).
+// scenarios are the end-to-end scenarios of the application: fake (against the
+// fake vfox of the fixtures), real (against the real vfox), measure (for the
+// memory measurement) and screenshots.
 var scenarios = map[string]func(*scenario){
 	"fake":        fakeScenario,
 	"real":        realScenario,
@@ -266,7 +267,7 @@ func realScenario(s *scenario) {
 
 // measureScenario opens the Home page and the versions of Node.js, so that the
 // harness can measure the memory of the application at both points (see
-// docs/new-implementation.md).
+// docs/memory.md).
 func measureScenario(s *scenario) {
 	s.waitForText("Versions in use")
 	pause(3000)
@@ -302,6 +303,16 @@ func (s *scenario) resize(width, height float32) {
 func screenshotsScenario(s *scenario) {
 	a := s.app
 	s.waitForText("Versions in use")
+	// The startup overlay fades out after vfox is found; the first shot must
+	// wait for it, or the Home page is still dimmed.
+	s.waitUntil("the startup overlay to go away", func() bool {
+		for _, shown := range s.texts() {
+			if shown == "Looking for vfox…" {
+				return false
+			}
+		}
+		return true
+	}, defaultWait)
 	if a.environment["VFOX_PLUS_FAKE_DELAY"] != "" {
 		s.navigate("SDKs")
 		s.clickItem("nodejs")
@@ -350,6 +361,11 @@ func screenshotsScenario(s *scenario) {
 	s.clickItem("maven")
 	s.waitForText("3.8.9")
 	s.shot("dark-sdks")
+	s.clickItem("nodejs")
+	s.waitForText("Node.js runtime environment.")
+	s.clickButton("Available")
+	s.waitForText("872 versions")
+	s.shot("dark-available")
 	a.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
 		current.Theme, current.RailExpanded, current.Language = settings.ThemeLight, false, settings.LanguageSimplifiedChinese
 		return current

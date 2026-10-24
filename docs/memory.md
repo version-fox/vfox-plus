@@ -1,64 +1,28 @@
 # Memory use
 
 Low memory use is a goal of the project (see [the architecture](architecture.md#memory)).
-This page compares what the implementations use on Linux, measured the same way,
-so that the choice between them can take it into account. The numbers are a
-snapshot: every row is the result of the `measure` task of the sandbox of that
-implementation, run once, and the same numbers are in the Memory section of its
-README (the links in the first column).
+This page records what the application uses on Linux, measured the same way,
+so that regressions show up. The numbers are a snapshot: the row is the result
+of the `measure` task of the sandbox, run once, and the same numbers are in
+the Memory section of the [mygo README](../mygo/README.md#memory).
 
 ## Results
 
 In MB, for the application and all of its child processes together, in Docker on
-Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). The table is sorted by the first of the
-memory columns, the PSS of the Home page, from the smallest to the largest (the RSS
-is not in that order: see [Reading the numbers](#reading-the-numbers)); "Versions" is
+Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). "Versions" is
 the SDKs page with the 872 available versions of Node.js listed.
 
-| Implementation                             | Technology                                                           | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
-| ------------------------------------------ | -------------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../mygo/README.md#memory)           | mygo 0.6, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       41 |       54 |           47 |           60 |                  +6 |
-| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU, Native AOT           |         1 |       98 |      106 |          113 |          122 |                 +15 |
-| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on JDK 25.0.5+8, Gradle 9.8.2, Skia on the CPU, C1 only |         1 |      129 |      135 |          152 |          158 |                 +23 |
-| [Gio](../gio/README.md#memory)             | Gio, Go 1.27.3, OpenGL ES through EGL                             |         1 |      165 |      202 |          171 |          208 |                  +6 |
-| [Flutter](../flutter/README.md#memory)     | Flutter 3.47.8, Dart 3.13.7, Skia on the CPU, GTK 3               |         2 |      172 |      212 |          183 |          223 |                 +11 |
-| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, Node.js 24.22.1 front-end build, WebKitGTK, no compositing, DMA-BUF or JIT |         3 |      203 |      385 |          220 |          402 |                 +17 |
-| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, Node.js 24.22.1 front-end build, WebKitGTK 4.1 (GTK 3), no compositing, DMA-BUF or JIT |         3 |      208 |      382 |          220 |          394 |                 +12 |
-| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application, uv 0.13.5, Skia on the CPU |         2 |      216 |      257 |          224 |          266 |                  +8 |
-| [Wails](../wails/README.md#memory)         | Wails 3, Go 1.27.3, Node.js 24.22.1 front-end build, WebKitGTK 6.0 (GTK 4), as Tauri, GTK OpenGL off |         3 |      223 |      408 |          237 |          431 |                 +14 |
-| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron, Node.js 24.22.1 front-end build, no GPU process, no V8 JIT |         4 |      267 |      468 |          281 |          487 |                 +14 |
+| Implementation                   | Technology                                                   | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
+| -------------------------------- | ------------------------------------------------------------ | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
+| [mygo](../mygo/README.md#memory) | mygo 0.6, Go 1.27.3, GTK 3 (purego), CPU renderer            |         1 |       41 |       54 |           47 |           60 |                  +6 |
 
-- Without a GPU, what a toolkit does by default is to draw with the software OpenGL of
-  Mesa, and the memory of that and of its compiler (LLVM) is in the application. Taking it
-  out where the pages do not need it, compiling ahead of time and keeping the runtime
-  small moved the rows of this table more than anything else (see [No GPU](#reading-the-numbers)
-  below). mygo (41 MB of PSS on the Home page, in one process) draws on the processor from a
-  Go executable of 12 MB and loads GTK 3 from the system, and uses under half of what Uno
-  does: Uno (98) is compiled with Native AOT, a single piece of machine code with no
-  separate managed runtime, and keeping no XAML pages suits that well. Compose (129) draws
-  with Skia on the processor and runs the JVM with the first compiler of its JIT alone,
-  which keeps what the optimizing one needs out of the process. Gio (165) is the one that
-  still draws with OpenGL, and it has no renderer for the processor: the memory of Mesa is
-  most of its number, which also varies by 20 MB from one run to the next. Flutter and Flet
-  (172 and 216), whose client is a Flutter application too, draw with Skia on the processor
-  in two processes each; the engine still creates its OpenGL contexts at start-up, so
-  Mesa's compiler is in these numbers as well. The three implementations in WebKitGTK
-  (Dioxus 203, Tauri 208, Wails 223, in three processes) turn off the accelerated
-  compositing of WebKit, the buffers that it shares with the GPU and the JIT compiler of
-  the web process; Wails, with GTK 4 instead of GTK 3, keeps GTK from opening OpenGL
-  as well. Capacitor (267) is the largest: Electron's hardware acceleration is off, and the
-  GPU and the network service run in the main process, which leaves four processes.
-- Showing the list of versions now adds 6 to 23 MB of PSS to every implementation; before
-  the pages turned the accelerated compositing of WebKit off, it added 73 to 84 MB to
-  Tauri, Dioxus and Wails, which show the list in WebKitGTK.
-- WebKitGTK 6.0 with GTK 4 (Wails) needs 15 MB more than WebKitGTK 4.1 with GTK 3 (Tauri)
-  for the same web front end, with the settings of this table on both. It was 71 MB more
-  before Wails kept GTK 4 from opening OpenGL.
+mygo (41 MB of PSS on the Home page, in one process) draws on the processor from a
+Go executable of 12 MB and loads GTK 3 from the system. Showing the list of versions
+adds 6 MB of PSS because only the rows in view are built.
 
 ## How it is measured
 
-[`shared/tools/measure.sh`](../shared/tools/measure.sh) measures every implementation
-but Flutter the same way (Flutter has its own steps, [below](#measuring-flutter)):
+[`shared/tools/measure.sh`](../shared/tools/measure.sh) measures the application:
 
 1. It starts the application on the current display, with a new, empty home
    directory and the fake vfox of [`shared/fixtures`](../shared/fixtures), which
@@ -72,185 +36,92 @@ but Flutter the same way (Flutter has its own steps, [below](#measuring-flutter)
 3. The application opens the available versions of Node.js, waits 3 seconds and
    reports `e2e: MEASURE nodejs`, and the script measures again.
 
-The sizes are in MiB, which the script calls MB. The `measure` task of a sandbox runs
-all of this in Docker (`<implementation>/sandbox/sandbox.sh measure`, which needs
+The sizes are in MiB, which the script calls MB. The `measure` task of the sandbox runs
+all of this in Docker (`mygo/sandbox/sandbox.sh measure`, which needs
 nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPUs.
 
 ## Reading the numbers
 
 - **RSS and PSS.** RSS counts every page that a process has in memory, including
   those it shares with other processes, so the RSS of several processes counts a
-  shared page several times: 742 MB of RSS against 388 MB of PSS for Capacitor, in six
-  processes. PSS divides each shared page among the processes that map it, so the
+  shared page several times. PSS divides each shared page among the processes that map it, so the
   sum is what the application uses. Compare PSS.
 - **No GPU.** The virtual display has no GPU, so everything that draws with OpenGL
   uses the software rasterizer of Mesa (llvmpipe), and its memory, with that of its
-  compiler (LLVM), is in the numbers (the Gio README says that it is most of what Gio
-  uses). The implementations that can do without it do. Uno was set to draw with Skia on
-  the processor, and the same build of it took 295 MB on the Home page with Mesa's
-  software GL and 165 MB without it, with every other setting equal. mygo draws on the
-  processor too, and the application has GDK leave OpenGL alone: the same build took
-  about 78 MB when GDK opened its OpenGL connection, and about 43 MB when it did not.
-  Capacitor's Electron shell calls `app.disableHardwareAcceleration()` for the same
-  reason: the same build took 388 MB of PSS on the Home page with it on and 303 MB with
-  it off. Tauri, Dioxus and Wails set `WEBKIT_DISABLE_COMPOSITING_MODE=1` before their
-  webview starts, which keeps WebKitGTK from entering accelerated compositing mode at
-  all: the same builds took 419, 427 and 482 MB with it on, against 275, 258 and 346
-  with it off. Later changes of the same kind, each measured against the build without
-  it on the day of this table: Compose with `-Dskiko.renderApi=SOFTWARE` (Skia on the
-  processor, not OpenGL) and `-XX:TieredStopAtLevel=1` (the JIT of the JVM without its
-  optimizing compiler), about 50 MB each, 253 to 129 MB together; Flutter with
-  `FLUTTER_LINUX_RENDERER=software` and Impeller turned off (the engine of 3.47 cannot
-  draw the text of Impeller to the canvas of the processor), 339 to 172 MB, and Flet,
-  whose Flutter 3.44 needs nothing but the variable, about 340 to 216 MB; Tauri and Dioxus with `WEBKIT_DISABLE_DMABUF_RENDERER=1` and
-  `JSC_useJIT=false` (WebKit's own buffers for a GPU, and the JIT of its JavaScript
-  engine), 262 to 208 and 261 to 203 MB; Wails with these and `GDK_DISABLE=gl,vulkan`
-  and `GSK_RENDERER=cairo` (GTK 4 opens OpenGL for its own window otherwise), 341 to 223
-  MB; Capacitor with `--in-process-gpu`, `NetworkServiceInProcess2` and
-  `--js-flags=--lite-mode`, 305 to 267 MB and from six processes to four; Gio with one
-  copy of the tables of its variable font instead of three and a garbage collector that
-  runs at 25 % growth, which takes the heap of Go from 57 to 20 MB, inside a number that
-  varies by 20 MB. On Wayland, GDK opens OpenGL for the windows of GTK 3, which Tauri,
-  Dioxus, Flutter and Flet prevent with `GDK_GL=disable` (Tauri on a headless sway: 242
-  MB without it, 207 with it); the numbers here are those of X11. Still created without
-  a GPU: the OpenGL contexts of the engine of Flutter, and those of the processes of
-  WebKit, which cannot start without EGL. On a machine with a GPU the numbers of the
-  implementations that draw with OpenGL, and perhaps the order, differ (Gio draws with
-  it; the others no longer depend on it, except for those contexts); measure there when it
-  matters.
+  compiler (LLVM), ends up in the measured process. The application draws on the
+  processor instead, and keeps GTK from loading OpenGL: a GDK that opens its OpenGL
+  connection maps Mesa, and with the software driver of Mesa its compiler LLVM,
+  which is more than the application takes (the same build took about 78 MB of PSS
+  on the Home page when GDK did, and about 43 MB when it did not, with every other
+  setting equal). An interface this size does not need the GPU, and the memory
+  does not depend on the driver of the machine. On a machine with a GPU the numbers
+  may differ; measure there when it matters.
 - **One measurement per row.** Nothing is averaged over runs, so small differences
-  mean little; the implementations were measured one after another, with nothing else
-  running. Flutter, which was measured six times on an earlier day, had 332 to 342 MB
-  of PSS on the Home page and 344 to 369 MB with the list: the list added 4 to 30 MB.
-- **One snapshot at a time.** The numbers of the same code change from one snapshot
-  to the next: measured again in sandbox images built from the Ubuntu archive of a
-  later day, Tauri took 419 MB of PSS on the Home page instead of 397 MB, and Uno
-  125 MB instead of 133 MB. Compare the rows of one snapshot, as this table is.
+  mean little. mygo was measured repeatedly in CI (see below): identical code
+  varied by at most 1 MB of PSS on either page.
+- **One snapshot at a time.** The numbers of the same code change from one
+  snapshot to the next: measured again in sandbox images built from the Ubuntu
+  archive of a later day, the same build may take a few MB more or less. Compare
+  the rows of one snapshot, as this table is.
 - **What is not in them.** Only the process tree of the application is measured: the
   X server, the session bus and the desktop portal are not, and neither is vfox,
   which is the fake one here, so a real command adds the process of vfox while it
   runs.
 
-## Measuring Flutter
-
-The Flutter implementation has no `measure` scenario: its pages keep their state in
-widgets, where only a test can reach it, and the integration tests run a debug build.
-[`flutter/tool/measure.py`](../flutter/tool/measure.py) therefore measures the release
-build from the outside, with the same sums as `measure.sh`, and opens the pages the way
-a user does:
-
-1. It starts the release bundle with the environment of `measure.sh`: a new, empty home
-   directory, the fake vfox and the same settings file.
-2. It waits for the window, and then for the screen to show something and not to change
-   for 3 seconds (the other implementations wait 3 seconds after they show the Home
-   page). That is the Home page, which it measures.
-3. It clicks, with the mouse events of the XTEST extension of the X server, the SDKs
-   entry of the navigation rail, `nodejs` in the list and the Available tab, and waits
-   for the screen to settle after each click. With the 872 versions listed, it measures
-   again. A click has to change a tenth of the screen at least; if a change of the
-   layout has moved a button, the script stops with a message instead of measuring the
-   wrong page.
-
-`flutter/sandbox/sandbox.sh measure` builds the release bundle and runs the script in
-Xvfb with a session bus, as the other sandboxes do. It writes `memory.txt`, a screenshot
-of each of the four pages that the script opened (`home.png`, `sdks.png`,
-`nodejs-installed.png` and `nodejs.png`, so that what was measured can be looked at) and
-`app.log` to `dist/sandbox/measure/`. The `package` job of the Flutter workflow runs the
-script on the bundle that it builds. Without the sandbox, run
-`xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- python3 tool/measure.py <bundle>/vfox-plus`
-in `flutter/`; the script needs nothing but Python 3 and an X11 display.
-
-What is different from the other implementations:
-
-- The application runs in two processes. The second, `glycin-svg`, is the helper that
-  gdk-pixbuf starts to load the SVG icon of the window (with the icon file removed, the
-  process is not there). It has 18 MB of the RSS, and counts like the processes of a web
-  view.
-- The window is 1280 × 820 and the screen 1280 × 800: the window fills the screen and the
-  last 20 lines are cut off. The positions that the script clicks are for this window and
-  this layout; they are constants at the top of the script.
-- The memory is read when the screen has been still for 3 seconds, not when the
-  application reports a page.
-
 ## Memory in pull requests
 
-A pull request that rebuilds an implementation gets one comment with the memory of all
-of them: a table like [the one above](#results), sorted by the PSS of the Home page,
-with the difference from `main` next to the PSS. A new commit replaces that comment
-instead of adding another one.
+A pull request that rebuilds the application gets one comment with its memory: the
+table [above](#results) with the difference from `main` next to the PSS. A new
+commit replaces that comment instead of adding another one.
 
-- The workflow of each implementation runs the `measure` scenario of [How it is
-  measured](#how-it-is-measured) (Flutter: `tool/measure.py`) and uploads the lines that
-  it prints as the artifact `memory-<implementation>`. `measure.sh` writes them to the file
-  named in `VFOX_PLUS_MEASURE_OUTPUT` as well.
-- [`memory.yml`](../.github/workflows/memory.yml) starts every time one of those workflows
-  ends and runs [`memory_report.py`](../.github/scripts/memory_report.py). While another
-  one is still running for the latest commit of the pull request, the script stops. The
-  run after the last one compares the artifacts of the pull request with those of the
-  latest run of the same workflow on `main` and writes the comment. The workflow runs in
-  the context of `main`, which is what lets it comment on pull requests of forks, and it
-  reads nothing but two lines of numbers from the artifacts. If its token cannot write the
-  comment, the run only warns, and the report is in its summary.
-- An implementation that the pull request did not rebuild, because its workflow only runs
-  for changes in its own paths, shows the numbers of `main` and is marked "(main)".
+- The workflow of the implementation ([`mygo.yml`](../.github/workflows/mygo.yml))
+  runs the `measure` scenario of [How it is measured](#how-it-is-measured) and
+  uploads the lines that it prints as the artifact `memory-mygo`. `measure.sh`
+  writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well.
+- [`memory.yml`](../.github/workflows/memory.yml) starts when that workflow ends
+  and runs [`memory_report.py`](../.github/scripts/memory_report.py). It compares
+  the artifact of the pull request with the latest run of the same workflow on
+  `main` and writes the comment. The workflow runs in the context of `main`, which
+  is what lets it comment on pull requests of forks, and it reads nothing but two
+  lines of numbers from the artifact. If its token cannot write the comment, the
+  run only warns, and the report is in its summary.
 - The numbers are not those of the table above. They come from the runners of GitHub and
   from one run, not from Docker on a WSL2 host. Compare the rows of one comment with each
   other and with `main`, not with this page.
 
 ### The noise
 
-The same code does not use the same memory in every CI run. This is the largest
-difference between runs of identical code, from the 107 successful runs of 2026-10-18 and
-19 whose source was the same as that of at least one other run (30 groups of 2 to 8 runs),
-in MB and as a part of the lowest number:
-
-| Implementation |   Home PSS | Versions PSS |
-| -------------- | ---------: | -----------: |
-| mygo           |   1 (2.4%) |     0 (0.0%) |
-| Uno            |   4 (3.3%) |     5 (3.0%) |
-| Gio            | 20 (10.4%) |   23 (11.4%) |
-| Dioxus         |   5 (1.8%) |    13 (4.3%) |
-| Compose        |  15 (6.1%) |    14 (5.4%) |
-| Tauri          |  14 (3.3%) |    14 (2.9%) |
-| Capacitor      |   4 (1.0%) |     3 (0.7%) |
-| Flutter        | 35 (10.8%) |   43 (13.4%) |
-| Flet           |  16 (5.2%) |    25 (7.5%) |
-| Wails          |  11 (2.3%) |    13 (2.4%) |
+The same code does not use the same memory in every CI run. Comparing runs of
+identical code, the Home and the Versions PSS never differed by more than 1 MB
+(2.4 % of the lowest number on the Home page; 0 MB with the versions listed).
 
 So the comment calls a difference a change, and prints it in bold, only when it is more
-than 5 MB and more than 5% of the number on `main`; for Compose and Flet more than 8%, for
-Gio more than 12% and for Flutter more than 15%, because they vary more. Of the 940
-comparisons of two runs of the same code (the Home and the Versions PSS of every pair, in
-both directions), none was a change by these limits. The number of processes never varied,
+than 5 MB and more than 5% of the number on `main`. The number of processes never varied,
 so a different number is a change too. The sample is small: if the comment reports a
 change that the commit cannot have caused, measure how much identical code varies again
 and adjust `TOLERANCES` in the script.
 
 ### Using it
 
-- The artifacts expire after 90 days. An implementation without a run on `main` for that
-  long has "no baseline" until its workflow runs on `main` again.
+- The artifacts expire after 90 days. Without a run on `main` for that long,
+  the report has "no baseline" until the workflow runs on `main` again.
 - `gh workflow run memory.yml -f pull_request=<number>` writes the report of an open pull
   request again. To only see it, run the script with `--dry-run`:
 
   ```sh
   GH_TOKEN="$(gh auth token)" python3 .github/scripts/memory_report.py --dry-run \
     --repository version-fox/vfox-plus --pull-request <number> \
-    --implementations "capacitor compose dioxus flet flutter gio mygo tauri uno wails"
+    --implementations "mygo"
   ```
 
 - The tests of the script run in the `Repository` workflow:
   `python3 -m unittest discover -s .github/scripts`.
-- An implementation that is added uploads its numbers as `memory-<directory>` like the
-  others and goes into the two lists of `memory.yml`; one that is removed leaves them.
 
 ## Updating this page
 
-When an implementation is added, or its memory changes noticeably, run
-`<implementation>/sandbox/sandbox.sh measure`, copy the lines of
-`dist/sandbox/<implementation>/measure/memory.txt` (`dist/sandbox/measure/memory.txt`
-for Flutter) into the table, where the PSS comes before the RSS, and into the Memory
-section of the README of the implementation, and keep the table sorted by the PSS of
-the Home page. When the sandbox images are built again, measure every implementation
-again, one after another and with nothing else running, so that the table stays one
+When the memory changes noticeably, run
+`mygo/sandbox/sandbox.sh measure`, copy the lines of
+`dist/sandbox/mygo/measure/memory.txt` into the table, where the PSS comes before
+the RSS, and into the Memory section of the README of the implementation. When the
+sandbox images are built again, measure again, so that the table stays one
 snapshot (see [Reading the numbers](#reading-the-numbers)).

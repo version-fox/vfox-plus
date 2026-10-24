@@ -13,16 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Takes screenshots of every page: runs the "screenshots" scenario of an
-# application built with the end-to-end tests (web/src/e2e/scenarios.ts, or
-# the Rust port of the Dioxus implementation) against the fake vfox of
+# Takes screenshots of every page: runs the "screenshots" scenario of the
+# application built with the end-to-end tests against the fake vfox of
 # shared/fixtures, with a new, empty HOME, and captures the screen with
 # ImageMagick whenever the application prints "e2e: SHOT <name>". A second run
 # with a slow fake vfox shows an installation in progress.
 #
 # Usage: shared/tools/screenshots.sh <output directory> <application command...>
 #
-# The application runs on the current display, which should be 1280 × 800.
+# The application runs on the current display; make it taller than the window,
+# so that the captures show the whole window with its title bar (the sandbox
+# uses a 1280 × 860 display under xfwm4 with the Greybird theme).
 set -euo pipefail
 
 SHARED="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

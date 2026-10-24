@@ -30,9 +30,8 @@ linters:
   settings:
     revive:
       rules:
-        # The types and functions of core mirror those of the other
-        # implementations (VfoxCommand, SettingsStore, ...), so that the code
-        # can be compared; the stutter is intended.
+        # The types and functions of core use the domain names of this
+        # document (VfoxCommand, SettingsStore, ...); the stutter is intended.
         - name: exported
           arguments:
             - disableStutteringCheck

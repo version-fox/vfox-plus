@@ -13,17 +13,20 @@
 // limitations under the License.
 
 // Writes shapes.json: the outlines of the Material 3 shapes that vfox-plus
-// draws, as SVG paths, from the shape component of @m3e/web (MIT, matraic),
-// which the web front end draws them with. The Go shapes are tested against
-// them (shapes_test.go).
+// draws, as SVG paths, from the shape component of @m3e/web (MIT, matraic).
+// The Go shapes are tested against them (shapes_test.go).
 //
-//   node generate.mjs > shapes.json
+//   npm install --prefix "$TMP" @m3e/web@2.10.1
+//   node generate.mjs "$TMP/node_modules/@m3e/web/dist/shape.js" > shapes.json
 //
-// Needs `npm ci` in web/.
+// With no argument, the module is read from node_modules next to this script.
 
 import { readFileSync } from 'node:fs';
 
-const source = readFileSync(new URL('../../../../web/node_modules/@m3e/web/dist/shape.js', import.meta.url), 'utf8');
+const source = readFileSync(
+  process.argv[2] ?? new URL('./node_modules/@m3e/web/dist/shape.js', import.meta.url),
+  'utf8',
+);
 const match = source.match(/const SHAPE_PATHS = (\{[\s\S]*?\n\});/);
 if (match === null) {
   throw new Error('SHAPE_PATHS not found');

@@ -24,9 +24,8 @@ import (
 
 // Preferences of the application itself (not of vfox).
 //
-// The JSON keys are part of the shared specification in
-// docs/architecture.md#settings, so that every implementation of the GUI can
-// read the same file.
+// The JSON keys are part of the specification in
+// docs/architecture.md#settings.
 
 // ThemePreference is the light or dark appearance; System follows the desktop.
 type ThemePreference string
@@ -83,7 +82,7 @@ type AppSettings struct {
 	// Whether the navigation rail shows labels next to the icons.
 	RailExpanded bool
 	// Keys of the settings file that this version does not know, kept as
-	// they are so that settings written by another implementation survive.
+	// they are so that settings written by a newer version survive.
 	Unknown map[string]interface{}
 }
 
