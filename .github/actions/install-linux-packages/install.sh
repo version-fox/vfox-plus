@@ -16,40 +16,40 @@
 # Installs Ubuntu packages on a runner of GitHub Actions in two steps, which the
 # action next to this file (action.yml) wraps in a cache:
 #
-#   1. Downloads the packages into /var/cache/apt/archives, with a time limit
-#      for each attempt, and tries again when an attempt runs out of time. The
-#      Ubuntu mirror of the runners is sometimes throttled to about 40 KB/s, and
-#      downloading 94 MB took 45 minutes then (a minute at other times), which
-#      is what a job of 25 or 45 minutes cannot wait for. The throttle seems to
-#      be for each connection (the rate did not change while the number of jobs
-#      that were downloading fell from 11 to 5), and apt downloads from a host
-#      over one connection, one file after the other: eight files at a time
-#      (fetch.sh) are eight times as fast then, and as fast as before when the
-#      mirror is not throttled. apt then fetches what is left and checks every
-#      archive. What an attempt has downloaded is kept, so the next one
-#      continues with the rest.
+#   1. Downloads the packages that the cache lacks into /var/cache/apt/archives, in
+#      15 minutes at most. fetch.sh does it, eight files at a time and the largest
+#      first, from the mirrors of the runner: it continues what was cut, tries the
+#      next mirror when one is slow, and checks the hash of every archive, those of
+#      the cache too, because apt takes an archive of the right size for a good one.
+#      Then apt fetches what is left.
 #   2. Installs them from the archives, which needs no network.
+#
+# Why not apt alone: the Ubuntu mirror of the runners is slow for some of them. On
+# 2026-10-23 a job got 40 KB/s for a connection while other jobs of the same minute
+# downloaded 90 MB in seconds, and its 94 MB did not come in 30 minutes (a minute on a
+# good day), which a job of 25 or 45 minutes cannot wait for; a file of 25 MB alone
+# takes 10 minutes at that speed. apt downloads from one mirror, over one connection,
+# one file after the other, however slow it is.
 #
 # Finally it removes the archives of versions that the package lists no longer
 # have, so that the cache does not grow from week to week.
 #
 # Usage: install.sh <package>...
 #
-# Set APT_ATTEMPTS and APT_ATTEMPT_LIMIT (a time for timeout(1), such as 5m) to
-# change the number of attempts of the download (3) and the time of each (5m):
-# the three of them have to end before the timeout of the job, for the action to
-# save what they downloaded. APT_PARALLEL is the number of files that are
-# downloaded at the same time (8; 0 leaves it all to apt).
+# Set APT_DOWNLOAD_SECONDS to change the time of the download (900): it has to end
+# before the timeout of the job, for the action to save what was downloaded.
+# APT_PARALLEL is the number of files that are downloaded at the same time (8; 0
+# leaves all of it to apt). fetch.sh has two more, APT_MIN_SPEED and APT_SPEED_TIME.
 set -euo pipefail
 
 [[ $# -gt 0 ]] || { echo "Usage: install.sh <package>..." >&2; exit 2; }
 
 packages=("$@")
-attempts="${APT_ATTEMPTS:-3}"
-limit="${APT_ATTEMPT_LIMIT:-5m}"
+seconds="${APT_DOWNLOAD_SECONDS:-900}"
 parallel="${APT_PARALLEL:-8}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 archives=/var/cache/apt/archives
+deadline=$(($(date +%s) + seconds))
 
 # A request that gets no data for 30 seconds fails and is tried again, up to 3
 # times; apt waits for 2 minutes by default. The archives stay where they are
@@ -66,47 +66,93 @@ apt_get() {
   sudo timeout "$time" env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" "$@"
 }
 
-# prefetch: downloads the archives that the installation needs and that are not in
-# the directory, $parallel at a time, from the mirror that apt would use. It only
-# saves time: what it does not fetch, apt does.
+# archive_size <file name>: the size of the archive, 0 when it is not there.
+archive_size() {
+  stat --format %s "$archives/$1" 2> /dev/null || echo 0
+}
+
+# missing <list>: the number of archives of the list that are not in the directory
+# with their size.
+missing() {
+  local size name count=0
+  while read -r size name _; do
+    [[ "$(archive_size "$name")" -eq "$size" ]] || count=$((count + 1))
+  done < "$1"
+  echo "$count"
+}
+
+# prefetch: makes the archives that the installation needs available in the
+# directory, and checks the ones that are there already. It only saves time: what it
+# does not fetch, apt does.
 prefetch() {
-  local mirror list
-  # The runners list their mirrors in a file, and apt prints the address of the file
-  # for the mirror in the addresses of the packages.
-  mirror="$(awk 'NF { print $1; exit }' /etc/apt/apt-mirrors.txt 2> /dev/null || true)"
+  local mirrors list empty line path total before after size name hash address mirror
+  if ! command -v curl > /dev/null; then
+    echo "curl is missing, apt downloads everything."
+    return
+  fi
+  # The runners list their mirrors in a file, one for each line, the best first.
+  mapfile -t mirrors < <(awk 'NF { print $1 }' /etc/apt/apt-mirrors.txt 2> /dev/null)
   list="$(mktemp)"
-  # The lines are 'address' file size checksum.
-  apt_get 2m install --print-uris -y --no-install-recommends "${packages[@]}" 2> /dev/null \
-    | sed -n "s/^'\([^']*\)' \([^ ]*\) \([0-9]*\) .*/\1 \2 \3/p" \
-    | while read -r address name size; do
-      if [[ -n "$mirror" ]]; then
-        address="${address/#mirror+file:\/etc\/apt\/apt-mirrors.txt\//$mirror}"
+  # apt prints 'address' name size hash for each archive (a SHA256 hash is what
+  # fetch.sh checks), but not for the archives that are in the directory, which it
+  # takes for good ones: it is shown an empty directory, and fetch.sh checks them. The
+  # address of a runner starts with that of the file of the mirrors, which stands for
+  # one of them: the line of an archive has its address on each mirror, for fetch.sh.
+  # The largest come first, so that none of them is the last and alone.
+  empty="$(mktemp -d)"
+  apt_get 2m -o Dir::Cache::Archives="$empty" -o Acquire::ForceHash=SHA256 install --print-uris -y --no-install-recommends "${packages[@]}" 2> /dev/null \
+    | sed -n "s/^'\([^']*\)' \([^ ]*\) \([0-9]*\) \([^ ]*\).*/\3 \2 \4 \1/p" \
+    | while read -r size name hash address; do
+      line="$size $name $hash"
+      path="${address#mirror+file:/etc/apt/apt-mirrors.txt/}"
+      if [[ "$path" != "$address" && ${#mirrors[@]} -gt 0 ]]; then
+        for mirror in "${mirrors[@]}"; do
+          line+=" ${mirror%/}/$path"
+        done
+      else
+        line+=" $address"
       fi
-      if [[ "$(stat --format %s "$archives/$name" 2> /dev/null || echo 0)" -ne "$size" ]]; then
-        echo "$address $name"
-      fi
-    done > "$list" || true
+      echo "$line"
+    done \
+    | sort -k 1,1nr > "$list" || true
+  rmdir "$empty" 2> /dev/null || true
+  total="$(wc -l < "$list")"
+  before="$(missing "$list")"
+  echo "$before of $total archives are not in $archives."
   sudo mkdir -p "$archives/partial"
-  # One line, an address and a file name, for each run of fetch.sh, and no run
-  # when there is no line.
-  sudo timeout "$limit" xargs -r -a "$list" -P "$parallel" -L 1 "$here/fetch.sh" "$archives" \
-    || echo "::warning::Not every archive was downloaded by fetch.sh; apt fetches the rest."
+  # One line, a size, a name, a hash and addresses, for each run of fetch.sh, and no
+  # run when there is no line. fetch.sh ends at the deadline by itself; the limit here
+  # is for what goes wrong in it.
+  sudo timeout "$((deadline - $(date +%s) + 60))" \
+    env APT_DEADLINE="$deadline" APT_MIN_SPEED="${APT_MIN_SPEED:-}" APT_SPEED_TIME="${APT_SPEED_TIME:-}" \
+    xargs -r -a "$list" -P "$parallel" -L 1 "$here/fetch.sh" "$archives" || true
+  after="$(missing "$list")"
+  echo "fetch.sh downloaded $((before - after)) archives."
+  if ((after > 0)); then
+    echo "::warning::$after archives are left for apt."
+  fi
   rm -f "$list"
 }
 
-for ((attempt = 1; attempt <= attempts; attempt++)); do
-  if apt_get 2m update \
-    && { [[ "$parallel" -eq 0 ]] || prefetch; } \
-    && apt_get "$limit" install --download-only -y --no-install-recommends "${packages[@]}"; then
-    break
-  fi
-  if [[ $attempt -eq $attempts ]]; then
-    echo "::error::Could not download the packages in $attempts attempts of $limit; the mirror is probably slow."
+for ((attempt = 1; attempt <= 3; attempt++)); do
+  apt_get 2m update && break
+  if ((attempt == 3)); then
+    echo "::error::apt-get update failed in 3 attempts."
     exit 1
   fi
-  echo "::warning::Attempt $attempt of $attempts to download the packages failed or took more than $limit."
   sleep 5
 done
+
+[[ "$parallel" -eq 0 ]] || prefetch
+
+# apt downloads what is still missing, and checks what it downloads, with what is
+# left of the time (a minute at least, which is enough to see that nothing is).
+left=$((deadline - $(date +%s)))
+((left > 60)) || left=60
+if ! apt_get "${left}s" install --download-only -y --no-install-recommends "${packages[@]}"; then
+  echo "::error::Could not download the packages (the limit is $seconds seconds); the mirrors are probably slow."
+  exit 1
+fi
 
 # Killing dpkg half way would leave packages unpacked but not configured, so
 # the installation has no time limit; it needs no network.

@@ -75,11 +75,13 @@ GitHub Actions up to date; actions are pinned to commit SHAs.
 The workflows install their Ubuntu packages with
 [`install-linux-packages`](.github/actions/install-linux-packages/action.yml), which
 keeps the downloaded archives in a cache (one for each list of packages and each
-week), downloads what the cache lacks eight files at a time, and gives the download a
-time limit and three attempts. The Ubuntu mirror of the runners is sometimes throttled
-to about 40 KB/s for each connection: installing 94 MB over one connection took 45
-minutes on 2026-10-23 (a minute on other days), which timed jobs out. A run that cannot
-finish saves what it downloaded, so that the next one gets further.
+week) and downloads what the cache lacks eight files at a time, continuing what was cut
+and trying the next mirror when one is slow, in 15 minutes at most. The Ubuntu mirror of
+the runners is slow for some of them at times: on 2026-10-23 a job got 40 KB/s for a
+connection while others downloaded 90 MB in seconds, and the 94 MB of Wails did not come
+in 30 minutes (a minute on a good day). apt does not check an archive that is in the
+directory, so the action checks every archive by its hash. A run that cannot finish
+saves what it downloaded, so that the next one gets further.
 
 A pull request that rebuilds an implementation gets a comment with the memory of all of
 them and the difference from `main`, which the next commit replaces instead of adding
