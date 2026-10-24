@@ -17,7 +17,7 @@ the SDKs page with the 872 available versions of Node.js listed.
 
 | Implementation                             | Technology                                                           | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | ------------------------------------------ | -------------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../mygo/README.md#memory)           | mygo 0.5, Go, GTK 3 (purego), CPU renderer                           |         1 |       41 |       54 |           47 |           60 |                  +6 |
+| [mygo](../mygo/README.md#memory)           | mygo 0.6, Go, GTK 3 (purego), CPU renderer                           |         1 |       41 |       54 |           47 |           60 |                  +6 |
 | [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU, Native AOT           |         1 |       98 |      106 |          113 |          122 |                 +15 |
 | [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia on the CPU, C1 only   |         1 |      129 |      135 |          152 |          158 |                 +23 |
 | [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                                       |         1 |      165 |      202 |          171 |          208 |                  +6 |
