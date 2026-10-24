@@ -1,0 +1,83 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Install the Linux packages
+description: >-
+  Installs Ubuntu packages from a cache of their archives, and downloads what the
+  cache lacks eight files at a time, continuing what was cut and trying the next
+  mirror when one is slow, in 15 minutes at most (see install.sh), because the
+  Ubuntu mirror of the runners is slow for some of them at times.
+
+inputs:
+  packages:
+    description: The packages, separated by spaces or new lines.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Name the cache
+      id: names
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        # A cache for each list of packages and each week: a week is long enough
+        # for many runs to use it, and short enough to stay near the versions
+        # of the mirror. The newest cache of any earlier week (or what an
+        # interrupted run saved, see below) starts the cache of a new week,
+        # which install.sh trims.
+        hash="$(echo "$PACKAGES" | tr -s '[:space:]' '\n' | sort -u | sha256sum | cut -c1-16)"
+        echo "prefix=apt-${ImageOS:-ubuntu}-$hash-" >> "$GITHUB_OUTPUT"
+        echo "key=apt-${ImageOS:-ubuntu}-$hash-$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+    - name: Let the cache write the archives
+      shell: bash
+      run: sudo chmod a+rwx /var/cache/apt/archives
+    - name: Restore the archives
+      id: cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: /var/cache/apt/archives/*.deb
+        key: ${{ steps.names.outputs.key }}
+        restore-keys: ${{ steps.names.outputs.prefix }}
+    - name: Install the packages
+      id: install
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        # shellcheck disable=SC2086 # The list is meant to be split.
+        "$GITHUB_ACTION_PATH/install.sh" $PACKAGES
+    # The cache is saved by the user of the runner, and one archive that this user
+    # cannot read fails the whole save (tar did on one archive of Wails, on
+    # 2026-10-23, and nothing was saved). It also holds when the installation failed.
+    - name: Let the cache read the archives
+      if: always()
+      shell: bash
+      run: sudo chmod a+r /var/cache/apt/archives/*.deb || true
+    - name: Save the archives
+      if: steps.install.outcome == 'success' && steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: /var/cache/apt/archives/*.deb
+        key: ${{ steps.names.outputs.key }}
+    # A download that did not finish within its time is not lost: the next run
+    # starts from the archives it got (by the prefix above) instead of from
+    # nothing, so that a run on a slow mirror gets further each time.
+    - name: Save what was downloaded
+      if: always() && steps.install.outcome == 'failure'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: /var/cache/apt/archives/*.deb
+        key: ${{ steps.names.outputs.prefix }}partial-${{ github.run_id }}-${{ github.run_attempt }}

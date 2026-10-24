@@ -101,8 +101,9 @@ func (f faceOfVariation) Face() *fontapi.Face {
 }
 
 // parseFont parses a font of the data. Gio tells faces apart by their *Font,
-// so every variation of a variable font needs a Font of its own, and parses
-// the data again.
+// so every variation of a variable font needs a Font of its own: a copy of
+// the parsed one, which shares its tables (parsing the data again for each
+// would keep a copy of the tables for each in the memory).
 func parseFont(data []byte, index int) (*fontapi.Font, bool, error) {
 	if index > 0 || bytes.HasPrefix(data, []byte("ttcf")) {
 		loaders, err := opentype.NewLoaders(bytes.NewReader(data))
@@ -260,11 +261,15 @@ func loadFamily(faces *[]text.FontFace, regular fontSource, pattern string, type
 		regular.variable = variable
 	}
 	if regular.variable {
+		parsed, _, err := parseFont(data, regular.index)
+		if err != nil {
+			return false
+		}
 		for _, weight := range weights {
-			f, _, err := parseFont(data, regular.index)
-			if err != nil {
-				return false
-			}
+			// A Font of its own for every weight, which shares the tables of
+			// the one that was parsed.
+			clone := *parsed
+			f := &clone
 			*faces = append(*faces, text.FontFace{
 				Font: giofont.Font{Typeface: typeface, Weight: giofont.Weight(weight - 400)},
 				Face: faceOfVariation{font: f, variations: []fontapi.Variation{

@@ -29,15 +29,24 @@ const APP_ID: &str = "dev.vfox.VfoxPlus";
 fn main() {
     glib::set_prgname(Some(APP_ID));
     glib::set_application_name("vfox+");
-    // Accelerated compositing maps Mesa's software OpenGL and its compiler when
-    // there is no real GPU; the pages of vfox+ do not need it. See
-    // docs/memory.md and the WebKitGTK documentation of this variable. Nothing
-    // else runs yet, so this is the one place an exception to
+    // Accelerated compositing, the buffers that WebKit shares with the GPU and
+    // the OpenGL of GDK on Wayland map Mesa's software OpenGL and its compiler
+    // when there is no real GPU, and the JIT compiler of the web process keeps
+    // memory of its own; the pages of vfox+ need none of it. See
+    // docs/memory.md and the variables of WebKitGTK and of its JavaScript
+    // engine. Nothing else runs yet, so this is the one place an exception to
     // `unsafe_code = "deny"` is justified.
-    if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
-        #[allow(unsafe_code)]
-        unsafe {
-            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    for (name, value) in [
+        ("WEBKIT_DISABLE_COMPOSITING_MODE", "1"),
+        ("WEBKIT_DISABLE_DMABUF_RENDERER", "1"),
+        ("JSC_useJIT", "false"),
+        ("GDK_GL", "disable"),
+    ] {
+        if std::env::var_os(name).is_none() {
+            #[allow(unsafe_code)]
+            unsafe {
+                std::env::set_var(name, value);
+            }
         }
     }
     // The first frame already has the colours of the stored settings; the

@@ -15,6 +15,12 @@
 #include "my_application.h"
 
 int main(int argc, char** argv) {
+  // Draw on the processor instead of OpenGL: without a real GPU, OpenGL means
+  // Mesa's software rasterizer and its compiler, which take as much memory as
+  // the rest of the application (see docs/memory.md). The engine draws with
+  // Skia then (my_application.cc), and GDK is told not to open OpenGL either.
+  g_setenv("FLUTTER_LINUX_RENDERER", "software", FALSE);
+  g_setenv("GDK_GL", "disable", FALSE);
   g_autoptr(MyApplication) app = my_application_new();
   return g_application_run(G_APPLICATION(app), argc, argv);
 }

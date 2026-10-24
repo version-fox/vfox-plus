@@ -105,12 +105,16 @@ processes together.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 442 MB | 275 MB |
-| Versions of Node.js listed | 452 MB | 285 MB |
+| Home page | 382 MB | 208 MB |
+| Versions of Node.js listed | 394 MB | 220 MB |
 
-`lib.rs` sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` before the webview starts,
-unless it is already set: without it, accelerated compositing maps Mesa's
-software OpenGL and its compiler, which the pages of vfox+ do not need, and
-the same build took 419 MB of PSS on the Home page instead of 275. Software
-rendering dominates what is left; compare implementations measured the same
-way.
+`lib.rs` sets these variables before the webview starts, unless they are
+already set: `WEBKIT_DISABLE_COMPOSITING_MODE=1`, `WEBKIT_DISABLE_DMABUF_RENDERER=1`
+and `JSC_useJIT=false` for WebKitGTK and its JavaScript engine, and
+`GDK_GL=disable`, which keeps GDK from opening OpenGL for its windows on
+Wayland. Without them, accelerated compositing and the buffers that WebKit
+shares with the GPU map Mesa's software OpenGL and its compiler, which the
+pages of vfox+ do not need, and the JIT compiler of the web process keeps
+memory of its own: the same build took 262 MB of PSS on the Home page instead
+of 208 (and 419 MB in the snapshot before any of them was set). Compare
+implementations measured the same way.

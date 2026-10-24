@@ -114,9 +114,15 @@ software rendering, a 1280 × 800 window.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 290 MB | 266 MB |
-| Versions of Node.js listed | 301 MB | 277 MB |
+| Home page | 135 MB | 129 MB |
+| Versions of Node.js listed | 158 MB | 152 MB |
 
-The JVM runs with a heap of at most 256 MB and the serial collector; Skia
-draws the window itself, so there are no processes of a web view. Compare
-implementations measured the same way.
+The JVM runs with a heap of at most 256 MB, the serial collector and only the
+first compiler of its JIT (`-XX:TieredStopAtLevel=1`: the optimizing one keeps
+tens of megabytes of its own), and Skia draws on the processor
+(`-Dskiko.renderApi=SOFTWARE`, in `build.gradle.kts`). Skiko draws with OpenGL
+by default, which maps Mesa's software OpenGL and its compiler when there is no
+real GPU: the same build took 253 MB of PSS on the Home page without the two
+settings, about half of the difference each, and used about twice the
+processor time. Skia draws the window itself, so there are no processes of a
+web view. Compare implementations measured the same way.

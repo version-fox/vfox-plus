@@ -92,11 +92,22 @@ func (desktop) Exit(code int) {
 }
 
 func main() {
-	// Accelerated compositing maps Mesa's software OpenGL and its compiler
-	// when there is no real GPU; the pages of vfox+ do not need it. See
-	// docs/memory.md and the WebKitGTK documentation of this variable.
-	if _, set := os.LookupEnv("WEBKIT_DISABLE_COMPOSITING_MODE"); !set {
-		_ = os.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+	// Accelerated compositing, the OpenGL renderer of GTK and the buffers that
+	// WebKit shares with the GPU map Mesa's software OpenGL and its compiler
+	// when there is no real GPU, and the JIT compiler of the web process keeps
+	// memory of its own; the pages of vfox+ need none of it. The first three
+	// are variables of WebKitGTK and of its JavaScript engine, the others
+	// keep GTK 4 from opening OpenGL and Vulkan. See docs/memory.md.
+	for _, setting := range [...]struct{ name, value string }{
+		{"WEBKIT_DISABLE_COMPOSITING_MODE", "1"},
+		{"WEBKIT_DISABLE_DMABUF_RENDERER", "1"},
+		{"JSC_useJIT", "false"},
+		{"GDK_DISABLE", "gl,vulkan"},
+		{"GSK_RENDERER", "cairo"},
+	} {
+		if _, set := os.LookupEnv(setting.name); !set {
+			_ = os.Setenv(setting.name, setting.value)
+		}
 	}
 	frontend, err := fs.Sub(assets, "frontend/dist")
 	if err == nil {

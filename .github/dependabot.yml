@@ -71,7 +71,10 @@ updates:
       nuget-packages:
         patterns: ["*"]
   - package-ecosystem: github-actions
-    directory: /
+    # The workflows, and the actions of this repository, which pin actions too.
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
     groups:

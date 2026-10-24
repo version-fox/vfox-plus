@@ -15,39 +15,45 @@ memory columns, the PSS of the Home page, from the smallest to the largest (the 
 is not in that order: see [Reading the numbers](#reading-the-numbers)); "Versions" is
 the SDKs page with the 872 available versions of Node.js listed.
 
-| Implementation                             | Technology                                      | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
-| ------------------------------------------ | ----------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../mygo/README.md#memory)           | mygo 0.5, Go, GTK 3 (purego), CPU renderer                |         1 |       41 |       54 |           47 |           60 |                  +6 |
-| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU, Native AOT |         1 |       99 |      106 |          116 |          123 |                 +17 |
-| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                             |         1 |      215 |      240 |          228 |          253 |                 +13 |
-| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK, compositing off               |         3 |      258 |      434 |          296 |          473 |                 +38 |
-| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia             |         1 |      266 |      290 |          277 |          301 |                 +11 |
-| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3), compositing off      |         3 |      275 |      442 |          285 |          452 |                 +10 |
-| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron, no hardware GPU       |         6 |      303 |      655 |          313 |          672 |                 +10 |
-| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Impeller (OpenGL ES), GTK 3            |         2 |      329 |      369 |          345 |          384 |                 +16 |
-| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application                 |         2 |      346 |      378 |          383 |          415 |                 +37 |
-| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4), compositing off        |         3 |      346 |      525 |          358 |          538 |                 +12 |
+| Implementation                             | Technology                                                           | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
+| ------------------------------------------ | -------------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
+| [mygo](../mygo/README.md#memory)           | mygo 0.5, Go, GTK 3 (purego), CPU renderer                           |         1 |       41 |       54 |           47 |           60 |                  +6 |
+| [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU, Native AOT           |         1 |       98 |      106 |          113 |          122 |                 +15 |
+| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia on the CPU, C1 only   |         1 |      129 |      135 |          152 |          158 |                 +23 |
+| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                                       |         1 |      165 |      202 |          171 |          208 |                  +6 |
+| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Skia on the CPU, GTK 3                           |         2 |      172 |      212 |          183 |          223 |                 +11 |
+| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK, no compositing, DMA-BUF or JIT          |         3 |      203 |      385 |          220 |          402 |                 +17 |
+| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3), no compositing, DMA-BUF or JIT |         3 |      208 |      382 |          220 |          394 |                 +12 |
+| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application, Skia on the CPU          |         2 |      216 |      257 |          224 |          266 |                  +8 |
+| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4), as Tauri, GTK OpenGL off         |         3 |      223 |      408 |          237 |          431 |                 +14 |
+| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron, no GPU process, no V8 JIT       |         4 |      267 |      468 |          281 |          487 |                 +14 |
 
-- Turning off GPU-dependent rendering where the pages do not need it, and compiling
-  ahead of time where that lets trimming do a better job, closes most of the gap
-  between the four implementations that run in one process and draw themselves
-  (mygo, Uno, Gio, Compose, 41 to 266 MB of PSS on the Home page) and the four that
-  bring a web view or a browser: with WebKitGTK's accelerated compositing turned off,
-  Dioxus and Tauri are 258 and 275 MB, in three processes, both now cheaper than
-  Compose; Capacitor, with Electron's hardware acceleration off, is 303, in six
-  processes. mygo still uses under half of what Uno does, drawing on the processor
-  from a Go executable of 12 MB and loading GTK 3 from the system; Uno, compiled with
-  Native AOT instead of ReadyToRun, is a single piece of machine code with no separate
-  managed runtime, and keeping no XAML pages suits that well. Flutter and Flet, whose
-  client is a Flutter application too, follow at 329 and 346, each in two processes.
-  Wails, in the same three processes and with the same fix as Tauri and Dioxus, stays
-  at 346, tied with Flet: it links the heavier WebKitGTK 6.0 with GTK 4 instead of their
-  WebKitGTK 4.1 with GTK 3 (see below).
-- Showing the list of versions now adds 6 to 38 MB of PSS to every implementation; before
-  this page turned their accelerated compositing off, it added 73 to 84 MB to Tauri,
-  Dioxus and Wails, which show the list in WebKitGTK.
-- WebKitGTK 6.0 with GTK 4 (Wails) still needs 71 MB more than WebKitGTK 4.1 with GTK 3
-  (Tauri) for the same web front end, with accelerated compositing off on both.
+- Without a GPU, what a toolkit does by default is to draw with the software OpenGL of
+  Mesa, and the memory of that and of its compiler (LLVM) is in the application. Taking it
+  out where the pages do not need it, compiling ahead of time and keeping the runtime
+  small moved the rows of this table more than anything else (see [No GPU](#reading-the-numbers)
+  below). mygo (41 MB of PSS on the Home page, in one process) draws on the processor from a
+  Go executable of 12 MB and loads GTK 3 from the system, and uses under half of what Uno
+  does: Uno (98) is compiled with Native AOT, a single piece of machine code with no
+  separate managed runtime, and keeping no XAML pages suits that well. Compose (129) draws
+  with Skia on the processor and runs the JVM with the first compiler of its JIT alone,
+  which keeps what the optimizing one needs out of the process. Gio (165) is the one that
+  still draws with OpenGL, and it has no renderer for the processor: the memory of Mesa is
+  most of its number, which also varies by 20 MB from one run to the next. Flutter and Flet
+  (172 and 216), whose client is a Flutter application too, draw with Skia on the processor
+  in two processes each; the engine still creates its OpenGL contexts at start-up, so
+  Mesa's compiler is in these numbers as well. The three implementations in WebKitGTK
+  (Dioxus 203, Tauri 208, Wails 223, in three processes) turn off the accelerated
+  compositing of WebKit, the buffers that it shares with the GPU and the JIT compiler of
+  the web process; Wails, with GTK 4 instead of GTK 3, keeps GTK from opening OpenGL
+  as well. Capacitor (267) is the largest: Electron's hardware acceleration is off, and the
+  GPU and the network service run in the main process, which leaves four processes.
+- Showing the list of versions now adds 6 to 23 MB of PSS to every implementation; before
+  the pages turned the accelerated compositing of WebKit off, it added 73 to 84 MB to
+  Tauri, Dioxus and Wails, which show the list in WebKitGTK.
+- WebKitGTK 6.0 with GTK 4 (Wails) needs 15 MB more than WebKitGTK 4.1 with GTK 3 (Tauri)
+  for the same web front end, with the settings of this table on both. It was 71 MB more
+  before Wails kept GTK 4 from opening OpenGL.
 
 ## How it is measured
 
@@ -78,9 +84,10 @@ nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPU
   processes. PSS divides each shared page among the processes that map it, so the
   sum is what the application uses. Compare PSS.
 - **No GPU.** The virtual display has no GPU, so everything that draws with OpenGL
-  uses the software rasterizer of Mesa (llvmpipe), and its memory is in the numbers
-  (the Gio README says that it is most of what Gio uses). Uno was set to draw with Skia on the
-  processor, and the same build of it took 295 MB on the Home page with Mesa's
+  uses the software rasterizer of Mesa (llvmpipe), and its memory, with that of its
+  compiler (LLVM), is in the numbers (the Gio README says that it is most of what Gio
+  uses). The implementations that can do without it do. Uno was set to draw with Skia on
+  the processor, and the same build of it took 295 MB on the Home page with Mesa's
   software GL and 165 MB without it, with every other setting equal. mygo draws on the
   processor too, and the application has GDK leave OpenGL alone: the same build took
   about 78 MB when GDK opened its OpenGL connection, and about 43 MB when it did not.
@@ -89,9 +96,28 @@ nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPU
   it off. Tauri, Dioxus and Wails set `WEBKIT_DISABLE_COMPOSITING_MODE=1` before their
   webview starts, which keeps WebKitGTK from entering accelerated compositing mode at
   all: the same builds took 419, 427 and 482 MB with it on, against 275, 258 and 346
-  with it off. On a machine with a GPU the numbers of the implementations that draw
-  with OpenGL, and perhaps the order, differ (Uno, mygo, Capacitor, Tauri, Dioxus and
-  Wails no longer depend on the GPU); measure there when it matters.
+  with it off. Later changes of the same kind, each measured against the build without
+  it on the day of this table: Compose with `-Dskiko.renderApi=SOFTWARE` (Skia on the
+  processor, not OpenGL) and `-XX:TieredStopAtLevel=1` (the JIT of the JVM without its
+  optimizing compiler), about 50 MB each, 253 to 129 MB together; Flutter with
+  `FLUTTER_LINUX_RENDERER=software` and Impeller turned off (the engine of 3.47 cannot
+  draw the text of Impeller to the canvas of the processor), 339 to 172 MB, and Flet,
+  whose Flutter 3.44 needs nothing but the variable, about 340 to 216 MB; Tauri and Dioxus with `WEBKIT_DISABLE_DMABUF_RENDERER=1` and
+  `JSC_useJIT=false` (WebKit's own buffers for a GPU, and the JIT of its JavaScript
+  engine), 262 to 208 and 261 to 203 MB; Wails with these and `GDK_DISABLE=gl,vulkan`
+  and `GSK_RENDERER=cairo` (GTK 4 opens OpenGL for its own window otherwise), 341 to 223
+  MB; Capacitor with `--in-process-gpu`, `NetworkServiceInProcess2` and
+  `--js-flags=--lite-mode`, 305 to 267 MB and from six processes to four; Gio with one
+  copy of the tables of its variable font instead of three and a garbage collector that
+  runs at 25 % growth, which takes the heap of Go from 57 to 20 MB, inside a number that
+  varies by 20 MB. On Wayland, GDK opens OpenGL for the windows of GTK 3, which Tauri,
+  Dioxus, Flutter and Flet prevent with `GDK_GL=disable` (Tauri on a headless sway: 242
+  MB without it, 207 with it); the numbers here are those of X11. Still created without
+  a GPU: the OpenGL contexts of the engine of Flutter, and those of the processes of
+  WebKit, which cannot start without EGL. On a machine with a GPU the numbers of the
+  implementations that draw with OpenGL, and perhaps the order, differ (Gio draws with
+  it; the others no longer depend on it, except for those contexts); measure there when it
+  matters.
 - **One measurement per row.** Nothing is averaged over runs, so small differences
   mean little; the implementations were measured one after another, with nothing else
   running. Flutter, which was measured six times on an earlier day, had 332 to 342 MB

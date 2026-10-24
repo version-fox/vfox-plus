@@ -79,10 +79,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Install the Linux packages
-        run: |
-          sudo apt-get update
-          # shellcheck disable=SC2086 # The list is meant to be split.
-          sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }}
       - name: Install the Python packages
         run: uv sync --frozen
       - name: Generate the inputs of the build
