@@ -41,7 +41,7 @@ equal terms. The screenshots show the Flutter implementation.
 | [`flet/`](flet) | Flet 1.0.4 (Python) with a Dart extension | Linux desktop | `vfox-plus-flet` | Working |
 | [`gio/`](gio) | Gio 0.10 (Go), drawn with its own Material 3 Expressive toolkit | Linux desktop | `vfox-plus-gio` | Working |
 | [`uno/`](uno) | Uno Platform 6 (C#, .NET 10), built with its own Material 3 Expressive controls | Linux desktop | `vfox-plus-uno` | Working |
-| [`mygo/`](mygo) | mygo 0.5 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |
+| [`mygo/`](mygo) | mygo 0.6 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |
 
 [`web/`](web) is not an implementation of its own: it is the front end that
 the Tauri and Wails implementations share (TypeScript, Lit and the Material 3
