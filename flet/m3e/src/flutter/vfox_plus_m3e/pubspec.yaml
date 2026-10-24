@@ -34,7 +34,7 @@ dependencies:
   material_new_shapes: 1.0.0
   # BSD-3-Clause. Fade-through and shared-axis transitions. 3.x needs the
   # material_ui package, which needs a newer Flutter than Flet's.
-  animations: 2.2.0
+  animations: 3.0.0
 
 dev_dependencies:
   flutter_lints: 6.0.0
