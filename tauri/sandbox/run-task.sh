@@ -106,6 +106,16 @@ case "${1:-}" in
     stop_display
     ;;
 
+  screenshots)
+    prepare build:e2e:tauri
+    build tauri-e2e
+    start_display
+    as_tester "$WORK" env DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+      bash shared/tools/screenshots.sh /home/tester/screenshots "$BINARY"
+    publish /home/tester/screenshots/*.png
+    stop_display
+    ;;
+
   package)
     prepare
     build

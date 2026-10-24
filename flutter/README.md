@@ -7,7 +7,7 @@ shared resources in [`../shared`](../shared).
 
 ## Requirements
 
-- Flutter **3.47.5** (stable), with Dart 3.13. CI and the sandbox use exactly
+- Flutter **3.47.8** (stable), with Dart 3.13. CI and the sandbox use exactly
   this version, pinned in [`versions.env`](versions.env).
 - For Linux desktop builds: `clang cmake ninja-build pkg-config libgtk-3-dev
   liblzma-dev`; for packaging also `patchelf`, `lintian` and

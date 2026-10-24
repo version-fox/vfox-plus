@@ -31,7 +31,7 @@ and tooltips — themed to Material 3 Expressive in
 
 ## Requirements
 
-- [uv](https://docs.astral.sh/uv/) 0.13.1 (pinned in
+- [uv](https://docs.astral.sh/uv/) 0.13.5 (pinned in
   [`versions.env`](versions.env)): it installs the pinned Python packages and
   the Python interpreter itself.
 - Flutter 3.44.8 (pinned in [`versions.env`](versions.env)): `flet build`
