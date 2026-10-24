@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The mygo implementation: formatting, golangci-lint and the unit tests (with
+# The application: formatting, golangci-lint and the unit tests (with
 # coverage gates), the end-to-end scenarios in the application (against captured
 # output and against the real vfox) and the Linux packages.
 # mygo/sandbox/run-task.sh runs the same steps locally; keep them in sync.
-# The tool versions are in mygo/versions.env (Node.js, which only runs the test
-# server of the end-to-end scenarios, is the one of web/versions.env).
+# The tool versions are in mygo/versions.env (Node.js only runs the test
+# server of the end-to-end scenarios).
 name: mygo
 
 on:
@@ -25,15 +25,11 @@ on:
     branches: [main]
     paths:
       - mygo/**
-      - web/e2e/**
-      - web/src/e2e/**
       - shared/**
       - .github/workflows/mygo.yml
   pull_request:
     paths:
       - mygo/**
-      - web/e2e/**
-      - web/src/e2e/**
       - shared/**
       - .github/workflows/mygo.yml
   workflow_dispatch:
@@ -64,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Read the pinned versions
-        run: grep -hE '^[A-Z0-9_]+=' web/versions.env mygo/versions.env >> "$GITHUB_ENV"
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
       - name: Install the Linux packages
         uses: ./.github/actions/install-linux-packages
         with:
@@ -128,7 +124,7 @@ jobs:
           bash mygo/tools/build.sh --e2e "$RUNNER_TEMP/vfox-plus-e2e"
           for scenario in fake real measure; do
             xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
-              bash web/e2e/run.sh "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
+              bash shared/e2e/run.sh "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
           done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

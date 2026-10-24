@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Container side of the Docker sandboxes: sourced by
-# <implementation>/sandbox/run-task.sh inside a sandbox container. See
+# Container side of the Docker sandbox: sourced by
+# mygo/sandbox/run-task.sh inside a sandbox container. See
 # README.md next to this file.
 #
 # The repository is mounted read-only at /src and the results directory at
@@ -28,13 +28,6 @@ SRC=/src
 OUT=/out
 WORK=/home/tester/work
 SCREEN=(-screen 0 1280x800x24)
-# WebKitGTK 6.0 confines its web processes with bubblewrap, which needs user
-# namespaces that containers do not have. The applications only show their own
-# front end, so the confinement is not needed for the tests.
-export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
-# The same holds for the sandbox of Chromium in Electron, whose setuid helper
-# and user namespaces do not work in containers.
-export ELECTRON_DISABLE_SANDBOX=1
 
 # as_tester <directory> <command...>: runs a command as tester in a directory.
 as_tester() {
@@ -48,16 +41,13 @@ as_tester() {
 # patterns before it calls copy_repository.
 COPY_EXCLUDES=(
   --exclude-vcs --exclude=.idea --exclude='*.iml'
-  # Dependencies and caches of the package managers.
-  --exclude=node_modules --exclude=.gradle --exclude=.dart_tool --exclude=__pycache__ --exclude=.venv
-  # Build outputs.
-  --exclude='*/target' --exclude=./web/dist --exclude=./web/coverage --exclude=./web/public/fonts
-  --exclude=./web/public/licenses.txt
+  # Bytecode of the tests of .github/scripts.
+  --exclude=__pycache__
 )
 
 # copy_repository <directory...>: copies the shared resources, the license and
 # the given top-level directories of the repository to $WORK, without what the
-# host has built in them. Tasks never see the other implementations.
+# host has built in them.
 copy_repository() {
   install -d -o tester -g tester "$WORK"
   local directories=(./shared ./LICENSE) directory

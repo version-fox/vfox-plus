@@ -13,16 +13,19 @@
 // limitations under the License.
 
 // Writes golden.json: the tonal spot scheme of the Material colour utilities
-// for a set of seed colours, as the web front end computes it (web/src/ui/
-// theme.ts). The Go port in ../ is tested against it.
+// for a set of seed colours, as @material/material-color-utilities computes
+// it. The Go port in ../ is tested against it.
 //
-//   node generate.mjs > golden.json
+//   npm install --prefix "$TMP" @material/material-color-utilities@0.4.0
+//   node generate.mjs "$TMP/node_modules/@material/material-color-utilities" > golden.json
 //
-// Needs `npm ci` in web/. The seeds are the swatches of the application, a few
-// edge cases and pseudo-random colours, which come from a fixed generator so
-// that the output does not change.
+// With no argument, the package is read from node_modules next to this script.
+// The seeds are the swatches of the application, a few edge cases and
+// pseudo-random colours, which come from a fixed generator so that the output
+// does not change.
 
 import { register } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 // The package imports its own files without the extension, which bundlers
 // resolve but Node does not: add it.
@@ -40,8 +43,12 @@ register(
         }
       }`),
 );
+const packageRoot =
+  process.argv[2] === undefined
+    ? new URL('./node_modules/@material/material-color-utilities/', import.meta.url).href
+    : pathToFileURL(process.argv[2].endsWith('/') ? process.argv[2] : `${process.argv[2]}/`).href;
 const { Hct, hexFromArgb, MaterialDynamicColors, SchemeTonalSpot } = await import(
-  new URL('../../../../web/node_modules/@material/material-color-utilities/index.js', import.meta.url).href
+  new URL('index.js', packageRoot).href
 );
 
 const seeds = [

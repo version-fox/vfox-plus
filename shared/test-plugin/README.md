@@ -1,9 +1,10 @@
 # Offline test plugin
 
-[`testsdk.lua`](testsdk.lua) is a vfox plugin that lets an implementation run
-its end-to-end tests against the **real** vfox without the network and without
-touching anybody's vfox installation. The Flutter implementation uses it in
-[`flutter/integration_test/real_vfox_test.dart`](../../flutter/integration_test/real_vfox_test.dart).
+[`testsdk.lua`](testsdk.lua) is a vfox plugin that lets the end-to-end tests run
+against the **real** vfox without the network and without touching anybody's
+vfox installation: `shared/e2e/run.sh` starts the test server of
+[`shared/e2e/test-server.mjs`](../e2e/test-server.mjs), which implements the
+protocol below, and drives the application through the `real` scenario.
 
 ## How a test uses it
 

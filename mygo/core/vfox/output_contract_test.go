@@ -16,8 +16,8 @@ package vfox_test
 
 // Runs the parsers against the shared vfox output fixtures.
 //
-// The expected results live in shared/fixtures/vfox-*/cases.json and are
-// shared by every implementation of the GUI; see shared/fixtures/README.md.
+// The expected results live in shared/fixtures/vfox-*/cases.json;
+// see shared/fixtures/README.md.
 
 import (
 	"encoding/json"

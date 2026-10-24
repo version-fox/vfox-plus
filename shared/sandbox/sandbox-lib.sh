@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Host side of the Docker sandboxes: sourced by <implementation>/sandbox/sandbox.sh.
+# Host side of the Docker sandbox: sourced by mygo/sandbox/sandbox.sh.
 # See README.md next to this file.
 #
 # The sourcing script sets, before calling sandbox_main "$@":
 #
-#   IMPL            the directory name of the implementation, e.g. tauri
+#   IMPL            the directory name of the implementation, e.g. mygo
 #   IMPL_DIR        its absolute path
 #   REPO            the absolute path of the repository
 #   VFOX_VERSION, VFOX_SHA256

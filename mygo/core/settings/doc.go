@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // Package settings holds the preferences of the application itself (not of
-// vfox) and their file. The keys are part of the shared specification in
-// docs/architecture.md#settings, so that every implementation of the GUI can
-// read the same file.
+// vfox) and their file. The keys are part of the specification in
+// docs/architecture.md#settings.
 package settings

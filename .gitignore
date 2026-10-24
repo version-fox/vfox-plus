@@ -11,7 +11,7 @@ Thumbs.db
 .idea/
 *.iml
 
-# Packaging output (see flutter/packaging/linux/build_deb.sh).
+# Packaging output (see shared/packaging/linux/build-deb.sh).
 /dist/
 
 # Python bytecode, which running the tests of .github/scripts leaves behind. CI

@@ -34,7 +34,7 @@ type e2eHooks struct {
 }
 
 // startE2E runs the scenario that VFOX_PLUS_E2E_SCENARIO names, if there is one,
-// as web/e2e/run.sh, shared/tools/measure.sh and shared/tools/screenshots.sh
+// as shared/e2e/run.sh, shared/tools/measure.sh and shared/tools/screenshots.sh
 // expect: every step is reported as `e2e: …` on the standard output, and the
 // application ends with the exit code 0 when the scenario passed and 1 when it
 // failed.

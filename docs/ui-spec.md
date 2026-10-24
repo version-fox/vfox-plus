@@ -1,6 +1,6 @@
 # User interface specification
 
-This document describes what every vfox-plus implementation shows and does.
+This document describes what vfox-plus shows and does.
 Visual details — colours, shapes, type and motion — are in
 [the design system](design-system.md); texts are in
 [`shared/i18n`](../shared/i18n) and referred to here by their keys, such as

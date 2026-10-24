@@ -14,9 +14,7 @@
 
 // Package mcu generates the colour scheme of the application from a seed
 // colour: the tonal spot scheme of the Material colour utilities, in their
-// 2021 specification, which is what Flutter's `ColorScheme.fromSeed` and the
-// other implementations of vfox-plus use, so that every one of them shows the
-// same colours.
+// 2021 specification.
 //
 // The package is a Go port of the parts of the Material Color Utilities
 // (https://github.com/material-foundation/material-color-utilities,

@@ -13,12 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Measures the memory that an implementation of vfox+ uses, the same way for
-# every implementation: starts the application with a new, empty HOME and the
-# fake vfox of shared/fixtures, in its "measure" scenario, and prints the
-# resident (RSS) and proportional (PSS) set size of the application and all of
-# its child processes, such as the processes of a web view, at each measuring
-# point the application reports.
+# Measures the memory that the application uses: starts it with a new, empty
+# HOME and the fake vfox of shared/fixtures, in its "measure" scenario, and
+# prints the resident (RSS) and proportional (PSS) set size of the application
+# and all of its child processes at each measuring point the application
+# reports.
 #
 # Usage: shared/tools/measure.sh <application command...>
 #
@@ -44,8 +43,8 @@ APP_PID=""
 # shellcheck disable=SC2317,SC2329 # Invoked by the trap below.
 cleanup() {
   [[ -z "$APP_PID" ]] || kill "$APP_PID" 2> /dev/null || true
-  # The processes of a web view may write their caches for a moment after the
-  # application has ended; the result of the test does not depend on them.
+  # The application may write its caches for a moment after it has ended; the
+  # result of the test does not depend on them.
   local attempt
   for attempt in 1 2 3 4 5; do
     rm -rf "$SANDBOX" 2> /dev/null && return 0

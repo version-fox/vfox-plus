@@ -60,7 +60,7 @@ runs:
         # shellcheck disable=SC2086 # The list is meant to be split.
         "$GITHUB_ACTION_PATH/install.sh" $PACKAGES
     # The cache is saved by the user of the runner, and one archive that this user
-    # cannot read fails the whole save (tar did on one archive of Wails, on
+    # cannot read fails the whole save (tar did on one archive on
     # 2026-10-23, and nothing was saved). It also holds when the installation failed.
     - name: Let the cache read the archives
       if: always()

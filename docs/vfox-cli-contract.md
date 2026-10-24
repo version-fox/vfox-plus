@@ -1,6 +1,6 @@
 # vfox CLI contract
 
-This document specifies how a vfox-plus implementation drives the vfox command
+This document specifies how vfox-plus drives the vfox command
 line tool: which commands it runs, in which environment, how it reads their
 output and how it reports errors. It describes **vfox 1.0.13** and notes where
 1.0.12 behaves differently; the captured outputs of both versions are in
@@ -330,5 +330,4 @@ without network access.
 
 When vfox changes, capture its output again with
 [`shared/fixtures/capture.sh`](../shared/fixtures/capture.sh), update
-`cases.json` and this document, and run the parser tests of every
-implementation. See [`shared/fixtures/README.md`](../shared/fixtures/README.md).
+`cases.json` and this document, and run the parser tests. See [`shared/fixtures/README.md`](../shared/fixtures/README.md).

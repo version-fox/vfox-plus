@@ -1,10 +1,9 @@
 # vfox output fixtures
 
-vfox prints human-oriented text, and every GUI in this repository has to parse
-it. This directory holds that text, captured from real vfox runs, together
-with the results a correct parser must produce. Each implementation runs its
-parsers against these files in its unit tests, so all implementations agree on
-what vfox output means.
+vfox prints human-oriented text, and the GUI has to parse it. This directory
+holds that text, captured from real vfox runs, together with the results a
+correct parser must produce. The parsers run against these files in the unit
+tests, so they stay consistent with what vfox output means.
 
 ## Layout
 
@@ -73,17 +72,15 @@ error summary follows the rules in the
 
 1. Install the new vfox release and run `shared/fixtures/capture.sh`. It needs
    network access, takes about a minute and writes `vfox-<version>/`.
-   Alternatively, put the new version and the checksum of its Linux archive in
-   [`flutter/versions.env`](../../flutter/versions.env) and run
-   `flutter/sandbox/sandbox.sh fixtures`: it captures in a container, where
-   nothing has to be installed, and writes to `dist/sandbox/fixtures/`.
+   Alternatively, run `mygo/sandbox/sandbox.sh fixtures` if the sandbox offers
+   a `fixtures` task: it captures in a container, where nothing has to be
+   installed.
 2. Copy `cases.json` from the previous version, then compare the new output
    with the old output (`diff -r`) and adjust the expected values. Keep the
    directory of the previous version when its output differs, so that the
    parsers stay tested against both (vfox 1.0.13 moved errors from standard
    output to standard error).
-3. Run the parser tests of every implementation, for example
-   `cd flutter && flutter test test/core`.
+3. Run the parser tests, for example `cd mygo && go test ./core/...`.
 4. Document any change of the output format in
    [the CLI contract](../../docs/vfox-cli-contract.md).
 
@@ -96,6 +93,6 @@ standard error, and fails like vfox when `vfox use` runs without the hook
 environment. It also checks what the CLI contract requires of the caller:
 `NO_COLOR=1`, no `__VFOX_PID` of an activated shell and the working directory
 `/` for commands that are not about a project. It keeps no state.
-Implementations use it to try the application without touching a real vfox
+The end-to-end tests use it to try the application without touching a real vfox
 installation, in end-to-end tests and in
 [`../tools/measure.sh`](../tools/measure.sh).

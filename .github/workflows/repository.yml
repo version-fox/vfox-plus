@@ -69,10 +69,6 @@ jobs:
             echo "::error::Do not commit binary files; host images and generate build outputs instead: $binaries"
             exit 1
           fi
-      - name: Keep the application icon in one version
-        run: |
-          # Flutter bundles the icon as an asset, which must live in its package.
-          cmp flutter/assets/brand/vfox-plus.svg shared/packaging/linux/dev.vfox.VfoxPlus.svg
       - name: Validate shared JSON resources
         run: |
           for file in shared/icons.json shared/i18n/*.arb shared/fixtures/*/cases.json; do

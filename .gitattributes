@@ -23,7 +23,4 @@
 *.ico binary
 
 # Generated files, collapsed in code review diffs.
-flutter/lib/src/l10n/app_localizations*.dart linguist-generated=true
-flutter/lib/src/ui/icons/app_icons.g.dart linguist-generated=true
-flutter/pubspec.lock linguist-generated=true
 shared/fixtures/** linguist-vendored=true
