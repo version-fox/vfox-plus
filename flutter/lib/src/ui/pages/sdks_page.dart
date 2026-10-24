@@ -14,7 +14,7 @@
 
 import 'package:animations/animations.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart' hide MaterialShapes, RoundedPolygon;
 
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';

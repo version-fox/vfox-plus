@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart' hide MaterialShapes, RoundedPolygon;
 
 import '../../core/vfox/vfox_command.dart';
 import '../../l10n/app_localizations.dart';
