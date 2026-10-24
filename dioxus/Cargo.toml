@@ -48,7 +48,7 @@ tempfile = "3"
 # MIT. The program name, which names the window after the application ID,
 # the clipboard and the file choosers. The versions are those of the GTK
 # bindings of Dioxus.
-glib = "0.18"
+glib = "0.21"
 gtk = "0.18"
 
 [features]
