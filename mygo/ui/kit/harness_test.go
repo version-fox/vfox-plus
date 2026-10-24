@@ -49,7 +49,7 @@ const testSeed = 0xFFF28C1B
 
 var loadIconsOnce sync.Once
 
-// loadTestIcons registers the icon fonts that tools/prepare.sh generated.
+// loadTestIcons registers the icon fonts that `vfxtool prepare` generated.
 func loadTestIcons(t testing.TB) {
 	t.Helper()
 	var err error

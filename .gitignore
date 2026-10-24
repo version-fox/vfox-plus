@@ -11,10 +11,5 @@ Thumbs.db
 .idea/
 *.iml
 
-# Packaging output (see shared/packaging/linux/build-deb.sh).
+# Packaging output (see `vfxtool build-deb`).
 /dist/
-
-# Python bytecode, which running the tests of .github/scripts leaves behind. CI
-# rejects binary files.
-__pycache__/
-*.pyc

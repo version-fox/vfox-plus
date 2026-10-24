@@ -329,5 +329,5 @@ without network access.
 ## Updating this contract
 
 When vfox changes, capture its output again with
-[`shared/fixtures/capture.sh`](../shared/fixtures/capture.sh), update
+`vfxtool capture`, update
 `cases.json` and this document, and run the parser tests. See [`shared/fixtures/README.md`](../shared/fixtures/README.md).

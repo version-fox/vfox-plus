@@ -12,32 +12,32 @@ In MB, for the application and all of its child processes together, in Docker on
 Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). "Versions" is
 the SDKs page with the 872 available versions of Node.js listed.
 
-| Implementation                   | Technology                                                   | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
-| -------------------------------- | ------------------------------------------------------------ | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../mygo/README.md#memory) | mygo 0.6, Go 1.27.3, GTK 3 (purego), CPU renderer            |         1 |       41 |       54 |           47 |           60 |                  +6 |
+| Implementation                   | Technology                                                        | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
+| -------------------------------- | ----------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
+| [mygo](../mygo/README.md#memory) | mygo 0.6.3, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       45 |       58 |           53 |           67 |                  +8 |
 
-mygo (41 MB of PSS on the Home page, in one process) draws on the processor from a
+mygo (45 MB of PSS on the Home page, in one process) draws on the processor from a
 Go executable of 12 MB and loads GTK 3 from the system. Showing the list of versions
-adds 6 MB of PSS because only the rows in view are built.
+adds 8 MB of PSS because only the rows in view are built.
 
 ## How it is measured
 
-[`shared/tools/measure.sh`](../shared/tools/measure.sh) measures the application:
+`vfxtool measure` measures the application:
 
 1. It starts the application on the current display, with a new, empty home
    directory and the fake vfox of [`shared/fixtures`](../shared/fixtures), which
    replays captured output (so no real vfox runs), in the `measure` scenario of the
    application.
 2. The application shows the Home page, waits 3 seconds so that it has settled and
-   reports `e2e: MEASURE home`. The script, which reads the report, adds up `Rss`
+   reports `e2e: MEASURE home`. The tool, which reads the report, adds up `Rss`
    and `Pss` from `/proc/<pid>/smaps_rollup` for the application and every process
    below it; the application waits 5 more seconds, so that the page does not change
    during the measurement.
 3. The application opens the available versions of Node.js, waits 3 seconds and
-   reports `e2e: MEASURE nodejs`, and the script measures again.
+   reports `e2e: MEASURE nodejs`, and the tool measures again.
 
-The sizes are in MiB, which the script calls MB. The `measure` task of the sandbox runs
-all of this in Docker (`mygo/sandbox/sandbox.sh measure`, which needs
+The sizes are in MiB, which the tool calls MB. The `measure` task of the sandbox runs
+all of this in Docker (`vfxtool sandbox measure`, which needs
 nothing but Docker); the numbers above come from a WSL2 host with 16 logical CPUs.
 
 ## Reading the numbers
@@ -76,10 +76,10 @@ commit replaces that comment instead of adding another one.
 
 - The workflow of the implementation ([`mygo.yml`](../.github/workflows/mygo.yml))
   runs the `measure` scenario of [How it is measured](#how-it-is-measured) and
-  uploads the lines that it prints as the artifact `memory-mygo`. `measure.sh`
+  uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well.
 - [`memory.yml`](../.github/workflows/memory.yml) starts when that workflow ends
-  and runs [`memory_report.py`](../.github/scripts/memory_report.py). It compares
+  and runs `vfxtool memory-report`. It compares
   the artifact of the pull request with the latest run of the same workflow on
   `main` and writes the comment. The workflow runs in the context of `main`, which
   is what lets it comment on pull requests of forks, and it reads nothing but two
@@ -99,28 +99,28 @@ So the comment calls a difference a change, and prints it in bold, only when it 
 than 5 MB and more than 5% of the number on `main`. The number of processes never varied,
 so a different number is a change too. The sample is small: if the comment reports a
 change that the commit cannot have caused, measure how much identical code varies again
-and adjust `TOLERANCES` in the script.
+and adjust `Tolerances` in `vfxtool memory-report`.
 
 ### Using it
 
 - The artifacts expire after 90 days. Without a run on `main` for that long,
   the report has "no baseline" until the workflow runs on `main` again.
 - `gh workflow run memory.yml -f pull_request=<number>` writes the report of an open pull
-  request again. To only see it, run the script with `--dry-run`:
+  request again. To only see it, run it with `--dry-run`:
 
   ```sh
-  GH_TOKEN="$(gh auth token)" python3 .github/scripts/memory_report.py --dry-run \
+  GH_TOKEN="$(gh auth token)" vfxtool memory-report --dry-run \
     --repository version-fox/vfox-plus --pull-request <number> \
     --implementations "mygo"
   ```
 
-- The tests of the script run in the `Repository` workflow:
-  `python3 -m unittest discover -s .github/scripts`.
+- The tests of the tool run in the `Repository` workflow:
+  `go -C shared/tooling test ./...`.
 
 ## Updating this page
 
 When the memory changes noticeably, run
-`mygo/sandbox/sandbox.sh measure`, copy the lines of
+`vfxtool sandbox measure`, copy the lines of
 `dist/sandbox/mygo/measure/memory.txt` into the table, where the PSS comes before
 the RSS, and into the Memory section of the README of the implementation. When the
 sandbox images are built again, measure again, so that the table stays one

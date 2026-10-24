@@ -36,12 +36,12 @@ the [README](README.md)); most of what follows applies to all of its parts.
    cd mygo
    golangci-lint fmt --diff
    golangci-lint run && golangci-lint run --build-tags e2e
-   CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./... && bash tools/coverage.sh coverage.out 85
+   CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./... && vfxtool coverage coverage.out 85
    ```
 
    To run every check, the end-to-end tests and the packaging without installing
    anything but Docker, and without any risk for the vfox installation on your
-   machine, use the sandbox, `mygo/sandbox/sandbox.sh all` (see
+   machine, use the sandbox, `vfxtool sandbox all` (see
    [shared/sandbox](shared/sandbox/README.md)).
 
 4. Describe what changed and how you tested it in the pull request. Include
@@ -51,10 +51,10 @@ the [README](README.md)); most of what follows applies to all of its parts.
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
-| [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), shell scripts (ShellCheck), shared JSON, no committed binary files, the tests of the memory report |
+| [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), shared JSON, no committed binary files |
 | [`memory.yml`](.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](docs/memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios in the application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container |
-| [`sandboxes.yml`](.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/e2e/` | Builds the Docker sandbox and runs `sandbox.sh all` in it |
+| [`sandboxes.yml`](.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
 pinned to commit SHAs.
@@ -88,14 +88,14 @@ including the glossary.
 
 Add the Material Symbol to [`shared/icons.json`](shared/icons.json) under a
 name that describes its meaning, then regenerate the icon fonts
-(`cd mygo && bash tools/prepare.sh`, which cuts them with
-[`shared/tools/icon_font.py`](shared/tools/icon_font.py) when it builds).
+(`vfxtool prepare`, which cuts them with
+`vfxtool iconfont` when it builds).
 Fonts are generated at build time and not committed.
 
 ### vfox output
 
 When vfox changes, recapture the fixtures with
-[`shared/fixtures/capture.sh`](shared/fixtures/capture.sh) and follow
+`vfxtool capture` and follow
 [`shared/fixtures/README.md`](shared/fixtures/README.md). Document the change in
 [docs/vfox-cli-contract.md](docs/vfox-cli-contract.md).
 
@@ -103,10 +103,11 @@ When vfox changes, recapture the fixtures with
 
 The images of the documentation are not committed: they are hosted on
 [freeimage.host](https://freeimage.host), a free image host that needs no
-account, and linked. `mygo/sandbox/sandbox.sh screenshots` renders the
+account, and linked. `vfxtool sandbox screenshots` renders the
 screenshots into `dist/sandbox/mygo/screenshots/`, reproducibly: every page, in both
 themes and languages, the compact layout and an installation in progress, with
-the Greybird title bar of xfwm4, the way modern GNOME applications look.
+the Greybird title bar of xfwm4, the way modern GNOME applications look, over
+the default wallpaper of Ubuntu instead of the black of a bare X server.
 The [README](README.md) links `home`, `sdks`, `dark-available`,
 `installing`, `tasks`, `plugins`, `zh-settings`,
 `compact-home` and `compact-detail`. Upload a new image with
@@ -114,7 +115,7 @@ The [README](README.md) links `home`, `sdks`, `dark-available`,
 ```sh
 curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json \
   -F source=@dist/sandbox/mygo/screenshots/home.png https://freeimage.host/api/1/upload |
-  python3 -c 'import json, sys; print(json.load(sys.stdin)["image"]["url"])'
+  jq -r '.image.url'
 ```
 
 which prints its URL (the key is the public one that freeimage.host gives to

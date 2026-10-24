@@ -18,7 +18,7 @@
 # request, this workflow writes one comment on it: the memory with the
 # difference from the latest numbers of main. Later runs replace that comment
 # instead of adding another one
-# (.github/scripts/memory_report.py; docs/memory.md#memory-in-pull-requests).
+# (vfxtool memory-report; docs/memory.md#memory-in-pull-requests).
 #
 # It runs after the workflow of the pull request, in the context of the default
 # branch, so that it can write to pull requests of forks, which a pull_request
@@ -72,6 +72,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
       - name: Write the report
         env:
           GH_TOKEN: ${{ github.token }}
@@ -79,7 +84,9 @@ jobs:
           PULL_REQUEST: ${{ inputs.pull_request }}
         run: |
           if [[ -n "$RUN_ID" ]]; then
-            python3 .github/scripts/memory_report.py --run "$RUN_ID"
+            go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+            "$RUNNER_TEMP/vfxtool" memory-report --run "$RUN_ID"
           else
-            python3 .github/scripts/memory_report.py --pull-request "$PULL_REQUEST"
+            go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+            "$RUNNER_TEMP/vfxtool" memory-report --pull-request "$PULL_REQUEST"
           fi

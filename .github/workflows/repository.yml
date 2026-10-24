@@ -45,7 +45,7 @@ jobs:
           token: ""
 
   lint:
-    name: Workflows and scripts
+    name: Workflows and tools
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-latest
@@ -56,10 +56,16 @@ jobs:
         run: |
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
-      - name: Lint shell scripts
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Vet and test vfxtool
         run: |
-          # shellcheck disable=SC2046 # Every tracked script, split into arguments.
-          shellcheck --external-sources $(git ls-files '*.sh')
+          test -z "$(gofmt -l shared/tooling)"
+          go -C shared/tooling vet ./...
+          go -C shared/tooling test ./...
       - name: Keep binary files out of the repository
         run: |
           # Images belong on an image host, and build outputs such as the icon
@@ -74,6 +80,3 @@ jobs:
           for file in shared/icons.json shared/i18n/*.arb shared/fixtures/*/cases.json; do
             jq empty "$file" || { echo "::error file=$file::Invalid JSON"; exit 1; }
           done
-      - name: Test the memory report
-        # What memory.yml writes on pull requests.
-        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'

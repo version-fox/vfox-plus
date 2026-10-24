@@ -9,8 +9,8 @@ tests, so they stay consistent with what vfox output means.
 
 ```text
 fixtures/
-├── capture.sh                 # Recreates the captures for the installed vfox
-├── fake-vfox.sh               # A stand-in for vfox that replays the captures
+├── (captured by `vfxtool capture` for the installed vfox)
+├── (replayed by `vfxtool fake-vfox`, a stand-in for vfox)
 └── vfox-<version>/
     ├── cases.json             # Commands, exit codes and expected results
     ├── <case>.stdout          # Standard output of the command
@@ -19,7 +19,7 @@ fixtures/
 
 ## How the output was captured
 
-`capture.sh` runs every command
+`vfxtool capture` runs every command
 
 - with `NO_COLOR=1`, without a terminal on stdin or stdout, which is how a GUI
   runs vfox (see [the CLI contract](../../docs/vfox-cli-contract.md));
@@ -32,7 +32,7 @@ Some versions are faked by creating their directories, so that the tree printed
 by `vfox list` has several versions per plugin without downloading them.
 
 Some captures contain carriage returns, escape sequences or the field separator
-`0x1F`. So that every file stays plain text, `capture.sh` writes each control
+`0x1F`. So that every file stays plain text, `vfxtool capture` writes each control
 character other than tab and line feed as `\x` followed by two lowercase
 hexadecimal digits (a carriage return becomes `\x0d`), and each backslash as
 `\\`. Decode a capture before passing it to a parser, by replacing both escapes
@@ -70,11 +70,8 @@ error summary follows the rules in the
 
 ## Updating for a new vfox release
 
-1. Install the new vfox release and run `shared/fixtures/capture.sh`. It needs
+1. Install the new vfox release and run `vfxtool capture`. It needs
    network access, takes about a minute and writes `vfox-<version>/`.
-   Alternatively, run `mygo/sandbox/sandbox.sh fixtures` if the sandbox offers
-   a `fixtures` task: it captures in a container, where nothing has to be
-   installed.
 2. Copy `cases.json` from the previous version, then compare the new output
    with the old output (`diff -r`) and adjust the expected values. Keep the
    directory of the previous version when its output differs, so that the
@@ -86,13 +83,16 @@ error summary follows the rules in the
 
 ## The fake vfox
 
-[`fake-vfox.sh`](fake-vfox.sh) behaves like vfox 1.0.13 towards a GUI: it
+`vfxtool fake-vfox` behaves like vfox 1.0.13 towards a GUI: it
 answers the read-only commands with the captures of `vfox-1.0.13/` (or of
 `VFOX_PLUS_FIXTURES`), pretends to install versions with a progress bar on
 standard error, and fails like vfox when `vfox use` runs without the hook
-environment. It also checks what the CLI contract requires of the caller:
+environment. The end-to-end tools install it by copying the vfxtool binary
+itself to a file named `vfox`: executed under that name, it answers vfox
+commands instead of running a subcommand (see `cmd/vfxtool`). It also checks
+what the CLI contract requires of the caller:
 `NO_COLOR=1`, no `__VFOX_PID` of an activated shell and the working directory
 `/` for commands that are not about a project. It keeps no state.
 The end-to-end tests use it to try the application without touching a real vfox
 installation, in end-to-end tests and in
-[`../tools/measure.sh`](../tools/measure.sh).
+`vfxtool measure`.

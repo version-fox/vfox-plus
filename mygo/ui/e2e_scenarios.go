@@ -298,7 +298,7 @@ func (s *scenario) resize(width, height float32) {
 
 // screenshotsScenario shows every page against the fake vfox; the harness
 // captures the screen at every `e2e: SHOT <name>` (see
-// shared/tools/screenshots.sh). With VFOX_PLUS_FAKE_DELAY, it shows an
+// `vfxtool screenshots`). With VFOX_PLUS_FAKE_DELAY, it shows an
 // installation in progress instead.
 func screenshotsScenario(s *scenario) {
 	a := s.app

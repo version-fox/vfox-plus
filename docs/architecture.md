@@ -23,9 +23,8 @@ vfox-plus/
 │   ├── icons.json         Material Symbols used by the user interface
 │   ├── fixtures/          Captured vfox output and the expected parser results
 │   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
-│   ├── packaging/linux/   Desktop entry, AppStream metadata, icon, .deb script
-│   ├── e2e/               The end-to-end runner and the offline test server
-│   ├── tools/             The icon font tool, the license collector, the memory measurement and the screenshots
+│   ├── packaging/linux/   Desktop entry, AppStream metadata and icon, packaged by `vfxtool build-deb`
+│   ├── tooling/           `vfxtool`, the Go tool that builds, tests and packages everything
 │   └── sandbox/           Shared parts of the Docker sandbox
 ├── mygo/                  The application (Go)
 └── .github/               CI workflows: repository checks, the build and the memory report
@@ -132,9 +131,15 @@ and keeps the settings reachable.
 
 ## Dependencies
 
-Every runtime dependency must be licensed under terms compatible with, or no
-more restrictive than, the Apache License 2.0 (for example Apache-2.0, MIT,
-BSD). mygo, the framework of the application, is under the MIT license, and
+Every runtime dependency must fall in Category A or B of the license
+classification of the Apache Software Foundation
+(see https://www.apache.org/legal/resolved): what the ASF allows in its
+products may be used here — permissive licenses (for example Apache-2.0,
+MIT, BSD, Unlicense) or weak-copyleft licenses (for example MPL-2.0,
+EPL-2.0). Category X (strong copyleft such as GPL and AGPL) is excluded.
+Category B dependencies ship under their own license and its conditions
+(their notices stay intact and their source stays obtainable); the
+application links them unmodified. mygo, the framework of the application, is under the MIT license, and
 the Go modules it links are purego under the Apache License 2.0, the text
 shaper `go-text/typesetting` under the Unlicense or a BSD license, and the
 `golang.org/x` modules under BSD licenses, as is the Go standard library; the
@@ -143,8 +148,15 @@ License 2.0 and the MIT license, and their notices ship with the application
 ([`mygo/NOTICE.txt`](../mygo/NOTICE.txt)). The application does not link GTK 3,
 GLib, Pango and Cairo, which are under the LGPL: mygo loads them from the system
 when it starts, and the package depends on them as declared in
-[`mygo/sandbox/run-task.sh`](../mygo/sandbox/run-task.sh). The application
-ships no weak copyleft code.
+`vfxtool runtask` (`shared/tooling/internal/runtask`). The application
+ships no strong-copyleft (Category X) code; weak-copyleft (Category B)
+dependencies, if any, ship under their own license terms. The build tooling
+in `shared/tooling` (`vfxtool`, never shipped in the application) additionally
+uses `go-github` (the GitHub API for the memory report),
+`nfpm` (Debian packaging as a library), `andybalholm/brotli` (WOFF2
+compression for the icon font), `go-licenses` (license classification for
+the license collector) and `go-getter` (resumable downloads for the package
+prefetch), all Category A.
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

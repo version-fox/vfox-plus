@@ -30,11 +30,6 @@ toolkit, and the parsers pass the [fixtures](../shared/fixtures/README.md).
 ## Requirements
 
 - Go (pinned in [`versions.env`](versions.env)); mygo needs Go 1.27.
-- Python 3 with fontTools and brotli for the icon fonts:
-
-  ```sh
-  sudo apt install fonttools python3-brotli
-  ```
 
 - At run time GTK 3, fontconfig and a font, and vfox 1.0.0 or later:
 
@@ -47,18 +42,27 @@ toolkit, and the parsers pass the [fixtures](../shared/fixtures/README.md).
 
 ## Everyday commands
 
+`vfxtool` is the single Go tool that builds, tests and packages the
+application (`../shared/tooling/cmd/vfxtool`). Build it once and put it on
+`PATH`, or prefix every command below with
+`go -C ../shared/tooling run ./cmd/vfxtool`:
+
+```sh
+go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
+```
+
 | Task | Command |
 | --- | --- |
-| Generate the icon fonts, the translations and the licenses the binary embeds | `tools/prepare.sh` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
-| Build (`build/vfox-plus`) | `tools/build.sh build/vfox-plus` |
-| Run | `tools/build.sh build/vfox-plus && build/vfox-plus` |
+| Generate the icon fonts, the translations and the licenses the binary embeds | `vfxtool prepare` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
+| Build (`build/vfox-plus`) | `vfxtool build build/vfox-plus` |
+| Run | `vfxtool build build/vfox-plus && build/vfox-plus` |
 | Format check (CI fails on a difference) | `golangci-lint fmt --diff` |
 | Lint (CI fails on any finding) | `golangci-lint run` and `golangci-lint run --build-tags e2e` |
 | Unit tests | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...` |
-| Coverage gates | `tools/coverage.sh coverage.out 85` |
+| Coverage gates | `vfxtool coverage coverage.out 85` |
 | `.deb` and `.tar.gz` | see [Packaging](#packaging) |
 
-[`tools/prepare.sh`](tools/prepare.sh) needs the network the first time: it
+`vfxtool prepare` needs the network the first time: it
 downloads the pinned Material Symbols font (or set `VFOX_PLUS_SYMBOLS` to a
 directory that has it) and cuts out the 56 icons of
 [`shared/icons.json`](../shared/icons.json), twice: outlined and filled (see
@@ -72,7 +76,7 @@ interface, and about 12 MB.
 
 ## Sandbox
 
-[`sandbox/sandbox.sh`](sandbox/sandbox.sh) runs the checks of CI, the
+`vfxtool sandbox` runs the checks of CI, the
 end-to-end tests and the packaging in throw-away Docker containers. It needs
 nothing but Docker and changes nothing on your machine: the image brings Go,
 golangci-lint, GTK 3, Xvfb and vfox (it extends the shared base image, see
@@ -81,14 +85,14 @@ the Go module and build caches in Docker volumes.
 
 | Command | What it does |
 | --- | --- |
-| `sandbox/sandbox.sh check` | Formatting, golangci-lint (also with the end-to-end tag), `go vet`, the unit tests with the race detector and the coverage gates |
-| `sandbox/sandbox.sh e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
-| `sandbox/sandbox.sh package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
-| `sandbox/sandbox.sh measure` | The memory use on the Home page and with the versions of Node.js listed |
-| `sandbox/sandbox.sh screenshots` | Screenshots of every page |
-| `sandbox/sandbox.sh all` | `check`, `e2e` and `package` |
-| `sandbox/sandbox.sh shell` | A shell in the sandbox |
-| `sandbox/sandbox.sh clean` | Deletes the image, the cache volumes and the results |
+| `vfxtool sandbox check` | Formatting, golangci-lint (also with the end-to-end tag), `go vet`, the unit tests with the race detector and the coverage gates |
+| `vfxtool sandbox e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
+| `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
+| `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
+| `vfxtool sandbox screenshots` | Screenshots of every page |
+| `vfxtool sandbox all` | `check`, `e2e` and `package` |
+| `vfxtool sandbox shell` | A shell in the sandbox |
+| `vfxtool sandbox clean` | Deletes the image, the cache volumes and the results |
 
 Results are written to `dist/sandbox/mygo/<command>/`. Set `SANDBOX_GOPROXY`
 (for example `https://goproxy.cn`) if the default Go module proxy is slow from
@@ -115,7 +119,9 @@ where you are, and `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive.
   holds the schemes of 82 seed colours in both modes, bit-exact;
   [`ui/shapes/testdata`](ui/shapes/testdata) holds the outlines of the shapes,
   which agree to within 2 % of their size. Each `testdata` directory explains
-  how to regenerate its file from the pinned npm package.
+  how to regenerate its file: the colour schemes need Node.js to run the
+  JavaScript reference implementation, while the shapes are regenerated with
+  plain `go run generate.go`, no Node.js required.
 - **End-to-end scenarios** run in the built application when
   `VFOX_PLUS_E2E_SCENARIO` is set: `fake` against the fake vfox of the
   fixtures, `real` against the real vfox with the offline test plugin and its
@@ -124,13 +130,13 @@ where you are, and `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive.
   is in [`ui/e2e*.go`](ui) and is only compiled with the build tag `e2e`:
 
   ```sh
-  tools/build.sh --e2e build/vfox-plus-e2e
-  xvfb-run -a dbus-run-session -- ../shared/e2e/run.sh fake build/vfox-plus-e2e
-  VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a dbus-run-session -- \
-    ../shared/e2e/run.sh real build/vfox-plus-e2e
+  vfxtool build --e2e build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run fake build/vfox-plus-e2e
+  VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+    vfxtool e2e-run real build/vfox-plus-e2e
   ```
 
-  [`shared/e2e/run.sh`](../shared/e2e/run.sh) prepares a new, empty home directory,
+  `vfxtool e2e-run` prepares a new, empty home directory,
   the fake vfox or the real vfox with the offline test plugin and its server,
   starts the application and reads its `e2e: …` report; the application ends
   with exit code 0 when the scenario passed. The scenarios click, fill and read
@@ -138,8 +144,7 @@ where you are, and `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive.
   an input does), on the main thread between two frames, so they exercise the
   real components, the state, process spawning, streaming, cancellation with
   `SIGTERM`, the settings file and vfox itself.
-  [`shared/tools/screenshots.sh`](../shared/tools/screenshots.sh) runs the
-  `screenshots` scenario.
+  `vfxtool screenshots` runs the `screenshots` scenario.
 
 ## How the user interface works
 
@@ -190,14 +195,14 @@ pages are built from its components.
   scale, and the fonts that the system chooses for Chinese (Noto Sans CJK).
 - **Icons** are subsets of Material Symbols Rounded. mygo draws a font at its
   weight and cannot set its fill axis, so there are two fonts, the outlined and
-  the filled one (under another family name, [`tools/rename_font.py`](tools/rename_font.py)),
+  the filled one (under another family name, renamed by `vfxtool renamefont`),
   and the fill that the navigation and the buttons animate is the cross-fade of
   the two.
 
 ## Packaging
 
-The release binary contains everything. The shared script
-[`shared/packaging/linux/build-deb.sh`](../shared/packaging/linux/build-deb.sh)
+The release binary contains everything. The shared tool
+`vfxtool build-deb`
 packages it as `vfox-plus-mygo_<version>_amd64.deb` and a `.tar.gz`, with the
 desktop entry, AppStream metadata and icon of
 [`shared/packaging/linux`](../shared/packaging/linux); the version is the one in [`VERSION`](VERSION), which a test
@@ -209,24 +214,24 @@ The licenses of the Go modules, of the Go standard library, of the ports and of
 the icon font are installed as
 `/usr/share/doc/vfox-plus-mygo/THIRD-PARTY-LICENSES` and shown in the
 application ([`NOTICE.txt`](NOTICE.txt) holds the notices of the ports; the rest
-is collected by [`shared/tools/go_licenses.py`](../shared/tools/go_licenses.py),
+is collected by `vfxtool golicenses`,
 which fails on a license that is not compatible with the Apache License 2.0).
 
 The package depends on GTK 3 (which brings GLib, Pango, Cairo and the rest of
 what mygo loads), fontconfig and a font (`fonts-ubuntu` or `fonts-noto-core`),
 and recommends `fonts-noto-cjk` for Chinese, a desktop portal and `xdg-utils` for
-links. The list is in [`sandbox/run-task.sh`](sandbox/run-task.sh), and CI
+links. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
 installs the package into a clean Ubuntu container to prove that it is complete.
 
 ## Memory
 
-Measured with `sandbox/sandbox.sh measure`: Ubuntu 26.04 in Docker, Xvfb, a
+Measured with `vfxtool sandbox measure`: Ubuntu 26.04 in Docker, Xvfb, a
 1280 × 800 window, one process, the release build.
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 54 MB | 41 MB |
-| Versions of Node.js listed | 60 MB | 47 MB |
+| Home page | 58 MB | 45 MB |
+| Versions of Node.js listed | 67 MB | 53 MB |
 
 mygo draws with the processor, and the application keeps GTK from loading
 OpenGL: a GDK that opens its OpenGL connection maps Mesa, and with the software
@@ -234,9 +239,9 @@ driver of Mesa its compiler LLVM, which is more than the application takes (the
 same build took about 78 MB of PSS on the Home page when GDK did, and about
 43 MB when it did not, with every other setting equal). An interface this size
 does not need the GPU, and the memory does not depend on the driver of the
-machine. What is left is mostly the executable (11 MB of PSS), the heap of Go
-(6 MB), and GTK with the C libraries it loads. The list of versions adds 6 MB
-because only the rows in view are built.
+machine. What is left is mostly the executable with the locale data it embeds,
+the heap of Go, and GTK with the C libraries it loads. The list of versions
+adds 8 MB because only the rows in view are built.
 
 ## Limits
 

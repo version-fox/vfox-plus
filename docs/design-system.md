@@ -182,7 +182,7 @@ from the variable font, so that they can be animated along their axes: the
 icon of the selected navigation destination is filled (`FILL` 1) and the others
 are outlined (`FILL` 0). The icons and their meanings are listed in
 [`shared/icons.json`](../shared/icons.json). The application ships only these
-glyphs: [`shared/tools/icon_font.py`](../shared/tools/icon_font.py) cuts the
+glyphs: `vfxtool iconfont` (`shared/tooling/internal/iconfont`) cuts the
 same glyphs, with their ligatures, out of a pinned version of the font at
 build time; pinning the weight, grade and optical size and keeping only the
 fill axis gives a 9 KB WOFF2 font. mygo cannot set the fill axis of a font, so
