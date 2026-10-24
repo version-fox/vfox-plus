@@ -27,6 +27,7 @@
 #             lintian, then an installation into a clean Ubuntu container
 #   measure   the memory use of the release build on the Home page and with
 #             the versions of Node.js listed
+#   screenshots  screenshots of every page, against the fixtures
 #   all       check, e2e and package
 #   shell     an interactive shell in the sandbox
 #   image     builds the sandbox images

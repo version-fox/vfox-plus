@@ -1,6 +1,6 @@
 # vfox+ — Flet implementation
 
-vfox-plus built with [Flet](https://flet.dev) 1.0.4 (Python) on Flutter
+vfox-plus built with [Flet](https://flet.dev) 1.0.5 (Python) on Flutter
 3.44.8: the core and the state are plain Python without a user interface
 framework, and the user interface is declarative Flet components. Flet runs
 the Python program inside the Flutter application, so the release is one
@@ -31,7 +31,7 @@ and tooltips — themed to Material 3 Expressive in
 
 ## Requirements
 
-- [uv](https://docs.astral.sh/uv/) 0.13.1 (pinned in
+- [uv](https://docs.astral.sh/uv/) 0.13.5 (pinned in
   [`versions.env`](versions.env)): it installs the pinned Python packages and
   the Python interpreter itself.
 - Flutter 3.44.8 (pinned in [`versions.env`](versions.env)): `flet build`

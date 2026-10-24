@@ -256,7 +256,7 @@ because only the rows in view are built.
   does not use yet.
 - **Scaling** is the one of GTK 3: whole numbers, from `GDK_SCALE` or the
   desktop, and the text scale of the desktop.
-- **mygo is young** (v0.5.5 at the time of writing, with a changing API): the
+- **mygo is young** (v0.6.3 at the time of writing, with a changing API): the
   version is pinned in [`go.mod`](go.mod), and the pages follow what that
   version offers.
 - **Accessibility** goes through mygo's ATK objects, which GTK bridges to AT-SPI,

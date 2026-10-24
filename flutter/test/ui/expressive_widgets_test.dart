@@ -14,7 +14,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart' hide MaterialShapes, RoundedPolygon;
 import 'package:vfox_plus/src/ui/theme/app_theme.dart';
 import 'package:vfox_plus/src/ui/theme/motion.dart';
 import 'package:vfox_plus/src/ui/theme/tokens.dart';

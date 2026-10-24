@@ -81,6 +81,16 @@ case "${1:-}" in
     stop_display
     ;;
 
+  screenshots)
+    prepare
+    as_tester "$APP" "${go_offline[@]}" bash build.sh --e2e "$BINARY"
+    start_display
+    as_tester "$WORK" env DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+      bash shared/tools/screenshots.sh /home/tester/screenshots "$BINARY"
+    publish /home/tester/screenshots/*.png
+    stop_display
+    ;;
+
   package)
     prepare
     as_tester "$APP" "${go_offline[@]}" bash build.sh "$BINARY"

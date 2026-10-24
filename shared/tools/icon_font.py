@@ -45,8 +45,8 @@ import pathlib
 import sys
 import urllib.request
 
-# google/material-design-icons, "Update Symbols" of 2026-10-09.
-COMMIT = "49d4db35df873165d6bd6ba09b063c7dafbac2f4"
+# google/material-design-icons, "Update Symbols" of 2026-10-23.
+COMMIT = "10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7"
 BASE_URL = f"https://raw.githubusercontent.com/google/material-design-icons/{COMMIT}"
 FONT_NAME = "MaterialSymbolsRounded[FILL,GRAD,opsz,wght]"
 # Paths in the repository, by local file name, with their checksums. The
@@ -54,11 +54,11 @@ FONT_NAME = "MaterialSymbolsRounded[FILL,GRAD,opsz,wght]"
 FILES = {
     f"{FONT_NAME}.ttf": (
         f"variablefont/{FONT_NAME}.ttf",
-        "32e4011709e055596eb8d2dd0f7cb547b47c1d40ac9ecb8fad54f7f7eac202e7",
+        "7e74e36533ccee12c2b81e75bfcf3ccf123d3bb7e7e46d65d94445f23db0c97c",
     ),
     f"{FONT_NAME}.codepoints": (
         f"variablefont/{FONT_NAME}.codepoints",
-        "0c9dae3ed678a81549c3be046bc8045335e5f57f2cbe2287360fbf0c2cc1355f",
+        "a7404d9e5a1b63f496cf05ace45d386075886b5a7f123fba9f29527cb6006fde",
     ),
     "LICENSE": ("LICENSE", "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"),
 }

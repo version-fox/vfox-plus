@@ -47,7 +47,9 @@ base64 = "0.23"
 nix = { version = "0.31", default-features = false, features = ["signal"] }
 # MIT OR Apache-2.0. Creates private directories for copies of plugins.
 tempfile = "3"
-# MIT. Reads the accent colour from the XDG desktop portal.
+# MIT. Reads the accent colour from the XDG desktop portal. The major version is
+# the one that tauri-plugin-opener uses, so that the application has one copy of
+# zbus.
 zbus = { version = "5", default-features = false, features = ["blocking-api", "tokio"] }
 
 # MIT. Names the program after the application ID, so that the window matches
