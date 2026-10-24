@@ -17,16 +17,16 @@ the SDKs page with the 872 available versions of Node.js listed.
 
 | Implementation                             | Technology                                                           | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | ------------------------------------------ | -------------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../mygo/README.md#memory)           | mygo 0.6, Go, GTK 3 (purego), CPU renderer                           |         1 |       41 |       54 |           47 |           60 |                  +6 |
+| [mygo](../mygo/README.md#memory)           | mygo 0.6, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       41 |       54 |           47 |           60 |                  +6 |
 | [Uno](../uno/README.md#memory)             | Uno Platform 6, C# on .NET 10, Skia on the CPU, Native AOT           |         1 |       98 |      106 |          113 |          122 |                 +15 |
-| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on the JVM, Skia on the CPU, C1 only   |         1 |      129 |      135 |          152 |          158 |                 +23 |
-| [Gio](../gio/README.md#memory)             | Gio, Go, OpenGL ES through EGL                                       |         1 |      165 |      202 |          171 |          208 |                  +6 |
-| [Flutter](../flutter/README.md#memory)     | Flutter 3.47, Dart, Skia on the CPU, GTK 3                           |         2 |      172 |      212 |          183 |          223 |                 +11 |
-| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, WebKitGTK, no compositing, DMA-BUF or JIT          |         3 |      203 |      385 |          220 |          402 |                 +17 |
-| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, WebKitGTK 4.1 (GTK 3), no compositing, DMA-BUF or JIT |         3 |      208 |      382 |          220 |          394 |                 +12 |
-| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application, Skia on the CPU          |         2 |      216 |      257 |          224 |          266 |                  +8 |
-| [Wails](../wails/README.md#memory)         | Wails 3, Go, WebKitGTK 6.0 (GTK 4), as Tauri, GTK OpenGL off         |         3 |      223 |      408 |          237 |          431 |                 +14 |
-| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron, no GPU process, no V8 JIT       |         4 |      267 |      468 |          281 |          487 |                 +14 |
+| [Compose](../compose/README.md#memory)     | Compose Multiplatform, Kotlin on JDK 25.0.5+8, Gradle 9.8.2, Skia on the CPU, C1 only |         1 |      129 |      135 |          152 |          158 |                 +23 |
+| [Gio](../gio/README.md#memory)             | Gio, Go 1.27.3, OpenGL ES through EGL                             |         1 |      165 |      202 |          171 |          208 |                  +6 |
+| [Flutter](../flutter/README.md#memory)     | Flutter 3.47.8, Dart 3.13.7, Skia on the CPU, GTK 3               |         2 |      172 |      212 |          183 |          223 |                 +11 |
+| [Dioxus](../dioxus/README.md#memory)       | Dioxus 0.7, Rust, Node.js 24.22.1 front-end build, WebKitGTK, no compositing, DMA-BUF or JIT |         3 |      203 |      385 |          220 |          402 |                 +17 |
+| [Tauri](../tauri/README.md#memory)         | Tauri 2, Rust, Node.js 24.22.1 front-end build, WebKitGTK 4.1 (GTK 3), no compositing, DMA-BUF or JIT |         3 |      208 |      382 |          220 |          394 |                 +12 |
+| [Flet](../flet/README.md#memory)           | Flet, Python 3.14 in a Flutter application, uv 0.13.5, Skia on the CPU |         2 |      216 |      257 |          224 |          266 |                  +8 |
+| [Wails](../wails/README.md#memory)         | Wails 3, Go 1.27.3, Node.js 24.22.1 front-end build, WebKitGTK 6.0 (GTK 4), as Tauri, GTK OpenGL off |         3 |      223 |      408 |          237 |          431 |                 +14 |
+| [Capacitor](../capacitor/README.md#memory) | Ionic Vue and Capacitor in Electron, Node.js 24.22.1 front-end build, no GPU process, no V8 JIT |         4 |      267 |      468 |          281 |          487 |                 +14 |
 
 - Without a GPU, what a toolkit does by default is to draw with the software OpenGL of
   Mesa, and the memory of that and of its compiler (LLVM) is in the application. Taking it
