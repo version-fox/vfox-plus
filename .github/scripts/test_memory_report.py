@@ -266,18 +266,12 @@ class ToleranceTest(unittest.TestCase):
         self.assertTrue(report.exceeds_noise("mygo", 42, 36))
         self.assertFalse(report.exceeds_noise("mygo", 42, 37))
 
-    def test_a_large_implementation_is_judged_by_the_percentage(self):
-        self.assertFalse(report.exceeds_noise("tauri", 300, 315))
-        self.assertTrue(report.exceeds_noise("tauri", 300, 316))
-
-    def test_the_noisy_implementations_get_more_room(self):
-        self.assertFalse(report.exceeds_noise("flutter", 350, 350 + 52))
-        self.assertTrue(report.exceeds_noise("flutter", 350, 350 + 53))
-        self.assertFalse(report.exceeds_noise("gio", 200, 224))
-        self.assertTrue(report.exceeds_noise("gio", 200, 225))
+    def test_a_large_measurement_is_judged_by_the_percentage(self):
+        self.assertFalse(report.exceeds_noise("mygo", 300, 315))
+        self.assertTrue(report.exceeds_noise("mygo", 300, 316))
 
     def test_no_difference_is_no_change(self):
-        for implementation in ("mygo", "gio", "unknown"):
+        for implementation in ("mygo", "unknown"):
             self.assertFalse(report.exceeds_noise(implementation, 100, 100))
 
 
@@ -438,12 +432,10 @@ class RenderTest(unittest.TestCase):
 
     def test_explains_the_noise_that_it_allows(self):
         rows = [
-            Row("flutter", "Flutter", "", "measured", memory(300, 310), memory(300, 310)),
-            Row("gio", "Gio", "", "measured", memory(200, 210), memory(200, 210)),
+            Row("mygo", "mygo", "", "measured", memory(300, 310), memory(300, 310)),
         ]
         text = self.render(rows)
-        self.assertIn("more than 5 MB and more than 5% of the number on main", text)
-        self.assertIn("12% for Gio, 15% for Flutter, which vary more", text)
+        self.assertIn("more than 5 MB and more than 5% of the number on main.", text)
 
     def test_is_ascii(self):
         self.render(self.rows()).encode("ascii")

@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The memory of the implementations in a pull request. The workflow of each
-# implementation measures its application and uploads the result as the
-# artifact memory-<implementation>. When the last of those workflows has ended
-# for the latest commit of a pull request, this one writes a single comment on
-# it: a table like the one of docs/memory.md with the difference from the latest
-# numbers of main. Later runs replace that comment instead of adding another one
+# The memory of the implementation in a pull request. The workflow of the
+# mygo implementation measures the application and uploads the result as the
+# artifact memory-mygo. When it has ended for the latest commit of a pull
+# request, this workflow writes one comment on it: the memory with the
+# difference from the latest numbers of main. Later runs replace that comment
+# instead of adding another one
 # (.github/scripts/memory_report.py; docs/memory.md#memory-in-pull-requests).
 #
-# It runs after the workflows of the pull request, in the context of the default
+# It runs after the workflow of the pull request, in the context of the default
 # branch, so that it can write to pull requests of forks, which a pull_request
-# workflow cannot. For the same reason it never runs code of the pull request: it
-# checks out main, and the artifacts it downloads are data, of which the script
-# only reads numbers.
+# workflow cannot. For the same reason it never runs code of the pull request:
+# it checks out main, and the artifacts it downloads are data, of which the
+# script only reads numbers.
 #
 # Run it by hand to write the report of a pull request again:
 #   gh workflow run memory.yml -f pull_request=<number>
@@ -32,9 +32,9 @@ name: Memory
 
 on:
   workflow_run:
-    # The workflows that measure an implementation, by name. Keep this in sync
-    # with MEMORY_IMPLEMENTATIONS below, which has their file names.
-    workflows: [Capacitor, Compose, Dioxus, Flet, Flutter, Gio, mygo, Tauri, Uno, Wails]
+    # The workflow that measures the implementation, by name. Keep this in sync
+    # with MEMORY_IMPLEMENTATIONS below, which has its file name.
+    workflows: [mygo]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -49,16 +49,15 @@ permissions:
   pull-requests: write
 
 concurrency:
-  # The workflows of a commit end one after another, and each starts a report.
-  # They run one at a time, so that two of them cannot both write the comment,
-  # and the last one to start is the one that finds all of them ended.
+  # The run of a commit ends and then starts a report. Reports run one at a
+  # time, so that two of them cannot both write the comment.
   group: memory-${{ github.event.workflow_run.head_sha || format('pull-request-{0}', inputs.pull_request) }}
   cancel-in-progress: false
 
 env:
-  # The file names of the workflows of the implementations (without .yml), which
-  # are also the names of their directories and of their artifacts.
-  MEMORY_IMPLEMENTATIONS: capacitor compose dioxus flet flutter gio mygo tauri uno wails
+  # The file name of the workflow of the implementation (without .yml), which
+  # is also the name of its directory and of its artifact.
+  MEMORY_IMPLEMENTATIONS: mygo
 
 jobs:
   report:
