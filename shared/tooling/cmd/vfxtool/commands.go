@@ -17,8 +17,10 @@ package main
 import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/build"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/builddeb"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/buildmsix"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/capture"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/coverage"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/docscheck"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/e2erun"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fakevfox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fetch"
@@ -33,6 +35,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/sandbox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/screenshots"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/smoketest"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/validatemsix"
 )
 
 func init() {
@@ -49,6 +52,9 @@ func init() {
 	commands["capture"] = capture.Run
 	commands["fake-vfox"] = fakevfox.Run
 	commands["build-deb"] = builddeb.Run
+	commands["build-msix"] = buildmsix.Run
+	commands["validate-msix"] = validatemsix.Run
+	commands["docs-check"] = docscheck.Run
 	commands["sandbox"] = sandbox.Run
 	commands["runtask"] = runtask.Run
 	commands["fetch"] = fetch.Run

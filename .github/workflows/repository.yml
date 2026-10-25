@@ -66,6 +66,8 @@ jobs:
           test -z "$(gofmt -l shared/tooling)"
           go -C shared/tooling vet ./...
           go -C shared/tooling test ./...
+      - name: Check documentation languages
+        run: go -C shared/tooling run ./cmd/vfxtool docs-check
       - name: Keep binary files out of the repository
         run: |
           # Images belong on an image host, and build outputs such as the icon

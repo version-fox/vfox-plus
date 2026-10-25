@@ -29,19 +29,14 @@ type SettingsStore interface {
 	Save(settings AppSettings) error
 }
 
-// SettingsPath returns the settings file for environment:
-// `$XDG_CONFIG_HOME/vfox-plus/settings.json`, where `XDG_CONFIG_HOME`
-// defaults to `~/.config` as defined by the XDG Base Directory
-// Specification.
+// SettingsPath returns the settings file for environment.
+//
+// On Unix it is `$XDG_CONFIG_HOME/vfox-plus/settings.json`, where
+// `XDG_CONFIG_HOME` defaults to `~/.config` as defined by the XDG Base
+// Directory Specification. On Windows it is `%APPDATA%\vfox-plus\settings.json`
+// (see settings_windows.go).
 func SettingsPath(environment map[string]string, fallbackHome string) string {
-	if xdg, ok := environment["XDG_CONFIG_HOME"]; ok && len(xdg) > 0 && xdg[0] == '/' {
-		return xdg + "/vfox-plus/settings.json"
-	}
-	home, ok := environment["HOME"]
-	if !ok || home == "" {
-		home = fallbackHome
-	}
-	return home + "/.config/vfox-plus/settings.json"
+	return settingsPath(environment, fallbackHome)
 }
 
 // JSONFileSettingsStore stores settings as JSON in a file, by default the

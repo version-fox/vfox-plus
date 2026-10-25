@@ -1,5 +1,7 @@
 # vfox+
 
+> [简体中文](README.zh-CN.md)
+
 vfox-plus built with [mygo](https://github.com/egoist/mygo), the desktop
 application framework for Go, and its **native user interface** (package `ui`):
 no web view, no HTML, no JavaScript. mygo draws the window itself, from elements
@@ -55,12 +57,13 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | --- | --- |
 | Generate the icon fonts, the translations and the licenses the binary embeds | `vfxtool prepare` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
 | Build (`build/vfox-plus`) | `vfxtool build build/vfox-plus` |
+| Cross-compile for Windows | `vfxtool build --goos windows --goarch amd64|arm64 build/vfox-plus.exe` |
 | Run | `vfxtool build build/vfox-plus && build/vfox-plus` |
 | Format check (CI fails on a difference) | `golangci-lint fmt --diff` |
 | Lint (CI fails on any finding) | `golangci-lint run` and `golangci-lint run --build-tags e2e` |
 | Unit tests | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...` |
 | Coverage gates | `vfxtool coverage coverage.out 85` |
-| `.deb` and `.tar.gz` | see [Packaging](#packaging) |
+| `.deb`, `.tar.gz`, `.msix`, `.msixbundle` | see [Packaging](#packaging) |
 
 `vfxtool prepare` needs the network the first time: it
 downloads the pinned Material Symbols font (or set `VFOX_PLUS_SYMBOLS` to a
@@ -201,27 +204,38 @@ pages are built from its components.
 
 ## Packaging
 
-The release binary contains everything. The shared tool
-`vfxtool build-deb`
-packages it as `vfox-plus-mygo_<version>_amd64.deb` and a `.tar.gz`, with the
-desktop entry, AppStream metadata and icon of
-[`shared/packaging/linux`](../shared/packaging/linux); the version is the one in [`VERSION`](VERSION), which a test
-keeps equal to the one the application shows. The application names its window
-`dev.vfox.VfoxPlus` (GTK takes the application ID of Wayland and the window
-class of X11 from the program name, which the application sets with
-`g_set_prgname` before mygo starts GTK), so that it matches the desktop entry.
-The licenses of the Go modules, of the Go standard library, of the ports and of
-the icon font are installed as
-`/usr/share/doc/vfox-plus-mygo/THIRD-PARTY-LICENSES` and shown in the
+The release binary contains everything.
+
+On Linux, the shared tool `vfxtool build-deb` packages it as
+`vfox-plus_<version>_amd64.deb` and a `.tar.gz`, with the desktop entry,
+AppStream metadata and icon of [`shared/packaging/linux`](../shared/packaging/linux);
+the version is the one in [`VERSION`](VERSION), which a test keeps equal to the
+one the application shows. The application names its window `dev.vfox.VfoxPlus`
+(GTK takes the application ID of Wayland and the window class of X11 from the
+program name, which the application sets with `g_set_prgname` before mygo starts
+GTK), so that it matches the desktop entry. The licenses of the Go modules, of
+the Go standard library, of the ports and of the icon font are installed as
+`/usr/share/doc/vfox-plus/THIRD-PARTY-LICENSES` and shown in the
 application ([`NOTICE.txt`](NOTICE.txt) holds the notices of the ports; the rest
-is collected by `vfxtool golicenses`,
-which fails on a license that is not compatible with the Apache License 2.0).
+is collected by `vfxtool golicenses`, which fails on a license that is not
+compatible with the Apache License 2.0).
 
 The package depends on GTK 3 (which brings GLib, Pango, Cairo and the rest of
 what mygo loads), fontconfig and a font (`fonts-ubuntu` or `fonts-noto-core`),
 and recommends `fonts-noto-cjk` for Chinese, a desktop portal and `xdg-utils` for
 links. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
 installs the package into a clean Ubuntu container to prove that it is complete.
+
+On Windows 11, `vfxtool build-msix` packages cross-compiled executables
+(`vfxtool build --goos windows --goarch amd64|arm64`) as unsigned
+`vfox-plus_<version>_<arch>.msix` and a `vfox-plus_<version>.msixbundle`,
+with the manifest, logos and bundle layout of
+[`shared/packaging/windows`](../shared/packaging/windows). Users install with the
+one-command [`Sign-Msix.ps1`](../shared/packaging/windows/Sign-Msix.ps1) script
+(self-signed certificate, no third party needed); to distribute widely, sign it
+with a trusted certificate. CI cross-compiles and packages on Linux, validates with
+`vfxtool validate-msix`, and installs/uninstalls the bundle on Windows
+Server 2025 (x64) and Windows 11 on ARM (arm64).
 
 ## Memory
 
@@ -275,21 +289,19 @@ adds 8 MB because only the rows in view are built.
   interface goes on without its icons. The unit tests give each package a cache
   directory of its own, because two test programs that register the same fonts at
   the same moment race there.
-- **Only Linux on x86-64 is run, tested and packaged.** mygo has its own backends
+- **Only Linux on x86-64 is run and tested end to end.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on
-  arm64 (`GOOS=windows CGO_ENABLED=0 go build` and the like), but nothing of that is
-  tried here. `core` still assumes Linux where it stops a process (`SIGTERM`),
-  splits `PATH` (at `:`), looks for vfox (in Linux directories, as `vfox`) and
-  keeps the settings (in `~/.config`).
-- **`.msixbundle` and `.apk` are not made here.** On Windows `mygo build` makes an
-  executable and an NSIS installer, not an MSIX. An `.msixbundle` bundles one
-  `.msix` package per architecture, each with the executable, an `AppxManifest.xml`
-  and icons, which `MakeAppx.exe` of the Windows SDK packs and bundles, so it is
-  work still to do (the Windows code of `core`, the manifest, icons made from the
-  SVG, a certificate, a Windows runner), not something that mygo rules out. mygo has
-  no Android backend, so the interface cannot be a native Android app. It does
-  compile to WebAssembly for browsers: `GOOS=js GOARCH=wasm` builds this application
-  (13.6 MB, 3.5 MB compressed) and WebKitGTK draws its pages, but a browser cannot
-  start vfox, so a web UI, and an Android client that is a web view around it, need
-  a remote process runner and an agent on the machine that runs vfox (see
+  arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows 11
+  is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI;
+  installing it is sideloading with `Add-AppxPackage -AllowUnsigned`. `core` is
+  portable: process termination (`SIGTERM` on Unix, kill on Windows), `PATH`
+  splitting (`:` vs `;`), vfox lookup (`vfox` vs `vfox.exe` with Windows fallback
+  directories) and the settings location (`~/.config` vs `%APPDATA%`) follow the
+  platform.
+- **`.apk` is not made here.** mygo has no Android backend, so the interface
+  cannot be a native Android app. It does compile to WebAssembly for browsers:
+  `GOOS=js GOARCH=wasm` builds this application (13.6 MB, 3.5 MB compressed) and
+  WebKitGTK draws its pages, but a browser cannot start vfox, so a web UI, and an
+  Android client that is a web view around it, need a remote process runner and an
+  agent on the machine that runs vfox (see
   [Future: remote and web front ends](../docs/architecture.md#future-remote-and-web-front-ends)).

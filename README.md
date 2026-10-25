@@ -1,5 +1,7 @@
 # vfox-plus
 
+> [简体中文](README.zh-CN.md)
+
 A graphical front end for [vfox](https://vfox.dev), the cross-platform version
 manager, built with the [Material 3 Expressive](https://m3.material.io/) design
 language.
@@ -32,7 +34,7 @@ about 12 MB. It uses about 45 MB of PSS on the Home page (see
 
 | Directory | Technology | Platforms | Package | Status |
 | --- | --- | --- | --- | --- |
-| [`mygo/`](mygo) | mygo 0.6.3 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |
+| [`mygo/`](mygo) | mygo 0.6.3 (Go), with its native user interface through GTK 3 on Linux and the Windows backend on Windows, and its own Material 3 Expressive components | Linux desktop, Windows 11 desktop | `vfox-plus` | Working on Linux; Windows builds, packages and installs (unsigned sideloading), smoke-tested manually |
 
 ## What it does
 
@@ -53,7 +55,7 @@ vfox+ drives the vfox command line tool, which must be installed separately
 ## Getting vfox+
 
 The [`mygo`](.github/workflows/mygo.yml) workflow builds packages for every
-change. Download the `vfox-plus-mygo-linux-x64` artifact of the latest
+change. Download the `vfox-plus-linux-x64` artifact of the latest
 successful run, then:
 
 ```sh
@@ -65,6 +67,14 @@ or extract the `.tar.gz` anywhere and run `./vfox-plus`. To build from source,
 see the [mygo README](mygo/README.md); with nothing but Docker,
 `vfxtool sandbox package` builds both files into `dist/sandbox/`
 without changing anything on your machine.
+
+On Windows 11, download the `vfox-plus-windows` artifact instead, extract it
+and run the one-command script in PowerShell (it self-signs with a local
+certificate and installs; see [Windows packaging](shared/packaging/windows/README.md)):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Sign-Msix.ps1
+```
 
 ## Repository layout
 

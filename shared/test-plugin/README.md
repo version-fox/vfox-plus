@@ -1,5 +1,7 @@
 # Offline test plugin
 
+> [简体中文](README.zh-CN.md)
+
 [`testsdk.lua`](testsdk.lua) is a vfox plugin that lets the end-to-end tests run
 against the **real** vfox without the network and without touching anybody's
 vfox installation: `vfxtool e2e-run` starts an in-process test server

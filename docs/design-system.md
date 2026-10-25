@@ -1,5 +1,7 @@
 # Design system
 
+> [简体中文](zh-CN/design-system.md)
+
 vfox-plus follows [Material 3 Expressive](https://m3.material.io/), the 2025
 evolution of Material Design that adds springs, a richer shape library, emphasized
 typography and new components to Material 3. This document lists the tokens and

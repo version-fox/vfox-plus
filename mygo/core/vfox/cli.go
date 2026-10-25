@@ -26,10 +26,6 @@ import (
 	core "github.com/version-fox/vfox-plus/mygo/core"
 )
 
-// VfoxExecutableName is the name of the vfox executable, looked up in `PATH`
-// when no path is known.
-const VfoxExecutableName = "vfox"
-
 // SessionVariables tie a process to an activated shell session. They are
 // removed so that a GUI started from an activated terminal does not act on
 // that terminal's session.
@@ -61,7 +57,7 @@ type VfoxLaunchConfig struct {
 // DefaultLaunchConfig creates a launch configuration; zero values take the
 // defaults.
 func DefaultLaunchConfig() VfoxLaunchConfig {
-	return VfoxLaunchConfig{Executable: VfoxExecutableName, NeutralDirectory: "/"}
+	return VfoxLaunchConfig{Executable: VfoxExecutableName, NeutralDirectory: neutralDirectory()}
 }
 
 // VfoxEnvironment is the complete environment of a vfox child process.

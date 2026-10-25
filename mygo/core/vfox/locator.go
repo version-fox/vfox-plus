@@ -16,17 +16,19 @@ package vfox
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 // IsExecutableFile reports whether path is an existing regular file that
-// anybody may execute.
+// anybody may execute. On Windows any regular file counts: executability is
+// decided by the extension (.exe, .bat, …) and the file system.
 func IsExecutableFile(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil || !info.Mode().IsRegular() {
 		return false
 	}
-	return info.Mode()&0o111 != 0
+	return isExecutableMode(info.Mode())
 }
 
 // VfoxLocator looks for the vfox executable in `PATH` and in common install
@@ -56,13 +58,7 @@ func NewVfoxLocator(environment map[string]string, isExecutable func(path string
 // order.
 func (l *VfoxLocator) FallbackDirectories() []string {
 	if l.fallbackCache == nil {
-		directories := []string{"/usr/local/bin", "/usr/bin"}
-		if home, ok := l.environment["HOME"]; ok && home != "" {
-			directories = append(directories,
-				home+"/.local/bin", home+"/bin", home+"/.linuxbrew/bin")
-		}
-		directories = append(directories, "/home/linuxbrew/.linuxbrew/bin", "/snap/bin")
-		l.fallbackCache = directories
+		l.fallbackCache = fallbackDirectories(l.environment)
 	}
 	return l.fallbackCache
 }
@@ -71,7 +67,7 @@ func (l *VfoxLocator) FallbackDirectories() []string {
 // duplicates.
 func (l *VfoxLocator) SearchDirectories() []string {
 	var path []string
-	for _, entry := range strings.Split(l.environment["PATH"], ":") {
+	for _, entry := range strings.Split(l.environment["PATH"], string(pathListSeparator)) {
 		if entry != "" {
 			path = append(path, entry)
 		}
@@ -90,7 +86,7 @@ func (l *VfoxLocator) SearchDirectories() []string {
 // Locate returns the path of the first vfox executable found, or "".
 func (l *VfoxLocator) Locate() string {
 	for _, directory := range l.SearchDirectories() {
-		if candidate := directory + "/" + VfoxExecutableName; l.isExecutable(candidate) {
+		if candidate := filepath.Join(directory, VfoxExecutableName); l.isExecutable(candidate) {
 			return candidate
 		}
 	}

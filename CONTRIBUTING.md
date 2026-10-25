@@ -1,14 +1,19 @@
 # Contributing to vfox-plus
 
+> [简体中文](CONTRIBUTING.zh-CN.md)
+
 Thank you for helping! This repository holds the vfox-plus application (see
 the [README](README.md)); most of what follows applies to all of its parts.
 
 ## Ground rules
 
-- Code comments, documentation, commit messages and pull requests are written in
+- Code comments, commit messages and pull requests are written in
   **English**. User-visible texts go through the translation catalogues in
   [`shared/i18n`](shared/i18n) and are available in English and Simplified
   Chinese.
+- Documentation is written in **English with a Simplified Chinese translation**:
+  every Markdown document has a Chinese counterpart (see
+  [Documentation languages](#documentation-languages)).
 - Every source file starts with the Apache-2.0 license header used in this
   repository. Check with
   `docker run --rm -v "$PWD:/github/workspace" apache/skywalking-eyes:0.9.0 header check`
@@ -53,7 +58,7 @@ the [README](README.md)); most of what follows applies to all of its parts.
 | --- | --- | --- |
 | [`repository.yml`](.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), shared JSON, no committed binary files |
 | [`memory.yml`](.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](docs/memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios in the application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container |
+| [`mygo.yml`](.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios in the application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
@@ -74,6 +79,26 @@ the difference from `main`, which the next commit replaces instead of adding
 another one. A change that is more than the noise between CI runs is in bold; read
 [Memory in pull requests](docs/memory.md#memory-in-pull-requests) before you trust a small
 one.
+
+## Documentation languages
+
+Every Markdown document is written in English with a Simplified Chinese
+translation, in the same pull request. English is the canonical version; the
+Chinese translation follows it section by section, keeping code blocks, command
+lines, file paths and the glossary of [docs/i18n.md](docs/i18n.md) unchanged.
+
+| English (canonical) | Simplified Chinese |
+| --- | --- |
+| `README.md` | `README.zh-CN.md` (same directory) |
+| `CONTRIBUTING.md` | `CONTRIBUTING.zh-CN.md` |
+| `mygo/README.md` | `mygo/README.zh-CN.md` |
+| `shared/README.md`, `shared/*/README.md` | `README.zh-CN.md` next to it |
+| `docs/*.md` | `docs/zh-CN/*.md` (same base name) |
+
+Each document links to its counterpart at the top (`[简体中文](…)` in English,
+`[English](…)` in Chinese) and `vfxtool docs-check` verifies the mapping; the
+repository workflow fails when a document has no counterpart. Future documents
+follow the same table: add both files together.
 
 ## Common changes
 

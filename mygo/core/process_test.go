@@ -16,6 +16,7 @@ package core_test
 
 import (
 	"errors"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -50,6 +51,9 @@ func (c *collector) output() (string, string) {
 }
 
 func TestRunCollectsOutput(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix shell; see process_windows_test.go")
+	}
 	runner := core.OsProcessRunner{}
 	output, err := runner.Run("/bin/sh", []string{"-c", `echo "$GREETING $HOME"; echo oops >&2; pwd; read line || echo "no input"; exit 3`},
 		core.ProcessOptions{WorkingDirectory: "/tmp", Environment: map[string]string{"GREETING": "hello"}})
@@ -62,6 +66,9 @@ func TestRunCollectsOutput(t *testing.T) {
 }
 
 func TestRunDecodesMalformedOutput(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix shell; see process_windows_test.go")
+	}
 	output, err := core.OsProcessRunner{}.Run("/bin/sh", []string{"-c", `printf 'a\377b'`}, testOptions)
 	if err != nil || output.Stdout != "a�b" {
 		t.Errorf("got %#v %v", output, err)
@@ -77,6 +84,9 @@ func TestRunReportsMissingExecutable(t *testing.T) {
 }
 
 func TestStartStreamsOutput(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix shell; see process_windows_test.go")
+	}
 	collected := &collector{}
 	process, err := core.OsProcessRunner{}.Start("/bin/sh",
 		[]string{"-c", "echo one; echo two >&2; echo three"}, testOptions, collected)
@@ -93,6 +103,9 @@ func TestStartStreamsOutput(t *testing.T) {
 }
 
 func TestKillTerminates(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix shell; see process_windows_test.go")
+	}
 	collected := &collector{}
 	process, err := core.OsProcessRunner{}.Start("/bin/sh", []string{"-c", "echo started; exec sleep 30"}, testOptions, collected)
 	if err != nil {

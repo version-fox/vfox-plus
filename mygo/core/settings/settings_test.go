@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -132,6 +133,9 @@ func TestEnvironmentLines(t *testing.T) {
 }
 
 func TestSettingsPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix paths; see store_windows_test.go")
+	}
 	if got := settings.SettingsPath(map[string]string{"XDG_CONFIG_HOME": "/x", "HOME": "/h"}, "/fallback"); got != "/x/vfox-plus/settings.json" {
 		t.Errorf("got %q", got)
 	}

@@ -1,5 +1,7 @@
 # User interface specification
 
+> [简体中文](zh-CN/ui-spec.md)
+
 This document describes what vfox-plus shows and does.
 Visual details — colours, shapes, type and motion — are in
 [the design system](design-system.md); texts are in

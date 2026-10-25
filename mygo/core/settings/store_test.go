@@ -17,12 +17,16 @@ package settings_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 )
 
 func TestSettingsPathFollowsTheXDGDirectories(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix paths; see store_windows_test.go")
+	}
 	for name, tc := range map[string]struct {
 		environment map[string]string
 		want        string
