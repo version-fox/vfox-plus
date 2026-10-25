@@ -276,10 +276,17 @@ jobs:
         # UAC is disabled on GitHub-hosted runners, so the unsigned install
         # for all users runs without a prompt. The deployment platform picks
         # the slice matching this runner, which proves each architecture.
+        # On failure the AppX deployment log pinpoints the failing check.
         shell: pwsh
         run: |
           $bundle = Get-ChildItem msix/*.msixbundle | Select-Object -First 1
-          Add-AppxPackage -Path $bundle.FullName -AllowUnsigned
+          try {
+            Add-AppxPackage -Path $bundle.FullName -AllowUnsigned
+          } catch {
+            Write-Host "--- AppX deployment log (tail) ---"
+            Get-AppPackageLog | Select-Object -Last 60
+            throw
+          }
           $pkg = Get-AppxPackage -Name "dev.vfox.VfoxPlus"
           if (-not $pkg) { throw "package not registered after install" }
           if ("$($pkg.Architecture)" -ne "${{ matrix.arch }}") {
