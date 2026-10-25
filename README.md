@@ -4,35 +4,35 @@ A graphical front end for [vfox](https://vfox.dev), the cross-platform version
 manager, built with the [Material 3 Expressive](https://m3.material.io/) design
 language.
 
-It is built with [mygo](https://github.com/egoist/mygo) 0.5 (Go), with its
+It is built with [mygo](https://github.com/egoist/mygo) 0.6.3 (Go), with its
 native user interface through GTK 3 and its own Material 3 Expressive
 components — no web view, no HTML, no JavaScript — in a single Go executable of
-about 12 MB. It uses about 41 MB of PSS on the Home page (see
+about 12 MB. It uses about 45 MB of PSS on the Home page (see
 [docs/memory.md](docs/memory.md)). The screenshots show the application.
 
-![vfox+ home page](https://iili.io/nepQqdb.png)
+![vfox+ home page](https://iili.io/nkxZJOG.png)
 
 | Installed versions of an SDK | Available versions, dark theme |
 | --- | --- |
-| ![Installed versions of nodejs](https://iili.io/nepQwvf.png) | ![Available versions of nodejs, dark theme](https://iili.io/nepZnFn.png) |
+| ![Installed versions of nodejs](https://iili.io/nkxB73u.png) | ![Available versions of nodejs, dark theme](https://iili.io/nkxBcyx.png) |
 
 | An installation in progress | Tasks, which can be followed and cancelled |
 | --- | --- |
-| ![Installing a version of nodejs](https://iili.io/nepZvHJ.png) | ![Tasks](https://iili.io/neptFHb.png) |
+| ![Installing a version of nodejs](https://iili.io/nkxBW6F.png) | ![Tasks](https://iili.io/nkxBNyv.png) |
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nepthb4.png) | ![Settings](https://iili.io/nepD3BI.png) |
+| ![Plugins](https://iili.io/nkxBvZN.png) | ![Settings](https://iili.io/nkxZEmJ.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |
-| ![Home in a compact window](https://iili.io/nepDVEP.png) | ![An SDK in a compact window](https://iili.io/nepbJyb.png) |
+| ![Home in a compact window](https://iili.io/nkxZhqN.png) | ![An SDK in a compact window](https://iili.io/nkxBZt2.png) |
 
 ## Implementation
 
 | Directory | Technology | Platforms | Package | Status |
 | --- | --- | --- | --- | --- |
-| [`mygo/`](mygo) | mygo 0.6 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |
+| [`mygo/`](mygo) | mygo 0.6.3 (Go), with its native user interface through GTK 3 and its own Material 3 Expressive components | Linux desktop | `vfox-plus-mygo` | Working |
 
 ## What it does
 
@@ -63,7 +63,7 @@ vfox-plus
 
 or extract the `.tar.gz` anywhere and run `./vfox-plus`. To build from source,
 see the [mygo README](mygo/README.md); with nothing but Docker,
-`mygo/sandbox/sandbox.sh package` builds both files into `dist/sandbox/`
+`vfxtool sandbox package` builds both files into `dist/sandbox/`
 without changing anything on your machine.
 
 ## Repository layout
@@ -71,7 +71,8 @@ without changing anything on your machine.
 ```text
 docs/       Shared specification: architecture, vfox CLI contract, UI, design system, i18n
 shared/     Shared resources: translations, icons, captured vfox output (test fixtures), an offline
-            test plugin, the end-to-end runner, packaging files, the icon font tool and the shared parts of the sandbox
+            test plugin, the end-to-end runner, packaging files, vfxtool (the Go developer
+            tool) and the shared parts of the sandbox
 mygo/       The application
 .github/    CI workflows: repository checks, the build, the memory report and the sandbox
 ```

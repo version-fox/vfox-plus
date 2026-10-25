@@ -13,8 +13,8 @@
 // limitations under the License.
 
 // Package assets embeds what the application needs at run time and that
-// tools/prepare.sh generates: the icon fonts, the code points of the icons, the
-// translations and the licenses. Run the script before building.
+// `vfxtool prepare` generates: the icon fonts, the code points of the icons,
+// the translations and the licenses. Run it before building.
 package assets
 
 import "embed"

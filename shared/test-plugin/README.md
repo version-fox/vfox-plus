@@ -2,9 +2,9 @@
 
 [`testsdk.lua`](testsdk.lua) is a vfox plugin that lets the end-to-end tests run
 against the **real** vfox without the network and without touching anybody's
-vfox installation: `shared/e2e/run.sh` starts the test server of
-[`shared/e2e/test-server.mjs`](../e2e/test-server.mjs), which implements the
-protocol below, and drives the application through the `real` scenario.
+vfox installation: `vfxtool e2e-run` starts an in-process test server
+(`shared/tooling/internal/testserver`), which implements the protocol below,
+and drives the application through the `real` scenario.
 
 ## How a test uses it
 

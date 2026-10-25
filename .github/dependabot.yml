@@ -21,6 +21,13 @@ updates:
     groups:
       go-modules:
         patterns: ["*"]
+  - package-ecosystem: gomod
+    directory: /shared/tooling
+    schedule:
+      interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     # The workflows, and the actions of this repository, which pin actions too.
     directories:

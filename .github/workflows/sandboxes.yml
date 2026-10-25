@@ -14,7 +14,7 @@
 
 # The Docker sandbox that builds on shared/sandbox: whenever the sandbox, its
 # pinned versions or the shared parts change, builds the image of the mygo
-# implementation and runs `sandbox.sh all` in it, so that the sandbox keeps
+# implementation and runs `vfxtool sandbox all` in it, so that the sandbox keeps
 # working for contributors.
 name: Sandboxes
 
@@ -25,16 +25,14 @@ on:
       - "mygo/sandbox/**"
       - "mygo/versions.env"
       - shared/sandbox/**
-      - shared/tools/**
-      - shared/e2e/**
+      - shared/tooling/**
       - .github/workflows/sandboxes.yml
   pull_request:
     paths:
       - "mygo/sandbox/**"
       - "mygo/versions.env"
       - shared/sandbox/**
-      - shared/tools/**
-      - shared/e2e/**
+      - shared/tooling/**
       - .github/workflows/sandboxes.yml
   workflow_dispatch:
 
@@ -54,5 +52,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: mygo/go.sum
       - name: Run the sandbox
-        run: mygo/sandbox/sandbox.sh all
+        run: |
+          go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+          "$RUNNER_TEMP/vfxtool" sandbox all

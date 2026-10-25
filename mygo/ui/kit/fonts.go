@@ -47,7 +47,7 @@ var (
 )
 
 // LoadIcons registers the icon fonts, the outlined and the filled one, and the
-// code points of the icons, which tools/prepare.sh generates from
+// code points of the icons, which `vfxtool prepare` generates from
 // shared/icons.json: {"icons": {"<meaning>": {"codepoint": 57669}}}.
 func LoadIcons(outlined, filled, codepoints []byte) error {
 	var table struct {

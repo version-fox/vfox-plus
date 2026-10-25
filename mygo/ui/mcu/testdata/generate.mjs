@@ -16,6 +16,12 @@
 // for a set of seed colours, as @material/material-color-utilities computes
 // it. The Go port in ../ is tested against it.
 //
+// This file intentionally stays JavaScript: it must execute the JavaScript
+// reference implementation, because the value of the golden test is that an
+// independent implementation agrees with the Go port bit for bit. A Go
+// program could only shell out to node (saving nothing) or reimplement the
+// reference (testing the port against itself, which proves nothing).
+//
 //   npm install --prefix "$TMP" @material/material-color-utilities@0.4.0
 //   node generate.mjs "$TMP/node_modules/@material/material-color-utilities" > golden.json
 //
