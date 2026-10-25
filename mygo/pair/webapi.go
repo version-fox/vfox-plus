@@ -338,6 +338,9 @@ func startTask(model *state.AppModel, req taskRequest) (*state.VfoxTask, error) 
 		if req.Source == "" {
 			return nil, &userError{"A plugin source is required."}
 		}
+		if !vfox.IsRemotePluginSource(req.Source) {
+			return nil, &userError{"Only plugin URLs can be added from the browser; upload local files instead."}
+		}
 		return model.AddPluginFromSource(req.Source, req.Alias)
 	case "remove":
 		if req.Sdk == "" {
@@ -469,7 +472,7 @@ func pluginSource(writer http.ResponseWriter, request *http.Request) (source, al
 		}
 		defer func() { _ = file.Close() }()
 		name := filepath.Base(header.Filename)
-		if name == "" || name == "." {
+		if name == "" || name == "." || name == ".." {
 			name = "plugin.lua"
 		}
 		content, err := io.ReadAll(file)
@@ -493,6 +496,12 @@ func pluginSource(writer http.ResponseWriter, request *http.Request) (source, al
 	}
 	if req.Source == "" {
 		return "", "", cleanup, &userError{"A source URL is required."}
+	}
+	// Browsers add plugins by URL or by upload. A local path would hand an
+	// HTTP-supplied filesystem path to os.ReadFile in PreparePluginSource,
+	// so it is rejected here; the desktop application keeps accepting it.
+	if !vfox.IsRemotePluginSource(req.Source) {
+		return "", "", cleanup, &userError{"Only plugin URLs can be added from the browser; upload local files instead."}
 	}
 	return req.Source, req.Alias, cleanup, nil
 }

@@ -191,6 +191,9 @@ func TestWebTasks(t *testing.T) {
 	if status, _ := webPost(t, server, session, "/api/tasks", `{"operation":"use","sdk":"go","version":"1","scope":"project"}`, ""); status != http.StatusBadRequest {
 		t.Errorf("project scopes must be rejected, got %d", status)
 	}
+	if status, _ := webPost(t, server, session, "/api/tasks", `{"operation":"add","source":"mine.lua"}`, ""); status != http.StatusBadRequest {
+		t.Errorf("local plugin paths must be rejected, got %d", status)
+	}
 	if status, _ := webPost(t, server, session, "/api/tasks", `{"operation":"bogus"}`, ""); status != http.StatusBadRequest {
 		t.Errorf("got %d", status)
 	}
@@ -277,6 +280,11 @@ func TestWebPlugins(t *testing.T) {
 	status, body := webPost(t, server, session, "/api/plugins", `{"source":"https://example.com/p.zip"}`, "")
 	if status != http.StatusCreated || !strings.Contains(body, `"operation":"addPlugin"`) {
 		t.Errorf("got %d: %s", status, body)
+	}
+	for _, local := range []string{`{"source":"/etc/passwd"}`, `{"source":"mine.lua"}`, `{"source":"C:\\mine.lua"}`} {
+		if status, body := webPost(t, server, session, "/api/plugins", local, ""); status != http.StatusBadRequest {
+			t.Errorf("local paths must be rejected, got %d: %s", status, body)
+		}
 	}
 	var file bytes.Buffer
 	writer := multipart.NewWriter(&file)
