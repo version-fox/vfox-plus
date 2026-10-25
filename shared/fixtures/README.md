@@ -1,5 +1,7 @@
 # vfox output fixtures
 
+> [简体中文](README.zh-CN.md)
+
 vfox prints human-oriented text, and the GUI has to parse it. This directory
 holds that text, captured from real vfox runs, together with the results a
 correct parser must produce. The parsers run against these files in the unit

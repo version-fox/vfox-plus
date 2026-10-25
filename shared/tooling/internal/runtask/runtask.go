@@ -395,6 +395,17 @@ func Run(args []string) error {
 		if err := smokeTest(binary); err != nil {
 			return err
 		}
+		// The Windows executables cross-compile on Linux: mygo needs no C
+		// compiler. They are packaged as unsigned MSIX below.
+		for _, arch := range []string{"amd64", "arm64"} {
+			output := "/home/tester/stage-windows-" + arch + "/vfox-plus.exe"
+			if err := run("install", "-d", "-o", "tester", "-g", "tester", filepath.Dir(output)); err != nil {
+				return err
+			}
+			if err := tool(app, offlineEnv, "build", "--root", app, "--goos", "windows", "--goarch", arch, output); err != nil {
+				return err
+			}
+		}
 		if err := run("install", "-d", "-o", "tester", "-g", "tester", "/home/tester/stage", "/home/tester/dist"); err != nil {
 			return err
 		}
@@ -430,7 +441,7 @@ func Run(args []string) error {
 		if err := asTester(app,
 			"SOURCE_DATE_EPOCH="+epoch,
 			exe, "build-deb",
-			"--package", "vfox-plus-mygo",
+			"--package", "vfox-plus",
 			"--version", version,
 			"--stage", "/home/tester/stage",
 			"--executable", "vfox-plus",
@@ -457,6 +468,47 @@ func Run(args []string) error {
 		}, debs...)...); err != nil {
 			return err
 		}
+		if err := asTester(app,
+			"SOURCE_DATE_EPOCH="+epoch,
+			exe, "build-msix",
+			"--package", "vfox-plus",
+			"--version", version,
+			"--stage-x64", "/home/tester/stage-windows-amd64",
+			"--stage-arm64", "/home/tester/stage-windows-arm64",
+			"--executable", "vfox-plus.exe",
+			"/home/tester/dist"); err != nil {
+			return err
+		}
+		if err := asTester(app, exe, "validate-msix", "/home/tester/dist"); err != nil {
+			return err
+		}
+		// The inputs of the Windows self-sign script (Sign-Msix.ps1): the
+		// loose executables, a Windows vfxtool to rebuild with the
+		// self-signed publisher, and the script itself.
+		if err := run("install", "-d", "-o", "tester", "-g", "tester",
+			"/home/tester/dist/stage-x64", "/home/tester/dist/stage-arm64"); err != nil {
+			return err
+		}
+		if err := run("install", "-o", "tester", "-m", "644",
+			"/home/tester/stage-windows-amd64/vfox-plus.exe",
+			"/home/tester/dist/stage-x64/vfox-plus.exe"); err != nil {
+			return err
+		}
+		if err := run("install", "-o", "tester", "-m", "644",
+			"/home/tester/stage-windows-arm64/vfox-plus.exe",
+			"/home/tester/dist/stage-arm64/vfox-plus.exe"); err != nil {
+			return err
+		}
+		if err := asTester(tooling, append(append([]string{}, goOffline...),
+			"env", "CGO_ENABLED=0", "GOOS=windows", "GOARCH=amd64",
+			"go", "build", "-o", "/home/tester/dist/vfxtool.exe", "./cmd/vfxtool")...); err != nil {
+			return err
+		}
+		if err := run("install", "-o", "tester", "-m", "644",
+			filepath.Join(e.work, "shared", "packaging", "windows", "Sign-Msix.ps1"),
+			"/home/tester/dist/Sign-Msix.ps1"); err != nil {
+			return err
+		}
 		files, err := filepath.Glob("/home/tester/dist/*")
 		if err != nil {
 			return err
@@ -465,7 +517,7 @@ func Run(args []string) error {
 
 	case "install-test":
 		// Runs in a clean Ubuntu container, with the .deb mounted at /pkg.
-		return installDebTest("vfox-plus-mygo", "/usr/lib/vfox-plus/vfox-plus")
+		return installDebTest("vfox-plus", "/usr/lib/vfox-plus/vfox-plus")
 
 	case "shell":
 		if err := prepare(); err != nil {

@@ -1,5 +1,7 @@
 # vfox CLI contract
 
+> [简体中文](zh-CN/vfox-cli-contract.md)
+
 This document specifies how vfox-plus drives the vfox command
 line tool: which commands it runs, in which environment, how it reads their
 output and how it reports errors. It describes **vfox 1.0.13** and notes where
@@ -46,14 +48,16 @@ in `~/.vfox`.
 vfox reads the *project* configuration (`.vfox.toml`, and legacy files such as
 `.nvmrc` when enabled) from its working directory, without looking at parent
 directories. Run every command that is not about a project in a directory that
-cannot contain such files: **the filesystem root `/`**. Do not use the home
+cannot contain such files: **the filesystem root** (`/` on Unix, the system
+drive root such as `C:\` on Windows). Do not use the home
 directory: users of asdf often have a `~/.tool-versions`.
 
 Commands for a project scope run in the project directory.
 
 ### Session directories
 
-Every vfox invocation creates `~/.vfox/tmp/<yyyymmdd>-<pid>`, where `<pid>` is
+Every vfox invocation creates `<home>/.vfox/tmp/<yyyymmdd>-<pid>` (`~/.vfox/tmp`
+on Unix, `%USERPROFILE%/.vfox/tmp` on Windows), where `<pid>` is
 the PID of its parent process. Because the GUI spawns vfox directly, all
 invocations share one directory per day; vfox removes stale ones itself.
 
@@ -279,9 +283,9 @@ and do not add these lines to the visible log. Fixture: `install`.
 
 ### Cancelling
 
-A running command is cancelled by sending `SIGTERM` to vfox; the task then
-counts as cancelled whatever the exit code. What an interrupted `vfox install`
-leaves behind depends on the version:
+A running command is cancelled by terminating vfox (`SIGTERM` on Unix, kill on
+Windows); the task then counts as cancelled whatever the exit code. What an
+interrupted `vfox install` leaves behind depends on the version:
 
 - up to 1.0.12, vfox catches the signal, deletes the partial version directory
   and exits with code 0;

@@ -1,5 +1,7 @@
 # Memory use
 
+> [简体中文](zh-CN/memory.md)
+
 Low memory use is a goal of the project (see [the architecture](architecture.md#memory)).
 This page records what the application uses on Linux, measured the same way,
 so that regressions show up. The numbers are a snapshot: the row is the result

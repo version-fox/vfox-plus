@@ -46,7 +46,8 @@ const usage = `Usage: sandbox [--impl IMPL] [--repo DIR] <command>
   e2e          the end-to-end scenarios, against the fixtures and against
                the real vfox
   package      release build with a smoke test, .deb and .tar.gz checked by
-               lintian, then an installation into a clean Ubuntu container
+               lintian plus unsigned .msix/.msixbundle, then an installation
+               into a clean Ubuntu container
   measure      the memory use on the Home page and with the versions of
                Node.js listed
   screenshots  screenshots of every page, against the fixtures

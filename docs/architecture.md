@@ -1,5 +1,7 @@
 # Architecture
 
+> [简体中文](zh-CN/architecture.md)
+
 vfox-plus is a graphical front end for the [vfox](https://vfox.dev) command
 line tool. It is built with [mygo](https://github.com/egoist/mygo), the
 desktop application framework for Go, and its native user interface: no web
@@ -17,17 +19,19 @@ vfox-plus/
 │   ├── ui-spec.md         Screens, flows and states
 │   ├── design-system.md   Material 3 Expressive tokens, components and motion
 │   ├── i18n.md            Translations and terminology
-│   └── memory.md          The memory use of the application, measured the same way
+│   ├── memory.md          The memory use of the application, measured the same way
+│   └── zh-CN/             Simplified Chinese translations of the documents above
 ├── shared/                Machine-readable resources used by the application
 │   ├── i18n/              Translation catalogues (ARB: JSON with ICU messages)
 │   ├── icons.json         Material Symbols used by the user interface
 │   ├── fixtures/          Captured vfox output and the expected parser results
 │   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
 │   ├── packaging/linux/   Desktop entry, AppStream metadata and icon, packaged by `vfxtool build-deb`
+│   ├── packaging/windows/ MSIX manifest, logos and bundle layout, packaged by `vfxtool build-msix` for Windows 11
 │   ├── tooling/           `vfxtool`, the Go tool that builds, tests and packages everything
 │   └── sandbox/           Shared parts of the Docker sandbox
 ├── mygo/                  The application (Go)
-└── .github/               CI workflows: repository checks, the build and the memory report
+└── .github/               CI workflows: repository checks, the build, the memory report and the sandbox
 ```
 
 The application reads the shared resources from `../shared` and never copies
@@ -101,9 +105,11 @@ Read-only queries run concurrently and are cheap (about 10 ms each); only
 
 ## Settings
 
-Settings of the GUI itself are stored as JSON in
-`$XDG_CONFIG_HOME/vfox-plus/settings.json` (by default
-`~/.config/vfox-plus/settings.json`).
+Settings of the GUI itself are stored as JSON:
+
+- on Linux, `$XDG_CONFIG_HOME/vfox-plus/settings.json` (by default
+  `~/.config/vfox-plus/settings.json`);
+- on Windows, `%APPDATA%/vfox-plus/settings.json`.
 
 | Key                | Type            | Default      | Meaning                                                    |
 | ------------------ | --------------- | ------------ | ---------------------------------------------------------- |
@@ -123,10 +129,16 @@ of these settings: it belongs to vfox and is edited through `vfox config`.
 ## Locating vfox
 
 If no executable is configured, the GUI searches `PATH`, then the usual install
-locations that a desktop launcher's `PATH` often lacks: `/usr/local/bin`,
-`/usr/bin`, `~/.local/bin`, `~/bin`, `~/.linuxbrew/bin`,
-`/home/linuxbrew/.linuxbrew/bin` and `/snap/bin`. The user can also pick the
-executable. If vfox is missing or broken, the GUI explains how to install it
+locations that a desktop launcher's `PATH` often lacks:
+
+- on Linux: `/usr/local/bin`, `/usr/bin`, `~/.local/bin`, `~/bin`,
+  `~/.linuxbrew/bin`, `/home/linuxbrew/.linuxbrew/bin` and `/snap/bin`, looking
+  for `vfox`;
+- on Windows: `%ProgramFiles%/vfox`, `%LOCALAPPDATA%/Programs/vfox`,
+  `%LOCALAPPDATA%/Microsoft/WindowsApps`, `~/scoop/shims` and `~/.vfox/bin`,
+  looking for `vfox.exe` (`PATH` is split at `;`).
+
+The user can also pick the executable. If vfox is missing or broken, the GUI explains how to install it
 and keeps the settings reachable.
 
 ## Dependencies
@@ -156,7 +168,9 @@ uses `go-github` (the GitHub API for the memory report),
 `nfpm` (Debian packaging as a library), `andybalholm/brotli` (WOFF2
 compression for the icon font), `go-licenses` (license classification for
 the license collector) and `go-getter` (resumable downloads for the package
-prefetch), all Category A.
+prefetch), all Category A. The Windows `.msix` and `.msixbundle` need no
+additional runtime dependency: the Go executable is self-contained and the
+package carries its own logos.
 Prefer the platform and the official libraries of a technology over third-party
 packages, and document why each dependency is needed next to its declaration.
 

@@ -28,7 +28,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -103,11 +102,6 @@ func memoryOf(pid int) (rss, pss int64, count int) {
 		}
 	}
 	return rss, pss, len(pids)
-}
-
-func procAlive(pid int) bool {
-	err := syscall.Kill(pid, 0)
-	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
 func removeSandbox(sandbox string) {
@@ -333,7 +327,7 @@ func Run(args []string) error {
 	appPid := 0
 	cleanup := func() {
 		if appPid != 0 && procAlive(appPid) {
-			_ = syscall.Kill(appPid, syscall.SIGKILL)
+			killProcess(appPid)
 		}
 		removeSandbox(sandbox)
 	}

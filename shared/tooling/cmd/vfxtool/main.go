@@ -73,6 +73,9 @@ Commands:
   capture       capture vfox CLI fixtures (replaces shared/fixtures/capture.sh)
   fake-vfox     replay captured vfox output (replaces shared/fixtures/fake-vfox.sh)
   build-deb     package a .deb and .tar.gz (replaces shared/packaging/linux/build-deb.sh)
+  build-msix    package unsigned .msix and .msixbundle for Windows 11 (see shared/packaging/windows)
+  validate-msix validate .msix and .msixbundle files without the Windows SDK
+  docs-check    verify every Markdown document has a Chinese counterpart
   sandbox       host side of the Docker sandbox (replaces mygo/sandbox/sandbox.sh + shared/sandbox/sandbox-lib.sh)
   runtask       one sandbox task in a container (replaces mygo/sandbox/run-task.sh + shared/sandbox/task-lib.sh)
   fetch         fetch one apt archive (replaces .github/actions/install-linux-packages/fetch.sh)

@@ -39,15 +39,16 @@ func VfoxMovesPluginSource(source string) bool {
 
 // VfoxTemporaryDirectory is the temporary directory of vfox when it runs with
 // environment: `~/.version-fox/tmp` if the legacy `~/.version-fox` exists,
-// `~/.vfox/tmp` otherwise. Without `HOME`, where vfox does not run at all,
-// the system temporary directory.
+// `~/.vfox/tmp` otherwise (on Windows under %USERPROFILE%, see
+// userHomeDir). Without a home, where vfox does not run at all, the system
+// temporary directory.
 func VfoxTemporaryDirectory(environment map[string]string) string {
-	if home, ok := environment["HOME"]; ok && home != "" {
-		legacy := home + "/.version-fox"
+	if home := userHomeDir(environment); home != "" {
+		legacy := filepath.Join(home, ".version-fox")
 		if info, err := os.Stat(legacy); err == nil && info.IsDir() {
-			return legacy + "/tmp"
+			return filepath.Join(legacy, "tmp")
 		}
-		return home + "/.vfox/tmp"
+		return filepath.Join(home, ".vfox", "tmp")
 	}
 	return os.TempDir()
 }
@@ -102,7 +103,7 @@ func PreparePluginSource(source, temporaryRoot string) PreparedPluginSource {
 		return original
 	}
 	name := filepath.Base(source)
-	if name == "" || name == "." || name == "/" {
+	if name == "" || name == "." || name == string(filepath.Separator) {
 		name = "plugin.lua"
 	}
 	copy := filepath.Join(directory, name)

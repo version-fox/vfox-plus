@@ -21,7 +21,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"syscall"
 )
 
 // ProcessOutput is everything a finished process wrote, and how it exited.
@@ -190,11 +189,13 @@ func (p *osRunningProcess) Wait() int {
 }
 
 // Kill implements RunningProcess.
+//
+// On Unix the process is asked to terminate with SIGTERM, so that vfox can
+// clean up; on Windows it is killed, which vfox treats like an interrupted
+// install (see docs/vfox-cli-contract.md#cancelling).
 func (p *osRunningProcess) Kill() {
 	p.killOnce.Do(func() {
-		if p.cmd.Process != nil {
-			_ = p.cmd.Process.Signal(syscall.SIGTERM)
-		}
+		killProcess(p.cmd)
 	})
 }
 
@@ -207,12 +208,7 @@ func exitCode(err error) int {
 	}
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
-		if status, ok := exit.Sys().(syscall.WaitStatus); ok {
-			if status.Signaled() {
-				return -int(status.Signal())
-			}
-			return status.ExitStatus()
-		}
+		return platformExitCode(exit)
 	}
 	return 1
 }

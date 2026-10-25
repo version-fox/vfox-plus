@@ -37,13 +37,13 @@ func TestOnlyLocalLuaFilesAreMoved(t *testing.T) {
 
 func TestTemporaryDirectory(t *testing.T) {
 	home := t.TempDir()
-	if got := vfox.VfoxTemporaryDirectory(map[string]string{"HOME": home}); got != home+"/.vfox/tmp" {
+	if got := vfox.VfoxTemporaryDirectory(map[string]string{"HOME": home}); got != filepath.Join(home, ".vfox", "tmp") {
 		t.Errorf("got %q", got)
 	}
-	if err := os.MkdirAll(home+"/.version-fox", 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".version-fox"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if got := vfox.VfoxTemporaryDirectory(map[string]string{"HOME": home}); got != home+"/.version-fox/tmp" {
+	if got := vfox.VfoxTemporaryDirectory(map[string]string{"HOME": home}); got != filepath.Join(home, ".version-fox", "tmp") {
 		t.Errorf("got %q", got)
 	}
 	if got := vfox.VfoxTemporaryDirectory(map[string]string{}); got == "" || !filepath.IsAbs(got) {
@@ -70,7 +70,7 @@ func TestLocalLuaFileIsCopied(t *testing.T) {
 	}
 	temporary := filepath.Join(root, ".vfox", "tmp")
 	prepared := vfox.PreparePluginSource(original, temporary)
-	if !prepared.IsCopy() || prepared.Path == original || !strings.HasSuffix(prepared.Path, "/mine.lua") {
+	if !prepared.IsCopy() || prepared.Path == original || !strings.HasSuffix(prepared.Path, string(filepath.Separator)+"mine.lua") {
 		t.Fatalf("got %#v", prepared)
 	}
 	content, err := os.ReadFile(prepared.Path)

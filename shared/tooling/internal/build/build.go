@@ -34,15 +34,18 @@ type config struct {
 	e2e    bool
 	output string
 	root   string
+	goos   string
+	goarch string
 }
 
 // Run builds the mygo application.
 //
-// Usage: build [--e2e] [--root DIR] <output>
+// Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>
 //
 // With --e2e the build includes the end-to-end scenarios, which run in the
 // application when VFOX_PLUS_E2E_SCENARIO is set; release builds must not have
-// them.
+// them. With --goos/--goarch the build cross-compiles, for example
+// --goos windows --goarch amd64 for the MSIX packaging.
 func Run(args []string) error {
 	cfg, err := parseArgs(args)
 	if err != nil {
@@ -56,16 +59,28 @@ func Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("go", "build",
-		"-trimpath",
-		"-buildmode=pie",
+	buildArgs := []string{"build", "-trimpath"}
+	if cfg.targetGoos() != "windows" {
+		// Position-independent executables are a Linux hardening feature;
+		// Windows builds omit -buildmode=pie, which that platform does not need.
+		buildArgs = append(buildArgs, "-buildmode=pie")
+	}
+	buildArgs = append(buildArgs,
 		"-tags", cfg.tags(),
 		"-ldflags", "-s -w -X github.com/egoist/mygo.production=1",
 		"-o", output,
 		".",
 	)
+	cmd := exec.Command("go", buildArgs...)
 	cmd.Dir = root
-	cmd.Env = withEnv(os.Environ(), "CGO_ENABLED=0")
+	env := withEnv(os.Environ(), "CGO_ENABLED=0")
+	if cfg.goos != "" {
+		env = withEnv(env, "GOOS="+cfg.goos)
+	}
+	if cfg.goarch != "" {
+		env = withEnv(env, "GOARCH="+cfg.goarch)
+	}
+	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -74,26 +89,36 @@ func Run(args []string) error {
 	return nil
 }
 
-// parseArgs parses [--e2e] [--root DIR] <output>, keeping positional
-// compatibility with build.sh [--e2e] <output>.
+// parseArgs parses [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>,
+// keeping positional compatibility with build.sh [--e2e] <output>.
 func parseArgs(args []string) (config, error) {
 	var cfg config
 	fs := flag.NewFlagSet("vfxtool build", flag.ContinueOnError)
 	fs.BoolVar(&cfg.e2e, "e2e", false, "include the end-to-end scenarios")
 	fs.StringVar(&cfg.root, "root", "", "mygo module directory (default: located from the current directory)")
+	fs.StringVar(&cfg.goos, "goos", "", "target operating system for cross-compilation (default: host)")
+	fs.StringVar(&cfg.goarch, "goarch", "", "target architecture for cross-compilation (default: host)")
 	// Keep the usage compatible with build.sh.
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "Usage: build [--e2e] [--root DIR] <output>\n")
+		fmt.Fprintf(fs.Output(), "Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>\n")
 	}
 	if err := fs.Parse(args); err != nil {
 		return config{}, err
 	}
 	rest := fs.Args()
 	if len(rest) != 1 || rest[0] == "" {
-		return config{}, errors.New("Usage: build [--e2e] <output>")
+		return config{}, errors.New("Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>")
 	}
 	cfg.output = rest[0]
 	return cfg, nil
+}
+
+// targetGoos returns the effective GOOS: the --goos flag or the host.
+func (c config) targetGoos() string {
+	if c.goos != "" {
+		return c.goos
+	}
+	return runtime.GOOS
 }
 
 // tags returns the -tags value: mygo_noinspector, plus e2e with --e2e.

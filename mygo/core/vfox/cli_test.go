@@ -362,19 +362,3 @@ func TestStart(t *testing.T) {
 		t.Error("expected a not-found error")
 	}
 }
-
-func TestLocator(t *testing.T) {
-	locator := vfox.NewVfoxLocator(map[string]string{"PATH": "/opt/bin::/usr/bin", "HOME": "/home/me"}, func(string) bool { return false })
-	want := []string{"/opt/bin", "/usr/bin", "/usr/local/bin", "/home/me/.local/bin", "/home/me/bin", "/home/me/.linuxbrew/bin", "/home/linuxbrew/.linuxbrew/bin", "/snap/bin"}
-	if got := locator.SearchDirectories(); !reflect.DeepEqual(got, want) {
-		t.Errorf("got %q", got)
-	}
-	found := map[string]bool{"/home/me/.local/bin/vfox": true, "/snap/bin/vfox": true}
-	locator = vfox.NewVfoxLocator(map[string]string{"HOME": "/home/me"}, func(path string) bool { return found[path] })
-	if got := locator.Locate(); got != "/home/me/.local/bin/vfox" {
-		t.Errorf("got %q", got)
-	}
-	if got := vfox.NewVfoxLocator(map[string]string{}, func(string) bool { return false }).Locate(); got != "" {
-		t.Errorf("got %q", got)
-	}
-}

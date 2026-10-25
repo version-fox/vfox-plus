@@ -16,7 +16,9 @@
 // and a .tar.gz, replacing shared/packaging/linux/build-deb.sh.
 //
 // The application goes to /usr/lib/vfox-plus and is started as
-// /usr/bin/vfox-plus. Every package provides, conflicts with and replaces
+// /usr/bin/vfox-plus. The "vfox-plus" package conflicts with and replaces
+// the old "vfox-plus-mygo" name, so installing it upgrades that package;
+// any other implementation package provides, conflicts with and replaces
 // "vfox-plus", so that the implementations, which share the application ID
 // dev.vfox.VfoxPlus, replace each other. Set DEB_MAINTAINER to "Name <email>"
 // for published packages and SOURCE_DATE_EPOCH for reproducible timestamps.
@@ -42,7 +44,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/goreleaser/nfpm/v2"
@@ -75,7 +76,7 @@ const usage = "Usage: build-deb [options] <output directory>"
 // Run packages the staged application. args are the command line without the
 // program name:
 //
-//	--package NAME    Debian package name, e.g. vfox-plus-mygo (required)
+//	--package NAME    Debian package name, e.g. vfox-plus (required)
 //	--version VERSION version of the application (required)
 //	--stage DIRECTORY files of the application, installed to
 //	                  /usr/lib/vfox-plus (required)
@@ -94,7 +95,7 @@ const usage = "Usage: build-deb [options] <output directory>"
 //	                  Java runtime
 func Run(args []string) error {
 	// Package files must not be group-writable, whatever the caller's umask is.
-	syscall.Umask(0o022)
+	setUmask()
 
 	opts, err := parseArgs(args)
 	if err != nil {
@@ -207,6 +208,7 @@ func Run(args []string) error {
 	}
 
 	recommends := append([]string{"vfox"}, splitList(opts.recommends)...)
+	provides, conflicts, replaces := replacementRelations(opts.pkg)
 	info := &nfpm.Info{
 		Name:          opts.pkg,
 		Arch:          debArch,
@@ -222,9 +224,9 @@ func Run(args []string) error {
 		Overridables: nfpm.Overridables{
 			Depends:    splitList(opts.depends),
 			Recommends: recommends,
-			Provides:   []string{"vfox-plus"},
-			Conflicts:  []string{"vfox-plus"},
-			Replaces:   []string{"vfox-plus"},
+			Provides:   provides,
+			Conflicts:  conflicts,
+			Replaces:   replaces,
 			Contents:   contents,
 			Umask:      0o022,
 		},
@@ -337,11 +339,36 @@ type Control struct {
 	Technology    string
 }
 
+// replacementRelations returns the Provides/Conflicts/Replaces relations for
+// a package name: any other implementation package provides, conflicts with
+// and replaces "vfox-plus", while the "vfox-plus" package itself only
+// conflicts with and replaces the old "vfox-plus-mygo" name.
+func replacementRelations(pkg string) (provides, conflicts, replaces []string) {
+	if pkg == "vfox-plus" {
+		return nil, []string{"vfox-plus-mygo"}, []string{"vfox-plus-mygo"}
+	}
+	return []string{"vfox-plus"}, []string{"vfox-plus"}, []string{"vfox-plus"}
+}
+
 // RenderControl renders DEBIAN/control.
 func RenderControl(c Control) string {
 	recommends := "vfox"
 	if c.Recommends != "" {
 		recommends += ", " + c.Recommends
+	}
+	provides, conflicts, replaces := replacementRelations(c.Package)
+	relations := ""
+	for _, relation := range []struct {
+		name   string
+		values []string
+	}{
+		{"Provides", provides},
+		{"Conflicts", conflicts},
+		{"Replaces", replaces},
+	} {
+		for _, value := range relation.values {
+			relations += relation.name + ": " + value + "\n"
+		}
 	}
 	return fmt.Sprintf(`Package: %s
 Version: %s
@@ -352,10 +379,7 @@ Maintainer: %s
 Installed-Size: %s
 Depends: %s
 Recommends: %s
-Provides: vfox-plus
-Conflicts: vfox-plus
-Replaces: vfox-plus
-Homepage: https://github.com/version-fox/vfox-plus
+%sHomepage: https://github.com/version-fox/vfox-plus
 Description: Material 3 Expressive desktop GUI for vfox (%s)
  vfox+ shows the installed SDKs and the versions in use, installs and
  uninstalls versions, pins versions in projects, browses the vfox plugin
@@ -363,7 +387,7 @@ Description: Material 3 Expressive desktop GUI for vfox (%s)
  tool, which must be installed separately.
  .
  This package is the implementation of vfox+ built with %s.
-`, c.Package, c.Version, c.DebArch, c.Maintainer, c.InstalledSize, c.Depends, recommends, c.Technology, c.Technology)
+`, c.Package, c.Version, c.DebArch, c.Maintainer, c.InstalledSize, c.Depends, recommends, relations, c.Technology, c.Technology)
 }
 
 // RenderCopyright renders /usr/share/doc/<package>/copyright.

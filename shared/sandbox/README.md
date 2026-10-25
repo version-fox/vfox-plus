@@ -1,5 +1,7 @@
 # Shared sandbox
 
+> [简体中文](README.zh-CN.md)
+
 The parts of the Docker sandbox that the implementation builds on. The sandbox
 runs the checks of CI, the end-to-end tests and the packaging in throw-away
 containers, so that nothing on the host changes: neither its toolchains and

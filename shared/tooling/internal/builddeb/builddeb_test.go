@@ -90,6 +90,32 @@ Description: Material 3 Expressive desktop GUI for vfox (mygo)
 	}
 }
 
+func TestRenderControlVfoxPlus(t *testing.T) {
+	got := RenderControl(Control{
+		Package:       "vfox-plus",
+		Version:       "1.2.3",
+		DebArch:       "amd64",
+		Maintainer:    "Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>",
+		InstalledSize: "12345",
+		Depends:       "libc6, libgtk-3-0t64",
+		Technology:    "mygo",
+	})
+	for _, want := range []string{
+		"Package: vfox-plus",
+		"Conflicts: vfox-plus-mygo",
+		"Replaces: vfox-plus-mygo",
+	} {
+		if !strings.Contains(got, want+"\n") {
+			t.Errorf("control missing %q:\n%s", want, got)
+		}
+	}
+	for _, line := range strings.Split(got, "\n") {
+		if strings.HasPrefix(line, "Provides:") {
+			t.Errorf("vfox-plus must not provide itself:\n%s", got)
+		}
+	}
+}
+
 func TestRenderControlWithoutRecommends(t *testing.T) {
 	got := RenderControl(Control{Recommends: ""})
 	line := ""
@@ -104,8 +130,8 @@ func TestRenderControlWithoutRecommends(t *testing.T) {
 }
 
 func TestRenderChangelog(t *testing.T) {
-	got := RenderChangelog("vfox-plus-mygo", "1.2.3", "Jane Doe <jane@example.com>", 0)
-	if !strings.Contains(got, "vfox-plus-mygo (1.2.3) unstable; urgency=medium") {
+	got := RenderChangelog("vfox-plus", "1.2.3", "Jane Doe <jane@example.com>", 0)
+	if !strings.Contains(got, "vfox-plus (1.2.3) unstable; urgency=medium") {
 		t.Fatalf("changelog header missing:\n%s", got)
 	}
 	if !strings.Contains(got, "  * Release 1.2.3. See https://github.com/version-fox/vfox-plus/releases.") {
@@ -118,7 +144,7 @@ func TestRenderChangelog(t *testing.T) {
 
 func TestParseArgs(t *testing.T) {
 	opts, err := parseArgs([]string{
-		"--package", "vfox-plus-mygo",
+		"--package", "vfox-plus",
 		"--version", "1.2.3",
 		"--stage", "/tmp/stage",
 		"--executable", "vfox-plus",
@@ -135,7 +161,7 @@ func TestParseArgs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if opts.pkg != "vfox-plus-mygo" || !opts.strip || opts.output != "/tmp/out" {
+	if opts.pkg != "vfox-plus" || !opts.strip || opts.output != "/tmp/out" {
 		t.Fatalf("unexpected options: %+v", opts)
 	}
 	if len(opts.overrides) != 2 || len(opts.setuid) != 1 {
@@ -602,5 +628,68 @@ func TestReproducibleBuild(t *testing.T) {
 	}
 	if !bytes.Equal(firstTarball, secondTarball) {
 		t.Fatal("two builds with the same SOURCE_DATE_EPOCH produced different .tar.gz files")
+	}
+}
+
+// TestRunBuildsVfoxPlusDeb builds the renamed "vfox-plus" package: the file
+// name drops the "-mygo" suffix, the control file conflicts with and replaces
+// the old "vfox-plus-mygo" name instead of itself, and the documentation
+// paths use the new name.
+func TestRunBuildsVfoxPlusDeb(t *testing.T) {
+	stage, out := fixtureRoot(t)
+	debArch, _, err := MapDebArch(unameMachine())
+	if err != nil {
+		t.Fatal(err)
+	}
+	runBuild(t,
+		"--package", "vfox-plus",
+		"--version", "1.2.3",
+		"--stage", stage,
+		"--executable", "vfox-plus",
+		"--depends", "libc6",
+		"--technology", "testtech",
+		out,
+	)
+	deb := globOne(t, out, "*.deb")
+	if want := filepath.Join(out, "vfox-plus_1.2.3_"+debArch+".deb"); deb != want {
+		t.Fatalf("deb = %s, want %s", deb, want)
+	}
+	members := readAr(t, deb)
+	controlData, ok := members["control.tar.gz"]
+	if !ok {
+		t.Fatalf("control.tar.gz missing in %s", deb)
+	}
+	control := string(readTarGzFile(t, controlData, "./control"))
+	for _, want := range []string{
+		"Package: vfox-plus",
+		"Conflicts: vfox-plus-mygo",
+		"Replaces: vfox-plus-mygo",
+	} {
+		if !strings.Contains(control, want) {
+			t.Errorf("control missing %q:\n%s", want, control)
+		}
+	}
+	for _, line := range strings.Split(control, "\n") {
+		if strings.HasPrefix(line, "Provides:") {
+			t.Errorf("vfox-plus must not provide itself:\n%s", control)
+		}
+	}
+	var dataData []byte
+	for name, content := range members {
+		if strings.HasPrefix(name, "data.tar.") {
+			dataData = content
+		}
+	}
+	if dataData == nil {
+		t.Fatal("data tarball missing")
+	}
+	data := readTarGz(t, dataData)
+	for _, name := range []string{
+		"./usr/share/doc/vfox-plus/copyright",
+		"./usr/share/lintian/overrides/vfox-plus",
+	} {
+		if _, ok := data[name]; !ok {
+			t.Errorf("%s missing in data tarball", name)
+		}
 	}
 }
