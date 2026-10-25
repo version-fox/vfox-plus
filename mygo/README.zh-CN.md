@@ -18,7 +18,8 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`ui/mcu/`](ui/mcu) | 配色：Material 颜色工具的 Go 移植（HCT、CAM16、tonal spot） |
 | [`ui/shapes/`](ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
 | [`assets/`](assets) | 二进制嵌入物：图标字体、翻译与许可证（构建时生成） |
-| [`main.go`](main.go) | 组装模型与窗口 |
+| [`pair/`](pair) | `vfox-plus pair` / `vfox-plus serve`：浏览器配对到本机（一次性链接），或为容器与远端实例常驻服务；配对后的浏览器得到完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
+| [`main.go`](main.go) | 组装模型与窗口；分发 `pair` 子命令 |
 
 分层见[架构](../docs/zh-CN/architecture.md)：`core` 不知道其它层，`state` 只知道
 `core`，`ui` 在上。`core`、`state`、`ui/mcu` 与 `ui/shapes` 是无 UI 工具包的纯 Go，
@@ -176,9 +177,24 @@ Windows 11 上，`vfxtool build-msix` 把交叉编译的可执行文件
 `vfox-plus_<版本>_<架构>.msix` 与
 `vfox-plus_<版本>.msixbundle`，含
 [`shared/packaging/windows`](../shared/packaging/windows) 的清单、徽标与 bundle 布局。
-用户用一键 [`Sign-Msix.ps1`](../shared/packaging/windows/Sign-Msix.ps1) 脚本安装
-（自签名证书，无需第三方）；广泛分发请用受信证书签名。
+用户在管理员 PowerShell 用 `Add-AppxPackage -AllowUnsigned` 安装未签名 bundle；
+安装包目前尚未签名，日后会提供官方签名的安装包。
 CI 在 Linux 交叉编译打包并用 `vfxtool validate-msix` 校验，在 Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载 bundle。
+
+### Docker 镜像
+
+[`Dockerfile`](Dockerfile) 从仓库根构建发布镜像：最小 Ubuntu 运行时，含 vfox 与
+`vfox-plus serve`，无需显示服务。工具链版本默认取
+[`versions.env`](versions.env)。
+
+```sh
+docker build -f mygo/Dockerfile -t vfox-plus .
+docker run --rm -p 8080:8080 vfox-plus
+```
+
+打开它输出的配对链接，把 `0.0.0.0` 换成可达地址。链接是 `https`：容器首次启动
+生成自签名证书并打印指纹，请在浏览器核对。`-v vfox-plus-data:/home/vfoxplus`
+卷在多次运行之间保留已安装的 SDK。另一台机器的浏览器在容器可达的网络上同样配对。
 
 ## 内存
 

@@ -16,17 +16,37 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
+	"github.com/version-fox/vfox-plus/mygo/pair"
 	"github.com/version-fox/vfox-plus/mygo/state"
 	"github.com/version-fox/vfox-plus/mygo/ui"
 )
 
 func main() {
+	// `vfox-plus pair` pairs a browser with this machine, `vfox-plus serve`
+	// keeps the pairing server up for containers and remote instances;
+	// anything else starts the desktop application.
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "pair":
+			os.Exit(pair.Main(os.Args[2:]))
+		case "serve":
+			os.Exit(pair.ServeMain(os.Args[2:]))
+		case "help", "--help", "-h":
+			fmt.Println("Usage: vfox-plus [pair|serve]")
+			fmt.Println()
+			fmt.Println("  (no arguments)  Start the desktop application.")
+			fmt.Println("  pair            Pair a browser with this machine over loopback.")
+			fmt.Println("  serve           Keep the pairing server up for containers and remote instances.")
+			return
+		}
+	}
 	environment := make(map[string]string)
 	for _, entry := range os.Environ() {
 		if key, value, ok := strings.Cut(entry, "="); ok {

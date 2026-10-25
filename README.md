@@ -69,11 +69,50 @@ see the [mygo README](mygo/README.md); with nothing but Docker,
 without changing anything on your machine.
 
 On Windows 11, download the `vfox-plus-windows` artifact instead, extract it
-and run the one-command script in PowerShell (it self-signs with a local
-certificate and installs; see [Windows packaging](shared/packaging/windows/README.md)):
+and install the unsigned `.msixbundle` in an elevated PowerShell
+(see [Windows packaging](shared/packaging/windows/README.md)):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File Sign-Msix.ps1
+Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned
+```
+
+The bundle is not signed yet; an officially signed bundle will be provided
+later.
+
+### Use it in a browser
+
+`vfox-plus pair` connects a browser to the vfox-plus on this machine, in the
+style of `opencode pair`. It works the same in bash on Ubuntu and in
+PowerShell on Windows:
+
+```sh
+vfox-plus pair
+```
+
+Open the link it prints. Links work once and expire after a few minutes. The
+paired browser gets the full web interface at `/app`: installed SDKs with
+install/use/uninstall, the plugin registry with add/update/remove, tasks
+with live progress and logs, and the settings.
+
+To connect a browser on another machine, or to run vfox-plus in a container,
+keep the pairing server up instead:
+
+```sh
+vfox-plus serve --port 8080
+```
+
+and open the link it prints, with its address replaced by the reachable one.
+A paired browser mints links for more browsers with `GET /api/token`.
+Non-loopback servers speak HTTPS: without `--tls-cert/--tls-key` a
+self-signed certificate is generated next to the settings on first start,
+and its fingerprint is printed for comparison in the browser. Bring your
+own certificate to avoid the warning. The
+published Docker image runs this server with no display needed; see
+[Packaging](mygo/README.md#docker-image):
+
+```sh
+docker build -f mygo/Dockerfile -t vfox-plus .
+docker run --rm -p 8080:8080 vfox-plus
 ```
 
 ## Repository layout

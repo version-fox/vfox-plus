@@ -61,12 +61,44 @@ vfox-plus
 `vfxtool sandbox package` 会把两个文件构建到 `dist/sandbox/`，
 不改变本机任何东西。
 
-Windows 11 用户请下载 `vfox-plus-windows` 构件，解压后在 PowerShell 跑一键脚本
-（本地自签名证书并安装，见
+Windows 11 用户请下载 `vfox-plus-windows` 构件，解压后在管理员 PowerShell
+安装未签名 `.msixbundle`（见
 [Windows 打包](shared/packaging/windows/README.zh-CN.md)）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File Sign-Msix.ps1
+Add-AppxPackage -Path .\vfox-plus_<版本>.msixbundle -AllowUnsigned
+```
+
+安装包目前尚未签名，日后会提供官方签名的安装包。
+
+### 在浏览器中使用
+
+`vfox-plus pair` 把浏览器与本机的 vfox-plus 配对，对标 `opencode pair`。
+Ubuntu 的 bash 与 Windows 的 PowerShell 用法相同：
+
+```sh
+vfox-plus pair
+```
+
+在浏览器打开它输出的链接即可。链接一次性有效，几分钟后过期；配对后的浏览器
+在 `/app` 得到完整 Web 界面：已安装 SDK 的安装/使用/卸载、插件仓库的添
+加/更新/删除、带实时进度与日志的任务、以及设置。
+
+另一台机器的浏览器，或容器中运行的 vfox-plus，用常驻服务代替：
+
+```sh
+vfox-plus serve --port 8080
+```
+
+打开它输出的链接，把地址换成可达地址即可。已配对的浏览器用 `GET /api/token`
+为更多浏览器增发链接。非回环服务走 HTTPS：不传 `--tls-cert/--tls-key` 时首次
+启动在设置目录旁生成自签名证书并打印指纹，请在浏览器核对；自备证书可消除
+警告。发布 Docker 镜像直接跑该服务，无需显示；见
+[打包](mygo/README.zh-CN.md#docker-镜像)：
+
+```sh
+docker build -f mygo/Dockerfile -t vfox-plus .
+docker run --rm -p 8080:8080 vfox-plus
 ```
 
 ## 仓库布局

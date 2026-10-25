@@ -58,7 +58,6 @@ type AppModel struct {
 	Tasks *TaskQueue
 
 	mu               sync.Mutex
-	pluginCopies     map[int]vfox.PreparedPluginSource
 	stops            []Unsubscribe
 	lastAvailability VfoxAvailability
 	appliedSettings  *settings.AppSettings
@@ -74,7 +73,6 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	config.BaseEnvironment = options.Environment
 	model := &AppModel{
 		Cli:              vfox.NewClient(options.Runner, config),
-		pluginCopies:     make(map[int]vfox.PreparedPluginSource),
 		lastAvailability: VfoxUnknown,
 	}
 	model.Settings = NewSettingsController(options.SettingsStore)
@@ -126,6 +124,9 @@ func (m *AppModel) Run(command vfox.VfoxCommand) *VfoxTask {
 // is copied into the temporary directory of vfox first and vfox gets the
 // copy; the copy is deleted once the task has finished. It returns an error
 // if alias is not a valid plugin name.
+//
+// The copy is bound to the task when it is enqueued, so that a task which
+// finishes immediately cannot outrun the registration of the copy.
 func (m *AppModel) AddPluginFromSource(source, alias string) (*VfoxTask, error) {
 	temporaryRoot := vfox.VfoxTemporaryDirectory(vfox.VfoxEnvironment(m.Cli.LaunchConfig(), false))
 	prepared := vfox.PreparePluginSource(source, temporaryRoot)
@@ -134,13 +135,10 @@ func (m *AppModel) AddPluginFromSource(source, alias string) (*VfoxTask, error) 
 		prepared.Dispose()
 		return nil, err
 	}
-	task := m.Run(command)
-	if prepared.IsCopy() {
-		m.mu.Lock()
-		m.pluginCopies[task.ID] = prepared
-		m.mu.Unlock()
+	if !prepared.IsCopy() {
+		return m.Run(command), nil
 	}
-	return task, nil
+	return m.Tasks.EnqueueWithFinalizer(command, prepared.Dispose), nil
 }
 
 func (m *AppModel) onVfoxChanged() {
@@ -185,13 +183,6 @@ func (m *AppModel) applySettings() {
 }
 
 func (m *AppModel) onTaskFinished(task *VfoxTask) {
-	m.mu.Lock()
-	prepared, ok := m.pluginCopies[task.ID]
-	delete(m.pluginCopies, task.ID)
-	m.mu.Unlock()
-	if ok {
-		prepared.Dispose()
-	}
 	if task.Status() == TaskCancelled {
 		if _, started := task.StartedAt(); !started {
 			return
@@ -205,13 +196,8 @@ func (m *AppModel) Dispose() {
 	for _, stop := range m.stops {
 		stop()
 	}
-	m.mu.Lock()
-	copies := m.pluginCopies
-	m.pluginCopies = make(map[int]vfox.PreparedPluginSource)
-	m.mu.Unlock()
-	for _, prepared := range copies {
-		prepared.Dispose()
-	}
+	// The queue runs the finalizers of the tasks that never finished, which
+	// deletes the private copies of the plugin files they own.
 	m.Tasks.Dispose()
 	m.Installed.Dispose()
 	m.Registry.Dispose()
