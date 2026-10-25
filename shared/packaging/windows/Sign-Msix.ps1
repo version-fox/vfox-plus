@@ -76,12 +76,12 @@ function Test-Administrator {
 
 if (-not (Test-Administrator)) {
   Write-Host "Relaunching elevated (certificate trust and install need administrator rights)..."
-  $args = @("-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path,
+  $elevateArgs = @("-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path,
     "-Directory", $Directory, "-PublisherCN", $PublisherCN, "-Package", $Package)
-  if ($Version) { $args += @("-Version", $Version) }
-  if ($Force) { $args += "-Force" }
-  if ($SkipInstall) { $args += "-SkipInstall" }
-  $proc = Start-Process -FilePath "powershell.exe" -ArgumentList $args -Verb RunAs -PassThru -Wait
+  if ($Version) { $elevateArgs += @("-Version", $Version) }
+  if ($Force) { $elevateArgs += "-Force" }
+  if ($SkipInstall) { $elevateArgs += "-SkipInstall" }
+  $proc = Start-Process -FilePath "powershell.exe" -ArgumentList $elevateArgs -Verb RunAs -PassThru -Wait
   exit $proc.ExitCode
 }
 
@@ -93,7 +93,7 @@ $stageX64 = Join-Path $Directory "stage-x64"
 $stageArm64 = Join-Path $Directory "stage-arm64"
 $vfxtool = Join-Path $Directory "vfxtool.exe"
 foreach ($need in @($vfxtool)) {
-  if (-not (Test-Path $need)) { throw "Missing $need: run this script from the extracted windows artifact directory." }
+  if (-not (Test-Path $need)) { throw "Missing ${need}: run this script from the extracted windows artifact directory." }
 }
 $stages = @()
 if (Test-Path (Join-Path $stageX64 "vfox-plus.exe")) { $stages += "x64" }
@@ -102,7 +102,7 @@ if ($stages.Count -eq 0) { throw "No vfox-plus.exe in $stageX64 or $stageArm64."
 
 if (-not $Version) {
   $bundle = Get-ChildItem -Path $Directory -Filter "$Package`_*.msixbundle" | Select-Object -First 1
-  if (-not $bundle) { throw "No $Package`_*.msixbundle in $Directory: pass -Version explicitly." }
+  if (-not $bundle) { throw "No $Package`_*.msixbundle in ${Directory}: pass -Version explicitly." }
   if ($bundle.Name -notmatch '^.+_(\d+\.\d+\.\d+)\.msixbundle$') {
     throw "Cannot parse a version from $($bundle.Name): pass -Version explicitly."
   }
