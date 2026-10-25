@@ -271,3 +271,70 @@ func TestValidateBundleRejectsPayloadBlockMapEntries(t *testing.T) {
 		t.Fatalf("wrong error: %v", err)
 	}
 }
+
+func TestRenderBundleContentTypesDeclaresPayloadsAsAppx(t *testing.T) {
+	got := RenderBundleContentTypes([]BundlePackage{
+		{Architecture: "x64", Filename: "vfox-plus_0.1.0_x64.msix"},
+		{Architecture: "arm64", Filename: "vfox-plus_0.1.0_arm64.msix"},
+	})
+	if !strings.Contains(got, `<Default Extension="msix" ContentType="application/vnd.ms-appx"/>`) {
+		t.Errorf("payloads are not declared as MSIX packages:\n%s", got)
+	}
+	if strings.Contains(got, "vnd.ms-appx.msix") {
+		t.Errorf("invented payload content type:\n%s", got)
+	}
+	if !strings.Contains(got, `<Default Extension="xml" ContentType="application/vnd.ms-appx.bundlemanifest+xml"/>`) {
+		t.Errorf("bundle manifest content type missing:\n%s", got)
+	}
+}
+
+func TestValidateBundleRejectsWrongPayloadContentType(t *testing.T) {
+	x64, err := WriteMsix(testValidateConfig("x64"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mtime := time.Unix(1234567890, 0).UTC()
+	sorted := []BundlePackage{{Architecture: "x64", Filename: "vfox-plus_0.1.0_x64.msix", Data: x64}}
+	probe, err := assembleBundle(sorted,
+		RenderBundleManifest("dev.vfox.VfoxPlus", defaultPublisher, "0.1.0.0",
+			[]BundleEntry{{Architecture: "x64", Filename: sorted[0].Filename}}),
+		RenderBundleContentTypes(sorted), RenderBlockMap(nil), mtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headers, err := parseLocalHeaders(probe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := RenderBundleManifest("dev.vfox.VfoxPlus", defaultPublisher, "0.1.0.0", []BundleEntry{{
+		Architecture: "x64",
+		Filename:     sorted[0].Filename,
+		Offset:       headers[sorted[0].Filename].dataOffset,
+		Size:         int64(len(x64)),
+	}})
+	info := headers["AppxMetadata/AppxBundleManifest.xml"]
+	blockMap := RenderBlockMap([]BlockMapFile{{
+		Name:    "AppxMetadata/AppxBundleManifest.xml",
+		Size:    int64(len(manifest)),
+		LfhSize: info.headerSize,
+		Blocks:  blockHashes([]byte(manifest)),
+	}})
+	// Declare the payload with the invented content type instead of the
+	// Default rule MakeAppx writes.
+	contentTypes := `<?xml version="1.0" encoding="utf-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="xml" ContentType="application/vnd.ms-appx.bundlemanifest+xml"/>
+  <Override PartName="/` + sorted[0].Filename + `" ContentType="application/vnd.ms-appx.msix"/>
+  <Override PartName="/AppxBlockMap.xml" ContentType="application/vnd.ms-appx.blockmap+xml"/>
+</Types>
+`
+	data, err := assembleBundle(sorted, manifest, contentTypes, blockMap, mtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateBundle(data, "bad.msixbundle"); err == nil {
+		t.Fatal("expected an error for a payload with a wrong content type")
+	} else if !strings.Contains(err.Error(), "want \"application/vnd.ms-appx\"") {
+		t.Fatalf("wrong error: %v", err)
+	}
+}

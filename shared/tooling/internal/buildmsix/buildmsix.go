@@ -364,17 +364,37 @@ func RenderContentTypes() string {
 `
 }
 
-// RenderBundleContentTypes renders [Content_Types].xml of a .msixbundle.
+// RenderBundleContentTypes renders [Content_Types].xml of a .msixbundle, the
+// way MakeAppx writes it: payload packages are recognised by their file
+// extension (a Default rule whose content type is application/vnd.ms-appx),
+// not by a per-part Override. Windows' deployment stack relies on that
+// mapping; when a payload is not recognised as a package it is treated as an
+// ordinary part that must appear in the block map, and deployment fails with
+// APPX_E_BLOCK_MAP_INVALID (0x80080205).
 func RenderBundleContentTypes(packages []BundlePackage) string {
-	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-`)
+	extensions := map[string]bool{}
 	for _, p := range packages {
-		fmt.Fprintf(&b, "  <Override PartName=\"/%s\" ContentType=\"application/vnd.ms-appx.msix\"/>\n", xmlEscape(p.Filename))
+		ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(p.Filename)), ".")
+		if ext == "" {
+			ext = "msix"
+		}
+		extensions[ext] = true
 	}
-	b.WriteString(`  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/AppxMetadata/AppxBundleManifest.xml" ContentType="application/vnd.ms-appx.bundlemanifest+xml"/>
+	if len(extensions) == 0 {
+		extensions["msix"] = true
+	}
+	sorted := make([]string, 0, len(extensions))
+	for ext := range extensions {
+		sorted = append(sorted, ext)
+	}
+	sort.Strings(sorted)
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes"?>` + "\n")
+	b.WriteString(`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` + "\n")
+	for _, ext := range sorted {
+		fmt.Fprintf(&b, "  <Default Extension=\"%s\" ContentType=\"application/vnd.ms-appx\"/>\n", xmlEscape(ext))
+	}
+	b.WriteString(`  <Default Extension="xml" ContentType="application/vnd.ms-appx.bundlemanifest+xml"/>
   <Override PartName="/AppxBlockMap.xml" ContentType="application/vnd.ms-appx.blockmap+xml"/>
 </Types>
 `)

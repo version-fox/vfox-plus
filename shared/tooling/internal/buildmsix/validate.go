@@ -65,7 +65,6 @@ type bundlePackage struct {
 type blockMapDoc struct {
 	Files []blockMapEntry `xml:"File"`
 }
-
 type blockMapEntry struct {
 	Name    string         `xml:"Name,attr"`
 	Size    int64          `xml:"Size,attr"`
@@ -156,6 +155,9 @@ func ValidateMsix(data []byte, source string) error {
 	if err := checkManifestOrder(files["AppxManifest.xml"], source); err != nil {
 		return err
 	}
+	if err := checkMsixContentTypes(files, source); err != nil {
+		return err
+	}
 	if err := checkBlockMap(data, source, files); err != nil {
 		return err
 	}
@@ -200,6 +202,9 @@ func ValidateBundle(data []byte, source string) error {
 		}
 	}
 	if err := checkBundleBlockMap(data, source, files); err != nil {
+		return err
+	}
+	if err := checkBundleContentTypes(files, manifest.Packages, source); err != nil {
 		return err
 	}
 	for _, pkg := range manifest.Packages {
@@ -449,6 +454,101 @@ func checkElementOrder(got, want []string, parent, source string) error {
 			return fmt.Errorf("%s has %s element %q out of order", source, parent, name)
 		}
 		previous = index
+	}
+	return nil
+}
+
+// contentTypesDoc is [Content_Types].xml of an OPC container.
+type contentTypesDoc struct {
+	Defaults []struct {
+		Extension   string `xml:"Extension,attr"`
+		ContentType string `xml:"ContentType,attr"`
+	} `xml:"Default"`
+	Overrides []struct {
+		PartName    string `xml:"PartName,attr"`
+		ContentType string `xml:"ContentType,attr"`
+	} `xml:"Override"`
+}
+
+// resolve returns the content type of a part: an Override wins over the
+// Default of its extension, as the OPC specification says.
+func (d contentTypesDoc) resolve(part string) (string, bool) {
+	part = strings.TrimPrefix(part, "/")
+	for _, override := range d.Overrides {
+		if strings.TrimPrefix(override.PartName, "/") == part {
+			return override.ContentType, true
+		}
+	}
+	extension := strings.TrimPrefix(strings.ToLower(filepath.Ext(part)), ".")
+	for _, def := range d.Defaults {
+		if strings.EqualFold(def.Extension, extension) {
+			return def.ContentType, true
+		}
+	}
+	return "", false
+}
+
+// parseContentTypes parses [Content_Types].xml of files.
+func parseContentTypes(files map[string][]byte, source string) (contentTypesDoc, error) {
+	var doc contentTypesDoc
+	raw, ok := files["[Content_Types].xml"]
+	if !ok {
+		return doc, fmt.Errorf("%s misses [Content_Types].xml", source)
+	}
+	if err := xml.Unmarshal(raw, &doc); err != nil {
+		return doc, fmt.Errorf("%s has an invalid [Content_Types].xml: %w", source, err)
+	}
+	return doc, nil
+}
+
+// checkMsixContentTypes verifies that every part of a .msix package resolves
+// to a content type and that the footprint files use the MSIX ones.
+func checkMsixContentTypes(files map[string][]byte, source string) error {
+	doc, err := parseContentTypes(files, source)
+	if err != nil {
+		return err
+	}
+	for part, want := range map[string]string{
+		"AppxManifest.xml": "application/vnd.ms-appx.manifest+xml",
+		"AppxBlockMap.xml": "application/vnd.ms-appx.blockmap+xml",
+	} {
+		got, ok := doc.resolve(part)
+		if !ok {
+			return fmt.Errorf("%s declares no content type for %s", source, part)
+		}
+		if got != want {
+			return fmt.Errorf("%s declares content type %q for %s, want %q", source, got, part, want)
+		}
+	}
+	for name := range files {
+		if name == "AppxManifest.xml" || name == "AppxBlockMap.xml" || name == "[Content_Types].xml" {
+			continue
+		}
+		if _, ok := doc.resolve(name); !ok {
+			return fmt.Errorf("%s declares no content type for %s", source, name)
+		}
+	}
+	return nil
+}
+
+// checkBundleContentTypes verifies that every payload package of a bundle
+// resolves to application/vnd.ms-appx. Windows recognises bundle payloads by
+// that content type; when a payload resolves to something else it is treated
+// as an ordinary part, which then fails block map validation with
+// APPX_E_BLOCK_MAP_INVALID (0x80080205).
+func checkBundleContentTypes(files map[string][]byte, packages []bundlePackage, source string) error {
+	doc, err := parseContentTypes(files, source)
+	if err != nil {
+		return err
+	}
+	for _, pkg := range packages {
+		got, ok := doc.resolve(pkg.FileName)
+		if !ok {
+			return fmt.Errorf("%s declares no content type for %s", source, pkg.FileName)
+		}
+		if got != "application/vnd.ms-appx" {
+			return fmt.Errorf("%s declares content type %q for %s, want %q", source, got, pkg.FileName, "application/vnd.ms-appx")
+		}
 	}
 	return nil
 }
