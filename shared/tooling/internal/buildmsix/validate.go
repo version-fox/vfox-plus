@@ -85,6 +85,16 @@ func ValidateDir(dir string) error {
 	if err != nil {
 		return err
 	}
+	var names []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() {
+			name += "/"
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	fmt.Printf("validate-msix: %d entries in %s: %s\n", len(names), dir, strings.Join(names, ", "))
 	var packages []string
 	for _, entry := range entries {
 		if entry.IsDir() {
