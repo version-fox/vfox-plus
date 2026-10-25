@@ -338,3 +338,76 @@ func TestValidateBundleRejectsWrongPayloadContentType(t *testing.T) {
 		t.Fatalf("wrong error: %v", err)
 	}
 }
+
+func TestWriteMsixBlockMapExcludesContentTypes(t *testing.T) {
+	msix, err := WriteMsix(testValidateConfig("x64"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := checkZipLayout(msix, "test.msix", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc blockMapDoc
+	if err := xml.Unmarshal(files["AppxBlockMap.xml"], &doc); err != nil {
+		t.Fatal(err)
+	}
+	listed := map[string]bool{}
+	for _, entry := range doc.Files {
+		listed[strings.ReplaceAll(entry.Name, "\\", "/")] = true
+	}
+	// [Content_Types].xml must not be in the block map: Windows rejects that
+	// with APPX_E_BLOCK_MAP_INVALID.
+	if listed["[Content_Types].xml"] {
+		t.Error("the package block map lists [Content_Types].xml")
+	}
+	for name := range files {
+		if name == "AppxBlockMap.xml" || name == "[Content_Types].xml" {
+			continue
+		}
+		if !listed[name] {
+			t.Errorf("the package block map misses %s", name)
+		}
+	}
+}
+
+func TestValidateMsixRejectsContentTypesInBlockMap(t *testing.T) {
+	manifest := RenderAppxManifest(testValidateConfig("x64"))
+	contentTypes := RenderContentTypes()
+	mtime := time.Unix(1234567890, 0).UTC()
+	entries := []zipEntry{
+		{name: "AppxManifest.xml", data: []byte(manifest), mode: 0o644},
+		{name: "[Content_Types].xml", data: []byte(contentTypes), mode: 0o644},
+		{name: "vfox-plus.exe", data: testExeData(), mode: 0o644},
+	}
+	probe, err := writeZip(append(append([]zipEntry(nil), entries...),
+		zipEntry{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(nil)), mode: 0o644}), mtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	headers, err := parseLocalHeaders(probe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var blockFiles []BlockMapFile
+	for _, name := range []string{"AppxManifest.xml", "[Content_Types].xml", "vfox-plus.exe"} {
+		data := map[string][]byte{
+			"AppxManifest.xml":    []byte(manifest),
+			"[Content_Types].xml": []byte(contentTypes),
+			"vfox-plus.exe":       testExeData(),
+		}[name]
+		blockFiles = append(blockFiles, BlockMapFile{
+			Name: name, Size: int64(len(data)), LfhSize: headers[name].headerSize, Blocks: blockHashes(data),
+		})
+	}
+	data, err := writeZip(append(append([]zipEntry(nil), entries...),
+		zipEntry{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(blockFiles)), mode: 0o644}), mtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateMsix(data, "bad.msix"); err == nil {
+		t.Fatal("expected an error for [Content_Types].xml in the block map")
+	} else if !strings.Contains(err.Error(), "[Content_Types].xml") {
+		t.Fatalf("wrong error: %v", err)
+	}
+}

@@ -304,12 +304,15 @@ func checkBlockMap(data []byte, source string, files map[string][]byte) error {
 	listed := map[string]bool{}
 	for _, entry := range doc.Files {
 		listed[entry.Name] = true
+		if entry.Name == "[Content_Types].xml" {
+			return fmt.Errorf("%s block map must not list [Content_Types].xml", source)
+		}
 		if err := verifyBlockEntry(entry, files, headers, source); err != nil {
 			return err
 		}
 	}
 	for name := range files {
-		if name == "AppxBlockMap.xml" {
+		if name == "AppxBlockMap.xml" || name == "[Content_Types].xml" {
 			continue
 		}
 		if !listed[name] && !listed[toWindowsPath(name)] {

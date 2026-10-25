@@ -886,13 +886,14 @@ func WriteMsix(cfg MsixConfig) ([]byte, error) {
 	for name, data := range assets {
 		entries = append(entries, zipEntry{name: name, data: data, mode: 0o644})
 	}
-	// BlockMap covers everything except itself. Header sizes are stable (they
-	// depend only on entry names), so write once with placeholder sizes, parse
-	// the real header sizes, then rewrite with the final BlockMap.
+	// BlockMap covers every payload part except itself and [Content_Types].xml,
+	// which must not appear in a block map (Windows rejects that with
+	// APPX_E_BLOCK_MAP_INVALID). Header sizes are stable (they depend only on
+	// entry names), so write once with placeholder sizes, parse the real header
+	// sizes, then rewrite with the final BlockMap.
 	blockFiles := func(headers map[string]int64) []BlockMapFile {
 		byName := map[string][]byte{}
 		byName["AppxManifest.xml"] = []byte(manifest)
-		byName["[Content_Types].xml"] = []byte(contentTypes)
 		byName[cfg.Executable] = cfg.ExecutableData
 		for name, data := range assets {
 			byName[name] = data
