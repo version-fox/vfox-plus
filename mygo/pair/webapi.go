@@ -301,6 +301,24 @@ type userError struct {
 
 func (e *userError) Error() string { return e.Message }
 
+// enqueueAddPlugin queues `vfox add` for a URL or a server-side upload
+// without going through PreparePluginSource: the web interface never hands
+// an HTTP-supplied filesystem path to os.ReadFile. cleanup deletes a
+// private upload afterwards, if any.
+func enqueueAddPlugin(model *state.AppModel, source, alias string, cleanup func()) (*state.VfoxTask, error) {
+	command, err := model.Cli.AddPlugin("", source, alias)
+	if err != nil {
+		if cleanup != nil {
+			cleanup()
+		}
+		return nil, err
+	}
+	if cleanup != nil {
+		return model.Tasks.EnqueueWithFinalizer(command, cleanup), nil
+	}
+	return model.Run(command), nil
+}
+
 // startTask builds the command of req and queues it.
 func startTask(model *state.AppModel, req taskRequest) (*state.VfoxTask, error) {
 	cli := model.Cli
@@ -341,7 +359,7 @@ func startTask(model *state.AppModel, req taskRequest) (*state.VfoxTask, error) 
 		if !vfox.IsRemotePluginSource(req.Source) {
 			return nil, &userError{"Only plugin URLs can be added from the browser; upload local files instead."}
 		}
-		return model.AddPluginFromSource(req.Source, req.Alias)
+		return enqueueAddPlugin(model, req.Source, req.Alias, nil)
 	case "remove":
 		if req.Sdk == "" {
 			return nil, &userError{"A plugin is required."}
@@ -437,8 +455,10 @@ func (s *Server) servePlugins(writer http.ResponseWriter, request *http.Request)
 		http.Error(writer, "Cannot read the upload.", http.StatusBadRequest)
 		return
 	}
-	defer cleanup()
-	task, err := model.AddPluginFromSource(source, alias)
+	// No deferred cleanup here: on success the task finalizer deletes the
+	// upload once vfox is done with it, and enqueueAddPlugin cleans up on
+	// failure. Deleting now would race the queued task.
+	task, err := enqueueAddPlugin(model, source, alias, cleanup)
 	if err != nil {
 		var vfoxErr *vfox.VfoxError
 		if errors.As(err, &vfoxErr) {
