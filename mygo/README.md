@@ -251,10 +251,11 @@ docker run --rm -p 8080:8080 vfox-plus
 ```
 
 Open the pairing link it prints, with `0.0.0.0` replaced by the reachable
-address. A `-v vfox-plus-data:/home/vfoxplus` volume keeps the installed
+address. The link is `https`: the container generates a self-signed
+certificate on first start and prints its fingerprint for comparison in
+the browser. A `-v vfox-plus-data:/home/vfoxplus` volume keeps the installed
 SDKs between runs. A browser on another machine pairs the same way, over
-the network the container is reachable on; prefer an encrypted tunnel
-outside trusted networks.
+the network the container is reachable on.
 
 ## Memory
 

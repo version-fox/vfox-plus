@@ -192,9 +192,9 @@ docker build -f mygo/Dockerfile -t vfox-plus .
 docker run --rm -p 8080:8080 vfox-plus
 ```
 
-打开它输出的配对链接，把 `0.0.0.0` 换成可达地址。`-v vfox-plus-data:/home/vfoxplus`
-卷在多次运行之间保留已安装的 SDK。另一台机器的浏览器在容器可达的网络上同样配对；
-受信网络之外请走加密隧道。
+打开它输出的配对链接，把 `0.0.0.0` 换成可达地址。链接是 `https`：容器首次启动
+生成自签名证书并打印指纹，请在浏览器核对。`-v vfox-plus-data:/home/vfoxplus`
+卷在多次运行之间保留已安装的 SDK。另一台机器的浏览器在容器可达的网络上同样配对。
 
 ## 内存
 

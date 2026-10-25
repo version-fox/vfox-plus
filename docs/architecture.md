@@ -199,7 +199,10 @@ unchanged. The CLI contract then becomes the protocol.
 with one-time links, in the style of `opencode pair`. `vfox-plus serve` keeps
 that server up for containers and remote instances, with expiring sessions
 and mintable links, and the published Docker image ([`mygo/Dockerfile`](../mygo/Dockerfile))
-runs it with no display needed. A paired browser gets the full web interface
+runs it with no display needed. Non-loopback servers speak HTTPS: without
+`--tls-cert/--tls-key` a self-signed certificate is generated next to the
+settings on first start, its fingerprint is printed for comparison in the
+browser, and the session cookie is Secure. A paired browser gets the full web interface
 at `/app`: installed SDKs with install/use/uninstall, the plugin registry
 with add/update/remove, tasks with live progress and logs over server-sent
 events, and the settings. An Android client on the same protocol is still to

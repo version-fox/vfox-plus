@@ -164,6 +164,7 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 `vfox-plus pair`（`mygo/pair` 包）是第一步：配对服务，一次性链接，对标
 `opencode pair`。`vfox-plus serve` 为容器与远端实例常驻该服务，会话可过期、
 链接可增发；发布 Docker 镜像（[`mygo/Dockerfile`](../mygo/Dockerfile)）无需显示
-直接跑它。配对后的浏览器在 `/app` 得到完整 Web 界面：已安装 SDK 的安
+直接跑它。非回环服务走 HTTPS：不传 `--tls-cert/--tls-key` 时首次启动在设置目录
+旁生成自签名证书，在浏览器核对打印的指纹，会话 cookie 为 Secure。配对后的浏览器在 `/app` 得到完整 Web 界面：已安装 SDK 的安
 装/使用/卸载、插件仓库的添加/更新/删除、带实时进度与日志的任务、以及设置。
 同协议的 Android 客户端仍待后续。

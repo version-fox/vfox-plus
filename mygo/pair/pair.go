@@ -16,6 +16,7 @@ package pair
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -104,10 +105,14 @@ type Options struct {
 	// the server only pairs and serves the read-only snapshot: the
 	// `vfox-plus pair` mode. `vfox-plus serve` hands it a started AppModel.
 	Model *state.AppModel
+	// TLSCertFile and TLSKeyFile switch the server to HTTPS. Empty means
+	// plain HTTP, which only loopback binds use.
+	TLSCertFile string
+	TLSKeyFile  string
+	// Fingerprint is the SHA-256 fingerprint of the TLS certificate, shown
+	// on the intro and pairing pages for comparison with the browser.
+	Fingerprint string
 }
-
-// Server is a pairing server. Create it with NewServer, hand out links with
-// NewToken, and close it with Close.
 
 // Server is a pairing server. Create it with NewServer, hand out links with
 // NewToken, and close it with Close.
@@ -122,6 +127,10 @@ type Server struct {
 	sttl       time.Duration
 	snapshot   func() Snapshot
 	model      *state.AppModel
+	tls        bool
+	// fingerprint is the SHA-256 fingerprint of the TLS certificate,
+	// shown on the intro and pairing pages for comparison.
+	fingerprint string
 }
 
 // NewServer starts a pairing server, by default on the loopback interface.
@@ -148,13 +157,28 @@ func NewServer(options Options) (*Server, error) {
 		return nil, err
 	}
 	server := &Server{
-		listener: listener,
-		tokens:   make(map[string]time.Time),
-		sessions: make(map[string]time.Time),
-		ttl:      ttl,
-		sttl:     options.SessionTTL,
-		snapshot: snapshot,
-		model:    options.Model,
+		listener:    listener,
+		tokens:      make(map[string]time.Time),
+		sessions:    make(map[string]time.Time),
+		ttl:         ttl,
+		sttl:        options.SessionTTL,
+		snapshot:    snapshot,
+		model:       options.Model,
+		fingerprint: options.Fingerprint,
+	}
+	if options.TLSCertFile != "" || options.TLSKeyFile != "" {
+		if options.TLSCertFile == "" || options.TLSKeyFile == "" {
+			_ = listener.Close()
+			return nil, fmt.Errorf("pair: a TLS certificate and key go together")
+		}
+		cert, err := tls.LoadX509KeyPair(options.TLSCertFile, options.TLSKeyFile)
+		if err != nil {
+			_ = listener.Close()
+			return nil, err
+		}
+		server.tls = true
+		listener = tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{cert}})
+		server.listener = listener
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", server.serveIntro)
@@ -185,6 +209,14 @@ func (s *Server) Addr() net.Addr {
 	return s.listener.Addr()
 }
 
+// scheme is the URL scheme of the server.
+func (s *Server) scheme() string {
+	if s.tls {
+		return "https"
+	}
+	return "http"
+}
+
 // BaseURL is the URL of the server, without a trailing slash.
 func (s *Server) BaseURL() string {
 	host, port, err := net.SplitHostPort(s.listener.Addr().String())
@@ -194,7 +226,7 @@ func (s *Server) BaseURL() string {
 	if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
 		host = "[" + host + "]"
 	}
-	return "http://" + host + ":" + port
+	return s.scheme() + "://" + host + ":" + port
 }
 
 // DisplayBaseURL is the URL to show to the user. When the server listens on
@@ -206,7 +238,7 @@ func (s *Server) DisplayBaseURL() string {
 		return s.BaseURL()
 	}
 	if ip := net.ParseIP(strings.Trim(host, "[]")); host == "" || (ip != nil && ip.IsUnspecified()) {
-		return "http://0.0.0.0:" + port
+		return s.scheme() + "://0.0.0.0:" + port
 	}
 	return s.BaseURL()
 }
@@ -290,7 +322,7 @@ func (s *Server) publicURL(request *http.Request, token string) string {
 		// listening port.
 		host += s.portSuffix()
 	}
-	return "http://" + host + "/auth/connect/" + token
+	return s.scheme() + "://" + host + "/auth/connect/" + token
 }
 
 // portSuffix renders the listening port for hosts without one.
@@ -310,7 +342,7 @@ func (s *Server) serveIntro(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = introTemplate.Execute(writer, nil)
+	_ = introTemplate.Execute(writer, map[string]string{"Fingerprint": s.fingerprint})
 }
 
 // serveConnect pairs a browser holding a one-time link.
@@ -321,21 +353,23 @@ func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 	session := s.newSession()
-	// No Secure attribute on purpose: the server speaks plain HTTP, and
-	// Secure would stop browsers from sending the cookie back over HTTP
-	// outside localhost, breaking pairing. Loopback traffic never leaves
-	// the machine; beyond it, serve warns to prefer an encrypted tunnel.
-	http.SetCookie(writer, &http.Cookie{ //nolint:gosec // Plain HTTP by design; Secure would break pairing outside localhost.
+	// Secure follows TLS: plain HTTP on loopback needs no Secure attribute
+	// and would break pairing outside localhost if it were set without
+	// TLS; serve enables TLS (self-signed by default) for every
+	// non-loopback bind, where the cookie is Secure.
+	http.SetCookie(writer, &http.Cookie{ //nolint:gosec // Secure follows TLS; see above.
 		Name:     "vfox-plus-session",
 		Value:    session,
 		Path:     "/",
+		Secure:   s.tls,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = connectTemplate.Execute(writer, connectData{
-		Snapshot: s.snapshot(),
-		Chinese:  prefersChinese(request.Header.Get("Accept-Language")),
+		Snapshot:    s.snapshot(),
+		Chinese:     prefersChinese(request.Header.Get("Accept-Language")),
+		Fingerprint: s.fingerprint,
 	})
 }
 
@@ -387,7 +421,8 @@ func prefersChinese(header string) bool {
 
 type connectData struct {
 	Snapshot
-	Chinese bool
+	Chinese     bool
+	Fingerprint string
 }
 
 var introTemplate = template.Must(template.New("intro").Parse(`<!doctype html>
@@ -398,6 +433,8 @@ var introTemplate = template.Must(template.New("intro").Parse(`<!doctype html>
 <p>This page pairs a browser with the vfox-plus instance on this machine.</p>
 <p>Run <code>vfox-plus pair</code> in a terminal (bash on Ubuntu, PowerShell on Windows) and open the link it prints. Links work once and expire after a few minutes.</p>
 <p>运行 <code>vfox-plus pair</code>（Ubuntu 用 bash，Windows 用 PowerShell），在浏览器打开它输出的一次性链接即可配对。链接一次性有效，几分钟后过期。</p>
+{{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code></p>
+<p>证书指纹：<code>{{.Fingerprint}}</code>（信任自签名证书前请核对）。</p>{{end}}
 </body>
 </html>`))
 
@@ -408,8 +445,10 @@ var connectTemplate = template.Must(template.New("connect").Parse(`<!doctype htm
 <h1>vfox-plus {{if .Chinese}}已配对{{else}}paired{{end}}</h1>
 {{if .Chinese}}
 <p>此浏览器已与本机的 vfox-plus 配对。配对链接一次性有效，请勿分享。</p>
+{{if .Fingerprint}}<p>证书指纹：<code>{{.Fingerprint}}</code>。</p>{{end}}
 {{else}}
 <p>This browser is paired with vfox-plus on this machine. Pairing links work once; do not share them.</p>
+{{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code>.</p>{{end}}
 {{end}}
 <h2>vfox</h2>
 {{if .HasVfox}}

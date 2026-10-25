@@ -22,7 +22,9 @@
 #   docker build -f mygo/Dockerfile -t vfox-plus .
 #
 # Run it with the port mapped, then open the pairing link it prints, with
-# 0.0.0.0 replaced by the reachable address:
+# 0.0.0.0 replaced by the reachable address. The link is https: a
+# self-signed certificate is generated in the container on first start,
+# and its fingerprint is printed for comparison in the browser.
 #
 #   docker run --rm -p 8080:8080 vfox-plus
 #

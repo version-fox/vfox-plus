@@ -102,7 +102,11 @@ vfox-plus serve --port 8080
 ```
 
 and open the link it prints, with its address replaced by the reachable one.
-A paired browser mints links for more browsers with `GET /api/token`. The
+A paired browser mints links for more browsers with `GET /api/token`.
+Non-loopback servers speak HTTPS: without `--tls-cert/--tls-key` a
+self-signed certificate is generated next to the settings on first start,
+and its fingerprint is printed for comparison in the browser. Bring your
+own certificate to avoid the warning. The
 published Docker image runs this server with no display needed; see
 [Packaging](mygo/README.md#docker-image):
 

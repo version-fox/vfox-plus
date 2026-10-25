@@ -16,6 +16,7 @@ package pair
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
@@ -24,15 +25,28 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/state"
 )
 
-// localLaunchConfig points a vfox client at this machine: the user's
-// settings, the process environment and the located vfox.
-func localLaunchConfig() (vfox.VfoxLaunchConfig, map[string]string) {
+// localEnv returns the process environment and the home directory.
+func localEnv() (map[string]string, string) {
 	environment := make(map[string]string)
 	for _, entry := range os.Environ() {
 		if key, value, ok := strings.Cut(entry, "="); ok {
 			environment[key] = value
 		}
 	}
+	home, _ := os.UserHomeDir()
+	return environment, home
+}
+
+// LocalSettingsDir is the directory of the GUI settings.
+func LocalSettingsDir() string {
+	environment, home := localEnv()
+	return filepath.Dir(settings.SettingsPath(environment, home))
+}
+
+// localLaunchConfig points a vfox client at this machine: the user's
+// settings, the process environment and the located vfox.
+func localLaunchConfig() (vfox.VfoxLaunchConfig, map[string]string) {
+	environment, _ := localEnv()
 	home, _ := os.UserHomeDir()
 	store := settings.JSONFileSettingsStore{Path: settings.SettingsPath(environment, home)}
 	stored := store.Load()
