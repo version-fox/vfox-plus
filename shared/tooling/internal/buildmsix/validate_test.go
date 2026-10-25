@@ -152,3 +152,23 @@ func TestValidateMsixVersionMismatch(t *testing.T) {
 		t.Errorf("wrong error: %v", err)
 	}
 }
+
+func TestValidateMsixRejectsTopLevelDescription(t *testing.T) {
+	manifest := RenderAppxManifest(testValidateConfig("x64"))
+	if err := checkManifestOrder([]byte(manifest), "good.msix"); err != nil {
+		t.Fatal(err)
+	}
+	// Reintroduce the old bug: Description as a direct child of Package,
+	// which Windows rejects with 0x80080204.
+	line := "    <Description>Install and switch SDK versions with vfox</Description>\n"
+	if !strings.Contains(manifest, line) {
+		t.Fatalf("fixture manifest changed:\n%s", manifest)
+	}
+	bad := strings.Replace(manifest, line, "", 1)
+	bad = strings.Replace(bad, "  </Properties>\n", "  </Properties>\n  <Description>Install and switch SDK versions with vfox</Description>\n", 1)
+	if err := checkManifestOrder([]byte(bad), "bad.msix"); err == nil {
+		t.Error("expected an error for a top-level Description")
+	} else if !strings.Contains(err.Error(), "unexpected Package element") {
+		t.Errorf("wrong error: %v", err)
+	}
+}

@@ -327,9 +327,9 @@ func RenderAppxManifest(cfg MsixConfig) string {
   <Properties>
     <DisplayName>%s</DisplayName>
     <PublisherDisplayName>%s</PublisherDisplayName>
+    <Description>%s</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
-  <Description>%s</Description>
   <Resources>
     <Resource Language="en-us"/>
     <Resource Language="zh-cn"/>

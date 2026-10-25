@@ -19,9 +19,11 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -150,6 +152,9 @@ func ValidateMsix(data []byte, source string) error {
 	case "x64", "x86", "arm", "arm64", "neutral":
 	default:
 		return fmt.Errorf("%s has an unknown architecture: %s", source, id.ProcessorArchitecture)
+	}
+	if err := checkManifestOrder(files["AppxManifest.xml"], source); err != nil {
+		return err
 	}
 	if err := checkBlockMap(data, source, files); err != nil {
 		return err
@@ -338,6 +343,70 @@ func checkFilenameVersion(filename, manifestVersion, context string) error {
 			where = context + ": " + filename
 		}
 		return fmt.Errorf("%s manifest version is %s, want %s", where, manifestVersion, quad)
+	}
+	return nil
+}
+
+// packageChildOrder is the schema order of the direct children of Package:
+// Windows rejects manifests with anything else there (such as a top-level
+// Description, which belongs inside Properties).
+var packageChildOrder = []string{"Identity", "Properties", "Resources", "Dependencies", "Capabilities", "Applications"}
+
+// propertiesChildOrder is the schema order of the children of Properties.
+var propertiesChildOrder = []string{"Framework", "DisplayName", "PublisherDisplayName", "Description", "Logo"}
+
+// checkManifestOrder verifies the element order of AppxManifest.xml against
+// the schema: unknown or misplaced elements fail Windows deployment with
+// 0x80080204, which this check catches without Windows.
+func checkManifestOrder(manifest []byte, source string) error {
+	decoder := xml.NewDecoder(bytes.NewReader(manifest))
+	var stack []string
+	var pkgChildren, propChildren []string
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("%s has an invalid AppxManifest.xml: %w", source, err)
+		}
+		start, ok := token.(xml.StartElement)
+		if !ok {
+			if end, ok := token.(xml.EndElement); ok && len(stack) > 0 {
+				stack = stack[:len(stack)-1]
+				_ = end
+			}
+			continue
+		}
+		stack = append(stack, start.Name.Local)
+		switch len(stack) {
+		case 2:
+			if stack[0] == "Package" {
+				pkgChildren = append(pkgChildren, start.Name.Local)
+			}
+		case 3:
+			if stack[0] == "Package" && stack[1] == "Properties" {
+				propChildren = append(propChildren, start.Name.Local)
+			}
+		}
+	}
+	if err := checkElementOrder(pkgChildren, packageChildOrder, "Package", source); err != nil {
+		return err
+	}
+	return checkElementOrder(propChildren, propertiesChildOrder, "Properties", source)
+}
+
+func checkElementOrder(got, want []string, parent, source string) error {
+	previous := -1
+	for _, name := range got {
+		index := slices.Index(want, name)
+		if index < 0 {
+			return fmt.Errorf("%s has unexpected %s element %q", source, parent, name)
+		}
+		if index <= previous {
+			return fmt.Errorf("%s has %s element %q out of order", source, parent, name)
+		}
+		previous = index
 	}
 	return nil
 }
