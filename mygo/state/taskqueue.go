@@ -72,9 +72,8 @@ type VfoxTask struct {
 	// Command is the command that is executed.
 	Command vfox.VfoxCommand
 	// CreatedAt is when the task was queued.
-	CreatedAt   time.Time
-	maxLogLines int
-
+	CreatedAt    time.Time
+	maxLogLines  int
 	mu           sync.Mutex
 	lines        []string
 	stdoutLines  []string
@@ -92,6 +91,12 @@ type VfoxTask struct {
 	hasExitCode  bool
 	errorMessage string
 	hasError     bool
+	// finalizer releases a resource the task owns, such as the private copy
+	// of a local plugin file. It runs exactly once, when the task is
+	// announced as finished or when the queue is disposed. It is set when
+	// the task is enqueued, so that a task which finishes immediately
+	// cannot outrun the registration of the resource.
+	finalizer func()
 }
 
 func newTask(id int, command vfox.VfoxCommand, maxLogLines int) *VfoxTask {
@@ -290,6 +295,18 @@ func (t *VfoxTask) fail(message string) {
 	}
 }
 
+// runFinalizer releases the resource the task owns, if any. It runs at most
+// once, even when the queue is disposed while the task is running.
+func (t *VfoxTask) runFinalizer() {
+	t.mu.Lock()
+	finalizer := t.finalizer
+	t.finalizer = nil
+	t.mu.Unlock()
+	if finalizer != nil {
+		finalizer()
+	}
+}
+
 // taskOutput feeds the output of a process into a task, line by line.
 type taskOutput struct {
 	task   *VfoxTask
@@ -407,14 +424,33 @@ func (q *TaskQueue) OnFinished(listener func(*VfoxTask)) Unsubscribe {
 // If an identical command is already queued or running, its task is returned
 // instead of queueing the command twice.
 func (q *TaskQueue) Enqueue(command vfox.VfoxCommand) *VfoxTask {
+	return q.EnqueueWithFinalizer(command, nil)
+}
+
+// EnqueueWithFinalizer queues command like Enqueue, and runs finalizer
+// exactly once when the task is announced as finished or when the queue is
+// disposed, whichever comes first.
+//
+// The finalizer is bound to the task before it can start, so that a task
+// which finishes immediately cannot outrun the registration of the resource
+// it owns. When an identical command is already queued or running, the
+// existing task is returned and the finalizer runs immediately, because no
+// new task takes ownership of the resource.
+func (q *TaskQueue) EnqueueWithFinalizer(command vfox.VfoxCommand, finalizer func()) *VfoxTask {
 	q.mu.Lock()
 	for element := q.all.Front(); element != nil; element = element.Next() {
 		if task := element.Value.(*VfoxTask); task.Status().IsActive() && sameCommand(task.Command, command) {
 			q.mu.Unlock()
+			if finalizer != nil {
+				finalizer()
+			}
 			return task
 		}
 	}
 	task := newTask(q.nextID, command, q.MaxLogLines)
+	if finalizer != nil {
+		task.finalizer = finalizer
+	}
 	q.nextID++
 	q.all.PushBack(task)
 	q.trimFinishedLocked()
@@ -544,6 +580,7 @@ func (q *TaskQueue) run(task *VfoxTask) {
 
 // announce tells the listeners that task has finished.
 func (q *TaskQueue) announce(task *VfoxTask) {
+	task.runFinalizer()
 	task.NotifyListeners()
 	if q.IsDisposed() {
 		return
@@ -570,10 +607,17 @@ func (q *TaskQueue) Dispose() {
 	// by run, and one that runs is killed here.
 	q.Notifier.Dispose()
 	q.finished.Close()
-	for _, task := range q.Tasks() {
+	tasks := q.Tasks()
+	for _, task := range tasks {
 		if process := task.runningProcess(); process != nil {
 			process.Kill()
 		}
+	}
+	// A queued task never reaches execute, so its finalizer would never run.
+	// runFinalizer runs at most once per task, even for a task that is
+	// finishing concurrently.
+	for _, task := range tasks {
+		task.runFinalizer()
 	}
 }
 

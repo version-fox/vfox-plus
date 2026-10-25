@@ -194,3 +194,13 @@ possible. The process runner and the vfox client are the seams for that: a
 remote implementation of the process runner (or of the client) can forward the
 same commands to an agent on the machine, and the state and UI layers stay
 unchanged. The CLI contract then becomes the protocol.
+
+`vfox-plus pair` (package `mygo/pair`) is the first step: a pairing server
+with one-time links, in the style of `opencode pair`. `vfox-plus serve` keeps
+that server up for containers and remote instances, with expiring sessions
+and mintable links, and the published Docker image ([`mygo/Dockerfile`](../mygo/Dockerfile))
+runs it with no display needed. A paired browser gets the full web interface
+at `/app`: installed SDKs with install/use/uninstall, the plugin registry
+with add/update/remove, tasks with live progress and logs over server-sent
+events, and the settings. An Android client on the same protocol is still to
+come.

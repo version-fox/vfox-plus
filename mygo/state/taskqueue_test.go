@@ -387,3 +387,76 @@ func TestDisposeKillsStartedProcesses(t *testing.T) {
 		t.Errorf("got %d invocations", len(runner.Invocations()))
 	}
 }
+
+func TestFinalizerRunsWhenTheTaskFinishes(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	// An unmatched streamed command completes immediately.
+	cli := testClient(runner)
+	queue := state.NewTaskQueue(cli, 3, 2)
+	defer queue.Dispose()
+	finished := collectFinished(queue)
+	var mu sync.Mutex
+	calls := 0
+	task := queue.EnqueueWithFinalizer(mustCommand(cli.Install("go", "1")), func() {
+		mu.Lock()
+		defer mu.Unlock()
+		calls++
+	})
+	waitFor(t, "the task to finish", func() bool { return finished.count() == 1 })
+	if task.Status() != state.TaskSucceeded {
+		t.Fatalf("got %v", task.Status())
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if calls != 1 {
+		t.Errorf("the finalizer ran %d times, want once", calls)
+	}
+}
+
+func TestFinalizerRunsImmediatelyWhenTheCommandIsDeduplicated(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := testClient(runner)
+	runner.OnStart("update --all", testsupport.NewFakeRunningProcess)
+	queue := state.NewTaskQueue(cli, 3, 2)
+	defer queue.Dispose()
+	first := queue.Enqueue(cli.UpdateAllPlugins())
+	var mu sync.Mutex
+	calls := 0
+	second := queue.EnqueueWithFinalizer(cli.UpdateAllPlugins(), func() {
+		mu.Lock()
+		defer mu.Unlock()
+		calls++
+	})
+	if second != first {
+		t.Error("an identical active command must share its task")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if calls != 1 {
+		t.Errorf("the orphaned finalizer ran %d times, want once", calls)
+	}
+}
+
+func TestFinalizerRunsForQueuedTasksOnDispose(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := testClient(runner)
+	runner.OnStart("update --all", testsupport.NewFakeRunningProcess)
+	queue := state.NewTaskQueue(cli, 3, 2)
+	queue.Enqueue(cli.UpdateAllPlugins())
+	var mu sync.Mutex
+	calls := 0
+	queued := queue.EnqueueWithFinalizer(mustCommand(cli.Install("go", "1")), func() {
+		mu.Lock()
+		defer mu.Unlock()
+		calls++
+	})
+	if queued.Status() != state.TaskQueued {
+		t.Fatalf("got %v", queued.Status())
+	}
+	queue.Dispose()
+	mu.Lock()
+	defer mu.Unlock()
+	if calls != 1 {
+		t.Errorf("the queued finalizer ran %d times, want once", calls)
+	}
+}

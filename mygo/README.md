@@ -22,7 +22,8 @@ project, in Go:
 | [`ui/mcu/`](ui/mcu) | The colour scheme: a Go port of the Material colour utilities (HCT, CAM16, tonal spot) |
 | [`ui/shapes/`](ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
 | [`assets/`](assets) | What the binary embeds: the icon fonts, the translations and the licenses (all generated at build time) |
-| [`main.go`](main.go) | Assembles the model and the window |
+| [`pair/`](pair) | `vfox-plus pair` / `vfox-plus serve`: pair a browser with this machine (one-time links) or keep the server up for containers and remote instances; the paired browser gets the full web interface (`/app`: SDKs, registry, tasks with live logs, settings) |
+| [`main.go`](main.go) | Assembles the model and the window; dispatches the `pair` subcommand |
 
 The layers follow [the architecture](../docs/architecture.md): `core` knows
 nothing of the others, `state` only knows `core`, and `ui` sits on top. `core`,
@@ -230,12 +231,30 @@ On Windows 11, `vfxtool build-msix` packages cross-compiled executables
 (`vfxtool build --goos windows --goarch amd64|arm64`) as unsigned
 `vfox-plus_<version>_<arch>.msix` and a `vfox-plus_<version>.msixbundle`,
 with the manifest, logos and bundle layout of
-[`shared/packaging/windows`](../shared/packaging/windows). Users install with the
-one-command [`Sign-Msix.ps1`](../shared/packaging/windows/Sign-Msix.ps1) script
-(self-signed certificate, no third party needed); to distribute widely, sign it
-with a trusted certificate. CI cross-compiles and packages on Linux, validates with
+[`shared/packaging/windows`](../shared/packaging/windows). Users install the
+unsigned bundle in an elevated PowerShell with
+`Add-AppxPackage -AllowUnsigned`; the bundle is not signed yet and an
+officially signed bundle will be provided later. CI cross-compiles and
+packages on Linux, validates with
 `vfxtool validate-msix`, and installs/uninstalls the bundle on Windows
 Server 2025 (x64) and Windows 11 on ARM (arm64).
+
+### Docker image
+
+[`Dockerfile`](Dockerfile) builds the published image from the repository
+root: a minimal Ubuntu runtime with vfox and `vfox-plus serve`, needing no
+display server. The toolchain versions default to [`versions.env`](versions.env).
+
+```sh
+docker build -f mygo/Dockerfile -t vfox-plus .
+docker run --rm -p 8080:8080 vfox-plus
+```
+
+Open the pairing link it prints, with `0.0.0.0` replaced by the reachable
+address. A `-v vfox-plus-data:/home/vfoxplus` volume keeps the installed
+SDKs between runs. A browser on another machine pairs the same way, over
+the network the container is reachable on; prefer an encrypted tunnel
+outside trusted networks.
 
 ## Memory
 

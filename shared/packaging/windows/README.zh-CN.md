@@ -10,12 +10,7 @@
 | --- | --- |
 | `README.md` | 本文档（英文）。 |
 | `README.zh-CN.md` | 中文译文。 |
-| [`Sign-Msix.ps1`](Sign-Msix.ps1) | Windows 11 一键自签名安装：创建自签名代码签名证书、用匹配的发布者重建包、用 osslsigncode 签名并安装 bundle。 |
-
-| 文件 | 用途 |
-| --- | --- |
-| `README.md` | 本文档（英文）。 |
-| `README.zh-CN.md` | 中文译文。 |
+| [`Sign-Msix.ps1`](Sign-Msix.ps1) | 维护者本地重建与签名包的辅助脚本；用户不需要使用（见下）。 |
 
 包标识、清单、徽标与 bundle 布局由 `vfxtool build-msix`
 （`shared/tooling/internal/buildmsix`）生成；此处不提交任何二进制。
@@ -53,35 +48,32 @@ SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" vfxtool build-msix \
 
 ## 在 Windows 11 安装
 
-不需要第三方证书。解压 `vfox-plus-windows` 构件（内含未签名包、松散可执行文件、
-Windows 版 `vfxtool.exe` 与 [`Sign-Msix.ps1`](Sign-Msix.ps1)），在 PowerShell 跑脚本。
-脚本自动提权，一次做完所有事：创建（或复用）自签名代码签名证书、用匹配的发布者
-重建 `.msix`/`.msixbundle`、用 osslsigncode 签名（自动下载，无需 Windows SDK）、
-信任证书并安装 bundle。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File Sign-Msix.ps1
-```
-
-重复跑安全：复用已有证书并重新安装。`Sign-Msix.ps1 -SkipInstall` 只重建签名不安装；
-`-PublisherCN <名称>` 换发布者名；`-Force` 生成新证书。私钥只存在你自己的证书存储中，
-只有你能签名。
-
-### 手动安装（未签名）
-
-不签名时，未签名包用管理员 PowerShell `Add-AppxPackage -AllowUnsigned` 安装
-（可执行内容为所有用户安装）：
+解压 `vfox-plus-windows` 构件（内含未签名包、暂存可执行文件与 Windows 版
+`vfxtool.exe`），在管理员 PowerShell 安装 bundle：
 
 ```powershell
 Add-AppxPackage -Path .\vfox-plus_0.1.0.msixbundle -AllowUnsigned
 ```
 
+部署平台自动选择与本机匹配的架构切片，包为所有用户安装。卸载：
+
+```powershell
+Remove-AppxPackage -Package dev.vfox.VfoxPlus_<版本>_neutral_~_<发布者标识>
+```
+
+（用 `Get-AppxPackage -Name dev.vfox.VfoxPlus` 查看完整包名。）
+
 不打包直接从源码跑，在 Windows 上构建后直接运行 exe 即可。
+
+## 签名状态
+
+`.msix` 与 `.msixbundle` 目前**未签名**，按上用 `Add-AppxPackage -AllowUnsigned`
+安装即可，无需自签名。日后会提供官方签名的安装包。
 
 ## 签名说明（维护者）
 
-- 已签名包的发布者必须与证书主题完全一致、不带 OID——脚本因此重建包，而非直接签
+- 已签名包的发布者必须与证书主题完全一致、不带 OID——签名因此重建包，而非直接签
   未签名包（其发布者带未签名 OID）。
-- 自签名证书只在信任它的机器上有效，脚本恰好在本地建立该信任。公开发布且不希望每台
-  机器单独信任，可上架 Microsoft Store（由微软签名），或用公开受信的代码签名证书 /
-  Azure Trusted Signing 签名；构建相同，只换 `--publisher` 与签名步骤。
+- 公开发布且不希望每台机器单独信任，可上架 Microsoft Store（由微软签名），或用
+  公开受信的代码签名证书 / Azure Trusted Signing 签名；构建相同，只换 `--publisher`
+  与签名步骤。

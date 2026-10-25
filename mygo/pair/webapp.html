@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vfox-plus</title>
+<style>
+:root { color-scheme: light dark; --bg: #fff; --fg: #111; --muted: #666; --line: #ddd; --accent: #b26a00; --ok: #1a7f37; --bad: #c93a3a; --card: #f6f6f6; }
+@media (prefers-color-scheme: dark) { :root { --bg: #121212; --fg: #e8e8e8; --muted: #aaa; --line: #333; --card: #1c1c1c; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, "Noto Sans SC", sans-serif; }
+header { display: flex; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 2; flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0 12px 0 0; }
+nav button { border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+nav button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+#status { margin-left: auto; color: var(--muted); font-size: 13px; display: flex; gap: 10px; align-items: center; }
+main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.muted { color: var(--muted); }
+.ok { color: var(--ok); } .bad { color: var(--bad); }
+button, input, select, textarea { font: inherit; }
+button { border: 1px solid var(--line); background: var(--bg); color: var(--fg); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { border-color: var(--bad); color: var(--bad); }
+input, select, textarea { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+code { font-family: ui-monospace, monospace; font-size: 13px; }
+pre.log { background: #000; color: #ddd; border-radius: 8px; padding: 10px; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+.progress { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; min-width: 120px; }
+.progress > div { height: 100%; background: var(--accent); }
+.grid { display: grid; grid-template-columns: 280px 1fr; gap: 12px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+.list button.item { display: block; width: 100%; text-align: left; margin-bottom: 6px; }
+.list button.item[aria-current="true"] { border-color: var(--accent); }
+.badge { display: inline-block; font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-left: 6px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: baseline; }
+.dot.live { background: var(--ok); } .dot.dead { background: var(--bad); }
+#error { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; background: var(--bad); color: #fff; padding: 8px 16px; border-radius: 8px; display: none; max-width: 80vw; }
+</style>
+</head>
+<body>
+<header>
+<h1>vfox-plus</h1>
+<nav id="tabs">
+<button data-tab="sdks" aria-current="true">SDKs</button>
+<button data-tab="plugins">Plugins</button>
+<button data-tab="tasks">Tasks <span id="taskCount" class="badge" hidden></span></button>
+<button data-tab="settings">Settings</button>
+</nav>
+<span id="status"><span id="live"><span class="dot" id="liveDot"></span><span id="liveText">…</span></span><span id="vfoxVer" class="muted"></span><button id="langBtn" title="EN/中文">中文</button></span>
+</header>
+<main>
+<section id="tab-sdks">
+<div class="grid">
+<div class="card"><h3 id="h-installed">Installed</h3><div id="sdkList" class="list"></div></div>
+<div class="card"><div id="sdkDetail"><p class="muted" id="pickSdk">Pick an SDK.</p></div></div>
+</div>
+</section>
+<section id="tab-plugins" hidden>
+<div class="card"><h3 id="h-add">Add a plugin</h3>
+<div class="row"><input id="addSource" size="40" placeholder="https://… or C:\path\mine.lua"><input id="addAlias" size="12" placeholder="alias"><button id="addBtn" class="primary">Add</button></div>
+<div class="row" style="margin-top:8px"><input type="file" id="addFile"><button id="uploadBtn">Upload &amp; add</button></div>
+</div>
+<div class="card"><div class="row"><h3 id="h-registry" style="margin:0">Registry</h3><span style="flex:1"></span><button id="updateAllBtn">Update all</button></div><div id="pluginList"></div></div>
+</section>
+<section id="tab-tasks" hidden>
+<div class="card"><div class="row"><h3 style="margin:0" id="h-tasks">Tasks</h3><span style="flex:1"></span><button id="clearBtn">Clear finished</button></div><div id="taskList"></div></div>
+</section>
+<section id="tab-settings" hidden>
+<div class="card"><h3 id="h-gui">Application</h3>
+<div class="row"><label>vfox <input id="setVfox" size="36"></label><button id="saveVfox">Save</button></div>
+<div class="row" style="margin-top:8px"><label>Language <select id="setLang"><option value="system">system</option><option value="english">english</option><option value="simplifiedChinese">simplifiedChinese</option></select></label></div>
+<div style="margin-top:8px"><label>Extra environment (KEY=value, one per line)</label><br><textarea id="setEnv" rows="4" cols="60"></textarea><br><button id="saveEnv" style="margin-top:6px">Save</button></div>
+</div>
+<div class="card"><h3 id="h-config">vfox config</h3><div id="configList"></div></div>
+</section>
+</main>
+<div id="error"></div>
+<script>
+"use strict";
+const STR = {
+en: { installed:"Installed", pick:"Pick an SDK.", add:"Add a plugin", registry:"Registry", tasks:"Tasks", clear:"Clear finished", app:"Application", config:"vfox config", install:"Install", installing:"Install…", use:"Use globally", unuse:"Unuse", uninstall:"Uninstall", update:"Update", remove:"Remove", cancel:"Cancel", retry:"Retry", save:"Save", versions:"Available versions", search:"Search versions…", noSdks:"No SDKs installed yet.", noTasks:"No tasks yet.", current:"current", setGlobal:"Set global", confirmUninstall:"Uninstall this version?", confirmRemove:"Remove this plugin?", updateAll:"Update all", updated:"Started.", uploadAdd:"Upload & add", needSession:"Not paired. Open a pairing link first.", failed:"Request failed.", vfoxMissing:"vfox is missing or broken.", installGuide:"Install vfox first.", versionsOf:"Versions of", info:"Plugin info", homepage:"Homepage", installPath:"Install path", description:"Description", log:"Log", state:"State", command:"Command", close:"Close", allVersions:"all", withNote:"with note", installedOnly:"installed", loading:"Loading…", key:"Key", value:"Value", actions:"Actions", edit:"Edit", reset:"Reset", apply:"Apply", empty:"—", projectOnly:"Only the global scope is offered in the browser.", langName:"中文" },
+zh: { installed:"已安装", pick:"选择一个 SDK。", add:"添加插件", registry:"插件仓库", tasks:"任务", clear:"清除已完成", app:"应用", config:"vfox 配置", install:"安装", installing:"安装中…", use:"设为全局", unuse:"取消使用", uninstall:"卸载", update:"更新", remove:"删除", cancel:"取消", retry:"重试", save:"保存", versions:"可安装版本", search:"搜索版本…", noSdks:"暂无已安装的 SDK。", noTasks:"暂无任务。", current:"当前", setGlobal:"设为全局", confirmUninstall:"卸载该版本？", confirmRemove:"删除该插件？", updateAll:"全部更新", updated:"已开始。", uploadAdd:"上传并添加", needSession:"未配对，请先打开配对链接。", failed:"请求失败。", vfoxMissing:"vfox 缺失或损坏。", installGuide:"请先安装 vfox。", versionsOf:"的版本", info:"插件信息", homepage:"主页", installPath:"安装路径", description:"描述", log:"日志", state:"状态", command:"命令", close:"关闭", allVersions:"全部", withNote:"有备注", installedOnly:"已安装", loading:"加载中…", key:"键", value:"值", actions:"操作", edit:"修改", reset:"重置", apply:"应用", empty:"—", projectOnly:"浏览器只提供全局作用域。", langName:"EN" }
+};
+let lang = localStorage.getItem("vfox-plus-lang") || ((navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en");
+const t = k => (STR[lang] && STR[lang][k]) || STR.en[k] || k;
+function setLang(l) { lang = l; localStorage.setItem("vfox-plus-lang", l); renderChrome(); refresh(true); }
+let cache = { inventory: null, tasks: [], detail: null, versions: null };
+let activeTasks = new Set();
+function showError(msg) { const e = document.getElementById("error"); e.textContent = msg; e.style.display = "block"; clearTimeout(showError.t); showError.t = setTimeout(() => e.style.display = "none", 4000); }
+async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+  opts.credentials = "same-origin";
+  const r = await fetch(path, opts);
+  if (r.status === 401) { location.href = "/"; throw new Error(t("needSession")); }
+  if (!r.ok) { const text = await r.text(); throw new Error(text || t("failed")); }
+  if (r.status === 204) return null;
+  return r.json();
+}
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function renderChrome() {
+  document.getElementById("langBtn").textContent = t("langName");
+  const names = { sdks: "SDKs", plugins: t("registry"), tasks: t("tasks"), settings: "Settings" };
+  document.querySelectorAll("#tabs button").forEach(b => { b.textContent = names[b.dataset.tab] || b.dataset.tab; });
+  const badge = document.getElementById("taskCount");
+  const tab = document.querySelector('#tabs button[data-tab="tasks"]');
+  tab.textContent = names.tasks + " ";
+  tab.appendChild(badge);
+  document.getElementById("h-installed").textContent = t("installed");
+  document.getElementById("pickSdk").textContent = t("pick");
+  document.getElementById("h-add").textContent = t("add");
+  document.getElementById("addBtn").textContent = t("install");
+  document.getElementById("uploadBtn").textContent = t("uploadAdd");
+  document.getElementById("h-registry").textContent = t("registry");
+  document.getElementById("updateAllBtn").textContent = t("updateAll");
+  document.getElementById("h-tasks").textContent = t("tasks");
+  document.getElementById("clearBtn").textContent = t("clear");
+  document.getElementById("h-gui").textContent = t("app");
+  document.getElementById("h-config").textContent = t("config");
+  document.getElementById("liveText").textContent = live ? "live" : "…";
+}
+let live = false;
+function setLive(v) { live = v; document.getElementById("liveDot").className = "dot " + (v ? "live" : "dead"); document.getElementById("liveText").textContent = v ? "live" : "…"; }
+function switchTab(name) {
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === name ? "true" : "false"));
+  ["sdks","plugins","tasks","settings"].forEach(k => document.getElementById("tab-" + k).hidden = k !== name);
+}
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+document.getElementById("langBtn").onclick = () => setLang(lang === "zh" ? "en" : "zh");
+async function refresh(full) {
+  try {
+    const inv = await api("/api/inventory");
+    cache.inventory = inv;
+    document.getElementById("vfoxVer").textContent = inv.vfox.version ? "vfox " + inv.vfox.version : inv.vfox.availability;
+    renderSdks(inv); renderPlugins(inv); renderSettings(inv);
+  } catch (e) { showError(e.message); }
+  try {
+    const tasks = await api("/api/tasks");
+    cache.tasks = tasks;
+    activeTasks = new Set(tasks.filter(x => ["queued","running"].includes(x.status)).map(x => x.id));
+    renderTasks();
+  } catch (e) { showError(e.message); }
+  if (full && cache.detail) openSdk(cache.detail, true);
+}
+function sectionStatus(sec) { if (sec.loading) return esc(t("loading")); if (sec.error) return '<span class="bad">' + esc(sec.error) + "</span>"; return ""; }
+function renderSdks(inv) {
+  const box = document.getElementById("sdkList");
+  const sec = inv.installed;
+  const st = sectionStatus(sec);
+  if (st) { box.innerHTML = "<p class='muted'>" + st + "</p>"; return; }
+  if (!sec.value.length) { box.innerHTML = "<p class='muted'>" + esc(t("noSdks")) + "</p>"; return; }
+  box.innerHTML = "";
+  sec.value.forEach(sdk => {
+    const b = document.createElement("button");
+    b.className = "item"; b.setAttribute("aria-current", cache.detail === sdk.Name ? "true" : "false");
+    b.innerHTML = "<code>" + esc(sdk.Name) + "</code>" + (sdk.HasCurrent ? ' <span class="badge">' + esc(sdk.Current) + "</span>" : "");
+    b.onclick = () => openSdk(sdk.Name);
+    box.appendChild(b);
+  });
+}
+async function openSdk(name, keep) {
+  cache.detail = name; cache.versions = null;
+  document.querySelectorAll("#sdkList button").forEach(b => b.setAttribute("aria-current", "false"));
+  const box = document.getElementById("sdkDetail");
+  box.innerHTML = "<p class='muted'>" + esc(t("loading")) + "</p>";
+  try {
+    const [info, versions] = await Promise.all([
+      api("/api/sdks/" + encodeURIComponent(name) + "/info").catch(() => null),
+      api("/api/sdks/" + encodeURIComponent(name) + "/versions").catch(() => [])
+    ]);
+    cache.versions = versions || [];
+    const inv = cache.inventory;
+    const sdk = (inv.installed.value || []).find(s => s.Name === name);
+    let h = "<h3><code>" + esc(name) + "</code></h3>";
+    if (info) h += "<p class='muted'>" + esc(info.Description || "") + (info.Homepage ? ' <a href="' + esc(info.Homepage) + '" target="_blank" rel="noreferrer">' + esc(t("homepage")) + "</a>" : "") + "</p>";
+    if (sdk && sdk.Versions && sdk.Versions.length) {
+      h += "<h4>" + esc(t("installed")) + "</h4><table>";
+      sdk.Versions.forEach(v => {
+        h += "<tr><td><code>" + esc(v) + "</code>" + (sdk.HasCurrent && sdk.Current === v ? ' <span class="badge">' + esc(t("current")) + "</span>" : "") + "</td><td>" +
+          "<button data-use='" + esc(v) + "'>" + esc(t("use")) + "</button> " +
+          "<button data-uninstall='" + esc(v) + "' class='danger'>" + esc(t("uninstall")) + "</button></td></tr>";
+      });
+      h += "</table>";
+    }
+    h += "<h4>" + esc(t("versions")) + "</h4><div class='row'><input id='vSearch' placeholder='" + esc(t("search")) + "'><select id='vFilter'><option value='all'>" + esc(t("allVersions")) + "</option><option value='note'>" + esc(t("withNote")) + "</option><option value='installed'>" + esc(t("installedOnly")) + "</option></select> <input id='vCustom' placeholder='x.y.z' size='10'><button id='vInstall' class='primary'>" + esc(t("install")) + "</button></div><div id='vList'></div>";
+    box.innerHTML = h;
+    const drawVersions = () => {
+      const q = (document.getElementById("vSearch").value || "").toLowerCase();
+      const f = document.getElementById("vFilter").value;
+      const list = document.getElementById("vList");
+      const rows = (cache.versions || []).filter(v => {
+        if (f === "note" && !v.HasNote) return false;
+        if (f === "installed" && !v.Installed) return false;
+        return !q || v.Version.toLowerCase().includes(q) || (v.Note || "").toLowerCase().includes(q);
+      }).slice(0, 200);
+      list.innerHTML = "<table>" + rows.map(v => "<tr><td><code>" + esc(v.Version) + "</code>" + (v.HasNote ? ' <span class="badge">' + esc(v.Note) + "</span>" : "") + (v.Installed ? ' <span class="badge">✓</span>' : "") + "</td><td><button data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button></td></tr>").join("") + "</table>";
+    };
+    document.getElementById("vSearch").oninput = drawVersions;
+    document.getElementById("vFilter").onchange = drawVersions;
+    drawVersions();
+    box.querySelectorAll("[data-install]").forEach(b => b.onclick = () => runTask({ operation: "install", sdk: name, version: b.dataset.install }));
+    document.getElementById("vInstall").onclick = () => { const v = document.getElementById("vCustom").value.trim(); if (v) runTask({ operation: "install", sdk: name, version: v }); };
+    box.querySelectorAll("[data-use]").forEach(b => b.onclick = () => runTask({ operation: "use", sdk: name, version: b.dataset.use, scope: "global" }));
+    box.querySelectorAll("[data-uninstall]").forEach(b => b.onclick = () => { if (confirm(t("confirmUninstall"))) runTask({ operation: "uninstall", sdk: name, version: b.dataset.uninstall }); });
+  } catch (e) { box.innerHTML = "<p class='bad'>" + esc(e.message) + "</p>"; }
+  renderSdks(cache.inventory);
+}
+async function runTask(req) {
+  try {
+    const task = await api("/api/tasks", { method: "POST", body: JSON.stringify(req) });
+    switchTab("tasks");
+    await refresh(false);
+    openTask(task.id);
+  } catch (e) { showError(e.message); }
+}
+function renderPlugins(inv) {
+  const box = document.getElementById("pluginList");
+  const sec = inv.registry;
+  const st = sectionStatus(sec);
+  if (st) { box.innerHTML = "<p class='muted'>" + st + "</p>"; return; }
+  const installed = new Set((inv.installed.value || []).map(s => s.Name));
+  box.innerHTML = "<table><tr><th>" + esc(t("key")) + "</th><th>" + esc(t("actions")) + "</th></tr>" + sec.value.map(p =>
+    "<tr><td><code>" + esc(p.Name) + "</code>" + (p.Official ? ' <span class="badge">official</span>' : "") + (installed.has(p.Name) ? ' <span class="badge">✓</span>' : "") + (p.Homepage ? ' <a href="' + esc(p.Homepage) + '" target="_blank" rel="noreferrer">↗</a>' : "") + "</td><td>" +
+    (installed.has(p.Name) ? "<button data-update='" + esc(p.Name) + "'>" + esc(t("update")) + "</button> <button data-remove='" + esc(p.Name) + "' class='danger'>" + esc(t("remove")) + "</button>" : "<button data-addname='" + esc(p.Name) + "' class='primary'>" + esc(t("install")) + "</button>") + "</td></tr>").join("") + "</table>";
+  box.querySelectorAll("[data-addname]").forEach(b => b.onclick = () => runTask({ operation: "add", source: b.dataset.addname }));
+  box.querySelectorAll("[data-update]").forEach(b => b.onclick = () => runTask({ operation: "update", sdk: b.dataset.update }));
+  box.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => { if (confirm(t("confirmRemove"))) runTask({ operation: "remove", sdk: b.dataset.remove }); });
+}
+function renderTasks() {
+  const box = document.getElementById("taskList");
+  const badge = document.getElementById("taskCount");
+  const n = cache.tasks.filter(x => ["queued","running"].includes(x.status)).length;
+  badge.hidden = n === 0; badge.textContent = n;
+  if (!cache.tasks.length) { box.innerHTML = "<p class='muted'>" + esc(t("noTasks")) + "</p>"; return; }
+  box.innerHTML = "";
+  cache.tasks.forEach(task => {
+    const d = document.createElement("div");
+    d.className = "card";
+    const pct = task.progress != null ? Math.round(task.progress * 100) + "%" : "";
+    d.innerHTML = "<div class='row'><span class='dot " + (task.status === "succeeded" ? "live" : task.status === "failed" ? "dead" : "") + "'></span><b>" + esc(task.operation) + "</b> <code>" + esc(task.sdk + (task.version ? "@" + task.version : "")) + "</code> <span class='muted'>" + esc(task.status) + " " + pct + "</span><span style='flex:1'></span><button data-open='" + task.id + "'>" + esc(t("log")) + "</button></div>" +
+      (task.progress != null && ["queued","running"].includes(task.status) ? "<div class='progress'><div style='width:" + Math.round(task.progress * 100) + "%'></div></div>" : "") +
+      (task.errorMessage ? "<p class='bad'>" + esc(task.errorMessage) + "</p>" : "") +
+      "<div data-log='" + task.id + "' hidden></div>";
+    box.appendChild(d);
+  });
+  box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openTask(parseInt(b.dataset.open, 10)));
+}
+async function openTask(id) {
+  const slot = document.querySelector("[data-log='" + id + "']");
+  if (!slot) return;
+  if (!slot.hidden) { slot.hidden = true; slot.innerHTML = ""; return; }
+  try {
+    const task = await api("/api/tasks/" + id);
+    slot.hidden = false;
+    slot.innerHTML = "<p class='muted'><code>" + esc(task.commandLine) + "</code></p><pre class='log'>" + esc(task.log.join("\n")) + "</pre><div class='row'>" +
+      (["queued","running"].includes(task.status) ? "<button data-cancel='" + id + "' class='danger'>" + esc(t("cancel")) + "</button>" : "") +
+      (["failed","succeeded"].includes(task.status) ? "<button data-retry='" + id + "'>" + esc(t("retry")) + "</button>" : "") + "</div>";
+    const c = slot.querySelector("[data-cancel]");
+    if (c) c.onclick = async () => { await api("/api/tasks/" + id + "/cancel", { method: "POST" }); refresh(false); };
+    const r = slot.querySelector("[data-retry]");
+    if (r) r.onclick = async () => { await api("/api/tasks/" + id + "/retry", { method: "POST" }); refresh(false); };
+  } catch (e) { showError(e.message); }
+}
+function renderSettings(inv) {
+  api("/api/settings").then(s => {
+    if (document.activeElement !== document.getElementById("setVfox")) document.getElementById("setVfox").value = s.vfoxExecutable || "";
+    document.getElementById("setLang").value = s.language || "system";
+    if (document.activeElement !== document.getElementById("setEnv")) document.getElementById("setEnv").value = Object.entries(s.extraEnvironment || {}).map(([k, v]) => k + "=" + v).join("\n");
+  }).catch(() => {});
+  const sec = inv.config;
+  const box = document.getElementById("configList");
+  const st = sectionStatus(sec);
+  if (st) { box.innerHTML = "<p class='muted'>" + st + "</p>"; return; }
+  box.innerHTML = "<table><tr><th>" + esc(t("key")) + "</th><th>" + esc(t("value")) + "</th><th>" + esc(t("actions")) + "</th></tr>" + sec.value.map(c =>
+    "<tr><td><code>" + esc(c.Key) + "</code></td><td>" + esc(c.Value || t("empty")) + "</td><td><button data-edit='" + esc(c.Key) + "'>" + esc(t("edit")) + "</button> <button data-reset='" + esc(c.Key) + "'>" + esc(t("reset")) + "</button></td></tr>").join("") + "</table>";
+  box.querySelectorAll("[data-edit]").forEach(b => b.onclick = async () => {
+    const cur = (sec.value.find(c => c.Key === b.dataset.edit) || {}).Value || "";
+    const v = prompt(b.dataset.edit, cur);
+    if (v == null) return;
+    try { await vfoxConfig(b.dataset.edit, v); refresh(false); } catch (e) { showError(e.message); }
+  });
+  box.querySelectorAll("[data-reset]").forEach(b => b.onclick = async () => { try { await vfoxConfig(b.dataset.reset, null); refresh(false); } catch (e) { showError(e.message); } });
+}
+async function vfoxConfig(key, value) {
+  if (value == null) return api("/api/config?key=" + encodeURIComponent(key), { method: "DELETE" });
+  return api("/api/config", { method: "PUT", body: JSON.stringify({ key, value }) });
+}
+document.getElementById("addBtn").onclick = () => {
+  const source = document.getElementById("addSource").value.trim();
+  const alias = document.getElementById("addAlias").value.trim();
+  if (!source) return;
+  api("/api/plugins", { method: "POST", body: JSON.stringify({ source, alias }) }).then(task => { switchTab("tasks"); refresh(false); openTask(task.id); }).catch(e => showError(e.message));
+};
+document.getElementById("uploadBtn").onclick = () => {
+  const f = document.getElementById("addFile").files[0];
+  if (!f) return;
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("alias", document.getElementById("addAlias").value.trim());
+  fetch("/api/plugins", { method: "POST", body: fd, credentials: "same-origin" }).then(async r => {
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }).then(task => { switchTab("tasks"); refresh(false); openTask(task.id); }).catch(e => showError(e.message));
+};
+document.getElementById("updateAllBtn").onclick = () => runTask({ operation: "update" });
+document.getElementById("clearBtn").onclick = async () => { try { await api("/api/tasks/finished", { method: "DELETE" }); refresh(false); } catch (e) { showError(e.message); } };
+document.getElementById("saveVfox").onclick = async () => { try { await api("/api/settings", { method: "PUT", body: JSON.stringify({ vfoxExecutable: document.getElementById("setVfox").value.trim() }) }); refresh(false); } catch (e) { showError(e.message); } };
+document.getElementById("saveEnv").onclick = async () => {
+  const env = {};
+  document.getElementById("setEnv").value.split("\n").forEach(line => { const i = line.indexOf("="); if (i > 0) env[line.slice(0, i).trim()] = line.slice(i + 1); });
+  try { await api("/api/settings", { method: "PUT", body: JSON.stringify({ extraEnvironment: env }) }); refresh(false); } catch (e) { showError(e.message); }
+};
+document.getElementById("setLang").onchange = async e => { try { await api("/api/settings", { method: "PUT", body: JSON.stringify({ language: e.target.value }) }); } catch (err) { showError(err.message); } };
+function connectEvents() {
+  let es;
+  try { es = new EventSource("/api/events"); } catch (e) { setLive(false); return; }
+  es.onopen = () => setLive(true);
+  es.onerror = () => { setLive(false); es.close(); setTimeout(connectEvents, 3000); };
+  es.addEventListener("task", () => refresh(false));
+  es.addEventListener("inventory", () => refresh(false));
+  es.addEventListener("vfox", () => refresh(false));
+  es.addEventListener("hello", () => refresh(true));
+}
+renderChrome();
+refresh(true);
+connectEvents();
+</script>
+</body>
+</html>

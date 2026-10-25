@@ -160,3 +160,10 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 
 连接跑 vfox 机器的 Web UI 与 Android 客户端仍可能。进程运行器与 vfox 客户端是接缝：
 远端实现转发同样命令到机器上的 agent，状态与 UI 层不变。CLI 契约届时成为协议。
+
+`vfox-plus pair`（`mygo/pair` 包）是第一步：配对服务，一次性链接，对标
+`opencode pair`。`vfox-plus serve` 为容器与远端实例常驻该服务，会话可过期、
+链接可增发；发布 Docker 镜像（[`mygo/Dockerfile`](../mygo/Dockerfile)）无需显示
+直接跑它。配对后的浏览器在 `/app` 得到完整 Web 界面：已安装 SDK 的安
+装/使用/卸载、插件仓库的添加/更新/删除、带实时进度与日志的任务、以及设置。
+同协议的 Android 客户端仍待后续。
