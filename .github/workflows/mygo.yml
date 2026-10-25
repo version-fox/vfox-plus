@@ -191,10 +191,10 @@ jobs:
         # ZIP layout, manifests, block maps, bundle offsets, version
         # consistency and the self-sign inputs of the artifact.
         run: |
-          test -f dist-windows/stage-x64/vfox-plus.exe
-          test -f dist-windows/stage-arm64/vfox-plus.exe
-          test -f dist-windows/vfxtool.exe
-          test -f dist-windows/Sign-Msix.ps1
+          ls -la dist-windows dist-windows/stage-x64 dist-windows/stage-arm64
+          for f in dist-windows/stage-x64/vfox-plus.exe dist-windows/stage-arm64/vfox-plus.exe dist-windows/vfxtool.exe dist-windows/Sign-Msix.ps1; do
+            test -f "$f" || { echo "missing self-sign input: $f"; exit 1; }
+          done
           "$RUNNER_TEMP/vfxtool" validate-msix dist-windows
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
