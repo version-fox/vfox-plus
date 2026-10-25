@@ -150,7 +150,7 @@ func TestTLSServerPairsOverHTTPS(t *testing.T) {
 	}
 }
 
-func TestPlainServerCookieHasNoSecure(t *testing.T) {
+func TestServerCookieIsSecure(t *testing.T) {
 	server := testServer(t, testSnapshot())
 	_, url, err := server.NewToken()
 	if err != nil {
@@ -158,8 +158,8 @@ func TestPlainServerCookieHasNoSecure(t *testing.T) {
 	}
 	_, _, cookies := get(t, url, "")
 	for _, cookie := range cookies {
-		if cookie.Name == "vfox-plus-session" && cookie.Secure {
-			t.Error("loopback HTTP must not set Secure")
+		if cookie.Name == "vfox-plus-session" && !cookie.Secure {
+			t.Error("the session cookie must be Secure, on loopback and over TLS alike")
 		}
 	}
 }

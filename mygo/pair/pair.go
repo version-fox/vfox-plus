@@ -353,15 +353,15 @@ func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 	session := s.newSession()
-	// Secure follows TLS: plain HTTP on loopback needs no Secure attribute
-	// and would break pairing outside localhost if it were set without
-	// TLS; serve enables TLS (self-signed by default) for every
-	// non-loopback bind, where the cookie is Secure.
-	http.SetCookie(writer, &http.Cookie{ //nolint:gosec // Secure follows TLS; see above.
+	// Secure unconditionally: loopback origins (localhost, 127.0.0.1) are
+	// trustworthy, so browsers send Secure cookies back over plain HTTP
+	// there; every non-loopback bind serves HTTPS, where Secure is required.
+	// Static analysis (CodeQL, gosec) only accepts the literal.
+	http.SetCookie(writer, &http.Cookie{
 		Name:     "vfox-plus-session",
 		Value:    session,
 		Path:     "/",
-		Secure:   s.tls,
+		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
