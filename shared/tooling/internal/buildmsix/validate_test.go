@@ -172,3 +172,17 @@ func TestValidateMsixRejectsTopLevelDescription(t *testing.T) {
 		t.Errorf("wrong error: %v", err)
 	}
 }
+
+func TestRenderAppxManifestVisualElements(t *testing.T) {
+	manifest := RenderAppxManifest(testValidateConfig("x64"))
+	// Wide310x150Logo is not a VisualElements attribute: it belongs on the
+	// uap:DefaultTile child, and Windows rejects it elsewhere (0xC00CE015).
+	for _, line := range strings.Split(manifest, "\n") {
+		if strings.Contains(line, "<uap:VisualElements") && strings.Contains(line, "Wide310x150Logo") {
+			t.Errorf("Wide310x150Logo on VisualElements:\n%s", line)
+		}
+	}
+	if !strings.Contains(manifest, `<uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>`) {
+		t.Errorf("DefaultTile with the wide logo missing:\n%s", manifest)
+	}
+}

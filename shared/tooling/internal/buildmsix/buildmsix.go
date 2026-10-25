@@ -342,7 +342,9 @@ func RenderAppxManifest(cfg MsixConfig) string {
   </Capabilities>
   <Applications>
     <Application Id="App" Executable="%s" EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements DisplayName="%s" Description="%s" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+      <uap:VisualElements DisplayName="%s" Description="%s" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+      </uap:VisualElements>
     </Application>
   </Applications>
 </Package>
