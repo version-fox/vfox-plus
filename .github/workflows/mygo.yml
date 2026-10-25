@@ -184,7 +184,7 @@ jobs:
           mkdir -p dist-windows/stage-x64 dist-windows/stage-arm64
           install -m 644 "$RUNNER_TEMP/stage-x64/vfox-plus.exe" dist-windows/stage-x64/vfox-plus.exe
           install -m 644 "$RUNNER_TEMP/stage-arm64/vfox-plus.exe" dist-windows/stage-arm64/vfox-plus.exe
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go -C shared/tooling build -o dist-windows/vfxtool.exe ./cmd/vfxtool
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go -C shared/tooling build -o "$PWD/dist-windows/vfxtool.exe" ./cmd/vfxtool
           install -m 644 shared/packaging/windows/Sign-Msix.ps1 dist-windows/Sign-Msix.ps1
       - name: Validate the MSIX packages
         # Pure-Go validation without the Windows SDK (vfxtool validate-msix):
