@@ -134,7 +134,7 @@ func (s *Server) serveInventory(writer http.ResponseWriter, request *http.Reques
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}
@@ -185,7 +185,7 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}
@@ -252,7 +252,7 @@ func (s *Server) serveTasks(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}
@@ -360,7 +360,7 @@ func (s *Server) serveTask(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}
@@ -413,7 +413,7 @@ func (s *Server) servePlugins(writer http.ResponseWriter, request *http.Request)
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}
@@ -424,7 +424,7 @@ func (s *Server) servePlugins(writer http.ResponseWriter, request *http.Request)
 	if !s.requireSameOrigin(writer, request) {
 		return
 	}
-	source, alias, cleanup, err := pluginSource(request)
+	source, alias, cleanup, err := pluginSource(writer, request)
 	if err != nil {
 		var user *userError
 		if errors.As(err, &user) {
@@ -451,11 +451,15 @@ func (s *Server) servePlugins(writer http.ResponseWriter, request *http.Request)
 
 // pluginSource reads a plugin source from JSON or from an uploaded file. It
 // returns a cleanup for the uploaded copy, if any.
-func pluginSource(request *http.Request) (source, alias string, cleanup func(), err error) {
+func pluginSource(writer http.ResponseWriter, request *http.Request) (source, alias string, cleanup func(), err error) {
 	cleanup = func() {}
 	contentType := request.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := request.ParseMultipartForm(32 << 20); err != nil {
+		// Bound the upload before parsing: ParseMultipartForm alone keeps
+		// up to 32 MiB in memory and spills the rest to disk without a
+		// total limit.
+		request.Body = http.MaxBytesReader(writer, request.Body, 33<<20)
+		if err := request.ParseMultipartForm(32 << 20); err != nil { //nolint:gosec // Bounded above; G120 does not track MaxBytesReader on the body field.
 			return "", "", cleanup, err
 		}
 		alias = request.FormValue("alias")
@@ -463,7 +467,7 @@ func pluginSource(request *http.Request) (source, alias string, cleanup func(), 
 		if err != nil {
 			return "", "", cleanup, &userError{"An uploaded file or a source URL is required."}
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		name := filepath.Base(header.Filename)
 		if name == "" || name == "." {
 			name = "plugin.lua"
@@ -499,7 +503,7 @@ func (s *Server) serveConfig(writer http.ResponseWriter, request *http.Request) 
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}
@@ -542,7 +546,7 @@ func (s *Server) serveSettings(writer http.ResponseWriter, request *http.Request
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}

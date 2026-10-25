@@ -15,6 +15,7 @@
 package pair
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -22,11 +23,11 @@ import (
 	"os/signal"
 )
 
-// Main of `vfox-plus serve`: the pairing server as a persistent service,
-// for containers and remote instances. It prints one pairing link at start;
-// paired browsers mint more with `GET /api/token`. The output stays English
-// on purpose: it must survive any terminal encoding on bash and on
-// PowerShell.
+// ServeMain runs `vfox-plus serve`: the pairing server as a persistent
+// service for containers and remote instances. It prints one pairing link
+// at start; paired browsers mint more with `GET /api/token`. The output
+// stays English on purpose: it must survive any terminal encoding on bash
+// and on PowerShell.
 func ServeMain(args []string) int {
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
 	bind := flags.String("bind", DefaultBind, "interface to listen on")
@@ -34,7 +35,7 @@ func ServeMain(args []string) int {
 	tokenTTL := flags.Duration("token-ttl", DefaultTokenTTL, "how long a pairing link works")
 	sessionTTL := flags.Duration("session-ttl", DefaultSessionTTL, "how long a paired browser stays paired (0 lives as long as the server)")
 	if err := flags.Parse(args); err != nil {
-		if err == flag.ErrHelp {
+		if errors.Is(err, flag.ErrHelp) {
 			return 0
 		}
 		return 2

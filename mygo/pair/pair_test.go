@@ -46,25 +46,25 @@ func testServer(t *testing.T, snapshot pair.Snapshot) *pair.Server {
 	return server
 }
 
-func get(t *testing.T, url, cookie string) (int, string, http.Header, []*http.Cookie) {
+func get(t *testing.T, url, cookie string) (int, string, []*http.Cookie) {
 	t.Helper()
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cookie != "" {
-		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: cookie})
+		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: cookie, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return response.StatusCode, string(body), response.Header, response.Cookies()
+	return response.StatusCode, string(body), response.Cookies()
 }
 
 func TestPairLinkWorksOnce(t *testing.T) {
@@ -76,7 +76,7 @@ func TestPairLinkWorksOnce(t *testing.T) {
 	if !strings.HasPrefix(url, server.BaseURL()+"/auth/connect/") {
 		t.Fatalf("got %q", url)
 	}
-	status, body, _, cookies := get(t, url, "")
+	status, body, cookies := get(t, url, "")
 	if status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
@@ -93,11 +93,11 @@ func TestPairLinkWorksOnce(t *testing.T) {
 		t.Fatal("pairing must issue a session")
 	}
 	// The link is single-use.
-	if status, _, _, _ := get(t, url, ""); status != http.StatusForbidden {
+	if status, _, _ := get(t, url, ""); status != http.StatusForbidden {
 		t.Errorf("a used link must be rejected, got %d", status)
 	}
 	// The session unlocks the read-only API.
-	status, body, _, _ = get(t, server.BaseURL()+"/api/status", session)
+	status, body, _ = get(t, server.BaseURL()+"/api/status", session)
 	if status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
@@ -105,7 +105,7 @@ func TestPairLinkWorksOnce(t *testing.T) {
 		t.Errorf("got %q", body)
 	}
 	// Without the session the API refuses.
-	if status, _, _, _ := get(t, server.BaseURL()+"/api/status", ""); status != http.StatusUnauthorized {
+	if status, _, _ := get(t, server.BaseURL()+"/api/status", ""); status != http.StatusUnauthorized {
 		t.Errorf("got %d", status)
 	}
 }
@@ -124,7 +124,7 @@ func TestPairLinkExpires(t *testing.T) {
 		t.Fatal(err)
 	}
 	time.Sleep(50 * time.Millisecond)
-	if status, _, _, _ := get(t, url, ""); status != http.StatusForbidden {
+	if status, _, _ := get(t, url, ""); status != http.StatusForbidden {
 		t.Errorf("an expired link must be rejected, got %d", status)
 	}
 }
@@ -170,7 +170,7 @@ func TestPairPageExplainsAMissingVfox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	status, body, _, _ := get(t, url, "")
+	status, body, _ := get(t, url, "")
 	if status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
@@ -194,7 +194,7 @@ func pairSession(t *testing.T, server *pair.Server) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, _, cookies := get(t, url, "")
+	_, _, cookies := get(t, url, "")
 	for _, cookie := range cookies {
 		if cookie.Name == "vfox-plus-session" {
 			return cookie.Value
@@ -214,11 +214,11 @@ func TestSessionExpires(t *testing.T) {
 	}
 	defer func() { _ = server.Close() }()
 	session := pairSession(t, server)
-	if status, _, _, _ := get(t, server.BaseURL()+"/api/status", session); status != http.StatusOK {
+	if status, _, _ := get(t, server.BaseURL()+"/api/status", session); status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
 	time.Sleep(50 * time.Millisecond)
-	if status, _, _, _ := get(t, server.BaseURL()+"/api/status", session); status != http.StatusUnauthorized {
+	if status, _, _ := get(t, server.BaseURL()+"/api/status", session); status != http.StatusUnauthorized {
 		t.Errorf("an expired session must be rejected, got %d", status)
 	}
 }
@@ -227,10 +227,10 @@ func TestPairedBrowserMintsLinks(t *testing.T) {
 	server := testServer(t, testSnapshot())
 	session := pairSession(t, server)
 	// Minting needs the session.
-	if status, _, _, _ := get(t, server.BaseURL()+"/api/token", ""); status != http.StatusUnauthorized {
+	if status, _, _ := get(t, server.BaseURL()+"/api/token", ""); status != http.StatusUnauthorized {
 		t.Fatalf("got %d", status)
 	}
-	status, body, _, _ := get(t, server.BaseURL()+"/api/token", session)
+	status, body, _ := get(t, server.BaseURL()+"/api/token", session)
 	if status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
@@ -244,10 +244,10 @@ func TestPairedBrowserMintsLinks(t *testing.T) {
 		t.Errorf("got %q", minted.URL)
 	}
 	// The minted link pairs once.
-	if status, _, _, _ := get(t, minted.URL, ""); status != http.StatusOK {
+	if status, _, _ := get(t, minted.URL, ""); status != http.StatusOK {
 		t.Errorf("got %d", status)
 	}
-	if status, _, _, _ := get(t, minted.URL, ""); status != http.StatusForbidden {
+	if status, _, _ := get(t, minted.URL, ""); status != http.StatusForbidden {
 		t.Errorf("got %d", status)
 	}
 }

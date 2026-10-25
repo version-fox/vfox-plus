@@ -112,15 +112,16 @@ type Options struct {
 // Server is a pairing server. Create it with NewServer, hand out links with
 // NewToken, and close it with Close.
 type Server struct {
-	listener net.Listener
-	handler  http.Handler
-	mu       sync.Mutex
-	tokens   map[string]time.Time
-	sessions map[string]time.Time
-	ttl      time.Duration
-	sttl     time.Duration
-	snapshot func() Snapshot
-	model    *state.AppModel
+	listener   net.Listener
+	httpServer *http.Server
+	handler    http.Handler
+	mu         sync.Mutex
+	tokens     map[string]time.Time
+	sessions   map[string]time.Time
+	ttl        time.Duration
+	sttl       time.Duration
+	snapshot   func() Snapshot
+	model      *state.AppModel
 }
 
 // NewServer starts a pairing server, by default on the loopback interface.
@@ -170,8 +171,11 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/api/config", server.serveConfig)
 	mux.HandleFunc("/api/events", server.serveEvents)
 	server.handler = mux
+	// ReadHeaderTimeout only: the server answers big logs and keeps
+	// server-sent events open, so the body and the writes stay unbounded.
+	server.httpServer = &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
-		_ = http.Serve(listener, mux)
+		_ = server.httpServer.Serve(listener)
 	}()
 	return server, nil
 }
@@ -222,7 +226,7 @@ func (s *Server) NewToken() (token string, url string, err error) {
 
 // Close stops the server.
 func (s *Server) Close() error {
-	return s.listener.Close()
+	return s.httpServer.Close()
 }
 
 // takeToken consumes token. It reports whether the token was valid, unused
@@ -321,7 +325,7 @@ func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request)
 	// Secure would stop browsers from sending the cookie back over HTTP
 	// outside localhost, breaking pairing. Loopback traffic never leaves
 	// the machine; beyond it, serve warns to prefer an encrypted tunnel.
-	http.SetCookie(writer, &http.Cookie{
+	http.SetCookie(writer, &http.Cookie{ //nolint:gosec // Plain HTTP by design; Secure would break pairing outside localhost.
 		Name:     "vfox-plus-session",
 		Value:    session,
 		Path:     "/",

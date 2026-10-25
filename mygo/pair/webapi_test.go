@@ -75,7 +75,7 @@ func webSession(t *testing.T, server *pair.Server) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, _, cookies := get(t, url, "")
+	_, _, cookies := get(t, url, "")
 	for _, cookie := range cookies {
 		if cookie.Name == "vfox-plus-session" {
 			return cookie.Value
@@ -87,7 +87,7 @@ func webSession(t *testing.T, server *pair.Server) string {
 
 func webGet(t *testing.T, url, session string) (int, string) {
 	t.Helper()
-	status, body, _, _ := get(t, url, session)
+	status, body, _ := get(t, url, session)
 	return status, body
 }
 
@@ -97,7 +97,7 @@ func webPost(t *testing.T, server *pair.Server, session, path, body, origin stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	request.Header.Set("Content-Type", "application/json")
 	if origin != "" {
 		request.Header.Set("Origin", origin)
@@ -106,7 +106,7 @@ func webPost(t *testing.T, server *pair.Server, session, path, body, origin stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	content, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +124,7 @@ func TestWebAppNeedsPairing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusFound {
 		t.Errorf("unpaired browsers must be redirected, got %d", response.StatusCode)
 	}
@@ -222,12 +222,12 @@ func TestWebTaskActions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		req.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+		req.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		content, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -294,13 +294,13 @@ func TestWebPlugins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	content, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -345,13 +345,13 @@ func TestWebSettings(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 		request.Header.Set("Content-Type", "application/json")
 		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		content, err := io.ReadAll(response.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -379,13 +379,13 @@ func TestWebConfig(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 		request.Header.Set("Content-Type", "application/json")
 		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		content, err := io.ReadAll(response.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -399,12 +399,12 @@ func TestWebConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("got %d", response.StatusCode)
 	}
@@ -420,12 +420,12 @@ func TestWebEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session})
+	request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: session, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/event-stream") {
 		t.Fatalf("got %q", contentType)
 	}

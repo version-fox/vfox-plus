@@ -58,7 +58,7 @@ func (s *Server) serveApp(writer http.ResponseWriter, request *http.Request) {
 	_, _ = writer.Write(webappHTML)
 }
 
-func (s *Server) requireModel(writer http.ResponseWriter, request *http.Request) *state.AppModel {
+func (s *Server) requireModel(writer http.ResponseWriter) *state.AppModel {
 	if s.model == nil {
 		http.Error(writer, "This server runs without an application model.", http.StatusServiceUnavailable)
 		return nil
@@ -128,7 +128,7 @@ func (s *Server) serveEvents(writer http.ResponseWriter, request *http.Request) 
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer, request)
+	model := s.requireModel(writer)
 	if model == nil {
 		return
 	}

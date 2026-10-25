@@ -15,6 +15,7 @@
 package pair
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -31,7 +32,7 @@ func Main(args []string) int {
 	port := flags.Int("port", 0, "port to listen on (0 picks a free one)")
 	tokenTTL := flags.Duration("token-ttl", DefaultTokenTTL, "how long the pairing link works")
 	if err := flags.Parse(args); err != nil {
-		if err == flag.ErrHelp {
+		if errors.Is(err, flag.ErrHelp) {
 			return 0
 		}
 		return 2
