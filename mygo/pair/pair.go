@@ -317,6 +317,10 @@ func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 	session := s.newSession()
+	// No Secure attribute on purpose: the server speaks plain HTTP, and
+	// Secure would stop browsers from sending the cookie back over HTTP
+	// outside localhost, breaking pairing. Loopback traffic never leaves
+	// the machine; beyond it, serve warns to prefer an encrypted tunnel.
 	http.SetCookie(writer, &http.Cookie{
 		Name:     "vfox-plus-session",
 		Value:    session,
