@@ -16,6 +16,7 @@ package buildmsix
 
 import (
 	"bytes"
+	"encoding/xml"
 	"os"
 	"path/filepath"
 	"strings"
@@ -184,5 +185,89 @@ func TestRenderAppxManifestVisualElements(t *testing.T) {
 	}
 	if !strings.Contains(manifest, `<uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>`) {
 		t.Errorf("DefaultTile with the wide logo missing:\n%s", manifest)
+	}
+}
+
+func TestWriteBundleBlockMapListsOnlyManifest(t *testing.T) {
+	x64, err := WriteMsix(testValidateConfig("x64"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundle, _, err := WriteBundle(BundleConfig{
+		Package:   "vfox-plus",
+		Version:   "0.1.0",
+		Identity:  "dev.vfox.VfoxPlus",
+		Publisher: defaultPublisher,
+		Packages: []BundlePackage{
+			{Architecture: "x64", Filename: "vfox-plus_0.1.0_x64.msix", Data: x64},
+		},
+		MTime: time.Unix(1234567890, 0).UTC(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := checkZipLayout(bundle, "test.msixbundle", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc blockMapDoc
+	if err := xml.Unmarshal(files["AppxBlockMap.xml"], &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Files) != 1 || doc.Files[0].Name != `AppxMetadata\AppxBundleManifest.xml` {
+		names := make([]string, 0, len(doc.Files))
+		for _, f := range doc.Files {
+			names = append(names, f.Name)
+		}
+		t.Fatalf("bundle block map lists %q, want only the manifest", names)
+	}
+}
+
+func TestValidateBundleRejectsPayloadBlockMapEntries(t *testing.T) {
+	x64, err := WriteMsix(testValidateConfig("x64"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mtime := time.Unix(1234567890, 0).UTC()
+	sorted := []BundlePackage{{Architecture: "x64", Filename: "vfox-plus_0.1.0_x64.msix", Data: x64}}
+	contentTypes := RenderBundleContentTypes(sorted)
+	probe, err := assembleBundle(sorted,
+		RenderBundleManifest("dev.vfox.VfoxPlus", defaultPublisher, "0.1.0.0",
+			[]BundleEntry{{Architecture: "x64", Filename: sorted[0].Filename}}),
+		contentTypes, RenderBlockMap(nil), mtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	probeHeaders, err := parseLocalHeaders(probe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := RenderBundleManifest("dev.vfox.VfoxPlus", defaultPublisher, "0.1.0.0", []BundleEntry{{
+		Architecture: "x64",
+		Filename:     sorted[0].Filename,
+		Offset:       probeHeaders[sorted[0].Filename].dataOffset,
+		Size:         int64(len(x64)),
+	}})
+	manifestInfo := probeHeaders["AppxMetadata/AppxBundleManifest.xml"]
+	payloadInfo := probeHeaders[sorted[0].Filename]
+	blockMap := RenderBlockMap([]BlockMapFile{{
+		Name:    "AppxMetadata/AppxBundleManifest.xml",
+		Size:    int64(len(manifest)),
+		LfhSize: manifestInfo.headerSize,
+		Blocks:  blockHashes([]byte(manifest)),
+	}, {
+		Name:    sorted[0].Filename,
+		Size:    int64(len(x64)),
+		LfhSize: payloadInfo.headerSize,
+		Blocks:  blockHashes(x64),
+	}})
+	data, err := assembleBundle(sorted, manifest, contentTypes, blockMap, mtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateBundle(data, "bad.msixbundle"); err == nil {
+		t.Fatal("expected an error for payload entries in the bundle block map")
+	} else if !strings.Contains(err.Error(), "must list only") {
+		t.Fatalf("wrong error: %v", err)
 	}
 }

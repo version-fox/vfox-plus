@@ -199,11 +199,22 @@ func ValidateBundle(data []byte, source string) error {
 			return fmt.Errorf("%s lists %s with offset %d, want %d", source, pkg.FileName, pkg.Offset, info.dataOffset)
 		}
 	}
-	if err := checkBlockMap(data, source, files); err != nil {
+	if err := checkBundleBlockMap(data, source, files); err != nil {
 		return err
 	}
 	for _, pkg := range manifest.Packages {
 		if err := checkFilenameVersion(pkg.FileName, pkg.Version, source); err != nil {
+			return err
+		}
+	}
+	// Each payload carries its own block map and is validated through it
+	// when its slice is installed; validate it the same way here.
+	for _, pkg := range manifest.Packages {
+		payload, ok := files[pkg.FileName]
+		if !ok {
+			return fmt.Errorf("%s lists %s, which is not in the bundle", source, pkg.FileName)
+		}
+		if err := ValidateMsix(payload, source+": "+pkg.FileName); err != nil {
 			return err
 		}
 	}
@@ -288,29 +299,8 @@ func checkBlockMap(data []byte, source string, files map[string][]byte) error {
 	listed := map[string]bool{}
 	for _, entry := range doc.Files {
 		listed[entry.Name] = true
-		name := strings.ReplaceAll(entry.Name, "\\", "/")
-		content, ok := files[name]
-		if !ok {
-			return fmt.Errorf("%s block map lists %s, which is not packaged", source, entry.Name)
-		}
-		if entry.Size != int64(len(content)) {
-			return fmt.Errorf("%s block map lists %s with size %d, want %d", source, entry.Name, entry.Size, len(content))
-		}
-		info, ok := headers[name]
-		if !ok {
-			return fmt.Errorf("%s has no local header for %s", source, entry.Name)
-		}
-		if entry.LfhSize != info.headerSize {
-			return fmt.Errorf("%s block map lists %s with LfhSize %d, want %d", source, entry.Name, entry.LfhSize, info.headerSize)
-		}
-		want := blockHashes(content)
-		if len(entry.Blocks) != len(want) {
-			return fmt.Errorf("%s block map lists %s with %d blocks, want %d", source, entry.Name, len(entry.Blocks), len(want))
-		}
-		for i, block := range entry.Blocks {
-			if block.Hash != want[i] {
-				return fmt.Errorf("%s block map hash %d of %s does not match", source, i, entry.Name)
-			}
+		if err := verifyBlockEntry(entry, files, headers, source); err != nil {
+			return err
 		}
 	}
 	for name := range files {
@@ -322,6 +312,58 @@ func checkBlockMap(data []byte, source string, files map[string][]byte) error {
 		}
 	}
 	return nil
+}
+
+// verifyBlockEntry checks one block map entry against the packaged file:
+// presence, size, local header size and every block hash.
+func verifyBlockEntry(entry blockMapEntry, files map[string][]byte, headers map[string]localInfo, source string) error {
+	name := strings.ReplaceAll(entry.Name, "\\", "/")
+	content, ok := files[name]
+	if !ok {
+		return fmt.Errorf("%s block map lists %s, which is not packaged", source, entry.Name)
+	}
+	if entry.Size != int64(len(content)) {
+		return fmt.Errorf("%s block map lists %s with size %d, want %d", source, entry.Name, entry.Size, len(content))
+	}
+	info, ok := headers[name]
+	if !ok {
+		return fmt.Errorf("%s has no local header for %s", source, entry.Name)
+	}
+	if entry.LfhSize != info.headerSize {
+		return fmt.Errorf("%s block map lists %s with LfhSize %d, want %d", source, entry.Name, entry.LfhSize, info.headerSize)
+	}
+	want := blockHashes(content)
+	if len(entry.Blocks) != len(want) {
+		return fmt.Errorf("%s block map lists %s with %d blocks, want %d", source, entry.Name, len(entry.Blocks), len(want))
+	}
+	for i, block := range entry.Blocks {
+		if block.Hash != want[i] {
+			return fmt.Errorf("%s block map hash %d of %s does not match", source, i, entry.Name)
+		}
+	}
+	return nil
+}
+
+// checkBundleBlockMap verifies the bundle AppxBlockMap.xml: like
+// MakeAppx output, it lists exactly the bundle manifest, whose payloads
+// validate through their own embedded block maps.
+func checkBundleBlockMap(data []byte, source string, files map[string][]byte) error {
+	raw, ok := files["AppxBlockMap.xml"]
+	if !ok {
+		return fmt.Errorf("%s misses AppxBlockMap.xml", source)
+	}
+	var doc blockMapDoc
+	if err := xml.Unmarshal(raw, &doc); err != nil {
+		return fmt.Errorf("%s has an invalid AppxBlockMap.xml: %w", source, err)
+	}
+	if len(doc.Files) != 1 || doc.Files[0].Name != `AppxMetadata\AppxBundleManifest.xml` {
+		return fmt.Errorf("%s block map must list only AppxMetadata\\AppxBundleManifest.xml", source)
+	}
+	headers, err := parseLocalHeaders(data)
+	if err != nil {
+		return fmt.Errorf("%s: %w", source, err)
+	}
+	return verifyBlockEntry(doc.Files[0], files, headers, source)
 }
 
 // checkFilenameVersion checks the manifest version against the version in the

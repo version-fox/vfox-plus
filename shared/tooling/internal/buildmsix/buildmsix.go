@@ -986,37 +986,18 @@ func WriteBundle(cfg BundleConfig) ([]byte, string, error) {
 		})
 	}
 	manifest := RenderBundleManifest(cfg.Identity, cfg.Publisher, quad, manifestEntries)
-	// BlockMap with real header sizes and hashes.
-	var blockFiles []BlockMapFile
-	for _, p := range sorted {
-		info := probeHeaders[p.Filename]
-		blockFiles = append(blockFiles, BlockMapFile{
-			Name:    p.Filename,
-			Size:    int64(len(p.Data)),
-			LfhSize: info.headerSize,
-			Blocks:  blockHashes(p.Data),
-		})
-	}
-	// Header sizes of the metadata files are stable (same names), reuse probe.
-	for _, name := range []string{"AppxMetadata/AppxBundleManifest.xml", "[Content_Types].xml"} {
-		var data []byte
-		if name == "AppxMetadata/AppxBundleManifest.xml" {
-			data = []byte(manifest)
-		} else {
-			data = []byte(contentTypes)
-		}
-		info := probeHeaders[name]
-		blockFiles = append(blockFiles, BlockMapFile{
-			Name:    name,
-			Size:    int64(len(data)),
-			LfhSize: info.headerSize,
-			Blocks:  blockHashes(data),
-		})
-	}
-	// Sort BlockMap entries by name for determinism (payloads first by arch
-	// order above? Keep manifest order: payloads sorted, then metadata).
-	sort.Slice(blockFiles, func(i, j int) bool { return blockFiles[i].Name < blockFiles[j].Name })
-	blockMap := RenderBlockMap(blockFiles)
+	// The bundle block map lists only the bundle manifest itself: like
+	// MakeAppx output, the .msix payloads are validated through their own
+	// embedded block maps when the applicable slice is installed, and
+	// Windows rejects a bundle block map with extra files (0x80080205).
+	// Probe header sizes are stable (same names), reuse them.
+	manifestInfo := probeHeaders["AppxMetadata/AppxBundleManifest.xml"]
+	blockMap := RenderBlockMap([]BlockMapFile{{
+		Name:    "AppxMetadata/AppxBundleManifest.xml",
+		Size:    int64(len(manifest)),
+		LfhSize: manifestInfo.headerSize,
+		Blocks:  blockHashes([]byte(manifest)),
+	}})
 	finalData, err := writeBundleWithManifest(manifest, blockMap, contentTypes)
 	if err != nil {
 		return nil, "", err
