@@ -44,7 +44,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/goreleaser/nfpm/v2"
@@ -96,7 +95,7 @@ const usage = "Usage: build-deb [options] <output directory>"
 //	                  Java runtime
 func Run(args []string) error {
 	// Package files must not be group-writable, whatever the caller's umask is.
-	syscall.Umask(0o022)
+	setUmask()
 
 	opts, err := parseArgs(args)
 	if err != nil {

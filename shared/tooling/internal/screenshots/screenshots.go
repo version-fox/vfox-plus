@@ -24,7 +24,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -45,11 +44,6 @@ func ParseShotName(line string) (name string, ok bool) {
 		return "", false
 	}
 	return name, true
-}
-
-func procAlive(pid int) bool {
-	err := syscall.Kill(pid, 0)
-	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
 func removeSandbox(sandbox string) {
@@ -183,7 +177,7 @@ func runOnce(outputDir string, appCmd []string, extraEnv []string) error {
 	appPid := 0
 	defer func() {
 		if appPid != 0 && procAlive(appPid) {
-			_ = syscall.Kill(appPid, syscall.SIGKILL)
+			killProcess(appPid)
 		}
 		removeSandbox(sandbox)
 	}()
