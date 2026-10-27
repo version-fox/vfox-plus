@@ -2,131 +2,41 @@
 
 > [English](README.md)
 
-[vfox](https://vfox.dev) 的图形化前端。vfox 是跨平台版本管理器。本应用采用
+[vfox](https://vfox.dev)（跨平台版本管理器）的图形化前端，遵循
 [Material 3 Expressive](https://m3.material.io/) 设计语言。
 
-它使用 [mygo](https://github.com/egoist/mygo) 0.6.3（Go）构建，原生用户界面走 GTK 3，
-Material 3 Expressive 组件均为自研——无 Web 视图、无 HTML、无 JavaScript——单个 Go
-可执行文件约 12 MB。在 Home 页约占用 45 MB PSS（见
-[docs/zh-CN/memory.md](docs/zh-CN/memory.md)）。截图如下。
+文档在 [`docs/`](docs/zh-CN/user/index.md)，先按语言、再按受众分类：
 
-![vfox+ home page](https://iili.io/nkxZJOG.png)
+| | English | 简体中文 |
+| --- | --- | --- |
+| 用户指南 | [docs/en/user/index.md](docs/en/user/index.md) | [docs/zh-CN/user/index.md](docs/zh-CN/user/index.md) |
+| 开发者规约 | [docs/en/dev/architecture.md](docs/en/dev/architecture.md) | [docs/zh-CN/dev/architecture.md](docs/zh-CN/dev/architecture.md) |
 
-| 已安装的 SDK 版本 | 可用版本（深色主题） |
+从[用户指南](docs/zh-CN/user/index.md)（[English](docs/en/user/index.md)）开始：
+功能、[安装](docs/zh-CN/user/install.md)、[使用](docs/zh-CN/user/using.md)、
+[远端与安卓](docs/zh-CN/user/remote.md)。
+
+## 截图
+
+![vfox+ 主页](https://iili.io/nkxZJOG.png)
+
+| 某 SDK 的已安装版本 | 可安装版本（深色主题） |
 | --- | --- |
-| ![Installed versions of nodejs](https://iili.io/nkxB73u.png) | ![Available versions of nodejs, dark theme](https://iili.io/nkxBcyx.png) |
+| ![已安装的 nodejs 版本](https://iili.io/nkxB73u.png) | ![可安装的 nodejs 版本，深色主题](https://iili.io/nkxBcyx.png) |
 
-| 正在安装 | 可跟进、可取消的任务 |
+| 正在安装 | 可跟随、可取消的任务 |
 | --- | --- |
-| ![Installing a version of nodejs](https://iili.io/nkxBW6F.png) | ![Tasks](https://iili.io/nkxBNyv.png) |
+| ![正在安装 nodejs 版本](https://iili.io/nkxBW6F.png) | ![任务](https://iili.io/nkxBNyv.png) |
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![Plugins](https://iili.io/nkxBvZN.png) | ![Settings](https://iili.io/nkxZEmJ.png) |
+| ![插件](https://iili.io/nkxBvZN.png) | ![设置](https://iili.io/nkxZEmJ.png) |
 
-| 窄窗口 Home | 窄窗口 SDK |
+| 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |
-| ![Home in a compact window](https://iili.io/nkxZhqN.png) | ![An SDK in a compact window](https://iili.io/nkxBZt2.png) |
-
-## 实现
-
-| 目录 | 技术 | 平台 | 包 | 状态 |
-| --- | --- | --- | --- | --- |
-| [`mygo/`](mygo) | mygo 0.6.3（Go），Linux 桌面走 GTK 3 原生界面、Windows 走 Windows 后端，自研 Material 3 Expressive 组件 | Linux 桌面、Windows 11 桌面 | `vfox-plus` | Linux 上可用；Windows 可构建、可打包、可安装（未签名侧加载），已手工冒烟测试 |
-
-## 功能
-
-- 一览已安装的 SDK、正在使用的版本和统计信息。
-- 安装、卸载 SDK 版本，全局或按项目选择版本，带实时下载进度。
-- 浏览 vfox 插件仓库，添加插件（也支持 URL 或文件）、更新和移除插件。
-- 每次变更都作为可跟进、可取消、可重试的任务运行。
-- 编辑 vfox 配置（代理、仓库、存储、旧版版本文件、缓存、超时）以及下载镜像等额外环境变量。
-- 支持英文和简体中文；跟随桌面主题和强调色。
-
-vfox+ 驱动 vfox 命令行工具，需另行安装 vfox（见
-[vfox 安装指南](https://vfox.dev/guides/quick-start.html)）。
-
-## 获取 vfox+
-
-[`mygo`](.github/workflows/mygo.yml) 工作流每次变更都会构建安装包。下载最新一次
-成功运行的 `vfox-plus-linux-x64` 构件，然后：
-
-```sh
-sudo apt install ./vfox-plus*_amd64.deb   # Ubuntu 26.04
-vfox-plus
-```
-
-或解压 `.tar.gz` 到任意位置并运行 `./vfox-plus`。从源码构建见
-[mygo README](mygo/README.zh-CN.md)；只有 Docker 时，
-`vfxtool sandbox package` 会把两个文件构建到 `dist/sandbox/`，
-不改变本机任何东西。
-
-Windows 11 用户请下载 `vfox-plus-windows` 构件，解压后在管理员 PowerShell
-安装未签名 `.msixbundle`（见
-[Windows 打包](shared/packaging/windows/README.zh-CN.md)）：
-
-```powershell
-Add-AppxPackage -Path .\vfox-plus_<版本>.msixbundle -AllowUnsigned
-```
-
-安装包目前尚未签名，日后会提供官方签名的安装包。
-
-### 在浏览器中使用
-
-`vfox-plus pair` 把浏览器与本机的 vfox-plus 配对，对标 `opencode pair`。
-Ubuntu 的 bash 与 Windows 的 PowerShell 用法相同：
-
-```sh
-vfox-plus pair
-```
-
-在浏览器打开它输出的链接即可。链接一次性有效，几分钟后过期；配对后的浏览器
-在 `/app` 得到完整 Web 界面：已安装 SDK 的安装/使用/卸载、插件仓库的添
-加/更新/删除、带实时进度与日志的任务、以及设置。
-
-另一台机器的浏览器，或容器中运行的 vfox-plus，用常驻服务代替：
-
-```sh
-vfox-plus serve --port 8080
-```
-
-打开它输出的链接，把地址换成可达地址即可。已配对的浏览器用 `GET /api/token`
-为更多浏览器增发链接。非回环服务走 HTTPS：不传 `--tls-cert/--tls-key` 时首次
-启动在设置目录旁生成自签名证书并打印指纹，请在浏览器核对；自备证书可消除
-警告。发布 Docker 镜像直接跑该服务，无需显示；见
-[打包](mygo/README.zh-CN.md#docker-镜像)：
-
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus .
-docker run --rm -p 8080:8080 vfox-plus
-```
-
-## 仓库布局
-
-```text
-docs/       共享规约：架构、vfox CLI 契约、界面、设计系统、国际化
-docs/zh-CN/ 上述文档的简体中文译文
-shared/     共享资源：翻译、图标、捕获的 vfox 输出（测试夹具）、离线
-            测试插件、端到端运行器、打包文件、vfxtool（Go 开发者
-            工具）和沙箱的共享部分
-mygo/       应用程序
-.github/    CI 工作流：仓库检查、构建、内存报告和沙箱
-```
-
-| 文档 | 内容 |
-| --- | --- |
-| [docs/architecture.md](docs/zh-CN/architecture.md) | 分层、设置文件、依赖、内存 |
-| [docs/vfox-cli-contract.md](docs/zh-CN/vfox-cli-contract.md) | GUI 如何运行 vfox 并解析其输出 |
-| [docs/ui-spec.md](docs/zh-CN/ui-spec.md) | 界面、流程和状态 |
-| [docs/design-system.md](docs/zh-CN/design-system.md) | Material 3 Expressive 颜色、形状、字体、动效和组件 |
-| [docs/i18n.md](docs/zh-CN/i18n.md) | 翻译目录和术语表 |
-| [docs/memory.md](docs/zh-CN/memory.md) | 应用程序的内存占用，同一方法测量 |
-
-## 参与贡献
-
-见 [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)。
+| ![窄窗口主页](https://iili.io/nkxZhqN.png) | ![窄窗口 SDK 页](https://iili.io/nkxBZt2.png) |
 
 ## 许可证
 
-vfox-plus 采用 [Apache License 2.0](LICENSE)。Material Symbols 由 Google 采用
+vfox-plus 采用 [Apache License 2.0](LICENSE)。Material Symbols 由 Google 以
 Apache License 2.0 授权。

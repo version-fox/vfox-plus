@@ -14,7 +14,7 @@
 
 // Package ui is the user interface of the mygo implementation of vfox-plus: the
 // window, the shell with its navigation, and the pages, which follow
-// docs/ui-spec.md. Its widgets are those of the toolkit in ui/kit, built on the
+// docs/en/dev/ui-spec.md. Its widgets are those of the toolkit in ui/kit, built on the
 // native user interface of mygo.
 package ui
 

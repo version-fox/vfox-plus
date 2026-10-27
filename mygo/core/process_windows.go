@@ -22,7 +22,7 @@ import (
 
 // killProcess kills the process. Windows has no SIGTERM; vfox treats this
 // like an interrupted install and the next install cleans up (see
-// docs/vfox-cli-contract.md#cancelling).
+// docs/en/dev/vfox-cli-contract.md#cancelling).
 func killProcess(cmd *exec.Cmd) {
 	if cmd.Process != nil {
 		_ = cmd.Process.Kill()

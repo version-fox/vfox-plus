@@ -1,0 +1,31 @@
+<!--
+  Copyright 2026 Han Li and contributors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+        <!-- v+ mark on a 12-sided-cookie-like blob in vfox orange. -->
+    <path
+        android:fillColor="#F28C1B"
+        android:pathData="M36,3 C48,3 60,10 65,22 C70,34 70,40 65,52 C60,64 48,69 36,69 C24,69 12,64 7,52 C2,40 2,34 7,22 C12,10 24,3 36,3 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,25 L29,47 L33,47 L42,25 L37,25 L31,39 L25,25 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M45,28 h4 v5 h5 v4 h-5 v5 h-4 v-5 h-5 v-4 h5 Z" />
+</vector>

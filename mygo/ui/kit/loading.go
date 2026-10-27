@@ -25,7 +25,7 @@ import (
 )
 
 // The loading indicator morphs through a sequence of shapes
-// (docs/design-system.md#loading-indicator).
+// (docs/en/dev/design-system.md#loading-indicator).
 const (
 	loadingMorphInterval  = 650 * time.Millisecond
 	loadingRotationPeriod = 4666 * time.Millisecond
@@ -179,7 +179,7 @@ func interval(t, begin, end float64, curve func(float64) float64) float64 {
 }
 
 // WavyProgress is the wavy linear progress indicator of Material 3 Expressive
-// (docs/design-system.md#wavy-progress-indicator), determinate or
+// (docs/en/dev/design-system.md#wavy-progress-indicator), determinate or
 // indeterminate. It is as wide as its parent leaves it, and draws the wave
 // while the window shows it, without building the view again.
 func WavyProgress(c Ctx, w WavySpec) ui.Element {

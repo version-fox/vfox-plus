@@ -19,7 +19,7 @@ import (
 )
 
 // Transition is how a view gives way to another one
-// (docs/design-system.md#motion).
+// (docs/en/dev/design-system.md#motion).
 type Transition int
 
 const (

@@ -21,7 +21,7 @@
 // memory.txt, with the lines "memory (<point>): RSS <n> MB, PSS <n> MB in <n>
 // processes" of the points home and nodejs. The memory workflow runs this tool
 // when that workflow ends for the latest commit of a pull request, and the
-// tool writes one comment: a table like the one of docs/memory.md, with the
+// tool writes one comment: a table like the one of docs/en/dev/memory.md, with the
 // difference from the latest measurement on the default branch next to the
 // numbers. A later run replaces that comment instead of adding another one.
 //
@@ -102,8 +102,10 @@ var repositoryName = regexp.MustCompile(`\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z`)
 // whitespace collapses the text of a table cell onto one line.
 var whitespace = regexp.MustCompile(`\s+`)
 
-// technologyLink finds the implementation directory in a table cell.
-var technologyLink = regexp.MustCompile(`\]\(\.\./([A-Za-z0-9_-]+)/README\.md`)
+// technologyLink finds the implementation directory in a table cell. The
+// documentation lives under docs/<language>/<audience>/, so the link climbs
+// any number of directories before the implementation directory.
+var technologyLink = regexp.MustCompile(`\]\((?:\.\./)+([A-Za-z0-9_-]+)/README\.md`)
 
 // transient matches the errors of gh that are worth trying again.
 var transient = regexp.MustCompile(`(?i)HTTP 5[0-9][0-9]|timeout|timed out|connection reset|EOF`)
@@ -220,7 +222,7 @@ func cell(text string) string {
 }
 
 // ReadTechnologies reads the Technology column of the first table of
-// docs/memory.md, by implementation directory.
+// docs/en/dev/memory.md, by implementation directory.
 func ReadTechnologies(text string) map[string]string {
 	technologies := map[string]string{}
 	var columns [2]int
@@ -515,7 +517,7 @@ func Render(rows []Row, headSHA string) string {
 		}
 	}
 	if !technologies {
-		// Without the table of docs/memory.md there is nothing to put there.
+		// Without the table of docs/en/dev/memory.md there is nothing to put there.
 		header = append(header[:1], header[2:]...)
 		alignment = append(alignment[:1], alignment[2:]...)
 		for i := range body {
@@ -545,7 +547,7 @@ func Render(rows []Row, headSHA string) string {
 	details := []string{
 		"- Measured by `vfxtool measure` in the workflow of the " +
 			"implementation, on a GitHub-hosted runner with Xvfb and no GPU. These are not the numbers of " +
-			"`docs/memory.md`, which come from another machine: compare the rows of one comment.",
+			"`docs/en/dev/memory.md`, which come from another machine: compare the rows of one comment.",
 		"- " + Explanation(rows),
 	}
 	if len(runs) > 0 {
@@ -965,41 +967,51 @@ func logMessage(message string) {
 	fmt.Fprintln(stderr, message)
 }
 
-// ReadArtifact returns the numbers in an artifact, or nil if it is not a valid
-// memory.txt.
-func ReadArtifact(gh API, artifact map[string]any) *Memory {
+// readArtifactText returns the content of an artifact, or false when it is not
+// a readable memory.txt. ReadArtifact and the extra sections share it.
+func readArtifactText(gh API, artifact map[string]any) (string, bool) {
 	if expired, _ := artifact["expired"].(bool); expired {
-		return nil
+		return "", false
 	}
 	if asInt(artifact["size_in_bytes"]) > MaxArtifactBytes {
-		return nil
+		return "", false
 	}
 	data, err := gh.Raw(fmt.Sprintf("actions/artifacts/%d/zip", asInt(artifact["id"])))
 	if err != nil {
 		logMessage(fmt.Sprintf("Cannot read the artifact %v (%v): %v", artifact["name"], artifact["id"], err))
-		return nil
+		return "", false
 	}
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		logMessage(fmt.Sprintf("Cannot read the artifact %v (%v): %v", artifact["name"], artifact["id"], err))
-		return nil
+		return "", false
 	}
 	if len(reader.File) != 1 || reader.File[0].Name != MemoryFile {
-		return nil
+		return "", false
 	}
 	file, err := reader.File[0].Open()
 	if err != nil {
-		return nil
+		return "", false
 	}
 	content, err := io.ReadAll(io.LimitReader(file, MaxMemoryFileBytes+1))
 	file.Close()
 	if err != nil {
-		return nil
+		return "", false
 	}
 	if len(content) > MaxMemoryFileBytes {
+		return "", false
+	}
+	return string(content), true
+}
+
+// ReadArtifact returns the numbers in an artifact, or nil if it is not a valid
+// memory.txt.
+func ReadArtifact(gh API, artifact map[string]any) *Memory {
+	text, ok := readArtifactText(gh, artifact)
+	if !ok {
 		return nil
 	}
-	return ParseMemory(string(content))
+	return ParseMemory(text)
 }
 
 // Newest returns the newest live artifact, or nil when all have expired.
@@ -1016,12 +1028,18 @@ func Newest(artifacts []map[string]any) map[string]any {
 	return newest
 }
 
-// BaselineOf returns the latest numbers of an implementation that were
-// measured on the default branch.
-func BaselineOf(gh API, implementation, defaultBranch string) (*Memory, map[string]any, error) {
-	value, err := gh.Get("actions/artifacts", map[string]any{"name": "memory-" + implementation, "per_page": 100})
+// baselineCandidate is one readable baseline artifact, newest first.
+type baselineCandidate struct {
+	text     string
+	artifact map[string]any
+}
+
+// baselineCandidates returns the readable artifacts with a name that were
+// measured on the default branch, newest first.
+func baselineCandidates(gh API, name, defaultBranch string) ([]baselineCandidate, error) {
+	value, err := gh.Get("actions/artifacts", map[string]any{"name": name, "per_page": 100})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	response, _ := value.(map[string]any)
 	var onDefaultBranch []map[string]any
@@ -1046,9 +1064,40 @@ func BaselineOf(gh API, implementation, defaultBranch string) (*Memory, map[stri
 	sort.Slice(onDefaultBranch, func(a, b int) bool {
 		return asString(onDefaultBranch[a]["created_at"]) > asString(onDefaultBranch[b]["created_at"])
 	})
+	var candidates []baselineCandidate
 	for _, artifact := range onDefaultBranch {
-		if memory := ReadArtifact(gh, artifact); memory != nil {
-			return memory, artifact, nil
+		if text, ok := readArtifactText(gh, artifact); ok {
+			candidates = append(candidates, baselineCandidate{text: text, artifact: artifact})
+		}
+	}
+	return candidates, nil
+}
+
+// BaselineArtifact returns the content of the latest artifact with a name that
+// was measured on the default branch, with the artifact. BaselineOf and the
+// extra sections share it; like Collect, the newest readable artifact wins,
+// and parsing it is the caller's job.
+func BaselineArtifact(gh API, name, defaultBranch string) (string, map[string]any, error) {
+	candidates, err := baselineCandidates(gh, name, defaultBranch)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(candidates) == 0 {
+		return "", nil, nil
+	}
+	return candidates[0].text, candidates[0].artifact, nil
+}
+
+// BaselineOf returns the latest numbers of an implementation that were
+// measured on the default branch.
+func BaselineOf(gh API, implementation, defaultBranch string) (*Memory, map[string]any, error) {
+	candidates, err := baselineCandidates(gh, "memory-"+implementation, defaultBranch)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, candidate := range candidates {
+		if memory := ParseMemory(candidate.text); memory != nil {
+			return memory, candidate.artifact, nil
 		}
 	}
 	return nil, nil, nil
@@ -1339,7 +1388,7 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 		logMessage(fmt.Sprintf("No open pull request has %s as its latest commit; there is nothing to report on.", short))
 		return 0, nil
 	}
-	workflows, err := ActiveWorkflows(gh, implementations)
+	workflows, err := ActiveWorkflows(gh, append(append([]string{}, implementations...), "android"))
 	if err != nil {
 		return 0, err
 	}
@@ -1358,7 +1407,9 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 				ordered = append(ordered, implementation)
 			}
 		}
-		if waiting := Unfinished(ordered, workflows, runs, runID); len(waiting) > 0 {
+		// The android workflow has no row of its own, but its run carries
+		// the APK section, so the report waits for it like for the rest.
+		if waiting := Unfinished(append(ordered, "android"), workflows, runs, runID); len(waiting) > 0 {
 			logMessage(fmt.Sprintf("Waiting for %s; the report is written when they have ended.", strings.Join(waiting, ", ")))
 			return 0, nil
 		}
@@ -1375,7 +1426,11 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 	if err != nil {
 		return 0, err
 	}
-	body := Render(rows, headSHA)
+	extras, err := CollectExtras(gh, runs, defaultBranch)
+	if err != nil {
+		return 0, err
+	}
+	body := InsertExtras(Render(rows, headSHA), RenderExtras(extras))
 	if summary := os.Getenv("GITHUB_STEP_SUMMARY"); summary != "" {
 		file, err := os.OpenFile(summary, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
@@ -1427,7 +1482,7 @@ func Run(args []string) error {
 	flags := flag.NewFlagSet("memory-report", flag.ContinueOnError)
 	repository := flags.String("repository", os.Getenv("GITHUB_REPOSITORY"), "OWNER/NAME")
 	implementations := flags.String("implementations", os.Getenv("MEMORY_IMPLEMENTATIONS"), "the implementation, such as 'mygo', separated by spaces")
-	docs := flags.String("docs", "docs/memory.md", "the page with the Technology column")
+	docs := flags.String("docs", "docs/en/dev/memory.md", "the page with the Technology column")
 	dryRun := flags.Bool("dry-run", false, "print the comment instead of writing it")
 	run := flags.Int("run", 0, "the ID of the workflow run that has just ended")
 	pullRequest := flags.Int("pull-request", 0, "the number of the pull request")

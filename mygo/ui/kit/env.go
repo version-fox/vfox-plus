@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package kit is the Material 3 Expressive toolkit of the mygo user interface:
-// the theme, the springs, and the components of docs/design-system.md, built
+// the theme, the springs, and the components of docs/en/dev/design-system.md, built
 // on the elements of mygo's package ui.
 //
 // mygo gives widgets without a look (buttons, switches, text inputs, popovers,

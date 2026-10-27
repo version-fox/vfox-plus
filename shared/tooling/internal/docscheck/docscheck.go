@@ -13,8 +13,11 @@
 // limitations under the License.
 
 // Package docscheck verifies the documentation language mapping described in
-// CONTRIBUTING.md: every Markdown document has an English canonical version
-// and a Simplified Chinese translation.
+// docs/en/dev/contributing.md: every Markdown document has an English
+// canonical version and a Simplified Chinese translation. Documents live
+// under docs/, first by language (en, zh-CN) then by audience (user, dev);
+// the repository root and the source directories keep only thin entry points
+// (README.md, CONTRIBUTING.md) that link into docs/.
 package docscheck
 
 import (
@@ -92,16 +95,14 @@ func counterpartPath(root, rel string) string {
 		return filepath.Join(root, filepath.FromSlash(english))
 	}
 	if strings.HasPrefix(rel, "docs/zh-CN/") {
-		english := "docs/" + strings.TrimPrefix(rel, "docs/zh-CN/")
+		english := "docs/en/" + strings.TrimPrefix(rel, "docs/zh-CN/")
 		return filepath.Join(root, filepath.FromSlash(english))
 	}
-	dir, base := pathDirBase(rel)
-	if strings.HasPrefix(rel, "docs/") {
-		if strings.Contains(rel[5:], "/") {
-			return ""
-		}
-		return filepath.Join(root, filepath.FromSlash("docs/zh-CN/"+base))
+	if strings.HasPrefix(rel, "docs/en/") {
+		chinese := "docs/zh-CN/" + strings.TrimPrefix(rel, "docs/en/")
+		return filepath.Join(root, filepath.FromSlash(chinese))
 	}
+	dir, base := pathDirBase(rel)
 	if strings.HasSuffix(base, ".md") && (base == "README.md" || base == "CONTRIBUTING.md") {
 		_ = dir
 		stem := strings.TrimSuffix(base, ".md")
@@ -170,12 +171,11 @@ func covered(rel string) bool {
 	if strings.HasSuffix(rel, ".zh-CN.md") {
 		return true
 	}
-	if strings.HasPrefix(rel, "docs/zh-CN/") {
+	if strings.HasPrefix(rel, "docs/en/") || strings.HasPrefix(rel, "docs/zh-CN/") {
 		return strings.HasSuffix(rel, ".md")
 	}
 	if strings.HasPrefix(rel, "docs/") {
-		rest := strings.TrimPrefix(rel, "docs/")
-		return strings.HasSuffix(rel, ".md") && !strings.Contains(rest, "/")
+		return false
 	}
 	base := rel
 	if i := strings.LastIndex(rel, "/"); i >= 0 {

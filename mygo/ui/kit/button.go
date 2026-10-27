@@ -91,7 +91,7 @@ func (b ButtonSpec) colors(cs *Palette) (container, content, border ui.Color) {
 }
 
 // Button is a Material 3 Expressive button: round at rest, and squarer while it
-// is pressed (docs/design-system.md#shape-morphing-on-interaction).
+// is pressed (docs/en/dev/design-system.md#shape-morphing-on-interaction).
 func Button(c Ctx, b ButtonSpec) ui.Element {
 	container, content, border := b.colors(c.Colors())
 	el, in, node := press(c, pressSpec{

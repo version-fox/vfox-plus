@@ -15,6 +15,9 @@
 package state_test
 
 import (
+	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -166,6 +169,31 @@ func TestTurnsProgressBarsIntoProgressAndKeepsABoundedLog(t *testing.T) {
 	defer mu.Unlock()
 	if notified == 0 {
 		t.Error("expected notifications")
+	}
+}
+
+func TestTrimsFinishedTaskLogsToTheKeptTail(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := testClient(runner)
+	queue := state.NewTaskQueue(cli, 0, 0)
+	queue.KeptLogLines = 5
+	defer queue.Dispose()
+	process := testsupport.NewFakeRunningProcess()
+	runner.OnStart("install --yes maven@3.9.16", func() *testsupport.FakeRunningProcess { return process })
+	task := queue.Enqueue(mustCommand(cli.Install("maven", "3.9.16")))
+	waitFor(t, "running", func() bool { return task.Status() == state.TaskRunning })
+	process.WriteStdout("l0\nl1\nl2\nl3\nl4\nl5\nl6\n")
+	waitFor(t, "streamed lines", func() bool { return len(task.Log()) == 7 })
+	if got := task.Log(); len(got) != 7 || got[0] != "l0" {
+		t.Fatalf("running tasks keep everything, got %q", got)
+	}
+	process.Exit(0)
+	waitFor(t, "success", func() bool { return task.Status() == state.TaskSucceeded })
+	if got := task.Log(); len(got) != 5 || got[0] != "l2" || got[4] != "l6" {
+		t.Errorf("want the newest 5 lines, got %q", got)
+	}
+	if task.DroppedLines() != 2 {
+		t.Errorf("want 2 dropped lines, got %d", task.DroppedLines())
 	}
 }
 
@@ -458,5 +486,101 @@ func TestFinalizerRunsForQueuedTasksOnDispose(t *testing.T) {
 	defer mu.Unlock()
 	if calls != 1 {
 		t.Errorf("the queued finalizer ran %d times, want once", calls)
+	}
+}
+
+func TestFailedTasksKeepTheirFullLogOnDisk(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := testClient(runner)
+	queue := state.NewTaskQueue(cli, 0, 0)
+	queue.KeptLogLines = 5
+	queue.TaskLogDir = t.TempDir()
+	defer queue.Dispose()
+	process := testsupport.NewFakeRunningProcess()
+	runner.OnStart("install --yes maven@3.9.16", func() *testsupport.FakeRunningProcess { return process })
+	task := queue.Enqueue(mustCommand(cli.Install("maven", "3.9.16")))
+	waitFor(t, "running", func() bool { return task.Status() == state.TaskRunning })
+	var out strings.Builder
+	for i := 0; i < 7; i++ {
+		fmt.Fprintf(&out, "l%d\n", i)
+	}
+	process.WriteStdout(out.String())
+	process.Exit(1)
+	waitFor(t, "failure", func() bool { return task.Status() == state.TaskFailed })
+	if got := task.Log(); len(got) != 5 || got[0] != "l2" {
+		t.Fatalf("want the newest 5 lines in memory, got %q", got)
+	}
+	if task.DroppedLines() != 2 {
+		t.Fatalf("want 2 dropped lines, got %d", task.DroppedLines())
+	}
+	path, ok := task.LogFile()
+	if !ok {
+		t.Fatal("want the full log kept for a failed task")
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 7; i++ {
+		if !strings.Contains(string(content), fmt.Sprintf("l%d\n", i)) {
+			t.Fatalf("the full log misses l%d:\n%s", i, content)
+		}
+	}
+}
+
+func TestSuccessfulTasksDeleteTheirSpilledLog(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := testClient(runner)
+	queue := state.NewTaskQueue(cli, 0, 0)
+	dir := t.TempDir()
+	queue.TaskLogDir = dir
+	defer queue.Dispose()
+	process := testsupport.NewFakeRunningProcess()
+	runner.OnStart("install --yes maven@3.9.16", func() *testsupport.FakeRunningProcess { return process })
+	task := queue.Enqueue(mustCommand(cli.Install("maven", "3.9.16")))
+	waitFor(t, "running", func() bool { return task.Status() == state.TaskRunning })
+	process.WriteStdout("ok\n")
+	process.Exit(0)
+	waitFor(t, "success", func() bool { return task.Status() == state.TaskSucceeded })
+	if _, ok := task.LogFile(); ok {
+		t.Error("successful tasks keep no log file")
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("want the log deleted, got %v", entries)
+	}
+}
+
+func TestFailedTaskLogsArePrunedToTheNewest(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := testClient(runner)
+	queue := state.NewTaskQueue(cli, 0, 0)
+	dir := t.TempDir()
+	queue.TaskLogDir = dir
+	queue.KeptLogLines = 5
+	defer queue.Dispose()
+	for i := 0; i < 25; i++ {
+		process := testsupport.NewFakeRunningProcess()
+		version := fmt.Sprintf("9.%d", i)
+		runner.OnStart("install --yes maven@"+version, func() *testsupport.FakeRunningProcess { return process })
+		task := queue.Enqueue(mustCommand(cli.Install("maven", version)))
+		waitFor(t, "running", func() bool { return task.Status() == state.TaskRunning })
+		process.WriteStdout("boom\n")
+		process.Exit(1)
+		waitFor(t, "failure", func() bool { return task.Status() == state.TaskFailed })
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) > 20 {
+		names := make([]string, 0, len(entries))
+		for _, entry := range entries {
+			names = append(names, entry.Name())
+		}
+		t.Errorf("want at most 20 log files, got %d: %v", len(entries), names)
 	}
 }

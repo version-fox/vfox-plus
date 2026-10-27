@@ -32,7 +32,7 @@ func IsRemotePluginSource(source string) bool {
 // vfox (still in 1.0.13) renames a local `.lua` plugin into its temporary
 // directory, which deletes the user's file and fails when the file is on
 // another filesystem; local `.zip` archives and URLs are only read. See
-// docs/vfox-cli-contract.md.
+// docs/en/dev/vfox-cli-contract.md.
 func VfoxMovesPluginSource(source string) bool {
 	return !IsRemotePluginSource(source) && strings.HasSuffix(strings.ToLower(source), ".lua")
 }

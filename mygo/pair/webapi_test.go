@@ -46,6 +46,7 @@ func testModel(t *testing.T, runner *testsupport.FakeProcessRunner) *state.AppMo
 	})
 	t.Cleanup(model.Dispose)
 	model.Start()
+	model.Vfox.EnsureChecked()
 	deadline := time.Now().Add(5 * time.Second)
 	for !model.Installed.HasValue() {
 		if time.Now().After(deadline) {
@@ -336,6 +337,50 @@ func waitTaskStatus(t *testing.T, server *pair.Server, session, body, want strin
 			t.Fatalf("got %d: %s", status, content)
 		}
 		time.Sleep(2 * time.Millisecond)
+	}
+}
+
+func TestWebTaskLog(t *testing.T) {
+	runner := testsupport.FixtureRunner()
+	runner.On("install --yes maven@3.9.16", testsupport.FixtureOutput("install-failure", 1))
+	model := testModel(t, runner)
+	model.Tasks.TaskLogDir = t.TempDir()
+	server := webServer(t, model)
+	session := webSession(t, server)
+	// A failed install keeps its full log on disk, beyond the newest lines
+	// the task list shows.
+	status, body := webPost(t, server, session, "/api/tasks", `{"operation":"install","sdk":"maven","version":"3.9.16"}`, "")
+	if status != http.StatusCreated {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	waitTaskStatus(t, server, session, body, `"status":"failed"`)
+	var created struct {
+		ID int `json:"id"`
+	}
+	decodeJSON(t, body, &created)
+	status, body = webGet(t, server.BaseURL()+"/api/tasks/"+strconv.Itoa(created.ID), session)
+	if status != http.StatusOK || !strings.Contains(body, `"hasFullLog":true`) {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	status, body = webGet(t, server.BaseURL()+"/api/tasks/"+strconv.Itoa(created.ID)+"/log", session)
+	if status != http.StatusOK || !strings.Contains(body, "mark installation") {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	// A task without a retained log answers 404, like an unknown task.
+	status, body = webPost(t, server, session, "/api/tasks", `{"operation":"install","sdk":"go","version":"1"}`, "")
+	if status != http.StatusCreated {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	waitTaskStatus(t, server, session, body, `"status":"succeeded"`)
+	decodeJSON(t, body, &created)
+	if status, _ := webGet(t, server.BaseURL()+"/api/tasks/"+strconv.Itoa(created.ID)+"/log", session); status != http.StatusNotFound {
+		t.Fatalf("got %d", status)
+	}
+	if status, _ := webGet(t, server.BaseURL()+"/api/tasks/9999/log", session); status != http.StatusNotFound {
+		t.Fatalf("got %d", status)
+	}
+	if status, _ := webGetAuth(t, server.BaseURL()+"/api/tasks/1/log", ""); status != http.StatusUnauthorized {
+		t.Fatalf("got %d", status)
 	}
 }
 

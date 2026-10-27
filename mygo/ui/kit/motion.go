@@ -23,7 +23,7 @@ import (
 )
 
 // The Material 3 Expressive motion system: springs instead of durations and
-// curves (docs/design-system.md#motion). Spatial springs move, resize and
+// curves (docs/en/dev/design-system.md#motion). Spatial springs move, resize and
 // reshape and may overshoot; effects springs change colour and opacity and
 // never do. All springs have unit mass.
 

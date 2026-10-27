@@ -14,5 +14,5 @@
 
 // Package settings holds the preferences of the application itself (not of
 // vfox) and their file. The keys are part of the specification in
-// docs/architecture.md#settings.
+// docs/en/dev/architecture.md#settings.
 package settings

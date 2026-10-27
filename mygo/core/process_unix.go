@@ -22,7 +22,7 @@ import (
 )
 
 // killProcess asks the process to terminate with SIGTERM, so that vfox can
-// clean up interrupted installs (see docs/vfox-cli-contract.md#cancelling).
+// clean up interrupted installs (see docs/en/dev/vfox-cli-contract.md#cancelling).
 func killProcess(cmd *exec.Cmd) {
 	if cmd.Process != nil {
 		_ = cmd.Process.Signal(syscall.SIGTERM)

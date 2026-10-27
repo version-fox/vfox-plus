@@ -91,10 +91,13 @@ func LocalSnapshot() func() Snapshot {
 func NewLocalModel() *state.AppModel {
 	_, environment := localLaunchConfig()
 	home, _ := os.UserHomeDir()
+	taskLogDir, _ := core.UserCacheSubdir("vfox-plus", "tasks")
 	model := state.NewAppModel(state.AppModelOptions{
 		Runner:        core.OsProcessRunner{},
 		SettingsStore: settings.JSONFileSettingsStore{Path: settings.SettingsPath(environment, home)},
 		Environment:   environment,
+		TaskLockPath:  filepath.Join(LocalSettingsDir(), "tasks.lock"),
+		TaskLogDir:    taskLogDir,
 	})
 	model.Start()
 	return model

@@ -28,6 +28,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/iconfont"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/installpkgs"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measure"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureserve"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/renamefont"
@@ -46,6 +47,7 @@ func init() {
 	commands["prepare"] = prepare.Run
 	commands["coverage"] = coverage.Run
 	commands["measure"] = measure.Run
+	commands["measure-serve"] = measureserve.Run
 	commands["screenshots"] = screenshots.Run
 	commands["smoke-test"] = smoketest.Run
 	commands["e2e-run"] = e2erun.Run

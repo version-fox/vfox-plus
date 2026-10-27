@@ -25,7 +25,7 @@ import (
 // Preferences of the application itself (not of vfox).
 //
 // The JSON keys are part of the specification in
-// docs/architecture.md#settings.
+// docs/en/dev/architecture.md#settings.
 
 // ThemePreference is the light or dark appearance; System follows the desktop.
 type ThemePreference string
@@ -81,6 +81,9 @@ type AppSettings struct {
 	ExtraEnvironment map[string]string
 	// Whether the navigation rail shows labels next to the icons.
 	RailExpanded bool
+	// Whether this machine may be driven remotely: the desktop serves a
+	// pairing server on loopback while it runs. Off by default.
+	RemoteAccess bool
 	// Keys of the settings file that this version does not know, kept as
 	// they are so that settings written by a newer version survive.
 	Unknown map[string]interface{}
@@ -101,6 +104,7 @@ func DefaultSettings() AppSettings {
 var knownKeys = map[string]bool{
 	"theme": true, "useSystemColor": true, "seedColor": true, "language": true,
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
+	"remoteAccess": true,
 }
 
 // Clone returns a copy that shares no map with s, so that it can be modified.
@@ -152,6 +156,9 @@ func SettingsFromJSON(data interface{}) AppSettings {
 	if expanded, ok := object["railExpanded"].(bool); ok && expanded {
 		settings.RailExpanded = true
 	}
+	if remote, ok := object["remoteAccess"].(bool); ok {
+		settings.RemoteAccess = remote
+	}
 	for key, value := range object {
 		if !knownKeys[key] {
 			settings.Unknown[key] = value
@@ -184,6 +191,7 @@ func settingsJSON(settings AppSettings) string {
 	}
 	fmt.Fprintf(&out, ",%q:%s", "extraEnvironment", environment)
 	fmt.Fprintf(&out, ",%q:%v", "railExpanded", settings.RailExpanded)
+	fmt.Fprintf(&out, ",%q:%v", "remoteAccess", settings.RemoteAccess)
 	for _, key := range sortedKeys(settings.Unknown) {
 		quoted, err := json.Marshal(settings.Unknown[key])
 		if err != nil {
@@ -218,6 +226,7 @@ func (s AppSettings) Equal(other AppSettings) bool {
 	if s.Theme != other.Theme || s.UseSystemColor != other.UseSystemColor ||
 		s.SeedColor != other.SeedColor || s.Language != other.Language ||
 		s.VfoxExecutable != other.VfoxExecutable || s.RailExpanded != other.RailExpanded ||
+		s.RemoteAccess != other.RemoteAccess ||
 		len(s.ExtraEnvironment) != len(other.ExtraEnvironment) {
 		return false
 	}

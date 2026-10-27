@@ -199,6 +199,7 @@ func (f *FakeAPI) addRun(implementation string, options runOptions) int {
 
 type artifactOptions struct {
 	runID      int
+	name       string
 	branch     string
 	sha        string
 	created    string
@@ -252,13 +253,22 @@ func (f *FakeAPI) addArtifact(implementation string, files map[string]string, op
 	}
 	f.artifacts = append(f.artifacts, map[string]any{
 		"id":            artifactID,
-		"name":          "memory-" + implementation,
+		"name":          firstNonEmpty(options.name, "memory-"+implementation),
 		"size_in_bytes": size,
 		"expired":       options.expired,
 		"created_at":    options.created,
 		"workflow_run":  workflowRun,
 	})
 	return artifactID
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 // API implementation.
@@ -534,7 +544,7 @@ func TestReadTechnologies(t *testing.T) {
 		}
 	})
 	t.Run("reads the page of this repository", func(t *testing.T) {
-		content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "memory.md"))
+		content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "en", "dev", "memory.md"))
 		if err != nil {
 			t.Fatal(err)
 		}

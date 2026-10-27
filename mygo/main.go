@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
@@ -38,12 +39,15 @@ func main() {
 			os.Exit(pair.Main(os.Args[2:]))
 		case "serve":
 			os.Exit(pair.ServeMain(os.Args[2:]))
+		case "service":
+			os.Exit(pair.ServiceMain(os.Args[2:]))
 		case "help", "--help", "-h":
-			fmt.Println("Usage: vfox-plus [pair|serve]")
+			fmt.Println("Usage: vfox-plus [pair|serve|service]")
 			fmt.Println()
 			fmt.Println("  (no arguments)  Start the desktop application.")
 			fmt.Println("  pair            Pair a browser with this machine over loopback.")
 			fmt.Println("  serve           Keep the pairing server up for containers and remote instances.")
+			fmt.Println("  service         Manage the shared background server (start, stop, status, set).")
 			return
 		}
 	}
@@ -54,14 +58,34 @@ func main() {
 		}
 	}
 	home, _ := os.UserHomeDir()
+	settingsDir := filepath.Dir(settings.SettingsPath(environment, home))
+	settingsPath := settings.SettingsPath(environment, home)
+	taskLogDir, _ := core.UserCacheSubdir("vfox-plus", "tasks")
 	model := state.NewAppModel(state.AppModelOptions{
 		Runner:        core.OsProcessRunner{},
-		SettingsStore: settings.JSONFileSettingsStore{Path: settings.SettingsPath(environment, home)},
+		SettingsStore: settings.JSONFileSettingsStore{Path: settingsPath},
 		Environment:   environment,
+		TaskLockPath:  filepath.Join(settingsDir, "tasks.lock"),
+		TaskLogDir:    taskLogDir,
 	})
 	application, err := ui.New(ui.Options{Model: model, Environment: environment})
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Remote access is off by default: the desktop embeds its loopback server
+	// only when the user switched it on in Settings. The switch takes effect
+	// on the next start, once the stored settings are loaded here. A daemon
+	// or an earlier server that is still live keeps serving, and the desktop
+	// then only serves its own window.
+	model.Settings.Load()
+	cleanupEmbedded := func() {}
+	if model.Settings.Settings().RemoteAccess {
+		var err error
+		cleanupEmbedded, err = pair.ServeEmbedded(model, settingsDir)
+		if err != nil {
+			log.Printf("embedded server: %v", err)
+		}
+	}
+	defer cleanupEmbedded()
 	application.Run()
 }

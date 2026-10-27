@@ -36,7 +36,7 @@ const PluginInfoTemplate = `{{.Name}}{{"\x1f"}}{{.Version}}{{"\x1f"}}{{.Homepage
 // Parsers for the human-oriented output of the vfox CLI.
 //
 // vfox has no machine-readable output mode for most commands, so every format
-// handled here is documented in docs/vfox-cli-contract.md and covered by the
+// handled here is documented in docs/en/dev/vfox-cli-contract.md and covered by the
 // captured outputs in shared/fixtures/. All parsers are pure functions: they
 // receive the decoded standard output of a command and never fail on
 // unexpected lines, which are skipped instead.

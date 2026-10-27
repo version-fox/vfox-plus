@@ -97,7 +97,7 @@ func IsValidPluginName(name string) bool {
 // that the caller can queue them, stream their output and retry them.
 //
 // Every command line built here is documented in
-// docs/vfox-cli-contract.md. A Client is safe for use from several
+// docs/en/dev/vfox-cli-contract.md. A Client is safe for use from several
 // goroutines.
 type Client struct {
 	runner core.ProcessRunner

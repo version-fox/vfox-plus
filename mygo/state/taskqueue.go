@@ -17,6 +17,10 @@ package state
 import (
 	"container/list"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +57,18 @@ const (
 	summaryLines = 200
 	// defaultMaxLogLines is how many log lines a task keeps by default.
 	defaultMaxLogLines = 2000
+	// defaultKeptLogLines is how many log lines a finished task keeps by
+	// default. The rest is counted as dropped: finished tasks dominate the
+	// queue, so only the tail that diagnoses failures stays in memory.
+	defaultKeptLogLines = 500
+	// failedLogFileMaxBytes caps one spilled task log at 4 MiB: vfox commands
+	// are finite, so anything beyond that is a runaway plugin, and the disk
+	// must not fill up while the user decides to cancel it.
+	failedLogFileMaxBytes = 4 << 20
+	// maxKeptLogFiles caps how many failed task logs the log directory keeps.
+	// Filenames start with the creation time, so pruning the oldest keeps the
+	// newest, across restarts too.
+	maxKeptLogFiles = 20
 	// defaultMaxFinishedTasks is how many finished tasks the queue keeps by
 	// default.
 	defaultMaxFinishedTasks = 50
@@ -74,6 +90,12 @@ type VfoxTask struct {
 	// CreatedAt is when the task was queued.
 	CreatedAt    time.Time
 	maxLogLines  int
+	keptLogLines int
+	logDir       string
+	logFile      *os.File
+	logPath      string
+	logKept      bool
+	logBytes     int64
 	mu           sync.Mutex
 	lines        []string
 	stdoutLines  []string
@@ -99,13 +121,16 @@ type VfoxTask struct {
 	finalizer func()
 }
 
-func newTask(id int, command vfox.VfoxCommand, maxLogLines int) *VfoxTask {
+func newTask(id int, command vfox.VfoxCommand, maxLogLines, keptLogLines int, logDir string) *VfoxTask {
 	if maxLogLines <= 0 {
 		maxLogLines = defaultMaxLogLines
 	}
+	if keptLogLines <= 0 {
+		keptLogLines = defaultKeptLogLines
+	}
 	return &VfoxTask{
 		ID: id, Command: command, CreatedAt: time.Now(),
-		maxLogLines: maxLogLines, status: TaskQueued,
+		maxLogLines: maxLogLines, keptLogLines: keptLogLines, logDir: logDir, status: TaskQueued,
 	}
 }
 
@@ -194,6 +219,7 @@ func (t *VfoxTask) append(line string, isError bool) {
 			t.dropped++
 		}
 		t.lines = appendTail(t.lines, line, t.maxLogLines)
+		t.spillLocked(line)
 	}
 	t.mu.Unlock()
 	t.NotifyListeners()
@@ -281,6 +307,107 @@ func (t *VfoxTask) settle(code int) {
 		}
 		t.errorMessage, t.hasError = message, true
 	}
+	t.trimKeptLocked()
+	t.finishLogFile(t.status == TaskFailed)
+}
+
+// trimKeptLocked drops all but the newest keptLogLines lines of a finished
+// task. The caller holds t.mu.
+func (t *VfoxTask) trimKeptLocked() {
+	if kept := t.keptLogLines; kept > 0 && len(t.lines) > kept {
+		t.dropped += len(t.lines) - kept
+		t.lines = append([]string(nil), t.lines[len(t.lines)-kept:]...)
+	}
+}
+
+// spillLocked appends line to the task's log file, opening it on first use.
+// A task log is capped: anything beyond the cap stays out of the file, like
+// older lines stay out of memory. The caller holds t.mu.
+func (t *VfoxTask) spillLocked(line string) {
+	if t.logDir == "" || t.logBytes >= failedLogFileMaxBytes {
+		return
+	}
+	if t.logFile == nil {
+		if err := os.MkdirAll(t.logDir, 0o700); err != nil {
+			t.logDir = ""
+			return
+		}
+		path := filepath.Join(t.logDir, fmt.Sprintf("%020d-%d.log", t.CreatedAt.UnixNano(), t.ID))
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+		if err != nil {
+			t.logDir = ""
+			return
+		}
+		t.logFile, t.logPath = file, path
+	}
+	if _, err := t.logFile.WriteString(line + "\n"); err != nil {
+		_ = t.logFile.Close()
+		t.logFile, t.logDir = nil, ""
+		return
+	}
+	t.logBytes += int64(len(line) + 1)
+	if t.logBytes >= failedLogFileMaxBytes {
+		_ = t.logFile.Close()
+		t.logFile = nil
+	}
+}
+
+// finishLogFile closes the spilled log: failed tasks keep theirs, pruned to
+// the newest files, while successful and cancelled tasks delete theirs. The
+// caller holds t.mu.
+func (t *VfoxTask) finishLogFile(keep bool) {
+	if t.logFile != nil {
+		_ = t.logFile.Close()
+		t.logFile = nil
+	}
+	if t.logPath == "" {
+		return
+	}
+	if keep {
+		t.logKept = true
+		pruneFailedLogs(filepath.Dir(t.logPath))
+		return
+	}
+	_ = os.Remove(t.logPath)
+	t.logPath, t.logKept = "", false
+}
+
+// LogFile returns the retained full log of a failed task, if any.
+func (t *VfoxTask) LogFile() (string, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.logPath, t.logKept && t.logPath != ""
+}
+
+// pruneFailedLogs keeps the newest failed task logs in dir: filenames start
+// with the zero-padded creation time, so lexical order is chronological, and
+// the bound holds across restarts and crashes, whose files simply join the
+// pruning. Failures to read or delete are ignored: the next kept log prunes
+// again.
+func pruneFailedLogs(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	var logs []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".log") {
+			logs = append(logs, entry.Name())
+		}
+	}
+	sort.Strings(logs)
+	for _, name := range logs[:max(0, len(logs)-maxKeptLogFiles)] {
+		_ = os.Remove(filepath.Join(dir, name))
+	}
+}
+
+// forgetLogFile deletes a retained log file. Only finished tasks are
+// forgotten, so no handle is open. The caller holds t.mu.
+func (t *VfoxTask) forgetLogFile() {
+	if t.logPath != "" {
+		_ = os.Remove(t.logPath)
+		t.logPath, t.logKept = "", false
+	}
 }
 
 // fail moves the task to failed with message, unless it was cancelled.
@@ -293,6 +420,8 @@ func (t *VfoxTask) fail(message string) {
 		t.status = TaskFailed
 		t.errorMessage, t.hasError = message, true
 	}
+	t.trimKeptLocked()
+	t.finishLogFile(t.status == TaskFailed)
 }
 
 // runFinalizer releases the resource the task owns, if any. It runs at most
@@ -350,14 +479,29 @@ func (o *taskOutput) close() {
 // vfox does not lock its data directory, so concurrent installs, uses and
 // removals could corrupt `.vfox.toml` or the symlinks. The queue therefore
 // runs at most one command at a time, in the order they were enqueued.
+// LockPath, when set, extends that guarantee across processes (the desktop
+// application, `vfox-plus serve` and the background service may run side by
+// side): every task holds a cross-process lock on the file while its process
+// runs. An empty path disables it, as in tests.
 type TaskQueue struct {
 	Notifier
 	cli *vfox.Client
 	// MaxLogLines caps how many log lines each task keeps.
 	MaxLogLines int
+	// KeptLogLines caps how many log lines each finished task keeps. Older
+	// lines are counted as dropped.
+	KeptLogLines int
+	// TaskLogDir spills the full log of every task to per-task files while it
+	// runs. Successful and cancelled tasks delete theirs when they finish;
+	// failed tasks keep theirs, pruned to the newest files, so that a failure
+	// can still be diagnosed in full after its in-memory tail was trimmed.
+	// Empty disables spilling.
+	TaskLogDir string
 	// MaxFinishedTasks caps how many finished tasks are kept before the
 	// oldest are forgotten.
 	MaxFinishedTasks int
+	// LockPath is the cross-process lock held while a task runs.
+	LockPath string
 
 	mu       sync.Mutex
 	all      *list.List // of *VfoxTask, in enqueue order
@@ -367,7 +511,8 @@ type TaskQueue struct {
 }
 
 // NewTaskQueue creates a queue on cli. A limit of zero takes the default: 2000
-// log lines per task and 50 finished tasks.
+// log lines per running task, 500 lines kept per finished task, and 50
+// finished tasks.
 func NewTaskQueue(cli *vfox.Client, maxLogLines, maxFinishedTasks int) *TaskQueue {
 	if maxLogLines <= 0 {
 		maxLogLines = defaultMaxLogLines
@@ -447,7 +592,7 @@ func (q *TaskQueue) EnqueueWithFinalizer(command vfox.VfoxCommand, finalizer fun
 			return task
 		}
 	}
-	task := newTask(q.nextID, command, q.MaxLogLines)
+	task := newTask(q.nextID, command, q.MaxLogLines, q.KeptLogLines, q.TaskLogDir)
 	if finalizer != nil {
 		task.finalizer = finalizer
 	}
@@ -563,6 +708,14 @@ func (q *TaskQueue) run(task *VfoxTask) {
 			task.fail(errorString(recovered))
 		}
 	}()
+	if q.LockPath != "" {
+		lock := core.NewProcessLock(q.LockPath)
+		if err := lock.Lock(); err != nil {
+			task.fail(errorMessage(err))
+			return
+		}
+		defer lock.Unlock()
+	}
 	output := &taskOutput{task: task}
 	process, err := q.cli.Start(task.Command, output)
 	if err != nil {
@@ -597,6 +750,7 @@ func (q *TaskQueue) trimFinishedLocked() {
 		}
 	}
 	for _, element := range finished[:max(0, len(finished)-q.MaxFinishedTasks)] {
+		element.Value.(*VfoxTask).forgetLogFile()
 		q.all.Remove(element)
 	}
 }

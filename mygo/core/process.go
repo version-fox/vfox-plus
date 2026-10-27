@@ -64,7 +64,7 @@ type RunningProcess interface {
 //
 // The application never spawns processes directly, which keeps the vfox
 // client testable with a fake runner and leaves room for a remote
-// implementation (see `docs/architecture.md`). Standard input is closed
+// implementation (see `docs/en/dev/architecture.md`). Standard input is closed
 // immediately: nothing is ever written to the child, and an open stdin would
 // make an unexpected interactive prompt wait forever.
 type ProcessRunner interface {
@@ -192,7 +192,7 @@ func (p *osRunningProcess) Wait() int {
 //
 // On Unix the process is asked to terminate with SIGTERM, so that vfox can
 // clean up; on Windows it is killed, which vfox treats like an interrupted
-// install (see docs/vfox-cli-contract.md#cancelling).
+// install (see docs/en/dev/vfox-cli-contract.md#cancelling).
 func (p *osRunningProcess) Kill() {
 	p.killOnce.Do(func() {
 		killProcess(p.cmd)

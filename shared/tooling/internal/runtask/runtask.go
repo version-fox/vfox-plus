@@ -44,7 +44,7 @@ const usage = "Usage: runtask <task>"
 // Runtime dependencies of the release binary on Ubuntu 26.04; the
 // installation test checks that they are complete. The executable is linked
 // to the C library alone: mygo loads GTK 3, which brings GLib, Pango, Cairo
-// and the rest, when it starts (see docs/architecture.md#dependencies).
+// and the rest, when it starts (see docs/en/dev/architecture.md#dependencies).
 // Fonts: Ubuntu Sans, or any other sans-serif font of the desktop.
 const Depends = "libc6, libgtk-3-0t64, libglib2.0-0t64, libpango-1.0-0, libpangoft2-1.0-0, libcairo2, libgdk-pixbuf-2.0-0, fontconfig, fonts-ubuntu | fonts-noto-core"
 

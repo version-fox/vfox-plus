@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The memory of the implementation in a pull request. The workflow of the
-# mygo implementation measures the application and uploads the result as the
-# artifact memory-mygo. When it has ended for the latest commit of a pull
-# request, this workflow writes one comment on it: the memory with the
-# difference from the latest numbers of main. Later runs replace that comment
-# instead of adding another one
-# (vfxtool memory-report; docs/memory.md#memory-in-pull-requests).
+# The memory of the implementation in a pull request. The workflows of mygo
+# and android measure the application and upload the results as the artifacts
+# memory-mygo, memory-serve, memory-web and memory-android. When the runs have
+# ended for the latest commit of a pull request, this workflow writes one
+# comment on it: the memory with the difference from the latest numbers of
+# main. Later runs replace that comment instead of adding another one
+# (vfxtool memory-report; docs/en/dev/memory.md#memory-in-pull-requests).
 #
 # It runs after the workflow of the pull request, in the context of the default
 # branch, so that it can write to pull requests of forks, which a pull_request
@@ -32,9 +32,10 @@ name: Memory
 
 on:
   workflow_run:
-    # The workflow that measures the implementation, by name. Keep this in sync
-    # with MEMORY_IMPLEMENTATIONS below, which has its file name.
-    workflows: [mygo]
+    # The workflows that measure the implementation, by name. Keep this in sync
+    # with MEMORY_IMPLEMENTATIONS below, which has its file name, and with the
+    # android workflow, whose run carries the APK section of the report.
+    workflows: [mygo, android]
     types: [completed]
   workflow_dispatch:
     inputs:

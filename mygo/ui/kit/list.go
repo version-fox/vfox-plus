@@ -46,7 +46,7 @@ func PositionOf(index, count int) Position {
 }
 
 // ListItemSpec describes an item of a segmented list
-// (docs/design-system.md#shape): 20 dp outer and 4 dp inner corners, the inner
+// (docs/en/dev/design-system.md#shape): 20 dp outer and 4 dp inner corners, the inner
 // ones growing to 12 dp while the item is hovered, pressed or selected.
 type ListItemSpec struct {
 	// ID identifies the item among its siblings between builds.

@@ -42,6 +42,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		VfoxExecutable:   "/opt/vfox",
 		ExtraEnvironment: map[string]string{"A": "1"},
 		RailExpanded:     true,
+		RemoteAccess:     true,
 		Unknown:          map[string]interface{}{"future": true},
 	}
 	raw, err := json.Marshal(original)
@@ -59,7 +60,7 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`}
+	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"remoteAccess"`}
 	previous := -1
 	for _, key := range keys {
 		index := strings.Index(text, key)
@@ -76,11 +77,11 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 	parsed := settings.SettingsFromJSON(decode(t, `{"theme":"purple","useSystemColor":"yes",`+
 		`"seedColor":"#fff","language":42,"vfoxExecutable":"",`+
-		`"extraEnvironment":{"A":"1","B":2},"railExpanded":1,"future":true}`))
+		`"extraEnvironment":{"A":"1","B":2},"railExpanded":1,"remoteAccess":"yes","future":true}`))
 	if parsed.Theme != settings.ThemeSystem || !parsed.UseSystemColor ||
 		parsed.SeedColor != settings.DefaultSeedColor || parsed.Language != settings.LanguageSystem ||
 		parsed.VfoxExecutable != "" || !reflect.DeepEqual(parsed.ExtraEnvironment, map[string]string{"A": "1"}) ||
-		parsed.RailExpanded {
+		parsed.RailExpanded || parsed.RemoteAccess {
 		t.Errorf("got %#v", parsed)
 	}
 	raw, err := json.Marshal(parsed)
@@ -103,6 +104,9 @@ func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 
 func TestSettingsCompareByValue(t *testing.T) {
 	base := settings.DefaultSettings()
+	if base.RemoteAccess {
+		t.Error("remote access is off by default")
+	}
 	other := base
 	other.ExtraEnvironment = map[string]string{}
 	if !base.Equal(other) {

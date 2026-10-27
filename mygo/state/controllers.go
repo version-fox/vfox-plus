@@ -106,6 +106,8 @@ type VfoxController struct {
 	version       string
 	hasVersion    bool
 	err           error
+	// checked reports whether the current configuration was probed.
+	checked bool
 }
 
 // NewVfoxController creates a controller that configures cli.
@@ -152,6 +154,15 @@ func (c *VfoxController) Error() error {
 // Apply points the CLI at the executable and environment from appSettings
 // and checks the result. It blocks while vfox is probed.
 func (c *VfoxController) Apply(appSettings settings.AppSettings) {
+	c.Configure(appSettings)
+	c.Check()
+}
+
+// Configure points the CLI at the executable and environment from
+// appSettings, without probing vfox. The next EnsureChecked probes again.
+// It does not notify: the settings change itself already rebuilds the views
+// that show the executable, and Check notifies for the probe that follows.
+func (c *VfoxController) Configure(appSettings settings.AppSettings) {
 	custom := appSettings.VfoxExecutable != ""
 	executable := appSettings.VfoxExecutable
 	if !custom {
@@ -168,7 +179,22 @@ func (c *VfoxController) Apply(appSettings settings.AppSettings) {
 	c.mu.Lock()
 	c.custom = custom
 	c.executable, c.hasExecutable = executable, executable != ""
+	c.checked = false
 	c.mu.Unlock()
+}
+
+// EnsureChecked probes vfox unless this configuration was already checked.
+// It blocks while vfox is probed, like Check: user interfaces call it off
+// their drawing goroutine. The application starts without probing vfox at
+// all; the first page that needs it triggers the probe, and every settings
+// change that affects vfox re-probes through Apply at once.
+func (c *VfoxController) EnsureChecked() {
+	c.mu.Lock()
+	checked := c.checked
+	c.mu.Unlock()
+	if checked {
+		return
+	}
 	c.Check()
 }
 
@@ -177,6 +203,7 @@ func (c *VfoxController) Apply(appSettings settings.AppSettings) {
 func (c *VfoxController) Check() {
 	c.mu.Lock()
 	c.availability = VfoxChecking
+	c.checked = true
 	c.mu.Unlock()
 	c.NotifyListeners()
 	version, err := c.cli.Version()

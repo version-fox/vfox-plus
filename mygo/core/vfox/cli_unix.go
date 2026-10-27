@@ -18,7 +18,7 @@ package vfox
 
 // neutralDirectory is the working directory for commands that are not tied to
 // a project: the filesystem root, which cannot contain a project
-// configuration (see docs/vfox-cli-contract.md#working-directory).
+// configuration (see docs/en/dev/vfox-cli-contract.md#working-directory).
 func neutralDirectory() string {
 	return "/"
 }
