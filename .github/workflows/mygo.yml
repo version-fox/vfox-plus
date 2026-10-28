@@ -262,11 +262,12 @@ jobs:
           cat "${{ runner.temp }}/memory-serve/memory.txt"
       - name: Measure the web client heap
         run: |
+          mkdir -p "${{ runner.temp }}/memory-web"
           "$RUNNER_TEMP/vfox-plus-serve" serve --bind 127.0.0.1 --port 0 >"$RUNNER_TEMP/serve.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/serve.pid"
           trap 'kill "$(cat "$RUNNER_TEMP/serve.pid")" 2>/dev/null' EXIT
           LINK=""
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' "$RUNNER_TEMP/serve.log" | head -1)"
             [ -n "$LINK" ] && break
             sleep 1

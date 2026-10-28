@@ -67,7 +67,7 @@ func webGetAuth(t *testing.T, url, auth string) (int, string) {
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
 // serviceServer starts a server with an admin token for the service tests.
-func serviceServer(t *testing.T) (*pair.Server, string) {
+func serviceServer(t *testing.T) *pair.Server {
 	t.Helper()
 	server, err := pair.NewServer(pair.Options{
 		Snapshot:   func() pair.Snapshot { return pair.Snapshot{} },
@@ -77,7 +77,7 @@ func serviceServer(t *testing.T) (*pair.Server, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = server.Close() })
-	return server, "test-admin-token"
+	return server
 }
 
 func TestServiceFileRoundtrip(t *testing.T) {
@@ -137,7 +137,7 @@ func TestDiscoverService(t *testing.T) {
 		t.Fatal("want the stale file removed")
 	}
 	// A live server is returned.
-	server, _ := serviceServer(t)
+	server := serviceServer(t)
 	live := &pair.ServiceInfo{PID: os.Getpid(), Port: serverPort(t, server), AdminToken: "test-admin-token", Owner: pair.ServiceOwnerDesktop}
 	if err := pair.WriteServiceInfo(pair.ServiceFilePath(dir), live); err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestDiscoverService(t *testing.T) {
 }
 
 func TestMintToken(t *testing.T) {
-	server, _ := serviceServer(t)
+	server := serviceServer(t)
 	info := &pair.ServiceInfo{Port: serverPort(t, server), AdminToken: "test-admin-token"}
 	url, err := pair.MintToken(info)
 	if err != nil {
@@ -169,7 +169,7 @@ func TestMintToken(t *testing.T) {
 }
 
 func TestServeTokenAdmin(t *testing.T) {
-	server, _ := serviceServer(t)
+	server := serviceServer(t)
 	// The admin bearer mints without a session.
 	status, body := webGetAuth(t, server.BaseURL()+"/api/token", "Bearer test-admin-token")
 	if status != http.StatusOK {
@@ -242,7 +242,7 @@ func TestServeEmbedded(t *testing.T) {
 }
 
 func TestServeEmbeddedSkipsLive(t *testing.T) {
-	server, _ := serviceServer(t)
+	server := serviceServer(t)
 	dir := t.TempDir()
 	live := &pair.ServiceInfo{PID: os.Getpid(), Port: serverPort(t, server), AdminToken: "test-admin-token", Owner: pair.ServiceOwnerService}
 	if err := pair.WriteServiceInfo(pair.ServiceFilePath(dir), live); err != nil {

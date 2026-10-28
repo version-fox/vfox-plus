@@ -19,7 +19,7 @@
 // in the live event stream. No dependencies beyond Node 22 and a Chrome that
 // speaks CDP; the browser binary is auto-detected (CHROME_BIN wins).
 //
-// Usage: node check.cjs --server http://127.0.0.1:PORT --pairing <pairing-url> --output memory.txt [--settle SECONDS] [--screenshot shot.png] [--chrome PATH] [--timeout SECONDS]
+// Usage: node check.cjs --server http://127.0.0.1:PORT --pairing <pairing-url> --output memory.txt [--settle SECONDS] [--screenshot shot.png] [--lang en|zh] [--window WIDTH,HEIGHT] [--chrome PATH] [--timeout SECONDS]
 //
 // The caller starts the server and passes its pairing link; this script only
 // drives one throwaway browser profile. Desktop and server memory are not
@@ -48,9 +48,11 @@ const output = arg('output', '');
 const screenshot = arg('screenshot', '');
 const shotLang = arg('lang', '');
 const settleSeconds = Number(arg('settle', '5'));
+const windowSize = arg('window', '1280,800');
 const timeoutSeconds = Number(arg('timeout', '180'));
 if (!server || !pairing || !output) fail('usage: node check.cjs --server URL --pairing URL --output FILE [--settle SECONDS] [--screenshot FILE] [--chrome PATH] [--timeout SECONDS]');
 if (!Number.isFinite(settleSeconds) || settleSeconds < 0) fail('bad --settle');
+if (!/^[0-9]{2,5},[0-9]{2,5}$/.test(windowSize)) fail('bad --window (want WIDTH,HEIGHT)');
 if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) fail('bad --timeout');
 
 const deadline = Date.now() + timeoutSeconds * 1000;
@@ -136,7 +138,7 @@ function median(values) {
     '--mute-audio',
     '--hide-scrollbars',
     '--no-proxy-server',
-    '--window-size=1280,800',
+    '--window-size=' + windowSize,
     '--user-data-dir=' + profile,
     '--no-sandbox',
     'about:blank',

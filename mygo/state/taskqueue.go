@@ -333,7 +333,7 @@ func (t *VfoxTask) spillLocked(line string) {
 			return
 		}
 		path := filepath.Join(t.logDir, fmt.Sprintf("%020d-%d.log", t.CreatedAt.UnixNano(), t.ID))
-		file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600) //nolint:gosec // The path is the task log in the log directory.
 		if err != nil {
 			t.logDir = ""
 			return

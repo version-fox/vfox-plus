@@ -135,11 +135,12 @@ for i in $(seq 1 30); do
 done
 node shared/tooling/webheap/check.cjs --server "${LINK%%/auth/connect/*}" \
   --pairing "$LINK" --output /tmp/shot.txt --screenshot webapp-en.png \
-  --lang en --chrome "$(which google-chrome)"
+  --lang en --window 412,915 --chrome "$(which google-chrome)"
 ```
 
 （`PATH` 首位放一个 `vfox` 可执行文件——`vfxtool` 的复制品配夹具即假
-vfox——SDK 列表才有内容；`--lang` 固定界面语言；`--chrome` 接受任何讲
+vfox——SDK 列表才有内容；`--lang` 固定界面语言；`--window 412,915` 拍文档用的
+手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；`--chrome` 接受任何讲
 CDP 的 Chrome，不传则脚本在 `PATH` 上自动找。）Android 截图
 `screenshot-android` 来自 CI：`android.yml` 的 `measure` 任务在模拟器跑
 release APK，`adb exec-out screencap -p` 截冷启动，任务上传为

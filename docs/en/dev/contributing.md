@@ -163,12 +163,14 @@ for i in $(seq 1 30); do
 done
 node shared/tooling/webheap/check.cjs --server "${LINK%%/auth/connect/*}" \
   --pairing "$LINK" --output /tmp/shot.txt --screenshot webapp-en.png \
-  --lang en --chrome "$(which google-chrome)"
+  --lang en --window 412,915 --chrome "$(which google-chrome)"
 ```
 
 (`PATH` first carries a `vfox` executable — a copy of `vfxtool` acts as the
 fake vfox with the fixtures — so that the SDK list has content; `--lang`
-pins the interface language; `--chrome` takes any Chrome that speaks CDP,
+pins the interface language; `--window 412,915` shoots the phone portrait for
+the documentation and defaults to the 1280 by 800 desktop window that CI
+measures; `--chrome` takes any Chrome that speaks CDP,
 and the script auto-detects one on `PATH` when it is left out.) The Android screenshot, `screenshot-android`,
 comes from CI instead: the `measure` job of `android.yml` runs the release
 APK on an emulator, `adb exec-out screencap -p` captures the cold start, and

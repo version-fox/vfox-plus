@@ -517,7 +517,7 @@ func TestFailedTasksKeepTheirFullLogOnDisk(t *testing.T) {
 	if !ok {
 		t.Fatal("want the full log kept for a failed task")
 	}
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) //nolint:gosec // The path comes from LogFile.
 	if err != nil {
 		t.Fatal(err)
 	}

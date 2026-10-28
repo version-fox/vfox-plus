@@ -14,7 +14,7 @@ paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
 live progress and logs, and the settings.
 
-![The paired web interface](https://iili.io/nv5pnJp.png)
+![The paired web interface](https://iili.io/nvgI6zb.png)
 
 One server owns the application state: while the desktop application runs
 with Remote access switched on in its Settings (off by default), `pair` links

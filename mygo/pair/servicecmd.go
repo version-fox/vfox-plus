@@ -84,12 +84,12 @@ func serviceStart(args []string) int {
 		return 1
 	}
 	logPath := serviceLogPath(settingsDir)
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600) //nolint:gosec // The log path is the service log in the settings directory.
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "service:", err)
 		return 1
 	}
-	command := exec.Command(executable, "serve", "--bind", DefaultBind, "--port", fmt.Sprint(port))
+	command := exec.Command(executable, "serve", "--bind", DefaultBind, "--port", fmt.Sprint(port)) //nolint:gosec // The executable is this binary; there is no shell.
 	command.Stdout = logFile
 	command.Stderr = logFile
 	detachProcess(command)
