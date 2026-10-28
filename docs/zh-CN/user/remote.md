@@ -13,7 +13,7 @@ vfox-plus pair
 已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时进度与日志的任务、
 以及设置。
 
-![配对后的 Web 界面](https://iili.io/nvgIDdP.png)
+![配对后的 Web 界面](https://iili.io/nv67G94.png)
 
 一个 server 拥有应用状态：桌面在设置里打开远端访问（默认关闭）并运行时，
 `pair` 连的就是桌面自己；否则连后台服务或回环 `serve`（有的话），都没有才

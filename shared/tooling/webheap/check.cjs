@@ -19,7 +19,7 @@
 // in the live event stream. No dependencies beyond Node 22 and a Chrome that
 // speaks CDP; the browser binary is auto-detected (CHROME_BIN wins).
 //
-// Usage: node check.cjs --server http://127.0.0.1:PORT --pairing <pairing-url> --output memory.txt [--settle SECONDS] [--screenshot shot.png] [--lang en|zh] [--window WIDTH,HEIGHT] [--chrome PATH] [--timeout SECONDS]
+// Usage: node check.cjs --server http://127.0.0.1:PORT --pairing <pairing-url> --output memory.txt [--settle SECONDS] [--screenshot shot.png] [--lang en|zh] [--window WIDTH,HEIGHT] [--tab home|sdks|plugins|tasks|settings] [--dark] [--chrome PATH] [--timeout SECONDS]
 //
 // The caller starts the server and passes its pairing link; this script only
 // drives one throwaway browser profile. Desktop and server memory are not
@@ -49,6 +49,8 @@ const screenshot = arg('screenshot', '');
 const shotLang = arg('lang', '');
 const settleSeconds = Number(arg('settle', '5'));
 const windowSize = arg('window', '1280,800');
+const shotTab = arg('tab', '');
+const shotDark = process.argv.includes('--dark');
 const timeoutSeconds = Number(arg('timeout', '180'));
 if (!server || !pairing || !output) fail('usage: node check.cjs --server URL --pairing URL --output FILE [--settle SECONDS] [--screenshot FILE] [--chrome PATH] [--timeout SECONDS]');
 if (!Number.isFinite(settleSeconds) || settleSeconds < 0) fail('bad --settle');
@@ -219,6 +221,12 @@ function median(values) {
     await tabWaitFor('(() => { const list = document.querySelector("#sdkList"); return list && list.children.length > 0 && !list.querySelector(".loader"); })()', 'the SDK list');
     await new Promise((resolve) => setTimeout(resolve, settleSeconds * 1000));
     if (screenshot) {
+      if (shotDark) await use('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+      if (shotTab) {
+        // Open a page through whichever navigation is shown (rail or bar).
+        await tabEvaluate(`[...document.querySelectorAll('[data-tab="${shotTab.replace(/[^a-z]/g, '')}"]')].find((b) => b.offsetParent)?.click()`);
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
       // A screenshot of the settled page, for the documentation; the memory
       // measurement does not need it.
       const shot = await use('Page.captureScreenshot', { format: 'png' });

@@ -143,7 +143,7 @@ vfox——SDK 列表才有内容；`--lang` 固定界面语言；`--window 412,9
 手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；`--chrome` 接受任何讲
 CDP 的 Chrome，不传则脚本在 `PATH` 上自动找。）Android 截图
 `screenshot-android` 来自 CI：`android.yml` 的 `measure` 任务在模拟器跑
-release APK，`adb exec-out screencap -p` 截冷启动，任务上传为
+release APK，`vfxtool measure-apk` 截冷启动，任务上传为
 `screenshot-android` 构件。用 `gh run download` 取回后同样上传。上传新图：
 
 ```sh

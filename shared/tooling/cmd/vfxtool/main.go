@@ -68,6 +68,7 @@ Commands:
   coverage      gate unit-test coverage (replaces mygo/tools/coverage.sh)
   measure       measure memory use (replaces shared/tools/measure.sh)
   measure-serve measure the memory use of the headless server
+  measure-apk   measure the memory use of the Android app on an emulator
   screenshots   capture page screenshots (replaces shared/tools/screenshots.sh)
   smoke-test    start a graphical application and check that it stays up
   e2e-run       run an end-to-end scenario (replaces shared/e2e/run.sh)

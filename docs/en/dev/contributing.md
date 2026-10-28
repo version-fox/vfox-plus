@@ -173,7 +173,7 @@ the documentation and defaults to the 1280 by 800 desktop window that CI
 measures; `--chrome` takes any Chrome that speaks CDP,
 and the script auto-detects one on `PATH` when it is left out.) The Android screenshot, `screenshot-android`,
 comes from CI instead: the `measure` job of `android.yml` runs the release
-APK on an emulator, `adb exec-out screencap -p` captures the cold start, and
+APK on an emulator, `vfxtool measure-apk` captures the cold start, and
 the job uploads it as the `screenshot-android` artifact. Download it with
 `gh run download` and upload it the same way. Upload a new image with
 
