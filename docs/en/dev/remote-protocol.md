@@ -87,7 +87,55 @@ within the load timeout (2 minutes).
 
 ## Tasks
 
-Task life cycle: `queued` → `running` → `succeeded` | `failed` | `cancelled`.
+Task life cycle:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+stateDiagram-v2
+    accTitle: Task life cycle
+    accDescr: A task is queued, runs, and ends as succeeded, failed or cancelled; a queued task can also be cancelled.
+    direction LR
+    [*] --> queued: POST /api/tasks
+    queued --> running: its turn
+    queued --> cancelled: cancel
+    running --> succeeded: exit code 0
+    running --> failed: cannot start, or<br/>exit code ≠ 0
+    running --> cancelled: cancel, the<br/>process is killed
+    succeeded --> [*]
+    failed --> [*]
+    cancelled --> [*]
+
+    classDef wait fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef busy fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px
+    classDef good fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px
+    classDef bad fill:#FFDAD6,stroke:#BA1A1A,color:#410002,stroke-width:1.5px
+    classDef stop fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    class queued wait
+    class running busy
+    class succeeded good
+    class failed bad
+    class cancelled stop
+```
+
 One state-changing command runs at a time; the rest queue. The queue is
 per process, and every task additionally holds a cross-process file lock
 (`tasks.lock` next to the settings) while its vfox process runs, so the

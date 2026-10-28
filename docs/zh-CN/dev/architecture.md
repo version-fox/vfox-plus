@@ -9,26 +9,56 @@ vfox-plus 是 [vfox](https://vfox.dev) 命令行工具的图形化前端。它�
 
 ## 仓库布局
 
-```text
-vfox-plus/
-├── docs/                  全部文档，先按语言、再按受众分类
-│   ├── en/user/           用户指南：安装、使用、远端与安卓（给用户看的）
-│   ├── en/dev/            开发者规约（本文档在这里）
-│   ├── zh-CN/user/        简体中文用户指南
-│   └── zh-CN/dev/        简体中文开发者规约
-├── shared/                应用使用的机器可读资源
-│   ├── i18n/              翻译目录（ARB：带 ICU 消息的 JSON）
-│   ├── icons.json         界面使用的 Material Symbols
-│   ├── fixtures/          捕获的 vfox 输出及期望解析结果
-│   ├── test-plugin/       对真实 vfox 做端到端测试的离线 vfox 插件
-│   ├── packaging/linux/   桌面入口、AppStream 元数据和图标，`vfxtool build-deb` 打包
-│   ├── packaging/windows/ MSIX 清单、徽标和 bundle 布局，`vfxtool build-msix` 为 Windows 11 打包
-│   ├── tooling/           `vfxtool`：构建、测试、打包一切的 Go 工具
-│   └── sandbox/           Docker 沙箱的共享部分
-├── mygo/                  桌面应用及其配对服务（Go）
-│   （`cmd/vfox-plus-serve` 构建无界面 headless 服务）
-├── android/               安卓远端客户端（配对服务的 WebView 套壳）
-└── .github/               CI 工作流：仓库检查、构建、内存报告和沙箱
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: 仓库布局
+    accDescr: docs 存放文档，shared 存放应用使用的资源，mygo 与 android 是应用，.github 是 CI 工作流。
+    subgraph docs["<b>docs/</b> · 全部文档，先按语言、再按受众分类"]
+        direction LR
+        d1("<b>en/user/</b><br/>用户指南：安装、使用、<br/>远端与安卓") ~~~ d2("<b>en/dev/</b><br/>开发者规约<br/>（本文档在这里）") ~~~ d3("<b>zh-CN/user/</b><br/>简体中文用户指南") ~~~ d4("<b>zh-CN/dev/</b><br/>简体中文开发者规约")
+    end
+    subgraph shared["<b>shared/</b> · 应用使用的机器可读资源"]
+        direction LR
+        s1("<b>i18n/</b><br/>翻译目录<br/>（ARB：带 ICU 消息的 JSON）") ~~~ s2("<b>icons.json</b><br/>界面使用的<br/>Material Symbols") ~~~ s3("<b>fixtures/</b><br/>捕获的 vfox 输出<br/>及期望解析结果") ~~~ s4("<b>test-plugin/</b><br/>对真实 vfox 做端到端测试的<br/>离线 vfox 插件")
+        s5("<b>packaging/linux/</b><br/>桌面入口、AppStream 元数据和图标，<br/><code>vfxtool build-deb</code> 打包") ~~~ s6("<b>packaging/windows/</b><br/>MSIX 清单、徽标和 bundle 布局，<br/>为 Windows 11 打包，<br/><code>vfxtool build-msix</code>") ~~~ s7("<b>tooling/</b><br/><code>vfxtool</code>：构建、测试、<br/>打包一切的 Go 工具") ~~~ s8("<b>sandbox/</b><br/>Docker 沙箱的共享部分")
+    end
+    subgraph code["<b>应用</b>与<b>自动化</b>"]
+        direction LR
+        m("<b>mygo/</b><br/>桌面应用及其配对服务（Go）；<br/><code>cmd/vfox-plus-serve</code> 构建<br/>无界面 headless 服务") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（配对服务的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
+    end
+    docs ~~~ shared ~~~ code
+
+    classDef docs fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px,rx:12,ry:12
+    classDef shared fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef app fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px,rx:12,ry:12
+    classDef ci fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    class d1,d2,d3,d4 docs
+    class s1,s2,s3,s4,s5,s6,s7,s8 shared
+    class m,a app
+    class g ci
+    style docs fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style code fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
 ```
 
 应用从 `shared/` 读取共享资源，从不复制，保证翻译或夹具只改一处。
@@ -37,19 +67,57 @@ vfox-plus/
 
 应用分三层，依赖只向下。
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│ UI         页面、组件、主题、动效、平台集成                        │
-├────────────────────────────────────────────────────────────────────┤
-│ State      可观察控制器：设置、vfox 可用性、                        │
-│            已安装 SDK、插件仓库、配置、任务队列                    │
-├────────────────────────────────────────────────────────────────────┤
-│ Core       模型、进程运行器、vfox 客户端与输出解析、                 │
-│            设置存储——无 UI 框架                                    │
-└────────────────────────────────────────────────────────────────────┘
-                                  │ 子进程
-                                  ▼
-                           vfox 命令行
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: 应用的分层
+    accDescr: UI 依赖 State，State 依赖 Core，Core 以子进程运行 vfox 命令行。
+    subgraph UI["<b>UI</b> · mygo/ui"]
+        direction LR
+        ui1(["页面"]) ~~~ ui2(["组件<br/>ui/kit"]) ~~~ ui3(["主题<br/>ui/mcu · ui/shapes"]) ~~~ ui4(["动效"]) ~~~ ui5(["平台集成"])
+    end
+    subgraph State["<b>State</b> · mygo/state"]
+        direction LR
+        st1(["设置"]) ~~~ st2(["vfox 可用性"]) ~~~ st3(["已安装 SDK"]) ~~~ st4(["插件仓库"]) ~~~ st5(["配置"]) ~~~ st6(["任务队列"])
+    end
+    subgraph Core["<b>Core</b> · mygo/core · 无 UI 框架"]
+        direction LR
+        co1(["模型"]) ~~~ co2(["进程运行器"]) ~~~ co3(["vfox 客户端与<br/>输出解析"]) ~~~ co4(["设置存储"])
+    end
+    UI --> State --> Core
+    Core -->|"子进程"| vfox(["vfox 命令行"])
+
+    classDef ui fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef state fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px
+    classDef core fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px
+    classDef ext fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class ui1,ui2,ui3,ui4,ui5 ui
+    class st1,st2,st3,st4,st5,st6 state
+    class co1,co2,co3,co4 core
+    class vfox ext
+    style UI fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style State fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style Core fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
 ```
 
 **Core** 是不依赖 UI 框架的纯 Go，包含：

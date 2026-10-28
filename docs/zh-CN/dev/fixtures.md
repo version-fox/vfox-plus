@@ -7,14 +7,49 @@ vfox 打印面向人类的文本，GUI 负责解析。本目录存放真实 vfox
 
 ## 布局
 
-```text
-fixtures/
-├── （`vfxtool capture` 为已安装 vfox 捕获）
-├── （`vfxtool fake-vfox` 回放，vfox 替身）
-└── vfox-<版本>/
-    ├── cases.json             # 命令、exit code 与期望结果
-    ├── <用例>.stdout          # 命令标准输出
-    └── <用例>.stderr          # 命令标准错误
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: vfox 输出夹具
+    accDescr: vfxtool capture 从已安装的 vfox 写出夹具；vfxtool fake-vfox 回放它们，解析器单元测试读取它们。
+    vfox(["已安装的 <b>vfox</b>"])
+    subgraph fx["<b>fixtures/vfox-#lt;版本#gt;/</b>"]
+        direction LR
+        cases("<b>cases.json</b><br/>命令、exit code<br/>与期望结果") ~~~ out("<b>#lt;用例#gt;.stdout</b><br/>命令标准输出") ~~~ err("<b>#lt;用例#gt;.stderr</b><br/>命令标准错误")
+    end
+    fake(["<b>vfxtool fake-vfox</b><br/>vfox 替身"])
+    tests(["解析器<br/>单元测试"])
+    vfox -->|"<code>vfxtool capture</code>"| fx
+    fx -->|"回放"| fake
+    fx -->|"读取"| tests
+
+    classDef real fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    classDef file fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef user fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    class vfox real
+    class cases,out,err file
+    class fake,tests user
+    style fx fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
 ```
 
 ## 输出如何捕获

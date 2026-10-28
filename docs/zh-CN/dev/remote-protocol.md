@@ -75,7 +75,55 @@
 
 ## 任务
 
-任务生命周期：`queued` → `running` → `succeeded` | `failed` | `cancelled`。
+任务生命周期：
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+stateDiagram-v2
+    accTitle: 任务生命周期
+    accDescr: 任务先排队、再运行，最终为 succeeded、failed 或 cancelled；排队中的任务也可取消。
+    direction LR
+    [*] --> queued: POST /api/tasks
+    queued --> running: 轮到它
+    queued --> cancelled: 取消
+    running --> succeeded: exit code 0
+    running --> failed: 无法启动，或<br/>exit code ≠ 0
+    running --> cancelled: 取消，<br/>进程被终止
+    succeeded --> [*]
+    failed --> [*]
+    cancelled --> [*]
+
+    classDef wait fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef busy fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px
+    classDef good fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px
+    classDef bad fill:#FFDAD6,stroke:#BA1A1A,color:#410002,stroke-width:1.5px
+    classDef stop fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    class queued wait
+    class running busy
+    class succeeded good
+    class failed bad
+    class cancelled stop
+```
+
 同一时刻只跑一条变更命令，其余排队。队列是进程内的，每条任务还在 vfox 进程
 运行时另持跨进程文件锁（设置旁 `tasks.lock`），桌面与 LAN `serve` 并存时变更
 依然串行。

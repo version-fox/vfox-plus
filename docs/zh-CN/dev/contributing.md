@@ -109,6 +109,21 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 [`fixtures` 夹具](fixtures.md) 更新，并在
 [vfox-cli-contract.md](vfox-cli-contract.md) 中记录。
 
+### 图表
+
+图表用 [Mermaid](https://mermaid.js.org/) 画在 `mermaid` 围栏代码块里，GitHub 会渲染
+它；不要用字符画，也不要提交图片。[架构](architecture.md)、
+[夹具](fixtures.md)与[远端协议](remote-protocol.md#任务)里的图定下了风格：复制其中
+一个的 front matter（带主题），这样每张图在 GitHub 的浅色与深色主题下都一致；再给
+图写 `accTitle` 与 `accDescr`，供读屏软件使用。
+
+颜色代表角色：靛蓝（`#E4E0FF`）界面与等待，橙色（`#FFE9D0`）状态、资源与运行中，
+青绿（`#D9F2EA`）核心与成功，红色（`#FFDAD6`）失败，灰色（`#ECEBF3`）自动化与已取消，
+墨色（`#17123F`）应用之外的东西。长标签自己用 `<br/>` 断行（`wrappingWidth` 只限定
+最宽的一行），占位符的尖括号写成 `#lt;版本#gt;`，要让子图里的节点排成一行，就用
+`~~~` 把它们串起来。提交前用 Mermaid 11 和 12（[在线编辑器](https://mermaid.live)
+或 `mmdc`）看一眼结果：GitHub 遇到解析不了的图，显示的是错误而不是图。
+
 ### 截图
 
 文档图片不提交：托管在 [freeimage.host](https://freeimage.host)（免账号免费图床）后
