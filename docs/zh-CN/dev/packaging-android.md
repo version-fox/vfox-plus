@@ -14,7 +14,7 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
 | `gradlew`、`gradlew.bat`、`gradlew.ps1`、`gradle/wrapper/` | Gradle wrapper（[Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)）；`gradle-wrapper.properties` 连同 SHA-256 pin 住 Gradle。 |
 | `versions.env` | CI 读取的工具 pin（Java、AGP、Kotlin、Material）。 |
 | `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.3（均为 Apache-2.0）扫二维码。 |
-| `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题、英/中字符串、启动图标。 |
+| `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题、英/中字符串、启动图标（自适应，含供主题图标用的单色层；见[设计系统](design-system.md#应用图标)）。 |
 
 ## App 行为
 

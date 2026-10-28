@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.2.7
 	github.com/google/go-github/v93 v93.0.0
 	github.com/goreleaser/nfpm/v2 v2.48.0
+	golang.org/x/image v0.47.0
 )
 
 require (

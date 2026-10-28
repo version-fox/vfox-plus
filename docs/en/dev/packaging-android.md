@@ -16,7 +16,7 @@ Go code. Users install the `.apk` and pair it with the PC; see
 | `gradlew`, `gradlew.bat`, `gradlew.ps1`, `gradle/wrapper/` | The Gradle wrapper ([Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)); `gradle-wrapper.properties` pins Gradle with its SHA-256. |
 | `versions.env` | Pinned tool versions CI reads (Java, AGP, Kotlin, Material). |
 | `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. |
-| `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, Material 3 Expressive theme, strings in English and Simplified Chinese, launcher icon. |
+| `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, Material 3 Expressive theme, strings in English and Simplified Chinese, the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
 
 ## What the app does
 

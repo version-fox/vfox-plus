@@ -42,8 +42,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
-	"image"
-	"image/color"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -51,6 +49,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/appicon"
 )
 
 const appID = "dev.vfox.VfoxPlus"
@@ -111,7 +111,7 @@ func defaultOptions() options {
 //	<output directory>        where the .msix and .msixbundle are written
 //
 // At least one of --stage-x64 and --stage-arm64 is required. Each stage must
-// hold the executable; the Assets logos are generated from the brand colour.
+// hold the executable; the Assets logos are drawn from the application icon.
 func Run(args []string) error {
 	opts := defaultOptions()
 	rest := args
@@ -743,7 +743,7 @@ func toWindowsPath(name string) string {
 	return strings.ReplaceAll(name, "/", "\\")
 }
 
-// AssetSizes are the MSIX logos generated at build time from the brand colour.
+// assetSizes are the MSIX logos that a build draws, in pixels.
 var assetSizes = []struct {
 	name   string
 	width  int
@@ -755,111 +755,19 @@ var assetSizes = []struct {
 	{"Assets/Wide310x150Logo.png", 310, 150},
 }
 
-// GenerateAssets generates the MSIX logos: an orange gradient (the vfox brand)
-// with a white "v+" mark. The icons are placeholders drawn in pure Go so that
-// no binary is committed; they follow the brand colour of the SVG icon.
+// GenerateAssets draws the MSIX logos: the application icon (see package appicon) on a
+// transparent canvas, centred in the wide logo. They are drawn at build time so that no
+// binary file is committed.
 func GenerateAssets() (map[string][]byte, error) {
 	out := map[string][]byte{}
 	for _, a := range assetSizes {
-		img := drawIcon(a.width, a.height)
 		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
+		if err := png.Encode(&buf, appicon.Render(a.width, a.height)); err != nil {
 			return nil, err
 		}
 		out[a.name] = buf.Bytes()
 	}
 	return out, nil
-}
-
-// drawIcon draws the placeholder logo at w x h.
-func drawIcon(w, h int) image.Image {
-	top := color.RGBA{0xF9, 0xA5, 0x3E, 0xFF}
-	bottom := color.RGBA{0xE2, 0x6A, 0x07, 0xFF}
-	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	for y := 0; y < h; y++ {
-		t := float64(y) / float64(h-1)
-		if h == 1 {
-			t = 0
-		}
-		r := uint8(float64(top.R)*(1-t) + float64(bottom.R)*t)
-		g := uint8(float64(top.G)*(1-t) + float64(bottom.G)*t)
-		b := uint8(float64(top.B)*(1-t) + float64(bottom.B)*t)
-		for x := 0; x < w; x++ {
-			img.Set(x, y, color.RGBA{r, g, b, 0xFF})
-		}
-	}
-	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
-	stroke := w / 16
-	if stroke < 1 {
-		stroke = 1
-	}
-	// "v": two diagonal bars.
-	vTop := h / 4
-	vBottom := h * 3 / 4
-	vLeft := w / 6
-	vMid := w * 5 / 12
-	vRight := w * 8 / 12
-	drawThickLine(img, vLeft, vTop, vMid, vBottom, stroke, white)
-	drawThickLine(img, vRight, vTop, vMid, vBottom, stroke, white)
-	// "+": right of the v.
-	plusCx := w * 3 / 4
-	plusCy := h / 2
-	plusR := w / 12
-	if plusR < 2 {
-		plusR = 2
-	}
-	drawHLine(img, plusCx-plusR, plusCx+plusR, plusCy, stroke, white)
-	drawVLine(img, plusCx, plusCy-plusR, plusCy+plusR, stroke, white)
-	return img
-}
-
-func drawThickLine(img *image.RGBA, x0, y0, x1, y1, thickness int, c color.RGBA) {
-	dx := x1 - x0
-	dy := y1 - y0
-	steps := abs(dx)
-	if abs(dy) > steps {
-		steps = abs(dy)
-	}
-	if steps == 0 {
-		steps = 1
-	}
-	r := thickness / 2
-	for i := 0; i <= steps; i++ {
-		x := x0 + dx*i/steps
-		y := y0 + dy*i/steps
-		for oy := -r; oy <= r; oy++ {
-			for ox := -r; ox <= r; ox++ {
-				if ox*ox+oy*oy <= r*r+r {
-					img.Set(x+ox, y+oy, c)
-				}
-			}
-		}
-	}
-}
-
-func drawHLine(img *image.RGBA, x0, x1, y, thickness int, c color.RGBA) {
-	r := thickness / 2
-	for x := x0; x <= x1; x++ {
-		for oy := -r; oy <= r; oy++ {
-			img.Set(x, y+oy, c)
-		}
-	}
-}
-
-func drawVLine(img *image.RGBA, x, y0, y1, thickness int, c color.RGBA) {
-	r := thickness / 2
-	for y := y0; y <= y1; y++ {
-		for ox := -r; ox <= r; ox++ {
-			img.Set(x+ox, y, c)
-		}
-	}
-}
-
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
 }
 
 // WriteMsix builds one unsigned .msix package.

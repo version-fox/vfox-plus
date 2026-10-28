@@ -210,5 +210,37 @@ fill axis gives a 9 KB WOFF2 font. mygo cannot set the fill axis of a font, so
 it ships the subset twice — outlined and filled under another family name —
 and cross-fades between the two (36 KB together).
 
-The application icon is the 12-sided cookie shape in vfox orange with a white
-"v+" mark ([`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg)).
+### Application icon
+
+The application icon is the fox of the vfox logo, redrawn in the Material 3
+Expressive shape language
+([`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg)).
+
+- **Character.** The same fox as the avatar of the version-fox organisation:
+  an orange face with cream cheeks that form a "V", cream inner ears, a dark
+  nose and round dark eyes with a highlight. It has no outline, and its corners
+  are rounded with large radii, like the shapes of the library. The two ears and
+  the two cheek tufts make a silhouette that is still a fox at 16 px.
+- **Plate and halo.** An indigo plate, the colour opposite the fur, and behind the
+  fox the 9-sided cookie of the shape library as a soft halo.
+- **Colour.** Fur `#FFB63F` to `#FF8419` (top to bottom), cheeks `#FFFFFF` to
+  `#FFE7CB`, inner ears `#FFE3C4`, eyes and nose `#17123F`; plate `#5444E4` to
+  `#1B1268` (top left to bottom right); halo white at 12 % to 3 %.
+- **Legibility.** One large, simple shape without text. Measured on the drawing,
+  the fur is at least 3.2:1 against what is behind it (WCAG asks 3:1 for
+  graphics), the cheeks at least 5.9:1, and the eyes against the fur at least
+  7.1:1. The fox is two thirds of the plate on the desktop, and on Android it
+  stays inside the 66 dp safe zone of the adaptive icon, so that circle, squircle and
+  rounded square masks show it whole.
+
+One drawing serves every platform:
+
+| Platform | Files | Notes |
+| --- | --- | --- |
+| Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | The master, on a squircle plate. `vfxtool build-deb` installs it as the scalable icon. |
+| Android launcher | `ic_launcher_background.xml`, `ic_launcher_foreground.xml` and `ic_launcher_monochrome.xml` in [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) | The adaptive icon: the launcher masks the full-bleed plate and the fox. The monochrome layer, for the themed icons of Android 13, has the cheeks at half strength and the eyes and the nose cut out. |
+| Android pairing screen | `ic_mark.xml` in the same directory | The master as a vector drawable. |
+| Windows | `Assets/*.png` in the `.msix` | Drawn by `vfxtool build-msix` from the same paths ([`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)), because no image is committed. |
+
+The SVG is the master: the vector drawables and `appicon` repeat its paths, and
+`go test` in `shared/tooling` fails when they differ.
