@@ -96,6 +96,15 @@ func TestHomeShowsTheOverviewAndTheShortcuts(t *testing.T) {
 	ta.until("the SDKs to be listed again", func() bool { return len(ta.runner.Calls("list")) >= 2 })
 }
 
+// The tester draws in memory, as a window does where no GPU works, and the transitions
+// that scale then only fade (kit.Env.Software).
+func TestAWindowDrawnByTheCPUTellsItsTransitionsToOnlyFade(t *testing.T) {
+	ta := defaultApp(t)
+	if !ta.app.env.Software {
+		t.Error("the painter says that nothing accelerates the frame, and the environment follows it")
+	}
+}
+
 func TestTheRailNavigatesBetweenThePagesAndTheBadgeCountsTasks(t *testing.T) {
 	ta := defaultApp(t)
 	for destination, title := range map[string]string{"SDKs": "Select an SDK to manage its versions.", "Tasks": "Nothing is running", "Settings": "Appearance"} {

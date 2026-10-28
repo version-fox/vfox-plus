@@ -163,14 +163,23 @@ func (a *App) taskRow(k kit.Ctx, task *state.VfoxTask, position kit.Position) mu
 }
 
 // taskOutput is what vfox printed, under the command, which can be copied.
+// Only the tail of a finished task is kept; older lines are counted, not
+// shown.
 func (a *App) taskOutput(k kit.Ctx, task *state.VfoxTask, isLast bool, scroll *mui.ScrollState) mui.Element {
 	cs := k.Colors()
 	lines := task.Log()
 	command := "$ " + task.Command.CommandLine()
-	text := command + "\n" + a.T("taskNoOutput")
+	body := a.T("taskNoOutput")
 	if len(lines) > 0 {
-		text = command + "\n" + strings.Join(lines, "\n")
+		body = strings.Join(lines, "\n")
 	}
+	if dropped := task.DroppedLines(); dropped > 0 {
+		body = a.T("taskDroppedLines", "count", dropped) + "\n" + body
+	}
+	if path, ok := task.LogFile(); ok {
+		body += "\n" + a.T("taskFullLog") + ": " + path
+	}
+	text := command + "\n" + body
 	style := kit.Type(kit.BodySmall)
 	style.Line = style.Size * 1.5
 	bottom := kit.CornerExtraSmall

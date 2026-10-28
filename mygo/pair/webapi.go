@@ -72,6 +72,9 @@ type TaskDTO struct {
 	LastLine     string   `json:"lastLine,omitempty"`
 	Log          []string `json:"log"`
 	Dropped      int      `json:"droppedLines"`
+	// HasFullLog reports whether the failed task kept its complete output on
+	// disk, beyond the tail above; fetch it from GET /api/tasks/<id>/log.
+	HasFullLog bool `json:"hasFullLog,omitempty"`
 }
 
 // taskDTO converts task, keeping the newest tailLines log lines.
@@ -112,6 +115,9 @@ func taskDTO(task *state.VfoxTask, tailLines int) TaskDTO {
 	if dto.Log == nil {
 		dto.Log = []string{}
 	}
+	if _, ok := task.LogFile(); ok {
+		dto.HasFullLog = true
+	}
 	return dto
 }
 
@@ -145,6 +151,9 @@ func (s *Server) serveInventory(writer http.ResponseWriter, request *http.Reques
 	installedDone := model.Installed.EnsureLoaded()
 	registryDone := model.Registry.EnsureLoaded()
 	configDone := model.VfoxConfig.EnsureLoaded()
+	// The model starts without probing vfox; the first inventory fetch
+	// triggers the probe. It takes about as long as a read-only query.
+	model.Vfox.EnsureChecked()
 	ok := awaitLoad(installedDone) && awaitLoad(registryDone) && awaitLoad(configDone)
 	installed, _ := model.Installed.Value()
 	installedErr := model.Installed.Error()
@@ -413,6 +422,8 @@ func (s *Server) serveTask(writer http.ResponseWriter, request *http.Request) {
 	switch {
 	case request.Method == http.MethodGet && action == "":
 		writeJSON(writer, taskDTO(task, 500))
+	case request.Method == http.MethodGet && action == "log":
+		s.serveTaskLog(writer, task)
 	case request.Method == http.MethodPost && action == "cancel":
 		if !s.requireSameOrigin(writer, request) {
 			return
@@ -427,6 +438,23 @@ func (s *Server) serveTask(writer http.ResponseWriter, request *http.Request) {
 	default:
 		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
 	}
+}
+
+// serveTaskLog answers the retained full log of a failed task as plain text,
+// for diagnosing beyond the newest lines the task list keeps.
+func (s *Server) serveTaskLog(writer http.ResponseWriter, task *state.VfoxTask) {
+	path, ok := task.LogFile()
+	if !ok {
+		http.Error(writer, "No full log was kept for this task.", http.StatusNotFound)
+		return
+	}
+	content, err := os.ReadFile(path) //nolint:gosec // The path comes from the queue's own log directory.
+	if err != nil {
+		http.Error(writer, "No full log was kept for this task.", http.StatusNotFound)
+		return
+	}
+	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = writer.Write(content)
 }
 
 // servePlugins adds a plugin from a URL or an uploaded file.

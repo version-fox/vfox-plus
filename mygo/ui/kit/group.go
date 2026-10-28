@@ -45,7 +45,7 @@ type ButtonGroupSpec struct {
 }
 
 // ButtonGroup is a connected button group with a single selection
-// (docs/design-system.md#components): the outer corners are fully round, the
+// (docs/en/dev/design-system.md#components): the outer corners are fully round, the
 // inner ones 8 dp; the selected button becomes fully round, and a button that is
 // pressed pinches its inner corners to 4 dp.
 func ButtonGroup(c Ctx, g ButtonGroupSpec) ui.Element {

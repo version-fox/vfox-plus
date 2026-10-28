@@ -25,7 +25,7 @@ import (
 
 // Main runs `vfox-plus pair`. It returns the process exit code. The output
 // stays English on purpose: it must survive any terminal encoding on bash
-// and on PowerShell, and it follows the wording of `opencode pair`.
+// and on PowerShell, and the wording stays short and stable.
 func Main(args []string) int {
 	flags := flag.NewFlagSet("pair", flag.ContinueOnError)
 	bind := flags.String("bind", DefaultBind, "interface to listen on (loopback only)")
@@ -40,6 +40,23 @@ func Main(args []string) int {
 	if flags.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "Usage: vfox-plus pair [--bind 127.0.0.1] [--port 0] [--token-ttl 5m]")
 		return 2
+	}
+	// Links come from the shared server when one is live — the desktop, a
+	// daemon or a loopback `serve` — instead of starting another model
+	// next to it.
+	if live := DiscoverService(LocalSettingsDir()); live != nil {
+		url, err := MintToken(live)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "pair:", err)
+			return 1
+		}
+		printLink(url, DefaultTokenTTL)
+		return 0
+	}
+	if ServiceDisabled(LocalSettingsDir()) {
+		fmt.Fprintln(os.Stderr, "pair: pairing requires the shared service, which is disabled.")
+		fmt.Fprintln(os.Stderr, "pair: run `vfox-plus service set disabled false`, the desktop or `vfox-plus serve` first.")
+		return 1
 	}
 	snapshot := LocalSnapshot()
 	// Probe now, so that a missing vfox fails fast with a clear message
@@ -56,16 +73,21 @@ func Main(args []string) int {
 		fmt.Fprintln(os.Stderr, "pair:", err)
 		return 1
 	}
-	fmt.Println()
-	fmt.Println("  Open a link to connect. Links work once and expire in", formatTTL(server.ttl)+".")
-	fmt.Println()
-	fmt.Println("  " + url)
-	fmt.Println()
+	printLink(url, server.ttl)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 	<-signals
 	fmt.Println()
 	return 0
+}
+
+// printLink prints a one-time pairing link with its expiry.
+func printLink(url string, ttl time.Duration) {
+	fmt.Println()
+	fmt.Println("  Open a link to connect. Links work once and expire in", formatTTL(ttl)+".")
+	fmt.Println()
+	fmt.Println("  " + url)
+	fmt.Println()
 }
 
 // formatTTL renders a duration the way the pairing message words it.

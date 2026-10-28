@@ -34,6 +34,13 @@ type AppModelOptions struct {
 	// Locator finds vfox; nil uses a locator that searches `PATH` and the
 	// usual places.
 	Locator *vfox.VfoxLocator
+	// TaskLockPath, when set, is held by every task while its process runs,
+	// so that processes on the same machine serialize vfox mutations.
+	TaskLockPath string
+	// TaskLogDir, when set, spills the full log of every task to per-task
+	// files while it runs. Successful and cancelled tasks delete theirs when
+	// they finish; failed tasks keep theirs, pruned to the newest files.
+	TaskLogDir string
 }
 
 // AppModel is the application state: every controller, wired together.
@@ -81,6 +88,8 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	model.Registry = NewAsyncResource(model.Cli.AvailablePlugins)
 	model.VfoxConfig = NewVfoxConfigController(model.Cli)
 	model.Tasks = NewTaskQueue(model.Cli, 0, 0)
+	model.Tasks.LockPath = options.TaskLockPath
+	model.Tasks.TaskLogDir = options.TaskLogDir
 	model.stops = []Unsubscribe{
 		model.Tasks.OnFinished(model.onTaskFinished),
 		model.Vfox.AddListener(model.onVfoxChanged),
@@ -89,11 +98,13 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	return model
 }
 
-// Start loads the settings and probes vfox. It blocks while vfox is probed,
-// so a user interface calls it on its own goroutine.
+// Start loads the settings and points the vfox client at them, without
+// probing vfox: the first page that needs vfox triggers the probe through
+// Vfox.EnsureChecked, and every settings change that affects vfox re-probes
+// through Apply at once. It does not block.
 func (m *AppModel) Start() {
 	m.Settings.Load()
-	m.applySettings()
+	m.configure()
 }
 
 // InstalledSdk returns the installed SDK called name, if it is installed.
@@ -173,13 +184,22 @@ func (m *AppModel) onSettingsChanged() {
 }
 
 func (m *AppModel) applySettings() {
+	m.configure()
+	// The executable or the environment may have changed: re-probe at once.
+	// The first probe, by contrast, waits for the first page that needs vfox.
+	m.Vfox.Check()
+}
+
+// configure points the vfox client at the stored settings. It never spawns
+// vfox: locating the executable only searches the file system.
+func (m *AppModel) configure() {
 	current := m.Settings.Settings()
 	m.mu.Lock()
 	m.appliedSettings = &current
 	// Force a reload of the dependent data even if vfox stays available.
 	m.lastAvailability = VfoxUnknown
 	m.mu.Unlock()
-	m.Vfox.Apply(current)
+	m.Vfox.Configure(current)
 }
 
 func (m *AppModel) onTaskFinished(task *VfoxTask) {

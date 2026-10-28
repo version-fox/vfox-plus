@@ -29,7 +29,7 @@ func popIn(c Ctx, el ui.Element, from, originX, originY float32, spring Spring) 
 	pose := ui.Pose{}
 	if !*shown {
 		*shown = true
-		pose = ui.Pose{Scale: from, Fade: 1}
+		pose = ui.Pose{Scale: c.Env.scaled(from), Fade: 1}
 		c.AnimationFrame()
 	}
 	el.TransformOrigin(originX, originY)

@@ -19,7 +19,7 @@ import (
 )
 
 // Transition is how a view gives way to another one
-// (docs/design-system.md#motion).
+// (docs/en/dev/design-system.md#motion).
 type Transition int
 
 const (
@@ -48,7 +48,7 @@ func SwitchView(c Ctx, kind Transition, side float32, key any, build func()) ui.
 	case SharedAxisX:
 		enter, exit = ui.Motion{X: 30 * side}, ui.Motion{X: 30 * side}
 	default:
-		enter, exit = ui.Motion{Scale: 0.92}, ui.Motion{}
+		enter, exit = ui.Motion{Scale: c.Env.scaled(0.92)}, ui.Motion{}
 	}
 	return ui.Column(c.Key(key)).Transition(ui.ElementTransition{
 		Animation: &spring, Enter: &enter, Exit: &exit,

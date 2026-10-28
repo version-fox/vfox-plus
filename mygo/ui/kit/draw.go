@@ -23,7 +23,7 @@ import (
 )
 
 // Corner radii of the Material 3 shape scale, in dp
-// (docs/design-system.md#corner-radius-scale).
+// (docs/en/dev/design-system.md#corner-radius-scale).
 const (
 	CornerNone          float32 = 0
 	CornerExtraSmall    float32 = 4

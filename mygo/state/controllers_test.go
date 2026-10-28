@@ -469,17 +469,41 @@ func newTestModel(runner *testsupport.FakeProcessRunner, home string) *state.App
 }
 
 // startedModel starts a model and waits until it has loaded the installed
-// SDKs.
+// SDKs, the way the first page that needs vfox triggers the probe.
 func startedModel(t *testing.T, runner *testsupport.FakeProcessRunner, home string) *state.AppModel {
 	t.Helper()
 	model := newTestModel(runner, home)
 	t.Cleanup(model.Dispose)
 	model.Start()
+	model.Vfox.EnsureChecked()
 	waitFor(t, "the installed SDKs", func() bool { return model.Installed.HasValue() })
 	return model
 }
 
-func TestModelStartsByProbingVfoxAndLoadingTheInstalledSdks(t *testing.T) {
+func TestModelStartsWithoutProbingVfox(t *testing.T) {
+	runner := testsupport.FixtureRunner()
+	model := newTestModel(runner, "/home/u")
+	t.Cleanup(model.Dispose)
+	model.Start()
+	if calls := runner.Invocations(); len(calls) != 0 {
+		t.Fatalf("start must not spawn vfox, got %v", calls)
+	}
+	if model.Vfox.Availability() != state.VfoxUnknown {
+		t.Fatalf("got %v, want unknown", model.Vfox.Availability())
+	}
+	model.Vfox.EnsureChecked()
+	if model.Vfox.Availability() != state.VfoxReady {
+		t.Fatalf("got %v, want ready", model.Vfox.Availability())
+	}
+	// A second call probes nothing more.
+	calls := len(runner.Invocations())
+	model.Vfox.EnsureChecked()
+	if got := len(runner.Invocations()); got != calls {
+		t.Fatalf("got %d invocations, want %d", got, calls)
+	}
+}
+
+func TestModelLoadsTheInstalledSdksAfterTheFirstProbe(t *testing.T) {
 	model := startedModel(t, testsupport.FixtureRunner(), "/home/u")
 	if model.Vfox.Availability() != state.VfoxReady {
 		t.Fatalf("got %v", model.Vfox.Availability())

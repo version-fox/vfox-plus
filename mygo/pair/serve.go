@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 )
 
 // ServeMain runs `vfox-plus serve`: the pairing server as a persistent
@@ -35,6 +36,7 @@ func ServeMain(args []string) int {
 	port := flags.Int("port", 0, "port to listen on (0 picks a free one)")
 	tokenTTL := flags.Duration("token-ttl", DefaultTokenTTL, "how long a pairing link works")
 	sessionTTL := flags.Duration("session-ttl", DefaultSessionTTL, "how long a paired browser stays paired (0 lives as long as the server)")
+	allowRemote := flags.Bool("allow-remote", false, "confirm reaching this machine over the network (required for non-loopback binds)")
 	tlsCert := flags.String("tls-cert", "", "TLS certificate file (enables HTTPS)")
 	tlsKey := flags.String("tls-key", "", "TLS key file (enables HTTPS)")
 	if err := flags.Parse(args); err != nil {
@@ -44,7 +46,7 @@ func ServeMain(args []string) int {
 		return 2
 	}
 	if flags.NArg() != 0 {
-		fmt.Fprintln(os.Stderr, "Usage: vfox-plus serve [--bind 127.0.0.1] [--port 0] [--token-ttl 5m] [--session-ttl 24h] [--tls-cert cert.pem --tls-key key.pem]")
+		fmt.Fprintln(os.Stderr, "Usage: vfox-plus serve [--bind 127.0.0.1] [--port 0] [--token-ttl 5m] [--session-ttl 24h] [--allow-remote] [--tls-cert cert.pem --tls-key key.pem]")
 		return 2
 	}
 	if (*tlsCert == "") != (*tlsKey == "") {
@@ -54,6 +56,11 @@ func ServeMain(args []string) int {
 	loopback := true
 	if ip := net.ParseIP(*bind); ip == nil || !ip.IsLoopback() {
 		loopback = false
+	}
+	if !loopback && !*allowRemote {
+		fmt.Fprintln(os.Stderr, "serve: remote access is off by default; pass --allow-remote to confirm")
+		fmt.Fprintln(os.Stderr, "serve: that browsers and phones on the network may pair with this machine.")
+		return 2
 	}
 	certFile, keyFile, fingerprint := *tlsCert, *tlsKey, ""
 	selfSigned := false
@@ -81,8 +88,30 @@ func ServeMain(args []string) int {
 	}
 	snapshot := LocalSnapshot()
 	_ = snapshot()
+	// A loopback `serve` attaches to the shared server when one is live — the
+	// desktop, a daemon or an earlier `serve` — instead of starting a second
+	// model next to it. Anything else starts its own server.
+	settingsDir := LocalSettingsDir()
+	if loopback {
+		if live := DiscoverService(settingsDir); live != nil {
+			url, err := MintToken(live)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "serve:", err)
+				return 1
+			}
+			fmt.Println()
+			fmt.Printf("  Attached to the shared server (%s, PID %d) on http://127.0.0.1:%d\n", live.Owner, live.PID, live.Port)
+			printLink(url, DefaultTokenTTL)
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, os.Interrupt)
+			<-signals
+			fmt.Println()
+			return 0
+		}
+	}
 	model := NewLocalModel()
 	defer model.Dispose()
+	adminToken := NewAdminToken()
 	server, err := NewServer(Options{
 		Bind:             *bind,
 		AllowNonLoopback: true,
@@ -94,12 +123,30 @@ func ServeMain(args []string) int {
 		TLSCertFile:      certFile,
 		TLSKeyFile:       keyFile,
 		Fingerprint:      fingerprint,
+		AdminToken:       adminToken,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "serve:", err)
 		return 1
 	}
 	defer func() { _ = server.Close() }()
+	if loopback {
+		// This server is now the shared one: register it for `pair` and the
+		// desktop to find, and forget it again on exit.
+		info := &ServiceInfo{
+			PID:        os.Getpid(),
+			Port:       serverPort(server),
+			AdminToken: adminToken,
+			Owner:      ServiceOwnerService,
+			StartedAt:  time.Now().Format(time.RFC3339),
+		}
+		path := ServiceFilePath(settingsDir)
+		if err := WriteServiceInfo(path, info); err != nil {
+			fmt.Fprintln(os.Stderr, "serve:", err)
+			return 1
+		}
+		defer func() { _ = os.Remove(path) }()
+	}
 	token, _, err := server.NewToken()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "serve:", err)
@@ -123,6 +170,25 @@ func ServeMain(args []string) int {
 	fmt.Println()
 	fmt.Println("  " + url)
 	fmt.Println()
+	// A phone cannot type a link: show a QR code of the pairing link with a
+	// reachable address instead, but only on a terminal and only where the
+	// phone can reach us. Loopback binds (`pair` and loopback `serve`) stay
+	// text-only.
+	if !loopback && isTerminal(os.Stdout) {
+		hosts := LocalAddresses()
+		if parsed := net.ParseIP(strings.Trim(*bind, "[]")); parsed != nil && !parsed.IsUnspecified() {
+			hosts = append([]string{*bind}, hosts...)
+		}
+		if qrURL := ReachablePairingURL(server.scheme(), server.pairingPort(), token, hosts); qrURL != "" {
+			if code, err := TerminalQRCode(qrURL); err == nil {
+				fmt.Println("  Scan this code with the Android app to pair. If its address")
+				fmt.Println("  is unreachable, replace it with the reachable one above.")
+				fmt.Println()
+				fmt.Print(code)
+				fmt.Println()
+			}
+		}
+	}
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 	<-signals

@@ -1,0 +1,129 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Android remote client: build the release APK, signed with the debug key
+# (docs/en/dev/packaging-android.md#signing-status), and upload it as the
+# `vfox-plus-android` artifact. The tool versions are in android/versions.env.
+name: android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - android/**
+      - mygo/pair/**
+      - mygo/VERSION
+      - .github/workflows/android.yml
+  pull_request:
+    paths:
+      - android/**
+      - mygo/pair/**
+      - mygo/VERSION
+      - .github/workflows/android.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the APK
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' android/versions.env >> "$GITHUB_ENV"
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          # The default package list still names the `tools` package, which
+          # Google removed; install only what the build needs.
+          packages: platform-tools
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
+          # no wrapper jar to validate.
+          validate-wrappers: false
+      - name: Build the release APK
+        run: ./gradlew :app:assembleRelease
+        working-directory: android
+      - name: Name the APK with the version
+        run: |
+          version="$(tr -d '[:space:]' < mygo/VERSION)"
+          cp android/app/build/outputs/apk/release/app-release.apk \
+            "vfox-plus_${version}.apk"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-android
+          path: vfox-plus_*.apk
+  measure:
+    name: Measure the APK on an emulator
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: vfox-plus-android
+          path: apk
+      - name: Read the Go version
+        run: grep -hE '^GO_VERSION=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: shared/tooling/go.sum
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          # One line: the runner executes the script line by line, each in its
+          # own shell.
+          script: ${{ runner.temp }}/vfxtool measure-apk --apk apk/vfox-plus_*.apk --output ${{ runner.temp }}/memory-android --screenshot ${{ runner.temp }}/screenshot-android.png
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memory-android
+          path: ${{ runner.temp }}/memory-android/memory.txt
+          if-no-files-found: error
+          overwrite: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshot-android
+          path: ${{ runner.temp }}/screenshot-android.png
+          if-no-files-found: error
+          overwrite: true

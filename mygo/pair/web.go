@@ -37,6 +37,7 @@ var webappHTML []byte
 //	/api/tasks            list tasks (GET) and start one (POST)
 //	/api/tasks/finished   forget finished tasks (DELETE)
 //	/api/tasks/<id>       one task with its log tail (GET)
+//	/api/tasks/<id>/log   the retained full log of a failed task (GET)
 //	/api/tasks/<id>/cancel   cancel a task (POST)
 //	/api/tasks/<id>/retry    run a task again (POST)
 //	/api/plugins          add a plugin from a URL or an upload (POST)

@@ -13,5 +13,5 @@
 // limitations under the License.
 
 // Package vfox is the client that drives the vfox command line interface,
-// as described in docs/vfox-cli-contract.md.
+// as described in docs/en/dev/vfox-cli-contract.md.
 package vfox

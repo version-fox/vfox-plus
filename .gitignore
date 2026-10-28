@@ -13,3 +13,10 @@ Thumbs.db
 
 # Packaging output (see `vfxtool build-deb`).
 /dist/
+
+# Android build outputs (see docs/en/dev/packaging-android.md).
+/android/.gradle/
+/android/.kotlin/
+/android/build/
+/android/app/build/
+/android/local.properties

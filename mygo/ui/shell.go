@@ -23,7 +23,7 @@ import (
 )
 
 // compactWidth is the width in dp below which the navigation moves to the bottom
-// (docs/ui-spec.md#window-and-navigation).
+// (docs/en/dev/ui-spec.md#window-and-navigation).
 const compactWidth = 600
 
 // The gaps between elements, on a grid of 4 dp.
@@ -100,6 +100,12 @@ func (a *App) pageWidth(k kit.Ctx) float32 {
 // layoutShell builds the navigation and the page.
 func (a *App) layoutShell(k kit.Ctx) {
 	current := a.shell.destination
+	// The model starts without probing vfox; the first page that needs it
+	// triggers the probe here, off the drawing goroutine. Settings opens
+	// without it and only probes for its version and configuration section.
+	if current != destSettings && a.model.Vfox.Availability() == state.VfoxUnknown {
+		go a.model.Vfox.EnsureChecked()
+	}
 	unavailable := a.model.Vfox.Availability() != state.VfoxReady && current != destSettings
 	page := func() {
 		if unavailable {
@@ -128,7 +134,7 @@ func (a *App) layoutShell(k kit.Ctx) {
 	}
 	onSelect := func(index int) { a.navigate(destination(index)) }
 	if a.env.Compact {
-		mui.Column(k.Context).Fill().Children(func() {
+		mui.Column(k.Context).Fill().Draw(a.noteRenderer).Children(func() {
 			kit.SwitchView(k, kit.FadeThrough, 0, pageKey{current, unavailable}, page).Grow(1)
 			kit.NavBar(k, kit.NavBarSpec{ID: "bar", Destinations: destinations, Selected: int(current), OnSelect: onSelect})
 		})
@@ -149,12 +155,17 @@ func (a *App) layoutShell(k kit.Ctx) {
 		rail.FABIcon, rail.FABLabel = "add", a.T("navAddPlugin")
 		rail.OnFAB = func() { a.navigate(destPlugins) }
 	}
-	mui.Row(k.Context).Fill().AlignItems(mui.Stretch).Children(func() {
+	mui.Row(k.Context).Fill().AlignItems(mui.Stretch).Draw(a.noteRenderer).Children(func() {
 		kit.NavRail(k, rail)
 		kit.SwitchView(k, kit.FadeThrough, 0, pageKey{current, unavailable}, page).Grow(1).Shrink(1).
 			Margin(gapL, gapL, gapL, 0)
 	})
 }
+
+// noteRenderer records whether the frame is drawn by a GPU, for the transitions
+// that the next builds start (kit.Env.Software). The painter tells only while
+// it paints, so the first build assumes a GPU.
+func (a *App) noteRenderer(p *mui.Painter, _ mui.Rect) { a.env.Software = !p.Accelerated() }
 
 // headerAndBody puts a header above a body that takes the rest of the space, for
 // pages that show a message instead of their content.

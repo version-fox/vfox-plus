@@ -31,7 +31,7 @@ type NavDestination struct {
 }
 
 // NavRailSpec describes the navigation rail of Material 3 Expressive
-// (docs/design-system.md#components): 96 dp wide with the labels under the
+// (docs/en/dev/design-system.md#components): 96 dp wide with the labels under the
 // icons, or 240 dp wide with the labels next to them, with a menu button that
 // switches between the two, and a floating action button.
 type NavRailSpec struct {

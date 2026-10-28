@@ -23,7 +23,7 @@ import (
 
 // neutralDirectory is the working directory for commands that are not tied to
 // a project: the root of the system drive, which cannot contain a project
-// configuration (see docs/vfox-cli-contract.md#working-directory).
+// configuration (see docs/en/dev/vfox-cli-contract.md#working-directory).
 func neutralDirectory() string {
 	if systemDrive := os.Getenv("SystemDrive"); systemDrive != "" {
 		return systemDrive + string(filepath.Separator)

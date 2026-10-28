@@ -267,7 +267,7 @@ func realScenario(s *scenario) {
 
 // measureScenario opens the Home page and the versions of Node.js, so that the
 // harness can measure the memory of the application at both points (see
-// docs/memory.md).
+// docs/en/dev/memory.md).
 func measureScenario(s *scenario) {
 	s.waitForText("Versions in use")
 	pause(3000)

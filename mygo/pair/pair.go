@@ -31,8 +31,7 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/state"
 )
 
-// DefaultTokenTTL is how long a pairing link works, like the five minutes of
-// `opencode pair`.
+// DefaultTokenTTL is how long a pairing link works: five minutes.
 const DefaultTokenTTL = 5 * time.Minute
 
 // DefaultBind is the only interface the server listens on: the IPv4
@@ -112,6 +111,12 @@ type Options struct {
 	// Fingerprint is the SHA-256 fingerprint of the TLS certificate, shown
 	// on the intro and pairing pages for comparison with the browser.
 	Fingerprint string
+	// AdminToken mints pairing links over loopback without a session: it
+	// authenticates the local CLI (`pair`, `serve --bind 127.0.0.1`) against
+	// the shared server recorded in the service file. It is refused on
+	// non-loopback connections even when known, and it never becomes a
+	// cookie. Empty disables it.
+	AdminToken string
 }
 
 // Server is a pairing server. Create it with NewServer, hand out links with
@@ -131,6 +136,8 @@ type Server struct {
 	// fingerprint is the SHA-256 fingerprint of the TLS certificate,
 	// shown on the intro and pairing pages for comparison.
 	fingerprint string
+	// adminToken mints pairing links over loopback without a session.
+	adminToken string
 }
 
 // NewServer starts a pairing server, by default on the loopback interface.
@@ -165,6 +172,7 @@ func NewServer(options Options) (*Server, error) {
 		snapshot:    snapshot,
 		model:       options.Model,
 		fingerprint: options.Fingerprint,
+		adminToken:  options.AdminToken,
 	}
 	if options.TLSCertFile != "" || options.TLSKeyFile != "" {
 		if options.TLSCertFile == "" || options.TLSKeyFile == "" {
@@ -243,15 +251,23 @@ func (s *Server) DisplayBaseURL() string {
 	return s.BaseURL()
 }
 
-// NewToken creates a one-time pairing link.
+// NewToken creates a one-time pairing link. Expired unused tokens are swept
+// along the way, so minting links for more browsers cannot grow the map
+// without bound on a long-lived server.
 func (s *Server) NewToken() (token string, url string, err error) {
 	var bytes [16]byte
 	if _, err := rand.Read(bytes[:]); err != nil {
 		return "", "", err
 	}
 	token = hex.EncodeToString(bytes[:])
+	now := time.Now()
 	s.mu.Lock()
-	s.tokens[token] = time.Now().Add(s.ttl)
+	for known, expiry := range s.tokens {
+		if !now.Before(expiry) {
+			delete(s.tokens, known)
+		}
+	}
+	s.tokens[token] = now.Add(s.ttl)
 	s.mu.Unlock()
 	return token, s.BaseURL() + "/auth/connect/" + token, nil
 }
@@ -307,6 +323,35 @@ func (s *Server) hasSession(request *http.Request) bool {
 		return false
 	}
 	return true
+}
+
+// allowAdmin reports whether request carries the admin bearer over
+// loopback. The token lives in a 0600 file on this machine and only ever
+// travels loopback; it is refused anywhere else even when correct, and it
+// never becomes a session cookie.
+func (s *Server) allowAdmin(request *http.Request) bool {
+	if s.adminToken == "" {
+		return false
+	}
+	host, _, err := net.SplitHostPort(request.RemoteAddr)
+	if err != nil {
+		return false
+	}
+	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
+		return false
+	}
+	scheme, token, ok := strings.Cut(request.Header.Get("Authorization"), " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
+		return false
+	}
+	if len(token) != len(s.adminToken) {
+		return false
+	}
+	match := 0
+	for i := 0; i < len(token); i++ {
+		match |= int(token[i] ^ s.adminToken[i])
+	}
+	return match == 0
 }
 
 // publicURL renders a pairing path with the host the client used, so that a
@@ -386,9 +431,10 @@ func (s *Server) serveStatus(writer http.ResponseWriter, request *http.Request) 
 // serveToken mints another one-time pairing link for an already paired
 // browser, so that a second browser can join without returning to the
 // terminal. It renders the link with the host the caller used, which is the
-// reachable address behind a port mapping.
+// reachable address behind a port mapping. The local CLI mints the same way
+// with the admin bearer over loopback, without a session.
 func (s *Server) serveToken(writer http.ResponseWriter, request *http.Request) {
-	if !s.hasSession(request) {
+	if !s.allowAdmin(request) && !s.hasSession(request) {
 		http.Error(writer, "Not paired. Open a `vfox-plus pair` link first.", http.StatusUnauthorized)
 		return
 	}

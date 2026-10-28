@@ -84,9 +84,8 @@ RUN cd /src/shared/tooling && go mod download
 COPY mygo /src/mygo
 COPY shared /src/shared
 RUN go -C /src/shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool \
-  && /tmp/vfxtool prepare --root /src/mygo \
-  && /tmp/vfxtool build --root /src/mygo /out/vfox-plus \
-  && /out/vfox-plus serve --help
+  && /tmp/vfxtool build --root /src/mygo --package ./cmd/vfox-plus-serve /out/vfox-plus-serve \
+  && /out/vfox-plus-serve serve --help
 
 FROM ubuntu:26.04
 RUN <<EOF
@@ -97,7 +96,7 @@ rm -rf /var/lib/apt/lists/*
 useradd --create-home --shell /bin/bash vfoxplus
 EOF
 COPY --from=build /out/vfox /usr/local/bin/vfox
-COPY --from=build /out/vfox-plus /usr/local/bin/vfox-plus
+COPY --from=build /out/vfox-plus-serve /usr/local/bin/vfox-plus-serve
 
 USER vfoxplus
 WORKDIR /home/vfoxplus
@@ -105,5 +104,7 @@ ENV HOME=/home/vfoxplus
 VOLUME /home/vfoxplus/.vfox
 VOLUME /home/vfoxplus/.version-fox
 EXPOSE 8080
-ENTRYPOINT ["/usr/local/bin/vfox-plus"]
-CMD ["serve", "--bind", "0.0.0.0", "--port", "8080"]
+# The image exists for remote access, so it opts in explicitly: remote access
+# stays off by default and `serve` refuses non-loopback binds without it.
+ENTRYPOINT ["/usr/local/bin/vfox-plus-serve"]
+CMD ["serve", "--bind", "0.0.0.0", "--port", "8080", "--allow-remote"]

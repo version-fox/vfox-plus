@@ -15,14 +15,18 @@
 // Package pair connects a browser to a vfox-plus instance.
 //
 // `vfox-plus pair` starts a loopback HTTP server and prints a one-time link
-// like `http://127.0.0.1:PORT/auth/connect/TOKEN`, in the style of
-// `opencode pair`. Opening the link pairs the browser: the token works once
-// and expires after a few minutes, and the server issues a session cookie
-// for the paired browser.
+// like `http://127.0.0.1:PORT/auth/connect/TOKEN`. Opening the link pairs the
+// browser: the token works once and expires after a few minutes, and the
+// server issues a session cookie for the paired browser. At most one server
+// owns the application state per user: `pair` mints its link from the shared
+// server — the desktop while it runs, a `service start` daemon or a loopback
+// `serve` — and only starts its own read-only snapshot server when none is
+// live and the service is not disabled.
 //
 // A paired browser gets the full web interface at `/app` (a single embedded
 // page, no external requests): installed SDKs, the plugin registry, tasks
 // with live progress and logs over server-sent events, and the settings.
 // `vfox-plus serve` keeps the same server up for containers and remote
-// instances, with expiring sessions and mintable links.
+// instances, with expiring sessions and mintable links; `vfox-plus service`
+// manages the shared background server for the user.
 package pair

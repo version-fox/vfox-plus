@@ -61,7 +61,7 @@ type VfoxCommand struct {
 	//
 	// `vfox use` refuses to run on Unix without shell integration, but with
 	// `--global` or `--project` it only edits `.vfox.toml` and symlinks,
-	// which is exactly what a GUI needs. See docs/vfox-cli-contract.md.
+	// which is exactly what a GUI needs. See docs/en/dev/vfox-cli-contract.md.
 	RequiresHookEnvironment bool
 }
 
