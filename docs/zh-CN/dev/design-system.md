@@ -122,6 +122,20 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 - 详情面板 SDK 之间：**fade through**。
 - 应用内路由打开的页面（许可证）：**fade forwards**。
 
+### 刷新率
+
+120 Hz 下一帧只有 8.3 ms，各端都要在这个预算内：
+
+- mygo：工具包按显示器的刷新率出帧。窗口由 CPU 绘制时（没有 GPU，如虚拟机和 WSL），
+  带缩放的转场每帧要重绘整页的每个像素，耗时 10 到 40 ms，所以页面、对话框和菜单
+  在那里只做淡入淡出（`kit.Env.Software`，由 `Painter.Accelerated` 设置）。
+- Web 界面与用 WebView 显示它的 Android 应用：动画用 `transform` 和 `opacity`，由合成器
+  执行、不占页面主线程；不要动画 `left`、`top`、`height`。长列表设置
+  `content-visibility: auto`，打开页面时只布局屏幕上的部分（插件卡片在比桌面慢六倍的
+  手机上布局要 58 ms，设置后 16 ms）。
+- Android：很多手机让普通窗口停在 60 Hz，所以应用请求当前分辨率下刷新率最高的显示
+  模式（`HighRefreshRate.kt`）。
+
 ## 组件
 
 | 组件 | 规约 | mygo |

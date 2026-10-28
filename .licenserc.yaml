@@ -60,5 +60,11 @@ header:
     # application shows, and its version.
     - 'mygo/NOTICE.txt'
     - 'mygo/VERSION'
+    # Gradle Wrapper Neo (https://github.com/Glavo/gradle-wrapper-neo), kept
+    # as its project publishes it, with the headers of the upstream authors.
+    - 'android/gradlew'
+    - 'android/gradlew.bat'
+    - 'android/gradlew.ps1'
+    - 'android/gradle/wrapper/GradleWrapperNeo.java'
 
   comment: on-failure

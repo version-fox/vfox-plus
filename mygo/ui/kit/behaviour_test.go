@@ -64,6 +64,15 @@ func (h *tested) node(role Role, name string) (*Node, bool) {
 	return nil, false
 }
 
+func TestTransitionsScaleOnAGPUAndOnlyFadeWhereTheCPUDrawsTheWindow(t *testing.T) {
+	if got := (&Env{}).scaled(0.92); got != 0.92 {
+		t.Errorf("a GPU scales from 0.92, got %v", got)
+	}
+	if got := (&Env{Software: true}).scaled(0.92); got != 0 {
+		t.Errorf("the CPU keeps the size (0), got %v", got)
+	}
+}
+
 func TestButtonsRunTheirActionOnAClickAndNotWhenDisabled(t *testing.T) {
 	var runs []string
 	h := newTested(t, 600, 200, func(c Ctx) {

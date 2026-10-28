@@ -11,7 +11,8 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
 | 路径 | 内容 |
 | --- | --- |
 | `settings.gradle.kts`、`build.gradle.kts`、`gradle.properties` | 工程配置；插件版本 pin 在此。 |
-| `versions.env` | CI 读取的工具 pin（Gradle、Java、AGP、Kotlin、Material）。 |
+| `gradlew`、`gradlew.bat`、`gradlew.ps1`、`gradle/wrapper/` | Gradle wrapper（[Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)）；`gradle-wrapper.properties` 连同 SHA-256 pin 住 Gradle。 |
+| `versions.env` | CI 读取的工具 pin（Java、AGP、Kotlin、Material）。 |
 | `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.3（均为 Apache-2.0）扫二维码。 |
 | `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题、英/中字符串、启动图标。 |
 
@@ -32,20 +33,26 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
 
 ## 构建
 
-需要 JDK 17 与 Android SDK（platform 36、build-tools 36）。CI 会装；本地把
-`ANDROID_HOME` 指向 SDK：
+需要 JDK 17 与 Android SDK（platform 36、build-tools 35.0.0；后者是所 pin AGP
+的默认值）。CI 会装；本地把 `ANDROID_HOME` 指向 SDK（或把 `sdk.dir` 写进被 git
+忽略的 `local.properties`）；缺少的包要先接受其许可（`sdkmanager --licenses`）
+Gradle 才会安装。wrapper 会下载 `gradle/wrapper/gradle-wrapper.properties` pin
+住的 Gradle，不必另装 Gradle：
 
 ```sh
 cd android
-gradle :app:assembleRelease
+./gradlew :app:assembleRelease
 ```
 
-未签名 release APK 落在
-`app/build/outputs/apk/release/app-release-unsigned.apk`（约 3.1 MB）。发布时按
-版本改名：
+首次运行要用 JDK 编译 `GradleWrapperNeo.java`，并下载 Gradle 与依赖，需要几分钟。
+`services.gradle.org` 慢的地方，请给你的用户而不是给项目配置下载镜像；见 Neo
+README 的 “Configure download mirrors”。
+
+release APK 落在 `app/build/outputs/apk/release/app-release.apk`（约 3.2 MB），
+用 debug 密钥签名（见[签名状态](#签名状态)）。发布时按版本改名：
 
 ```sh
-cp app/build/outputs/apk/release/app-release-unsigned.apk \
+cp app/build/outputs/apk/release/app-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
@@ -53,12 +60,24 @@ cp app/build/outputs/apk/release/app-release-unsigned.apk \
 
 ## 签名状态
 
-`.apk` 目前**未签名**，经未知来源提示安装。正式签名版后续提供。签名只改签名
-配置；CI 上传的 `vfox-plus-android` 构件即此未签名 APK。
+安卓不安装没有签名的 APK（未签名的会以 `INSTALL_PARSE_FAILED_NO_CERTIFICATES`
+失败），所以 release 构建用 **debug 密钥**签名；Gradle 首次构建时在
+`~/.android/debug.keystore`（或 `$ANDROID_USER_HOME`）创建它。每台构建机器各有
+一把，CI 的随 runner 丢弃：不同构建的 APK 不能互相覆盖更新（要先卸载，配对也随
+之丢失），签名也不表明构建者是谁。正式签名的 APK 后续提供；它只改
+`app/build.gradle.kts` 里 release 构建的 `signingConfig`。
 
 ## 维护者注记
 
 - `usesCleartextTraffic` 开着：可信局域网里服务端可能是纯 HTTP（PC 侧非回环
   监听一律 HTTPS，但用户可能在别处终结 TLS）。会话 cookie 都是凭证。
-- 不提交 Gradle wrapper jar（仓库拒绝二进制文件）；CI 从 `versions.env` 装
-  `GRADLE_VERSION`。
+- wrapper 是 [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
+  0.2.0（Apache-2.0）：官方的 `gradle-wrapper.jar` 是二进制，仓库拒绝二进制文件，
+  Neo 用一个 Java 源文件做同样的事，由 `gradlew` 首次使用时编译。`gradlew`、
+  `gradlew.bat`、`gradlew.ps1` 与 `GradleWrapperNeo.java` 保持发布版原样（所以
+  `.licenserc.yaml` 跳过它们的文件头）；升级时按其 README 从新发布版下载这四个
+  文件。`.gitattributes` 让 `*.bat` 保持 CRLF，`gradlew.bat` 在 Windows 上需要。
+- 换 Gradle 要改 `gradle/wrapper/gradle-wrapper.properties` 里的
+  `distributionUrl` 与 `distributionSha256Sum`（校验值：
+  <https://gradle.org/release-checksums/>）。pin 在 9.5.1 是因为 AGP 8.13.2 在
+  Gradle 9.8.0 上失败；AGP 与 Gradle 一起升。

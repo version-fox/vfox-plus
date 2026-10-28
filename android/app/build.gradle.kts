@@ -32,6 +32,10 @@ android {
 
     buildTypes {
         release {
+            // Android installs no APK without a signature. Until there is an
+            // official key, use the debug key, which Gradle creates on the
+            // first build: each build machine has its own.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

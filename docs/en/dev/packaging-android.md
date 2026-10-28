@@ -13,7 +13,8 @@ Go code. Users install the `.apk` and pair it with the PC; see
 | Path | Content |
 | --- | --- |
 | `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties` | Project setup; plugin versions are pinned here. |
-| `versions.env` | Pinned tool versions CI reads (Gradle, Java, AGP, Kotlin, Material). |
+| `gradlew`, `gradlew.bat`, `gradlew.ps1`, `gradle/wrapper/` | The Gradle wrapper ([Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)); `gradle-wrapper.properties` pins Gradle with its SHA-256. |
+| `versions.env` | Pinned tool versions CI reads (Java, AGP, Kotlin, Material). |
 | `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. |
 | `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, Material 3 Expressive theme, strings in English and Simplified Chinese, launcher icon. |
 
@@ -41,20 +42,29 @@ Go code. Users install the `.apk` and pair it with the PC; see
 
 ## Building
 
-JDK 17 and the Android SDK (platform 36, build-tools 36) are required. CI
-installs them; locally point `ANDROID_HOME` at an SDK:
+JDK 17 and the Android SDK (platform 36 and build-tools 35.0.0, the default of
+the pinned AGP) are required. CI installs them; locally point `ANDROID_HOME` at
+an SDK (or write `sdk.dir` into the git-ignored `local.properties`); Gradle
+installs a missing package only after its license is accepted
+(`sdkmanager --licenses`). The wrapper downloads the Gradle that
+`gradle/wrapper/gradle-wrapper.properties` pins, so no Gradle install is needed:
 
 ```sh
 cd android
-gradle :app:assembleRelease
+./gradlew :app:assembleRelease
 ```
 
-The unsigned release APK lands at
-`app/build/outputs/apk/release/app-release-unsigned.apk` (about 3.1 MB).
-Rename it with the version for distribution:
+The first run compiles `GradleWrapperNeo.java` with the JDK and downloads
+Gradle and the dependencies, which takes minutes. Where `services.gradle.org`
+is slow, configure a download mirror for your user, not for the project; see
+"Configure download mirrors" in the Neo README.
+
+The release APK lands at `app/build/outputs/apk/release/app-release.apk`
+(about 3.2 MB), signed with the debug key (see [Signing
+status](#signing-status)). Rename it with the version for distribution:
 
 ```sh
-cp app/build/outputs/apk/release/app-release-unsigned.apk \
+cp app/build/outputs/apk/release/app-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
@@ -63,10 +73,15 @@ it as described in [Remote and Android](../user/remote.md).
 
 ## Signing status
 
-The `.apk` is currently **unsigned** and installs with the unknown-sources
-prompt. An officially signed bundle will be provided later. Signing changes
-nothing in the build except the signing config; the unsigned APK is what CI
-uploads as the `vfox-plus-android` artifact.
+Android installs no APK that has no signature (an unsigned one fails with
+`INSTALL_PARSE_FAILED_NO_CERTIFICATES`), so the release build is signed with
+the **debug key**, which Gradle creates on the first build in
+`~/.android/debug.keystore` (or `$ANDROID_USER_HOME`). Every build machine has
+its own key, and CI discards it with the runner: an APK from another build
+cannot update an installed one (uninstall it first; the pairing is forgotten),
+and the signature does not say who built it. An officially signed APK will be
+provided later; it changes only the `signingConfig` of the release build in
+`app/build.gradle.kts`.
 
 ## Notes for maintainers
 
@@ -74,5 +89,15 @@ uploads as the `vfox-plus-android` artifact.
   local network (the PC side only speaks HTTPS on non-loopback binds, but the
   user may terminate TLS elsewhere). The session cookie is the credential
   either way.
-- No Gradle wrapper jar is committed (the repository rejects binary files);
-  CI installs Gradle `GRADLE_VERSION` from `versions.env`.
+- The wrapper is [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
+  0.2.0 (Apache-2.0): the stock `gradle-wrapper.jar` is a binary, which the
+  repository rejects, and Neo does the same job from one Java source file that
+  `gradlew` compiles on first use. `gradlew`, `gradlew.bat`, `gradlew.ps1` and
+  `GradleWrapperNeo.java` stay as the release publishes them (so
+  `.licenserc.yaml` skips their headers); to update, download those four files
+  from the new release as its README shows. `.gitattributes` keeps `*.bat` as
+  CRLF, which `gradlew.bat` needs on Windows.
+- To change Gradle, edit `distributionUrl` and `distributionSha256Sum` in
+  `gradle/wrapper/gradle-wrapper.properties` (checksums:
+  <https://gradle.org/release-checksums/>). It is 9.5.1 because AGP 8.13.2
+  fails on Gradle 9.8.0; raise AGP and Gradle together.

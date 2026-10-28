@@ -99,7 +99,7 @@ func (d *dialogEntry) layout(c Ctx) bool {
 		fade := backdrop.AnimateTo("fade", Flag(visible), motion.DefaultEffects.Anim())
 		arrived = d.closing && backdrop.Arrived("fade")
 		backdrop.Background(cs.Scrim.Alpha(0.32 * fade))
-		pose := ui.Pose{Scale: 0.8, Fade: 1}
+		pose := ui.Pose{Scale: c.Env.scaled(0.8), Fade: 1}
 		if visible {
 			pose = ui.Pose{}
 		}

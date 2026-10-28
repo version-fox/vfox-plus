@@ -147,6 +147,25 @@ they move, so the window is idle when nothing changes.
 - Between SDKs in the detail pane: **fade through**.
 - Pages opened from the application's own routes (licenses): **fade forwards**.
 
+### Refresh rate
+
+A frame has 8.3 ms at 120 Hz, and every client keeps within it:
+
+- mygo: the toolkit draws at the refresh rate of the display. Where the CPU draws
+  the window (no GPU, as in virtual machines and WSL), a transition that scales
+  redraws every pixel of the page in each frame and takes 10 to 40 ms, so pages,
+  dialogs and menus only fade there (`kit.Env.Software`, set from
+  `Painter.Accelerated`).
+- Web interface and the Android app, which shows it in a WebView: animate
+  `transform` and `opacity`, which the compositor runs without the main thread
+  of the page, and not `left`, `top` or `height`. A long list sets
+  `content-visibility: auto`, so that opening its page lays out only what is on
+  the screen (the plugin cards took 58 ms to lay out on a phone six times slower
+  than a desktop, 16 ms with it).
+- Android: many phones keep ordinary windows at 60 Hz, so the app asks for the
+  display mode with the highest refresh rate at the current resolution
+  (`HighRefreshRate.kt`).
+
 ## Components
 
 | Component | Specification | mygo |

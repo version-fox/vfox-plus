@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The Android remote client: build the unsigned release APK and upload it as
-# the `vfox-plus-android` artifact. The tool versions are in
-# android/versions.env.
+# The Android remote client: build the release APK, signed with the debug key
+# (docs/en/dev/packaging-android.md#signing-status), and upload it as the
+# `vfox-plus-android` artifact. The tool versions are in android/versions.env.
 name: android
 
 on:
@@ -65,14 +65,16 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
         with:
-          gradle-version: ${{ env.GRADLE_VERSION }}
-      - name: Build the unsigned release APK
-        run: gradle :app:assembleRelease
+          # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
+          # no wrapper jar to validate.
+          validate-wrappers: false
+      - name: Build the release APK
+        run: ./gradlew :app:assembleRelease
         working-directory: android
       - name: Name the APK with the version
         run: |
           version="$(tr -d '[:space:]' < mygo/VERSION)"
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk \
+          cp android/app/build/outputs/apk/release/app-release.apk \
             "vfox-plus_${version}.apk"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

@@ -73,6 +73,11 @@ type Env struct {
 	// Compact says that the window is narrow, which the navigation shows as a
 	// bar at the bottom and which snack bars keep above.
 	Compact bool
+	// Software says that the window is drawn by the CPU, which draws every
+	// pixel of what scales again in each frame: the transitions that scale
+	// (pages, dialogs, menus) then only fade, to keep up with the display. The
+	// application sets it from the painter, after the first frame.
+	Software bool
 
 	frame      uint64
 	dialogs    []*dialogEntry
@@ -84,6 +89,15 @@ type Env struct {
 // NewEnv creates the environment of a window.
 func NewEnv(theme *Theme) *Env {
 	return &Env{Theme: theme, Reg: &Registry{}}
+}
+
+// scaled returns the scale that a transition starts from: from on a window
+// that a GPU draws, 0, which keeps the size, where the CPU draws it (Software).
+func (e *Env) scaled(from float32) float32 {
+	if e.Software {
+		return 0
+	}
+	return from
 }
 
 // Begin prepares a build of the view: the registry of the previous build is
