@@ -176,7 +176,7 @@ func realScenario(s *scenario) {
 			notes++
 		}
 	}
-	check(notes == 1, "the note is shown once")
+	check(notes == 2, "the note is shown once on the version, and once on the chip that filters by it")
 
 	// The plugin takes an argument, which the real vfox hands to its Available hook:
 	// the long-term support releases only. A chip of the notes narrows the list in the
