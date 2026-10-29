@@ -43,8 +43,8 @@ SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" vfxtool build-msix \
 
 只需单架构则只传一个 `--stage-*`，bundle 含单包。输出可复现：ZIP 条目 Store
 （不压缩）、排序、时间戳取 `SOURCE_DATE_EPOCH`。例外是 `[Content_Types].xml`：它是由存储块
-组成的 DEFLATE 条目（仍未压缩，所以没有压缩器会改变字节）；原因见
-[签名说明](#签名说明维护者)。
+组成的 DEFLATE 条目（仍未压缩，所以没有压缩器会改变字节）。压缩包是 ZIP64，与 MakeAppx 的写法一致。
+原因见[签名说明](#签名说明维护者)。
 
 ## 在 Windows 11 安装
 
@@ -127,6 +127,13 @@ UAC 的管理员；改动之后需要在有 UAC 的机器上跑一次。
   `verify` 接受它，Windows 的部署平台不接受：`Add-AppxPackage` 以 `0x8007000D`
   “Opening the package ... failed” 失败。所以 `build-msix` 像 MakeAppx 那样，只把这一个部分写成由存储块组成的
   DEFLATE 条目；`sign-msix` 的测试也要把 osslsigncode 签出的每个条目读到末尾，只检查签名是查不出这个的。
+- Windows 会拒绝已签名的纯 ZIP32 包，而同一个包不签名却能安装：`Add-AppxPackage` 以 `0x8007000B`
+  “Opening the package ... failed” 失败。MakeAppx 与 SignTool 把每个包都写成 ZIP64，不管多小：经典的结尾记录里只有
+  哨兵值 `0xFFFF` 与 `0xFFFFFFFF`，ZIP64 结尾记录及其定位器在它前面，中央目录里每个条目都写“由 4.5 创建”，
+  而条目只需要 2.0，也没有 ZIP64 扩展字段（带扩展字段的包同样会被拒绝）。`build-msix` 写出这种形状，
+  `CheckZip64` 检查它（`validate-msix` 也检查），osslsigncode 会保持它。这种形状来自
+  [microsoft/msix-packaging](https://github.com/microsoft/msix-packaging) 里微软签名的测试包，以及
+  [openappx](https://github.com/gianlucamazza/openappx) 在 Xbox 上的实测：签名的 ZIP32 包被拒绝，签名的 ZIP64 包能安装。
 - 公开发布且不希望每台机器单独信任，可上架 Microsoft Store（由微软签名），或用
   公开受信的代码签名证书 / Azure Trusted Signing 签名；构建相同，只换 `--publisher`
   与签名步骤。

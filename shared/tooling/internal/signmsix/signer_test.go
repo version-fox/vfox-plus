@@ -33,6 +33,8 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/buildmsix"
 )
 
 func TestNewSigner(t *testing.T) {
@@ -221,7 +223,9 @@ func TestSignWithOsslsigncode(t *testing.T) {
 
 // checkZipEntries reads a ZIP archive the way a strict reader does: every entry
 // to its end, which fails on a size or a CRC that the entry does not keep. With
-// signed, it also wants the signature part, and the content types that name it.
+// signed, it also wants what Windows wants of a signed package: the signature
+// part, as the last part, and named by the content types; and the ZIP64 shape of
+// the Microsoft tools, which a signed ZIP32 package lacks (0x8007000B).
 func checkZipEntries(t *testing.T, name string, data []byte, signed bool) {
 	t.Helper()
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
@@ -247,7 +251,15 @@ func checkZipEntries(t *testing.T, name string, data []byte, signed bool) {
 			t.Errorf("%s: the content types do not name the signature", name)
 		}
 	}
-	if signed && !found["AppxSignature.p7x"] {
+	if !signed {
+		return
+	}
+	if !found["AppxSignature.p7x"] {
 		t.Errorf("%s has no signature part", name)
+	} else if last := reader.File[len(reader.File)-1].Name; last != "AppxSignature.p7x" {
+		t.Errorf("%s: the signature is not the last part, %s is (Windows refuses that, 0x8007000B)", name, last)
+	}
+	if err := buildmsix.CheckZip64(data); err != nil {
+		t.Errorf("%s %v", name, err)
 	}
 }

@@ -49,7 +49,8 @@ Only one `--stage-*` is needed for a single-architecture bundle. The output is
 reproducible: ZIP entries are stored (no compression), sorted, with timestamps
 from `SOURCE_DATE_EPOCH`. The exception is `[Content_Types].xml`, which is a
 DEFLATE entry made of stored blocks (still not compressed, so no compressor
-changes the bytes); see [Signing notes](#signing-notes-for-maintainers) for why.
+changes the bytes). The archives are ZIP64 archives, as MakeAppx writes them.
+See [Signing notes](#signing-notes-for-maintainers) for why.
 
 ## Installing on Windows 11
 
@@ -156,6 +157,18 @@ off; it needs a run on a machine with UAC after a change.
   that one part as a DEFLATE entry of stored blocks, like MakeAppx does, and why
   the test of `sign-msix` reads every entry of what osslsigncode signed to its end,
   which a signature check alone does not.
+- Windows refuses a signed package that is a plain ZIP32 archive, although the
+  same package installs unsigned: `Add-AppxPackage` fails with `0x8007000B`,
+  "Opening the package ... failed". MakeAppx and SignTool write every package as a
+  ZIP64 archive, however small it is: the classic end record holds only the
+  sentinels `0xFFFF` and `0xFFFFFFFF`, the ZIP64 end record and its locator come
+  before it, and the central directory says "made by 4.5" for every entry, which
+  need only 2.0 and have no ZIP64 extra field (a package with one is refused as
+  well). `build-msix` writes that shape, `CheckZip64` checks it (`validate-msix`
+  too), and osslsigncode keeps it. The shape comes from the signed test packages of
+  [microsoft/msix-packaging](https://github.com/microsoft/msix-packaging), and from
+  the measurements of [openappx](https://github.com/gianlucamazza/openappx) on an
+  Xbox: a signed ZIP32 package is refused, a signed ZIP64 one installs.
 - For public distribution without any per-machine step, either publish to the
   Microsoft Store (Microsoft signs) or sign with a publicly trusted
   code-signing certificate or Azure Trusted Signing; the build is the same,

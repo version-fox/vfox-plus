@@ -231,13 +231,17 @@ func ValidateBundle(data []byte, source string) error {
 const contentTypesPart = "[Content_Types].xml"
 
 // checkZipLayout checks the deterministic ZIP layout: no compression (but for
-// the content types) and a single timestamp for every entry. sorted reports
-// whether the local entries must be in name order (.msix payloads are sorted;
-// bundle payloads come first so their offsets are stable).
+// the content types), a single timestamp for every entry, and the ZIP64 shape
+// of the Microsoft tools (see CheckZip64). sorted reports whether the local
+// entries must be in name order (.msix payloads are sorted; bundle payloads
+// come first so their offsets are stable).
 func checkZipLayout(data []byte, source string, sorted bool) (map[string][]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return nil, fmt.Errorf("%s is not a ZIP: %w", source, err)
+	}
+	if err := CheckZip64(data); err != nil {
+		return nil, fmt.Errorf("%s %w", source, err)
 	}
 	files := map[string][]byte{}
 	var names []string

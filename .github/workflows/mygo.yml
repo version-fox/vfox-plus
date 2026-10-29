@@ -407,6 +407,27 @@ jobs:
             } catch {
               Write-Host "$($alone.Name) does not install: $_"
             }
+            # The end of a package shows whether the ZIP64 records are there (the
+            # ZIP64 end record, its locator and the end record: 98 bytes). The
+            # tools of the Windows SDK, which the runner has, check the package
+            # with the code of Windows and name what is wrong with it.
+            Write-Host "--- the last 98 bytes of $($alone.Name) ---"
+            $bytes = [System.IO.File]::ReadAllBytes($alone.FullName)
+            ($bytes[($bytes.Length - 98)..($bytes.Length - 1)] | ForEach-Object { $_.ToString("x2") }) -join " "
+            $kits = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+            foreach ($name in "signtool.exe", "makeappx.exe") {
+              $tool = Get-ChildItem $kits -Recurse -Filter $name -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match "\\(x64|arm64)\\" } |
+                Sort-Object FullName | Select-Object -Last 1
+              if (-not $tool) { Write-Host "--- $name is not on this runner ---"; continue }
+              Write-Host "--- $($tool.FullName) on $($alone.Name) ---"
+              if ($name -eq "signtool.exe") {
+                & $tool.FullName verify /pa /v $alone.FullName
+              } else {
+                & $tool.FullName unpack /p $alone.FullName /d (Join-Path $env:RUNNER_TEMP "unpacked") /o /v
+              }
+              Write-Host "exit code $LASTEXITCODE"
+            }
             throw "sign-msix failed with exit code $code"
           }
           $pkg = Get-AppxPackage -Name "dev.vfox.VfoxPlus"
