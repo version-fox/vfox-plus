@@ -541,6 +541,9 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 		{"search-java-tem", []string{"search", "java", "tem"}},
 		{"search-java-all", []string{"search", "java", "all"}},
 		{"search-flutter", []string{"search", "flutter"}},
+		// A release nobody published: the plugin fails in its PreInstall hook, and vfox
+		// prints the error with a Lua traceback.
+		{"install-plugin-error", []string{"install", "--yes", "java@99-tem"}},
 	} {
 		if err := r.capture(search.name, nil, search.args...); err != nil {
 			return err

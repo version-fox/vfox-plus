@@ -212,6 +212,8 @@
   "@availableFilterInstalled": { "description": "Shows only installed versions." },
   "availableLoading": "Fetching the available versions…",
   "@availableLoading": { "description": "Shown while vfox search runs." },
+  "availableLoadingEverything": "Listing every distribution takes a while: the plugin asks for each of them in turn.",
+  "@availableLoadingEverything": { "description": "Shown while vfox search lists the versions of every distribution at once." },
   "availableEmpty": "No version matches.",
   "@availableEmpty": { "description": "Shown when the version filter has no result." },
   "availableError": "Could not list the versions of {name}.",

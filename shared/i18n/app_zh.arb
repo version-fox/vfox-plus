@@ -89,6 +89,7 @@
   "availableFilterTagged": "带标签",
   "availableFilterInstalled": "已安装",
   "availableLoading": "正在获取可安装的版本…",
+  "availableLoadingEverything": "列出全部发行版需要一些时间：插件要逐个去查询它们。",
   "availableEmpty": "没有匹配的版本。",
   "availableError": "无法列出 {name} 的版本。",
   "availableCount": "{count, plural, other{{count} 个版本}}",

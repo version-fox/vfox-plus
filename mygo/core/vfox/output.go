@@ -47,6 +47,9 @@ var (
 	availablePluginPattern  = regexp.MustCompile(`^\s+(\S+)\s+([✓✗])\s+(\S+)\s*$`)
 	downloadProgressPattern = regexp.MustCompile(`Downloading\.\.\.\s+(\d{1,3})%`)
 	failedToInstallPattern  = regexp.MustCompile(`^failed to install\b`)
+	// pluginErrorPattern is the error of a hook of a plugin; the file and the line
+	// number are optional, and the first `:<number>: ` ends them.
+	pluginErrorPattern = regexp.MustCompile(`^plugin \[\w+\] method error: (?:.*?:\d+: )?(.+)$`)
 )
 
 // ParseVfoxVersion parses `vfox --version`, for example `vfox version 1.0.12.
@@ -384,14 +387,46 @@ func SummarizeError(stdout, stderr string) string {
 	return lines[len(lines)-1]
 }
 
+// meaningfulLines are the lines of an output that say something: not blank, not the
+// redraw of a progress bar, and not the stack traceback that vfox prints below the
+// error of a plugin. What a plugin reports reads
+//
+//	plugin [PreInstall] method error: /home/u/.vfox/plugin/java/hooks/pre_install.lua:42: No JDK found for 99-tem on linux/amd64.
+//	stack traceback:
+//		[G]: in function 'error'
+//		/home/u/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk
+//		[G]: ?
+//
+// and the sentence is in the first line: its file and line number are left out, as
+// are the lines of the traceback, which say nothing the user could use.
 func meaningfulLines(text string) []string {
 	var result []string
+	inTraceback := false
 	for _, line := range lines(text) {
-		if trimmed := strings.TrimSpace(line); trimmed != "" && ParseDownloadProgress(trimmed) < 0 {
-			result = append(result, trimmed)
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "stack traceback:" {
+			inTraceback = true
+			continue
+		}
+		if inTraceback && strings.HasPrefix(line, "\t") {
+			continue
+		}
+		inTraceback = false
+		if trimmed != "" && ParseDownloadProgress(trimmed) < 0 {
+			result = append(result, pluginErrorSentence(trimmed))
 		}
 	}
 	return result
+}
+
+// pluginErrorSentence takes the file and the line number out of the error of a
+// plugin, `plugin [PreInstall] method error: <file>:<line>: <sentence>`, and
+// leaves any other line as it is.
+func pluginErrorSentence(line string) string {
+	if match := pluginErrorPattern.FindStringSubmatch(line); match != nil && strings.TrimSpace(match[1]) != "" {
+		return strings.TrimSpace(match[1])
+	}
+	return line
 }
 
 func stripVPrefix(version string) string {

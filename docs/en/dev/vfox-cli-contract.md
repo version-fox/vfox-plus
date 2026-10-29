@@ -93,6 +93,22 @@ from its output:
    1.0.13 the trailer is on standard error and that line on standard output.
 3. If no line is left, report the exit code.
 
+An error that a hook of a plugin raises is printed with a Lua traceback:
+
+```text
+plugin [PreInstall] method error: ~/.vfox/plugin/java/hooks/pre_install.lua:42: No JDK found for 99-tem on linux/amd64. …
+stack traceback:
+	[G]: in function 'error'
+	~/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk
+	[G]: ?
+```
+
+so that rule 1 also leaves out the `stack traceback:` line and the tab-indented lines
+after it, and the file and the line number of `plugin [<hook>] method error:` are
+dropped: what remains is the sentence of the plugin, `No JDK found for 99-tem …`,
+instead of `[G]: ?`. This matters for installing by name, where a typo is the
+plugin's to report. Fixture: `install-plugin-error`.
+
 If the executable cannot be started at all, report vfox as missing.
 
 ## Queries

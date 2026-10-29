@@ -72,6 +72,20 @@ Windows `%USERPROFILE%/.vfox/tmp`），`<pid>` 为父进程 PID。GUI 直接 spa
    该行在标准输出。
 3. 无行可取则报 exit code。
 
+插件钩子抛出的错误会连同 Lua 堆栈一起打印：
+
+```text
+plugin [PreInstall] method error: ~/.vfox/plugin/java/hooks/pre_install.lua:42: No JDK found for 99-tem on linux/amd64. …
+stack traceback:
+	[G]: in function 'error'
+	~/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk
+	[G]: ?
+```
+
+所以第 1 条还会去掉 `stack traceback:` 行与其后以制表符缩进的行，并去掉 `plugin [<hook>] method error:` 里的文件名与行号：
+留下的是插件说的那句话 `No JDK found for 99-tem …`，而不是 `[G]: ?`。这对按名称安装很重要，因为名称写错了要由插件来报告。
+夹具：`install-plugin-error`。
+
 可执行文件根本起不来报 vfox 缺失。
 
 ## 查询

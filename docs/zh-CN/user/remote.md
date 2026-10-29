@@ -11,7 +11,9 @@ vfox-plus pair
 
 打开它打印的链接。链接一次性有效，几分钟后过期。配对后的浏览器得到完整界面：
 已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时进度与日志的任务、
-以及设置。
+以及设置。vfox-java、vfox-nodejs 与 vfox-flutter 这三个插件提供的功能一应俱全，和桌面应用一样：
+Java 要列出的发行版、筛选 Chip、按名称安装，以及带下载镜像的选项页（见
+[Java、Node.js 与 Flutter](using.md#javanodejs-与-flutter)）。安卓应用显示的是同一个界面。
 
 ![配对后的 Web 界面](https://iili.io/n87KTiu.png)
 

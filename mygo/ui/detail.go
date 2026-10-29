@@ -214,6 +214,13 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, installed map[string]bool) detailBody {
 	controller := d.controller
 	actions := func() { a.availableActions(k, d) }
+	// A search of every distribution asks for each of them, which takes a while.
+	everything := false
+	if controller.HasProfile {
+		if choice, ok := controller.Profile.Search.Choice(controller.Search()); ok {
+			everything = choice.Everything
+		}
+	}
 	if !controller.Versions.HasValue() {
 		// The buttons stay: the user may choose another search while this one loads, or
 		// when it fails.
@@ -228,6 +235,8 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 				mui.Column(k.Context).Height(320).Children(func() {
 					if err := controller.Versions.Error(); err != nil {
 						a.errorView(k, a.T("availableError", "name", sdk.Name), err, func() { controller.Versions.Load() })
+					} else if everything {
+						a.loadingView(k, a.T("availableLoadingEverything"))
 					} else {
 						a.loadingView(k, a.T("availableLoading"))
 					}
@@ -273,12 +282,7 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 		}
 	}
 	// A search that lists several distributions says which one a version is of.
-	showSource := false
-	if controller.HasProfile {
-		if choice, ok := controller.Profile.Search.Choice(controller.Search()); ok {
-			showSource = choice.Everything
-		}
-	}
+	showSource := everything
 	return detailBody{
 		count: len(visible) + 1,
 		key: func(i int) any {

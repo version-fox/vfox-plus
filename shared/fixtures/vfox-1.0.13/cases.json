@@ -424,6 +424,19 @@
       }
     },
     {
+      "name": "install-plugin-error",
+      "command": [
+        "install",
+        "--yes",
+        "java@99-tem"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "finalProgress": null,
+        "error": "No JDK found for 99-tem on linux/amd64. Please check available versions with 'vfox search java'"
+      }
+    },
+    {
       "name": "available",
       "command": [
         "available"

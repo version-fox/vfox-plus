@@ -249,8 +249,8 @@ func (a *App) optionsBody(k kit.Ctx, d *detailState) detailBody {
 	return single("options", func() {
 		mui.Column(k.Context).Padding(0, gapXL, gapXXL, gapXL).Children(func() {
 			a.guideSection(k, p)
-			a.variablesSection(k, d, p)
-			a.legacySection(k, d, p)
+			a.variablesSection(k, p)
+			a.legacySection(k, p)
 			a.shorthandsSection(k, d, p)
 			a.tipsSection(k, p)
 			a.docsSection(k, p)
@@ -275,7 +275,7 @@ func (a *App) guideSection(k kit.Ctx, p profile.Profile) {
 	}).Margin(gapS, 0, 0, 0)
 }
 
-func (a *App) variablesSection(k kit.Ctx, d *detailState, p profile.Profile) {
+func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 	if len(p.Variables) == 0 {
 		return
 	}
@@ -374,7 +374,7 @@ func (a *App) askVariable(plugin string, variable profile.Variable) {
 	})
 }
 
-func (a *App) legacySection(k kit.Ctx, d *detailState, p profile.Profile) {
+func (a *App) legacySection(k kit.Ctx, p profile.Profile) {
 	kit.GroupHeader(k, a.T("optionsLegacy"), nil)
 	if len(p.LegacyFiles) == 0 {
 		kit.ListGroup(k, kit.ListItemSpec{
