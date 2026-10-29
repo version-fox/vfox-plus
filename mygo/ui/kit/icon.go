@@ -26,11 +26,12 @@ import (
 )
 
 // The icons are the SVGs of Material Symbols Rounded (weight 400, grade 0,
-// optical size 24) in shared/icons, drawn by mygo's ui.Icon in the colour of
-// the text: SYMBOL.svg is the outlined icon (fill 0) and SYMBOL-fill.svg the
-// filled one (fill 1). The meanings of the interface name the symbols
-// (shared/icons.json). An SVG is parsed when its icon is first drawn, so that
-// the icons a session never shows cost nothing.
+// optical size 24) that `vfxtool prepare` cuts out of the npm package which
+// shared/icons.json pins, drawn by mygo's ui.Icon in the colour of the text:
+// SYMBOL.svg is the outlined icon (fill 0) and SYMBOL-fill.svg the filled one
+// (fill 1). The meanings of the interface name the symbols (shared/icons.json).
+// An SVG is parsed when its icon is first drawn, so that the icons a session
+// never shows cost nothing.
 
 // iconSet is what LoadIcons registered.
 type iconSet struct {

@@ -57,7 +57,7 @@ curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz "https://go.dev/dl/go$
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /opt
 rm /tmp/go.tar.gz
-install -d -o tester -g tester /home/tester/go /home/tester/go/pkg/mod /home/tester/.cache/go-build
+install -d -o tester -g tester /home/tester/go /home/tester/go/pkg/mod /home/tester/.cache/go-build /home/tester/.cache/vfox-plus
 EOF
 
 # golangci-lint, verified against the published checksum.

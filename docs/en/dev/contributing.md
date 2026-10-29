@@ -124,19 +124,20 @@ including the glossary.
 ### Icons
 
 Add the Material Symbol to [`shared/icons.json`](../../../shared/icons.json) under a
-name that describes its meaning, and its two SVGs to
-[`shared/icons`](../../../shared/icons) (`vfxtool prepare` collects them when it builds),
-from the revision of [the design system](design-system.md#icons):
+name that describes its meaning, with the name of the symbol as at
+<https://fonts.google.com/icons> (`history`, `folder_open`). Nothing else is to be
+added: `vfxtool prepare` cuts the SVGs out of the pinned npm package when it builds,
+and fails, naming the icons, for a symbol that the package does not have.
+
+To move to a newer version of the package, change `version` and `sha512` in the
+`source` of that file. The registry says the checksum in base64; the file wants it
+in hexadecimal:
 
 ```sh
-rev=10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7
-symbol=history   # as at https://fonts.google.com/icons
-base=https://raw.githubusercontent.com/google/material-design-icons/$rev/symbols/web/$symbol/materialsymbolsrounded
-curl -fsS "$base/${symbol}_24px.svg" > "shared/icons/$symbol.svg"; echo >> "shared/icons/$symbol.svg"
-curl -fsS "$base/${symbol}_fill1_24px.svg" > "shared/icons/$symbol-fill.svg"; echo >> "shared/icons/$symbol-fill.svg"
+version=1.2.98
+curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version" |
+  grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
 ```
-
-The tests of the kit fail for a meaning that lacks one of its two files.
 
 ### vfox output
 

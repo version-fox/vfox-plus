@@ -56,8 +56,6 @@ header:
     - 'NOTICE'
     # Byte-for-byte captures of vfox output.
     - 'shared/fixtures/**'
-    # The Apache-2.0 license of the Material Symbols icons next to them.
-    - 'shared/icons/LICENSE'
     # The notices of the ports that the mygo implementation ships, which the
     # application shows, and its version.
     - 'mygo/NOTICE.txt'

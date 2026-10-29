@@ -34,7 +34,7 @@ go -C shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 vfxtool sandbox all
 ```
 
-Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR` and `SANDBOX_GOPROXY` (see
+Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR`, `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY` (see
 [the mygo guide](implementation-mygo.md#sandbox)).
 
 ## Go and the native tools

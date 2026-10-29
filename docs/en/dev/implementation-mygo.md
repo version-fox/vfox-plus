@@ -70,13 +70,15 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | Coverage gates | `vfxtool coverage coverage.out 85` |
 | `.deb`, `.tar.gz`, `.msix`, `.msixbundle` | see [Packaging](#packaging) |
 
-`vfxtool prepare` copies the icons of [`shared/icons.json`](../../../shared/icons.json) and
-their SVGs of [`shared/icons`](../../../shared/icons) (outlined and filled, see
-[Icons](#how-the-user-interface-works)), and the catalogues of
-[`shared/i18n`](../../../shared/i18n), to `mygo/assets`, and writes the licenses there; it needs the
-network only for `go mod download`, which the licenses of the Go modules need. The result is not
-committed; `//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if
-it is missing.
+`vfxtool prepare` cuts the SVGs of the icons of [`shared/icons.json`](../../../shared/icons.json)
+(outlined and filled, see [Icons](#how-the-user-interface-works)) out of the npm package that the
+file pins, copies the catalogues of [`shared/i18n`](../../../shared/i18n), and writes the licenses, all
+to `mygo/assets`. It needs the network twice, the first time only: for the package (1.3 MB, checked
+against its SHA-512 and kept in `vfox-plus/icons` of the cache directory of the user, or in the
+directory that `VFOX_PLUS_ICONS` names, where it can be put beforehand; `VFOX_PLUS_NPM_REGISTRY` names a
+mirror of the registry), and for `go mod download`, which the licenses of the Go modules need.
+`vfxtool prepare --fetch` only downloads the package. The result is not committed;
+`//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if it is missing.
 
 The release binary is built with `CGO_ENABLED=0`, position independent
 (`-buildmode=pie`), stripped, without the inspector of mygo's native user
@@ -104,7 +106,8 @@ the Go module and build caches in Docker volumes.
 
 Results are written to `dist/sandbox/mygo/<command>/`. Set `SANDBOX_GOPROXY`
 (for example `https://goproxy.cn`) if the default Go module proxy is slow from
-where you are, and `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive.
+where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
+`SANDBOX_NPM_REGISTRY` (for example `https://registry.npmmirror.com`) for the npm package of the icons.
 
 ## Tests
 
@@ -202,11 +205,10 @@ pages are built from its components.
 - **Text** is laid out and drawn by Pango, in the sans-serif font of the desktop
   found with fontconfig: Ubuntu Sans on Ubuntu, with the weights of the type
   scale, and the fonts that the system chooses for Chinese (Noto Sans CJK).
-- **Icons** are the SVGs of Material Symbols Rounded in
-  [`shared/icons`](../../../shared/icons), drawn by mygo's `ui.Icon` in the colour of the text,
-  the outlined and the filled one of each symbol; the fill that the navigation and
-  the buttons animate is the cross-fade of the two ([`ui/kit/icon.go`](../../../mygo/ui/kit/icon.go)).
-  An SVG is parsed when its icon is first drawn.
+- **Icons** are the SVGs of Material Symbols Rounded that `vfxtool prepare` cuts out of an npm
+  package, drawn by mygo's `ui.Icon` in the colour of the text, the outlined and the filled one of
+  each symbol; the fill that the navigation and the buttons animate is the cross-fade of the two
+  ([`ui/kit/icon.go`](../../../mygo/ui/kit/icon.go)). An SVG is parsed when its icon is first drawn.
 
 ## Packaging
 

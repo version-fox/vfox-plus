@@ -18,18 +18,26 @@
 // It collects the inputs of the mygo application that are not committed in
 // its module, into assets/, where the application embeds them:
 //
-//   - icons/: the SVGs of shared/icons;
+//   - icons/: the SVGs of the symbols that shared/icons.json names, cut out of
+//     the npm package that it pins (see icons.go);
 //   - icons.json: the symbols of the icons, by meaning (shared/icons.json);
 //   - i18n/*.arb: the catalogues of shared/i18n, as they are;
 //   - licenses.txt: the licenses of what the application is built from.
+//
+// With --fetch it only makes sure that the package of the icons is in the
+// cache, which is all that needs the network (apart from the licenses of the Go
+// modules, which need `go mod download`): the sandbox does that in its `deps`
+// task, and its other tasks run offline.
 package prepare
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -41,11 +49,13 @@ import (
 type config struct {
 	assets string
 	root   string
+	fetch  bool
 }
 
+// usage is the command line.
+const usage = "Usage: prepare [--fetch] [--assets DIR] [--root DIR]"
+
 // Run collects the embedded assets of the mygo application.
-//
-// Usage: prepare [--assets DIR] [--root DIR]
 func Run(args []string) error {
 	cfg, err := parseArgs(args)
 	if err != nil {
@@ -58,6 +68,33 @@ func Run(args []string) error {
 	shared := filepath.Join(filepath.Dir(root), "shared")
 	assets := resolveAssetsDir(cfg.assets, root)
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	manifest, err := readManifest(filepath.Join(shared, "icons.json"))
+	if err != nil {
+		return err
+	}
+	cache, err := iconCacheDir(os.Getenv, os.UserCacheDir)
+	if err != nil {
+		return err
+	}
+	registry := os.Getenv("VFOX_PLUS_NPM_REGISTRY")
+	if registry == "" {
+		registry = defaultRegistry
+	}
+	tarball, err := ensureTarball(ctx, manifest.Source, cache, registry, os.Stdout)
+	if err != nil {
+		return err
+	}
+	if cfg.fetch {
+		fmt.Printf("The icons are in %s\n", tarball)
+		return nil
+	}
+	set, err := readIconSet(tarball)
+	if err != nil {
+		return err
+	}
+
 	// rm -rf assets/icons assets/i18n; mkdir -p assets/icons assets/i18n.
 	for _, name := range []string{"icons", "i18n"} {
 		dir := filepath.Join(assets, name)
@@ -69,7 +106,7 @@ func Run(args []string) error {
 		}
 	}
 
-	if err := copyFiles(filepath.Join(shared, "icons"), "*.svg", filepath.Join(assets, "icons")); err != nil {
+	if err := writeIcons(set, manifest.symbols(), filepath.Join(assets, "icons")); err != nil {
 		return err
 	}
 	if err := copyFiles(shared, "icons.json", assets); err != nil {
@@ -78,7 +115,8 @@ func Run(args []string) error {
 	if err := copyFiles(filepath.Join(shared, "i18n"), "*.arb", filepath.Join(assets, "i18n")); err != nil {
 		return err
 	}
-	if err := writeLicenses(filepath.Join(root, "NOTICE.txt"), filepath.Join(shared, "icons", "LICENSE"), filepath.Join(assets, "licenses.txt")); err != nil {
+	// The Apache License 2.0 of the icons is the one of this repository.
+	if err := writeLicenses(filepath.Join(root, "NOTICE.txt"), filepath.Join(filepath.Dir(root), "LICENSE"), manifest.Source, filepath.Join(assets, "licenses.txt")); err != nil {
 		return err
 	}
 
@@ -104,20 +142,21 @@ func Run(args []string) error {
 	return nil
 }
 
-// parseArgs parses [--assets DIR] [--root DIR].
+// parseArgs parses [--fetch] [--assets DIR] [--root DIR].
 func parseArgs(args []string) (config, error) {
 	var cfg config
 	fs := flag.NewFlagSet("vfxtool prepare", flag.ContinueOnError)
+	fs.BoolVar(&cfg.fetch, "fetch", false, "only make sure that the npm package of the icons is in the cache")
 	fs.StringVar(&cfg.assets, "assets", "", "output assets directory (default: <mygo>/assets)")
 	fs.StringVar(&cfg.root, "root", "", "mygo module directory (default: located from the current directory)")
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "Usage: prepare [--assets DIR] [--root DIR]\n")
+		fmt.Fprintf(fs.Output(), usage+"\n")
 	}
 	if err := fs.Parse(args); err != nil {
 		return config{}, err
 	}
 	if rest := fs.Args(); len(rest) != 0 {
-		return config{}, errors.New("Usage: prepare [--assets DIR] [--root DIR]")
+		return config{}, errors.New(usage)
 	}
 	return cfg, nil
 }
@@ -153,34 +192,33 @@ func copyFiles(srcDir, pattern, dstDir string) error {
 	return nil
 }
 
-// licensesHeader separates the notices of the ports from the license of the
-// icons: two newlines, a rule, the heading, a rule.
-var licensesHeader = "\n\n" + strings.Repeat("=", 80) + "\n" +
-	"Material Symbols Rounded (the icons)\n" +
-	strings.Repeat("=", 80) + "\n\n"
-
-// writeLicenses builds licenses.txt from NOTICE.txt and the license of the
-// icons (before --append adds the Go modules).
-func writeLicenses(noticePath, iconsLicense, output string) error {
+// writeLicenses builds licenses.txt from NOTICE.txt and the license text of the
+// icons, which says where the icons come from (before --append adds the Go
+// modules).
+func writeLicenses(noticePath, licensePath string, source iconSource, output string) error {
 	notice, err := os.ReadFile(noticePath)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", noticePath, err)
 	}
-	license, err := os.ReadFile(iconsLicense)
+	license, err := os.ReadFile(licensePath)
 	if err != nil {
-		return fmt.Errorf("read %s: %w", iconsLicense, err)
+		return fmt.Errorf("read %s: %w", licensePath, err)
 	}
-	var out []byte
-	out = append(out, notice...)
-	out = append(out, licensesHeader...)
-	out = append(out, license...)
+	rule := strings.Repeat("=", 80)
+	var out strings.Builder
+	out.Write(notice)
+	out.WriteString("\n\n" + rule + "\nMaterial Symbols Rounded (the icons)\n" + rule + "\n\n")
+	out.WriteString("Material Symbols, by Google (https://github.com/google/material-design-icons),\n")
+	out.WriteString("as packaged by Iconify in " + source.Package + " " + source.Version + " (https://github.com/iconify/icon-sets).\n")
+	out.WriteString("Licensed under the Apache License, Version 2.0:\n\n")
+	out.Write(license)
 	if !strings.HasSuffix(string(license), "\n") {
-		out = append(out, '\n')
+		out.WriteString("\n")
 	}
 	if err := os.MkdirAll(filepath.Dir(output), 0o777); err != nil {
 		return fmt.Errorf("create %s: %w", filepath.Dir(output), err)
 	}
-	if err := os.WriteFile(output, out, 0o666); err != nil {
+	if err := os.WriteFile(output, []byte(out.String()), 0o666); err != nil {
 		return fmt.Errorf("write %s: %w", output, err)
 	}
 	return nil

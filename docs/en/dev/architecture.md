@@ -41,7 +41,7 @@ flowchart TB
     end
     subgraph shared["<b>shared/</b> · machine-readable resources used by the application"]
         direction LR
-        s1("<b>i18n/</b><br/>translation catalogues<br/>(ARB: JSON with ICU messages)") ~~~ s2("<b>icons.json, icons/</b><br/>Material Symbols used by<br/>the user interface, and their SVGs") ~~~ s3("<b>fixtures/</b><br/>captured vfox output and<br/>the expected parser results") ~~~ s4("<b>test-plugin/</b><br/>offline vfox plugin for end-to-end<br/>tests against the real vfox")
+        s1("<b>i18n/</b><br/>translation catalogues<br/>(ARB: JSON with ICU messages)") ~~~ s2("<b>icons.json</b><br/>Material Symbols used<br/>by the user interface") ~~~ s3("<b>fixtures/</b><br/>captured vfox output and<br/>the expected parser results") ~~~ s4("<b>test-plugin/</b><br/>offline vfox plugin for end-to-end<br/>tests against the real vfox")
         s5("<b>packaging/linux/</b><br/>desktop entry, AppStream metadata<br/>and icon, for <code>vfxtool build-deb</code>") ~~~ s6("<b>packaging/windows/</b><br/>MSIX manifest, logos and bundle<br/>layout, for <code>vfxtool build-msix</code>") ~~~ s7("<b>tooling/</b><br/><code>vfxtool</code>, the Go tool that builds,<br/>tests and packages everything") ~~~ s8("<b>sandbox/</b><br/>shared parts of the<br/>Docker sandbox")
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
@@ -282,14 +282,17 @@ dependencies, if any, ship under their own license terms. The build tooling
 in `shared/tooling` (`vfxtool`, never shipped in the application) additionally
 uses `go-github` (the GitHub API for the memory report),
 `nfpm` (Debian packaging as a library), `go-licenses` (license classification for
-the license collector), `go-getter` (resumable downloads for the package
-prefetch), `chromedp` (starts Chrome and speaks the DevTools Protocol for the
+the license collector), `go-getter` (resumable downloads with a checksum, for the
+package prefetch and the npm package of the icons), `chromedp` (starts Chrome and speaks the DevTools Protocol for the
 measurement of the web heap and the screenshots of the web interface, MIT),
 `golang.org/x/image` (the vector rasterizer that draws the
 Windows logos, BSD-3-Clause), `golang.org/x/tools` (the parser of the coverage
 profiles, BSD-3-Clause) and `golang.org/x/sys` (the Windows calls of
 `vfxtool sign-msix`: the token for the elevation, the certificate store;
-BSD-3-Clause), all Category A. The Windows `.msix` and `.msixbundle` need no
+BSD-3-Clause), all Category A. The icons are Material Symbols Rounded by Google (Apache-2.0),
+which `vfxtool prepare` cuts out of the npm package `@iconify-json/material-symbols` that
+`shared/icons.json` pins: the package is downloaded and checked at build time, never linked,
+and only the SVGs of the symbols in use are embedded. The Windows `.msix` and `.msixbundle` need no
 additional runtime dependency: the Go executable is self-contained and the
 package carries its own logos.
 Prefer the platform and the official libraries of a technology over third-party

@@ -61,6 +61,8 @@ const usage = `Usage: sandbox [--impl IMPL] [--repo DIR] <command>
                            http://mirrors.aliyun.com/ubuntu/
   SANDBOX_GOPROXY          Go module proxy, for example
                            https://goproxy.cn,direct
+  SANDBOX_NPM_REGISTRY     npm registry that the package of the icons comes
+                           from, for example https://registry.npmmirror.com
 `
 
 // implConfig holds what sandbox-lib.sh expects the sourcing script to set:
@@ -93,6 +95,8 @@ var configs = map[string]implConfig{
 		cacheVolumes: []string{
 			"vfox-plus-sandbox-go-modules:/home/tester/go/pkg/mod",
 			"vfox-plus-sandbox-go-build:/home/tester/.cache/go-build",
+			// The npm package that the icons are cut out of (`vfxtool prepare`).
+			"vfox-plus-sandbox-icons:/home/tester/.cache/vfox-plus",
 		},
 		// Software rendering and the embedded test server need more
 		// shared memory than Docker gives containers by default.

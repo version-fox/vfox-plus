@@ -177,13 +177,12 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 
 图标为 [Material Symbols](https://fonts.google.com/icons) **Rounded** 风格，字重 400、
 grade 0、optical size 24：选中导航目的地图标填充（`FILL` 1），其余描边（`FILL` 0）。
-图标与含义见 [`shared/icons.json`](../../../shared/icons.json)；SVG 在
-[`shared/icons`](../../../shared/icons)，`SYMBOL.svg` 为描边、`SYMBOL-fill.svg` 为填充：
-取自 [google/material-design-icons](https://github.com/google/material-design-icons)
-修订 `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7` 的 24 px 文件，仅补了结尾换行，并附其
-Apache-2.0 许可证。mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；
-导航与按钮的填充动画是描边与填充两个图标的交叉淡入淡出，源码中的 SVG 共约
-60 KB，首次绘制某图标时才解析。
+图标与含义见 [`shared/icons.json`](../../../shared/icons.json)，它同时锁定图标的来源：npm 包
+[`@iconify-json/material-symbols`](https://www.npmjs.com/package/@iconify-json/material-symbols)
+（Apache-2.0，1.3 MB；锁定其版本与 tarball 的 SHA-512）。`vfxtool prepare` 首次把它下载到缓存、
+校验后切出所用符号的 SVG（`SYMBOL.svg` 描边、`SYMBOL-fill.svg` 填充），所以仓库里不提交任何图标。
+mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；导航与按钮的填充动画是描边与填充两个图标的
+交叉淡入淡出，SVG（共约 60 KB）在首次绘制某图标时才解析。
 
 ### 应用图标
 

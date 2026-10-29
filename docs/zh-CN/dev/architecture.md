@@ -39,7 +39,7 @@ flowchart TB
     end
     subgraph shared["<b>shared/</b> · 应用使用的机器可读资源"]
         direction LR
-        s1("<b>i18n/</b><br/>翻译目录<br/>（ARB：带 ICU 消息的 JSON）") ~~~ s2("<b>icons.json、icons/</b><br/>界面使用的 Material Symbols<br/>及其 SVG") ~~~ s3("<b>fixtures/</b><br/>捕获的 vfox 输出<br/>及期望解析结果") ~~~ s4("<b>test-plugin/</b><br/>对真实 vfox 做端到端测试的<br/>离线 vfox 插件")
+        s1("<b>i18n/</b><br/>翻译目录<br/>（ARB：带 ICU 消息的 JSON）") ~~~ s2("<b>icons.json</b><br/>界面使用的<br/>Material Symbols") ~~~ s3("<b>fixtures/</b><br/>捕获的 vfox 输出<br/>及期望解析结果") ~~~ s4("<b>test-plugin/</b><br/>对真实 vfox 做端到端测试的<br/>离线 vfox 插件")
         s5("<b>packaging/linux/</b><br/>桌面入口、AppStream 元数据和图标，<br/><code>vfxtool build-deb</code> 打包") ~~~ s6("<b>packaging/windows/</b><br/>MSIX 清单、徽标和 bundle 布局，<br/>为 Windows 11 打包，<br/><code>vfxtool build-msix</code>") ~~~ s7("<b>tooling/</b><br/><code>vfxtool</code>：构建、测试、<br/>打包一切的 Go 工具") ~~~ s8("<b>sandbox/</b><br/>Docker 沙箱的共享部分")
     end
     subgraph code["<b>应用</b>与<b>自动化</b>"]
@@ -241,11 +241,13 @@ GTK 3、GLib、Pango 和 Cairo：mygo 启动时从系统加载，包按
 `vfxtool runtask`（`shared/tooling/internal/runtask`）声明依赖。应用不含 X 类
 强 copyleft 代码；若有 B 类弱 copyleft 依赖，按其许可证发布。`shared/tooling`
 中的构建工具（`vfxtool`，不随应用发布）还用 `go-github`（内存报告的 GitHub API）、
-`nfpm`（Debian 打包库）、`go-licenses`（许可证分类）、`go-getter`（包预取的断点续传）、`chromedp`
+`nfpm`（Debian 打包库）、`go-licenses`（许可证分类）、`go-getter`（带校验和的断点续传，用于包预取与图标的 npm 包）、`chromedp`
 （启动 Chrome 并讲 DevTools Protocol，用于 Web 堆的测量与 Web 界面的截图，MIT）、`golang.org/x/image`
 （绘制 Windows 徽标的矢量光栅化库，BSD-3-Clause）、`golang.org/x/tools`（覆盖率文件的解析器，
 BSD-3-Clause）与 `golang.org/x/sys`
-（`vfxtool sign-msix` 的 Windows 调用：提权用的令牌、证书库；BSD-3-Clause），均为 A 类。
+（`vfxtool sign-msix` 的 Windows 调用：提权用的令牌、证书库；BSD-3-Clause），均为 A 类。图标是 Google 的 Material Symbols Rounded（Apache-2.0），由 `vfxtool prepare` 从
+`shared/icons.json` 锁定的 npm 包 `@iconify-json/material-symbols` 切出：该包在构建时下载并校验，
+不链接，只有所用符号的 SVG 被嵌入。
 Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件自包含，包自带徽标。
 优先用平台与技术官方库而非第三方包，依赖声明旁注明用途。
 

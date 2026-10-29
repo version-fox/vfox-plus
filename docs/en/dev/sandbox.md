@@ -23,8 +23,8 @@ it.
   `/src`, copies it and works on the copy as `tester`. Results go to
   `dist/sandbox/mygo/<task>/`.
 - The `deps` task downloads the dependencies into Docker volumes (the Go module
-  cache) with network access; the checks, the tests and the builds then run
-  with `--network none`.
+  cache, and the npm package of the icons) with network access; the checks, the
+  tests and the builds then run with `--network none`.
 - The installation test installs the `.deb` into a clean `ubuntu:26.04`
   container, which downloads the declared dependencies, and starts the
   application there: GUI toolkits load some libraries at run time, which `ldd`
@@ -37,4 +37,4 @@ it.
 `measure`, `shell`, `image` and `clean`; its usage text lists what it does.
 Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR` (for example
 `http://mirrors.aliyun.com/ubuntu/`) and the mirror variables of the
-implementation, such as `SANDBOX_GOPROXY`.
+implementation, such as `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY`.

@@ -23,7 +23,7 @@ import "embed"
 //
 //   - icons.json: the symbols of the icons, by meaning (shared/icons.json);
 //   - icons/SYMBOL.svg and icons/SYMBOL-fill.svg: the icons, outlined and
-//     filled (shared/icons);
+//     filled, cut out of the npm package that shared/icons.json pins;
 //   - i18n/app_<language>.arb: the translations of shared/i18n;
 //   - licenses.txt: the licenses of everything the application is built from.
 //

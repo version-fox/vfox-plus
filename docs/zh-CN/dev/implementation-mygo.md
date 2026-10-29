@@ -62,11 +62,12 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | 覆盖率门禁 | `vfxtool coverage coverage.out 85` |
 | `.deb`、`.tar.gz`、`.msix`、`.msixbundle` | 见[打包](#打包) |
 
-`vfxtool prepare` 把 [`shared/icons.json`](../../../shared/icons.json) 的图标及其 SVG
-（[`shared/icons`](../../../shared/icons)，描边与填充各一，见
-[用户界面如何工作](#用户界面如何工作)）、[`shared/i18n`](../../../shared/i18n) 的翻译目录复制到
-`mygo/assets` 并在那里写许可证；只有 Go 模块许可证需要的 `go mod download` 才用网络。结果不提交；
-[`assets/assets.go`](../../../mygo/assets/assets.go) 的 `//go:embed` 缺失即构建失败。
+`vfxtool prepare` 从 [`shared/icons.json`](../../../shared/icons.json) 锁定的 npm 包里切出其中图标的 SVG
+（描边与填充各一，见[用户界面如何工作](#用户界面如何工作)），复制 [`shared/i18n`](../../../shared/i18n) 的翻译目录，
+并写许可证，全部放进 `mygo/assets`。它要联网两处，其中一处只有第一次需要：下载那个包（1.3 MB，按 SHA-512 校验，
+存在用户缓存目录的 `vfox-plus/icons`，或 `VFOX_PLUS_ICONS` 指的目录——可事先放进去；`VFOX_PLUS_NPM_REGISTRY`
+指定注册表镜像），以及 Go 模块许可证需要的 `go mod download`。`vfxtool prepare --fetch` 只下载那个包。
+结果不提交；[`assets/assets.go`](../../../mygo/assets/assets.go) 的 `//go:embed` 缺失即构建失败。
 
 发布二进制用 `CGO_ENABLED=0`、位置无关（`-buildmode=pie`，Windows 除外）、strip、
 关 mygo 原生界面 inspector，约 18 MB。
@@ -90,7 +91,8 @@ Go 模块与构建缓存。
 | `vfxtool sandbox clean` | 删除镜像、缓存卷与结果 |
 
 结果写入 `dist/sandbox/mygo/<命令>/`。默认服务器慢时设 `SANDBOX_GOPROXY`
-（如 `https://goproxy.cn`）与 `SANDBOX_UBUNTU_MIRROR`（Ubuntu 归档）。
+（如 `https://goproxy.cn`）、`SANDBOX_UBUNTU_MIRROR`（Ubuntu 归档）与
+`SANDBOX_NPM_REGISTRY`（如 `https://registry.npmmirror.com`，图标的 npm 包）。
 
 ## 测试
 
@@ -152,7 +154,7 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   按路径绘制（[`ui/shapes`](../../../mygo/ui/shapes)）。
 - **文本**由 Pango 用桌面 sans-serif 排版绘制：Ubuntu 上 Ubuntu Sans，中文字体按系统
   选（Noto Sans CJK），字重按 type scale，桌面文本缩放生效。
-- **图标**为 [`shared/icons`](../../../shared/icons) 里 Material Symbols Rounded 的 SVG，由 mygo 的
+- **图标**是 `vfxtool prepare` 从一个 npm 包切出的 Material Symbols Rounded SVG，由 mygo 的
   `ui.Icon` 以文本颜色绘制，每个符号一个描边、一个填充；导航与按钮的填充动画是两者的交叉淡入淡出
   （[`ui/kit/icon.go`](../../../mygo/ui/kit/icon.go)）。SVG 在首次绘制该图标时才解析。
 

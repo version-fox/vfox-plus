@@ -101,19 +101,17 @@ Android 客户端，绝不涉及源码构建、仓库布局、vfox CLI 契约等
 
 ### 图标
 
-在 [`shared/icons.json`](../../../shared/icons.json) 中按含义添加 Material Symbol，并把它的两个 SVG
-放进 [`shared/icons`](../../../shared/icons)（构建时 `vfxtool prepare` 收集），
-取自[设计系统](design-system.md#图标)所记的修订：
+在 [`shared/icons.json`](../../../shared/icons.json) 中按含义添加 Material Symbol，符号名同
+<https://fonts.google.com/icons>（`history`、`folder_open`），其余不用加：构建时 `vfxtool prepare`
+从锁定的 npm 包切出 SVG；包里没有的符号会失败并列出这些图标。
+
+要换新版本的包，改该文件 `source` 里的 `version` 与 `sha512`。注册表给的校验和是 base64，文件里要十六进制：
 
 ```sh
-rev=10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7
-symbol=history   # 名字同 https://fonts.google.com/icons
-base=https://raw.githubusercontent.com/google/material-design-icons/$rev/symbols/web/$symbol/materialsymbolsrounded
-curl -fsS "$base/${symbol}_24px.svg" > "shared/icons/$symbol.svg"; echo >> "shared/icons/$symbol.svg"
-curl -fsS "$base/${symbol}_fill1_24px.svg" > "shared/icons/$symbol-fill.svg"; echo >> "shared/icons/$symbol-fill.svg"
+version=1.2.98
+curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version" |
+  grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
 ```
-
-某含义缺了两个文件之一，kit 的测试会失败。
 
 ### vfox 输出
 

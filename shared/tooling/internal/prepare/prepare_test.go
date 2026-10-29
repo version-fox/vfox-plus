@@ -15,6 +15,7 @@
 package prepare
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,15 +79,16 @@ func TestCopyFiles(t *testing.T) {
 func TestWriteLicenses(t *testing.T) {
 	dir := t.TempDir()
 	notice := filepath.Join(dir, "NOTICE.txt")
-	icons := t.TempDir()
+	license := filepath.Join(dir, "LICENSE")
 	output := filepath.Join(dir, "assets", "licenses.txt")
 	if err := os.WriteFile(notice, []byte("mygo notices\n"), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(icons, "LICENSE"), []byte("icons license\n"), 0o666); err != nil {
+	if err := os.WriteFile(license, []byte("Apache License text"), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeLicenses(notice, filepath.Join(icons, "LICENSE"), output); err != nil {
+	source := iconSource{Package: "@iconify-json/material-symbols", Version: "1.2.97"}
+	if err := writeLicenses(notice, license, source, output); err != nil {
 		t.Fatalf("writeLicenses: %v", err)
 	}
 	data, err := os.ReadFile(output)
@@ -97,10 +99,71 @@ func TestWriteLicenses(t *testing.T) {
 	if !strings.HasPrefix(text, "mygo notices\n") {
 		t.Errorf("licenses do not start with NOTICE.txt:\n%s", text)
 	}
-	if !strings.Contains(text, "Material Symbols Rounded (the icons)") {
-		t.Errorf("licenses miss the icons heading:\n%s", text)
+	for _, want := range []string{"Material Symbols Rounded (the icons)", "@iconify-json/material-symbols 1.2.97", "https://github.com/google/material-design-icons"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("licenses miss %q:\n%s", want, text)
+		}
 	}
-	if !strings.HasSuffix(text, "icons license\n") {
-		t.Errorf("licenses do not end with the license of the icons: %q", text)
+	if !strings.HasSuffix(text, "Apache License text\n") {
+		t.Errorf("licenses do not end with the license text and a newline: %q", text)
+	}
+}
+
+// Run collects the assets of a mygo module from a repository of the shape of this
+// one, with the icons from a registry that serves the tarball of the manifest.
+func TestRunCollectsTheAssets(t *testing.T) {
+	data := packageOf(t, fakeIcons)
+	source := sourceOf(data)
+	server, requests := registry(t, source, func(_ int32, w http.ResponseWriter) { _, _ = w.Write(data) })
+
+	repo := t.TempDir()
+	write := func(name, content string) {
+		t.Helper()
+		file := filepath.Join(repo, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(file), 0o777); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte(content), 0o666); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("mygo/go.mod", "module github.com/version-fox/vfox-plus/mygo\n\ngo 1.27\n")
+	write("mygo/NOTICE.txt", "notices\n")
+	write("LICENSE", "Apache License text\n")
+	write("shared/i18n/app_en.arb", "{}")
+	write("shared/icons.json", `{"source": {"package": "`+source.Package+`", "version": "`+source.Version+`", "sha512": "`+source.SHA512+`"},
+		"icons": {"home": "home", "folder": "folder_open"}}`)
+	cache := filepath.Join(t.TempDir(), "cache")
+	t.Setenv("VFOX_PLUS_ICONS", cache)
+	t.Setenv("VFOX_PLUS_NPM_REGISTRY", server.URL)
+	t.Setenv("MYGO_SKIP_LICENSES", "1")
+
+	// --fetch only fills the cache.
+	if err := Run([]string{"--fetch", "--root", filepath.Join(repo, "mygo")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(cache, "material-symbols-1.2.97.tgz")); err != nil {
+		t.Errorf("--fetch left nothing in the cache: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "mygo", "assets")); err == nil {
+		t.Error("--fetch made the assets")
+	}
+
+	// Without the network, the rest follows from the cache.
+	server.Close()
+	if err := Run([]string{"--root", filepath.Join(repo, "mygo")}); err != nil {
+		t.Fatal(err)
+	}
+	if requests.Load() != 1 {
+		t.Errorf("%d requests", requests.Load())
+	}
+	for _, name := range []string{"icons/home.svg", "icons/home-fill.svg", "icons/folder_open.svg", "icons/folder_open-fill.svg", "icons.json", "i18n/app_en.arb", "licenses.txt"} {
+		if _, err := os.Stat(filepath.Join(repo, "mygo", "assets", filepath.FromSlash(name))); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	licenses, _ := os.ReadFile(filepath.Join(repo, "mygo", "assets", "licenses.txt"))
+	if !strings.Contains(string(licenses), "Apache License text") || !strings.HasPrefix(string(licenses), "notices\n") {
+		t.Errorf("licenses: %q", licenses)
 	}
 }

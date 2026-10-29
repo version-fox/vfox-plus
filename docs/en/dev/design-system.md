@@ -217,15 +217,16 @@ Icons are [Material Symbols](https://fonts.google.com/icons), **Rounded** style,
 at weight 400, grade 0 and optical size 24: the icon of the selected navigation
 destination is filled (`FILL` 1) and the others are outlined (`FILL` 0). The
 icons and their meanings are listed in
-[`shared/icons.json`](../../../shared/icons.json); their SVGs are in
-[`shared/icons`](../../../shared/icons), `SYMBOL.svg` outlined and
-`SYMBOL-fill.svg` filled: the 24 px files of
-[google/material-design-icons](https://github.com/google/material-design-icons) at
-revision `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`, unchanged but for a final newline, with their
-Apache-2.0 license. mygo draws an SVG in the colour of the text (`ui.Icon`), so
-the application carries no icon font; the fill that the navigation and the
-buttons animate is the cross-fade of the outlined and the filled icon, and the
-SVGs are about 60 KB in the source and parsed when an icon is first drawn.
+[`shared/icons.json`](../../../shared/icons.json), which also pins where they come
+from: the npm package
+[`@iconify-json/material-symbols`](https://www.npmjs.com/package/@iconify-json/material-symbols)
+(Apache-2.0, 1.3 MB; its version and the SHA-512 of its tarball). `vfxtool prepare`
+downloads it once into the cache, checks it and cuts the SVGs of the symbols in use
+out of it, `SYMBOL.svg` outlined and `SYMBOL-fill.svg` filled, so that no icon is
+committed. mygo draws an SVG in the colour of the text (`ui.Icon`), so the
+application carries no icon font; the fill that the navigation and the buttons
+animate is the cross-fade of the outlined and the filled icon, and the SVGs
+(about 60 KB) are parsed when an icon is first drawn.
 
 ### Application icon
 
