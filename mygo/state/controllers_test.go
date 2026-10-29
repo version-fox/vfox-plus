@@ -349,7 +349,7 @@ func TestVfoxReportsUnexpectedFailuresAsBroken(t *testing.T) {
 }
 
 func TestSdkDetailFiltersTheAvailableVersionsByTextNoteAndInstallation(t *testing.T) {
-	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "nodejs")
+	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "nodejs", nil, nil)
 	defer controller.Dispose()
 	var changes atomic.Int32
 	controller.AddListener(func() { changes.Add(1) })
@@ -402,7 +402,7 @@ func TestSdkDetailFiltersTheAvailableVersionsByTextNoteAndInstallation(t *testin
 }
 
 func TestSdkDetailLoadsThePluginInformation(t *testing.T) {
-	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "nodejs")
+	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "nodejs", nil, nil)
 	defer controller.Dispose()
 	<-controller.Info.Load()
 	if info, ok := controller.Info.Value(); !ok || info.Version != "0.5.1" {

@@ -43,6 +43,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		ExtraEnvironment: map[string]string{"A": "1"},
 		RailExpanded:     true,
 		RemoteAccess:     true,
+		Searches:         map[string]string{"java": "tem"},
 		Unknown:          map[string]interface{}{"future": true},
 	}
 	raw, err := json.Marshal(original)
@@ -60,7 +61,7 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"remoteAccess"`}
+	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"remoteAccess"`, `"searches"`}
 	previous := -1
 	for _, key := range keys {
 		index := strings.Index(text, key)
@@ -99,6 +100,41 @@ func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 	}
 	if got := settings.SettingsFromJSON(decode(t, `{"seedColor":true}`)); got.SeedColor != settings.DefaultSeedColor {
 		t.Errorf("a boolean is not a colour: %#v", got)
+	}
+}
+
+func TestSettingsKeepTheSearchOfEachPlugin(t *testing.T) {
+	parsed := settings.SettingsFromJSON(decode(t, `{"searches":{"java":"tem","jdk":"zulu","empty":"","number":1}}`))
+	if want := map[string]string{"java": "tem", "jdk": "zulu"}; !reflect.DeepEqual(parsed.Searches, want) {
+		t.Errorf("only the choices that are text count: %#v", parsed.Searches)
+	}
+	if got := settings.SettingsFromJSON(decode(t, `{"searches":["java"]}`)); len(got.Searches) != 0 {
+		t.Errorf("a list is no map of choices: %#v", got.Searches)
+	}
+	raw, err := json.Marshal(settings.DefaultSettings())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"searches":{}`) {
+		t.Errorf("no choice is written as an empty object: %s", raw)
+	}
+	var nothing settings.AppSettings
+	if raw, err := json.Marshal(nothing); err != nil || !strings.Contains(string(raw), `"searches":{}`) {
+		t.Errorf("a nil map is written as an empty object too: %s %v", raw, err)
+	}
+
+	changed := parsed.Clone()
+	changed.Searches["java"] = "open"
+	if parsed.Searches["java"] != "tem" {
+		t.Error("a clone shares no map with its original")
+	}
+	if parsed.Equal(changed) {
+		t.Error("another choice is a difference")
+	}
+	delete(changed.Searches, "jdk")
+	changed.Searches["java"] = "tem"
+	if parsed.Equal(changed) {
+		t.Error("a forgotten choice is a difference")
 	}
 }
 

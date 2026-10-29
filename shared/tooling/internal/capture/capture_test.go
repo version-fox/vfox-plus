@@ -73,3 +73,17 @@ func TestEscapeFiles(t *testing.T) {
 		t.Errorf("escapeFiles wrote %q, want %q", got, want)
 	}
 }
+
+func TestVersionEndsWithTheLine(t *testing.T) {
+	for output, want := range map[string]string{
+		"vfox version 1.0.13\n":         "1.0.13",
+		"vfox version 1.0.13":           "1.0.13",
+		"vfox version 1.1.0-beta.2\r\n": "1.1.0-beta.2",
+		"vfox version 2.0.0 (abc123)\n": "2.0.0",
+		"nothing":                       "",
+	} {
+		if got := versionRe.FindString(output); got != want {
+			t.Errorf("version of %q = %q, want %q", output, got, want)
+		}
+	}
+}

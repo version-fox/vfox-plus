@@ -105,7 +105,9 @@ shared axis, and the detail has a back button.
   runs) and a menu with `actionOpenHomepage` and `sdkRemovePlugin`. On narrow
   panes the actions move to a row above the avatar.
 - A connected button group switches between `sdkTabInstalled` (with the count)
-  and `sdkTabAvailable`.
+  and `sdkTabAvailable`, and, for a plugin that has a
+  [profile](architecture.md#plugin-profiles), `sdkTabOptions` (icon `options`).
+  The tabs fade through.
 
 **Installed** lists the installed versions, newest first:
 
@@ -118,17 +120,64 @@ shared axis, and the detail has a back button.
 - While a task runs for a version, its actions are replaced by a loading
   indicator.
 - Empty: `sdkInstalledEmpty` with `sdkBrowseVersions`.
+- For a plugin with a profile, a version name is taken apart under its
+  title: the distribution (`Temurin`, `OpenJDK`) and the flavours (`JavaFX`,
+  `x64`, `OpenHarmony`) as a second line.
 
-**Available** runs `vfox search` the first time it is opened:
+**Available** runs `vfox search` the first time it is opened. For a plugin that
+has a profile, the first row holds:
+
+- the **search button** `availableChoiceButton` ("Distribution: Temurin"; the
+  label of the choice is the profile's, the icon `registry`), which opens the
+  [choices dialog](#choices-and-names) of what the search lists, when the
+  profile has such a search (`java`); the choice becomes the argument of
+  `vfox search` and is kept in the settings (`searches`) per plugin, so that it
+  survives a restart and is the same in the web interface, and the list of the earlier
+  choice goes away at once;
+- `availableInstallByName`, an outlined button that opens the
+  [install by name dialog](#choices-and-names). Every plugin has it.
+
+The row stays while the list loads or fails, so that another choice can be made.
+Then:
 
 - A filter field (`availableSearchHint`) matching versions and notes, a
   connected button group `availableFilterAll` / `availableFilterTagged`
   (versions with a note such as LTS) / `availableFilterInstalled`, and the
   number of listed versions (`availableCount`).
+- **Filter chips**, one row per facet of the profile that at least one listed
+  version has a value of, with the label of the facet in front (`Support`:
+  LTS, JavaFX; `Channel`: stable, beta, dev, OpenHarmony; `Architecture`: x64,
+  arm64), and `availableClearFilters` while a chip is on. A chip is a filter
+  chip of Material 3 (see [the design system](design-system.md#components)):
+  chips of one facet are alternatives, facets narrow each other and so do the
+  filter field and the button group.
 - A lazily built segmented list. Each version shows its note as a tag and the
-  bundled tools (`npm 11.19.1`). The trailing action is `versionInstall`; for
-  an installed version, a disabled `versionInstalled`; while installing, a wavy
-  progress indicator with `taskDownloading` and a cancel button.
+  bundled tools (`npm 11.19.1`); for a search that lists several
+  distributions, also a tag with the distribution. The trailing action is
+  `versionInstall`; for an installed version, a disabled `versionInstalled`;
+  while installing, a wavy progress indicator with `taskDownloading` and a
+  cancel button.
+
+**Options** is built from the profile of the plugin, in segmented lists:
+
+- the guide to the version names of the plugin (`optionsGuideTitle`);
+- `optionsVariables`: one item per environment variable the plugin reads (the
+  GitHub mirror of Java and Flutter, the download mirror of Node.js, the
+  storage mirror of Flutter, the C library of Node.js, tagged
+  `optionsVariableAdvanced`), with the variable name, its value (with the name
+  of the mirror, if it is one that was checked) or `optionsVariableUnset`, and
+  `optionsVariableChange`, which opens the [variable dialog](#choices-and-names);
+- `optionsLegacy`: the version files the plugin lets vfox read, as tags
+  (`.sdkmanrc`; `.node-version` and `.nvmrc`), or `optionsLegacyNone`; the
+  switch `configLegacyEnable` of the vfox configuration; and, where the strategy
+  matters (Node.js), `configLegacyStrategy`, or `optionsLegacyStrategyIgnored`
+  where it does not (Java);
+- `optionsShorthands`: the names the plugin takes besides the listed versions,
+  each with its meaning and `optionsShorthandTry`, which opens the install by
+  name dialog with that name;
+- `optionsTips`, the notes of the profile;
+- `optionsDocs`: links that open the documentation of the plugin in the
+  language of the application.
 
 ### Confirmations and dialogs
 
@@ -140,6 +189,30 @@ shared axis, and the detail has a back button.
   with a browse button; the directory must exist (`useProjectInvalid`).
 
 Dialogs scale in on a spring.
+
+#### Choices and names
+
+- **Choices** (`searchChoose…`): a dialog titled with the label of the choice
+  (`Distribution`), a filter field (`searchChooseHint`, matching the short name,
+  the long name, the name and the maker, in both languages) and a list of the
+  choices in the order of the profile, the popular ones first; each shows its
+  name, its maker and its short name, a check mark where it is the current one
+  and `searchChoiceDefault` where it is the one vfox lists without an argument.
+  Choosing one closes the dialog and lists it.
+- **Install by name** (`installName…`): a field `installNameField`, which takes
+  what follows `<plugin>@` in `vfox install` (helper `installNameHelp`), and, for
+  a plugin with a profile, `installNameExamples`, one filter chip for each
+  shorthand that fills the field, and the meaning of the shorthand that is
+  typed. An empty name (`installNameRequired`) or one that has a space or a dash in
+  front (`installNameInvalid`) is refused. The confirmation queues
+  `vfox install --yes <plugin>@<name>` and shows Tasks.
+- **Variable** (`variable…`): the help of the variable and its name; for an
+  address, a monospaced field `variableAddress` (an address needs `http://` or
+  `https://`, `variableInvalidAddress`); `variablePresets`, a chip for every
+  value that was checked, and a chip `variableDefaultOption` that takes the
+  variable away. The chips of a choice (`musl`, `glibc`) are its only values
+  (`variableInvalidChoice`). The value goes to the extra environment of the
+  settings, which the settings page shows too.
 
 ## Plugins
 

@@ -44,6 +44,14 @@ what it does, [install](docs/en/user/install.md), [use](docs/en/user/using.md),
 | --- | --- |
 | ![Home in a compact window](https://iili.io/nkxZhqN.png) | ![An SDK in a compact window](https://iili.io/nkxBZt2.png) |
 
+| The distribution of Java to list | Temurin, with the chip for long-term support |
+| --- | --- |
+| ![The distributions of Java](https://iili.io/n8exoAX.png) | ![Temurin releases with long-term support](https://iili.io/n8exXKQ.png) |
+
+| Flutter, with its channels and architectures | The options of Node.js |
+| --- | --- |
+| ![Flutter versions of the stable channel](https://iili.io/n8ezd57.png) | ![The options of Node.js](https://iili.io/n8ezRzg.png) |
+
 ## License
 
 vfox-plus is licensed under the [Apache License 2.0](LICENSE). Material Symbols

@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 )
@@ -225,14 +226,27 @@ func (c *Client) InstallPath(name, version string) (string, bool, error) {
 // SearchVersions returns versions of name that can be installed, newest
 // first.
 //
+// Whatever follows the plugin name is handed to the plugin, as `vfox search
+// <name> <argument>…` does: vfox-java lists the JDKs of the distribution that
+// `tem` or `all` names, and every other plugin ignores arguments.
+//
 // It may take a while: plugins fetch the list from the network unless vfox
-// has it cached (see the `cache.availableHookDuration` setting).
-func (c *Client) SearchVersions(name string) ([]core.AvailableVersion, error) {
+// has it cached (see the `cache.availableHookDuration` setting; vfox keeps one
+// answer per list of arguments).
+func (c *Client) SearchVersions(name string, arguments ...string) ([]core.AvailableVersion, error) {
 	checked, err := checkName(name)
 	if err != nil {
 		return nil, err
 	}
-	output, err := c.query([]string{"search", checked}, false)
+	args := []string{"search", checked}
+	for _, argument := range arguments {
+		checkedArgument, err := checkSearchArgument(argument)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, checkedArgument)
+	}
+	output, err := c.query(args, false)
 	if err != nil {
 		return nil, err
 	}
@@ -498,6 +512,18 @@ func checkVersion(version string) (string, error) {
 		return "", fmt.Errorf("Not a valid version: %s", version) //nolint:staticcheck // Shown to the user as it is.
 	}
 	return version, nil
+}
+
+// checkSearchArgument rejects an argument that vfox could take for a flag, and
+// one that is empty or holds a space or a control character, which a plugin
+// would see as several arguments or as none.
+func checkSearchArgument(argument string) (string, error) {
+	if argument == "" || strings.HasPrefix(argument, "-") || strings.IndexFunc(argument, func(r rune) bool {
+		return unicode.IsSpace(r) || unicode.IsControl(r)
+	}) >= 0 {
+		return "", fmt.Errorf("Not a valid search argument: %s", argument) //nolint:staticcheck // Shown to the user as it is.
+	}
+	return argument, nil
 }
 
 func checkConfigKey(key string) (string, error) {

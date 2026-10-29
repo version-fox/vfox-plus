@@ -53,7 +53,7 @@ RUN <<EOF
 set -eu
 test -n "$GO_VERSION"
 test -n "$GO_SHA256"
-curl -fsSL --retry 5 -o /tmp/go.tar.gz "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz"
+curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz"
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /opt
 rm /tmp/go.tar.gz
@@ -65,7 +65,7 @@ RUN <<EOF
 set -eu
 test -n "$GOLANGCI_LINT_VERSION"
 test -n "$GOLANGCI_LINT_SHA256"
-curl -fsSL --retry 5 -o /tmp/golangci-lint.tar.gz \
+curl -fsSL --retry 5 --retry-all-errors -o /tmp/golangci-lint.tar.gz \
   "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz"
 echo "$GOLANGCI_LINT_SHA256  /tmp/golangci-lint.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/golangci-lint.tar.gz -C /tmp

@@ -218,6 +218,25 @@ func TestSummarisesFailures(t *testing.T) {
 	}
 }
 
+// An install by name fails in the hook of the plugin, and vfox prints the sentence of
+// the plugin with a Lua traceback below it. The task keeps its lines without their
+// indentation, and the summary is still the sentence, not the end of the traceback.
+func TestSummarisesTheErrorOfAPluginWithoutItsTraceback(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	runner.On("install --yes java@99-tem", testsupport.FixtureOutput("install-plugin-error", 1))
+	cli := testClient(runner)
+	queue := state.NewTaskQueue(cli, 3, 2)
+	defer queue.Dispose()
+	finished := collectFinished(queue)
+	task := queue.Enqueue(mustCommand(cli.Install("java", "99-tem")))
+	waitFor(t, "failure", func() bool { return finished.count() == 1 })
+	message, _ := task.ErrorMessage()
+	want := "No JDK found for 99-tem on linux/amd64. Please check available versions with 'vfox search java'"
+	if task.Status() != state.TaskFailed || message != want {
+		t.Errorf("got %v %q", task.Status(), message)
+	}
+}
+
 func TestReportsExitCodeAndMissingExecutables(t *testing.T) {
 	runner := testsupport.NewFakeProcessRunner()
 	runner.On("update java", core.ProcessOutput{ExitCode: 4})

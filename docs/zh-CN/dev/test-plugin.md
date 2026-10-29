@@ -40,3 +40,7 @@ Available versions:
  - 2.0.0 (LTS) [testtool 2.0]
  - 1.0.0
 ```
+
+插件和 vfox-java 一样接受参数：`vfox search testsdk lts` 通过 `ctx.args` 把 `lts` 交给 `Available` 钩子，
+列表只有 `2.0.0`。端到端测试的 `real` 场景在搜索选择对话框里选中它（端到端构建为 `testsdk` 注册了一份
+档案，选择项为 `all` 与 `lts`），并检查真实的 vfox 把参数传了过去。

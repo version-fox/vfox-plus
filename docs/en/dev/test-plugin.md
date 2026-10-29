@@ -46,3 +46,9 @@ Available versions:
  - 2.0.0 (LTS) [testtool 2.0]
  - 1.0.0
 ```
+
+The plugin takes an argument, as vfox-java does: `vfox search testsdk lts` hands
+`lts` to the `Available` hook through `ctx.args`, and the list holds `2.0.0` only.
+The `real` scenario of the end-to-end tests chooses it from the dialog of the
+searches (the end-to-end build registers a profile for `testsdk`, with the choices
+`all` and `lts`) and checks that the real vfox passed the argument on.

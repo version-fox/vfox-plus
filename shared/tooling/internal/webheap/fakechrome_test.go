@@ -37,6 +37,7 @@ import (
 //	navigate-error cannot open the app
 //	redirect       sends the app somewhere else
 //	never-ready    never shows an SDK list
+//	no-element     shows the SDK list, but none of the elements that a scene clicks
 //	fragmented     sends the screenshot in fragments, with a ping inside
 //
 // fakeChromeLogEnv names the file where every command is logged, one line each.
@@ -225,6 +226,9 @@ func (p *fakePage) evaluate(s *serverSocket, id int, expression string) {
 	case strings.HasPrefix(expression, "localStorage.setItem"):
 		p.reply(s, id, map[string]any{"result": map[string]any{"type": "undefined"}})
 		p.event(s, "Page.loadEventFired") // The reload.
+	case strings.Contains(expression, "element.click()") || strings.HasPrefix(expression, "!!document.querySelector(") ||
+		strings.Contains(expression, "textContent"):
+		value(p.mode != "no-element") // A step of a scene: the element is there, or is not.
 	case strings.Contains(expression, "throw"):
 		p.reply(s, id, map[string]any{"result": map[string]any{"type": "object"}, "exceptionDetails": map[string]any{"text": "Uncaught"}})
 	default:

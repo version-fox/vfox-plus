@@ -39,6 +39,7 @@
     <string name="tls_body_unknown">The server certificate cannot be verified. Only continue on a network you trust.</string>
     <string name="trust_once">Trust once</string>
     <string name="load_failed">Cannot reach the server. Check the network and try again.</string>
+    <string name="open_link_failed">No app can open this link.</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_pair_new">Pair a new link</string>
     <string name="action_disconnect">Disconnect</string>

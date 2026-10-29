@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
@@ -44,7 +45,25 @@ func (a *App) startE2E() {
 		return
 	}
 	a.env.Reg.CollectText = true
+	a.model.Profiles.Register(testsdkProfile())
 	go a.runScenario(name)
+}
+
+// testsdkProfile is the profile of the offline test plugin, which takes an argument
+// like vfox-java does: `lts` lists the releases with long-term support only.
+func testsdkProfile() profile.Profile {
+	return profile.Profile{
+		Plugin: "testsdk",
+		Search: &profile.Search{
+			Label: profile.Text{EN: "Channel"}, Default: "all",
+			Choices: []profile.Choice{
+				{Value: "all", Name: profile.Text{EN: "Every version"}, Popular: true},
+				{Value: "lts", Name: profile.Text{EN: "Long-term support"}, Popular: true},
+			},
+		},
+		Shorthands: []profile.Shorthand{{Name: "1.0.0", Meaning: profile.Text{EN: "The first release"}}},
+		Facets:     []profile.Facet{{ID: "support", Label: profile.Text{EN: "Support"}, Kind: profile.FacetNote, Values: []string{"LTS"}}},
+	}
 }
 
 // afterFrame counts the build of the view that has just ended, when the registry

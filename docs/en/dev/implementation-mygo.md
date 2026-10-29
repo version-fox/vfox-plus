@@ -15,7 +15,7 @@ project, in Go:
 
 | Directory | What it does |
 | --- | --- |
-| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages — no UI |
+| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs and vfox-flutter) — no UI |
 | [`state/`](../../../mygo/state) | The observable controllers, the task queue (one state-changing command at a time, streamed output, download progress, cancellation, retry) |
 | [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages, the dialogs and the end-to-end scenarios |
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |
@@ -72,7 +72,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 
 `vfxtool prepare` needs the network the first time: it
 downloads the pinned Material Symbols font (or set `VFOX_PLUS_SYMBOLS` to a
-directory that has it) and cuts out the 56 icons of
+directory that has it) and cuts out the 57 icons of
 [`shared/icons.json`](../../../shared/icons.json), twice: outlined and filled (see
 [Icons](#how-the-user-interface-works)). The result is not committed;
 `//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if it is
@@ -97,7 +97,7 @@ the Go module and build caches in Docker volumes.
 | `vfxtool sandbox e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
 | `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
 | `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
-| `vfxtool sandbox screenshots` | Screenshots of every page |
+| `vfxtool sandbox screenshots` | Screenshots of every page, and of Java, Flutter and the options of Node.js |
 | `vfxtool sandbox all` | `check`, `e2e` and `package` |
 | `vfxtool sandbox shell` | A shell in the sandbox |
 | `vfxtool sandbox clean` | Deletes the image, the cache volumes and the results |
@@ -152,7 +152,8 @@ where you are, and `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive.
   an input does), on the main thread between two frames, so they exercise the
   real components, the state, process spawning, streaming, cancellation with
   `SIGTERM`, the settings file and vfox itself.
-  `vfxtool screenshots` runs the `screenshots` scenario.
+  `vfxtool screenshots` runs the `screenshots` scenario three times (see
+  [Screenshots](contributing.md#screenshots)).
 
 ## How the user interface works
 

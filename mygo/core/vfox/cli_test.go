@@ -169,6 +169,43 @@ func TestSearchAndAvailable(t *testing.T) {
 	}
 }
 
+func TestSearchPassesItsArgumentsToThePlugin(t *testing.T) {
+	const temurin = "Available versions:\n - 21.0.12.1+1-tem (LTS) (installed)\n - 25.0.4+9-tem (LTS, JavaFX)\n"
+	runner := testsupport.NewFakeProcessRunner().
+		On("search java tem", core.ProcessOutput{Stdout: temurin}).
+		On("search java", core.ProcessOutput{Stdout: "Available versions:\n - 25.0.2+10\n"})
+	cli := vfox.NewClient(runner, testConfig())
+	versions, err := cli.SearchVersions("java", "tem")
+	if err != nil || len(versions) != 2 || versions[0].Version != "21.0.12.1+1-tem" || !versions[0].Installed || versions[1].Note != "LTS, JavaFX" {
+		t.Fatalf("got %#v %v", versions, err)
+	}
+	if call := runner.Invocations()[0]; !reflect.DeepEqual(call.Arguments, []string{"search", "java", "tem"}) || call.WorkingDirectory != "/" {
+		t.Errorf("got %#v", call)
+	}
+	if versions, err := cli.SearchVersions("java"); err != nil || len(versions) != 1 {
+		t.Errorf("without an argument: %#v %v", versions, err)
+	}
+	if call := runner.Invocations()[1]; !reflect.DeepEqual(call.Arguments, []string{"search", "java"}) {
+		t.Errorf("got %#v", call)
+	}
+}
+
+func TestSearchRefusesArgumentsThatAreNotPlain(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner()
+	cli := vfox.NewClient(runner, testConfig())
+	for _, argument := range []string{"", "-h", "--version", "a b", "tem\n", "tem\t", "a\x00b"} {
+		if _, err := cli.SearchVersions("java", argument); err == nil {
+			t.Errorf("%q should be refused", argument)
+		}
+	}
+	if _, err := cli.SearchVersions("--all", "tem"); err == nil {
+		t.Error("the plugin name is checked as before")
+	}
+	if len(runner.Invocations()) != 0 {
+		t.Errorf("nothing runs for a bad argument: %v", runner.Invocations())
+	}
+}
+
 func TestConfiguration(t *testing.T) {
 	runner := testsupport.FixtureRunner().
 		On("config proxy.url http://proxy:8080", core.ProcessOutput{}).

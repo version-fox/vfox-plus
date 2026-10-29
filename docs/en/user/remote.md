@@ -12,9 +12,16 @@ vfox-plus pair
 Open the link it prints. Links work once and expire after a few minutes. The
 paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
-live progress and logs, and the settings.
+live progress and logs, and the settings. The plugins vfox-java, vfox-nodejs and
+vfox-flutter get everything they offer, as in the desktop application: the
+distribution of Java to list, filter chips, installation by name and the options
+with the download mirrors (see [Java, Node.js and
+Flutter](using.md#java-nodejs-and-flutter)). The Android app shows the same
+interface.
 
-![The paired web interface](https://iili.io/nv67lFs.png)
+| The paired web interface | Java in it: Temurin, long-term support |
+| --- | --- |
+| ![The paired web interface](https://iili.io/nv67lFs.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/n8eIitn.png) |
 
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*
@@ -76,7 +83,8 @@ for comparison in the browser. Bring your own certificate with
 ## Android app
 
 The Android app drives the vfox-plus on your PC from your phone: it shows the
-same interface as the paired browser above.
+same interface as the paired browser above. Links to other sites, such as the
+homepage of a plugin or its documentation, open in the browser of the phone.
 
 1. On the PC, run `vfox-plus-serve serve --allow-remote --port 8080` (or the Docker
    image, which opts in by itself) and keep it running. The terminal prints a

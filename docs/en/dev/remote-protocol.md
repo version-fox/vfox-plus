@@ -93,7 +93,41 @@ within the load timeout (2 minutes).
 | Method and path | Meaning |
 | --- | --- |
 | `GET /api/sdks/<name>/info` | Plugin metadata (`core.PluginInfo`): `{Name, Version, Homepage, InstallPath, Description}`. Unknown plugins answer 404; vfox failures answer 502. |
-| `GET /api/sdks/<name>/versions` | Installable versions (`core.AvailableVersion[]`): `{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`. Searches may take seconds; timeouts answer 504. |
+| `GET /api/sdks/<name>/versions[?search=<value>]` | Installable versions (`core.AvailableVersion[]`): `{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`. Without `search` the plugin lists the choice that the user made (what `PUT .../search` kept; the default of the plugin when none was made). `search` is the value of a choice of the plugin's [profile](#plugin-profiles) (for `java` the short name of a distribution, or `all`) and becomes the argument of `vfox search` for this request only; an unknown value, and any value for a plugin without such a choice, answer 400. For a plugin with a profile each version also has `parts` (the name taken apart: `{version, source: {value, name: {en, zh}}, flavors}`) and `facets` (`{<facet id>: [values]}`, left out when empty), so that the page needs no rules of its own. Searches may take seconds; timeouts answer 504. |
+| `GET /api/sdks/<name>/profile` | The profile of the plugin, see below. Plugins without one answer 404. |
+| `PUT /api/sdks/<name>/search` | Choose what the plugin lists: `{value}`, the value of a choice of its profile; the default of the plugin is a choice too, and an empty value means it. The application keeps the choice in the settings, so that it is what the plugin lists from now on, in every interface and after a restart. Answers `{value}`, the choice now. An unknown value and a body without a value answer 400, a plugin whose search takes no argument (and one without a profile) 404. |
+| `PUT /api/sdks/<name>/variables` | Set one environment variable that the profile lists: `{key, value}`, an empty value takes it away. A variable the plugin does not read, a value it does not take and a body without a key answer 400 with the reason, a plugin without a profile 404. The value joins the extra environment of the settings. |
+
+### Plugin profiles
+
+`GET /api/sdks/<name>/profile` answers what the application knows about the plugin
+(`mygo/core/profile`, see [the architecture](architecture.md#plugin-profiles)). Every
+text comes in both languages, `{"en": …, "zh": …}` (`zh` is left out where it would repeat
+`en`), so that the page chooses by its own language setting:
+
+```json
+{
+  "plugin": "java", "naming": "java",
+  "search": {"label": {"en": "Distribution", "zh": "发行版"}, "default": "open", "current": "tem",
+             "choices": [{"value": "tem", "name": {"en": "Temurin"}, "maker": {"en": "Eclipse Adoptium"}, "aliases": ["temurin"], "popular": true}]},
+  "shorthands": [{"name": "21-tem", "meaning": {"en": "The newest Temurin 21", "zh": "最新的 Temurin 21"}}],
+  "variables": [{"key": "VFOX_JAVA_GITHUB_MIRROR", "label": {"en": "GitHub mirror"}, "help": {"en": "…"},
+                 "kind": "url", "presets": [{"value": "https://gh-proxy.org/", "name": {"en": "gh-proxy"}}], "example": "https://gh-proxy.org/", "value": ""}],
+  "legacyFiles": [".sdkmanrc"], "legacyStrategy": false,
+  "facets": [{"id": "support", "label": {"en": "Support"}, "values": ["LTS"]}],
+  "guide": {"en": "…"}, "tips": [{"en": "…"}], "docs": [{"title": {"en": "Versions and names"}, "url": {"en": "https://…"}}],
+  "installed": {"21.0.12.1+1-tem": {"version": "21.0.12.1+1", "source": {"value": "tem", "name": {"en": "Temurin"}}, "flavors": []}}
+}
+```
+
+`variables[].value` is what vfox runs with now, and `installed` takes the names of the
+installed versions apart. `search.current` is the value of the choice that the plugin lists.
+`naming` is `java`, `flutter` or `plain`.
+
+A plugin that was added under an alias (`vfox add --alias coffee java`) is named by the
+alias in every path of `/api/sdks/<name>/…`, and has the profile of the plugin it was made
+from: the server asks `vfox info` which plugin it is. The choice of its search is kept under
+the alias.
 
 ## Tasks
 

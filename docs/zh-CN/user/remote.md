@@ -11,9 +11,13 @@ vfox-plus pair
 
 打开它打印的链接。链接一次性有效，几分钟后过期。配对后的浏览器得到完整界面：
 已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时进度与日志的任务、
-以及设置。
+以及设置。vfox-java、vfox-nodejs 与 vfox-flutter 这三个插件提供的功能一应俱全，和桌面应用一样：
+Java 要列出的发行版、筛选 Chip、按名称安装，以及带下载镜像的选项页（见
+[Java、Node.js 与 Flutter](using.md#javanodejs-与-flutter)）。安卓应用显示的是同一个界面。
 
-![配对后的 Web 界面](https://iili.io/n87KTiu.png)
+| 配对后的 Web 界面 | 其中的 Java：Temurin，长期支持版 |
+| --- | --- |
+| ![配对后的 Web 界面](https://iili.io/n87KTiu.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/n8eIQMG.png) |
 
 Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
 按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，`serve`
@@ -63,7 +67,8 @@ docker run --rm -p 8080:8080 vfox-plus
 
 ## 安卓 App
 
-安卓 App 用手机操控 PC 上的 vfox-plus：界面与上述配对浏览器相同。
+安卓 App 用手机操控 PC 上的 vfox-plus：界面与上述配对浏览器相同。界面里指向其他网站的链接
+（插件主页、插件文档）会在手机的浏览器里打开。
 
 1. PC 上运行 `vfox-plus-serve serve --allow-remote --port 8080`（或 Docker 镜像，
    镜像自行 opt-in）并保持运行。终端打印配对链接，HTTPS 还有证书指纹；非回环

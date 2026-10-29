@@ -83,7 +83,8 @@
 - 页眉：72 dp 头像、名称、当前版本标签与插件版本标签（`sdkPluginVersion`）、插件描述。
   动作：更新插件（`sdkUpdatePlugin`，运行时变加载指示器）与菜单
   `actionOpenHomepage`、`sdkRemovePlugin`。窄面板动作移至头像上行。
-- 连接按钮组在 `sdkTabInstalled`（带计数）与 `sdkTabAvailable` 间切换。
+- 连接按钮组在 `sdkTabInstalled`（带计数）与 `sdkTabAvailable` 间切换；有
+  [配置档案](architecture.md#插件配置档案)的插件还有 `sdkTabOptions`（图标 `options`）。页签淡入淡出切换。
 
 **已安装**列出已安装版本，新版在前：
 
@@ -93,15 +94,43 @@
   `versionUseInProject`。溢出菜单提供 `versionCopyPath` 与 `versionUninstall`。
 - 版本有任务运行时动作变加载指示器。
 - 空：`sdkInstalledEmpty` 配 `sdkBrowseVersions`。
+- 有配置档案的插件，版本名称会被拆开，标题下第二行显示发行版（`Temurin`、`OpenJDK`）与
+  类型（`JavaFX`、`x64`、`OpenHarmony`）。
 
-**可用**首次打开跑 `vfox search`：
+**可用**首次打开跑 `vfox search`。有配置档案的插件，第一行放：
+
+- **搜索按钮** `availableChoiceButton`（“发行版：Temurin”；选择项的标签来自档案，图标 `registry`）。
+  档案里有这样的搜索时（`java`），它会打开[选择对话框](#选择与名称)来决定搜索列出什么；所选值成为
+  `vfox search` 的参数，按插件保存在设置里（`searches`），所以重启后仍在，Web 界面里也一样，之前选择的列表立即消失；
+- `availableInstallByName`，描边按钮，打开[按名称安装对话框](#选择与名称)。每个插件都有。
+
+列表加载中或失败时这一行仍在，方便改选。随后是：
 
 - 过滤框（`availableSearchHint`，匹配版本与备注）、连接按钮组
   `availableFilterAll` / `availableFilterTagged`（有备注如 LTS）/
   `availableFilterInstalled`，与版本数（`availableCount`）。
-- 懒加载分段列表。每版备注成标签，附带工具（`npm 11.19.1`）。尾动作为
-  `versionInstall`；已安装为禁用 `versionInstalled`；安装中为波浪进度配
+- **筛选 Chip**：档案里每个维度只要有一个已列出的版本具有其值，就占一行，行首是维度标签
+  （`Support`：LTS、JavaFX；`Channel`：stable、beta、dev、OpenHarmony；`Architecture`：x64、arm64），
+  有 Chip 开启时显示 `availableClearFilters`。Chip 是 Material 3 的筛选 Chip
+  （见[设计系统](design-system.md#组件)）：同一维度内的值是“或”，维度之间、过滤框与按钮组互相收窄。
+- 懒加载分段列表。每版备注成标签，附带工具（`npm 11.19.1`）；搜索列出多个发行版时，还有一个
+  发行版标签。尾动作为 `versionInstall`；已安装为禁用 `versionInstalled`；安装中为波浪进度配
   `taskDownloading` 与取消按钮。
+
+**选项**按插件的档案用分段列表构建：
+
+- 该插件版本名称的说明（`optionsGuideTitle`）；
+- `optionsVariables`：插件读取的每个环境变量一项（Java 与 Flutter 的 GitHub 镜像、Node.js 的下载镜像、
+  Flutter 的存储镜像、Node.js 的 C 库，后者带 `optionsVariableAdvanced` 标签），显示变量名、值（若是
+  已检查过的镜像则带镜像名）或 `optionsVariableUnset`，以及 `optionsVariableChange`，打开
+  [变量对话框](#选择与名称)；
+- `optionsLegacy`：插件让 vfox 读取的版本文件，以标签显示（`.sdkmanrc`；`.node-version` 与 `.nvmrc`），
+  没有时为 `optionsLegacyNone`；vfox 配置里的开关 `configLegacyEnable`；策略有影响时（Node.js）
+  显示 `configLegacyStrategy`，没有影响时（Java）显示 `optionsLegacyStrategyIgnored`；
+- `optionsShorthands`：插件除列出的版本外接受的名称，每个带含义与 `optionsShorthandTry`，后者用该名称
+  打开按名称安装对话框；
+- `optionsTips`，档案里的须知；
+- `optionsDocs`：用应用的语言打开该插件文档的链接。
 
 ### 确认与对话框
 
@@ -113,6 +142,21 @@
   （`useProjectInvalid`）。
 
 对话框按弹簧缩放进入。
+
+#### 选择与名称
+
+- **选择**（`searchChoose…`）：标题为选择项的标签（`Distribution`）的对话框，含过滤框
+  （`searchChooseHint`，匹配简称、全称、名称与厂商，两种语言都可）和按档案顺序排列的选择列表，
+  常用的在前；每项显示名称、厂商与简称，当前项带对勾，vfox 不带参数时列出的那一项带 `searchChoiceDefault`。
+  选中即关闭对话框并列出该项。
+- **按名称安装**（`installName…`）：字段 `installNameField`，接受 `vfox install` 中 `<插件>@` 后面的部分
+  （辅助文字 `installNameHelp`）；有档案的插件还有 `installNameExamples`，每个简写一个筛选 Chip，点击
+  填入字段，并显示当前所输简写的含义。空名称（`installNameRequired`）、含空格或以短横线开头的名称
+  （`installNameInvalid`）会被拒绝。确认后排队 `vfox install --yes <插件>@<名称>` 并切到任务页。
+- **变量**（`variable…`）：变量的说明与名称；地址类变量有等宽字段 `variableAddress`（地址必须以 `http://`
+  或 `https://` 开头，`variableInvalidAddress`）；`variablePresets` 下每个已检查的值一个 Chip，再加一个
+  取消变量的 Chip `variableDefaultOption`。选择类变量（`musl`、`glibc`）只能取这些值
+  （`variableInvalidChoice`）。值会写入设置里的额外环境变量，设置页也会显示。
 
 ## Plugins
 

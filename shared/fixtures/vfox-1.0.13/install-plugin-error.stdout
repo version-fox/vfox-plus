@@ -1,0 +1,5 @@
+plugin [PreInstall] method error: /tmp/vfox-sb/home/.vfox/plugin/java/hooks/pre_install.lua:42: No JDK found for 99-tem on linux/amd64. Please check available versions with 'vfox search java'
+stack traceback:
+	[G]: in function 'error'
+	/tmp/vfox-sb/home/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk
+	[G]: ?

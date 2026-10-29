@@ -13,8 +13,9 @@
 // limitations under the License.
 
 // Package screenshots ports shared/tools/screenshots.sh: it runs the
-// "screenshots" scenario twice (plain and with a slow fake vfox) and captures
-// the screen with ImageMagick whenever the application prints "e2e: SHOT <name>".
+// "screenshots" scenario three times (plain, with a slow fake vfox, and with
+// Java and Flutter installed next to Node.js) and captures the screen with
+// ImageMagick whenever the application prints "e2e: SHOT <name>".
 package screenshots
 
 import (
@@ -287,5 +288,9 @@ func Run(args []string) error {
 	if err := runOnce(outputDir, appCmd, nil); err != nil {
 		return err
 	}
-	return runOnce(outputDir, appCmd, []string{"VFOX_PLUS_FAKE_DELAY=4"})
+	if err := runOnce(outputDir, appCmd, []string{"VFOX_PLUS_FAKE_DELAY=4"}); err != nil {
+		return err
+	}
+	// The pages of the plugins that have a profile need a machine that has them.
+	return runOnce(outputDir, appCmd, []string{"VFOX_PLUS_FAKE_INVENTORY=profiles"})
 }

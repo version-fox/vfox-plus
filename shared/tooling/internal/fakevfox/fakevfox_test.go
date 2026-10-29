@@ -222,3 +222,52 @@ func TestRunCommandContract(t *testing.T) {
 		}
 	})
 }
+
+func TestRunCommandReplaysTheCapturesOfJavaAndFlutter(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"search-java", "search-java-tem", "search-java-all", "search-flutter", "info-java", "info-flutter"} {
+		writeFixture(t, dir, name, name+"\n", "")
+	}
+	fixtureEnv(t, dir)
+	infoJava := "info java --format {{.Name}}"
+	for _, c := range []struct{ command, want string }{
+		{"search java", "search-java\n"},
+		{"search java tem", "search-java-tem\n"},
+		{"search java all", "search-java-all\n"},
+		{"search flutter", "search-flutter\n"},
+		{infoJava, "info-java\n"},
+		{"info flutter --format {{.Name}}", "info-flutter\n"},
+	} {
+		var out, errOut strings.Builder
+		if code := runCommand(strings.Fields(c.command), &out, &errOut); code != 0 || out.String() != c.want {
+			t.Errorf("%s: exit %d, stdout %q, want %q", c.command, code, out.String(), c.want)
+		}
+	}
+	// Another distribution is not a capture: the fake answers like it does for any other plugin.
+	var out, errOut strings.Builder
+	if code := runCommand([]string{"search", "java", "zulu"}, &out, &errOut); code != 0 || !strings.Contains(out.String(), "2.1.0 (LTS)") {
+		t.Errorf("search java zulu: exit %d, stdout %q", code, out.String())
+	}
+}
+
+func TestRunCommandListsTheMachineWithJavaAndFlutterWhenAsked(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "list", "plain list\n", "")
+	writeFixture(t, dir, "current", "plain current\n", "")
+	writeFixture(t, dir, "list-profiles", "java list\n", "")
+	writeFixture(t, dir, "current-profiles", "java current\n", "")
+	fixtureEnv(t, dir)
+	for _, c := range []struct{ inventory, command, want string }{
+		{"", "list", "plain list\n"},
+		{"", "current", "plain current\n"},
+		{"profiles", "list", "java list\n"},
+		{"profiles", "current", "java current\n"},
+		{"other", "list", "plain list\n"},
+	} {
+		t.Setenv("VFOX_PLUS_FAKE_INVENTORY", c.inventory)
+		var out, errOut strings.Builder
+		if code := runCommand([]string{c.command}, &out, &errOut); code != 0 || out.String() != c.want {
+			t.Errorf("inventory %q, %s: exit %d, stdout %q, want %q", c.inventory, c.command, code, out.String(), c.want)
+		}
+	}
+}

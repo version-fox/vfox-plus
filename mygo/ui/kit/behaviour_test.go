@@ -128,6 +128,55 @@ func TestIconButtonsAreNamedByTheirTooltip(t *testing.T) {
 	}
 }
 
+func TestFilterChipsFlipAndTellTheirState(t *testing.T) {
+	lts, javafx := false, true
+	h := newTested(t, 600, 120, func(c Ctx) {
+		Row(c).Gap(8).Padding(16).Children(func() {
+			FilterChip(c, ChipSpec{ID: "lts", Label: "LTS", Selected: lts, OnClick: func() { lts = !lts }})
+			FilterChip(c, ChipSpec{ID: "fx", Label: "JavaFX", Selected: javafx, OnClick: func() { javafx = !javafx }})
+			FilterChip(c, ChipSpec{ID: "off", Label: "Locked", Disabled: true})
+		})
+	})
+	if node, _ := h.node(RoleButton, "LTS"); node.Selected || !node.Enabled {
+		t.Errorf("a chip that is off: %+v", node)
+	}
+	if node, _ := h.node(RoleButton, "JavaFX"); !node.Selected {
+		t.Errorf("a chip that is on says so: %+v", node)
+	}
+	if node, _ := h.node(RoleButton, "Locked"); node.Enabled {
+		t.Errorf("a disabled chip is inert: %+v", node)
+	}
+	offWidth := mustNode(t, h, "LTS").Rect.W
+	h.click("LTS")
+	if !lts {
+		t.Error("a click turns the filter on")
+	}
+	if node, _ := h.node(RoleButton, "LTS"); !node.Selected {
+		t.Errorf("and the chip follows: %+v", node)
+	}
+	h.click("JavaFX")
+	if javafx {
+		t.Error("a click on a chip that is on turns it off")
+	}
+	// The chip widens by the check mark and the space after it while it is on.
+	on := mustNode(t, h, "LTS")
+	if on.Rect.H != chipHeight {
+		t.Errorf("a chip is 32 dp high: %v", on.Rect)
+	}
+	if grown := on.Rect.W - offWidth; grown < chipIcon || grown > chipIcon+8+1 {
+		t.Errorf("LTS grew from %v to %v, by the check mark and its space", offWidth, on.Rect.W)
+	}
+}
+
+func mustNode(t *testing.T, h *tested, name string) *Node {
+	t.Helper()
+	node, ok := h.node(RoleButton, name)
+	if !ok {
+		t.Fatalf("no button %q", name)
+	}
+	return node
+}
+
 func TestSwitchesFlipAndButtonGroupsSelect(t *testing.T) {
 	on := false
 	selected := "a"

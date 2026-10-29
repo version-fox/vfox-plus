@@ -149,6 +149,7 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 | 加载指示器（含式与裸式） | [Loading indicator](https://m3.material.io/components/loading-indicator) | `ui/kit/loading.go` 的 `LoadingIndicator` |
 | 波浪线性进度（确定与不定） | [Progress indicators](https://m3.material.io/components/progress-indicators) | `ui/kit/loading.go` 的 `WavyProgress` |
 | 分段列表 | [Lists](https://m3.material.io/components/lists) | `ui/kit/list.go` 的 `ListGroup`、`ListItem` |
+| 筛选 Chip | [Chips](https://m3.material.io/components/chips) | `ui/kit/chip.go` 的 `FilterChip` |
 | 搜索栏、卡片、对话框、菜单、snack bar、开关、文本框 | Material 3 | `ui/kit` 的 `SearchBar`、`Card`、`Menu`、对话框与 snack bar，`ui/kit/theme.go` 定制 |
 
 ### 波浪进度指示器
@@ -157,6 +158,15 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 - 指示器 `primary`，轨道 `secondaryContainer`。
 - 波幅 3 dp，每秒走一波长。确定 40 dp 波长，不定 20 dp。
 - 确定：10% 以下与 95% 以上波形压平，轨道末端 2 dp 停指示。
+
+### 筛选 Chip
+
+- 高 32 dp，内边距 12 dp，标签 `labelLarge`。关：8 dp 胶囊，1 dp `outlineVariant` 描边，内容
+  `onSurfaceVariant`。开：`secondaryContainer` 胶囊，内容 `onSecondaryContainer`，无描边，前面有勾号。
+- 状态变化时 Chip 用快速空间弹簧形变：筛选开启时圆角从 8 dp 长到整个高度，描边淡出，填充淡入，18 dp 的勾号
+  通过撑宽 Chip 滑入；按下时圆角收到 4 dp。
+- 一行 Chip 可换行；同一行的 Chip 互为“或”。Web 界面用 CSS（`.chip`）画同样的 Chip，圆角相同，弹簧用
+  `cubic-bezier(.34, 1.3, .64, 1)` 曲线表示。
 
 ### 加载指示器
 

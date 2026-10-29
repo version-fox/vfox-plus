@@ -84,6 +84,10 @@ type AppSettings struct {
 	// Whether this machine may be driven remotely: the desktop serves a
 	// pairing server on loopback while it runs. Off by default.
 	RemoteAccess bool
+	// What the user chose to list for the plugins whose search takes an
+	// argument, such as the distribution of Java: the plugin name, then the
+	// value of the choice (`tem`). A plugin that lists its default has no entry.
+	Searches map[string]string
 	// Keys of the settings file that this version does not know, kept as
 	// they are so that settings written by a newer version survive.
 	Unknown map[string]interface{}
@@ -97,6 +101,7 @@ func DefaultSettings() AppSettings {
 		SeedColor:        DefaultSeedColor,
 		Language:         LanguageSystem,
 		ExtraEnvironment: map[string]string{},
+		Searches:         map[string]string{},
 		Unknown:          map[string]interface{}{},
 	}
 }
@@ -104,12 +109,13 @@ func DefaultSettings() AppSettings {
 var knownKeys = map[string]bool{
 	"theme": true, "useSystemColor": true, "seedColor": true, "language": true,
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
-	"remoteAccess": true,
+	"remoteAccess": true, "searches": true,
 }
 
 // Clone returns a copy that shares no map with s, so that it can be modified.
 func (s AppSettings) Clone() AppSettings {
 	s.ExtraEnvironment = maps.Clone(s.ExtraEnvironment)
+	s.Searches = maps.Clone(s.Searches)
 	s.Unknown = maps.Clone(s.Unknown)
 	return s
 }
@@ -119,6 +125,7 @@ func (s AppSettings) Clone() AppSettings {
 func SettingsFromJSON(data interface{}) AppSettings {
 	settings := DefaultSettings()
 	settings.ExtraEnvironment = map[string]string{}
+	settings.Searches = map[string]string{}
 	settings.Unknown = map[string]interface{}{}
 	object, ok := data.(map[string]interface{})
 	if !ok {
@@ -150,6 +157,13 @@ func SettingsFromJSON(data interface{}) AppSettings {
 		for key, value := range environment {
 			if text, ok := value.(string); ok {
 				settings.ExtraEnvironment[key] = text
+			}
+		}
+	}
+	if searches, ok := object["searches"].(map[string]interface{}); ok {
+		for plugin, value := range searches {
+			if text, ok := value.(string); ok && text != "" {
+				settings.Searches[plugin] = text
 			}
 		}
 	}
@@ -192,6 +206,11 @@ func settingsJSON(settings AppSettings) string {
 	fmt.Fprintf(&out, ",%q:%s", "extraEnvironment", environment)
 	fmt.Fprintf(&out, ",%q:%v", "railExpanded", settings.RailExpanded)
 	fmt.Fprintf(&out, ",%q:%v", "remoteAccess", settings.RemoteAccess)
+	searches, err := json.Marshal(settings.Searches)
+	if err != nil || string(searches) == "null" {
+		searches = []byte("{}")
+	}
+	fmt.Fprintf(&out, ",%q:%s", "searches", searches)
 	for _, key := range sortedKeys(settings.Unknown) {
 		quoted, err := json.Marshal(settings.Unknown[key])
 		if err != nil {
@@ -227,11 +246,16 @@ func (s AppSettings) Equal(other AppSettings) bool {
 		s.SeedColor != other.SeedColor || s.Language != other.Language ||
 		s.VfoxExecutable != other.VfoxExecutable || s.RailExpanded != other.RailExpanded ||
 		s.RemoteAccess != other.RemoteAccess ||
-		len(s.ExtraEnvironment) != len(other.ExtraEnvironment) {
+		len(s.ExtraEnvironment) != len(other.ExtraEnvironment) || len(s.Searches) != len(other.Searches) {
 		return false
 	}
 	for key, value := range s.ExtraEnvironment {
 		if other.ExtraEnvironment[key] != value {
+			return false
+		}
+	}
+	for key, value := range s.Searches {
+		if other.Searches[key] != value {
 			return false
 		}
 	}

@@ -173,6 +173,51 @@ func TestSummarizeError(t *testing.T) {
 	}
 }
 
+func TestSummarizeErrorOfAPluginLeavesOutTheTraceback(t *testing.T) {
+	// What vfox 1.0.13 prints for `vfox install java@99-tem`: the error of the hook of
+	// the plugin and a Lua traceback on standard output, the trailer on standard error.
+	stdout := "plugin [PreInstall] method error: /home/u/.vfox/plugin/java/hooks/pre_install.lua:42: " +
+		"No JDK found for 99-tem on linux/amd64. Please check available versions with 'vfox search java'\n" +
+		"stack traceback:\n\t[G]: in function 'error'\n\t/home/u/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk\n\t[G]: ?\n"
+	want := "No JDK found for 99-tem on linux/amd64. Please check available versions with 'vfox search java'"
+	if got := vfox.SummarizeError(stdout, "failed to install java\n"); got != want {
+		t.Errorf("got %q", got)
+	}
+	// Without the trailer (vfox up to 1.0.12 printed everything on standard output).
+	if got := vfox.SummarizeError(stdout+"failed to install java\n", ""); got != want {
+		t.Errorf("got %q", got)
+	}
+	// A Windows path has a colon of its own; a hook without a file; a message that has a
+	// number and a colon in it.
+	for line, sentence := range map[string]string{
+		`plugin [Available] method error: C:\Users\u\.vfox\plugin\java\hooks\available.lua:15: Unsupported distribution: foo`: "Unsupported distribution: foo",
+		"plugin [PreUse] method error: java@99-tem is not installed":                                                          "java@99-tem is not installed",
+		"plugin [PreInstall] method error: /p/pre_install.lua:7: get version failed: Get \"https://x/y\": EOF (status nil)":   "get version failed: Get \"https://x/y\": EOF (status nil)",
+		"plugin [PostInstall] method error: /p/post.lua:3: expected 3:4: not what we wanted":                                  "expected 3:4: not what we wanted",
+		"plugin [Broken] method error: ":          "plugin [Broken] method error:",
+		"plugin loading failed: the file is gone": "plugin loading failed: the file is gone",
+	} {
+		if got := vfox.SummarizeError(line+"\nstack traceback:\n\t[G]: ?\n", ""); got != sentence {
+			t.Errorf("%q: got %q, want %q", line, got, sentence)
+		}
+	}
+	// A task keeps its lines without the indentation.
+	flat := "plugin [PreInstall] method error: /home/u/.vfox/plugin/java/hooks/pre_install.lua:42: " + want + "\n" +
+		"stack traceback:\n[G]: in function 'error'\n/home/u/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk\n" +
+		"/p/x.lua:9: in function <x.lua:8>\n...(skipping 3 levels)\n[G]: ?\n"
+	if got := vfox.SummarizeError(flat, "failed to install java"); got != want {
+		t.Errorf("got %q", got)
+	}
+	// What follows a traceback and looks like no entry of it stays.
+	if got := vfox.SummarizeError("stack traceback:\n[G]: ?\nfailed to download x@1: EOF\n", ""); got != "failed to download x@1: EOF" {
+		t.Errorf("got %q", got)
+	}
+	// Indented lines that are no part of a traceback stay.
+	if got := vfox.SummarizeError("failed:\n  reason one\n  reason two\n", ""); got != "reason two" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestStripAnsi(t *testing.T) {
 	if got := core.StripANSI("\x1b[1;32mok\x1b[0m \x1b]8;;https://x\x07link\x1b]8;;\x07 \x1bMx"); got != "ok link x" {
 		t.Errorf("got %q", got)

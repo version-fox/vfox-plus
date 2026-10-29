@@ -23,6 +23,13 @@
 // for commands that are not about a project. It keeps no state: installing a
 // version does not add it to the output of `vfox list`.
 //
+// It also replays the searches and the plugin information of java and flutter,
+// the plugins that vfox-plus knows more about. Their searches (`search java`,
+// `search java tem`, `search java all`, `search flutter`) are real lists, and
+// VFOX_PLUS_FAKE_INVENTORY=profiles makes `list` and `current` answer for a
+// machine that has Java and Flutter installed next to Node.js, which the
+// screenshots of their pages need.
+//
 // VFOX_PLUS_FIXTURES is the fixture directory, by default the vfox-1.0.13
 // directory next to the running executable.
 package fakevfox
@@ -98,11 +105,16 @@ func runCommand(args []string, out, errOut io.Writer) int {
 	// The dispatch table mirrors the case statement of fake-vfox.sh, which
 	// matches on "$*" with the arguments joined by spaces.
 	joined := strings.Join(args, " ")
+	profiles := os.Getenv("VFOX_PLUS_FAKE_INVENTORY") == "profiles"
 	switch {
 	case joined == "--version":
 		return reply("version")
+	case joined == "list" && profiles:
+		return reply("list-profiles")
 	case joined == "list":
 		return reply("list")
+	case joined == "current" && profiles:
+		return reply("current-profiles")
 	case joined == "current":
 		return reply("current")
 	case joined == "available":
@@ -115,11 +127,23 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("search-maven-installed")
 	case joined == "search nodejs":
 		return reply("search-nodejs")
+	case joined == "search java":
+		return reply("search-java")
+	case joined == "search java tem":
+		return reply("search-java-tem")
+	case joined == "search java all":
+		return reply("search-java-all")
+	case joined == "search flutter":
+		return reply("search-flutter")
 	case strings.HasPrefix(joined, "search "):
 		fmt.Fprint(out, "Available versions:\n - 2.1.0 (LTS) [tool 2.1]\n - 2.0.0\n - 1.0.0\n")
 		return 0
 	case strings.HasPrefix(joined, "info nodejs --format "):
 		return reply("info")
+	case strings.HasPrefix(joined, "info java --format "):
+		return reply("info-java")
+	case strings.HasPrefix(joined, "info flutter --format "):
+		return reply("info-flutter")
 	case isInfoFormat(joined):
 		// Plugin information for plugins without a captured fixture.
 		sdk := args[1]

@@ -129,44 +129,79 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 ### 截图
 
 文档图片不提交：托管在 [freeimage.host](https://freeimage.host)（免账号免费图床）后
-引用。`vfxtool sandbox screenshots` 可复现地渲染截图到
-`dist/sandbox/mygo/screenshots/`：每个页面 × 双主题 × 双语言、窄布局与安装中状态，
-xfwm4 Greybird 标题栏（现代 GNOME 应用观感），Ubuntu 默认壁纸而非裸 X 的黑色。
-[用户指南](../user/index.md) 引用 `home`、`sdks`、`dark-available`、
-`installing`、`tasks`、`plugins`、`zh-settings`、
-`compact-home` 与 `compact-detail`。[远端指南](../user/remote.md)引用
-`webapp-en` 与 `webapp-zh`：英文与简体中文的配对后 Web 界面。用 headless
-服务与 headless Chrome 渲染，语言为截图固定：
+引用。
+
+**桌面应用。** `vfxtool sandbox screenshots` 可复现地把图渲染到
+`dist/sandbox/mygo/screenshots/`：xfwm4 Greybird 标题栏（现代 GNOME 应用观感），
+Ubuntu 默认壁纸而非裸 X 的黑色。它让端到端构建的 `screenshots` 场景对着假 vfox
+跑三遍，应用每到要截屏的时刻就打印 `e2e: SHOT <名称>`：
+
+| 运行 | 拍什么 |
+| --- | --- |
+| 普通 | 每个页面 × 双主题 × 双语言与窄布局：`home`、`sdks`、`available`、`tasks`、`plugins`、`dialog`、`settings`、`dark-expanded`、`dark-sdks`、`dark-available`、`zh-home`、`zh-settings`、`compact-home`、`compact-detail` |
+| `VFOX_PLUS_FAKE_DELAY=4` | 安装中：`installing` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`zh-options`、`zh-java-available`、`compact-java` |
+
+要多拍一张，就在 `mygo/ui/e2e_scenarios.go` 的 `screenshotsScenario` 或 `profilesScreenshots` 里加一句
+`s.shot("名称")`。它之前的步骤像人一样点击、等待，靠用户看到的名字找控件，所以改了名的按钮
+会让场景失败，而不是拍出一张错的图。
+
+README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-available`、`installing`、
+`tasks`、`plugins`、`zh-settings`、`compact-home`、`compact-detail`、`java-choose`、
+`java-temurin`、`flutter-available` 与 `options`。[使用说明](../user/using.md)引用
+`java-install-name` 与 `options-mirror`，中文版引用 `zh-java-available` 与 `zh-options`。
+[远端指南](../user/remote.md)引用 `webapp-en` 与 `webapp-zh`（英文与简体中文的配对后 Web 界面），
+以及手机上 Web 界面的 `java-temurin` 场景的两种语言版本（`web-phone-java-temurin` 与
+`web-phone-zh-java-temurin`，用 `--window 412,915` 拍）。其余的图是改界面时用来看的，没有文档引用它们。
+
+**Web 界面。** 用 headless 服务与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
+可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
+`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`flutter-chips`、`options` 与
+`options-mirror`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
+`mygo/pair/webapp.html` 检查场景点击的元素）。每张图都用自己的服务与 HOME，因为所选发行版保存在服务的
+设置里，选了发行版的场景会改变它之后的每一张图：
 
 ```sh
 go -C mygo build -o /tmp/vfox-plus-serve ./cmd/vfox-plus-serve
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
-mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
-HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
-  VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 NO_COLOR=1 \
-  /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
-for i in $(seq 1 30); do
-  LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
-  [ -n "$LINK" ] && break
-  sleep 1
-done
-/tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
-  --pairing "$LINK" --output /tmp/shot.txt --screenshot webapp-en.png \
-  --lang en --window 412,915 --idle 0 --chrome "$(which google-chrome)"
+
+# shoot 名称 语言 宽,高 [webheap 的其他选项]
+shoot() {
+  name=$1 lang=$2 window=$3; shift 3
+  rm -rf /tmp/shot-home && mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
+  HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
+    VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 VFOX_PLUS_FAKE_INVENTORY=profiles NO_COLOR=1 \
+    /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
+  server=$!
+  for i in $(seq 1 30); do
+    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
+    [ -n "$LINK" ] && break
+    sleep 1
+  done
+  /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
+    --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
+    --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
+  kill "$server"
+}
+shoot webapp-en en 412,915
+shoot web-java-temurin en 1280,800 --scene java-temurin
 ```
 
 （`PATH` 首位放一个 `vfox` 可执行文件——`vfxtool` 的复制品配夹具即假
-vfox——SDK 列表才有内容；`--lang` 固定界面语言；`--window 412,915` 拍文档用的
-手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；`--idle 0` 跳过测量堆所需的、
-停在打开页面上的 20 秒；`--tab` 在拍照前打开某个页面，`--dark` 用深色主题拍；
+vfox——SDK 列表才有内容，`VFOX_PLUS_FAKE_INVENTORY=profiles` 让它成为装着 Java 与 Flutter 的机器；
+`--lang` 固定界面语言；`--window 412,915` 拍手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；
+`--idle 0` 跳过测量堆所需的、停在打开页面上的 20 秒；`--dark` 用深色主题拍；
 `--chrome` 接受任何讲 CDP 的 Chrome，不传则工具在 `$CHROME_BIN` 和 `PATH`
 上自动找。）上传前看一眼图的尺寸
 （`file webapp-en.png`）：不是每个 Chrome 都保持这么小的窗口。Chrome for
 Testing 156 把 `--window 412,915` 拍成了 500×715 的图，同版本的
 `chrome-headless-shell` 恰好是 412×915，尺寸不对时用 `--chrome` 传它。
-Android 截图 `screenshot-android` 来自 CI：`android.yml` 的 `measure` 任务在模拟器跑
+
+**Android。** Android 截图 `screenshot-android` 来自 CI：`android.yml` 的 `measure` 任务在模拟器跑
 release APK，`vfxtool measure-apk` 截冷启动，任务上传为
-`screenshot-android` 构件。用 `gh run download` 取回后同样上传。上传新图：
+`screenshot-android` 构件。用 `gh run download` 取回后同样上传。
+
+**上传。** 上传新图：
 
 ```sh
 curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json \

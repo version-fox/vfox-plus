@@ -176,7 +176,32 @@ func realScenario(s *scenario) {
 			notes++
 		}
 	}
-	check(notes == 1, "the note is shown once")
+	check(notes == 2, "the note is shown once on the version, and once on the chip that filters by it")
+
+	// The plugin takes an argument, which the real vfox hands to its Available hook:
+	// the long-term support releases only. A chip of the notes narrows the list in the
+	// same way, without asking vfox again.
+	s.step("choose what to list")
+	s.clickButton("LTS")
+	s.waitForText("1 version")
+	s.clickButton("Clear filters")
+	s.waitForText("2 versions")
+	s.clickButton("Channel: Every version")
+	s.waitForText("Long-term support")
+	s.clickItem("Long-term support")
+	s.waitForText("Channel: Long-term support")
+	s.waitUntil("the list of the long-term support releases", func() bool {
+		versions, ok := a.detailFor("testsdk").controller.Versions.Value()
+		return ok && len(versions) == 1
+	}, defaultWait)
+	versions, _ := a.detailFor("testsdk").controller.Versions.Value()
+	check(versions[0].Version == "2.0.0" && versions[0].Note == "LTS", "vfox passed the argument to the plugin")
+	check(strings.Contains(s.vfox("search", "testsdk", "lts"), "2.0.0") && !strings.Contains(s.vfox("search", "testsdk", "lts"), "1.0.0"), "vfox itself lists the same")
+	s.waitForText("1 version")
+	s.clickButton("Channel: Long-term support")
+	s.clickItem("Every version")
+	s.waitForText("2 versions")
+
 	s.clickButtonNear("2.0.0", "Install")
 	s.waitForTask("Install testsdk@2.0.0")
 	progress, _ := s.newestTask().Progress()
@@ -201,11 +226,17 @@ func realScenario(s *scenario) {
 	check(!strings.Contains(s.vfox("list", "testsdk"), "1.0.0"), "vfox does not list the partial version")
 	control("release")
 	pause(500)
-	s.clickButtonNear("1.0.0", "Install")
+	// Install it again by its name, which vfox looks up while it installs.
+	s.step("install by name")
+	s.clickButton("Install by name…")
+	s.waitForText("Install testsdk by name")
+	s.fill("Version name", "1.0.0", false)
+	s.tapDialog(true)
 	s.waitForTask("Install testsdk@1.0.0")
 
 	// Make 2.0.0 the global default.
 	s.step("use")
+	s.navigate("SDKs")
 	s.clickButton("Installed (2)")
 	s.waitForText("1.0.0")
 	s.clickButtonNear("2.0.0", "Use")
@@ -299,7 +330,8 @@ func (s *scenario) resize(width, height float32) {
 // screenshotsScenario shows every page against the fake vfox; the harness
 // captures the screen at every `e2e: SHOT <name>` (see
 // `vfxtool screenshots`). With VFOX_PLUS_FAKE_DELAY, it shows an
-// installation in progress instead.
+// installation in progress instead, and with VFOX_PLUS_FAKE_INVENTORY=profiles
+// the pages of the plugins that have a profile (see profilesScreenshots).
 func screenshotsScenario(s *scenario) {
 	a := s.app
 	s.waitForText("Versions in use")
@@ -324,6 +356,10 @@ func screenshotsScenario(s *scenario) {
 			return ok && progress > 0
 		}, defaultWait)
 		s.shot("installing")
+		return
+	}
+	if a.environment["VFOX_PLUS_FAKE_INVENTORY"] == "profiles" {
+		profilesScreenshots(s)
 		return
 	}
 	s.shot("home")
@@ -389,4 +425,91 @@ func screenshotsScenario(s *scenario) {
 	s.clickItem("nodejs")
 	s.waitForText("Node.js runtime environment.")
 	s.shot("compact-detail")
+}
+
+// profilesScreenshots shows what vfox-plus offers for the plugins that it knows:
+// the distributions of Java, the filter chips of its versions and of Flutter's,
+// the installation by name, and the options of Node.js. The fake vfox plays a
+// machine that has Java and Flutter installed next to Node.js.
+func profilesScreenshots(s *scenario) {
+	a := s.app
+	s.navigate("SDKs")
+	s.clickItem("java")
+	s.waitForText("Support for multiple JDK distributions, such as: Oracle, Graalvm, Eclipse & more.")
+	s.waitForText("Liberica · JavaFX")
+	s.shot("java-installed")
+	s.clickButton("Available")
+	s.waitForText("75 versions")
+	s.shot("java-available")
+	s.clickButton("Distribution: OpenJDK")
+	s.waitForText("Eclipse Adoptium · tem")
+	s.shot("java-choose")
+	s.clickItem("Temurin")
+	s.waitForText("120 versions")
+	s.clickButton("LTS")
+	s.waitForTextGone("120 versions")
+	s.shot("java-temurin")
+	s.clickButton("Install by name…")
+	s.waitForText("Install java by name")
+	s.clickButton("21-tem")
+	s.waitForText("The newest Temurin 21")
+	s.shot("java-install-name")
+	s.tapDialog(false)
+	s.clickButton("Distribution: Temurin")
+	s.waitForText("Eclipse Adoptium · tem")
+	s.clickItem("All distributions")
+	s.waitForText("2641 versions")
+	s.shot("java-all")
+	// The choice is kept, so Java would list every distribution again at the next visit:
+	// take it back to the default, as a user does.
+	s.clickButton("Distribution: All distributions")
+	s.waitForText("Eclipse Adoptium · tem")
+	s.clickItem("OpenJDK")
+	s.waitForText("75 versions")
+
+	s.navigate("SDKs")
+	s.clickItem("flutter")
+	s.clickButton("Available")
+	s.waitForText("457 versions")
+	s.clickButton("stable")
+	s.waitForTextGone("457 versions")
+	s.shot("flutter-available")
+
+	s.navigate("SDKs")
+	s.clickItem("nodejs")
+	s.clickButton("Options")
+	s.waitForText("Download mirror")
+	s.shot("options")
+	s.clickButton("Change")
+	s.waitForText("Address")
+	s.clickButton("npmmirror")
+	s.shot("options-mirror")
+	s.tapDialog(false)
+
+	a.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+		current.Language = settings.LanguageSimplifiedChinese
+		return current
+	})
+	s.waitForText("版本名称")
+	s.shot("zh-options")
+	s.navigate("SDK")
+	s.clickItem("java")
+	s.clickButton("可安装")
+	s.waitForText("75 个版本")
+	s.shot("zh-java-available")
+
+	a.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+		current.Language = settings.LanguageEnglish
+		return current
+	})
+	s.resize(412, 800)
+	s.navigate("Home")
+	s.waitForText("Versions in use")
+	s.clickItem("java")
+	s.clickButton("Available")
+	s.waitForText("75 versions")
+	s.clickButton("Distribution: OpenJDK")
+	s.clickItem("Temurin")
+	s.waitForText("120 versions")
+	s.shot("compact-java")
 }

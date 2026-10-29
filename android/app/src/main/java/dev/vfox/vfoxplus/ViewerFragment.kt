@@ -16,6 +16,8 @@ package dev.vfox.vfoxplus
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.http.SslError
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -123,6 +125,18 @@ class ViewerFragment : Fragment() {
         parentFragmentManager.popBackStack()
     }
 
+    // Opens an address of another site in the browser of the phone, which has an
+    // address bar, downloads and the certificate checks of its own.
+    private fun openInBrowser(uri: android.net.Uri) {
+        val scheme = uri.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE))
+        } catch (_: ActivityNotFoundException) {
+            Snackbar.make(binding.root, getString(R.string.open_link_failed), Snackbar.LENGTH_LONG).show()
+        }
+    }
+
     fun goBack(): Boolean {
         val web = _binding?.web ?: return false
         return if (web.canGoBack()) {
@@ -141,8 +155,18 @@ class ViewerFragment : Fragment() {
 
     // Follows the pairing handshake inside the WebView: after the one-time
     // link sets the session cookie, move to /app. Surfaces TLS problems with
-    // the certificate fingerprint for comparison with the PC terminal.
+    // the certificate fingerprint for comparison with the PC terminal. Keeps the
+    // window on the paired server: what the page links to elsewhere (the
+    // homepage of a plugin, its documentation) opens in the browser instead.
     private inner class PairingWebClient(val startUrl: String) : WebViewClient() {
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (!request.isForMainFrame) return false
+            val server = PairingFragment.pairingBase(startUrl) ?: return false
+            if (PairingFragment.pairingBase(request.url.toString()).equals(server, ignoreCase = true)) return false
+            openInBrowser(request.url)
+            return true
+        }
+
         override fun onPageFinished(view: WebView, url: String) {
             binding.refresh.isRefreshing = false
             if ("/auth/connect/" in url) {

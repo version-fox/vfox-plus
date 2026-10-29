@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -203,6 +204,70 @@ func TestRunScreenshot(t *testing.T) {
 	}
 }
 
+func TestRunPlaysTheSceneBeforeTheScreenshot(t *testing.T) {
+	directory := t.TempDir()
+	shot := filepath.Join(directory, "shots", "options-mirror.png")
+	got := runFake(t, "ok", "-screenshot", shot, "-scene", "options-mirror", "-lang", "zh")
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	if image, err := os.ReadFile(shot); err != nil || !bytes.Equal(image, fakeScreenshot) {
+		t.Fatalf("the screenshot: %v", err)
+	}
+	// The SDK list is there first; then the plugin, its tab and the dialog, in the
+	// order of a person; the picture comes last.
+	list := got.index("Runtime.evaluate", "#sdkList")
+	plugin := got.index("Runtime.evaluate", `[data-sdk=\"nodejs\"]`)
+	options := got.index("Runtime.evaluate", `[data-tab=\"options\"]`)
+	variable := got.index("Runtime.evaluate", `[data-var=\"VFOX_NODEJS_MIRROR\"]`)
+	preset := got.index("Runtime.evaluate", `#varChips [data-value=\"https://npmmirror.com/mirrors/node\"]`)
+	capture := got.index("Page.captureScreenshot", `"png"`)
+	if !(0 < list && list < plugin && plugin < options && options < variable && variable < preset && preset < capture) {
+		t.Errorf("list %d, plugin %d, tab %d, variable %d, preset %d, capture %d", list, plugin, options, variable, preset, capture)
+	}
+	if !got.has("Runtime.evaluate", "element.click()") {
+		t.Error("a step clicks the element")
+	}
+}
+
+func TestRunFailsWhenTheSceneFindsNothingToClick(t *testing.T) {
+	shot := filepath.Join(t.TempDir(), "options.png")
+	got := runFake(t, "no-element", "-screenshot", shot, "-scene", "options", "-timeout", "3")
+	if got.err == nil || !strings.Contains(got.err.Error(), "the scene options (step 1") {
+		t.Errorf("got %v, want the step that found nothing", got.err)
+	}
+	if _, err := os.Stat(shot); err == nil {
+		t.Error("no picture of a page that is not the scene")
+	}
+}
+
+func TestScenesUseWhatThePageHas(t *testing.T) {
+	page, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "mygo", "pair", "webapp.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The identifiers, classes and attributes that the steps name, as the page spells them.
+	// The values of the data (the name of a plugin, an address) are not the page's.
+	token := regexp.MustCompile(`#([A-Za-z][A-Za-z0-9]*)|getElementById\("([A-Za-z0-9]+)"\)|[\s"']\.([a-z]+)\b|\[(data-[a-z]+)`)
+	for _, name := range sceneNames() {
+		if len(scenes[name]) == 0 {
+			t.Errorf("scene %s has no steps", name)
+		}
+		for i, move := range scenes[name] {
+			if (move.click == "") == (move.wait == "") {
+				t.Errorf("step %d of %s must click or wait", i+1, name)
+			}
+			for _, found := range token.FindAllStringSubmatch(move.click+move.wait, -1) {
+				for _, word := range found[1:] {
+					if word != "" && !bytes.Contains(page, []byte(word)) {
+						t.Errorf("step %d of %s uses %q, which webapp.html does not have", i+1, name, word)
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestRunReadsAFragmentedScreenshot(t *testing.T) {
 	shot := filepath.Join(t.TempDir(), "webapp.png")
 	got := runFake(t, "fragmented", "-screenshot", shot)
@@ -276,6 +341,11 @@ func TestParseOptions(t *testing.T) {
 		t.Errorf("parsed: %+v", got)
 	}
 
+	got, err = parseOptions(with("-screenshot", "x.png", "-scene", "java-temurin"))
+	if err != nil || got.scene != "java-temurin" {
+		t.Errorf("a scene: %+v, %v", got, err)
+	}
+
 	for name, tc := range map[string]struct {
 		args []string
 		want string
@@ -290,6 +360,9 @@ func TestParseOptions(t *testing.T) {
 		"tiny window":      {with("-window", "4,9"), "bad -window"},
 		"language":         {with("-lang", "de"), "bad -lang"},
 		"tab":              {with("-tab", "x\"]"), "bad -tab"},
+		"scene":            {with("-screenshot", "x.png", "-scene", "nope"), "bad -scene"},
+		"scene alone":      {with("-scene", "options"), "goes with a -screenshot"},
+		"scene and tab":    {with("-screenshot", "x.png", "-scene", "options", "-tab", "tasks"), "instead of a -tab"},
 		"stray argument":   {with("extra"), "unexpected argument"},
 	} {
 		t.Run(name, func(t *testing.T) {

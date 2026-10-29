@@ -42,6 +42,14 @@
 | --- | --- |
 | ![窄窗口主页](https://iili.io/nkxZhqN.png) | ![窄窗口 SDK 页](https://iili.io/nkxBZt2.png) |
 
+| 选择要列出的 Java 发行版 | Temurin，用 Chip 筛选长期支持版 |
+| --- | --- |
+| ![Java 的发行版](https://iili.io/n8exoAX.png) | ![Temurin 的长期支持版](https://iili.io/n8exXKQ.png) |
+
+| Flutter 的通道与架构 | Node.js 的选项 |
+| --- | --- |
+| ![稳定通道的 Flutter 版本](https://iili.io/n8ezd57.png) | ![Node.js 的选项](https://iili.io/n8ezRzg.png) |
+
 ## 许可证
 
 vfox-plus 采用 [Apache License 2.0](LICENSE)。Material Symbols 由 Google 以

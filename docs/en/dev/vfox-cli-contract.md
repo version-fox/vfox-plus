@@ -93,6 +93,22 @@ from its output:
    1.0.13 the trailer is on standard error and that line on standard output.
 3. If no line is left, report the exit code.
 
+An error that a hook of a plugin raises is printed with a Lua traceback:
+
+```text
+plugin [PreInstall] method error: ~/.vfox/plugin/java/hooks/pre_install.lua:42: No JDK found for 99-tem on linux/amd64. …
+stack traceback:
+	[G]: in function 'error'
+	~/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk
+	[G]: ?
+```
+
+so that rule 1 also leaves out the `stack traceback:` line and the tab-indented lines
+after it, and the file and the line number of `plugin [<hook>] method error:` are
+dropped: what remains is the sentence of the plugin, `No JDK found for 99-tem …`,
+instead of `[G]: ?`. This matters for installing by name, where a typo is the
+plugin's to report. Fixture: `install-plugin-error`.
+
 If the executable cannot be started at all, report vfox as missing.
 
 ## Queries
@@ -179,6 +195,29 @@ from `(installed)`, so that it stays current without searching again. A search
 may take seconds, because plugins fetch the list from the network unless vfox
 has it cached (`cache.availableHookDuration`).
 
+#### Search arguments
+
+```console
+$ vfox search java
+$ vfox search java tem
+$ vfox search java all
+```
+
+Whatever follows the plugin name is handed to the plugin's `Available` hook as
+`ctx.args`; most plugins ignore it, but vfox-java takes the short or the long name
+of a distribution (`tem`, `temurin`), or `all`, and lists that distribution
+instead of OpenJDK from jdk.java.net, which is what it lists without an argument
+(on Linux for loong64 `loongnix`, `lnxabi1` and `lnxabi2`). vfox caches the answer
+once per list of arguments. The application passes one argument, taken from the
+choices of the [profile](architecture.md#plugin-profiles) of the plugin, and none for the
+default. Each argument is checked like a plugin name is: not empty, not starting
+with `-`, without whitespace or control characters. The list of `java all` has 2,641
+entries, the notes have the forms `LTS`, `JavaFX` and `LTS, JavaFX`, and the
+version names carry the distribution: `21.0.12.1+1-tem`, `25.0.4+9-librca-fx`.
+Fixtures: `search-java`, `search-java-tem`, `search-java-all`, `search-flutter`
+(whose notes are channels, with `[dart <version>]` as the bundled tool, an empty
+`[dart ]` for the oldest releases, and `(OpenHarmony)` for the builds of the fork).
+
 ### Plugin registry
 
 ```console
@@ -235,7 +274,7 @@ output streamed to the user.
 
 | Operation        | Command line                                         | Working directory | Notes |
 | ---------------- | ---------------------------------------------------- | ----------------- | ----- |
-| Install          | `vfox install --yes <name>@<version>`                | `/`               | Progress on standard error. Without a version vfox fails (`install-without-version`). |
+| Install          | `vfox install --yes <name>@<version>`                | `/`               | Progress on standard error. Without a version vfox fails (`install-without-version`). The version may be any name the plugin resolves, see [Names that the plugin resolves](#names-that-the-plugin-resolves). |
 | Uninstall        | `vfox uninstall <name>@<version>`                    | `/`               | Uninstalling the current version makes vfox switch to another installed one. |
 | Use (global)     | `vfox use --global <name>@<version>`                 | `/`               | Needs `__VFOX_SHELL`, see below. |
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
@@ -247,6 +286,33 @@ output streamed to the user.
 | Update all       | `vfox update --all`                                  | `/`               | |
 
 Options always precede the positional arguments.
+
+### Names that the plugin resolves
+
+`<version>` is not only a name from the list of a search. The plugin's `PreInstall`
+hook turns what it gets into a package, and the plugins of the version-fox
+organisation understand more than a listed name: vfox-nodejs takes the start of a
+release (`24`, `24.21`) and `latest`; vfox-flutter takes the channels `stable` and
+`beta`, with an architecture suffix, and installs the release a channel points to
+under the name of that release; vfox-java takes a version and a distribution
+(`21-tem`, `temurin-21`, `21.0.8-tem`, `21-zulu-fx`) or an early-access build
+(`28.ea-open`). The application therefore installs whatever name the user types,
+checked like any other version (not empty, not starting with `-`, no whitespace, no
+`@`), and takes the installed names from `vfox list` afterwards, since a channel
+is not an installed name. The [profile](architecture.md#plugin-profiles) of each
+plugin lists the names worth suggesting.
+
+### Environment of the plugins
+
+The plugins read environment variables from the environment of the vfox process,
+which is why the application passes the extra environment of its settings to every
+vfox command (see [Environment](#environment)): `VFOX_JAVA_GITHUB_MIRROR` and
+`VFOX_FLUTTER_GITHUB_MIRROR` (a prefix that goes in front of a GitHub address, so it
+has to start with `http://` or `https://`; vfox takes anything else for a file on
+disk), `VFOX_NODEJS_MIRROR`, `FLUTTER_STORAGE_BASE_URL` and `VFOX_NODEJS_LIBC`
+(`musl` or `glibc`). vfox keeps the answer of a search per list of arguments for
+`cache.availableHookDuration`, whatever the environment says, so a changed mirror
+shows in the list after the cache expires.
 
 ### Commands a GUI does not run
 

@@ -105,6 +105,26 @@ Parsers must skip lines they do not understand instead of failing, and the
 error summary follows the rules in the
 [CLI contract(vfox-cli-contract.md#errors).
 
+## Plugins of the version-fox organisation
+
+`vfxtool capture` adds vfox-java and vfox-flutter last, so that the outputs of the
+other cases do not list them, and captures their searches: `search-java` (OpenJDK, the
+list without an argument), `search-java-tem` (one distribution), `search-java-all`
+(every distribution, 2,641 versions) and `search-flutter` (457 versions on Linux x64: the
+channels as notes, the Dart SDK as the bundled tool, the architecture suffixes and the
+OpenHarmony builds). They were captured with vfox-java 0.6.3 and vfox-flutter 0.2.5,
+and the profiles of `core/profile` are tested against them: every version name of
+`search-java-all` carries a short name that the profile knows.
+
+Their versions are faked, like those of Node.js and Maven that `list` shows: the tool
+creates a directory for each version, so that nothing is downloaded. `list-profiles` and
+`current-profiles` are the `list` and the `current` of a machine that has Java (21.0.12.1+1-tem
+in use, 25.0.4+9-librca-fx and 25.0.2+10) and Flutter (3.47.7-x64 in use, 3.44.9-x64) next to
+Node.js and Maven, and `info-java` and `info-flutter` are what the two plugins say about
+themselves. The fake vfox serves them for `list` and `current` when
+`VFOX_PLUS_FAKE_INVENTORY=profiles` is set, which the screenshots of those plugins need; the
+searches and the plugin information it always serves.
+
 ## Updating for a new vfox release
 
 1. Install the new vfox release and run `vfxtool capture`. It needs
