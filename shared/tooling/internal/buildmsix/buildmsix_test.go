@@ -17,8 +17,12 @@ package buildmsix
 import (
 	"archive/zip"
 	"bytes"
+	"compress/flate"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -89,8 +93,8 @@ func readZip(t *testing.T, data []byte) map[string][]byte {
 		}
 		rc.Close()
 		out[f.Name] = buf.Bytes()
-		if f.Method != zip.Store {
-			t.Errorf("%s uses method %d, want Store", f.Name, f.Method)
+		if want := methodOf(f.Name); f.Method != want {
+			t.Errorf("%s uses method %d, want %d", f.Name, f.Method, want)
 		}
 	}
 	return out
@@ -266,5 +270,133 @@ func TestRunBuildsMsixAndBundle(t *testing.T) {
 		if err != nil || len(matches) != 1 {
 			t.Fatalf("expected one %s, got %v, %v", pattern, matches, err)
 		}
+	}
+}
+
+// A stored entry that osslsigncode rewrites comes out as a corrupt entry (the
+// data deflated, the method still Store), which Windows refuses; the content
+// types are the one part that it rewrites, so that part is a deflated entry
+// and the rest stays stored.
+func TestContentTypesAreDeflatedAndReadBack(t *testing.T) {
+	msix, err := WriteMsix(testMsixConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := zip.NewReader(bytes.NewReader(msix), int64(len(msix)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen bool
+	for _, file := range reader.File {
+		if file.Name != "[Content_Types].xml" {
+			if file.Method != zip.Store || file.CompressedSize64 != file.UncompressedSize64 {
+				t.Errorf("%s: method %d, %d of %d bytes", file.Name, file.Method, file.CompressedSize64, file.UncompressedSize64)
+			}
+			continue
+		}
+		seen = true
+		if file.Method != zip.Deflate {
+			t.Errorf("the content types use method %d", file.Method)
+		}
+		// Reading checks the CRC: the stream inflates to what was written.
+		content, err := readZipFile(reader, file.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != RenderContentTypes() {
+			t.Errorf("the content types read back as %q", content)
+		}
+		if file.CompressedSize64 <= file.UncompressedSize64 {
+			t.Errorf("a stored block adds its header, but %d bytes became %d", file.UncompressedSize64, file.CompressedSize64)
+		}
+	}
+	if !seen {
+		t.Fatal("no content types")
+	}
+}
+
+func TestStoredDeflateInflatesToTheInput(t *testing.T) {
+	for _, size := range []int{0, 1, 100, 0xFFFE, 0xFFFF, 0xFFFF + 1, 3*0xFFFF + 7} {
+		data := bytes.Repeat([]byte("vfox"), size/4+1)[:size]
+		stream := storedDeflate(data)
+		// Four bytes of header for each stored block, and no compression.
+		blocks := max(1, (size+0xFFFE)/0xFFFF)
+		if len(stream) != size+5*blocks {
+			t.Errorf("%d bytes: a stream of %d bytes, want %d", size, len(stream), size+5*blocks)
+		}
+		inflated, err := io.ReadAll(flate.NewReader(bytes.NewReader(stream)))
+		if err != nil || !bytes.Equal(inflated, data) {
+			t.Errorf("%d bytes: %d bytes come back, %v", size, len(inflated), err)
+		}
+	}
+}
+
+// The bundle of signed packages: the manifest holds the offsets and the sizes of
+// the packages that are in it now, and its block map the manifest that is in it.
+func TestRebundleAfterTheSignaturesGrewThePackages(t *testing.T) {
+	directory := t.TempDir()
+	var arches []string
+	for _, arch := range []string{"arm64", "x64"} {
+		cfg := testMsixConfig()
+		cfg.Architecture = arch
+		msix, err := WriteMsix(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// A signature makes the package larger, by a different amount for each.
+		padded := append(msix, bytes.Repeat([]byte{byte(len(arch))}, 1000+100*len(arch))...)
+		name := filepath.Join(directory, "vfox-plus_0.1.0_"+arch+".msix")
+		if err := os.WriteFile(name, padded, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		arches = append(arches, arch)
+	}
+	path, err := Rebundle(RebundleConfig{Dir: directory, Package: "vfox-plus", Version: "0.1.0", Publisher: "CN=vfox-plus", Architectures: arches})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(path) != "vfox-plus_0.1.0.msixbundle" {
+		t.Errorf("wrote %s", path)
+	}
+	bundle, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := zip.NewReader(bytes.NewReader(bundle), int64(len(bundle)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]*zip.File{}
+	for _, file := range reader.File {
+		files[file.Name] = file
+	}
+	manifest, err := readZipFile(reader, "AppxMetadata/AppxBundleManifest.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Every package of the manifest is where it says, as large as it says, and
+	// is the file of the directory.
+	listed := regexp.MustCompile(`FileName="([^"]+)" Offset="(\d+)" Size="(\d+)"`).FindAllStringSubmatch(string(manifest), -1)
+	if len(listed) != 2 {
+		t.Fatalf("the manifest lists %d packages: %s", len(listed), manifest)
+	}
+	for _, match := range listed {
+		offset, _ := strconv.ParseInt(match[2], 10, 64)
+		size, _ := strconv.ParseInt(match[3], 10, 64)
+		file, ok := files[match[1]]
+		if !ok {
+			t.Fatalf("%s is not in the bundle", match[1])
+		}
+		dataOffset, err := file.DataOffset()
+		if err != nil || dataOffset != offset || int64(file.UncompressedSize64) != size {
+			t.Errorf("%s: the manifest says %d+%d, the bundle has %d+%d (%v)", match[1], offset, size, dataOffset, file.UncompressedSize64, err)
+		}
+		want, err := os.ReadFile(filepath.Join(directory, match[1]))
+		if err != nil || !bytes.Equal(bundle[offset:offset+size], want) {
+			t.Errorf("%s: the bundle holds another file than the directory (%v)", match[1], err)
+		}
+	}
+	if _, err := checkZipLayout(bundle, "rebundled", false); err != nil {
+		t.Errorf("the layout of the bundle: %v", err)
 	}
 }

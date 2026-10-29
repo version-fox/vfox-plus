@@ -54,8 +54,10 @@ cd android
 ./gradlew :app:assembleRelease
 ```
 
-The first run compiles `GradleWrapperNeo.java` with the JDK and downloads
-Gradle and the dependencies, which takes minutes. Where `services.gradle.org`
+The build needs no KVM; running the APK on an emulator does (see [The emulator
+and KVM](environment.md#the-emulator-and-kvm)). The first run compiles
+`GradleWrapperNeo.java` with the JDK and downloads Gradle and the dependencies,
+which takes minutes. Where `services.gradle.org`
 is slow, configure a download mirror for your user, not for the project; see
 "Configure download mirrors" in the Neo README.
 

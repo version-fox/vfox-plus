@@ -25,6 +25,8 @@
 
 ## 工作流
 
+配置机器（Ubuntu 26.04，单独使用或在 WSL2 中）见[开发环境](environment.md)。
+
 1. 大改动先开 issue 或在已有 issue 下留言。
 2. 从 `main` 建分支，Pull Request 保持聚焦。
 3. 跑检查；与 CI 相同，列表见
@@ -148,15 +150,17 @@ for i in $(seq 1 30); do
   [ -n "$LINK" ] && break
   sleep 1
 done
-node shared/tooling/webheap/check.cjs --server "${LINK%%/auth/connect/*}" \
+/tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
   --pairing "$LINK" --output /tmp/shot.txt --screenshot webapp-en.png \
-  --lang en --window 412,915 --chrome "$(which google-chrome)"
+  --lang en --window 412,915 --idle 0 --chrome "$(which google-chrome)"
 ```
 
 （`PATH` 首位放一个 `vfox` 可执行文件——`vfxtool` 的复制品配夹具即假
 vfox——SDK 列表才有内容；`--lang` 固定界面语言；`--window 412,915` 拍文档用的
-手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；`--chrome` 接受任何讲
-CDP 的 Chrome，不传则脚本在 `PATH` 上自动找。）上传前看一眼图的尺寸
+手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；`--idle 0` 跳过测量堆所需的、
+停在打开页面上的 20 秒；`--tab` 在拍照前打开某个页面，`--dark` 用深色主题拍；
+`--chrome` 接受任何讲 CDP 的 Chrome，不传则工具在 `$CHROME_BIN` 和 `PATH`
+上自动找。）上传前看一眼图的尺寸
 （`file webapp-en.png`）：不是每个 Chrome 都保持这么小的窗口。Chrome for
 Testing 156 把 `--window 412,915` 拍成了 500×715 的图，同版本的
 `chrome-headless-shell` 恰好是 412×915，尺寸不对时用 `--chrome` 传它。

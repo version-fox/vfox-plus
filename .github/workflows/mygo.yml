@@ -17,8 +17,7 @@
 # output and against the real vfox), the Linux packages and the Windows MSIX
 # bundle.
 # shared/tooling/internal/runtask runs the same steps locally; keep them in sync.
-# The tool versions are in mygo/versions.env (Node.js only runs the test
-# server of the end-to-end scenarios).
+# The tool versions are in mygo/versions.env.
 name: mygo
 
 on:
@@ -194,23 +193,22 @@ jobs:
             --stage-x64 "$RUNNER_TEMP/stage-x64" --stage-arm64 "$RUNNER_TEMP/stage-arm64" \
             --executable vfox-plus.exe dist-windows
       - name: Stage the Windows self-sign inputs
-        # Sign-Msix.ps1 rebuilds the packages with the self-signed publisher
-        # and signs them on the user's machine, so the artifact carries the
-        # loose executables, a Windows vfxtool and the script next to the
+        # `vfxtool sign-msix` rebuilds the packages with the self-signed
+        # publisher and signs them on the user's machine, so the artifact
+        # carries the loose executables and a Windows vfxtool next to the
         # unsigned packages.
         run: |
           mkdir -p dist-windows/stage-x64 dist-windows/stage-arm64
           install -m 644 "$RUNNER_TEMP/stage-x64/vfox-plus.exe" dist-windows/stage-x64/vfox-plus.exe
           install -m 644 "$RUNNER_TEMP/stage-arm64/vfox-plus.exe" dist-windows/stage-arm64/vfox-plus.exe
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go -C shared/tooling build -o "$PWD/dist-windows/vfxtool.exe" ./cmd/vfxtool
-          install -m 644 shared/packaging/windows/Sign-Msix.ps1 dist-windows/Sign-Msix.ps1
       - name: Validate the MSIX packages
         # Pure-Go validation without the Windows SDK (vfxtool validate-msix):
         # ZIP layout, manifests, block maps, bundle offsets, version
         # consistency and the self-sign inputs of the artifact.
         run: |
           ls -la dist-windows dist-windows/stage-x64 dist-windows/stage-arm64
-          for f in dist-windows/stage-x64/vfox-plus.exe dist-windows/stage-arm64/vfox-plus.exe dist-windows/vfxtool.exe dist-windows/Sign-Msix.ps1; do
+          for f in dist-windows/stage-x64/vfox-plus.exe dist-windows/stage-arm64/vfox-plus.exe dist-windows/vfxtool.exe; do
             test -f "$f" || { echo "missing self-sign input: $f"; exit 1; }
           done
           "$RUNNER_TEMP/vfxtool" validate-msix dist-windows
@@ -244,9 +242,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: shared/tooling/go.sum
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
       - uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
         id: setup-chrome
       - name: Build vfxtool and the headless server
@@ -274,7 +269,7 @@ jobs:
           done
           [ -n "$LINK" ] || { echo "no pairing link in serve.log:"; cat "$RUNNER_TEMP/serve.log"; exit 1; }
           BASE="${LINK%%/auth/connect/*}"
-          node shared/tooling/webheap/check.cjs --server "$BASE" --pairing "$LINK" \
+          "$RUNNER_TEMP/vfxtool" webheap --server "$BASE" --pairing "$LINK" \
             --output "${{ runner.temp }}/memory-web/memory.txt" --settle 10 \
             --chrome "${{ steps.setup-chrome.outputs.chrome-path }}" --timeout 180
           cat "${{ runner.temp }}/memory-web/memory.txt"
@@ -314,15 +309,8 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem msix
-          foreach ($want in @("stage-x64/vfox-plus.exe", "stage-arm64/vfox-plus.exe",
-                              "vfxtool.exe", "Sign-Msix.ps1")) {
+          foreach ($want in @("stage-x64/vfox-plus.exe", "stage-arm64/vfox-plus.exe", "vfxtool.exe")) {
             if (-not (Test-Path "msix/$want")) { throw "msix/ misses $want" }
-          }
-          $parseErrors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            "$PWD/msix/Sign-Msix.ps1", [ref]$null, [ref]$parseErrors)
-          if ($parseErrors.Count -gt 0) {
-            throw "Sign-Msix.ps1 has syntax errors: $($parseErrors | Select-Object -First 3)"
           }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $bundle = Get-ChildItem msix/*.msixbundle | Select-Object -First 1
@@ -379,3 +367,84 @@ jobs:
           Remove-AppxPackage -Package $pkg.PackageFullName
           if (Get-AppxPackage -Name "dev.vfox.VfoxPlus") { throw "package still registered after removal" }
           Write-Host "uninstalled cleanly"
+      - name: Sign, install and uninstall the bundle with vfxtool sign-msix
+        # What a user runs on a Windows machine: sign-msix rebuilds the
+        # packages with the publisher of a certificate that it makes, signs them
+        # with the pinned osslsigncode that it downloads, trusts the certificate
+        # for the machine and installs the bundle without -AllowUnsigned (the
+        # deployment platform checks the signature and the trust). A second run
+        # must replace the certificate of the first, not add another. The runner
+        # is an administrator with UAC off, so there is no elevated copy (-no-relaunch
+        # makes it fail instead of waiting for a prompt that nobody answers).
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $subject = "CN=vfox-plus"
+          function Get-SigningCertificates {
+            @(Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq $subject })
+          }
+          if ((Get-SigningCertificates).Count -ne 0) { throw "the runner trusts $subject already" }
+
+          & msix/vfxtool.exe sign-msix --directory msix --no-relaunch
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            # The deployment log says that the package could not be opened;
+            # the packaging log says why (a signature, a block map, a manifest).
+            Write-Host "--- AppX deployment log (tail) ---"
+            Get-AppPackageLog | Select-Object -Last 60
+            Write-Host "--- AppxPackaging log (tail) ---"
+            Get-WinEvent -LogName "Microsoft-Windows-AppxPackaging/Operational" -MaxEvents 20 -ErrorAction SilentlyContinue |
+              Format-List TimeCreated, Id, Message
+            # Whether the signed package of this machine installs alone tells a
+            # fault of the package from one of the bundle.
+            Write-Host "--- the signed package of this machine, alone ---"
+            Get-ChildItem msix/signed | Format-Table Name, Length
+            $alone = Get-ChildItem "msix/signed/*_${{ matrix.arch }}.msix" | Select-Object -First 1
+            try {
+              Add-AppxPackage -Path $alone.FullName
+              Write-Host "$($alone.Name) installs"
+              Get-AppxPackage -Name "dev.vfox.VfoxPlus" | Remove-AppxPackage
+            } catch {
+              Write-Host "$($alone.Name) does not install: $_"
+            }
+            # The end of a package shows whether the ZIP64 records are there (the
+            # ZIP64 end record, its locator and the end record: 98 bytes). The
+            # tools of the Windows SDK, which the runner has, check the package
+            # with the code of Windows and name what is wrong with it.
+            Write-Host "--- the last 98 bytes of $($alone.Name) ---"
+            $bytes = [System.IO.File]::ReadAllBytes($alone.FullName)
+            ($bytes[($bytes.Length - 98)..($bytes.Length - 1)] | ForEach-Object { $_.ToString("x2") }) -join " "
+            $kits = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+            foreach ($name in "signtool.exe", "makeappx.exe") {
+              $tool = Get-ChildItem $kits -Recurse -Filter $name -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match "\\(x64|arm64)\\" } |
+                Sort-Object FullName | Select-Object -Last 1
+              if (-not $tool) { Write-Host "--- $name is not on this runner ---"; continue }
+              Write-Host "--- $($tool.FullName) on $($alone.Name) ---"
+              if ($name -eq "signtool.exe") {
+                & $tool.FullName verify /pa /v $alone.FullName
+              } else {
+                & $tool.FullName unpack /p $alone.FullName /d (Join-Path $env:RUNNER_TEMP "unpacked") /o /v
+              }
+              Write-Host "exit code $LASTEXITCODE"
+            }
+            throw "sign-msix failed with exit code $code"
+          }
+          $pkg = Get-AppxPackage -Name "dev.vfox.VfoxPlus"
+          if (-not $pkg) { throw "package not registered after the signed install" }
+          if ("$($pkg.Architecture)" -ne "${{ matrix.arch }}") {
+            throw "installed arch $($pkg.Architecture), want ${{ matrix.arch }}"
+          }
+          Write-Host "installed $($pkg.PackageFullName) arch $($pkg.Architecture), signature $($pkg.SignatureKind)"
+          if ((Get-SigningCertificates).Count -ne 1) { throw "want one trusted $subject, got $((Get-SigningCertificates).Count)" }
+          Remove-AppxPackage -Package $pkg.PackageFullName
+          if (Get-AppxPackage -Name "dev.vfox.VfoxPlus") { throw "package still registered after removal" }
+
+          & msix/vfxtool.exe sign-msix --directory msix --no-relaunch --skip-install
+          if ($LASTEXITCODE -ne 0) { throw "the second sign-msix failed with exit code $LASTEXITCODE" }
+          $found = Get-SigningCertificates
+          if ($found.Count -ne 1) { throw "want one trusted $subject after two runs, got $($found.Count)" }
+          foreach ($certificate in $found) {
+            Remove-Item -Path "Cert:\LocalMachine\TrustedPeople\$($certificate.Thumbprint)"
+          }
+          Write-Host "signed, installed and uninstalled cleanly"

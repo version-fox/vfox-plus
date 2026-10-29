@@ -516,7 +516,8 @@ function applyTheme() {
 applyTheme();
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme); } catch (e) { /* older browsers */ }
 function isWebView() { try { return /;\s*wv\)/.test(navigator.userAgent); } catch (e) { return false; } }
-function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+/* escapes text for HTML, and for an attribute in double or single quotes: the page writes both */
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function icon(name, cls) { return '<svg class="ic' + (cls ? " " + cls : "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>'; }
 function avatar(name, lg) {
   let h = 0;

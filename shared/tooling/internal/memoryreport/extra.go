@@ -51,7 +51,7 @@ type ServeMemory struct {
 	Loaded Point
 }
 
-// WebHeap is what shared/tooling/webheap/check.cjs writes, in bytes.
+// WebHeap is what vfxtool webheap writes, in bytes.
 type WebHeap struct {
 	App     int64
 	Settled int64
@@ -314,7 +314,7 @@ func collectWeb(gh API, run map[string]any, defaultBranch string) (Extra, error)
 		Title: "Web client heap",
 		Intro: "What the paired `/app` page uses in headless Chrome through the Chrome DevTools Protocol, " +
 			"in KB: `app` after the SDK list settles, `app-settled` after twenty seconds idle on the open " +
-			"page with live events (`shared/tooling/webheap/check.cjs`).",
+			"page with live events (`vfxtool webheap`).",
 	}
 	if run != nil {
 		extra.RunURL = asString(run["html_url"])

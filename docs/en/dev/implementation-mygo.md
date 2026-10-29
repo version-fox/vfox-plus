@@ -43,6 +43,9 @@ toolkit, and the parsers pass the [fixtures](../../../shared/fixtures/README.md)
 - A C compiler only for the race detector of the unit tests (`go test -race`
   needs cgo); the application is built without one.
 
+[Development environment](environment.md) says how to install all of this on
+Ubuntu 26.04, also in WSL2.
+
 ## Everyday commands
 
 `vfxtool` is the single Go tool that builds, tests and packages the

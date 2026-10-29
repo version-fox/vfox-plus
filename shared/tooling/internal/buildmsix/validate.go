@@ -226,21 +226,29 @@ func ValidateBundle(data []byte, source string) error {
 	return checkFilenameVersion(source, manifest.Identity.Version, "")
 }
 
-// checkZipLayout checks the deterministic ZIP layout: no compression and a
-// single timestamp for every entry. sorted reports whether the local entries
-// must be in name order (.msix payloads are sorted; bundle payloads come
-// first so their offsets are stable).
+// contentTypesPart is the part that signing rewrites. It is the one entry that
+// is deflated (see the package comment); every other entry is stored.
+const contentTypesPart = "[Content_Types].xml"
+
+// checkZipLayout checks the deterministic ZIP layout: no compression (but for
+// the content types), a single timestamp for every entry, and the ZIP64 shape
+// of the Microsoft tools (see CheckZip64). sorted reports whether the local
+// entries must be in name order (.msix payloads are sorted; bundle payloads
+// come first so their offsets are stable).
 func checkZipLayout(data []byte, source string, sorted bool) (map[string][]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return nil, fmt.Errorf("%s is not a ZIP: %w", source, err)
 	}
+	if err := CheckZip64(data); err != nil {
+		return nil, fmt.Errorf("%s %w", source, err)
+	}
 	files := map[string][]byte{}
 	var names []string
 	var modified string
 	for _, file := range reader.File {
-		if file.Method != zip.Store {
-			return nil, fmt.Errorf("%s stores %s compressed: packages use Store", source, file.Name)
+		if want := methodOf(file.Name); file.Method != want {
+			return nil, fmt.Errorf("%s writes %s with the method %d, not %d: packages use Store, and %s uses Deflate", source, file.Name, file.Method, want, contentTypesPart)
 		}
 		stamp := file.Modified.UTC().Format("2006-01-02 15:04:05")
 		if modified == "" {
@@ -262,6 +270,14 @@ func checkZipLayout(data []byte, source string, sorted bool) (map[string][]byte,
 		return nil, fmt.Errorf("%s: %w", source, err)
 	}
 	return files, nil
+}
+
+// methodOf is the ZIP method that the part of a package is written with.
+func methodOf(name string) uint16 {
+	if name == contentTypesPart {
+		return zip.Deflate
+	}
+	return zip.Store
 }
 
 func readZipFile(reader *zip.Reader, name string) ([]byte, error) {

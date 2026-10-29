@@ -1,0 +1,265 @@
+// Copyright 2026 Han Li and contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package signmsix
+
+import (
+	"archive/zip"
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"io"
+	"math/big"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"testing"
+	"time"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/buildmsix"
+)
+
+func TestNewSigner(t *testing.T) {
+	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
+	s, err := newSigner("vfox-plus", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert, err := x509.ParseCertificate(s.der)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The subject is what the manifest of a package calls its publisher.
+	if cert.Subject.String() != "CN=vfox-plus" || !bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+		t.Errorf("subject %s, issuer %s", cert.Subject, cert.Issuer)
+	}
+	if err := cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature); err != nil {
+		t.Errorf("not self-signed: %v", err)
+	}
+	if !slices.Equal(cert.ExtKeyUsage, []x509.ExtKeyUsage{x509.ExtKeyUsageCodeSigning}) || cert.KeyUsage != x509.KeyUsageDigitalSignature {
+		t.Errorf("usage %v, %v", cert.ExtKeyUsage, cert.KeyUsage)
+	}
+	if cert.IsCA || !cert.BasicConstraintsValid {
+		t.Errorf("a leaf is CA:FALSE: IsCA %t, valid %t", cert.IsCA, cert.BasicConstraintsValid)
+	}
+	if !cert.NotBefore.Equal(now.Add(-10*time.Minute)) || !cert.NotAfter.Equal(time.Date(2031, 10, 29, 12, 0, 0, 0, time.UTC)) {
+		t.Errorf("valid from %s to %s", cert.NotBefore, cert.NotAfter)
+	}
+	key, ok := cert.PublicKey.(*rsa.PublicKey)
+	if !ok || key.N.BitLen() != 2048 || cert.SignatureAlgorithm != x509.SHA256WithRSA {
+		t.Errorf("key %T, algorithm %s", cert.PublicKey, cert.SignatureAlgorithm)
+	}
+	if !bytes.HasPrefix(cert.SerialNumber.Bytes(), serialMarker) || len(cert.SerialNumber.Bytes()) != 16 || cert.SerialNumber.Sign() <= 0 {
+		t.Errorf("serial %x", cert.SerialNumber.Bytes())
+	}
+	// What osslsigncode reads: a PEM certificate, and a PKCS#8 PEM key of it.
+	if block, _ := pem.Decode(s.chainPEM); block == nil || block.Type != "CERTIFICATE" || !bytes.Equal(block.Bytes, s.der) {
+		t.Error("the certificate PEM is not the certificate")
+	}
+	if block, _ := pem.Decode(s.keyPEM); block == nil || block.Type != "PRIVATE KEY" {
+		t.Error("the key is not PKCS#8 PEM")
+	}
+	if _, err := tls.X509KeyPair(s.chainPEM, s.keyPEM); err != nil {
+		t.Errorf("the certificate and the key do not belong together: %v", err)
+	}
+	other, err := newSigner("vfox-plus", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(other.der, s.der) || bytes.Equal(other.keyPEM, s.keyPEM) {
+		t.Error("two runs made the same certificate")
+	}
+}
+
+// issue makes a certificate like those of the tool, changed by mutate, signed
+// by its own key or, with parent, by the key of another certificate.
+func issue(t *testing.T, mutate func(*x509.Certificate), parent *x509.Certificate, parentKey *ecdsa.PrivateKey) *x509.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serial := make([]byte, 16)
+	copy(serial, serialMarker)
+	_, _ = rand.Read(serial[len(serialMarker):])
+	template := &x509.Certificate{
+		SerialNumber: new(big.Int).SetBytes(serial),
+		Subject:      pkix.Name{CommonName: "vfox-plus"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageCodeSigning},
+	}
+	if mutate != nil {
+		mutate(template)
+	}
+	signer, signingKey := template, key
+	if parent != nil {
+		signer, signingKey = parent, parentKey
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, signer, &key.PublicKey, signingKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cert
+}
+
+func TestReplacesOnlyEarlierCertificatesOfThisTool(t *testing.T) {
+	s, err := newSigner("vfox-plus", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	own, _ := x509.ParseCertificate(s.der)
+
+	// Someone else's authority, that signs a certificate which is like ours.
+	issuerKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issuer := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "Issuer"}, IsCA: true, BasicConstraintsValid: true,
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), KeyUsage: x509.KeyUsageCertSign,
+	}
+
+	for name, tc := range map[string]struct {
+		cert *x509.Certificate
+		want bool
+	}{
+		"an earlier certificate of the tool": {issue(t, nil, nil, nil), true},
+		"the certificate itself":             {own, false},
+		"another publisher": {issue(t, func(c *x509.Certificate) { c.Subject = pkix.Name{CommonName: "other"} }, nil, nil),
+			false},
+		"no marker in the serial": {issue(t, func(c *x509.Certificate) { c.SerialNumber = big.NewInt(12345) }, nil, nil), false},
+		"another purpose": {issue(t, func(c *x509.Certificate) { c.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth} }, nil, nil),
+			false},
+		"signed by someone else": {issue(t, nil, issuer, issuerKey), false},
+	} {
+		if got := s.replaces(tc.cert); got != tc.want {
+			t.Errorf("%s: got %t, want %t", name, got, tc.want)
+		}
+	}
+}
+
+// The real osslsigncode takes the PEM files of the tool, and signs the packages
+// and the bundle that vfxtool built. A signature that osslsigncode verifies is
+// not enough: Windows refused the first signed bundle (0x8007000D) because
+// osslsigncode had rewritten the stored content types as a corrupt ZIP entry,
+// and its own verification did not mind. So the signed files are also read as
+// ZIP archives, every entry to its end (which checks the sizes and the CRC), and
+// the bundle must hold the signed packages where its manifest says. The test is
+// skipped where there is no osslsigncode (CI runs the whole of it on Windows);
+// VFXTOOL_TEST_OSSLSIGNCODE names one that is not in PATH.
+func TestSignWithOsslsigncode(t *testing.T) {
+	tool := os.Getenv("VFXTOOL_TEST_OSSLSIGNCODE")
+	if tool == "" {
+		var err error
+		if tool, err = exec.LookPath("osslsigncode"); err != nil {
+			t.Skip("osslsigncode is not installed")
+		}
+	}
+	stages := []string{"x64", "arm64"}
+	directory := artifact(t, "", stages...)
+	signed := filepath.Join(directory, "signed")
+	o := options{directory: directory, publisherCN: "vfox-plus", pkg: "vfox-plus"}
+	if err := rebuild(o, "0.1.0", stages, signed); err != nil {
+		t.Fatal(err)
+	}
+	unsigned, err := os.ReadFile(filepath.Join(signed, "vfox-plus_0.1.0_x64.msix"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := newSigner("vfox-plus", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := signPackagesAndBundle(tool, s, o, "0.1.0", stages, signed); err != nil {
+		t.Fatal(err)
+	}
+	trust := filepath.Join(t.TempDir(), "trust.pem")
+	if err := os.WriteFile(trust, s.chainPEM, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"vfox-plus_0.1.0_x64.msix", "vfox-plus_0.1.0_arm64.msix", "vfox-plus_0.1.0.msixbundle"} {
+		file := filepath.Join(signed, name)
+		output, err := exec.Command(tool, "verify", "-in", file, "-CAfile", trust).CombinedOutput() //nolint:gosec // The tool of the test.
+		if err != nil {
+			t.Errorf("%s does not verify: %v\n%s", name, err, output)
+		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkZipEntries(t, name, data, true)
+	}
+	if after, _ := os.ReadFile(filepath.Join(signed, "vfox-plus_0.1.0_x64.msix")); bytes.Equal(after, unsigned) {
+		t.Error("the package was not changed by the signing")
+	}
+	checkBundleHoldsPackages(t, signed, "vfox-plus_0.1.0.msixbundle", func(t *testing.T, name string, data []byte) {
+		checkZipEntries(t, name+" in the bundle", data, true)
+	})
+}
+
+// checkZipEntries reads a ZIP archive the way a strict reader does: every entry
+// to its end, which fails on a size or a CRC that the entry does not keep. With
+// signed, it also wants what Windows wants of a signed package: the signature
+// part, as the last part, and named by the content types; and the ZIP64 shape of
+// the Microsoft tools, which a signed ZIP32 package lacks (0x8007000B).
+func checkZipEntries(t *testing.T, name string, data []byte, signed bool) {
+	t.Helper()
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Errorf("%s is not a ZIP archive: %v", name, err)
+		return
+	}
+	found := map[string]bool{}
+	for _, file := range reader.File {
+		found[file.Name] = true
+		entry, err := file.Open()
+		if err != nil {
+			t.Errorf("%s: %s: %v", name, file.Name, err)
+			continue
+		}
+		content, err := io.ReadAll(entry)
+		_ = entry.Close()
+		if err != nil || uint64(len(content)) != file.UncompressedSize64 {
+			t.Errorf("%s: %s is a corrupt entry (method %d, %d of %d bytes): %v", name, file.Name, file.Method, len(content), file.UncompressedSize64, err)
+			continue
+		}
+		if signed && file.Name == "[Content_Types].xml" && !bytes.Contains(content, []byte("/AppxSignature.p7x")) {
+			t.Errorf("%s: the content types do not name the signature", name)
+		}
+	}
+	if !signed {
+		return
+	}
+	if !found["AppxSignature.p7x"] {
+		t.Errorf("%s has no signature part", name)
+	} else if last := reader.File[len(reader.File)-1].Name; last != "AppxSignature.p7x" {
+		t.Errorf("%s: the signature is not the last part, %s is (Windows refuses that, 0x8007000B)", name, last)
+	}
+	if err := buildmsix.CheckZip64(data); err != nil {
+		t.Errorf("%s %v", name, err)
+	}
+}

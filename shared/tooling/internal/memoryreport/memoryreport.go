@@ -1285,7 +1285,7 @@ func SameText(left, right string) bool {
 
 // UpsertComment writes the comment of the pull request, or replaces the one
 // that an earlier run wrote. It returns created, updated or unchanged.
-func UpsertComment(gh API, number int, body string) (string, error) {
+func UpsertComment(gh API, number int64, body string) (string, error) {
 	comments, err := gh.Pages(fmt.Sprintf("issues/%d/comments", number))
 	if err != nil {
 		return "", err
@@ -1447,7 +1447,7 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 		return 0, nil
 	}
 	for _, pull := range pulls {
-		number := int(asInt(pull["number"]))
+		number := asInt(pull["number"])
 		value, err := gh.Get(fmt.Sprintf("pulls/%d", number), nil)
 		if err != nil {
 			return 0, err

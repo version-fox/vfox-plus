@@ -66,9 +66,11 @@ jobs:
           test -z "$(gofmt -l shared/tooling)"
           go -C shared/tooling vet ./...
           go -C shared/tooling test ./...
-          # Sign-Msix.ps1 rebuilds and signs on the user's Windows machine
-          # with a Windows vfxtool, so it must always cross-compile.
+          # `vfxtool sign-msix` runs on the user's Windows machine, as the
+          # vfxtool.exe of the artifact, so vfxtool must always cross-compile;
+          # its Windows files are vetted too, which `go vet` above does not reach.
           GOOS=windows CGO_ENABLED=0 go -C shared/tooling build ./...
+          GOOS=windows CGO_ENABLED=0 go -C shared/tooling vet ./...
       - name: Check documentation languages
         run: go -C shared/tooling run ./cmd/vfxtool docs-check
       - name: Keep binary files out of the repository

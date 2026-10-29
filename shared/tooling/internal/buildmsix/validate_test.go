@@ -98,8 +98,8 @@ func TestValidateDirEmpty(t *testing.T) {
 func TestValidateMsixMissingBlockMap(t *testing.T) {
 	manifest := RenderAppxManifest(testValidateConfig("x64"))
 	entries := []zipEntry{
-		{name: "AppxManifest.xml", data: []byte(manifest), mode: 0o644},
-		{name: "[Content_Types].xml", data: []byte(RenderContentTypes()), mode: 0o644},
+		{name: "AppxManifest.xml", data: []byte(manifest)},
+		{name: "[Content_Types].xml", data: []byte(RenderContentTypes()), deflated: true},
 	}
 	data, err := writeZip(entries, time.Unix(1234567890, 0).UTC())
 	if err != nil {
@@ -376,12 +376,12 @@ func TestValidateMsixRejectsContentTypesInBlockMap(t *testing.T) {
 	contentTypes := RenderContentTypes()
 	mtime := time.Unix(1234567890, 0).UTC()
 	entries := []zipEntry{
-		{name: "AppxManifest.xml", data: []byte(manifest), mode: 0o644},
-		{name: "[Content_Types].xml", data: []byte(contentTypes), mode: 0o644},
-		{name: "vfox-plus.exe", data: testExeData(), mode: 0o644},
+		{name: "AppxManifest.xml", data: []byte(manifest)},
+		{name: "[Content_Types].xml", data: []byte(contentTypes)},
+		{name: "vfox-plus.exe", data: testExeData()},
 	}
 	probe, err := writeZip(append(append([]zipEntry(nil), entries...),
-		zipEntry{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(nil)), mode: 0o644}), mtime)
+		zipEntry{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(nil))}), mtime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,7 +401,7 @@ func TestValidateMsixRejectsContentTypesInBlockMap(t *testing.T) {
 		})
 	}
 	data, err := writeZip(append(append([]zipEntry(nil), entries...),
-		zipEntry{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(blockFiles)), mode: 0o644}), mtime)
+		zipEntry{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(blockFiles))}), mtime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -409,5 +409,24 @@ func TestValidateMsixRejectsContentTypesInBlockMap(t *testing.T) {
 		t.Fatal("expected an error for [Content_Types].xml in the block map")
 	} else if !strings.Contains(err.Error(), "[Content_Types].xml") {
 		t.Fatalf("wrong error: %v", err)
+	}
+}
+
+// The content types are the part that osslsigncode rewrites when it signs, and
+// it only handles a deflated one: a package that stores them is refused here, as
+// Windows refuses what osslsigncode makes of it.
+func TestValidateMsixRefusesStoredContentTypes(t *testing.T) {
+	manifest := RenderAppxManifest(testValidateConfig("x64"))
+	entries := []zipEntry{
+		{name: "AppxBlockMap.xml", data: []byte(RenderBlockMap(nil))},
+		{name: "AppxManifest.xml", data: []byte(manifest)},
+		{name: "[Content_Types].xml", data: []byte(RenderContentTypes())},
+	}
+	data, err := writeZip(entries, time.Unix(1234567890, 0).UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateMsix(data, "stored.msix"); err == nil || !strings.Contains(err.Error(), "[Content_Types].xml") || !strings.Contains(err.Error(), "Deflate") {
+		t.Errorf("got %v", err)
 	}
 }

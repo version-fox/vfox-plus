@@ -209,8 +209,9 @@ GTK 3、GLib、Pango 和 Cairo：mygo 启动时从系统加载，包按
 强 copyleft 代码；若有 B 类弱 copyleft 依赖，按其许可证发布。`shared/tooling`
 中的构建工具（`vfxtool`，不随应用发布）还用 `go-github`（内存报告的 GitHub API）、
 `nfpm`（Debian 打包库）、`andybalholm/brotli`（图标字体的 WOFF2 压缩）、
-`go-licenses`（许可证分类）、`go-getter`（包预取的断点续传）与 `golang.org/x/image`
-（绘制 Windows 徽标的矢量光栅化库，BSD-3-Clause），均为 A 类。
+`go-licenses`（许可证分类）、`go-getter`（包预取的断点续传）、`golang.org/x/image`
+（绘制 Windows 徽标的矢量光栅化库，BSD-3-Clause）与 `golang.org/x/sys`
+（`vfxtool sign-msix` 的 Windows 调用：提权用的令牌、证书库；BSD-3-Clause），均为 A 类。
 Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件自包含，包自带徽标。
 优先用平台与技术官方库而非第三方包，依赖声明旁注明用途。
 
