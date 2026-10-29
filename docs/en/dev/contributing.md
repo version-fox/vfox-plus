@@ -133,6 +133,26 @@ When vfox changes, recapture the fixtures with
 [`shared/fixtures/README.md`(fixtures.md). Document the change in
 [docs/vfox-cli-contract.md(vfox-cli-contract.md).
 
+### Diagrams
+
+Draw a diagram in [Mermaid](https://mermaid.js.org/), in a fenced `mermaid`
+block that GitHub renders; do not draw it as text art and do not commit an
+image. The diagrams of the [architecture](architecture.md),
+the [fixtures](fixtures.md) and the [remote protocol](remote-protocol.md#tasks)
+set the style: copy the front matter of one of them, which carries the theme, so
+that every diagram looks alike in the light and the dark theme of GitHub, and give
+it an `accTitle` and an `accDescr` for screen readers.
+
+Colours stand for roles: indigo (`#E4E0FF`) the user interface and waiting,
+orange (`#FFE9D0`) state, resources and running, teal (`#D9F2EA`) the core and
+success, red (`#FFDAD6`) failure, grey (`#ECEBF3`) automation and what was
+cancelled, ink (`#17123F`) what lives outside the application. Break long labels
+yourself with `<br/>` (`wrappingWidth` only sets the widest line), write the angle
+brackets of a placeholder as `#lt;version#gt;`, and give a subgraph a row of nodes
+by chaining them with `~~~`. Look at the result with Mermaid 11 and 12 (the
+[live editor](https://mermaid.live) or `mmdc`) before you commit: GitHub shows an
+error instead of a diagram that it cannot parse.
+
 ### Screenshots
 
 The images of the documentation are not committed: they are hosted on
@@ -171,7 +191,12 @@ fake vfox with the fixtures — so that the SDK list has content; `--lang`
 pins the interface language; `--window 412,915` shoots the phone portrait for
 the documentation and defaults to the 1280 by 800 desktop window that CI
 measures; `--chrome` takes any Chrome that speaks CDP,
-and the script auto-detects one on `PATH` when it is left out.) The Android screenshot, `screenshot-android`,
+and the script auto-detects one on `PATH` when it is left out.) Look at the
+size of the picture before you upload it (`file webapp-en.png`): not every
+Chrome keeps a window that small. Chrome for Testing 156 answered
+`--window 412,915` with a picture of 500 by 715, and `chrome-headless-shell` of
+the same version gives exactly 412 by 915, so pass that one with `--chrome` when
+the size is wrong. The Android screenshot, `screenshot-android`,
 comes from CI instead: the `measure` job of `android.yml` runs the release
 APK on an emulator, `vfxtool measure-apk` captures the cold start, and
 the job uploads it as the `screenshot-android` artifact. Download it with

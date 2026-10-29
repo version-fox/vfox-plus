@@ -38,6 +38,10 @@
   <developer id="dev.vfox">
     <name>Han Li and contributors</name>
   </developer>
+  <branding>
+    <color type="primary" scheme_preference="light">#FFDCC1</color>
+    <color type="primary" scheme_preference="dark">#6B3B04</color>
+  </branding>
   <categories>
     <category>Development</category>
   </categories>

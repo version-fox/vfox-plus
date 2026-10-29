@@ -9,14 +9,49 @@ tests, so they stay consistent with what vfox output means.
 
 ## Layout
 
-```text
-fixtures/
-├── (captured by `vfxtool capture` for the installed vfox)
-├── (replayed by `vfxtool fake-vfox`, a stand-in for vfox)
-└── vfox-<version>/
-    ├── cases.json             # Commands, exit codes and expected results
-    ├── <case>.stdout          # Standard output of the command
-    └── <case>.stderr          # Standard error of the command
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: The vfox output fixtures
+    accDescr: vfxtool capture writes the fixtures from the installed vfox; vfxtool fake-vfox replays them and the parser unit tests read them.
+    vfox(["The installed <b>vfox</b>"])
+    subgraph fx["<b>fixtures/vfox-#lt;version#gt;/</b>"]
+        direction LR
+        cases("<b>cases.json</b><br/>commands, exit codes and<br/>expected results") ~~~ out("<b>#lt;case#gt;.stdout</b><br/>standard output<br/>of the command") ~~~ err("<b>#lt;case#gt;.stderr</b><br/>standard error<br/>of the command")
+    end
+    fake(["<b>vfxtool fake-vfox</b><br/>a stand-in for vfox"])
+    tests(["The parser<br/>unit tests"])
+    vfox -->|"<code>vfxtool capture</code>"| fx
+    fx -->|"replayed by"| fake
+    fx -->|"read by"| tests
+
+    classDef real fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    classDef file fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef user fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    class vfox real
+    class cases,out,err file
+    class fake,tests user
+    style fx fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
 ```
 
 ## How the output was captured

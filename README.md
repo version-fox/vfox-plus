@@ -1,10 +1,16 @@
+<div align="center">
+
+<img src="shared/packaging/linux/dev.vfox.VfoxPlus.svg" width="128" height="128" alt="The vfox+ icon: the fox of the vfox logo on an indigo plate">
+
 # vfox-plus
 
-> [简体中文](README.zh-CN.md)
+[简体中文](README.zh-CN.md)
 
 A graphical front end for [vfox](https://vfox.dev), the cross-platform version
 manager, built with the [Material 3 Expressive](https://m3.material.io/) design
 language.
+
+</div>
 
 Documentation lives in [`docs/`](docs/en/user/index.md), by language and by
 audience:

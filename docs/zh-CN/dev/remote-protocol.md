@@ -12,7 +12,7 @@
   `--token-ttl` 后过期（默认 5 分钟）。打开即配对：服务返回
   `Set-Cookie: vfox-plus-session=<session>`（`Secure`、`HttpOnly`、
   `SameSite=Lax`）。
-- **会话** cookie 认证除 `/` 与 `/auth/connect/*` 外的所有路由。`serve` 会话
+- **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。`serve` 会话
   `--session-ttl` 后过期（默认 24 小时）；过期会话返回 401，需重新配对。
 - 写操作路由在调用方携带 `Origin`/`Referer` 时要求同源；两者都不带（如 curl）
   凭会话 cookie 直接放行。
@@ -48,6 +48,14 @@
 `Cache-Control: no-store`。遵循[设计系统](design-system.md)（种子色、形状、动效），
 图标为内联 SVG。
 
+`GET /manifest.webmanifest`（无需会话）提供 Web 界面的 Web 应用清单
+（`application/manifest+json`，`Cache-Control: no-cache`）：`name` 与 `short_name`
+为 `vfox+`，`id` 与 `start_url` 为 `/app`，`scope` 为 `/`，`display` 为
+`standalone`，颜色取自页面，图标只有一个：favicon，尺寸 `any` 的 SVG data URI。
+Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话，因为只写明应用名
+与起始页，而且浏览器可能不借助链接它的页面就处理清单（规范提到了从同步服务安装），
+那时没有会话 cookie。
+
 ## 总览
 
 `GET /api/inventory`（会话，仅 `serve`）一次返回已安装 SDK、插件仓库与 vfox
@@ -75,7 +83,55 @@
 
 ## 任务
 
-任务生命周期：`queued` → `running` → `succeeded` | `failed` | `cancelled`。
+任务生命周期：
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+stateDiagram-v2
+    accTitle: 任务生命周期
+    accDescr: 任务先排队、再运行，最终为 succeeded、failed 或 cancelled；排队中的任务也可取消。
+    direction LR
+    [*] --> queued: POST /api/tasks
+    queued --> running: 轮到它
+    queued --> cancelled: 取消
+    running --> succeeded: exit code 0
+    running --> failed: 无法启动，或<br/>exit code ≠ 0
+    running --> cancelled: 取消，<br/>进程被终止
+    succeeded --> [*]
+    failed --> [*]
+    cancelled --> [*]
+
+    classDef wait fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef busy fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px
+    classDef good fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px
+    classDef bad fill:#FFDAD6,stroke:#BA1A1A,color:#410002,stroke-width:1.5px
+    classDef stop fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    class queued wait
+    class running busy
+    class succeeded good
+    class failed bad
+    class cancelled stop
+```
+
 同一时刻只跑一条变更命令，其余排队。队列是进程内的，每条任务还在 vfox 进程
 运行时另持跨进程文件锁（设置旁 `tasks.lock`），桌面与 LAN `serve` 并存时变更
 依然串行。

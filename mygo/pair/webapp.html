@@ -26,6 +26,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#88521c">
 <title>vfox-plus</title>
+<!--favicon-->
+<link rel="manifest" href="/manifest.webmanifest">
 <style>
 :root[data-theme=light] {
   --m3-background: #fff8f5;
@@ -154,8 +156,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .rail{position:sticky;top:0;height:100vh;width:96px;flex:none;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:16px 12px;background:var(--m3-surface-container-low);transition:width .35s cubic-bezier(.34,1.2,.64,1)}
 .rail.expanded{width:240px}
 .rail .brand{display:flex;align-items:center;gap:12px;padding:4px 8px 12px}
-.rail .mark{width:44px;height:44px;flex:none;border-radius:22px 22px 22px 6px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
-.rail.expanded .mark{border-radius:50%}
+.rail .mark{width:44px;height:44px;flex:none;display:block}
 .rail .wordmark{display:none;font-size:18px;font-weight:500;white-space:nowrap}
 .rail.expanded .wordmark{display:block}
 .rail .iconbtn{align-self:flex-start}
@@ -376,7 +377,7 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 <body>
 <div class="app">
 <aside class="rail" id="rail" aria-label="Navigation">
-  <div class="brand"><div class="mark">v+</div><div class="wordmark">vfox-plus</div></div>
+  <div class="brand"><img class="mark" src="<!--logo-->" width="44" height="44" alt=""><div class="wordmark">vfox-plus</div></div>
   <button class="iconbtn" id="railToggle" title="Menu"><svg class="ic"><use href="#i-more-vert"/></svg></button>
   <nav id="railNav">
     <button class="dest" data-tab="home"><span class="pill"><svg class="ic line"><use href="#i-home"/></svg><svg class="ic fill"><use href="#i-home-fill"/></svg></span><span class="lbl">Home</span></button>

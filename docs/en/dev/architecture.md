@@ -11,26 +11,56 @@ through GTK 3 without a C compiler.
 
 ## Repository layout
 
-```text
-vfox-plus/
-├── docs/                  All documentation, by language then by audience
-│   ├── en/user/           User guides: install, use, remote and Android (this is for users)
-│   ├── en/dev/            Developer specification (this document lives here)
-│   ├── zh-CN/user/        Simplified Chinese user guides
-│   └── zh-CN/dev/         Simplified Chinese developer specification
-├── shared/                Machine-readable resources used by the application
-│   ├── i18n/              Translation catalogues (ARB: JSON with ICU messages)
-│   ├── icons.json         Material Symbols used by the user interface
-│   ├── fixtures/          Captured vfox output and the expected parser results
-│   ├── test-plugin/       Offline vfox plugin for end-to-end tests against the real vfox
-│   ├── packaging/linux/   Desktop entry, AppStream metadata and icon, packaged by `vfxtool build-deb`
-│   ├── packaging/windows/ MSIX manifest, logos and bundle layout, packaged by `vfxtool build-msix` for Windows 11
-│   ├── tooling/           `vfxtool`, the Go tool that builds, tests and packages everything
-│   └── sandbox/           Shared parts of the Docker sandbox
-├── mygo/                  The desktop application, its pairing server (Go)
-│   (`cmd/vfox-plus-serve` builds the headless server without the UI)
-├── android/               The Android remote client (WebView around the pairing server)
-└── .github/               CI workflows: repository checks, the build, the memory report and the sandbox
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: Repository layout
+    accDescr: docs holds the documentation, shared the resources used by the application, mygo and android the applications, and .github the CI workflows.
+    subgraph docs["<b>docs/</b> · all documentation, by language, then by audience"]
+        direction LR
+        d1("<b>en/user/</b><br/>user guides: install, use,<br/>remote and Android") ~~~ d2("<b>en/dev/</b><br/>developer specification<br/>(this document lives here)") ~~~ d3("<b>zh-CN/user/</b><br/>Simplified Chinese<br/>user guides") ~~~ d4("<b>zh-CN/dev/</b><br/>Simplified Chinese<br/>developer specification")
+    end
+    subgraph shared["<b>shared/</b> · machine-readable resources used by the application"]
+        direction LR
+        s1("<b>i18n/</b><br/>translation catalogues<br/>(ARB: JSON with ICU messages)") ~~~ s2("<b>icons.json</b><br/>Material Symbols used<br/>by the user interface") ~~~ s3("<b>fixtures/</b><br/>captured vfox output and<br/>the expected parser results") ~~~ s4("<b>test-plugin/</b><br/>offline vfox plugin for end-to-end<br/>tests against the real vfox")
+        s5("<b>packaging/linux/</b><br/>desktop entry, AppStream metadata<br/>and icon, for <code>vfxtool build-deb</code>") ~~~ s6("<b>packaging/windows/</b><br/>MSIX manifest, logos and bundle<br/>layout, for <code>vfxtool build-msix</code>") ~~~ s7("<b>tooling/</b><br/><code>vfxtool</code>, the Go tool that builds,<br/>tests and packages everything") ~~~ s8("<b>sandbox/</b><br/>shared parts of the<br/>Docker sandbox")
+    end
+    subgraph code["<b>Applications</b> and <b>automation</b>"]
+        direction LR
+        m("<b>mygo/</b><br/>the desktop application and its pairing<br/>server (Go); <code>cmd/vfox-plus-serve</code><br/>builds the headless server without the UI") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the pairing server)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+    end
+    docs ~~~ shared ~~~ code
+
+    classDef docs fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px,rx:12,ry:12
+    classDef shared fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef app fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px,rx:12,ry:12
+    classDef ci fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    class d1,d2,d3,d4 docs
+    class s1,s2,s3,s4,s5,s6,s7,s8 shared
+    class m,a app
+    class g ci
+    style docs fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style code fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
 ```
 
 The application reads the shared resources from `shared/` and never copies
@@ -41,19 +71,57 @@ them, so that a translation or a fixture is changed in one place only.
 The application is organised in three layers. Dependencies only point
 downwards.
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│ UI         pages, components, theme, motion, platform integration  │
-├────────────────────────────────────────────────────────────────────┤
-│ State      observable controllers: settings, vfox availability,    │
-│            installed SDKs, registry, configuration, task queue     │
-├────────────────────────────────────────────────────────────────────┤
-│ Core       models, process runner, vfox client and output parsers,  │
-│            settings store — no UI framework                        │
-└────────────────────────────────────────────────────────────────────┘
-                                 │ child processes
-                                 ▼
-                          vfox command line
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: Layers of the application
+    accDescr: UI depends on State, State depends on Core, and Core runs the vfox command line as child processes.
+    subgraph UI["<b>UI</b> · mygo/ui"]
+        direction LR
+        ui1(["Pages"]) ~~~ ui2(["Components<br/>ui/kit"]) ~~~ ui3(["Theme<br/>ui/mcu · ui/shapes"]) ~~~ ui4(["Motion"]) ~~~ ui5(["Platform<br/>integration"])
+    end
+    subgraph State["<b>State</b> · mygo/state"]
+        direction LR
+        st1(["Settings"]) ~~~ st2(["vfox<br/>availability"]) ~~~ st3(["Installed<br/>SDKs"]) ~~~ st4(["Registry"]) ~~~ st5(["Configuration"]) ~~~ st6(["Task queue"])
+    end
+    subgraph Core["<b>Core</b> · mygo/core · no UI framework"]
+        direction LR
+        co1(["Models"]) ~~~ co2(["Process runner"]) ~~~ co3(["vfox client and<br/>output parsers"]) ~~~ co4(["Settings store"])
+    end
+    UI --> State --> Core
+    Core -->|"child processes"| vfox(["vfox CLI"])
+
+    classDef ui fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef state fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px
+    classDef core fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px
+    classDef ext fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class ui1,ui2,ui3,ui4,ui5 ui
+    class st1,st2,st3,st4,st5,st6 state
+    class co1,co2,co3,co4 core
+    class vfox ext
+    style UI fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style State fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style Core fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
 ```
 
 **Core** is plain Go without a UI framework. It contains:
@@ -168,8 +236,9 @@ in `shared/tooling` (`vfxtool`, never shipped in the application) additionally
 uses `go-github` (the GitHub API for the memory report),
 `nfpm` (Debian packaging as a library), `andybalholm/brotli` (WOFF2
 compression for the icon font), `go-licenses` (license classification for
-the license collector) and `go-getter` (resumable downloads for the package
-prefetch), all Category A. The Windows `.msix` and `.msixbundle` need no
+the license collector), `go-getter` (resumable downloads for the package
+prefetch) and `golang.org/x/image` (the vector rasterizer that draws the
+Windows logos, BSD-3-Clause), all Category A. The Windows `.msix` and `.msixbundle` need no
 additional runtime dependency: the Go executable is self-contained and the
 package carries its own logos.
 Prefer the platform and the official libraries of a technology over third-party
@@ -199,6 +268,60 @@ to the settings, and the others attach to it instead of starting another
 model. `pair` mints its
 one-time links from whichever server is live; only headless `pair` without
 any server starts its own read-only snapshot server.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: Which server answers pair and serve
+    accDescr: pair and a loopback serve use the shared server when one is live. Without one, pair starts a read-only snapshot server and serve starts its own model and becomes the shared server, as the desktop and service start do. A serve on another interface always starts its own HTTPS server. Browsers and the Android app pair with whichever server answers.
+    pair(["<b>pair</b>"]) --> q1{"Shared server<br/>live?"}
+    srv(["<b>serve</b><br/>loopback bind"]) --> q2{"Shared server<br/>live?"}
+    rem(["<b>serve</b><br/>other bind"]) --> own("Always its own server:<br/>HTTPS and a QR code,<br/>needs <code>--allow-remote</code>")
+    subgraph shared["<b>The shared server</b> · one at most per user, registered in <code>server.json</code>"]
+        direction LR
+        d("<b>Desktop</b><br/>Remote access on and<br/>none live: embedded<br/>loopback server") ~~~ s("<b>service start</b><br/>a detached<br/>loopback <code>serve</code>") ~~~ l("<b>serve</b><br/>a loopback bind<br/>that found none")
+    end
+    q1 -->|"yes: mint a link"| shared
+    q2 -->|"yes: attach,<br/>mint a link"| shared
+    q2 -->|"no: start its own<br/>model, register it"| shared
+    q1 -->|no| snap("One-shot, read-only<br/>snapshot server<br/>(pair refuses instead<br/>if the service is disabled)")
+    fe(["<b>Browsers and the Android app</b><br/>pair with a one-time link"])
+    shared --> fe
+    own --> fe
+    snap --> fe
+
+    classDef cmd fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef ask fill:#FFFFFF,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    classDef owner fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef alone fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class pair,srv,rem cmd
+    class q1,q2 ask
+    class d,s,l owner
+    class own,snap alone
+    class fe client
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
+```
 
 - **Desktop**: it embeds a loopback server on its in-process model while it
   runs with Remote access switched on in Settings (off by default) (`ServeEmbedded`), so browsers pair with the
@@ -238,5 +361,7 @@ around `/app`, with a native Material 3 Expressive pairing flow (paste the
 pairing link, compare the certificate fingerprint), so a phone drives the
 vfox-plus instance on a PC. The web interface itself follows the
 [design system](design-system.md) (seed colour, shapes, motion) with inlined
-assets, because the pairing server serves a single embedded page with no
-external requests.
+assets, the favicon among them, because the pairing server serves a single
+embedded page with no external requests. A web app manifest at
+`/manifest.webmanifest` lets Chromium browsers install the page as an application
+with the same icon.

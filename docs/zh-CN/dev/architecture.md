@@ -9,26 +9,56 @@ vfox-plus 是 [vfox](https://vfox.dev) 命令行工具的图形化前端。它�
 
 ## 仓库布局
 
-```text
-vfox-plus/
-├── docs/                  全部文档，先按语言、再按受众分类
-│   ├── en/user/           用户指南：安装、使用、远端与安卓（给用户看的）
-│   ├── en/dev/            开发者规约（本文档在这里）
-│   ├── zh-CN/user/        简体中文用户指南
-│   └── zh-CN/dev/        简体中文开发者规约
-├── shared/                应用使用的机器可读资源
-│   ├── i18n/              翻译目录（ARB：带 ICU 消息的 JSON）
-│   ├── icons.json         界面使用的 Material Symbols
-│   ├── fixtures/          捕获的 vfox 输出及期望解析结果
-│   ├── test-plugin/       对真实 vfox 做端到端测试的离线 vfox 插件
-│   ├── packaging/linux/   桌面入口、AppStream 元数据和图标，`vfxtool build-deb` 打包
-│   ├── packaging/windows/ MSIX 清单、徽标和 bundle 布局，`vfxtool build-msix` 为 Windows 11 打包
-│   ├── tooling/           `vfxtool`：构建、测试、打包一切的 Go 工具
-│   └── sandbox/           Docker 沙箱的共享部分
-├── mygo/                  桌面应用及其配对服务（Go）
-│   （`cmd/vfox-plus-serve` 构建无界面 headless 服务）
-├── android/               安卓远端客户端（配对服务的 WebView 套壳）
-└── .github/               CI 工作流：仓库检查、构建、内存报告和沙箱
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: 仓库布局
+    accDescr: docs 存放文档，shared 存放应用使用的资源，mygo 与 android 是应用，.github 是 CI 工作流。
+    subgraph docs["<b>docs/</b> · 全部文档，先按语言、再按受众分类"]
+        direction LR
+        d1("<b>en/user/</b><br/>用户指南：安装、使用、<br/>远端与安卓") ~~~ d2("<b>en/dev/</b><br/>开发者规约<br/>（本文档在这里）") ~~~ d3("<b>zh-CN/user/</b><br/>简体中文用户指南") ~~~ d4("<b>zh-CN/dev/</b><br/>简体中文开发者规约")
+    end
+    subgraph shared["<b>shared/</b> · 应用使用的机器可读资源"]
+        direction LR
+        s1("<b>i18n/</b><br/>翻译目录<br/>（ARB：带 ICU 消息的 JSON）") ~~~ s2("<b>icons.json</b><br/>界面使用的<br/>Material Symbols") ~~~ s3("<b>fixtures/</b><br/>捕获的 vfox 输出<br/>及期望解析结果") ~~~ s4("<b>test-plugin/</b><br/>对真实 vfox 做端到端测试的<br/>离线 vfox 插件")
+        s5("<b>packaging/linux/</b><br/>桌面入口、AppStream 元数据和图标，<br/><code>vfxtool build-deb</code> 打包") ~~~ s6("<b>packaging/windows/</b><br/>MSIX 清单、徽标和 bundle 布局，<br/>为 Windows 11 打包，<br/><code>vfxtool build-msix</code>") ~~~ s7("<b>tooling/</b><br/><code>vfxtool</code>：构建、测试、<br/>打包一切的 Go 工具") ~~~ s8("<b>sandbox/</b><br/>Docker 沙箱的共享部分")
+    end
+    subgraph code["<b>应用</b>与<b>自动化</b>"]
+        direction LR
+        m("<b>mygo/</b><br/>桌面应用及其配对服务（Go）；<br/><code>cmd/vfox-plus-serve</code> 构建<br/>无界面 headless 服务") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（配对服务的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
+    end
+    docs ~~~ shared ~~~ code
+
+    classDef docs fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px,rx:12,ry:12
+    classDef shared fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef app fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px,rx:12,ry:12
+    classDef ci fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    class d1,d2,d3,d4 docs
+    class s1,s2,s3,s4,s5,s6,s7,s8 shared
+    class m,a app
+    class g ci
+    style docs fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style code fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
 ```
 
 应用从 `shared/` 读取共享资源，从不复制，保证翻译或夹具只改一处。
@@ -37,19 +67,57 @@ vfox-plus/
 
 应用分三层，依赖只向下。
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│ UI         页面、组件、主题、动效、平台集成                        │
-├────────────────────────────────────────────────────────────────────┤
-│ State      可观察控制器：设置、vfox 可用性、                        │
-│            已安装 SDK、插件仓库、配置、任务队列                    │
-├────────────────────────────────────────────────────────────────────┤
-│ Core       模型、进程运行器、vfox 客户端与输出解析、                 │
-│            设置存储——无 UI 框架                                    │
-└────────────────────────────────────────────────────────────────────┘
-                                  │ 子进程
-                                  ▼
-                           vfox 命令行
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: 应用的分层
+    accDescr: UI 依赖 State，State 依赖 Core，Core 以子进程运行 vfox 命令行。
+    subgraph UI["<b>UI</b> · mygo/ui"]
+        direction LR
+        ui1(["页面"]) ~~~ ui2(["组件<br/>ui/kit"]) ~~~ ui3(["主题<br/>ui/mcu · ui/shapes"]) ~~~ ui4(["动效"]) ~~~ ui5(["平台集成"])
+    end
+    subgraph State["<b>State</b> · mygo/state"]
+        direction LR
+        st1(["设置"]) ~~~ st2(["vfox 可用性"]) ~~~ st3(["已安装 SDK"]) ~~~ st4(["插件仓库"]) ~~~ st5(["配置"]) ~~~ st6(["任务队列"])
+    end
+    subgraph Core["<b>Core</b> · mygo/core · 无 UI 框架"]
+        direction LR
+        co1(["模型"]) ~~~ co2(["进程运行器"]) ~~~ co3(["vfox 客户端与<br/>输出解析"]) ~~~ co4(["设置存储"])
+    end
+    UI --> State --> Core
+    Core -->|"子进程"| vfox(["vfox 命令行"])
+
+    classDef ui fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef state fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px
+    classDef core fill:#D9F2EA,stroke:#13836B,color:#06332A,stroke-width:1.5px
+    classDef ext fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class ui1,ui2,ui3,ui4,ui5 ui
+    class st1,st2,st3,st4,st5,st6 state
+    class co1,co2,co3,co4 core
+    class vfox ext
+    style UI fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style State fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    style Core fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
 ```
 
 **Core** 是不依赖 UI 框架的纯 Go，包含：
@@ -141,7 +209,8 @@ GTK 3、GLib、Pango 和 Cairo：mygo 启动时从系统加载，包按
 强 copyleft 代码；若有 B 类弱 copyleft 依赖，按其许可证发布。`shared/tooling`
 中的构建工具（`vfxtool`，不随应用发布）还用 `go-github`（内存报告的 GitHub API）、
 `nfpm`（Debian 打包库）、`andybalholm/brotli`（图标字体的 WOFF2 压缩）、
-`go-licenses`（许可证分类）与 `go-getter`（包预取的断点续传），均为 A 类。
+`go-licenses`（许可证分类）、`go-getter`（包预取的断点续传）与 `golang.org/x/image`
+（绘制 Windows 徽标的矢量光栅化库，BSD-3-Clause），均为 A 类。
 Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件自包含，包自带徽标。
 优先用平台与技术官方库而非第三方包，依赖声明旁注明用途。
 
@@ -163,6 +232,60 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 每个用户一个 server 拥有应用状态：桌面应用、后台 daemon 或回环 `serve`
 把自己登记在设置旁的 `server.json` 里，其它各方挂靠它，不再另起模型。`pair` 从活着的 server 增发一次性链接；只有无 server 的
 headless `pair` 才起自己的只读快照服务。
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: pair 与 serve 由哪个 server 应答
+    accDescr: 有共享 server 在运行时，pair 与回环 serve 都用它；没有时，pair 起只读快照服务，serve 起自己的模型并成为共享 server，桌面与 service start 也是如此。监听其它网卡的 serve 一律起自己的 HTTPS 服务。浏览器与安卓 App 与应答的 server 配对。
+    pair(["<b>pair</b>"]) --> q1{"有共享 server<br/>在运行？"}
+    srv(["<b>serve</b><br/>回环监听"]) --> q2{"有共享 server<br/>在运行？"}
+    rem(["<b>serve</b><br/>非回环监听"]) --> own("一律起自己的 server：<br/>HTTPS 与二维码，<br/>需要 <code>--allow-remote</code>")
+    subgraph shared["<b>共享 server</b> · 每个用户至多一个，登记在 <code>server.json</code>"]
+        direction LR
+        d("<b>桌面</b><br/>开启远端访问且<br/>无 server 在运行：<br/>内嵌回环服务") ~~~ s("<b>service start</b><br/>分离的回环<br/><code>serve</code>") ~~~ l("<b>serve</b><br/>没找到共享 server<br/>的回环监听")
+    end
+    q1 -->|"是：增发链接"| shared
+    q2 -->|"是：挂靠，<br/>增发链接"| shared
+    q2 -->|"否：起自己的模型<br/>并登记"| shared
+    q1 -->|否| snap("一次性只读快照服务<br/>（服务被禁用时<br/>pair 改为拒绝）")
+    fe(["<b>浏览器与安卓 App</b><br/>用一次性链接配对"])
+    shared --> fe
+    own --> fe
+    snap --> fe
+
+    classDef cmd fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef ask fill:#FFFFFF,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    classDef owner fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef alone fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class pair,srv,rem cmd
+    class q1,q2 ask
+    class d,s,l owner
+    class own,snap alone
+    class fe client
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
+```
 
 - **桌面**：在设置里打开远端访问（默认关闭）时运行时内嵌回环服务（`ServeEmbedded`），浏览器
   直接与桌面配对。原生界面不变：仍直连进程内模型，不走 HTTP。
@@ -190,5 +313,6 @@ headless `pair` 才起自己的只读快照服务。
 Android 客户端（`android/`）连同一个服务：它是包住 `/app` 的 WebView，
 配对流程是原生 Material 3 Expressive（粘贴配对链接、核对证书指纹），
 手机以此驱动 PC 上的 vfox-plus 实例。Web 界面本身遵循
-[设计系统](design-system.md)（种子色、形状、动效），资源全部内联，
-因为配对服务只提供单个无外部请求的嵌入页面。
+[设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），
+因为配对服务只提供单个无外部请求的嵌入页面。`/manifest.webmanifest` 的 Web 应用清单
+让 Chromium 系浏览器能把该页面安装为应用，图标相同。

@@ -13,7 +13,9 @@
 | [`Sign-Msix.ps1`(../../../shared/packaging/windows/Sign-Msix.ps1) | 维护者本地重建与签名包的辅助脚本；用户不需要使用（见下）。 |
 
 包标识、清单、徽标与 bundle 布局由 `vfxtool build-msix`
-（`shared/tooling/internal/buildmsix`）生成；此处不提交任何二进制。
+（`shared/tooling/internal/buildmsix`）生成；此处不提交任何二进制。徽标就是应用图标，
+构建时由 `shared/tooling/internal/appicon` 按其 SVG 的路径绘制（见
+[设计系统](design-system.md#应用图标)）。
 
 ## 产出什么
 

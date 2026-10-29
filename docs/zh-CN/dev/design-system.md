@@ -173,5 +173,33 @@ ligature 裁剪；锁定字重、grade 与 optical size，只留 fill 轴，得 
 mygo 不能设字体 fill 轴，故同时打包描边与填充（改家族名，`vfxtool renamefont`
 改名）两套，交叉淡入淡出（共 36 KB）。
 
-应用图标为 vfox 橙 12 边 cookie 形加白 "v+"（
-[`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg)）。
+### 应用图标
+
+应用图标是 vfox 标志里的狐狸，用 Material 3 Expressive 的形状语言重新绘制
+（[`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg)）。
+
+- **形象。** 与 version-fox 组织头像是同一只狐狸：橙色的脸，奶油色脸颊围成一个
+  "V"，奶油色内耳，深色鼻子和带高光的圆形深色眼睛。没有描边，转角像形状库的
+  形状一样用大圆角。两只耳朵与两侧脸颊的毛簇构成的轮廓，在 16 px 下仍是狐狸。
+- **底板与光晕。** 靛蓝底板（皮毛的对比色），狐狸身后是形状库的 9 边 cookie，
+  作柔和的光晕。
+- **颜色。** 皮毛自上而下 `#FFB63F` 至 `#FF8419`，脸颊 `#FFFFFF` 至 `#FFE7CB`，
+  内耳 `#FFE3C4`，眼睛和鼻子 `#17123F`；底板自左上至右下 `#5444E4` 至
+  `#1B1268`；光晕为白色，不透明度 12% 至 3%。
+- **易辨认。** 一个大而简单的形状，没有文字。在成品图上实测，皮毛与身后背景的
+  对比度不低于 3.2:1（WCAG 对图形要求 3:1），脸颊不低于 5.9:1，眼睛与皮毛不低于
+  7.1:1。桌面上狐狸占底板三分之二；安卓上它位于自适应图标 66 dp 的安全区内，
+  圆形、方圆与圆角方形遮罩都能完整显示。
+
+一幅图服务所有平台：
+
+| 平台 | 文件 | 说明 |
+| --- | --- | --- |
+| Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | 母版，方圆底板。`vfxtool build-deb` 装为可缩放图标。旁边的 AppStream 元数据写明软件中心垫在图标后面的颜色：浅色主题 `#FFDCC1`，深色主题 `#6B3B04`，即 vfox 橙配色的主容器色（Web 界面的 `--m3-primary-container`）。 |
+| 安卓启动器 | [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) 里的 `ic_launcher_background.xml`、`ic_launcher_foreground.xml` 与 `ic_launcher_monochrome.xml` | 自适应图标：启动器给铺满的底板和狐狸加遮罩。单色层供安卓 13 的主题图标，脸颊半强度，眼睛和鼻子镂空。 |
+| 安卓配对界面 | 同目录的 `ic_mark.xml` | 母版的矢量绘制版。 |
+| Windows | `.msix` 里的 `Assets/*.png` | 不提交任何图片，故由 `vfxtool build-msix` 用同样的路径（[`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)）绘制。 |
+| Web 界面 | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | 底板与狐狸，去掉光晕，狐狸更大，16 px 下仍可辨认。配对服务的每个页面都把它以 data URI 内联（`favicon.go`），页面不为图标另发请求；Web 界面用它作导航栏的品牌标志，Web 应用清单把它写成已安装应用的图标（尺寸为 `any` 的 SVG 图标是 Chromium 接受用于安装的图标）。 |
+
+SVG 是母版：矢量绘制、`appicon` 与 favicon 重复它的路径，不一致时 `shared/tooling`
+（前两者）与 `mygo/pair`（favicon）的 `go test` 失败。

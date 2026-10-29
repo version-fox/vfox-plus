@@ -560,15 +560,20 @@ func asTesterOutput(directory string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-// copyRepository copies the shared resources, the license, the docs and the
-// given top-level directories of the repository to the working directory,
-// without what the host has built in them. The extraction runs as tester,
-// like the piped tar of copy_repository in task-lib.sh.
+// copyRepository copies the shared resources, the license, the docs, the
+// resources of the Android app and the given top-level directories of the
+// repository to the working directory, without what the host has built in
+// them. The extraction runs as tester, like the piped tar of copy_repository
+// in task-lib.sh.
 func (e env) copyRepository(directories ...string) error {
 	if err := run("install", "-d", "-o", "tester", "-g", "tester", e.work); err != nil {
 		return err
 	}
-	members := []string{"./shared", "./LICENSE", "./docs"}
+	// The tests of the icon in shared/tooling compare its drawing with the
+	// vector drawables of the Android app, so they need those resources. Only
+	// they are copied: the rest of android/ holds Gradle outputs on a host
+	// that has built the app.
+	members := []string{"./shared", "./LICENSE", "./docs", "./android/app/src/main/res"}
 	for _, directory := range directories {
 		members = append(members, "./"+directory)
 	}
