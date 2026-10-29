@@ -11,6 +11,10 @@ require (
 	// Cross-process task lock on Windows, where the standard syscall
 	// package has no file locking (BSD; same section of the architecture).
 	golang.org/x/sys v0.49.0
+	// Tells a terminal from a file or a pipe, so that `vfox-plus serve` prints its
+	// QR code only where it renders (BSD-3-Clause; see
+	// docs/en/dev/architecture.md#dependencies).
+	golang.org/x/term v0.47.0
 )
 
 require (

@@ -14,8 +14,9 @@
   `SameSite=Lax`）。
 - **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。`serve` 会话
   `--session-ttl` 后过期（默认 24 小时）；过期会话返回 401，需重新配对。
-- 写操作路由在调用方携带 `Origin`/`Referer` 时要求同源；两者都不带（如 curl）
-  凭会话 cookie 直接放行。
+- 写操作路由另外拒绝浏览器的跨源请求，用 `net/http` 的跨源保护：`Sec-Fetch-Site`
+  不是 `same-origin`（或 `none`），或没有该头时 `Origin` 的主机与所请求的主机不同，
+  返回 403。两个头都不带（如 curl）的请求凭会话 cookie 直接放行。
 - 每个用户一个**共享服务**拥有应用状态：桌面运行时内嵌一个，`service start`
   的 daemon 或回环 `serve` 登记自己为共享服务，`pair` 从活着的那个增发。发现文件是设置旁的 `server.json`
   （`{"pid", "port", "adminToken", "owner", "startedAt"}`，0600）；发现时删掉

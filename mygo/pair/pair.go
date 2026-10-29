@@ -125,14 +125,16 @@ type Server struct {
 	listener   net.Listener
 	httpServer *http.Server
 	handler    http.Handler
-	mu         sync.Mutex
-	tokens     map[string]time.Time
-	sessions   map[string]time.Time
-	ttl        time.Duration
-	sttl       time.Duration
-	snapshot   func() Snapshot
-	model      *state.AppModel
-	tls        bool
+	// crossOrigin refuses the cross-origin requests of browsers that change state.
+	crossOrigin *http.CrossOriginProtection
+	mu          sync.Mutex
+	tokens      map[string]time.Time
+	sessions    map[string]time.Time
+	ttl         time.Duration
+	sttl        time.Duration
+	snapshot    func() Snapshot
+	model       *state.AppModel
+	tls         bool
 	// fingerprint is the SHA-256 fingerprint of the TLS certificate,
 	// shown on the intro and pairing pages for comparison.
 	fingerprint string
@@ -165,6 +167,7 @@ func NewServer(options Options) (*Server, error) {
 	}
 	server := &Server{
 		listener:    listener,
+		crossOrigin: http.NewCrossOriginProtection(),
 		tokens:      make(map[string]time.Time),
 		sessions:    make(map[string]time.Time),
 		ttl:         ttl,

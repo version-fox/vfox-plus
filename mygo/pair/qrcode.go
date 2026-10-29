@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/skip2/go-qrcode"
+	"golang.org/x/term"
 )
 
 // QRQuietZone is the blank margin around the code, in modules.
@@ -138,12 +139,7 @@ func (s *Server) pairingPort() string {
 	return port
 }
 
-// isTerminal reports whether file is a character device (a terminal), so that
-// control sequences like the QR code are only printed where they render.
-func isTerminal(file *os.File) bool {
-	info, err := file.Stat()
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeCharDevice != 0
-}
+// isTerminal reports whether file is a terminal, so that control sequences like
+// the QR code are only printed where they render (a character device such as
+// /dev/null is not one).
+func isTerminal(file *os.File) bool { return term.IsTerminal(int(file.Fd())) }
