@@ -269,6 +269,60 @@ model. `pair` mints its
 one-time links from whichever server is live; only headless `pair` without
 any server starts its own read-only snapshot server.
 
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: Which server answers pair and serve
+    accDescr: pair and a loopback serve use the shared server when one is live. Without one, pair starts a read-only snapshot server and serve starts its own model and becomes the shared server, as the desktop and service start do. A serve on another interface always starts its own HTTPS server. Browsers and the Android app pair with whichever server answers.
+    pair(["<b>pair</b>"]) --> q1{"Shared server<br/>live?"}
+    srv(["<b>serve</b><br/>loopback bind"]) --> q2{"Shared server<br/>live?"}
+    rem(["<b>serve</b><br/>other bind"]) --> own("Always its own server:<br/>HTTPS and a QR code,<br/>needs <code>--allow-remote</code>")
+    subgraph shared["<b>The shared server</b> · one at most per user, registered in <code>server.json</code>"]
+        direction LR
+        d("<b>Desktop</b><br/>Remote access on and<br/>none live: embedded<br/>loopback server") ~~~ s("<b>service start</b><br/>a detached<br/>loopback <code>serve</code>") ~~~ l("<b>serve</b><br/>a loopback bind<br/>that found none")
+    end
+    q1 -->|"yes: mint a link"| shared
+    q2 -->|"yes: attach,<br/>mint a link"| shared
+    q2 -->|"no: start its own<br/>model, register it"| shared
+    q1 -->|no| snap("One-shot, read-only<br/>snapshot server<br/>(pair refuses instead<br/>if the service is disabled)")
+    fe(["<b>Browsers and the Android app</b><br/>pair with a one-time link"])
+    shared --> fe
+    own --> fe
+    snap --> fe
+
+    classDef cmd fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef ask fill:#FFFFFF,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    classDef owner fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef alone fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class pair,srv,rem cmd
+    class q1,q2 ask
+    class d,s,l owner
+    class own,snap alone
+    class fe client
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
+```
+
 - **Desktop**: it embeds a loopback server on its in-process model while it
   runs with Remote access switched on in Settings (off by default) (`ServeEmbedded`), so browsers pair with the
   desktop itself. The native interface is unchanged: it still drives the model

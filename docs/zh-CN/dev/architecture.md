@@ -233,6 +233,60 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 把自己登记在设置旁的 `server.json` 里，其它各方挂靠它，不再另起模型。`pair` 从活着的 server 增发一次性链接；只有无 server 的
 headless `pair` 才起自己的只读快照服务。
 
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart TB
+    accTitle: pair 与 serve 由哪个 server 应答
+    accDescr: 有共享 server 在运行时，pair 与回环 serve 都用它；没有时，pair 起只读快照服务，serve 起自己的模型并成为共享 server，桌面与 service start 也是如此。监听其它网卡的 serve 一律起自己的 HTTPS 服务。浏览器与安卓 App 与应答的 server 配对。
+    pair(["<b>pair</b>"]) --> q1{"有共享 server<br/>在运行？"}
+    srv(["<b>serve</b><br/>回环监听"]) --> q2{"有共享 server<br/>在运行？"}
+    rem(["<b>serve</b><br/>非回环监听"]) --> own("一律起自己的 server：<br/>HTTPS 与二维码，<br/>需要 <code>--allow-remote</code>")
+    subgraph shared["<b>共享 server</b> · 每个用户至多一个，登记在 <code>server.json</code>"]
+        direction LR
+        d("<b>桌面</b><br/>开启远端访问且<br/>无 server 在运行：<br/>内嵌回环服务") ~~~ s("<b>service start</b><br/>分离的回环<br/><code>serve</code>") ~~~ l("<b>serve</b><br/>没找到共享 server<br/>的回环监听")
+    end
+    q1 -->|"是：增发链接"| shared
+    q2 -->|"是：挂靠，<br/>增发链接"| shared
+    q2 -->|"否：起自己的模型<br/>并登记"| shared
+    q1 -->|否| snap("一次性只读快照服务<br/>（服务被禁用时<br/>pair 改为拒绝）")
+    fe(["<b>浏览器与安卓 App</b><br/>用一次性链接配对"])
+    shared --> fe
+    own --> fe
+    snap --> fe
+
+    classDef cmd fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
+    classDef ask fill:#FFFFFF,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px
+    classDef owner fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef alone fill:#ECEBF3,stroke:#8E8BA8,color:#2B2840,stroke-width:1.5px,rx:12,ry:12
+    classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class pair,srv,rem cmd
+    class q1,q2 ask
+    class d,s,l owner
+    class own,snap alone
+    class fe client
+    style shared fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    linkStyle default stroke-width:2px
+```
+
 - **桌面**：在设置里打开远端访问（默认关闭）时运行时内嵌回环服务（`ServeEmbedded`），浏览器
   直接与桌面配对。原生界面不变：仍直连进程内模型，不走 HTTP。
 - **`service`**：桌面没跑时 `service start` 起分离的回环 `serve` 做共享服务；
