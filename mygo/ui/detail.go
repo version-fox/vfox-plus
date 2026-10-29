@@ -72,11 +72,8 @@ func (a *App) detailFor(name string) *detailState {
 	}
 	controller := a.model.SdkDetail(name)
 	d := &detailState{name: name, controller: controller, tab: tabInstalled}
-	if value := a.pages.searches[name]; value != "" {
-		// The choice that was made before the details were closed; it does not search
-		// until the available versions are asked for.
-		_ = controller.SetSearch(value)
-	}
+	// The search starts at the choice that the user made before, which is kept in the
+	// settings; it does not search until the available versions are asked for.
 	controller.Info.Load()
 	d.stops = append(d.stops,
 		controller.AddListener(a.invalidate),
@@ -136,7 +133,7 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: "versions"},
 			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: "install"},
 		}
-		if d.controller.HasProfile {
+		if _, known := d.controller.Profile(); known {
 			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: "options"})
 		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
@@ -195,13 +192,14 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 			}).Height(360)
 		})
 	}
+	known, hasKnown := d.controller.Profile()
 	return detailBody{
 		count: len(sdk.Versions),
 		key:   func(i int) any { return "iv:" + sdk.Versions[i] },
 		item: func(i int) {
 			var line string
-			if d.controller.HasProfile {
-				if parts, ok := d.controller.Profile.Describe(sdk.Versions[i]); ok {
+			if hasKnown {
+				if parts, ok := known.Describe(sdk.Versions[i]); ok {
 					line = a.partsLine(parts)
 				}
 			}
@@ -215,9 +213,10 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 	controller := d.controller
 	actions := func() { a.availableActions(k, d) }
 	// A search of every distribution asks for each of them, which takes a while.
+	known, hasKnown := controller.Profile()
 	everything := false
-	if controller.HasProfile {
-		if choice, ok := controller.Profile.Search.Choice(controller.Search()); ok {
+	if hasKnown {
+		if choice, ok := known.Search.Choice(controller.Search()); ok {
 			everything = choice.Everything
 		}
 	}
@@ -299,7 +298,7 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 			version := visible[i-1]
 			source := ""
 			if showSource {
-				if parts, ok := controller.Profile.Describe(version.Version); ok {
+				if parts, ok := known.Describe(version.Version); ok {
 					source = a.text(parts.Source)
 				}
 			}

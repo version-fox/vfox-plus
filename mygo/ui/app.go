@@ -118,7 +118,6 @@ func New(options Options) (*App, error) {
 		locales: i18n.SystemLocales(options.Environment), english: english,
 		watched: make(map[*state.VfoxTask]func()),
 	}
-	a.pages.searches = make(map[string]string)
 	a.desktop = desktop{openURL: openURL, copy: copyText, choose: a.chooseFile}
 	a.env = kit.NewEnv(kit.NewTheme(settings.DefaultSeedColor, false, false, 1))
 	a.uiTheme = a.env.Theme.UI()

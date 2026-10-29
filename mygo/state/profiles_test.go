@@ -21,6 +21,8 @@ import (
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/profile"
+	"github.com/version-fox/vfox-plus/mygo/core/settings"
+	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
 	"github.com/version-fox/vfox-plus/mygo/state"
 )
@@ -36,9 +38,9 @@ func TestSdkDetailListsTheDistributionThatWasChosen(t *testing.T) {
 		<-gate
 		return testsupport.FixtureOutput("search-java-tem", 0)
 	})
-	controller := state.NewSdkDetailController(testClient(runner), "java", linuxProfiles())
+	controller := state.NewSdkDetailController(testClient(runner), "java", linuxProfiles(), nil)
 	defer controller.Dispose()
-	if !controller.HasProfile || controller.Search() != "open" || controller.SearchArguments() != nil {
+	if _, known := controller.Profile(); !known || controller.Search() != "open" || controller.SearchArguments() != nil {
 		t.Fatalf("a search starts at the default: %q %v", controller.Search(), controller.SearchArguments())
 	}
 	<-controller.Versions.Load()
@@ -103,7 +105,7 @@ func TestSdkDetailOfAPluginWithoutAnArgumentRefusesOne(t *testing.T) {
 		{"maven", "maven", linuxProfiles()},
 		{"nodejs without profiles", "nodejs", nil},
 	} {
-		controller := state.NewSdkDetailController(testClient(runner), c.plugin, c.profiles)
+		controller := state.NewSdkDetailController(testClient(runner), c.plugin, c.profiles, nil)
 		if controller.Search() != "" || controller.SearchArguments() != nil {
 			t.Errorf("%s has no search choice", c.label)
 		}
@@ -118,7 +120,7 @@ func TestSdkDetailOfAPluginWithoutAnArgumentRefusesOne(t *testing.T) {
 }
 
 func TestSdkDetailFiltersByTheNotesOfTheListedVersions(t *testing.T) {
-	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "java", linuxProfiles())
+	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "java", linuxProfiles(), nil)
 	defer controller.Dispose()
 	if err := controller.SetSearch("tem"); err != nil {
 		t.Fatal(err)
@@ -168,7 +170,7 @@ func TestSdkDetailFiltersByTheNotesOfTheListedVersions(t *testing.T) {
 }
 
 func TestSdkDetailOfAPluginWithoutAProfileLeavesTheListAlone(t *testing.T) {
-	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "maven", nil)
+	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "maven", nil, nil)
 	defer controller.Dispose()
 	<-controller.Versions.Load()
 	all := len(controller.VisibleVersions(nil))
@@ -183,8 +185,12 @@ func TestSdkDetailOfAPluginWithoutAProfileLeavesTheListAlone(t *testing.T) {
 func TestPluginVariablesJoinTheEnvironmentOfVfox(t *testing.T) {
 	runner := testsupport.FixtureRunner()
 	model := startedModel(t, runner, "/home/u")
+	nodejs, ok := linuxProfiles().Lookup("nodejs")
+	if !ok {
+		t.Fatal("nodejs has a profile")
+	}
 	const mirror = "https://npmmirror.com/mirrors/node"
-	if err := model.SetPluginVariable("nodejs", "VFOX_NODEJS_MIRROR", " "+mirror+" "); err != nil {
+	if err := model.SetPluginVariable(nodejs, "VFOX_NODEJS_MIRROR", " "+mirror+" "); err != nil {
 		t.Fatal(err)
 	}
 	if got := model.PluginVariable("VFOX_NODEJS_MIRROR"); got != mirror {
@@ -195,23 +201,23 @@ func TestPluginVariablesJoinTheEnvironmentOfVfox(t *testing.T) {
 	})
 
 	var invalid *profile.ValueError
-	if err := model.SetPluginVariable("nodejs", "VFOX_NODEJS_MIRROR", "npmmirror.com"); !errors.As(err, &invalid) || invalid.Reason != profile.ReasonAddress {
+	if err := model.SetPluginVariable(nodejs, "VFOX_NODEJS_MIRROR", "npmmirror.com"); !errors.As(err, &invalid) || invalid.Reason != profile.ReasonAddress {
 		t.Errorf("an address needs its scheme: %v", err)
 	}
-	if err := model.SetPluginVariable("nodejs", "VFOX_NODEJS_LIBC", "gnu"); !errors.As(err, &invalid) || invalid.Reason != profile.ReasonChoice {
+	if err := model.SetPluginVariable(nodejs, "VFOX_NODEJS_LIBC", "gnu"); !errors.As(err, &invalid) || invalid.Reason != profile.ReasonChoice {
 		t.Errorf("a choice takes its values only: %v", err)
 	}
-	if err := model.SetPluginVariable("nodejs", "PATH", "/x"); err == nil {
+	if err := model.SetPluginVariable(nodejs, "PATH", "/x"); err == nil {
 		t.Error("the plugin does not read PATH")
 	}
-	if err := model.SetPluginVariable("maven", "VFOX_NODEJS_MIRROR", mirror); err == nil {
-		t.Error("maven has no profile")
+	if err := model.SetPluginVariable(profile.Profile{Plugin: "maven"}, "VFOX_NODEJS_MIRROR", mirror); err == nil {
+		t.Error("maven does not read the mirror of Node.js")
 	}
 	if got := model.PluginVariable("VFOX_NODEJS_MIRROR"); got != mirror {
 		t.Errorf("a refused value leaves the old one: %q", got)
 	}
 
-	if err := model.SetPluginVariable("nodejs", "VFOX_NODEJS_MIRROR", ""); err != nil {
+	if err := model.SetPluginVariable(nodejs, "VFOX_NODEJS_MIRROR", ""); err != nil {
 		t.Fatal(err)
 	}
 	if got := model.PluginVariable("VFOX_NODEJS_MIRROR"); got != "" {
@@ -221,4 +227,191 @@ func TestPluginVariablesJoinTheEnvironmentOfVfox(t *testing.T) {
 		_, set := model.Cli.LaunchConfig().ExtraEnvironment["VFOX_NODEJS_MIRROR"]
 		return !set
 	})
+}
+
+// memory is a SearchMemory that keeps its choices in a map.
+type memory map[string]string
+
+func (m memory) RememberedSearch(plugin string) string { return m[plugin] }
+
+func (m memory) RememberSearch(plugin, value string) {
+	if value == "" {
+		delete(m, plugin)
+		return
+	}
+	m[plugin] = value
+}
+
+func TestSdkDetailStartsAtTheChoiceThatWasRemembered(t *testing.T) {
+	runner := testsupport.FixtureRunner()
+	remembered := memory{"java": "tem", "nodejs": "tem"}
+	controller := state.NewSdkDetailController(testClient(runner), "java", linuxProfiles(), remembered)
+	defer controller.Dispose()
+	if controller.Search() != "tem" || !reflect.DeepEqual(controller.SearchArguments(), []string{"tem"}) {
+		t.Fatalf("the remembered choice is the search: %q %v", controller.Search(), controller.SearchArguments())
+	}
+	<-controller.Versions.Load()
+	if calls := runner.Calls("search"); len(calls) != 1 || !reflect.DeepEqual(calls[0].Arguments, []string{"search", "java", "tem"}) {
+		t.Errorf("the first list is the one of the remembered choice: %v", calls)
+	}
+
+	// A choice of the user is kept; a search that is only set is not.
+	if err := controller.ChooseSearch("zulu"); err != nil || remembered["java"] != "zulu" {
+		t.Errorf("a chosen distribution is remembered: %v %v", err, remembered)
+	}
+	if err := controller.SetSearch("tem"); err != nil || remembered["java"] != "zulu" {
+		t.Errorf("setting a search is no choice: %v %v", err, remembered)
+	}
+	if err := controller.ChooseSearch("nope"); err == nil || remembered["java"] != "zulu" {
+		t.Errorf("a refused choice is not remembered: %v %v", err, remembered)
+	}
+	// The default is no entry, so that it follows the plugin when the default changes.
+	if err := controller.ChooseSearch("open"); err != nil {
+		t.Fatal(err)
+	}
+	if _, kept := remembered["java"]; kept {
+		t.Errorf("the default is forgotten, not kept: %v", remembered)
+	}
+
+	// What does not fit is ignored: a distribution that does not exist, the
+	// default, and a plugin whose search takes no argument.
+	for _, c := range []struct {
+		label, plugin, value string
+	}{
+		{"an unknown distribution", "java", "nope"},
+		{"the default", "java", "open"},
+		{"a plugin without a choice", "nodejs", "tem"},
+	} {
+		other := state.NewSdkDetailController(testClient(runner), c.plugin, linuxProfiles(), memory{c.plugin: c.value})
+		if got := other.SearchArguments(); got != nil {
+			t.Errorf("%s: no argument is passed, got %v", c.label, got)
+		}
+		other.Dispose()
+	}
+	if got := state.NewSdkDetailController(testClient(runner), "java", linuxProfiles(), memory{"java": "nope"}).Search(); got != "open" {
+		t.Errorf("an unknown distribution leaves the default: %q", got)
+	}
+}
+
+func TestTheChoiceOfASearchIsKeptInTheSettings(t *testing.T) {
+	store := settings.NewMemorySettingsStore(settings.DefaultSettings())
+	open := func() *state.AppModel {
+		model := state.NewAppModel(state.AppModelOptions{
+			Runner: testsupport.FixtureRunner(), SettingsStore: store, Profiles: linuxProfiles(),
+			Environment: map[string]string{"HOME": "/home/u"},
+			Locator:     vfox.NewVfoxLocator(map[string]string{}, func(path string) bool { return path == "/usr/bin/vfox" }),
+		})
+		model.Start()
+		t.Cleanup(model.Dispose)
+		return model
+	}
+	model := open()
+	detail := model.SdkDetail("java")
+	if err := detail.ChooseSearch("tem"); err != nil {
+		t.Fatal(err)
+	}
+	detail.Dispose()
+	if got := store.Load().Searches; !reflect.DeepEqual(got, map[string]string{"java": "tem"}) {
+		t.Fatalf("the choice is in the file: %v", got)
+	}
+
+	// The next details of the plugin, and the next run of the application, start at it.
+	for _, model := range []*state.AppModel{model, open()} {
+		again := model.SdkDetail("java")
+		if again.Search() != "tem" {
+			t.Errorf("the details start at the choice: %q", again.Search())
+		}
+		again.Dispose()
+	}
+
+	detail = model.SdkDetail("java")
+	defer detail.Dispose()
+	if err := detail.ChooseSearch("open"); err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Load().Searches; len(got) != 0 {
+		t.Errorf("the default leaves no entry: %v", got)
+	}
+}
+
+// aliasRunner answers for a plugin that was added under the alias, which says it
+// is the plugin that declared.
+func aliasRunner(alias, declared string) *testsupport.FakeProcessRunner {
+	info := declared + "\x1f1.2.3\x1fhttps://example.com/" + declared + "\x1f/home/u/.vfox/cache/" + alias + "\x1fA plugin"
+	return testsupport.FixtureRunner().
+		On("info "+alias+" --format "+vfox.PluginInfoTemplate, core.ProcessOutput{Stdout: info}).
+		On("search "+alias, testsupport.FixtureOutput("search-java", 0)).
+		On("search "+alias+" tem", testsupport.FixtureOutput("search-java-tem", 0))
+}
+
+func TestSdkDetailOfAnAliasHasTheProfileOfThePluginItWasMadeFrom(t *testing.T) {
+	runner := aliasRunner("coffee", "java")
+	remembered := memory{"coffee": "tem"}
+	controller := state.NewSdkDetailController(testClient(runner), "coffee", linuxProfiles(), remembered)
+	defer controller.Dispose()
+	if _, known := controller.Profile(); known || controller.Search() != "" || controller.SetSearch("tem") == nil {
+		t.Fatal("the name alone says nothing about the plugin")
+	}
+
+	// The list that is loaded before the plugin says what it is answers no search.
+	<-controller.Versions.Load()
+	if versions, _ := controller.Versions.Value(); len(versions) != 75 {
+		t.Fatalf("the plain list has %d versions", len(versions))
+	}
+	notified := make(chan struct{}, 8)
+	stop := controller.AddListener(func() { notified <- struct{}{} })
+	defer stop()
+
+	<-controller.Info.Load()
+	known, ok := controller.Profile()
+	if !ok || known.Plugin != "java" || controller.Name != "coffee" {
+		t.Fatalf("the plugin declares java: %v %v", known.Plugin, ok)
+	}
+	if controller.Search() != "tem" || !reflect.DeepEqual(controller.SearchArguments(), []string{"tem"}) {
+		t.Errorf("the choice that was remembered applies: %q %v", controller.Search(), controller.SearchArguments())
+	}
+	if controller.Versions.HasValue() {
+		t.Error("the list of the default is not the list of the choice")
+	}
+	select {
+	case <-notified:
+	default:
+		t.Error("whoever shows the details is told that it has a profile now")
+	}
+	controller.Versions.EnsureLoaded()
+	waitFor(t, "the list of Temurin", func() bool { return controller.Versions.HasValue() })
+	if calls := runner.Calls("search coffee tem"); len(calls) != 1 {
+		t.Errorf("the plugin is searched by its own name: %v", runner.Invocations())
+	}
+
+	// A choice of the user is kept for the name of the plugin.
+	if err := controller.ChooseSearch("zulu"); err != nil || remembered["coffee"] != "zulu" {
+		t.Errorf("the choice is kept under the alias: %v %v", err, remembered)
+	}
+}
+
+func TestSdkDetailOfAPluginThatDeclaresAnotherNameKeepsWhatItHas(t *testing.T) {
+	for _, c := range []struct {
+		label, alias, declared string
+		wantKnown              bool
+	}{
+		{"a plugin that has no profile", "mine", "maven", false},
+		{"a profile of the name is kept", "java", "something-else", true},
+	} {
+		controller := state.NewSdkDetailController(testClient(aliasRunner(c.alias, c.declared)), c.alias, linuxProfiles(), nil)
+		<-controller.Info.Load()
+		if _, known := controller.Profile(); known != c.wantKnown {
+			t.Errorf("%s: known = %v", c.label, known)
+		}
+		controller.Dispose()
+	}
+
+	// Metadata that cannot be had changes nothing.
+	runner := testsupport.FixtureRunner().On("info coffee --format "+vfox.PluginInfoTemplate, testsupport.FixtureOutput("info-unknown", 1))
+	controller := state.NewSdkDetailController(testClient(runner), "coffee", linuxProfiles(), nil)
+	defer controller.Dispose()
+	<-controller.Info.Load()
+	if _, known := controller.Profile(); known || controller.Info.Error() == nil {
+		t.Error("a plugin that cannot be described has no profile")
+	}
 }

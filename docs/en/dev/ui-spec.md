@@ -131,8 +131,9 @@ has a profile, the first row holds:
   label of the choice is the profile's, the icon `registry`), which opens the
   [choices dialog](#choices-and-names) of what the search lists, when the
   profile has such a search (`java`); the choice becomes the argument of
-  `vfox search` and is remembered per plugin while the application runs, and the
-  list of the earlier choice goes away at once;
+  `vfox search` and is kept in the settings (`searches`) per plugin, so that it
+  survives a restart and is the same in the web interface, and the list of the earlier
+  choice goes away at once;
 - `availableInstallByName`, an outlined button that opens the
   [install by name dialog](#choices-and-names). Every plugin has it.
 

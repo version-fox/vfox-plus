@@ -35,8 +35,8 @@
 - **Java 的发行版。** 单独的 `vfox search java` 只列出 jdk.java.net 上的 OpenJDK。列表上方的
   按钮（**发行版：OpenJDK**）会打开 31 个发行版的列表，例如 Temurin、Zulu、Liberica、Corretto 与
   GraalVM，可以按名称、简称或厂商筛选；**全部发行版**一次列出所有发行版约 2500 个版本，并标明每个版本
-  属于哪个发行版。应用运行期间会记住你的选择，下次打开该插件时仍然生效（Web 界面把它保存在浏览器里）。这和
-  `vfox search java tem` 是一回事。
+  属于哪个发行版。你的选择会被记住，下次打开该插件和重启之后仍然生效；它保存在桌面应用的设置里，所以
+  Web 界面和安卓应用显示的是同一个选择。这和 `vfox search java tem` 是一回事。
 - **筛选 Chip。** 列表上方的 Chip 按插件对版本的说明来收窄列表：Java 有 LTS 与 JavaFX，Node.js 有 LTS，
   Flutter 有通道（stable、beta、dev、OpenHarmony）与架构（x64、arm64）。同一行的 Chip 是“或”的关系，
   不同行互相收窄。

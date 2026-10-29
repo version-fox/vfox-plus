@@ -46,8 +46,11 @@ type choiceDTO struct {
 }
 
 type searchDTO struct {
-	Label   textDTO     `json:"label"`
-	Default string      `json:"default"`
+	Label   textDTO `json:"label"`
+	Default string  `json:"default"`
+	// Current is the value of the choice that the plugin lists: the one that the user
+	// made, the default if they made none.
+	Current string      `json:"current"`
 	Choices []choiceDTO `json:"choices"`
 }
 
@@ -138,16 +141,31 @@ func namingName(n profile.Naming) string {
 	}
 }
 
+// profileOf returns the profile of the plugin that the details are of. vfox names a
+// plugin that was added under an alias by the alias, so a plugin without a profile
+// under its own name is asked which plugin it is.
+func profileOf(detail *state.SdkDetailController) (profile.Profile, bool) {
+	if _, known := detail.Profile(); !known {
+		awaitLoad(detail.Info.EnsureLoaded())
+	}
+	return detail.Profile()
+}
+
 // newProfileDTO describes the profile for the web interface, with the values of
-// its variables and the installed versions it takes apart.
-func newProfileDTO(model *state.AppModel, p profile.Profile) profileDTO {
+// its variables and the installed versions it takes apart. The installed versions
+// are those of the plugin of the details, which is not called what the profile
+// calls it when it was added under an alias.
+func newProfileDTO(model *state.AppModel, detail *state.SdkDetailController, p profile.Profile) profileDTO {
 	dto := profileDTO{
 		Plugin: p.Plugin, Naming: namingName(p.Naming), LegacyFiles: orEmpty(p.LegacyFiles), LegacyStrategy: p.LegacyStrategy,
 		Guide: textOf(p.Guide), Shorthands: []shorthandDTO{}, Variables: []variableDTO{}, Facets: []facetDTO{},
 		Tips: []textDTO{}, Docs: []linkDTO{},
 	}
 	if p.Search != nil {
-		search := &searchDTO{Label: textOf(p.Search.Label), Default: p.Search.Default, Choices: make([]choiceDTO, 0, len(p.Search.Choices))}
+		search := &searchDTO{
+			Label: textOf(p.Search.Label), Default: p.Search.Default, Current: detail.Search(),
+			Choices: make([]choiceDTO, 0, len(p.Search.Choices)),
+		}
 		for _, choice := range p.Search.Choices {
 			search.Choices = append(search.Choices, choiceOf(choice))
 		}
@@ -179,7 +197,7 @@ func newProfileDTO(model *state.AppModel, p profile.Profile) profileDTO {
 	for _, link := range p.Docs {
 		dto.Docs = append(dto.Docs, linkDTO{Title: textOf(link.Title), URL: textOf(link.URL)})
 	}
-	if sdk, ok := model.InstalledSdk(p.Plugin); ok {
+	if sdk, ok := model.InstalledSdk(detail.Name); ok {
 		for _, version := range sdk.Versions {
 			if parts, ok := partsOf(p, version); ok {
 				if dto.Installed == nil {
@@ -219,18 +237,49 @@ func annotate(p profile.Profile, hasProfile bool, versions []core.AvailableVersi
 }
 
 // serveProfile answers /api/sdks/<name>/profile.
-func (s *Server) serveProfile(writer http.ResponseWriter, model *state.AppModel, name string) {
-	known, ok := model.Profiles.Lookup(name)
+func (s *Server) serveProfile(writer http.ResponseWriter, model *state.AppModel, detail *state.SdkDetailController) {
+	known, ok := profileOf(detail)
 	if !ok {
 		http.Error(writer, "No profile for this plugin.", http.StatusNotFound)
 		return
 	}
-	writeJSON(writer, newProfileDTO(model, known))
+	writeJSON(writer, newProfileDTO(model, detail, known))
+}
+
+// serveSearch answers PUT /api/sdks/<name>/search: choose what the plugin lists, by the
+// value of one of the choices of its profile (the short name of a distribution for java;
+// the default of the plugin is a choice too). The application keeps the choice, so that
+// it is what the plugin lists from now on, here, on the desktop and after a restart.
+func (s *Server) serveSearch(writer http.ResponseWriter, request *http.Request, detail *state.SdkDetailController) {
+	if request.Method != http.MethodPut {
+		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.requireSameOrigin(writer, request) {
+		return
+	}
+	var req struct {
+		Value *string `json:"value"`
+	}
+	if err := json.NewDecoder(request.Body).Decode(&req); err != nil || req.Value == nil {
+		http.Error(writer, "A choice is required.", http.StatusBadRequest)
+		return
+	}
+	known, ok := profileOf(detail)
+	if !ok || known.Search == nil {
+		http.Error(writer, "No choice of what to list for this plugin.", http.StatusNotFound)
+		return
+	}
+	if err := detail.ChooseSearch(*req.Value); err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	writeJSON(writer, map[string]string{"value": detail.Search()})
 }
 
 // serveVariables answers PUT /api/sdks/<name>/variables: set one environment variable of
 // the plugin, which the profile lists, or take it away with an empty value.
-func (s *Server) serveVariables(writer http.ResponseWriter, request *http.Request, model *state.AppModel, name string) {
+func (s *Server) serveVariables(writer http.ResponseWriter, request *http.Request, model *state.AppModel, detail *state.SdkDetailController) {
 	if request.Method != http.MethodPut {
 		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
 		return
@@ -246,16 +295,16 @@ func (s *Server) serveVariables(writer http.ResponseWriter, request *http.Reques
 		http.Error(writer, "A variable is required.", http.StatusBadRequest)
 		return
 	}
-	known, ok := model.Profiles.Lookup(name)
+	known, ok := profileOf(detail)
 	if !ok {
 		http.Error(writer, "No profile for this plugin.", http.StatusNotFound)
 		return
 	}
 	if _, ok := known.Variable(req.Key); !ok {
-		http.Error(writer, name+" does not read "+req.Key+".", http.StatusBadRequest)
+		http.Error(writer, detail.Name+" does not read "+req.Key+".", http.StatusBadRequest)
 		return
 	}
-	if err := model.SetPluginVariable(name, req.Key, req.Value); err != nil {
+	if err := model.SetPluginVariable(known, req.Key, req.Value); err != nil {
 		var invalid *profile.ValueError
 		if errors.As(err, &invalid) {
 			http.Error(writer, invalid.Error(), http.StatusBadRequest)

@@ -132,9 +132,35 @@ func (m *AppModel) InstalledSdk(name string) (core.InstalledSdk, bool) {
 	return core.InstalledSdk{}, false
 }
 
-// SdkDetail creates the controller for the detail view of name.
+// SdkDetail creates the controller for the detail view of name. Its search
+// starts at the choice that the user made for the plugin, and the choices that
+// they make are kept in the settings.
 func (m *AppModel) SdkDetail(name string) *SdkDetailController {
-	return NewSdkDetailController(m.Cli, name, m.Profiles)
+	return NewSdkDetailController(m.Cli, name, m.Profiles, m)
+}
+
+// RememberedSearch returns what the user chose to list for the plugin, the value
+// of a choice of its profile, and empty when they did not choose. It implements
+// SearchMemory.
+func (m *AppModel) RememberedSearch(plugin string) string {
+	return m.Settings.Settings().Searches[plugin]
+}
+
+// RememberSearch keeps what the user chose to list for the plugin in the
+// settings, and forgets the choice for an empty value. It implements
+// SearchMemory.
+func (m *AppModel) RememberSearch(plugin, value string) {
+	m.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+		if value == "" {
+			delete(current.Searches, plugin)
+			return current
+		}
+		if current.Searches == nil {
+			current.Searches = map[string]string{}
+		}
+		current.Searches[plugin] = value
+		return current
+	})
 }
 
 // PluginVariable returns the value that vfox runs with for an environment
@@ -143,20 +169,17 @@ func (m *AppModel) PluginVariable(key string) string {
 	return m.Settings.Settings().ExtraEnvironment[key]
 }
 
-// SetPluginVariable sets an environment variable that the profile of the
-// plugin lists, such as the download mirror of Node.js, and removes it for an
-// empty value. The variable joins the extra environment of the settings, which
-// every vfox process runs with, so the settings page shows it among the
-// others. It refuses a variable the plugin does not read, and a value the
-// variable does not take (a *profile.ValueError).
-func (m *AppModel) SetPluginVariable(plugin, key, value string) error {
-	known, ok := m.Profiles.Lookup(plugin)
+// SetPluginVariable sets an environment variable that the profile lists, such
+// as the download mirror of Node.js, and removes it for an empty value. The
+// variable joins the extra environment of the settings, which every vfox
+// process runs with, so the settings page shows it among the others, and it
+// belongs to the plugin whatever name vfox knows the plugin by. It refuses a
+// variable the plugin does not read, and a value the variable does not take (a
+// *profile.ValueError).
+func (m *AppModel) SetPluginVariable(p profile.Profile, key, value string) error {
+	variable, ok := p.Variable(key)
 	if !ok {
-		return fmt.Errorf("%s has no profile", plugin)
-	}
-	variable, ok := known.Variable(key)
-	if !ok {
-		return fmt.Errorf("%s does not read %s", plugin, key)
+		return fmt.Errorf("%s does not read %s", p.Plugin, key)
 	}
 	if err := variable.Validate(value); err != nil {
 		return err

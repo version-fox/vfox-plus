@@ -170,12 +170,15 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 | 说明、须知、文档 | 几句关于名称的说明、容易让人意外的地方，以及该插件文档的链接 |
 
 档案里的文字用两种语言写在数据旁边，而不放进翻译目录，因为 Web 界面通过 HTTP 获取它们，无头服务器也不带
-翻译目录。没有档案的插件行为与从前相同。档案属于插件名：用别名添加的插件（`vfox add --alias`）没有档案。
-注册表是 `state.AppModel.Profiles`；端到端测试为它们的离线测试插件注册了一份档案。
+翻译目录。没有档案的插件行为与从前相同。档案属于插件本身，而不是 vfox 称呼它的名字：用 `vfox add --alias` 添加的插件，
+vfox 以别名称呼它，但 `vfox info` 仍会说出它是哪个插件，所以详情的控制器先按插件名查找档案，该名字没有档案时，
+再按插件信息加载后报告的名字查找（详情页此时才出现“选项”标签，Web API 会等待插件信息）。注册表是
+`state.AppModel.Profiles`；端到端测试为它们的离线测试插件注册了一份档案。
 
-`SdkDetailController` 保存所选的搜索（`SetSearch` 会忘掉之前的列表与筛选维度；有人要列表时才加载）与所选
-筛选维度；`AppModel.SetPluginVariable` 按变量检查一个值，并把它存入设置里的额外环境变量，每个 vfox 进程
-都带着它运行。
+`SdkDetailController` 保存所选的搜索与所选筛选维度。`SetSearch` 会忘掉之前的列表与筛选维度（有人要列表时才
+加载）；`ChooseSearch` 对用户所做的选择同样处理，并把它交给 `SearchMemory`，`AppModel` 用 `searches` 设置
+实现它，所以选择在详情关闭和重启后仍在，各个界面也一致；档案仍提供该选择时，控制器从记住的选择开始。
+`AppModel.SetPluginVariable` 按变量检查一个值，并把它存入设置里的额外环境变量，每个 vfox 进程都带着它运行。
 
 ## 与 vfox 对话
 
@@ -203,6 +206,7 @@ GUI 自身设置存为 JSON：
 | `vfoxExecutable` | string | 无 | vfox 路径；无表示自动探测。 |
 | `extraEnvironment` | object | `{}` | 给 vfox 的额外环境变量，如镜像。 |
 | `railExpanded` | boolean | `false` | 导航栏是否显示标签。 |
+| `searches` | object | `{}` | 为某个插件选择的搜索列表，以插件名为键：`{"java": "tem"}`。默认值没有条目。 |
 
 未知键必须保留或忽略，不得拒绝。
 

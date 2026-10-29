@@ -189,7 +189,8 @@ func orEmpty[T any](value []T) []T {
 }
 
 // serveSdks answers plugin metadata and installable versions:
-// /api/sdks/<name>/info and /api/sdks/<name>/versions.
+// /api/sdks/<name>/info and /api/sdks/<name>/versions, with what the plugin offers
+// besides them: /api/sdks/<name>/profile, /search and /variables.
 func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
@@ -205,16 +206,20 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "No such SDK.", http.StatusNotFound)
 		return
 	}
-	if kind == "variables" {
-		s.serveVariables(writer, request, model, name)
+	detail := model.SdkDetail(name)
+	defer detail.Dispose()
+	switch kind {
+	case "variables":
+		s.serveVariables(writer, request, model, detail)
+		return
+	case "search":
+		s.serveSearch(writer, request, detail)
 		return
 	}
 	if request.Method != http.MethodGet {
 		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
 		return
 	}
-	detail := model.SdkDetail(name)
-	defer detail.Dispose()
 	switch kind {
 	case "info":
 		if !awaitLoad(detail.Info.EnsureLoaded()) {
@@ -232,8 +237,11 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		}
 		writeJSON(writer, info)
 	case "versions":
-		// `search` names what the plugin lists, by the value of a choice of its profile:
-		// the short name of a distribution for java.
+		known, hasKnown := profileOf(detail)
+		// Without a `search` the plugin lists the choice that the user made, the default
+		// of the plugin if they made none. `search` names another one, by the value of a
+		// choice of the profile (the short name of a distribution for java), for this
+		// request only: it is not remembered, which a PUT to /search does.
 		if search := request.URL.Query().Get("search"); search != "" {
 			if err := detail.SetSearch(search); err != nil {
 				http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -249,9 +257,9 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 			writeVfoxError(writer, err)
 			return
 		}
-		writeJSON(writer, annotate(detail.Profile, detail.HasProfile, versions))
+		writeJSON(writer, annotate(known, hasKnown, versions))
 	case "profile":
-		s.serveProfile(writer, model, name)
+		s.serveProfile(writer, model, detail)
 	default:
 		http.Error(writer, "No such endpoint.", http.StatusNotFound)
 	}

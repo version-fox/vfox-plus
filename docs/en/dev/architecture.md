@@ -188,15 +188,22 @@ interfaces share, for `java`, `nodejs` and `flutter`:
 The texts of a profile are written in both languages next to the data, not in
 the catalogues, because the web interface gets them over HTTP and the headless
 server does not carry the catalogues. A plugin without a profile behaves as before.
-A profile belongs to the name of the plugin: one that was added under another name
-(`vfox add --alias`) gets none. The registry is `state.AppModel.Profiles`; the
+A profile belongs to the plugin, whatever name vfox knows it by. vfox calls a plugin
+that was added with `vfox add --alias` by the alias, and `vfox info` still says which
+plugin it is, so the controller of the details looks the profile up by the name of the
+plugin first and, when that has none, by the name that the information reports once it
+has loaded (the page of the details shows the options tab at that moment, and the web
+API waits for the information). The registry is `state.AppModel.Profiles`; the
 end-to-end tests register a profile for their offline test plugin.
 
-`SdkDetailController` carries the chosen search (`SetSearch` forgets the earlier
-list and the facets; the list loads when somebody asks for it) and the chosen
-facets, and `AppModel.SetPluginVariable` checks a value against its variable and
-stores it in the extra environment of the settings, which every vfox process runs
-with.
+`SdkDetailController` carries the chosen search and the chosen facets. `SetSearch`
+forgets the earlier list and the facets (the list loads when somebody asks for it);
+`ChooseSearch` is the same for a choice of the user and also hands it to a
+`SearchMemory`, which `AppModel` implements with the `searches` setting, so that the
+choice survives the details and a restart and is the same in every interface; the
+controller starts at the choice that the memory holds, when the profile still offers
+it. `AppModel.SetPluginVariable` checks a value against its variable and stores it in
+the extra environment of the settings, which every vfox process runs with.
 
 ## Talking to vfox
 
@@ -226,6 +233,7 @@ Settings of the GUI itself are stored as JSON:
 | `vfoxExecutable`   | string          | absent       | Path of vfox; absent means "detect".                       |
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
 | `railExpanded`     | boolean         | `false`      | Whether the navigation rail shows its labels.              |
+| `searches`         | object          | `{}`         | What was chosen to list for a plugin, by its name: `{"java": "tem"}`. The default has no entry. |
 
 Unknown keys must be preserved or ignored, never rejected.
 

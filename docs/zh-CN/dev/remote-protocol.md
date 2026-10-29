@@ -79,8 +79,9 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 | 方法与路径 | 含义 |
 | --- | --- |
 | `GET /api/sdks/<name>/info` | 插件元数据（`core.PluginInfo`）：`{Name, Version, Homepage, InstallPath, Description}`。未知插件 404；vfox 失败 502。 |
-| `GET /api/sdks/<name>/versions[?search=<value>]` | 可安装版本（`core.AvailableVersion[]`）：`{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`。`search` 是插件[配置档案](#插件配置档案)里某个选择项的值（`java` 是发行版的简称，或 `all`），成为 `vfox search` 的参数；未知的值，以及没有此类选择的插件收到任何值，都回答 400。有档案的插件，每个版本还带 `parts`（拆开的名称：`{version, source: {value, name: {en, zh}}, flavors}`）与 `facets`（`{<维度 id>: [值]}`，为空时省略），这样页面不需要自己的规则。搜索可能耗时数秒；超时 504。 |
+| `GET /api/sdks/<name>/versions[?search=<value>]` | 可安装版本（`core.AvailableVersion[]`）：`{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`。不带 `search` 时，插件列出用户所做的选择（`PUT .../search` 保存的；没做选择则是插件的默认值）。`search` 是插件[配置档案](#插件配置档案)里某个选择项的值（`java` 是发行版的简称，或 `all`），仅对这一次请求成为 `vfox search` 的参数；未知的值，以及没有此类选择的插件收到任何值，都回答 400。有档案的插件，每个版本还带 `parts`（拆开的名称：`{version, source: {value, name: {en, zh}}, flavors}`）与 `facets`（`{<维度 id>: [值]}`，为空时省略），这样页面不需要自己的规则。搜索可能耗时数秒；超时 504。 |
 | `GET /api/sdks/<name>/profile` | 插件的配置档案，见下。没有档案的插件回答 404。 |
+| `PUT /api/sdks/<name>/search` | 选择插件列出什么：`{value}`，档案里某个选择项的值；插件的默认值也是一个选择，空值即默认值。应用把选择保存在设置里，从此插件列出的就是它，各个界面一致，重启后仍在。回答 `{value}`，即现在的选择。未知的值与没有 value 的请求体回答 400，搜索不带参数的插件（以及没有档案的插件）回答 404。 |
 | `PUT /api/sdks/<name>/variables` | 设置档案里列出的一个环境变量：`{key, value}`，值为空即取消。插件不读取的变量、它不接受的值与没有 key 的请求体回答 400 并附原因，没有档案的插件回答 404。值会加入设置里的额外环境。 |
 
 ### 插件配置档案
@@ -91,7 +92,7 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 ```json
 {
   "plugin": "java", "naming": "java",
-  "search": {"label": {"en": "Distribution", "zh": "发行版"}, "default": "open",
+  "search": {"label": {"en": "Distribution", "zh": "发行版"}, "default": "open", "current": "tem",
              "choices": [{"value": "tem", "name": {"en": "Temurin"}, "maker": {"en": "Eclipse Adoptium"}, "aliases": ["temurin"], "popular": true}]},
   "shorthands": [{"name": "21-tem", "meaning": {"en": "The newest Temurin 21", "zh": "最新的 Temurin 21"}}],
   "variables": [{"key": "VFOX_JAVA_GITHUB_MIRROR", "label": {"en": "GitHub mirror"}, "help": {"en": "…"},
@@ -103,7 +104,11 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 }
 ```
 
-`variables[].value` 是 vfox 现在运行时用的值，`installed` 把已安装版本的名称拆开。`naming` 是 `java`、`flutter` 或 `plain`。
+`variables[].value` 是 vfox 现在运行时用的值，`installed` 把已安装版本的名称拆开。`search.current` 是插件现在列出的选择项的值。
+`naming` 是 `java`、`flutter` 或 `plain`。
+
+用别名添加的插件（`vfox add --alias coffee java`）在 `/api/sdks/<name>/…` 的每个路径里都以别名称呼，并带有它所自出插件的档案：
+服务器用 `vfox info` 问出它是哪个插件。它的搜索选择以别名为键保存。
 
 ## 任务
 

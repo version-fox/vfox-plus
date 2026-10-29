@@ -47,10 +47,10 @@ interface and in the Android app alike:
   jdk.java.net only. The button above the list (**Distribution: OpenJDK**) opens a
   list of the 31 distributions, such as Temurin, Zulu, Liberica, Corretto and
   GraalVM, which you filter by name, short name or maker; **All distributions**
-  lists every one of them, about 2,500 versions, and says which each is of. While
-  the application runs, the choice is remembered for the next time you open the
-  plugin (the web interface keeps it in the browser). It is the same as
-  `vfox search java tem`.
+  lists every one of them, about 2,500 versions, and says which each is of. The
+  choice is remembered, for the next time you open the plugin and after a restart; it
+  is kept in the settings of the desktop application, so the web interface and the
+  Android app show the same one. It is the same as `vfox search java tem`.
 - **Filter chips.** Chips above the list narrow it by what the plugin says of its
   versions: LTS and JavaFX for Java, LTS for Node.js, the channels (stable, beta,
   dev, OpenHarmony) and the architectures (x64, arm64) for Flutter. Chips of one

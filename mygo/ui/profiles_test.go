@@ -99,8 +99,8 @@ func TestAnotherDistributionOfJavaIsChosenFromAListThatAFieldFilters(t *testing.
 	if _, ok := ta.find(kit.RoleButton, "Distribution: Temurin"); !ok {
 		t.Errorf("the button names the choice: %q", ta.texts())
 	}
-	if got := ta.app.pages.searches["java"]; got != "tem" {
-		t.Errorf("the choice is kept: %q", got)
+	if got := ta.app.model.RememberedSearch("java"); got != "tem" {
+		t.Errorf("the choice is kept in the settings: %q", got)
 	}
 	ta.snapshot("java-temurin")
 
@@ -247,6 +247,46 @@ func TestAPluginWithoutAProfileTakesNamesToo(t *testing.T) {
 	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes maven@3.9.16")) == 1 })
 }
 
+func TestAPluginAddedUnderAnAliasHasTheChoicesOfThePluginItWasMadeFrom(t *testing.T) {
+	ta := javaApp(t)
+	ta.runner.
+		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬coffee\n  └──21.0.12.1+1-tem\n"}).
+		On("current", core.ProcessOutput{Stdout: "coffee -> v21.0.12.1+1-tem\n"}).
+		On("info coffee --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
+			Stdout: "java\x1f0.6.3\x1fhttps://github.com/version-fox/vfox-java\x1f/home/u/.vfox/cache/coffee\x1fSupport for multiple JDK distributions.",
+		}).
+		On("search coffee", testsupport.FixtureOutput("search-java", 0)).
+		On("search coffee tem", testsupport.FixtureOutput("search-java-tem", 0))
+	ta.app.model.Installed.Load()
+	ta.until("coffee", func() bool { _, ok := ta.app.model.InstalledSdk("coffee"); return ok })
+	ta.button("SDKs")
+	ta.item("coffee")
+	// The plugin is called coffee, and says that it is java: the details learn it from the
+	// information, and show what they show for java.
+	ta.until("the plugin information", func() bool { _, ok := ta.app.detailFor("coffee").controller.Info.Value(); return ok })
+	ta.settle()
+	ta.mustText("Temurin")
+	ta.button("Options")
+	ta.mustText("Besides the versions in the list, vfox install accepts these names for coffee.")
+	ta.button("Available")
+	ta.until("the versions", func() bool { return ta.app.detailFor("coffee").controller.Versions.HasValue() })
+	ta.settle()
+	ta.button("Distribution: OpenJDK")
+	field, ok := ta.find(kit.RoleTextField, "Search by name or short name")
+	if !ok {
+		t.Fatalf("the choices have a filter field: %q", ta.texts())
+	}
+	ta.fill(field, "tem", false)
+	ta.item("Temurin")
+	ta.until("the versions of Temurin", func() bool {
+		return len(ta.runner.Calls("search coffee tem")) == 1 && ta.app.detailFor("coffee").controller.Versions.HasValue()
+	})
+	// The choice is the one of the plugin that has this name, not of java.
+	if got := ta.app.model.RememberedSearch("coffee"); got != "tem" || ta.app.model.RememberedSearch("java") != "" {
+		t.Errorf("the choice is kept for coffee: %q, java %q", got, ta.app.model.RememberedSearch("java"))
+	}
+}
+
 func TestTheChannelsAndTheArchitecturesOfFlutterAreFilterChips(t *testing.T) {
 	ta := javaApp(t)
 	ta.runner.On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬flutter\n  └──3.47.7\n"}).
@@ -318,7 +358,8 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.mustText("VFOX_NODEJS_MIRROR\nNot set. The plugin uses its own default.")
 
 	// A choice takes its values only.
-	ta.app.askVariable("nodejs", mustVariable(t, ta, "nodejs", "VFOX_NODEJS_LIBC"))
+	nodejs, _ := ta.app.model.Profiles.Lookup("nodejs")
+	ta.app.askVariable(nodejs, mustVariable(t, ta, "nodejs", "VFOX_NODEJS_LIBC"))
 	ta.settle()
 	ta.button("musl")
 	ta.button("Save")

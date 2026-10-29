@@ -48,9 +48,10 @@ func (a *App) partsLine(parts profile.Parts) string {
 // choose what a search lists and that install a version by its name.
 func (a *App) availableActions(k kit.Ctx, d *detailState) {
 	controller := d.controller
+	known, hasKnown := controller.Profile()
 	mui.Row(k.Context).Wrap().Gap(gapM).GapY(gapS).Margin(0, gapXL, gapM, gapXL).Children(func() {
-		if controller.HasProfile && controller.Profile.Search != nil {
-			search := controller.Profile.Search
+		if hasKnown && known.Search != nil {
+			search := known.Search
 			current, _ := search.Choice(controller.Search())
 			kit.Button(k, kit.ButtonSpec{
 				ID: "choose-search", Kind: kit.TonalButton, Icon: "registry",
@@ -60,7 +61,7 @@ func (a *App) availableActions(k kit.Ctx, d *detailState) {
 		}
 		kit.Button(k, kit.ButtonSpec{
 			ID: "install-by-name", Kind: kit.OutlinedButton, Icon: "terminal", Label: a.T("availableInstallByName"),
-			OnClick: func() { a.askInstallName(d.name, d.controller.Profile, d.controller.HasProfile, "") },
+			OnClick: func() { a.askInstallName(d.name, known, hasKnown, "") },
 		})
 	})
 }
@@ -99,8 +100,9 @@ func (a *App) facetRow(k kit.Ctx, controller *state.SdkDetailController) {
 // come first.
 func (a *App) chooseSearch(d *detailState) {
 	controller := d.controller
-	search := controller.Profile.Search
-	if !controller.HasProfile || search == nil {
+	known, hasKnown := controller.Profile()
+	search := known.Search
+	if !hasKnown || search == nil {
 		return
 	}
 	var query string
@@ -160,13 +162,13 @@ func (a *App) chooseSearch(d *detailState) {
 	})
 }
 
-// applySearch makes the choice the search of the plugin, and lists it.
+// applySearch makes the choice the search of the plugin, and lists it. The choice
+// is kept in the settings, so it is the search of the plugin from now on.
 func (a *App) applySearch(d *detailState, value string) {
-	if err := d.controller.SetSearch(value); err != nil {
+	if err := d.controller.ChooseSearch(value); err != nil {
 		a.notify(describeError(err))
 		return
 	}
-	a.pages.searches[d.name] = d.controller.Search()
 	d.available = mui.ListState{}
 	d.controller.Versions.EnsureLoaded()
 	a.invalidate()
@@ -244,8 +246,7 @@ func (a *App) askInstallName(name string, p profile.Profile, hasProfile bool, in
 // through it, the names that it takes besides the listed versions, notes and
 // documentation.
 func (a *App) optionsBody(k kit.Ctx, d *detailState) detailBody {
-	controller := d.controller
-	p := controller.Profile
+	p, _ := d.controller.Profile()
 	return single("options", func() {
 		mui.Column(k.Context).Padding(0, gapXL, gapXXL, gapXL).Children(func() {
 			a.guideSection(k, p)
@@ -307,7 +308,7 @@ func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 			Trailing: func() {
 				kit.Button(k, kit.ButtonSpec{
 					ID: "change:" + variable.Key, Kind: kit.TonalButton, Label: a.T("optionsVariableChange"),
-					OnClick: func() { a.askVariable(p.Plugin, variable) },
+					OnClick: func() { a.askVariable(p, variable) },
 				})
 			},
 		})
@@ -318,12 +319,12 @@ func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 // askVariable sets an environment variable that the plugin reads: a mirror
 // address that is typed or picked from the ones that were checked, or one of the
 // values of a choice.
-func (a *App) askVariable(plugin string, variable profile.Variable) {
+func (a *App) askVariable(p profile.Profile, variable profile.Variable) {
 	text, problem := a.model.PluginVariable(variable.Key), ""
 	a.env.ShowDialog("variable", func(k kit.Ctx, closeDialog func()) kit.DialogSpec {
 		cs := k.Colors()
 		submit := func() {
-			err := a.model.SetPluginVariable(plugin, variable.Key, text)
+			err := a.model.SetPluginVariable(p, variable.Key, text)
 			var invalid *profile.ValueError
 			switch {
 			case errors.As(err, &invalid) && invalid.Reason == profile.ReasonChoice:
@@ -420,7 +421,7 @@ func (a *App) shorthandsSection(k kit.Ctx, d *detailState, p profile.Profile) {
 	}
 	cs := k.Colors()
 	kit.GroupHeader(k, a.T("optionsShorthands"), nil)
-	kit.Label(k, a.T("optionsShorthandsHelp", "name", p.Plugin), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(0, 0, gapM, gapL)
+	kit.Label(k, a.T("optionsShorthandsHelp", "name", d.name), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(0, 0, gapM, gapL)
 	var items []kit.ListItemSpec
 	for _, shorthand := range p.Shorthands {
 		items = append(items, kit.ListItemSpec{

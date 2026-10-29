@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
 )
 
@@ -170,6 +171,7 @@ func TestWebProfileDescribesWhatThePluginOffers(t *testing.T) {
 		Search struct {
 			Label   struct{ EN, ZH string }
 			Default string
+			Current string
 			Choices []struct {
 				Value      string
 				Everything bool
@@ -193,6 +195,9 @@ func TestWebProfileDescribesWhatThePluginOffers(t *testing.T) {
 	decodeJSON(t, body, &answer)
 	if answer.Plugin != "java" || answer.Naming != "java" || answer.Search.Default != "open" || len(answer.Search.Choices) != 32 {
 		t.Errorf("got %+v", answer)
+	}
+	if answer.Search.Current != "open" {
+		t.Errorf("the plugin lists its default until the user chooses: %q", answer.Search.Current)
 	}
 	if answer.Search.Label.EN != "Distribution" || answer.Search.Label.ZH != "发行版" {
 		t.Errorf("the labels come in both languages: %+v", answer.Search.Label)
@@ -277,5 +282,134 @@ func TestWebVariablesOfAPluginAreSetCheckedAndRemoved(t *testing.T) {
 	}
 	if status, _ := webRequest(t, http.MethodPut, url, "", `{"key":"VFOX_NODEJS_MIRROR","value":""}`, ""); status != http.StatusUnauthorized {
 		t.Errorf("got %d", status)
+	}
+}
+
+func TestWebChoiceOfASearchIsKeptAndListedFromThenOn(t *testing.T) {
+	runner := javaRunner()
+	model := testModel(t, runner)
+	server := webServer(t, model)
+	session := webSession(t, server)
+	url := server.BaseURL() + "/api/sdks/java/search"
+	current := func() string {
+		t.Helper()
+		_, body := webGet(t, server.BaseURL()+"/api/sdks/java/profile", session)
+		var answer struct{ Search struct{ Current string } }
+		decodeJSON(t, body, &answer)
+		return answer.Search.Current
+	}
+
+	status, body := webRequest(t, http.MethodPut, url, session, `{"value":"tem"}`, "")
+	if status != http.StatusOK || !strings.Contains(body, `"value":"tem"`) {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	if got := model.RememberedSearch("java"); got != "tem" {
+		t.Errorf("the application keeps the choice: %q", got)
+	}
+	if got := current(); got != "tem" {
+		t.Errorf("the profile says what is listed: %q", got)
+	}
+	// What the plugin lists without a `search` is the choice, for this browser, another one and the desktop.
+	status, body = webGet(t, server.BaseURL()+"/api/sdks/java/versions", session)
+	var versions versionsAnswer
+	decodeJSON(t, body, &versions)
+	if status != http.StatusOK || len(versions) != 120 || len(runner.Calls("search java tem")) != 1 {
+		t.Errorf("got %d, %d versions: %v", status, len(versions), runner.Invocations())
+	}
+	// A `search` of the request lists another choice, and chooses nothing.
+	if status, body = webGet(t, server.BaseURL()+"/api/sdks/java/versions?search=all", session); status != http.StatusOK || len(runner.Calls("search java all")) != 1 {
+		t.Errorf("got %d: %.100s", status, body)
+	}
+	if got := model.RememberedSearch("java"); got != "tem" {
+		t.Errorf("a request is no choice: %q", got)
+	}
+	// The default is a choice that the application forgets, so that it follows the plugin.
+	status, body = webRequest(t, http.MethodPut, url, session, `{"value":"open"}`, "")
+	if status != http.StatusOK || !strings.Contains(body, `"value":"open"`) || model.RememberedSearch("java") != "" || current() != "open" {
+		t.Errorf("got %d: %s, kept %q", status, body, model.RememberedSearch("java"))
+	}
+	if status, _ = webRequest(t, http.MethodPut, url, session, `{"value":""}`, ""); status != http.StatusOK {
+		t.Errorf("an empty value is the default: %d", status)
+	}
+
+	for _, c := range []struct {
+		label, path, body, method, origin, session string
+		want                                       int
+	}{
+		{"a choice the plugin does not have", "java", `{"value":"nope"}`, http.MethodPut, "", session, http.StatusBadRequest},
+		{"no choice", "java", `{}`, http.MethodPut, "", session, http.StatusBadRequest},
+		{"no request", "java", `nonsense`, http.MethodPut, "", session, http.StatusBadRequest},
+		{"a page of another origin", "java", `{"value":"tem"}`, http.MethodPut, "https://evil.example", session, http.StatusForbidden},
+		{"a read", "java", `{"value":"tem"}`, http.MethodGet, "", session, http.StatusMethodNotAllowed},
+		{"no session", "java", `{"value":"tem"}`, http.MethodPut, "", "", http.StatusUnauthorized},
+		{"a plugin whose search takes no argument", "nodejs", `{"value":"tem"}`, http.MethodPut, "", session, http.StatusNotFound},
+		{"a plugin without a profile", "maven", `{"value":"tem"}`, http.MethodPut, "", session, http.StatusNotFound},
+	} {
+		if status, body := webRequest(t, c.method, server.BaseURL()+"/api/sdks/"+c.path+"/search", c.session, c.body, c.origin); status != c.want {
+			t.Errorf("%s: got %d: %s", c.label, status, body)
+		}
+	}
+	if got := model.RememberedSearch("java"); got != "" || model.RememberedSearch("nodejs") != "" || model.RememberedSearch("maven") != "" {
+		t.Errorf("the refused requests chose nothing: %q", got)
+	}
+}
+
+// aliasRunner answers like vfox with the JDKs added under the alias coffee, which says it
+// is the plugin java.
+func aliasRunner() *testsupport.FakeProcessRunner {
+	return testsupport.FixtureRunner().
+		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬coffee\n  └──25.0.4+9-librca-fx\n"}).
+		On("current", core.ProcessOutput{Stdout: "coffee -> v25.0.4+9-librca-fx\n"}).
+		On("info coffee --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
+			Stdout: "java\x1f0.6.3\x1fhttps://github.com/version-fox/vfox-java\x1f/home/u/.vfox/cache/coffee\x1fSupport for multiple JDK distributions.",
+		}).
+		On("search coffee", testsupport.FixtureOutput("search-java", 0)).
+		On("search coffee tem", testsupport.FixtureOutput("search-java-tem", 0))
+}
+
+func TestWebPluginAddedUnderAnAliasHasTheProfileOfThePluginItWasMadeFrom(t *testing.T) {
+	runner := aliasRunner()
+	model := testModel(t, runner)
+	server := webServer(t, model)
+	session := webSession(t, server)
+
+	status, body := webGet(t, server.BaseURL()+"/api/sdks/coffee/profile", session)
+	if status != http.StatusOK {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	var answer struct {
+		Plugin    string
+		Search    struct{ Default, Current string }
+		Installed map[string]struct{ Version string }
+	}
+	decodeJSON(t, body, &answer)
+	if answer.Plugin != "java" || answer.Search.Default != "open" {
+		t.Errorf("the plugin is java: %+v", answer)
+	}
+	if answer.Installed["25.0.4+9-librca-fx"].Version != "25.0.4+9" {
+		t.Errorf("the versions of coffee are taken apart: %+v", answer.Installed)
+	}
+
+	// The choice is the one of coffee: it is searched, and kept, by that name.
+	if status, body = webRequest(t, http.MethodPut, server.BaseURL()+"/api/sdks/coffee/search", session, `{"value":"tem"}`, ""); status != http.StatusOK {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	if model.RememberedSearch("coffee") != "tem" || model.RememberedSearch("java") != "" {
+		t.Errorf("kept for the name that vfox knows: coffee %q, java %q", model.RememberedSearch("coffee"), model.RememberedSearch("java"))
+	}
+	status, body = webGet(t, server.BaseURL()+"/api/sdks/coffee/versions", session)
+	var versions versionsAnswer
+	decodeJSON(t, body, &versions)
+	if status != http.StatusOK || len(versions) != 120 || versions[0].Parts == nil || versions[0].Parts.Source.Value != "tem" {
+		t.Errorf("got %d, %d versions: %.200s", status, len(versions), body)
+	}
+	if len(runner.Calls("search coffee tem")) != 1 || len(runner.Calls("search java")) != 0 {
+		t.Errorf("the plugin is searched by its name: %v", runner.Invocations())
+	}
+
+	// So are its variables: the plugin reads them whatever it is called.
+	status, body = webRequest(t, http.MethodPut, server.BaseURL()+"/api/sdks/coffee/variables", session, `{"key":"VFOX_JAVA_GITHUB_MIRROR","value":"https://mirror.example/"}`, "")
+	if status != http.StatusOK || model.PluginVariable("VFOX_JAVA_GITHUB_MIRROR") != "https://mirror.example/" {
+		t.Errorf("got %d: %s", status, body)
 	}
 }

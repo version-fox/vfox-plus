@@ -780,8 +780,6 @@ function showList(push) {
    gets the choice of what a search lists, filter chips, installation by name and its options. */
 let detail = null;
 const txt = o => !o ? "" : (lang === "zh" && o.zh) ? o.zh : (o.en || "");
-function savedSearch(name) { try { return localStorage.getItem("vfox-plus-search:" + name) || ""; } catch (e) { return ""; } }
-function saveSearch(name, value) { try { if (value) localStorage.setItem("vfox-plus-search:" + name, value); else localStorage.removeItem("vfox-plus-search:" + name); } catch (e) { /* private mode */ } }
 function installedOf(name) { const inv = cache.inventory; return ((inv && inv.installed.value) || []).find(s => s.Name === name); }
 function configValue(key) { const sec = cache.inventory && cache.inventory.config; const c = ((sec && sec.value) || []).find(x => x.Key === key); return c ? c.Value : ""; }
 function chip(id, label, on, attr) {
@@ -794,7 +792,7 @@ function partsLine(parts) {
 }
 async function showDetail(name, keep) {
   const tab = keep && detail && detail.name === name ? detail.tab : "installed";
-  detail = {name, tab, info: null, profile: null, versions: null, error: null, search: savedSearch(name), facets: {}, filter: "all", query: "", limit: 200};
+  detail = {name, tab, info: null, profile: null, versions: null, error: null, search: "", facets: {}, filter: "all", query: "", limit: 200};
   cache.detail = name; cache.versions = null;
   document.querySelector("#tab-sdks").classList.add("detail-open");
   renderSdks(cache.inventory);
@@ -806,7 +804,9 @@ async function showDetail(name, keep) {
   ]);
   if (!detail || detail.name !== name) return;
   detail.info = info; detail.profile = profile;
-  if (!profile || !profile.search) detail.search = "";
+  // What the user chose to list is kept by the application, so that the desktop and every browser agree on it.
+  const s = profile && profile.search;
+  detail.search = s && s.current !== s.default ? s.current : "";
   renderDetail();
   renderSdks(cache.inventory);
 }
@@ -882,8 +882,9 @@ async function loadVersions() {
   const d = detail, token = d.token = (d.token || 0) + 1, name = d.name, search = d.search;
   d.versions = null; d.error = null; d.facets = {}; d.limit = 200; d.loading = true;
   drawAvailable();
+  // Always name the choice, the default too: the list is the one that the button says, whatever another interface chose meanwhile.
   const s = d.profile && d.profile.search;
-  const query = s && search && search !== s.default ? "?search=" + encodeURIComponent(search) : "";
+  const query = s ? "?search=" + encodeURIComponent(search || s.default) : "";
   try {
     const versions = await api("/api/sdks/" + encodeURIComponent(name) + "/versions" + query);
     if (detail !== d || d.token !== token) return;
@@ -1016,10 +1017,13 @@ function openChooser() {
         '<span class="lead">' + (c.value === current ? icon("check") : "") + "</span><span style='flex:1;min-width:0'><b>" + esc(txt(c.name)) + "</b><br><span class='muted t-label'>" +
         esc([txt(c.maker), c.value].filter(Boolean).join(" · ")) + "</span></span>" + (c.value === s.default ? '<span class="tag">' + esc(t("default")) + "</span>" : "") + "</button>").join("")
         : stateBlock("empty", "search-off", t("chooseEmpty"), "", null);
-      list.querySelectorAll("[data-v]").forEach(b => b.onclick = () => {
+      list.querySelectorAll("[data-v]").forEach(b => b.onclick = async () => {
         close();
-        d.search = b.dataset.v === s.default ? "" : b.dataset.v;
-        saveSearch(d.name, d.search);
+        try {
+          s.current = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/search", {method: "PUT", body: JSON.stringify({value: b.dataset.v})})).value;
+        } catch (e) { showError(e.message); return; }
+        if (detail !== d) return;
+        d.search = s.current === s.default ? "" : s.current;
         renderTab(false);
         loadVersions();
       });
