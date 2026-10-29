@@ -22,14 +22,12 @@
 // The caller starts the server and passes its pairing link; the tool only
 // drives one throw-away browser profile. Desktop and server memory are not
 // measured here, only the web client in front of a human. The tool needs
-// nothing but a Chrome that speaks the DevTools Protocol; it replaces a Node.js
-// script and speaks the protocol with a WebSocket client of its own (see
-// websocket.go).
+// nothing but a Chrome that speaks the DevTools Protocol, which it starts and
+// drives with chromedp.
 package webheap
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -45,6 +43,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/chromedp/cdproto/browser"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/cdproto/runtime"
+	"github.com/chromedp/chromedp"
 )
 
 const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
@@ -233,31 +238,26 @@ func sleep(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// session is the page that is driven.
+// session is the page that is driven: the context of a tab of chromedp.
 type session struct {
-	page *cdpClient
+	page context.Context
+}
+
+// evaluate runs a JavaScript expression in the page and decodes its value into T.
+func evaluate[T any](s *session, expression string) (T, error) {
+	return chromedp.Run(s.page, chromedp.Evaluate[T](expression))
 }
 
 // open navigates to address and waits for the page to load. It then checks
 // where the browser ended up: a server that redirects /app to its intro page
 // (the pairing link did not work) would otherwise show as a long wait for an
 // SDK list that never comes.
-func (s *session) open(ctx context.Context, address, label string) error {
-	loaded := s.page.expect("Page.loadEventFired")
-	var navigation struct {
-		ErrorText string `json:"errorText"`
+func (s *session) open(address, label string) error {
+	if err := chromedp.Do(s.page, chromedp.Navigate(address)); err != nil {
+		return fmt.Errorf("cannot open %s: %w", label, err)
 	}
-	if err := s.page.call(ctx, "Page.navigate", map[string]string{"url": address}, &navigation); err != nil {
-		return fmt.Errorf("opening %s: %w", label, err)
-	}
-	if navigation.ErrorText != "" {
-		return fmt.Errorf("cannot open %s: %s", label, navigation.ErrorText)
-	}
-	if err := s.page.await(ctx, loaded); err != nil {
-		return fmt.Errorf("waiting for %s: %w", label, err)
-	}
-	var href string
-	if err := s.page.evaluate(ctx, "location.href", &href); err != nil {
+	href, err := chromedp.Run(s.page, chromedp.Location())
+	if err != nil {
 		return fmt.Errorf("reading the address of %s: %w", label, err)
 	}
 	if !strings.HasPrefix(href, address) {
@@ -270,8 +270,7 @@ func (s *session) open(ctx context.Context, address, label string) error {
 // fails, as one does while the page is still loading, is tried again.
 func (s *session) waitFor(ctx context.Context, expression, label string) error {
 	for {
-		var ready bool
-		if err := s.page.evaluate(ctx, expression, &ready); err == nil && ready {
+		if ready, err := evaluate[bool](s, expression); err == nil && ready {
 			return nil
 		}
 		if err := sleep(ctx, 500*time.Millisecond); err != nil {
@@ -281,13 +280,11 @@ func (s *session) waitFor(ctx context.Context, expression, label string) error {
 }
 
 // heap reads the used JavaScript heap three times and takes the median.
-func (s *session) heap(ctx context.Context) (int64, error) {
+func (s *session) heap() (int64, error) {
 	samples := make([]int64, 3)
 	for i := range samples {
-		var usage struct {
-			UsedSize float64 `json:"usedSize"`
-		}
-		if err := s.page.call(ctx, "Runtime.getHeapUsage", nil, &usage); err != nil {
+		usage, err := chromedp.Call(s.page, runtime.GetHeapUsage, cdp.Empty{})
+		if err != nil {
 			return 0, err
 		}
 		samples[i] = int64(math.Round(usage.UsedSize))
@@ -299,15 +296,15 @@ func (s *session) heap(ctx context.Context) (int64, error) {
 // or in the scene that the options name.
 func (s *session) capture(ctx context.Context, o options) error {
 	if o.dark {
-		features := map[string]any{"features": []map[string]string{{"name": "prefers-color-scheme", "value": "dark"}}}
-		if err := s.page.call(ctx, "Emulation.setEmulatedMedia", features, nil); err != nil {
+		dark := emulation.SetEmulatedMediaParams{Features: []*emulation.MediaFeature{{Name: "prefers-color-scheme", Value: "dark"}}}
+		if _, err := chromedp.Call(s.page, emulation.SetEmulatedMedia, dark); err != nil {
 			return err
 		}
 	}
 	if o.tab != "" {
 		// Open the page through whichever navigation is shown (rail or bar).
 		click := fmt.Sprintf(`[...document.querySelectorAll('[data-tab="%s"]')].find((b) => b.offsetParent)?.click()`, o.tab)
-		if err := s.page.evaluate(ctx, click, nil); err != nil {
+		if _, err := evaluate[chromedp.Void](s, click); err != nil {
 			return err
 		}
 		if err := sleep(ctx, 1200*time.Millisecond); err != nil {
@@ -322,15 +319,9 @@ func (s *session) capture(ctx context.Context, o options) error {
 			return err
 		}
 	}
-	var shot struct {
-		Data string `json:"data"`
-	}
-	if err := s.page.call(ctx, "Page.captureScreenshot", map[string]string{"format": "png"}, &shot); err != nil {
-		return err
-	}
-	image, err := base64.StdEncoding.DecodeString(shot.Data)
+	image, err := chromedp.Run(s.page, chromedp.CaptureScreenshot())
 	if err != nil {
-		return fmt.Errorf("the screenshot is not base64: %w", err)
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(o.screenshot), 0o755); err != nil {
 		return err
@@ -345,51 +336,27 @@ func measure(ctx context.Context, o options) (measurement, error) {
 	if err != nil {
 		return found, err
 	}
-	profile, err := os.MkdirTemp("", "vfox-webheap-")
-	if err != nil {
-		return found, err
-	}
-	defer func() { _ = os.RemoveAll(profile) }()
-	chrome, err := startBrowser(ctx, binary, chromeArgs(o.width, o.height, profile))
-	if err != nil {
-		return found, err
-	}
-	defer chrome.stop()
-	socket, err := pageSocket(ctx, chrome.endpoint)
-	if err != nil {
-		return found, fmt.Errorf("no page to drive: %w", err)
-	}
-	ws, err := dialWebSocket(ctx, socket)
-	if err != nil {
-		return found, err
-	}
-	page := newCDPClient(ws)
-	defer page.close()
-	s := &session{page: page}
+	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, chromeOptions(binary, o.width, o.height)...)
+	defer stopAllocator()
+	tab, closeTab := chromedp.NewContext(allocator)
+	defer closeTab()
+	s := &session{page: tab}
 
-	for _, domain := range []string{"Page.enable", "Runtime.enable"} {
-		if err := page.call(ctx, domain, nil, nil); err != nil {
-			return found, err
-		}
-	}
 	// Pair first, exactly like a browser: the pairing page sets the session
 	// cookie, and /app opens paired.
-	if err := s.open(ctx, o.pairing, "the pairing page"); err != nil {
+	if err := s.open(o.pairing, "the pairing page"); err != nil {
 		return found, err
 	}
 	app := strings.TrimSuffix(o.server, "/") + "/app"
-	if err := s.open(ctx, app, "the app"); err != nil {
+	if err := s.open(app, "the app"); err != nil {
 		return found, err
 	}
 	if o.lang != "" {
 		// Pin the language before settling, so that screenshots are deterministic.
 		language, _ := json.Marshal(o.lang)
-		reloaded := page.expect("Page.loadEventFired")
 		pin := fmt.Sprintf(`localStorage.setItem("vfox-plus-lang", %s); location.reload();`, language)
-		if err := page.evaluate(ctx, pin, nil); err != nil {
-			return found, err
-		}
-		if err := page.await(ctx, reloaded); err != nil {
+		reload := chromedp.WaitEvent(page.LoadEventFired, nil, chromedp.Evaluate[chromedp.Void](pin))
+		if _, err := chromedp.Run(s.page, reload); err != nil {
 			return found, fmt.Errorf("waiting for the app to reload: %w", err)
 		}
 	}
@@ -406,25 +373,23 @@ func measure(ctx context.Context, o options) (measurement, error) {
 			return found, err
 		}
 	}
-	if found.Heap, err = s.heap(ctx); err != nil {
+	if found.Heap, err = s.heap(); err != nil {
 		return found, err
 	}
-	if err := page.evaluate(ctx, domNodes, &found.DOMNodes); err != nil {
+	if found.DOMNodes, err = evaluate[int](s, domNodes); err != nil {
 		return found, err
 	}
 	// Idle on the open page with live server-sent events: this catches leaks.
 	if err := sleep(ctx, o.idle); err != nil {
 		return found, err
 	}
-	if found.Settled, err = s.heap(ctx); err != nil {
+	if found.Settled, err = s.heap(); err != nil {
 		return found, err
 	}
 	found.Browser = "unknown"
-	var version struct {
-		Product string `json:"product"`
-	}
-	if err := page.call(ctx, "Browser.getVersion", nil, &version); err == nil && version.Product != "" {
-		found.Browser = version.Product // Best effort: a page target may refuse.
+	// Best effort: the version is a nicety of the output.
+	if version, err := chromedp.CallBrowser(s.page, browser.GetVersion, cdp.Empty{}); err == nil && version.Product != "" {
+		found.Browser = version.Product
 	}
 	return found, nil
 }

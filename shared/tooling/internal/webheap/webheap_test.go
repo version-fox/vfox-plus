@@ -18,48 +18,193 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"image/png"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
-	"syscall"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
 )
 
-func TestMain(m *testing.M) {
-	if mode := os.Getenv(fakeChromeEnv); mode != "" {
-		runFakeChrome(mode)
-		return
+// The tests that run the tool drive a real Chrome (the one that findChrome
+// finds: -chrome, $CHROME_BIN, or a name in PATH) against a small page that
+// does what the web interface does for the tool: it sets the session cookie at
+// the pairing link, lists SDKs after a moment, and reports to the server what
+// the tool does to it. They are skipped on a machine without a Chrome.
+
+// testPage is the web interface of the tests.
+const testPage = `<!doctype html><meta charset="utf-8"><title>vfox-plus</title>
+<nav>
+  <button data-tab="home">Home</button><button data-tab="sdks">SDKs</button><button data-tab="plugins">Plugins</button>
+  <button data-tab="tasks">Tasks</button><button data-tab="settings">Settings</button>
+</nav>
+<div id="sdkList"><div class="loader"></div></div>
+<div id="detail"></div>
+<script>
+const note = (what) => navigator.sendBeacon("/note?" + encodeURIComponent(what));
+const dark = matchMedia("(prefers-color-scheme: dark)");
+note("dark-at-start=" + dark.matches);
+dark.addEventListener("change", (e) => note("dark=" + e.matches));
+const lang = localStorage.getItem("vfox-plus-lang");
+if (lang) note("lang=" + lang);
+for (const button of document.querySelectorAll("nav [data-tab]")) button.onclick = () => note("tab=" + button.dataset.tab);
+const showList = LISTED;
+setTimeout(() => {
+  if (!showList) return;
+  const list = document.getElementById("sdkList");
+  list.innerHTML = "";
+  for (const name of ["nodejs", "java"]) {
+    const row = document.createElement("div");
+    row.dataset.sdk = name;
+    row.textContent = name;
+    row.onclick = () => openDetail(name);
+    list.append(row);
+  }
+}, 200);
+function openDetail(name) {
+  note("sdk=" + name);
+  document.getElementById("detail").innerHTML =
+    '<div id="detailTabs"><button data-tab="installed">Installed</button><button data-tab="options">Options</button></div><div id="body"></div>';
+  for (const button of document.querySelectorAll("#detailTabs [data-tab]")) {
+    button.onclick = () => { note("detail=" + button.dataset.tab); if (button.dataset.tab === "options") showOptions(); };
+  }
+}
+function showOptions() {
+  document.getElementById("body").innerHTML = '<button data-var="VFOX_NODEJS_MIRROR">mirror</button><div id="varChips"></div>';
+  document.querySelector("[data-var]").onclick = () => {
+    note("var=VFOX_NODEJS_MIRROR");
+    document.getElementById("varChips").innerHTML = '<button data-value="https://npmmirror.com/mirrors/node">npmmirror</button>';
+    document.querySelector("#varChips [data-value]").onclick = () => note("preset=npmmirror");
+  };
+}
+</script>`
+
+// server is a fake vfox-plus: its pairing link, /app, and a place where the page
+// reports what happens to it.
+type server struct {
+	*httptest.Server
+	mu       sync.Mutex
+	requests []string // "GET /auth/connect/abc" and the like, in order
+	notes    []string // what the page reported
+}
+
+type serverMode int
+
+const (
+	serving   serverMode = iota // the way it should work
+	redirects                   // sends /app to the intro page, as for an unpaired browser
+	neverList                   // shows no SDK list, ever
+	noScenes                    // lists no SDK to click
+)
+
+func newServer(t *testing.T, mode serverMode) *server {
+	t.Helper()
+	s := &server{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/auth/connect/abc", func(w http.ResponseWriter, r *http.Request) {
+		s.record("GET " + r.URL.Path)
+		http.SetCookie(w, &http.Cookie{Name: "session", Value: "paired", Path: "/"})
+		_, _ = fmt.Fprint(w, "<!doctype html><title>paired</title>paired")
+	})
+	mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
+		s.record("GET " + r.URL.Path)
+		if _, err := r.Cookie("session"); err != nil || mode == redirects {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+		listed := "true"
+		if mode == neverList || mode == noScenes {
+			listed = "false"
+		}
+		if mode == noScenes {
+			// The list has rows, but not the ones that the scenes click.
+			_, _ = fmt.Fprint(w, strings.Replace(testPage, `<div class="loader"></div>`, `<div class="row">only this</div>`, 1))
+			return
+		}
+		_, _ = fmt.Fprint(w, strings.Replace(testPage, "LISTED", listed, 1))
+	})
+	mux.HandleFunc("/note", func(w http.ResponseWriter, r *http.Request) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.notes = append(s.notes, r.URL.RawQuery)
+	})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		s.record("GET " + r.URL.Path)
+		_, _ = fmt.Fprint(w, "<!doctype html><title>intro</title>Open a pairing link.")
+	})
+	s.Server = httptest.NewServer(mux)
+	t.Cleanup(s.Close)
+	return s
+}
+
+func (s *server) record(request string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.requests = append(s.requests, request)
+}
+
+// seen are the notes of the page, decoded, after waiting a moment for the last
+// ones, which the page sends in the background.
+func (s *server) seen(t *testing.T, want ...string) []string {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		s.mu.Lock()
+		notes := make([]string, len(s.notes))
+		for i, note := range s.notes {
+			notes[i], _ = unescape(note)
+		}
+		s.mu.Unlock()
+		missing := false
+		for _, w := range want {
+			if !contains(notes, w) {
+				missing = true
+			}
+		}
+		if !missing || time.Now().After(deadline) {
+			return notes
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
-	os.Exit(m.Run())
 }
 
-// trial is one run of the tool against the fake browser.
+func unescape(note string) (string, error) {
+	return strings.NewReplacer("%3D", "=", "%3A", ":", "%2F", "/").Replace(note), nil
+}
+
+// chrome is the browser of the tests, or the end of the test.
+func chrome(t *testing.T) string {
+	t.Helper()
+	binary, err := findChrome("")
+	if err != nil {
+		t.Skip("no Chrome to drive: set CHROME_BIN")
+	}
+	return binary
+}
+
+// trial is one run of the tool.
 type trial struct {
-	output   string
-	stdout   []byte
-	commands []string // "<command>\t<detail>" in the order that the browser got them
-	err      error
+	output string
+	stdout []byte
+	err    error
 }
 
-// runFake runs the tool with this test binary as the browser.
-func runFake(t *testing.T, mode string, extra ...string) trial {
+func runTool(t *testing.T, s *server, extra ...string) trial {
 	t.Helper()
 	directory := t.TempDir()
-	logPath := filepath.Join(directory, "commands.log")
-	t.Setenv(fakeChromeEnv, mode)
-	t.Setenv(fakeChromeLogEnv, logPath)
 	args := append([]string{
-		"-server", "http://127.0.0.1:9/",
-		"-pairing", "http://127.0.0.1:9/auth/connect/abc",
+		"-server", s.URL, "-pairing", s.URL + "/auth/connect/abc",
 		"-output", filepath.Join(directory, "out", "memory.txt"),
-		"-chrome", os.Args[0],
-		"-settle", "0", "-idle", "0", "-timeout", "30",
+		"-chrome", chrome(t),
+		"-settle", "0", "-idle", "0.5", "-timeout", "60",
 	}, extra...)
 	var stdout bytes.Buffer
 	var result trial
@@ -68,177 +213,184 @@ func runFake(t *testing.T, mode string, extra ...string) trial {
 	if written, err := os.ReadFile(filepath.Join(directory, "out", "memory.txt")); err == nil {
 		result.output = string(written)
 	}
-	if log, err := os.ReadFile(logPath); err == nil {
-		result.commands = strings.Split(strings.TrimSpace(string(log)), "\n")
-	}
 	return result
 }
 
-// has reports whether the browser got a command that starts with kind and
-// whose detail contains text.
-func (r trial) has(kind, text string) bool {
-	for _, line := range r.commands {
-		if strings.HasPrefix(line, kind+"\t") && strings.Contains(line, text) {
-			return true
-		}
-	}
-	return false
-}
-
-// index is the position of the first command of the kind with the text in its
-// detail, or -1.
-func (r trial) index(kind, text string) int {
-	for i, line := range r.commands {
-		if strings.HasPrefix(line, kind+"\t") && strings.Contains(line, text) {
-			return i
-		}
-	}
-	return -1
-}
-
 func TestRunMeasures(t *testing.T) {
-	got := runFake(t, "ok")
+	s := newServer(t, serving)
+	got := runTool(t, s)
 	if got.err != nil {
 		t.Fatal(got.err)
 	}
-	want := "webheap (app): 2000 bytes\nwebheap (app-settled): 5000 bytes\n"
-	if got.output != want {
-		t.Errorf("output %q, want %q", got.output, want)
-	}
 	// What the memory report reads.
 	heap := memoryreport.ParseWebHeap(got.output)
-	if heap == nil || heap.App != 2000 || heap.Settled != 5000 {
-		t.Errorf("the memory report reads %+v", heap)
+	if heap == nil || heap.App <= 0 || heap.Settled <= 0 {
+		t.Errorf("the memory report reads %+v from %q", heap, got.output)
 	}
 	var summary measurement
 	if err := json.Unmarshal(got.stdout, &summary); err != nil {
 		t.Fatalf("stdout %q: %v", got.stdout, err)
 	}
-	if summary != (measurement{Browser: "FakeChrome/1.2.3", DOMNodes: 321, Heap: 2000, Settled: 5000}) {
-		t.Errorf("summary %+v", summary)
+	if !strings.Contains(summary.Browser, "hrome") || summary.DOMNodes < 10 || summary.Heap != heap.App || summary.Settled != heap.Settled {
+		t.Errorf("summary %+v, heap %+v", summary, heap)
 	}
-	if !strings.Contains(string(got.stdout), `"heapUsedBytes":2000`) {
+	if !strings.Contains(string(got.stdout), `"heapUsedBytes":`) {
 		t.Errorf("the keys of the summary changed: %s", got.stdout)
 	}
 	// It pairs first and opens the app after: the pairing page sets the cookie.
-	pairing := got.index("Page.navigate", "/auth/connect/abc")
-	app := got.index("Page.navigate", "http://127.0.0.1:9/app")
+	// (The browser asks for the icon of each page, too.)
+	pairing, app := indexOf(s.requests, "GET /auth/connect/abc"), indexOf(s.requests, "GET /app")
 	if pairing < 0 || app < pairing {
-		t.Errorf("the order of the navigation: pairing %d, app %d in %q", pairing, app, got.commands)
+		t.Errorf("the order of the requests: %q", s.requests)
 	}
-	for _, kind := range []string{"Page.captureScreenshot", "Emulation.setEmulatedMedia"} {
-		if got.has(kind, "") {
-			t.Errorf("%s without a screenshot", kind)
+	for _, note := range s.seen(t) {
+		if strings.HasPrefix(note, "lang=") {
+			t.Errorf("the language was pinned without -lang: %q", note)
 		}
-	}
-	if got.has("Runtime.evaluate", "localStorage") {
-		t.Error("the language was pinned without -lang")
-	}
-	if !got.has("start", "--window-size=1280,800") || !got.has("start", "--headless=new") || !got.has("start", "--no-sandbox") {
-		t.Errorf("the browser got the wrong command line: %q", got.commands[0])
 	}
 }
 
 func TestRunCleansUp(t *testing.T) {
-	got := runFake(t, "ok")
+	if runtime.GOOS == "windows" {
+		t.Skip("the temporary directory is TMP there")
+	}
+	// The browser makes its profile below the temporary directory. The name is
+	// short, because Chrome makes a socket in the profile, and the path of a socket
+	// may not be longer than about 100 bytes (the directory of t.TempDir is too long
+	// for that where $TMPDIR is, as on macOS).
+	temporary, err := os.MkdirTemp("", "wh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(temporary) })
+	t.Setenv("TMPDIR", temporary)
+	got := runTool(t, newServer(t, serving))
 	if got.err != nil {
 		t.Fatal(got.err)
 	}
-	var profile string
-	var pid int
-	for _, line := range got.commands {
-		if args, ok := strings.CutPrefix(line, "start\t"); ok {
-			for _, arg := range strings.Fields(args) {
-				if value, ok := strings.CutPrefix(arg, "--user-data-dir="); ok {
-					profile = value
-				}
-			}
-		}
-		if value, ok := strings.CutPrefix(line, "pid\t"); ok {
-			pid, _ = strconv.Atoi(value)
-		}
-	}
-	if profile == "" || pid == 0 {
-		t.Fatalf("no profile or pid in %q", got.commands)
-	}
-	if _, err := os.Stat(profile); !os.IsNotExist(err) {
-		t.Errorf("the profile %s is still there: %v", profile, err)
-	}
-	if runtime.GOOS != "windows" {
-		if process, err := os.FindProcess(pid); err == nil && process.Signal(syscall.Signal(0)) == nil {
-			t.Errorf("the browser %d is still running", pid)
-		}
+	// (A browser that is killed leaves the directory of its shared memory, which is not the profile.)
+	profiles, err := filepath.Glob(filepath.Join(temporary, "chromedp-runner*"))
+	if err != nil || len(profiles) != 0 {
+		t.Errorf("the profile is left behind: %v (%v)", profiles, err)
 	}
 }
 
 func TestRunScreenshot(t *testing.T) {
-	directory := t.TempDir()
-	shot := filepath.Join(directory, "shots", "webapp.png")
-	got := runFake(t, "ok", "-screenshot", shot, "-lang", "zh", "-tab", "plugins", "-dark", "-window", "412,915")
+	s := newServer(t, serving)
+	shot := filepath.Join(t.TempDir(), "shots", "webapp.png")
+	got := runTool(t, s, "-screenshot", shot, "-lang", "zh", "-tab", "plugins", "-dark", "-window", "412,915")
 	if got.err != nil {
 		t.Fatal(got.err)
 	}
-	image, err := os.ReadFile(shot)
+	file, err := os.Open(shot)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(image, fakeScreenshot) {
-		t.Errorf("the screenshot has %d bytes, want %d", len(image), len(fakeScreenshot))
+	defer func() { _ = file.Close() }()
+	image, err := png.Decode(file)
+	if err != nil || image.Bounds().Dx() == 0 || image.Bounds().Dy() == 0 {
+		t.Fatalf("the screenshot is not a picture: %v", err)
 	}
-	if !got.has("start", "--window-size=412,915") {
-		t.Errorf("the window: %q", got.commands[0])
-	}
-	// The language is pinned right after the app opens, before anything is read.
-	app := got.index("Page.navigate", "/app")
-	pin := got.index("Runtime.evaluate", `localStorage.setItem("vfox-plus-lang", "zh")`)
-	list := got.index("Runtime.evaluate", "#sdkList")
-	if !(app < pin && pin < list) {
-		t.Errorf("language %d is not between the app %d and the SDK list %d", pin, app, list)
-	}
-	// Dark first, then the page, then the picture.
-	dark := got.index("Emulation.setEmulatedMedia", `"prefers-color-scheme"`)
-	tab := got.index("Runtime.evaluate", `[data-tab="plugins"]`)
-	capture := got.index("Page.captureScreenshot", `"png"`)
-	if !(0 < dark && dark < tab && tab < capture) {
-		t.Errorf("dark %d, tab %d, capture %d", dark, tab, capture)
+	// The language is pinned, the colour scheme is dark and the page of the tab is open.
+	notes := s.seen(t, "lang=zh", "dark=true", "tab=plugins")
+	for _, want := range []string{"dark-at-start=false", "lang=zh", "dark=true", "tab=plugins"} {
+		if !contains(notes, want) {
+			t.Errorf("the page did not hear %q: %q", want, notes)
+		}
 	}
 }
 
 func TestRunPlaysTheSceneBeforeTheScreenshot(t *testing.T) {
-	directory := t.TempDir()
-	shot := filepath.Join(directory, "shots", "options-mirror.png")
-	got := runFake(t, "ok", "-screenshot", shot, "-scene", "options-mirror", "-lang", "zh")
+	s := newServer(t, serving)
+	shot := filepath.Join(t.TempDir(), "options-mirror.png")
+	got := runTool(t, s, "-screenshot", shot, "-scene", "options-mirror", "-lang", "zh")
 	if got.err != nil {
 		t.Fatal(got.err)
 	}
-	if image, err := os.ReadFile(shot); err != nil || !bytes.Equal(image, fakeScreenshot) {
+	if info, err := os.Stat(shot); err != nil || info.Size() == 0 {
 		t.Fatalf("the screenshot: %v", err)
 	}
-	// The SDK list is there first; then the plugin, its tab and the dialog, in the
-	// order of a person; the picture comes last.
-	list := got.index("Runtime.evaluate", "#sdkList")
-	plugin := got.index("Runtime.evaluate", `[data-sdk=\"nodejs\"]`)
-	options := got.index("Runtime.evaluate", `[data-tab=\"options\"]`)
-	variable := got.index("Runtime.evaluate", `[data-var=\"VFOX_NODEJS_MIRROR\"]`)
-	preset := got.index("Runtime.evaluate", `#varChips [data-value=\"https://npmmirror.com/mirrors/node\"]`)
-	capture := got.index("Page.captureScreenshot", `"png"`)
-	if !(0 < list && list < plugin && plugin < options && options < variable && variable < preset && preset < capture) {
-		t.Errorf("list %d, plugin %d, tab %d, variable %d, preset %d, capture %d", list, plugin, options, variable, preset, capture)
-	}
-	if !got.has("Runtime.evaluate", "element.click()") {
-		t.Error("a step clicks the element")
+	// The plugin, its tab and the dialog, in the order of a person.
+	want := []string{"sdk=nodejs", "detail=options", "var=VFOX_NODEJS_MIRROR", "preset=npmmirror"}
+	notes := s.seen(t, want...)
+	last := -1
+	for _, w := range want {
+		at := indexOf(notes, w)
+		if at < 0 || at < last {
+			t.Fatalf("the scene did not do %q in order: %q", w, notes)
+		}
+		last = at
 	}
 }
 
 func TestRunFailsWhenTheSceneFindsNothingToClick(t *testing.T) {
 	shot := filepath.Join(t.TempDir(), "options.png")
-	got := runFake(t, "no-element", "-screenshot", shot, "-scene", "options", "-timeout", "3")
+	got := runTool(t, newServer(t, noScenes), "-screenshot", shot, "-scene", "options", "-timeout", "5")
 	if got.err == nil || !strings.Contains(got.err.Error(), "the scene options (step 1") {
 		t.Errorf("got %v, want the step that found nothing", got.err)
 	}
 	if _, err := os.Stat(shot); err == nil {
 		t.Error("no picture of a page that is not the scene")
 	}
+}
+
+func TestRunFailures(t *testing.T) {
+	for _, tc := range []struct {
+		label string
+		mode  serverMode
+		args  []string
+		want  string
+	}{
+		{"the app sends an unpaired browser away", redirects, nil, "the app did not open: the browser ended up on " + "http://127.0.0.1:"},
+		{"the SDK list never comes", neverList, []string{"-timeout", "4"}, "timed out waiting for the SDK list"},
+	} {
+		t.Run(tc.label, func(t *testing.T) {
+			started := time.Now()
+			got := runTool(t, newServer(t, tc.mode), tc.args...)
+			if got.err == nil || !strings.Contains(got.err.Error(), tc.want) {
+				t.Fatalf("got %v, want an error with %q", got.err, tc.want)
+			}
+			if got.output != "" {
+				t.Errorf("a failed run wrote %q", got.output)
+			}
+			if elapsed := time.Since(started); elapsed > 30*time.Second {
+				t.Errorf("took %s", elapsed)
+			}
+		})
+	}
+}
+
+func TestRunFailsWhenTheServerIsGone(t *testing.T) {
+	s := newServer(t, serving)
+	s.Close()
+	got := runTool(t, s)
+	if got.err == nil || !strings.Contains(got.err.Error(), "cannot open the pairing page") || !strings.Contains(got.err.Error(), "ERR_CONNECTION_REFUSED") {
+		t.Errorf("got %v", got.err)
+	}
+}
+
+func TestRunFailsWhenTheBrowserDoesNotStart(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake browser is a shell script")
+	}
+	fake := filepath.Join(t.TempDir(), "chrome")
+	if err := os.WriteFile(fake, []byte("#!/bin/sh\necho 'fake chrome: cannot open a display' >&2\nexit 3\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	err := run([]string{"-server", "http://127.0.0.1:9", "-pairing", "http://127.0.0.1:9/auth/connect/abc",
+		"-output", filepath.Join(t.TempDir(), "memory.txt"), "-chrome", fake, "-timeout", "30"}, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "cannot open a display") {
+		t.Errorf("got %v, want the message of the browser", err)
+	}
+}
+
+func indexOf(list []string, item string) int {
+	for i, entry := range list {
+		if entry == item {
+			return i
+		}
+	}
+	return -1
 }
 
 func TestScenesUseWhatThePageHas(t *testing.T) {
@@ -265,50 +417,6 @@ func TestScenesUseWhatThePageHas(t *testing.T) {
 				}
 			}
 		}
-	}
-}
-
-func TestRunReadsAFragmentedScreenshot(t *testing.T) {
-	shot := filepath.Join(t.TempDir(), "webapp.png")
-	got := runFake(t, "fragmented", "-screenshot", shot)
-	if got.err != nil {
-		t.Fatal(got.err)
-	}
-	if image, err := os.ReadFile(shot); err != nil || !bytes.Equal(image, fakeScreenshot) {
-		t.Errorf("the screenshot: %d bytes, %v", len(image), err)
-	}
-}
-
-func TestRunWaitsForTheFirstPage(t *testing.T) {
-	if got := runFake(t, "late-page"); got.err != nil {
-		t.Fatal(got.err)
-	}
-}
-
-func TestRunFailures(t *testing.T) {
-	for _, tc := range []struct {
-		mode string
-		args []string
-		want string
-	}{
-		{"exit", nil, "exited before it listened: fake chrome: cannot open a display"},
-		{"navigate-error", nil, "cannot open the app: net::ERR_CONNECTION_REFUSED"},
-		{"redirect", nil, "the app did not open: the browser ended up on http://127.0.0.1:1/"},
-		{"never-ready", []string{"-timeout", "2"}, "timed out waiting for the SDK list"},
-	} {
-		t.Run(tc.mode, func(t *testing.T) {
-			started := time.Now()
-			got := runFake(t, tc.mode, tc.args...)
-			if got.err == nil || !strings.Contains(got.err.Error(), tc.want) {
-				t.Fatalf("got %v, want an error with %q", got.err, tc.want)
-			}
-			if got.output != "" {
-				t.Errorf("a failed run wrote %q", got.output)
-			}
-			if elapsed := time.Since(started); elapsed > 20*time.Second {
-				t.Errorf("took %s", elapsed)
-			}
-		})
 	}
 }
 
@@ -393,53 +501,6 @@ func TestFindChrome(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		if got, err := findChrome(""); err != nil || got != filepath.Join(bin, "chromium") {
 			t.Errorf("chromium in PATH: %q, %v", got, err)
-		}
-	}
-}
-
-func TestStderrWatcher(t *testing.T) {
-	watcher := &stderrWatcher{endpoint: make(chan string, 1)}
-	// The line comes in pieces, behind other output.
-	for _, piece := range []string{"[0101/000000:ERROR] noise\nDevTools lis", "tening on ws://127.0.0.1:41", "234/devtools/browser/abc-def\nmore\n"} {
-		if n, err := watcher.Write([]byte(piece)); n != len(piece) || err != nil {
-			t.Fatalf("write: %d, %v", n, err)
-		}
-	}
-	select {
-	case got := <-watcher.endpoint:
-		if got != "ws://127.0.0.1:41234/devtools/browser/abc-def" {
-			t.Errorf("got %q", got)
-		}
-	default:
-		t.Fatal("no endpoint")
-	}
-	if tail := watcher.lastOutput(); !strings.HasSuffix(tail, "more") || len(tail) > tailSize {
-		t.Errorf("tail %q", tail)
-	}
-	// Only the last bytes are kept.
-	_, _ = watcher.Write([]byte(strings.Repeat("x", 3*tailSize) + "\nend\n"))
-	if tail := watcher.lastOutput(); len(tail) > tailSize || !strings.HasSuffix(tail, "end") {
-		t.Errorf("tail of %d bytes: %q", len(tail), tail)
-	}
-}
-
-func TestChoosePage(t *testing.T) {
-	blank := devToolsTarget{Type: "page", URL: "about:blank", WebSocketDebuggerURL: "ws://blank"}
-	shown := devToolsTarget{Type: "page", URL: "http://example.test/", WebSocketDebuggerURL: "ws://shown"}
-	worker := devToolsTarget{Type: "service_worker", URL: "http://example.test/sw.js", WebSocketDebuggerURL: "ws://worker"}
-	unreachable := devToolsTarget{Type: "page", URL: "http://example.test/"}
-	for name, tc := range map[string]struct {
-		targets []devToolsTarget
-		want    string
-	}{
-		"none":              {nil, ""},
-		"only a worker":     {[]devToolsTarget{worker}, ""},
-		"only a blank page": {[]devToolsTarget{worker, blank}, "ws://blank"},
-		"a page that shows": {[]devToolsTarget{blank, shown}, "ws://shown"},
-		"no debugger":       {[]devToolsTarget{unreachable, blank}, "ws://blank"},
-	} {
-		if got := choosePage(tc.targets); got != tc.want {
-			t.Errorf("%s: got %q, want %q", name, got, tc.want)
 		}
 	}
 }
