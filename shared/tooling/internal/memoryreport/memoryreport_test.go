@@ -17,17 +17,20 @@ package memoryreport
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v93/github"
 )
@@ -43,6 +46,8 @@ func TestMain(m *testing.M) {
 	os.Unsetenv("GITHUB_REPOSITORY")
 	os.Unsetenv("MEMORY_IMPLEMENTATIONS")
 	os.Unsetenv("GH_TOKEN")
+	// A request that fails is sent again at once.
+	retryWait = func(int) time.Duration { return 0 }
 	os.Exit(m.Run())
 }
 
@@ -80,9 +85,10 @@ func testMemory(homePSS, versionsPSS, processes int) *Memory {
 	}
 }
 
-// FakeAPI is the parts of the API of GitHub that the report reads and writes.
+// FakeAPI is the parts of the API of GitHub that the report reads and writes,
+// as data. ServeHTTP serves them over HTTP, as GitHub does, and repository
+// connects the client of the report to that server.
 type FakeAPI struct {
-	repository    string
 	defaultBranch string
 	workflows     []map[string]any
 	runs          []map[string]any
@@ -91,14 +97,20 @@ type FakeAPI struct {
 	pulls         map[int]map[string]any
 	comments      map[int][]map[string]any
 	writes        [][2]string
-	ids           int
-	failRaw       bool
-	onGet         func(path string, params map[string]any)
+	// requests holds the method and the path of every request, in order.
+	requests []string
+	// downloads counts the zips that were fetched.
+	downloads int
+	ids       int
+	// failRaw makes the download of every artifact fail.
+	failRaw bool
+	onGet   func(path string, params map[string]any)
+	// failing refuses the requests of the API that it says yes to, by method and path.
+	failing func(request string) bool
 }
 
 func newFakeAPI() *FakeAPI {
 	return &FakeAPI{
-		repository:    testRepository,
 		defaultBranch: "main",
 		zips:          map[int][]byte{},
 		pulls:         map[int]map[string]any{},
@@ -271,14 +283,142 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// API implementation.
+// The API as the client of the report sees it.
 
-func (f *FakeAPI) RepoName() string { return f.repository }
+var (
+	artifactZipPath = regexp.MustCompile(`^actions/artifacts/(\d+)/zip$`)
+	commentsPath    = regexp.MustCompile(`^issues/(\d+)/comments$`)
+)
 
-func intParam(params map[string]any, key string) int {
-	return int(asInt(params[key]))
+// repository serves the fake and returns the repository whose client reads it.
+func (f *FakeAPI) repository(t *testing.T) *Repository {
+	t.Helper()
+	server := httptest.NewServer(f)
+	t.Cleanup(server.Close)
+	return repositoryAt(t, server.URL)
 }
 
+// typed converts a value of the fake to what the client returns for it.
+func typed[T any](t *testing.T, value any) *T {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := new(T)
+	if err := json.Unmarshal(data, result); err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+
+// ServeHTTP answers the requests of the client of the report.
+func (f *FakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.requests = append(f.requests, r.Method+" "+r.URL.Path)
+	if id, ok := strings.CutPrefix(r.URL.Path, "/download/"); ok {
+		number, _ := strconv.Atoi(id)
+		data, ok := f.zips[number]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		f.downloads++
+		w.Header().Set("Content-Type", "application/zip")
+		_, _ = w.Write(data)
+		return
+	}
+	rest, ok := strings.CutPrefix(r.URL.Path, "/repos/"+testRepository)
+	if !ok || (rest != "" && !strings.HasPrefix(rest, "/")) {
+		writeJSON(w, http.StatusNotFound, map[string]any{"message": "Not Found"})
+		return
+	}
+	if f.failing != nil && f.failing(r.Method+" "+rest) {
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"message": "refused by the test"})
+		return
+	}
+	path := strings.TrimPrefix(rest, "/")
+	if r.Method != http.MethodGet {
+		f.serveWrite(w, r, path)
+		return
+	}
+	if match := artifactZipPath.FindStringSubmatch(path); match != nil {
+		if f.failRaw {
+			writeJSON(w, http.StatusGone, map[string]any{"message": "Artifact has expired"})
+			return
+		}
+		// The file is somewhere else, as it is at GitHub.
+		w.Header().Set("Location", "http://"+r.Host+"/download/"+match[1])
+		w.WriteHeader(http.StatusFound)
+		return
+	}
+	if match := commentsPath.FindStringSubmatch(path); match != nil {
+		f.serveComments(w, r, match[1])
+		return
+	}
+	params := map[string]any{}
+	for name, values := range r.URL.Query() {
+		params[name] = values[0]
+	}
+	value, err := f.Get(path, params)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]any{"message": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+
+// serveComments gives one page of the comments of an issue, with the link to
+// the next that GitHub sends.
+func (f *FakeAPI) serveComments(w http.ResponseWriter, r *http.Request, issue string) {
+	number, _ := strconv.Atoi(issue)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page = max(page, 1)
+	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+	if perPage < 1 || perPage > 100 {
+		perPage = 30
+	}
+	comments := f.comments[number]
+	start := min((page-1)*perPage, len(comments))
+	end := min(start+perPage, len(comments))
+	if end < len(comments) {
+		w.Header().Set("Link", fmt.Sprintf(`<http://%s%s?page=%d&per_page=%d>; rel="next"`, r.Host, r.URL.Path, page+1, perPage))
+	}
+	items := make([]any, 0, end-start)
+	for _, comment := range comments[start:end] {
+		items = append(items, comment)
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+// serveWrite creates, updates and deletes comments.
+func (f *FakeAPI) serveWrite(w http.ResponseWriter, r *http.Request, path string) {
+	var payload map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && !errors.Is(err, io.EOF) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"message": err.Error()})
+		return
+	}
+	result, err := f.Send(r.Method, path, payload)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]any{"message": err.Error()})
+		return
+	}
+	switch r.Method {
+	case http.MethodPost:
+		writeJSON(w, http.StatusCreated, result)
+	case http.MethodDelete:
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
+// Get reads what a GET of the API of the repository answers with.
 func (f *FakeAPI) Get(path string, params map[string]any) (any, error) {
 	if f.onGet != nil {
 		f.onGet(path, params)
@@ -301,15 +441,13 @@ func (f *FakeAPI) Get(path string, params map[string]any) (any, error) {
 		return map[string]any{"workflow_runs": runs}, nil
 	case strings.HasPrefix(path, "actions/runs/") && strings.HasSuffix(path, "/artifacts"):
 		id := strings.TrimSuffix(strings.TrimPrefix(path, "actions/runs/"), "/artifacts")
-		var artifacts []any
+		// The artifacts of a run have no filter by name, as at GitHub.
+		artifacts := []any{}
 		for _, artifact := range f.artifacts {
 			run, _ := artifact["workflow_run"].(map[string]any)
-			if run != nil && fmt.Sprintf("%v", asInt(run["id"])) == id && asString(artifact["name"]) == asString(params["name"]) {
+			if run != nil && fmt.Sprintf("%v", asInt(run["id"])) == id {
 				artifacts = append(artifacts, artifact)
 			}
-		}
-		if artifacts == nil {
-			artifacts = []any{}
 		}
 		return map[string]any{"artifacts": artifacts}, nil
 	case strings.HasPrefix(path, "actions/runs/"):
@@ -378,44 +516,13 @@ func toAnySlice(maps []map[string]any) []any {
 	return items
 }
 
-func (f *FakeAPI) Raw(path string) ([]byte, error) {
-	if f.failRaw {
-		return nil, errors.New("downloaded")
-	}
-	match := regexp.MustCompile(`^actions/artifacts/(\d+)/zip$`).FindStringSubmatch(path)
-	if match == nil {
-		return nil, fmt.Errorf("unexpected RAW %s", path)
-	}
-	var id int
-	fmt.Sscanf(match[1], "%d", &id)
-	data, ok := f.zips[id]
-	if !ok {
-		return nil, fmt.Errorf("no zip %d", id)
-	}
-	return data, nil
-}
-
-func (f *FakeAPI) Pages(path string) ([]any, error) {
-	match := regexp.MustCompile(`^issues/(\d+)/comments$`).FindStringSubmatch(path)
-	if match == nil {
-		return nil, fmt.Errorf("unexpected PAGES %s", path)
-	}
-	var number int
-	fmt.Sscanf(match[1], "%d", &number)
-	var items []any
-	for _, comment := range f.comments[number] {
-		items = append(items, comment)
-	}
-	return items, nil
-}
-
-func (f *FakeAPI) Send(method, path string, payload any) (any, error) {
+// Send writes through POST, PATCH or DELETE.
+func (f *FakeAPI) Send(method, path string, payload map[string]any) (any, error) {
 	f.writes = append(f.writes, [2]string{method, path})
-	if match := regexp.MustCompile(`^issues/(\d+)/comments$`).FindStringSubmatch(path); match != nil {
+	if match := commentsPath.FindStringSubmatch(path); match != nil && method == http.MethodPost {
 		var number int
 		fmt.Sscanf(match[1], "%d", &number)
-		body, _ := payload.(map[string]any)
-		comment := map[string]any{"id": f.nextID(), "body": body["body"], "user": map[string]any{"login": Bot}}
+		comment := map[string]any{"id": f.nextID(), "body": payload["body"], "user": map[string]any{"login": Bot}}
 		f.comments[number] = append(f.comments[number], comment)
 		return comment, nil
 	}
@@ -425,18 +532,36 @@ func (f *FakeAPI) Send(method, path string, payload any) (any, error) {
 		for number, comments := range f.comments {
 			for i, comment := range comments {
 				if asInt(comment["id"]) == int64(id) {
-					if method == "PATCH" {
-						body, _ := payload.(map[string]any)
-						comment["body"] = body["body"]
-					} else {
-						f.comments[number] = append(comments[:i], comments[i+1:]...)
+					if method == http.MethodPatch {
+						comment["body"] = payload["body"]
+						return comment, nil
 					}
+					f.comments[number] = append(comments[:i], comments[i+1:]...)
 					return nil, nil
 				}
 			}
 		}
 	}
 	return nil, fmt.Errorf("unexpected %s %s", method, path)
+}
+
+// asInt reads an ID or a count out of the data of the fake.
+func asInt(value any) int64 {
+	switch number := value.(type) {
+	case int:
+		return int64(number)
+	case int64:
+		return number
+	case float64:
+		return int64(number)
+	}
+	return 0
+}
+
+// asString reads text out of the data of the fake.
+func asString(value any) string {
+	text, _ := value.(string)
+	return text
 }
 
 func TestParseMemory(t *testing.T) {
@@ -783,14 +908,12 @@ func TestRender(t *testing.T) {
 }
 
 func TestReadArtifact(t *testing.T) {
+	ctx := context.Background()
 	read := func(t *testing.T, files map[string]string, options artifactOptions) *Memory {
 		t.Helper()
-		github := newFakeAPI()
-		github.addArtifact("uno", files, options)
-		if id := github.artifacts[len(github.artifacts)-1]["id"]; id == nil {
-			t.Fatal("want an id")
-		}
-		return ReadArtifact(github, github.artifacts[len(github.artifacts)-1])
+		fake := newFakeAPI()
+		fake.addArtifact("uno", files, options)
+		return ReadArtifact(ctx, fake.repository(t), typed[github.Artifact](t, fake.artifacts[len(fake.artifacts)-1]))
 	}
 	t.Run("reads memory.txt", func(t *testing.T) {
 		got := read(t, map[string]string{"memory.txt": memoryText([3]int{55, 42, 1}, [3]int{64, 49, 1})}, artifactOptions{})
@@ -811,14 +934,17 @@ func TestReadArtifact(t *testing.T) {
 		}
 	})
 	t.Run("rejects expired or large artifact without downloading", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{expired: true})
-		github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{size: MaxArtifactBytes + 1, hasSize: true})
-		github.failRaw = true
-		for _, artifact := range github.artifacts {
-			if ReadArtifact(github, artifact) != nil {
+		fake := newFakeAPI()
+		fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{expired: true})
+		fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{size: MaxArtifactBytes + 1, hasSize: true})
+		repo := fake.repository(t)
+		for _, artifact := range fake.artifacts {
+			if ReadArtifact(ctx, repo, typed[github.Artifact](t, artifact)) != nil {
 				t.Fatal("want nil")
 			}
+		}
+		if len(fake.requests) != 0 {
+			t.Fatalf("requests = %v", fake.requests)
 		}
 	})
 	t.Run("rejects a large file inside the zip", func(t *testing.T) {
@@ -827,15 +953,33 @@ func TestReadArtifact(t *testing.T) {
 		}
 	})
 	t.Run("rejects what is not a zip", func(t *testing.T) {
-		github := newFakeAPI()
-		id := github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
-		github.zips[id] = []byte("not a zip")
+		fake := newFakeAPI()
+		id := fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
+		fake.zips[id] = []byte("not a zip")
 		var buffer bytes.Buffer
 		old := stderr
 		stderr = &buffer
 		defer func() { stderr = old }()
-		if ReadArtifact(github, github.artifacts[len(github.artifacts)-1]) != nil {
+		if ReadArtifact(ctx, fake.repository(t), typed[github.Artifact](t, fake.artifacts[len(fake.artifacts)-1])) != nil {
 			t.Fatal("want nil")
+		}
+		if !strings.Contains(buffer.String(), fmt.Sprintf("Cannot read the artifact memory-uno (%d)", id)) {
+			t.Fatalf("errors = %q", buffer.String())
+		}
+	})
+	t.Run("says when the download fails", func(t *testing.T) {
+		fake := newFakeAPI()
+		id := fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
+		fake.failRaw = true
+		var buffer bytes.Buffer
+		old := stderr
+		stderr = &buffer
+		defer func() { stderr = old }()
+		if ReadArtifact(ctx, fake.repository(t), typed[github.Artifact](t, fake.artifacts[len(fake.artifacts)-1])) != nil {
+			t.Fatal("want nil")
+		}
+		if !strings.Contains(buffer.String(), fmt.Sprintf("Cannot read the artifact memory-uno (%d)", id)) || !strings.Contains(buffer.String(), "410 Gone") {
+			t.Fatalf("errors = %q", buffer.String())
 		}
 	})
 	t.Run("rejects wrong numbers", func(t *testing.T) {
@@ -847,31 +991,31 @@ func TestReadArtifact(t *testing.T) {
 
 func TestBaseline(t *testing.T) {
 	t.Run("takes the newest valid artifact", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addArtifact("uno", map[string]string{"memory.txt": memoryText([3]int{10, 9, 1}, [3]int{10, 9, 1})},
+		fake := newFakeAPI()
+		fake.addArtifact("uno", map[string]string{"memory.txt": memoryText([3]int{10, 9, 1}, [3]int{10, 9, 1})},
 			artifactOptions{created: "2026-10-18T00:00:00Z", sha: strings.Repeat("1", 40)})
-		github.addArtifact("uno", map[string]string{"memory.txt": memoryText([3]int{20, 19, 1}, [3]int{20, 19, 1})},
+		fake.addArtifact("uno", map[string]string{"memory.txt": memoryText([3]int{20, 19, 1}, [3]int{20, 19, 1})},
 			artifactOptions{created: "2026-10-20T00:00:00Z", sha: strings.Repeat("2", 40)})
-		baseline, artifact, err := BaselineOf(github, "uno", "main")
+		baseline, artifact, err := BaselineOf(context.Background(), fake.repository(t), "uno", "main")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if baseline.Home.PSS != 19 {
 			t.Fatalf("pss = %d", baseline.Home.PSS)
 		}
-		if asString(artifact["workflow_run"].(map[string]any)["head_sha"]) != strings.Repeat("2", 40) {
+		if artifact.GetWorkflowRun().GetHeadSHA() != strings.Repeat("2", 40) {
 			t.Fatal("want the newest")
 		}
 	})
 	t.Run("ignores forks and expired artifacts", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()},
+		fake := newFakeAPI()
+		fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()},
 			artifactOptions{branch: "feature", created: "2026-10-22T00:00:00Z"})
-		github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()},
+		fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()},
 			artifactOptions{headRepoID: 2, created: "2026-10-22T00:00:00Z"})
-		github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()},
+		fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()},
 			artifactOptions{expired: true, created: "2026-10-22T00:00:00Z"})
-		baseline, _, err := BaselineOf(github, "uno", "main")
+		baseline, _, err := BaselineOf(context.Background(), fake.repository(t), "uno", "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -880,12 +1024,12 @@ func TestBaseline(t *testing.T) {
 		}
 	})
 	t.Run("falls back to an older artifact", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addArtifact("uno", map[string]string{"memory.txt": memoryText([3]int{10, 9, 1}, [3]int{10, 9, 1})},
+		fake := newFakeAPI()
+		fake.addArtifact("uno", map[string]string{"memory.txt": memoryText([3]int{10, 9, 1}, [3]int{10, 9, 1})},
 			artifactOptions{created: "2026-10-18T00:00:00Z"})
-		github.addArtifact("uno", map[string]string{"memory.txt": "garbage"},
+		fake.addArtifact("uno", map[string]string{"memory.txt": "garbage"},
 			artifactOptions{created: "2026-10-20T00:00:00Z"})
-		baseline, _, err := BaselineOf(github, "uno", "main")
+		baseline, _, err := BaselineOf(context.Background(), fake.repository(t), "uno", "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -894,9 +1038,9 @@ func TestBaseline(t *testing.T) {
 		}
 	})
 	t.Run("only reads the implementation", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addArtifact("tauri", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
-		baseline, _, err := BaselineOf(github, "uno", "main")
+		fake := newFakeAPI()
+		fake.addArtifact("tauri", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
+		baseline, _, err := BaselineOf(context.Background(), fake.repository(t), "uno", "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -905,10 +1049,10 @@ func TestBaseline(t *testing.T) {
 		}
 	})
 	t.Run("ignores an artifact that no workflow run made", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
-		github.artifacts[len(github.artifacts)-1]["workflow_run"] = nil
-		baseline, _, err := BaselineOf(github, "uno", "main")
+		fake := newFakeAPI()
+		fake.addArtifact("uno", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
+		fake.artifacts[len(fake.artifacts)-1]["workflow_run"] = nil
+		baseline, _, err := BaselineOf(context.Background(), fake.repository(t), "uno", "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -920,20 +1064,20 @@ func TestBaseline(t *testing.T) {
 
 func TestFindPullRequests(t *testing.T) {
 	t.Run("finds it by the branch of the run", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addPullRequest(7, "", "")
-		pulls, err := FindPullRequests(github, "contributor", "feature", testHead)
+		fake := newFakeAPI()
+		fake.addPullRequest(7, "", "")
+		pulls, err := FindPullRequests(context.Background(), fake.repository(t), "contributor", "feature", testHead)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(pulls) != 1 || asInt(pulls[0]["number"]) != 7 {
+		if len(pulls) != 1 || pulls[0].GetNumber() != 7 {
 			t.Fatalf("pulls = %v", pulls)
 		}
 	})
 	t.Run("finds it by the commit without the owner", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addPullRequest(7, "", "")
-		pulls, err := FindPullRequests(github, "", "feature", testHead)
+		fake := newFakeAPI()
+		fake.addPullRequest(7, "", "")
+		pulls, err := FindPullRequests(context.Background(), fake.repository(t), "", "feature", testHead)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -942,9 +1086,9 @@ func TestFindPullRequests(t *testing.T) {
 		}
 	})
 	t.Run("a newer commit is not the one of the run", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addPullRequest(7, strings.Repeat("c", 40), "")
-		pulls, err := FindPullRequests(github, "contributor", "feature", testHead)
+		fake := newFakeAPI()
+		fake.addPullRequest(7, strings.Repeat("c", 40), "")
+		pulls, err := FindPullRequests(context.Background(), fake.repository(t), "contributor", "feature", testHead)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -953,9 +1097,9 @@ func TestFindPullRequests(t *testing.T) {
 		}
 	})
 	t.Run("a closed pull request is not found", func(t *testing.T) {
-		github := newFakeAPI()
-		github.addPullRequest(7, "", "closed")
-		pulls, err := FindPullRequests(github, "contributor", "feature", testHead)
+		fake := newFakeAPI()
+		fake.addPullRequest(7, "", "closed")
+		pulls, err := FindPullRequests(context.Background(), fake.repository(t), "contributor", "feature", testHead)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -966,57 +1110,57 @@ func TestFindPullRequests(t *testing.T) {
 }
 
 func TestUpsertComment(t *testing.T) {
-	comment := func(github *FakeAPI, body, login string, number int) map[string]any {
-		c := map[string]any{"id": github.nextID(), "body": body, "user": map[string]any{"login": login}}
-		github.comments[number] = append(github.comments[number], c)
+	comment := func(fake *FakeAPI, body, login string, number int) map[string]any {
+		c := map[string]any{"id": fake.nextID(), "body": body, "user": map[string]any{"login": login}}
+		fake.comments[number] = append(fake.comments[number], c)
 		return c
 	}
 	t.Run("creates the first comment", func(t *testing.T) {
-		github := newFakeAPI()
-		result, err := UpsertComment(github, 7, Marker+"\nnew")
+		fake := newFakeAPI()
+		result, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nnew")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if result != "created" {
 			t.Fatalf("result = %q", result)
 		}
-		if len(github.writes) != 1 || github.writes[0] != [2]string{"POST", "issues/7/comments"} {
-			t.Fatalf("writes = %v", github.writes)
+		if len(fake.writes) != 1 || fake.writes[0] != [2]string{"POST", "issues/7/comments"} {
+			t.Fatalf("writes = %v", fake.writes)
 		}
 	})
 	t.Run("replaces the earlier comment", func(t *testing.T) {
-		github := newFakeAPI()
-		old := comment(github, Marker+"\nold", Bot, 7)
-		result, err := UpsertComment(github, 7, Marker+"\nnew")
+		fake := newFakeAPI()
+		old := comment(fake, Marker+"\nold", Bot, 7)
+		result, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nnew")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if result != "updated" {
 			t.Fatalf("result = %q", result)
 		}
-		if len(github.writes) != 1 || github.writes[0] != [2]string{"PATCH", fmt.Sprintf("issues/comments/%d", asInt(old["id"]))} {
-			t.Fatalf("writes = %v", github.writes)
+		if len(fake.writes) != 1 || fake.writes[0] != [2]string{"PATCH", fmt.Sprintf("issues/comments/%d", asInt(old["id"]))} {
+			t.Fatalf("writes = %v", fake.writes)
 		}
-		if asString(github.comments[7][0]["body"]) != Marker+"\nnew" {
+		if asString(fake.comments[7][0]["body"]) != Marker+"\nnew" {
 			t.Fatal("want the new body")
 		}
 	})
 	t.Run("leaves an identical comment alone", func(t *testing.T) {
-		github := newFakeAPI()
-		comment(github, Marker+"\r\nsame\r\n", Bot, 7)
-		result, err := UpsertComment(github, 7, Marker+"\nsame\n")
+		fake := newFakeAPI()
+		comment(fake, Marker+"\r\nsame\r\n", Bot, 7)
+		result, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nsame\n")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if result != "unchanged" || len(github.writes) != 0 {
-			t.Fatalf("result = %q, writes = %v", result, github.writes)
+		if result != "unchanged" || len(fake.writes) != 0 {
+			t.Fatalf("result = %q, writes = %v", result, fake.writes)
 		}
 	})
 	t.Run("keeps the oldest and deletes the rest", func(t *testing.T) {
-		github := newFakeAPI()
-		first := comment(github, Marker+"\nfirst", Bot, 7)
-		second := comment(github, Marker+"\nsecond", Bot, 7)
-		_, err := UpsertComment(github, 7, Marker+"\nnew")
+		fake := newFakeAPI()
+		first := comment(fake, Marker+"\nfirst", Bot, 7)
+		second := comment(fake, Marker+"\nsecond", Bot, 7)
+		_, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nnew")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1024,30 +1168,30 @@ func TestUpsertComment(t *testing.T) {
 			{"PATCH", fmt.Sprintf("issues/comments/%d", asInt(first["id"]))},
 			{"DELETE", fmt.Sprintf("issues/comments/%d", asInt(second["id"]))},
 		}
-		if len(github.writes) != 2 || github.writes[0] != want[0] || github.writes[1] != want[1] {
-			t.Fatalf("writes = %v", github.writes)
+		if len(fake.writes) != 2 || fake.writes[0] != want[0] || fake.writes[1] != want[1] {
+			t.Fatalf("writes = %v", fake.writes)
 		}
-		if len(github.comments[7]) != 1 || asString(github.comments[7][0]["body"]) != Marker+"\nnew" {
-			t.Fatalf("comments = %v", github.comments[7])
+		if len(fake.comments[7]) != 1 || asString(fake.comments[7][0]["body"]) != Marker+"\nnew" {
+			t.Fatalf("comments = %v", fake.comments[7])
 		}
 	})
 	t.Run("never touches other people's comments", func(t *testing.T) {
-		github := newFakeAPI()
-		theirs := comment(github, Marker+"\nquoted by a person", "contributor", 7)
-		other := map[string]any{"id": github.nextID(), "body": "a remark by the bot", "user": map[string]any{"login": Bot}}
-		github.comments[7] = append(github.comments[7], other)
-		result, err := UpsertComment(github, 7, Marker+"\nnew")
+		fake := newFakeAPI()
+		theirs := comment(fake, Marker+"\nquoted by a person", "contributor", 7)
+		other := map[string]any{"id": fake.nextID(), "body": "a remark by the bot", "user": map[string]any{"login": Bot}}
+		fake.comments[7] = append(fake.comments[7], other)
+		result, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nnew")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if result != "created" {
 			t.Fatalf("result = %q", result)
 		}
-		if len(github.writes) != 1 || github.writes[0] != [2]string{"POST", "issues/7/comments"} {
-			t.Fatalf("writes = %v", github.writes)
+		if len(fake.writes) != 1 || fake.writes[0] != [2]string{"POST", "issues/7/comments"} {
+			t.Fatalf("writes = %v", fake.writes)
 		}
 		found := 0
-		for _, c := range github.comments[7] {
+		for _, c := range fake.comments[7] {
 			if asInt(c["id"]) == asInt(theirs["id"]) || asInt(c["id"]) == asInt(other["id"]) {
 				found++
 			}
@@ -1056,10 +1200,36 @@ func TestUpsertComment(t *testing.T) {
 			t.Fatal("want both comments kept")
 		}
 	})
+	t.Run("finds its comment on a later page", func(t *testing.T) {
+		fake := newFakeAPI()
+		for range 120 {
+			comment(fake, "a remark", "contributor", 7)
+		}
+		mine := comment(fake, Marker+"\nold", Bot, 7)
+		for range 20 {
+			comment(fake, "another remark", "contributor", 7)
+		}
+		result, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nnew")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result != "updated" || len(fake.writes) != 1 || fake.writes[0] != [2]string{"PATCH", fmt.Sprintf("issues/comments/%d", asInt(mine["id"]))} {
+			t.Fatalf("result = %q, writes = %v", result, fake.writes)
+		}
+		pages := 0
+		for _, request := range fake.requests {
+			if request == "GET /repos/"+testRepository+"/issues/7/comments" {
+				pages++
+			}
+		}
+		if pages != 2 {
+			t.Fatalf("requests = %v", fake.requests)
+		}
+	})
 	t.Run("tolerates a comment of a deleted user", func(t *testing.T) {
-		github := newFakeAPI()
-		github.comments[7] = []map[string]any{{"id": 1, "body": "text", "user": nil}}
-		result, err := UpsertComment(github, 7, Marker+"\nnew")
+		fake := newFakeAPI()
+		fake.comments[7] = []map[string]any{{"id": 1, "body": "text", "user": nil}}
+		result, err := UpsertComment(context.Background(), fake.repository(t), 7, Marker+"\nnew")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1071,11 +1241,11 @@ func TestUpsertComment(t *testing.T) {
 
 // reportFixture is the whole report against a fake GitHub.
 type reportFixture struct {
-	github *FakeAPI
+	fake *FakeAPI
 }
 
 func newReportFixture() *reportFixture {
-	github := newFakeAPI()
+	fake := newFakeAPI()
 	mainNumbers := map[string]struct {
 		name     string
 		home     [3]int
@@ -1087,11 +1257,11 @@ func newReportFixture() *reportFixture {
 	}
 	for _, implementation := range []string{"mygo", "tauri", "uno"} {
 		numbers := mainNumbers[implementation]
-		github.addWorkflow(implementation, numbers.name, "")
-		github.addArtifact(implementation, map[string]string{"memory.txt": memoryText(numbers.home, numbers.versions)}, artifactOptions{})
+		fake.addWorkflow(implementation, numbers.name, "")
+		fake.addArtifact(implementation, map[string]string{"memory.txt": memoryText(numbers.home, numbers.versions)}, artifactOptions{})
 	}
-	github.addPullRequest(7, "", "")
-	return &reportFixture{github: github}
+	fake.addPullRequest(7, "", "")
+	return &reportFixture{fake: fake}
 }
 
 func (f *reportFixture) run(t *testing.T, implementations []string, technologies map[string]string, runID *int, pullRequest int, dryRun bool) (int, string, string) {
@@ -1113,7 +1283,7 @@ func (f *reportFixture) run(t *testing.T, implementations []string, technologies
 	oldOut, oldErr := stdout, stderr
 	stdout, stderr = &outBuffer, &errBuffer
 	defer func() { stdout, stderr = oldOut, oldErr }()
-	status, err := Report(f.github, arguments.implementations, arguments.technologies, arguments.runID, arguments.pullRequest, arguments.dryRun)
+	status, err := Report(context.Background(), f.fake.repository(t), arguments.implementations, arguments.technologies, arguments.runID, arguments.pullRequest, arguments.dryRun)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1122,7 +1292,7 @@ func (f *reportFixture) run(t *testing.T, implementations []string, technologies
 
 func (f *reportFixture) body(t *testing.T) string {
 	t.Helper()
-	comments := f.github.comments[7]
+	comments := f.fake.comments[7]
 	if len(comments) != 1 {
 		t.Fatalf("comments = %v", comments)
 	}
@@ -1132,10 +1302,62 @@ func (f *reportFixture) body(t *testing.T) string {
 
 func intPtr(value int) *int { return &value }
 
+// An error of the API ends the report, whatever it was reading or writing, and
+// nothing is written before the numbers are all there.
+func TestReportStopsAtAnErrorOfTheAPI(t *testing.T) {
+	stages := []struct {
+		name   string
+		manual bool
+		fails  string
+	}{
+		{"reading the run", false, `^GET /actions/runs/\d+$`},
+		{"listing the pull requests of the branch", false, `^GET /pulls$`},
+		{"listing the workflows", false, `^GET /actions/workflows$`},
+		{"listing the runs of the commit", false, `^GET /actions/runs$`},
+		{"reading the repository", false, `^GET $`},
+		{"listing the artifacts of a run", false, `^GET /actions/runs/\d+/artifacts$`},
+		{"listing the artifacts of the default branch", false, `^GET /actions/artifacts$`},
+		{"reading the pull request again", false, `^GET /pulls/7$`},
+		{"listing the comments", false, `^GET /issues/7/comments$`},
+		{"writing the comment", false, `^POST /issues/7/comments$`},
+		{"reading the pull request", true, `^GET /pulls/7$`},
+	}
+	for _, stage := range stages {
+		t.Run(stage.name, func(t *testing.T) {
+			f := newReportFixture()
+			run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+			fails := regexp.MustCompile(stage.fails)
+			f.fake.failing = func(request string) bool { return fails.MatchString(request) }
+			var runID *int
+			pullRequest := 7
+			if !stage.manual {
+				runID, pullRequest = intPtr(run), 0
+			}
+			var outBuffer, errBuffer bytes.Buffer
+			oldOut, oldErr := stdout, stderr
+			stdout, stderr = &outBuffer, &errBuffer
+			defer func() { stdout, stderr = oldOut, oldErr }()
+			_, err := Report(context.Background(), f.fake.repository(t), []string{"mygo", "tauri", "uno"}, map[string]string{}, runID, pullRequest, false)
+			if err == nil || !strings.Contains(err.Error(), "refused by the test") {
+				t.Fatalf("err = %v", err)
+			}
+			if stage.name != "writing the comment" && len(f.fake.writes) != 0 {
+				t.Fatalf("writes = %v", f.fake.writes)
+			}
+		})
+	}
+}
+
+func TestShortSHA(t *testing.T) {
+	if shortSHA(testHead) != "aaaaaaa" || shortSHA("abc") != "abc" {
+		t.Fatalf("shortSHA = %q, %q", shortSHA(testHead), shortSHA("abc"))
+	}
+}
+
 func TestReport(t *testing.T) {
 	t.Run("measured and main for the rest", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: memoryText([3]int{56, 43, 1}, [3]int{65, 50, 1})})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: memoryText([3]int{56, 43, 1}, [3]int{65, 50, 1})})
 		status, _, _ := f.run(t, nil, nil, intPtr(run), 0, false)
 		if status != 0 {
 			t.Fatalf("status = %d", status)
@@ -1156,8 +1378,8 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("waits for the others still running", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
-		f.github.addRun("tauri", runOptions{status: "in_progress", conclusion: ""})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("tauri", runOptions{status: "in_progress", conclusion: ""})
 		status, _, errors := f.run(t, nil, nil, intPtr(run), 0, false)
 		if status != 0 {
 			t.Fatalf("status = %d", status)
@@ -1165,37 +1387,36 @@ func TestReport(t *testing.T) {
 		if !strings.Contains(errors, "Waiting for Tauri") {
 			t.Fatalf("errors = %q", errors)
 		}
-		if len(f.github.comments) != 0 {
+		if len(f.fake.comments) != 0 {
 			t.Fatal("want no comment")
 		}
 	})
 	t.Run("waiting takes few requests", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
-		f.github.addRun("tauri", runOptions{status: "in_progress", conclusion: ""})
-		var paths []string
-		inner := f.github
-		counting := &countingAPI{API: inner, paths: &paths}
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("tauri", runOptions{status: "in_progress", conclusion: ""})
 		var outBuffer, errBuffer bytes.Buffer
 		oldOut, oldErr := stdout, stderr
 		stdout, stderr = &outBuffer, &errBuffer
 		defer func() { stdout, stderr = oldOut, oldErr }()
-		if _, err := Report(counting, []string{"mygo", "tauri", "uno"}, map[string]string{}, intPtr(run), 0, false); err != nil {
+		repo := f.fake.repository(t)
+		if _, err := Report(context.Background(), repo, []string{"mygo", "tauri", "uno"}, map[string]string{}, intPtr(run), 0, false); err != nil {
 			t.Fatal(err)
 		}
-		if len(paths) > 6 {
-			t.Fatalf("paths = %v", paths)
+		requests := f.fake.requests
+		if len(requests) > 6 {
+			t.Fatalf("requests = %v", requests)
 		}
-		for _, path := range paths {
-			if strings.Contains(path, "artifacts") {
-				t.Fatalf("paths = %v", paths)
+		for _, request := range requests {
+			if strings.Contains(request, "artifacts") {
+				t.Fatalf("requests = %v", requests)
 			}
 		}
 	})
 	t.Run("last run to end writes all of them", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.addRun("tauri", runOptions{hasText: true, text: memoryText([3]int{470, 283, 3}, [3]int{492, 305, 3})})
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("tauri", runOptions{hasText: true, text: memoryText([3]int{470, 283, 3}, [3]int{492, 305, 3})})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
 		f.run(t, nil, nil, intPtr(run), 0, false)
 		var names []string
 		for _, row := range renderTable(f.body(t))[2:] {
@@ -1207,7 +1428,7 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("ended run counts as ended when the list is late", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText(), status: "in_progress", conclusion: ""})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText(), status: "in_progress", conclusion: ""})
 		status, _, errors := f.run(t, nil, nil, intPtr(run), 0, false)
 		if strings.Contains(errors, "Waiting") {
 			t.Fatalf("errors = %q", errors)
@@ -1221,8 +1442,8 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("failed run reported as such", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.addRun("tauri", runOptions{conclusion: "failure"})
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("tauri", runOptions{conclusion: "failure"})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
 		f.run(t, nil, nil, intPtr(run), 0, false)
 		if !strings.Contains(f.body(t), "No result, the run failed or was cancelled: Tauri.") {
 			t.Fatalf("body =\n%s", f.body(t))
@@ -1230,7 +1451,7 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("invalid artifact is no result", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: "not the numbers"})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: "not the numbers"})
 		f.run(t, nil, nil, intPtr(run), 0, false)
 		if !strings.Contains(f.body(t), "No result, the run failed or was cancelled: mygo.") {
 			t.Fatalf("body =\n%s", f.body(t))
@@ -1238,13 +1459,13 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("second report replaces the first", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: memoryText([3]int{56, 43, 1}, [3]int{65, 50, 1})})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: memoryText([3]int{56, 43, 1}, [3]int{65, 50, 1})})
 		f.run(t, nil, nil, intPtr(run), 0, false)
-		f.github.pulls[7]["head"].(map[string]any)["sha"] = strings.Repeat("c", 40)
-		later := f.github.addRun("mygo", runOptions{hasText: true, text: memoryText([3]int{60, 47, 1}, [3]int{70, 54, 1}), sha: strings.Repeat("c", 40)})
+		f.fake.pulls[7]["head"].(map[string]any)["sha"] = strings.Repeat("c", 40)
+		later := f.fake.addRun("mygo", runOptions{hasText: true, text: memoryText([3]int{60, 47, 1}, [3]int{70, 54, 1}), sha: strings.Repeat("c", 40)})
 		f.run(t, nil, nil, intPtr(later), 0, false)
-		if len(f.github.comments[7]) != 1 {
-			t.Fatalf("comments = %v", f.github.comments[7])
+		if len(f.fake.comments[7]) != 1 {
+			t.Fatalf("comments = %v", f.fake.comments[7])
 		}
 		if !strings.Contains(f.body(t), "47 (+5)") {
 			t.Fatalf("body =\n%s", f.body(t))
@@ -1253,7 +1474,7 @@ func TestReport(t *testing.T) {
 			t.Fatalf("body =\n%s", f.body(t))
 		}
 		var methods []string
-		for _, write := range f.github.writes {
+		for _, write := range f.fake.writes {
 			methods = append(methods, write[0])
 		}
 		if strings.Join(methods, ",") != "POST,PATCH" {
@@ -1262,8 +1483,8 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("ignores the run of an older commit", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
-		f.github.pulls[7]["head"].(map[string]any)["sha"] = strings.Repeat("c", 40)
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.pulls[7]["head"].(map[string]any)["sha"] = strings.Repeat("c", 40)
 		status, _, errors := f.run(t, nil, nil, intPtr(run), 0, false)
 		if status != 0 {
 			t.Fatalf("status = %d", status)
@@ -1271,16 +1492,16 @@ func TestReport(t *testing.T) {
 		if !strings.Contains(errors, "No open pull request has aaaaaaa") {
 			t.Fatalf("errors = %q", errors)
 		}
-		if len(f.github.writes) != 0 {
+		if len(f.fake.writes) != 0 {
 			t.Fatal("want no writes")
 		}
 	})
 	t.Run("no comment when the commit changes during the report", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
-		f.github.onGet = func(path string, params map[string]any) {
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.onGet = func(path string, params map[string]any) {
 			if path == "pulls/7" {
-				f.github.pulls[7]["head"].(map[string]any)["sha"] = strings.Repeat("c", 40)
+				f.fake.pulls[7]["head"].(map[string]any)["sha"] = strings.Repeat("c", 40)
 			}
 		}
 		status, _, errors := f.run(t, nil, nil, intPtr(run), 0, false)
@@ -1290,13 +1511,13 @@ func TestReport(t *testing.T) {
 		if !strings.Contains(errors, "has moved on") {
 			t.Fatalf("errors = %q", errors)
 		}
-		if len(f.github.writes) != 0 {
+		if len(f.fake.writes) != 0 {
 			t.Fatal("want no writes")
 		}
 	})
 	t.Run("ignores runs that are not of a pull request", func(t *testing.T) {
 		f := newReportFixture()
-		run := f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText(), event: "push", sha: testMain})
+		run := f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText(), event: "push", sha: testMain})
 		status, _, errors := f.run(t, nil, nil, intPtr(run), 0, false)
 		if status != 0 {
 			t.Fatalf("status = %d", status)
@@ -1304,13 +1525,13 @@ func TestReport(t *testing.T) {
 		if !strings.Contains(errors, "not one of a pull request") {
 			t.Fatalf("errors = %q", errors)
 		}
-		if len(f.github.writes) != 0 {
+		if len(f.fake.writes) != 0 {
 			t.Fatal("want no writes")
 		}
 	})
 	t.Run("skips a deleted workflow", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.workflows[1]["state"] = "deleted"
+		f.fake.workflows[1]["state"] = "deleted"
 		f.run(t, nil, nil, nil, 7, false)
 		if strings.Contains(f.body(t), "Tauri") {
 			t.Fatalf("body =\n%s", f.body(t))
@@ -1328,8 +1549,8 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("manual mode does not wait", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
-		f.github.addRun("tauri", runOptions{status: "in_progress", conclusion: ""})
+		f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("tauri", runOptions{status: "in_progress", conclusion: ""})
 		f.run(t, nil, nil, nil, 7, false)
 		if !strings.Contains(f.body(t), "Still running: Tauri.") {
 			t.Fatalf("body =\n%s", f.body(t))
@@ -1337,7 +1558,7 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("closed pull request does nothing", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.pulls[7]["state"] = "closed"
+		f.fake.pulls[7]["state"] = "closed"
 		status, _, errors := f.run(t, nil, nil, nil, 7, false)
 		if status != 0 {
 			t.Fatalf("status = %d", status)
@@ -1348,25 +1569,25 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("dry run prints and writes nothing", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
 		_, output, _ := f.run(t, nil, nil, nil, 7, true)
 		if !strings.HasPrefix(output, Marker) {
 			t.Fatalf("output = %q", output)
 		}
-		if len(f.github.writes) != 0 {
+		if len(f.fake.writes) != 0 {
 			t.Fatal("want no writes")
 		}
 	})
 	t.Run("new implementation has no baseline", func(t *testing.T) {
 		f := newReportFixture()
 		var kept []map[string]any
-		for _, artifact := range f.github.artifacts {
+		for _, artifact := range f.fake.artifacts {
 			if asString(artifact["name"]) != "memory-uno" {
 				kept = append(kept, artifact)
 			}
 		}
-		f.github.artifacts = kept
-		run := f.github.addRun("uno", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.artifacts = kept
+		run := f.fake.addRun("uno", runOptions{hasText: true, text: defaultMemoryText()})
 		f.run(t, nil, nil, intPtr(run), 0, false)
 		if !strings.Contains(f.body(t), "Uno (no baseline)") {
 			t.Fatalf("body =\n%s", f.body(t))
@@ -1374,7 +1595,7 @@ func TestReport(t *testing.T) {
 	})
 	t.Run("writes the step summary", func(t *testing.T) {
 		f := newReportFixture()
-		f.github.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
+		f.fake.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
 		directory := t.TempDir()
 		summary := filepath.Join(directory, "summary.md")
 		t.Setenv("GITHUB_STEP_SUMMARY", summary)
@@ -1388,489 +1609,6 @@ func TestReport(t *testing.T) {
 		}
 		if strings.Contains(string(content), Marker) {
 			t.Fatal("want no marker in the summary")
-		}
-	})
-}
-
-// countingAPI counts the reads of the fast path.
-type countingAPI struct {
-	API
-	paths *[]string
-}
-
-func (c *countingAPI) Get(path string, params map[string]any) (any, error) {
-	*c.paths = append(*c.paths, path)
-	return c.API.Get(path, params)
-}
-
-func (c *countingAPI) Raw(path string) ([]byte, error) {
-	return nil, errors.New("downloaded an artifact")
-}
-
-// roundTripFunc stubs the network of the go-github client.
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
-	return f(request)
-}
-
-// testResponse is a JSON response of the fake API of GitHub.
-func testResponse(t *testing.T, status int, value any, header http.Header) *http.Response {
-	t.Helper()
-	body, err := json.Marshal(value)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if header == nil {
-		header = make(http.Header)
-	}
-	return &http.Response{
-		StatusCode: status,
-		Header:     header,
-		Body:       io.NopCloser(bytes.NewReader(body)),
-	}
-}
-
-// newTestGitHubAPI is a GitHubAPI whose network is the fake handler. Every
-// request is counted and recorded.
-func newTestGitHubAPI(t *testing.T, handler func(*http.Request) (*http.Response, error), calls *int, requests *[]*http.Request) *GitHubAPI {
-	t.Helper()
-	transport := roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		*calls++
-		*requests = append(*requests, request)
-		return handler(request)
-	})
-	client, err := github.NewClient(github.WithHTTPClient(&http.Client{Transport: transport}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	owner, name, _ := strings.Cut(testRepository, "/")
-	return &GitHubAPI{owner: owner, name: name, client: client, httpClient: &http.Client{Transport: transport}}
-}
-
-// stubSleep records the backoff instead of waiting.
-func stubSleep(t *testing.T) *[]int {
-	t.Helper()
-	var sleeps []int
-	old := sleepSecs
-	sleepSecs = func(seconds int) { sleeps = append(sleeps, seconds) }
-	t.Cleanup(func() { sleepSecs = old })
-	return &sleeps
-}
-
-func testRunJSON() map[string]any {
-	return map[string]any{
-		"id":              11,
-		"head_sha":        "abc",
-		"head_branch":     "feature",
-		"event":           "pull_request",
-		"status":          "completed",
-		"conclusion":      "success",
-		"path":            ".github/workflows/mygo.yml",
-		"html_url":        "https://github.com/" + testRepository + "/actions/runs/11",
-		"head_repository": map[string]any{"owner": map[string]any{"login": "contributor"}},
-	}
-}
-
-func testArtifactJSON(id int, name string) map[string]any {
-	return map[string]any{
-		"id":            id,
-		"name":          name,
-		"size_in_bytes": 100,
-		"expired":       false,
-		"created_at":    "2026-10-20T10:00:00Z",
-		"workflow_run": map[string]any{
-			"id": 11, "head_branch": "main", "head_sha": testMain,
-			"head_repository_id": 1, "repository_id": 1,
-		},
-	}
-}
-
-func TestGitHubAPI(t *testing.T) {
-	t.Run("needs GH_TOKEN", func(t *testing.T) {
-		t.Setenv("GH_TOKEN", "")
-		if _, err := NewGitHubAPI(testRepository); err == nil || !strings.Contains(err.Error(), "GH_TOKEN") {
-			t.Fatalf("err = %v", err)
-		}
-		t.Setenv("GH_TOKEN", "test-token")
-		api, err := NewGitHubAPI(testRepository)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if api.RepoName() != testRepository {
-			t.Fatalf("repo = %q", api.RepoName())
-		}
-	})
-	t.Run("rejects a bad repository", func(t *testing.T) {
-		t.Setenv("GH_TOKEN", "test-token")
-		if _, err := NewGitHubAPI("not a repository"); err == nil {
-			t.Fatal("want an error")
-		}
-		if _, err := NewGitHubAPI("owner/"); err == nil {
-			t.Fatal("want an error")
-		}
-	})
-	t.Run("reads the repository and the workflows", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			switch request.URL.Path {
-			case "/repos/" + testRepository:
-				return testResponse(t, 200, map[string]any{"default_branch": "main"}, nil), nil
-			case "/repos/" + testRepository + "/actions/workflows":
-				return testResponse(t, 200, map[string]any{
-					"total_count": 1,
-					"workflows": []any{map[string]any{
-						"path": ".github/workflows/mygo.yml", "name": "mygo", "state": "active",
-					}},
-				}, nil), nil
-			}
-			return testResponse(t, 404, map[string]any{"message": "not found"}, nil), nil
-		}, &calls, &requests)
-		value, err := api.Get("", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if asString(value.(map[string]any)["default_branch"]) != "main" {
-			t.Fatalf("value = %v", value)
-		}
-		value, err = api.Get("actions/workflows", map[string]any{"per_page": 100})
-		if err != nil {
-			t.Fatal(err)
-		}
-		workflows := asList(value.(map[string]any)["workflows"])
-		if len(workflows) != 1 || asString(workflows[0].(map[string]any)["path"]) != ".github/workflows/mygo.yml" {
-			t.Fatalf("workflows = %v", workflows)
-		}
-		if calls != 2 {
-			t.Fatalf("calls = %d", calls)
-		}
-	})
-	t.Run("lists runs of the commit", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			return testResponse(t, 200, map[string]any{"total_count": 1, "workflow_runs": []any{testRunJSON()}}, nil), nil
-		}, &calls, &requests)
-		value, err := api.Get("actions/runs", map[string]any{"head_sha": "abc", "event": "pull_request", "per_page": 100})
-		if err != nil {
-			t.Fatal(err)
-		}
-		query := requests[0].URL.Query()
-		if query.Get("head_sha") != "abc" || query.Get("event") != "pull_request" || query.Get("per_page") != "100" {
-			t.Fatalf("query = %q", requests[0].URL.RawQuery)
-		}
-		runs := asList(value.(map[string]any)["workflow_runs"])
-		if len(runs) != 1 || asString(runs[0].(map[string]any)["head_sha"]) != "abc" {
-			t.Fatalf("runs = %v", runs)
-		}
-	})
-	t.Run("reads one run and filters its artifacts by name", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			switch {
-			case request.URL.Path == "/repos/"+testRepository+"/actions/runs/11":
-				return testResponse(t, 200, testRunJSON(), nil), nil
-			case request.URL.Path == "/repos/"+testRepository+"/actions/runs/11/artifacts":
-				return testResponse(t, 200, map[string]any{
-					"total_count": 2,
-					"artifacts":   []any{testArtifactJSON(21, "memory-mygo"), testArtifactJSON(22, "memory-other")},
-				}, nil), nil
-			}
-			return testResponse(t, 404, map[string]any{"message": "not found"}, nil), nil
-		}, &calls, &requests)
-		value, err := api.Get("actions/runs/11", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if asInt(value.(map[string]any)["id"]) != 11 {
-			t.Fatalf("value = %v", value)
-		}
-		value, err = api.Get("actions/runs/11/artifacts", map[string]any{"name": "memory-mygo", "per_page": 100})
-		if err != nil {
-			t.Fatal(err)
-		}
-		artifacts := asList(value.(map[string]any)["artifacts"])
-		if len(artifacts) != 1 || asString(artifacts[0].(map[string]any)["name"]) != "memory-mygo" {
-			t.Fatalf("artifacts = %v", artifacts)
-		}
-	})
-	t.Run("lists artifacts by name", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			return testResponse(t, 200, map[string]any{
-				"total_count": 1, "artifacts": []any{testArtifactJSON(21, "memory-mygo")},
-			}, nil), nil
-		}, &calls, &requests)
-		value, err := api.Get("actions/artifacts", map[string]any{"name": "memory-mygo", "per_page": 100})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if query := requests[0].URL.Query(); query.Get("name") != "memory-mygo" {
-			t.Fatalf("query = %q", requests[0].URL.RawQuery)
-		}
-		if artifacts := asList(value.(map[string]any)["artifacts"]); len(artifacts) != 1 {
-			t.Fatalf("artifacts = %v", artifacts)
-		}
-	})
-	t.Run("lists and reads pull requests", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		pull := map[string]any{
-			"number": 7, "state": "open",
-			"head": map[string]any{"sha": testHead, "ref": "feature", "label": "contributor:feature"},
-		}
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			switch request.URL.Path {
-			case "/repos/" + testRepository + "/pulls":
-				return testResponse(t, 200, []any{pull}, nil), nil
-			case "/repos/" + testRepository + "/pulls/7":
-				return testResponse(t, 200, pull, nil), nil
-			case "/repos/" + testRepository + "/commits/" + testHead + "/pulls":
-				return testResponse(t, 200, []any{pull}, nil), nil
-			}
-			return testResponse(t, 404, map[string]any{"message": "not found"}, nil), nil
-		}, &calls, &requests)
-		value, err := api.Get("pulls", map[string]any{"state": "open", "head": "contributor:feature", "per_page": 100})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if query := requests[0].URL.Query(); query.Get("state") != "open" || query.Get("head") != "contributor:feature" {
-			t.Fatalf("query = %q", requests[0].URL.RawQuery)
-		}
-		if pulls := asList(value); len(pulls) != 1 {
-			t.Fatalf("pulls = %v", pulls)
-		}
-		value, err = api.Get("pulls/7", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if asInt(value.(map[string]any)["number"]) != 7 {
-			t.Fatalf("value = %v", value)
-		}
-		value, err = api.Get("commits/"+testHead+"/pulls", map[string]any{"per_page": 100})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if pulls := asList(value); len(pulls) != 1 || asString(pulls[0].(map[string]any)["state"]) != "open" {
-			t.Fatalf("pulls = %v", pulls)
-		}
-	})
-	t.Run("retries a failure of the server", func(t *testing.T) {
-		sleeps := stubSleep(t)
-		var calls int
-		var requests []*http.Request
-		queue := []*http.Response{
-			testResponse(t, 502, map[string]any{"message": "bad gateway"}, nil),
-			testResponse(t, 200, map[string]any{"default_branch": "main"}, nil),
-		}
-		api := newTestGitHubAPI(t, func(*http.Request) (*http.Response, error) {
-			response := queue[0]
-			queue = queue[1:]
-			return response, nil
-		}, &calls, &requests)
-		value, err := api.Get("", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if asString(value.(map[string]any)["default_branch"]) != "main" {
-			t.Fatalf("value = %v", value)
-		}
-		if calls != 2 {
-			t.Fatalf("calls = %d", calls)
-		}
-		if len(*sleeps) != 1 || (*sleeps)[0] != 2 {
-			t.Fatalf("sleeps = %v", *sleeps)
-		}
-	})
-	t.Run("retries a broken connection", func(t *testing.T) {
-		sleeps := stubSleep(t)
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			if calls == 1 {
-				return nil, &url.Error{Op: "Get", URL: request.URL.String(), Err: errors.New("connection reset by peer")}
-			}
-			return testResponse(t, 200, map[string]any{"default_branch": "main"}, nil), nil
-		}, &calls, &requests)
-		if _, err := api.Get("", nil); err != nil {
-			t.Fatal(err)
-		}
-		if calls != 2 || len(*sleeps) != 1 {
-			t.Fatalf("calls = %d, sleeps = %v", calls, *sleeps)
-		}
-	})
-	t.Run("does not retry a refusal", func(t *testing.T) {
-		sleeps := stubSleep(t)
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(*http.Request) (*http.Response, error) {
-			return testResponse(t, 404, map[string]any{"message": "not found"}, nil), nil
-		}, &calls, &requests)
-		_, err := api.Get("actions/runs/11", nil)
-		var apiError *ApiError
-		if !errors.As(err, &apiError) {
-			t.Fatalf("err = %v", err)
-		}
-		if !strings.Contains(apiError.Msg, "actions/runs/11") {
-			t.Fatalf("err = %q", apiError.Msg)
-		}
-		if calls != 1 || len(*sleeps) != 0 {
-			t.Fatalf("calls = %d, sleeps = %v", calls, *sleeps)
-		}
-	})
-	t.Run("gives up after three attempts", func(t *testing.T) {
-		sleeps := stubSleep(t)
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(*http.Request) (*http.Response, error) {
-			return testResponse(t, 503, map[string]any{"message": "unavailable"}, nil), nil
-		}, &calls, &requests)
-		if _, err := api.Get("", nil); err == nil {
-			t.Fatal("want an error")
-		}
-		if calls != 3 {
-			t.Fatalf("calls = %d", calls)
-		}
-		if len(*sleeps) != 2 || (*sleeps)[0] != 2 || (*sleeps)[1] != 4 {
-			t.Fatalf("sleeps = %v", *sleeps)
-		}
-	})
-	t.Run("creating a comment is tried once", func(t *testing.T) {
-		sleeps := stubSleep(t)
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(*http.Request) (*http.Response, error) {
-			return testResponse(t, 502, map[string]any{"message": "bad gateway"}, nil), nil
-		}, &calls, &requests)
-		if _, err := api.Send("POST", "issues/7/comments", map[string]any{"body": "x"}); err == nil {
-			t.Fatal("want an error")
-		}
-		if calls != 1 || len(*sleeps) != 0 {
-			t.Fatalf("calls = %d, sleeps = %v", calls, *sleeps)
-		}
-	})
-	t.Run("does not retry rate limits", func(t *testing.T) {
-		sleeps := stubSleep(t)
-		var calls int
-		var requests []*http.Request
-		header := make(http.Header)
-		header.Set("X-RateLimit-Remaining", "0")
-		api := newTestGitHubAPI(t, func(*http.Request) (*http.Response, error) {
-			return testResponse(t, 403, map[string]any{"message": "API rate limit exceeded"}, header), nil
-		}, &calls, &requests)
-		if _, err := api.Get("", nil); err == nil {
-			t.Fatal("want an error")
-		}
-		if calls != 1 || len(*sleeps) != 0 {
-			t.Fatalf("calls = %d, sleeps = %v", calls, *sleeps)
-		}
-	})
-	t.Run("creates, updates and deletes comments", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		var bodies []string
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			if request.Body != nil {
-				content, err := io.ReadAll(request.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-				bodies = append(bodies, string(content))
-			}
-			switch {
-			case request.Method == "POST" && request.URL.Path == "/repos/"+testRepository+"/issues/7/comments":
-				return testResponse(t, 201, map[string]any{"id": 31, "body": "hi"}, nil), nil
-			case request.Method == "PATCH" && request.URL.Path == "/repos/"+testRepository+"/issues/comments/31":
-				return testResponse(t, 200, map[string]any{"id": 31, "body": "updated"}, nil), nil
-			case request.Method == "DELETE" && request.URL.Path == "/repos/"+testRepository+"/issues/comments/31":
-				return &http.Response{StatusCode: 204, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(""))}, nil
-			}
-			return testResponse(t, 404, map[string]any{"message": "not found"}, nil), nil
-		}, &calls, &requests)
-		value, err := api.Send("POST", "issues/7/comments", map[string]any{"body": "hi"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if asInt(value.(map[string]any)["id"]) != 31 {
-			t.Fatalf("value = %v", value)
-		}
-		if !strings.Contains(bodies[0], `"body":"hi"`) {
-			t.Fatalf("body = %q", bodies[0])
-		}
-		value, err = api.Send("PATCH", "issues/comments/31", map[string]any{"body": "updated"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if asString(value.(map[string]any)["body"]) != "updated" {
-			t.Fatalf("value = %v", value)
-		}
-		value, err = api.Send("DELETE", "issues/comments/31", nil)
-		if err != nil || value != nil {
-			t.Fatalf("value = %v, err = %v", value, err)
-		}
-		if calls != 3 {
-			t.Fatalf("calls = %d", calls)
-		}
-	})
-	t.Run("downloads the artifact through the redirect", func(t *testing.T) {
-		zip := makeZip(map[string]string{"memory.txt": defaultMemoryText()})
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			if request.URL.Host == "uploads.example" {
-				return &http.Response{
-					StatusCode: 200,
-					Header:     make(http.Header),
-					Body:       io.NopCloser(bytes.NewReader(zip)),
-				}, nil
-			}
-			if request.URL.Path == "/repos/"+testRepository+"/actions/artifacts/42/zip" {
-				header := make(http.Header)
-				header.Set("Location", "https://uploads.example/42.zip")
-				return &http.Response{StatusCode: 302, Header: header, Body: io.NopCloser(strings.NewReader(""))}, nil
-			}
-			return testResponse(t, 404, map[string]any{"message": "not found"}, nil), nil
-		}, &calls, &requests)
-		data, err := api.Raw("actions/artifacts/42/zip")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(data, zip) {
-			t.Fatal("want the zip")
-		}
-		if calls != 2 {
-			t.Fatalf("calls = %d", calls)
-		}
-	})
-	t.Run("reads every page", func(t *testing.T) {
-		var calls int
-		var requests []*http.Request
-		api := newTestGitHubAPI(t, func(request *http.Request) (*http.Response, error) {
-			count := 100
-			if request.URL.Query().Get("page") != "1" {
-				count = 5
-			}
-			items := make([]any, count)
-			for i := range items {
-				items[i] = map[string]any{"id": i, "body": "text", "user": map[string]any{"login": Bot}}
-			}
-			return testResponse(t, 200, items, nil), nil
-		}, &calls, &requests)
-		items, err := api.Pages("issues/7/comments")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(items) != 105 {
-			t.Fatalf("items = %d", len(items))
-		}
-		if calls != 2 {
-			t.Fatalf("calls = %d", calls)
-		}
-		if query := requests[0].URL.Query(); query.Get("per_page") != "100" {
-			t.Fatalf("query = %q", requests[0].URL.RawQuery)
 		}
 	})
 }
@@ -1907,8 +1645,8 @@ func TestRunValidation(t *testing.T) {
 	t.Run("reports a failure of the api as an error", func(t *testing.T) {
 		t.Setenv("GH_TOKEN", "test-token")
 		old := reportFunc
-		reportFunc = func(API, []string, map[string]string, *int, int, bool) (int, error) {
-			return 0, &ApiError{Msg: "boom"}
+		reportFunc = func(context.Context, *Repository, []string, map[string]string, *int, int, bool) (int, error) {
+			return 0, errors.New("boom")
 		}
 		defer func() { reportFunc = old }()
 		var errBuffer bytes.Buffer
@@ -1922,8 +1660,8 @@ func TestRunValidation(t *testing.T) {
 	t.Run("token that cannot write warns on one line", func(t *testing.T) {
 		t.Setenv("GH_TOKEN", "test-token")
 		old := reportFunc
-		reportFunc = func(API, []string, map[string]string, *int, int, bool) (int, error) {
-			return 0, &ApiError{Msg: "POST x: gh: Resource not accessible by integration (HTTP 403)\nsecond line 100%"}
+		reportFunc = func(context.Context, *Repository, []string, map[string]string, *int, int, bool) (int, error) {
+			return 0, errors.New("POST https://api.github.com/repos/o/r/issues/7/comments: 403 Resource not accessible by integration []\nsecond line 100%")
 		}
 		defer func() { reportFunc = old }()
 		var buffer bytes.Buffer
@@ -1944,8 +1682,8 @@ func TestRunValidation(t *testing.T) {
 	t.Run("token that cannot write is a warning not a failure", func(t *testing.T) {
 		t.Setenv("GH_TOKEN", "test-token")
 		old := reportFunc
-		reportFunc = func(API, []string, map[string]string, *int, int, bool) (int, error) {
-			return 0, &ApiError{Msg: "POST issues/7/comments: gh: Resource not accessible by integration (HTTP 403)"}
+		reportFunc = func(context.Context, *Repository, []string, map[string]string, *int, int, bool) (int, error) {
+			return 0, errors.New("POST https://api.github.com/repos/o/r/issues/7/comments: 403 Resource not accessible by integration []")
 		}
 		defer func() { reportFunc = old }()
 		var buffer bytes.Buffer

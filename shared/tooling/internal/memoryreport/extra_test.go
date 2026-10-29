@@ -16,9 +16,12 @@ package memoryreport
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/google/go-github/v93/github"
 )
 
 func serveText(idle, loaded [3]int) string {
@@ -95,9 +98,9 @@ func extrasFixture() *FakeAPI {
 	return f
 }
 
-func extrasRuns(t *testing.T, f *FakeAPI) map[string]map[string]any {
+func extrasRuns(t *testing.T, repo *Repository) map[string]*github.WorkflowRun {
 	t.Helper()
-	runs, err := LatestRuns(f, testHead)
+	runs, err := LatestRuns(context.Background(), repo, testHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +127,8 @@ func TestCollectExtras(t *testing.T) {
 		android := f.addRun("android", runOptions{})
 		f.addArtifact("android", map[string]string{"memory.txt": androidText([3]int{205, 182, 1})},
 			artifactOptions{runID: android, name: AndroidArtifact, branch: "feature", sha: testHead})
-		extras, err := CollectExtras(f, extrasRuns(t, f), "main")
+		repo := f.repository(t)
+		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -175,7 +179,8 @@ func TestCollectExtras(t *testing.T) {
 	t.Run("running run is pending", func(t *testing.T) {
 		f := extrasFixture()
 		f.addRun("android", runOptions{status: "in_progress", conclusion: ""})
-		extras, err := CollectExtras(f, extrasRuns(t, f), "main")
+		repo := f.repository(t)
+		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -191,7 +196,8 @@ func TestCollectExtras(t *testing.T) {
 		f.addWorkflow("android", "android", "")
 		f.addPullRequest(7, "", "")
 		f.addRun("mygo", runOptions{})
-		extras, err := CollectExtras(f, extrasRuns(t, f), "main")
+		repo := f.repository(t)
+		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,7 +217,8 @@ func TestCollectExtras(t *testing.T) {
 	t.Run("run without an artifact inherits the baseline", func(t *testing.T) {
 		f := extrasFixture()
 		f.addRun("mygo", runOptions{})
-		extras, err := CollectExtras(f, extrasRuns(t, f), "main")
+		repo := f.repository(t)
+		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -226,7 +233,8 @@ func TestCollectExtras(t *testing.T) {
 
 	t.Run("no run inherits the baseline", func(t *testing.T) {
 		f := extrasFixture()
-		extras, err := CollectExtras(f, extrasRuns(t, f), "main")
+		repo := f.repository(t)
+		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -247,7 +255,8 @@ func TestCollectExtras(t *testing.T) {
 		mygo := f.addRun("mygo", runOptions{})
 		f.addArtifact("mygo", map[string]string{"memory.txt": serveText([3]int{12, 10, 1}, [3]int{13, 12, 1})},
 			artifactOptions{runID: mygo, name: ServeArtifact, branch: "feature", sha: testHead})
-		extras, err := CollectExtras(f, extrasRuns(t, f), "main")
+		repo := f.repository(t)
+		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -299,7 +308,7 @@ func TestReportWaitsForAndroid(t *testing.T) {
 	oldOut, oldErr := stdout, stderr
 	stdout, stderr = &outBuffer, &errBuffer
 	defer func() { stdout, stderr = oldOut, oldErr }()
-	if _, err := Report(f, []string{"mygo"}, map[string]string{}, &mygo, 0, false); err != nil {
+	if _, err := Report(context.Background(), f.repository(t), []string{"mygo"}, map[string]string{}, &mygo, 0, false); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(errBuffer.String(), "Waiting for android") {

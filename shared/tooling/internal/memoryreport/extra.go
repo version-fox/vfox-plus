@@ -15,11 +15,14 @@
 package memoryreport
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/go-github/v93/github"
 )
 
 // The artifacts of the measurements beyond the desktop table, by upload name:
@@ -148,29 +151,6 @@ func ParseAndroidMemory(text string) *AndroidMemory {
 	return &AndroidMemory{Cold: *cold}
 }
 
-// runArtifactText returns the content of the newest live artifact with a name
-// of one run, or false when the run has none.
-func runArtifactText(gh API, run map[string]any, name string) (string, bool, error) {
-	value, err := gh.Get(fmt.Sprintf("actions/runs/%d/artifacts", asInt(run["id"])),
-		map[string]any{"name": name, "per_page": 100})
-	if err != nil {
-		return "", false, err
-	}
-	response, _ := value.(map[string]any)
-	var artifacts []map[string]any
-	for _, item := range asList(response["artifacts"]) {
-		if artifact, ok := item.(map[string]any); ok {
-			artifacts = append(artifacts, artifact)
-		}
-	}
-	if artifact := Newest(artifacts); artifact != nil {
-		if text, ok := readArtifactText(gh, artifact); ok {
-			return text, true, nil
-		}
-	}
-	return "", false, nil
-}
-
 // ExtraRow is one measured number of an extra section: the pull request next
 // to main.
 type ExtraRow struct {
@@ -229,17 +209,17 @@ func extraCell(pr, baseline int, unit string, noise float64, inherited bool) (st
 }
 
 // baselineLink records where the baseline numbers of an extra came from.
-func baselineLink(extra *Extra, gh API, artifact map[string]any) {
-	run, _ := artifact["workflow_run"].(map[string]any)
+func baselineLink(extra *Extra, repo *Repository, artifact *github.Artifact) {
+	run := artifact.GetWorkflowRun()
 	if run == nil {
 		return
 	}
-	extra.BaselineSHA = asString(run["head_sha"])
-	extra.BaselineURL = fmt.Sprintf("https://github.com/%s/actions/runs/%d", gh.RepoName(), asInt(run["id"]))
+	extra.BaselineSHA = run.GetHeadSHA()
+	extra.BaselineURL = runURL(repo, run.GetID())
 }
 
 // collectServe collects the headless-server section from the mygo run.
-func collectServe(gh API, run map[string]any, defaultBranch string) (Extra, error) {
+func collectServe(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
 		Title: "Headless server",
 		Intro: "What `vfox-plus-serve serve` uses on loopback with the fake vfox, in MB for the server " +
@@ -247,28 +227,28 @@ func collectServe(gh API, run map[string]any, defaultBranch string) (Extra, erro
 			"paired browser past its first inventory over server-sent events (`vfxtool measure-serve`).",
 	}
 	if run != nil {
-		extra.RunURL = asString(run["html_url"])
+		extra.RunURL = run.GetHTMLURL()
 	}
 	var memory *ServeMemory
 	inherited := run == nil
-	if run != nil && asString(run["status"]) != "completed" {
+	if run != nil && run.GetStatus() != "completed" {
 		extra.Note = "Still running; the report is written again when it ends."
 		return extra, nil
 	}
 	if run != nil {
-		if text, ok, err := runArtifactText(gh, run, ServeArtifact); err != nil {
+		if text, ok, err := runArtifactText(ctx, repo, run, ServeArtifact); err != nil {
 			return extra, err
 		} else if ok {
 			memory = ParseServeMemory(text)
 		}
 	}
 	var baseline *ServeMemory
-	if text, artifact, err := BaselineArtifact(gh, ServeArtifact, defaultBranch); err != nil {
+	if text, artifact, err := BaselineArtifact(ctx, repo, ServeArtifact, defaultBranch); err != nil {
 		return extra, err
 	} else if text != "" {
 		baseline = ParseServeMemory(text)
 		if baseline != nil {
-			baselineLink(&extra, gh, artifact)
+			baselineLink(&extra, repo, artifact)
 		}
 	}
 	if memory == nil {
@@ -309,7 +289,7 @@ func collectServe(gh API, run map[string]any, defaultBranch string) (Extra, erro
 }
 
 // collectWeb collects the web-client-heap section from the mygo run.
-func collectWeb(gh API, run map[string]any, defaultBranch string) (Extra, error) {
+func collectWeb(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
 		Title: "Web client heap",
 		Intro: "What the paired `/app` page uses in headless Chrome through the Chrome DevTools Protocol, " +
@@ -317,28 +297,28 @@ func collectWeb(gh API, run map[string]any, defaultBranch string) (Extra, error)
 			"page with live events (`vfxtool webheap`).",
 	}
 	if run != nil {
-		extra.RunURL = asString(run["html_url"])
+		extra.RunURL = run.GetHTMLURL()
 	}
 	var heap *WebHeap
 	inherited := run == nil
-	if run != nil && asString(run["status"]) != "completed" {
+	if run != nil && run.GetStatus() != "completed" {
 		extra.Note = "Still running; the report is written again when it ends."
 		return extra, nil
 	}
 	if run != nil {
-		if text, ok, err := runArtifactText(gh, run, WebArtifact); err != nil {
+		if text, ok, err := runArtifactText(ctx, repo, run, WebArtifact); err != nil {
 			return extra, err
 		} else if ok {
 			heap = ParseWebHeap(text)
 		}
 	}
 	var baseline *WebHeap
-	if text, artifact, err := BaselineArtifact(gh, WebArtifact, defaultBranch); err != nil {
+	if text, artifact, err := BaselineArtifact(ctx, repo, WebArtifact, defaultBranch); err != nil {
 		return extra, err
 	} else if text != "" {
 		baseline = ParseWebHeap(text)
 		if baseline != nil {
-			baselineLink(&extra, gh, artifact)
+			baselineLink(&extra, repo, artifact)
 		}
 	}
 	if heap == nil {
@@ -372,7 +352,7 @@ func collectWeb(gh API, run map[string]any, defaultBranch string) (Extra, error)
 }
 
 // collectAndroid collects the APK section from the android run.
-func collectAndroid(gh API, run map[string]any, defaultBranch string) (Extra, error) {
+func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
 		Title: "Android client",
 		Intro: "What the release APK uses cold-started on an emulator, in MB from `dumpsys meminfo` after " +
@@ -380,28 +360,28 @@ func collectAndroid(gh API, run map[string]any, defaultBranch string) (Extra, er
 			"as changes.",
 	}
 	if run != nil {
-		extra.RunURL = asString(run["html_url"])
+		extra.RunURL = run.GetHTMLURL()
 	}
 	var memory *AndroidMemory
 	inherited := run == nil
-	if run != nil && asString(run["status"]) != "completed" {
+	if run != nil && run.GetStatus() != "completed" {
 		extra.Note = "Still running; the report is written again when it ends."
 		return extra, nil
 	}
 	if run != nil {
-		if text, ok, err := runArtifactText(gh, run, AndroidArtifact); err != nil {
+		if text, ok, err := runArtifactText(ctx, repo, run, AndroidArtifact); err != nil {
 			return extra, err
 		} else if ok {
 			memory = ParseAndroidMemory(text)
 		}
 	}
 	var baseline *AndroidMemory
-	if text, artifact, err := BaselineArtifact(gh, AndroidArtifact, defaultBranch); err != nil {
+	if text, artifact, err := BaselineArtifact(ctx, repo, AndroidArtifact, defaultBranch); err != nil {
 		return extra, err
 	} else if text != "" {
 		baseline = ParseAndroidMemory(text)
 		if baseline != nil {
-			baselineLink(&extra, gh, artifact)
+			baselineLink(&extra, repo, artifact)
 		}
 	}
 	if memory == nil {
@@ -436,17 +416,17 @@ func collectAndroid(gh API, run map[string]any, defaultBranch string) (Extra, er
 // CollectExtras returns the sections of the report beyond the desktop table:
 // the headless server and the web client from the mygo run, the APK from the
 // android run. A section with neither numbers nor baseline is left out.
-func CollectExtras(gh API, runs map[string]map[string]any, defaultBranch string) ([]Extra, error) {
+func CollectExtras(ctx context.Context, repo *Repository, runs map[string]*github.WorkflowRun, defaultBranch string) ([]Extra, error) {
 	var extras []Extra
-	serve, err := collectServe(gh, runs[workflowPath("mygo")], defaultBranch)
+	serve, err := collectServe(ctx, repo, runs[workflowPath("mygo")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}
-	web, err := collectWeb(gh, runs[workflowPath("mygo")], defaultBranch)
+	web, err := collectWeb(ctx, repo, runs[workflowPath("mygo")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}
-	android, err := collectAndroid(gh, runs[workflowPath("android")], defaultBranch)
+	android, err := collectAndroid(ctx, repo, runs[workflowPath("android")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}

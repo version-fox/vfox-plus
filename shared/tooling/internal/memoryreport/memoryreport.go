@@ -45,19 +45,16 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"math"
-	"net/http"
 	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/go-github/v93/github"
 )
@@ -107,9 +104,6 @@ var whitespace = regexp.MustCompile(`\s+`)
 // any number of directories before the implementation directory.
 var technologyLink = regexp.MustCompile(`\]\((?:\.\./)+([A-Za-z0-9_-]+)/README\.md`)
 
-// transient matches the errors of gh that are worth trying again.
-var transient = regexp.MustCompile(`(?i)HTTP 5[0-9][0-9]|timeout|timed out|connection reset|EOF`)
-
 // Point is the memory at one measuring point, in MB.
 type Point struct {
 	RSS       int
@@ -152,13 +146,6 @@ func (r Row) Shown() *Memory {
 	}
 	return nil
 }
-
-// ApiError reports that a request to the API of GitHub failed.
-type ApiError struct {
-	Msg string
-}
-
-func (e *ApiError) Error() string { return e.Msg }
 
 // ParseMemory parses memory.txt: one line for the point home and one for
 // nodejs, nothing else. It returns nil when the file is not exactly that.
@@ -585,377 +572,6 @@ func Render(rows []Row, headSHA string) string {
 	return strings.Join(lines, "\n")
 }
 
-// API is the REST API of one repository. GitHubAPI implements it through the
-// go-github client; tests fake it.
-type API interface {
-	// RepoName returns OWNER/NAME.
-	RepoName() string
-	// Get reads a JSON response.
-	Get(path string, params map[string]any) (any, error)
-	// Raw reads a response that is not JSON, such as the zip of an artifact.
-	Raw(path string) ([]byte, error)
-	// Pages returns every item of a list, 100 at a time.
-	Pages(path string) ([]any, error)
-	// Send writes through POST, PATCH or DELETE.
-	Send(method, path string, payload any) (any, error)
-}
-
-// GitHubAPI is the REST API of one repository, through the go-github client
-// (GH_TOKEN authenticates it).
-type GitHubAPI struct {
-	owner  string
-	name   string
-	client *github.Client
-	// httpClient downloads the bytes of artifact zips. It is nil in production
-	// (http.DefaultClient is used); tests set it to reach a fake server.
-	httpClient *http.Client
-}
-
-// NewGitHubAPI returns the REST API of repository (OWNER/NAME), authenticated
-// with GH_TOKEN.
-func NewGitHubAPI(repository string) (*GitHubAPI, error) {
-	owner, name, ok := strings.Cut(repository, "/")
-	if !ok || owner == "" || name == "" {
-		return nil, fmt.Errorf("repository must be OWNER/NAME, got %q", repository)
-	}
-	token := os.Getenv("GH_TOKEN")
-	if token == "" {
-		return nil, errors.New("GH_TOKEN is empty: the memory report needs a token to read the API of GitHub")
-	}
-	client, err := github.NewClient(github.WithAuthToken(token))
-	if err != nil {
-		return nil, err
-	}
-	return &GitHubAPI{owner: owner, name: name, client: client}, nil
-}
-
-// RepoName returns OWNER/NAME.
-func (g *GitHubAPI) RepoName() string { return g.owner + "/" + g.name }
-
-// sleepSecs waits between attempts. It is a variable so that tests run fast.
-var sleepSecs = func(seconds int) { time.Sleep(time.Duration(seconds) * time.Second) }
-
-// request runs op, trying again when the request fails transiently.
-func (g *GitHubAPI) request(attempts int, method, path string, op func() error) error {
-	var err error
-	for attempt := 1; attempt <= attempts; attempt++ {
-		if err = op(); err == nil {
-			return nil
-		}
-		if attempt == attempts || !transientError(err) {
-			return &ApiError{Msg: fmt.Sprintf("%s %s: %s", method, path, err)}
-		}
-		sleepSecs(1 << attempt)
-	}
-	return &ApiError{Msg: fmt.Sprintf("%s %s: %s", method, path, err)}
-}
-
-// transientError reports whether err is worth trying again: a failure of the
-// server (HTTP 5xx) or a broken connection, which the old gh-based transport
-// also retried. Rate-limit errors (403/429) are not retried, as before: they
-// fail so that the run reports them instead of waiting out the limit.
-func transientError(err error) bool {
-	var response *github.ErrorResponse
-	if errors.As(err, &response) {
-		if response.Response != nil {
-			return response.Response.StatusCode >= 500
-		}
-		return false
-	}
-	var rateLimit *github.RateLimitError
-	if errors.As(err, &rateLimit) {
-		return false
-	}
-	var abuse *github.AbuseRateLimitError
-	if errors.As(err, &abuse) {
-		return false
-	}
-	return transient.MatchString(err.Error())
-}
-
-// toAny converts a go-github value to the decoded JSON that the rest of the
-// tool reads, so the report sees the same field names the gh CLI returned.
-func toAny(value any) (any, error) {
-	body, err := json.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-	var decoded any
-	if err := json.Unmarshal(body, &decoded); err != nil {
-		return nil, err
-	}
-	return decoded, nil
-}
-
-// Get reads a JSON response.
-func (g *GitHubAPI) Get(path string, params map[string]any) (any, error) {
-	ctx := context.Background()
-	var value any
-	err := g.request(3, "GET", path, func() error {
-		result, err := g.get(ctx, path, params)
-		if err != nil {
-			return err
-		}
-		value = result
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return value, nil
-}
-
-func (g *GitHubAPI) get(ctx context.Context, path string, params map[string]any) (any, error) {
-	owner, repo := g.owner, g.name
-	switch {
-	case path == "":
-		repository, _, err := g.client.Repositories.Get(ctx, owner, repo)
-		if err != nil {
-			return nil, err
-		}
-		return toAny(repository)
-	case path == "actions/workflows":
-		workflows, _, err := g.client.Actions.ListWorkflows(ctx, owner, repo, &github.ListOptions{PerPage: 100})
-		if err != nil {
-			return nil, err
-		}
-		return toAny(workflows)
-	case path == "actions/runs":
-		runs, _, err := g.client.Actions.ListRepositoryWorkflowRuns(ctx, owner, repo, &github.ListWorkflowRunsOptions{
-			HeadSHA:     asString(params["head_sha"]),
-			Event:       asString(params["event"]),
-			ListOptions: github.ListOptions{PerPage: 100},
-		})
-		if err != nil {
-			return nil, err
-		}
-		return toAny(runs)
-	case path == "actions/artifacts":
-		name := asString(params["name"])
-		artifacts, _, err := g.client.Actions.ListArtifacts(ctx, owner, repo, &github.ListArtifactsOptions{
-			Name:        &name,
-			ListOptions: github.ListOptions{PerPage: 100},
-		})
-		if err != nil {
-			return nil, err
-		}
-		return toAny(artifacts)
-	case strings.HasPrefix(path, "actions/runs/") && strings.HasSuffix(path, "/artifacts"):
-		id, err := strconv.ParseInt(strings.TrimSuffix(strings.TrimPrefix(path, "actions/runs/"), "/artifacts"), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		list, _, err := g.client.Actions.ListWorkflowRunArtifacts(ctx, owner, repo, id, &github.ListOptions{PerPage: 100})
-		if err != nil {
-			return nil, err
-		}
-		// The endpoint of a run has no name filter, so filter here what gh
-		// filtered on the server.
-		name := asString(params["name"])
-		filtered := &github.ArtifactList{}
-		for _, artifact := range list.Artifacts {
-			if artifact.GetName() == name {
-				filtered.Artifacts = append(filtered.Artifacts, artifact)
-			}
-		}
-		return toAny(filtered)
-	case strings.HasPrefix(path, "actions/runs/"):
-		id, err := strconv.ParseInt(strings.TrimPrefix(path, "actions/runs/"), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		run, _, err := g.client.Actions.GetWorkflowRunByID(ctx, owner, repo, id)
-		if err != nil {
-			return nil, err
-		}
-		return toAny(run)
-	case path == "pulls":
-		pulls, _, err := g.client.PullRequests.List(ctx, owner, repo, &github.PullRequestListOptions{
-			State:       asString(params["state"]),
-			Head:        asString(params["head"]),
-			ListOptions: github.ListOptions{PerPage: 100},
-		})
-		if err != nil {
-			return nil, err
-		}
-		return toAny(pulls)
-	case strings.HasPrefix(path, "pulls/"):
-		var number int
-		if _, err := fmt.Sscanf(strings.TrimPrefix(path, "pulls/"), "%d", &number); err != nil {
-			return nil, err
-		}
-		pull, _, err := g.client.PullRequests.Get(ctx, owner, repo, number)
-		if err != nil {
-			return nil, err
-		}
-		return toAny(pull)
-	case strings.HasPrefix(path, "commits/") && strings.HasSuffix(path, "/pulls"):
-		sha := strings.TrimSuffix(strings.TrimPrefix(path, "commits/"), "/pulls")
-		pulls, _, err := g.client.PullRequests.ListPullRequestsWithCommit(ctx, owner, repo, sha, &github.ListOptions{PerPage: 100})
-		if err != nil {
-			return nil, err
-		}
-		return toAny(pulls)
-	}
-	return nil, fmt.Errorf("unexpected GET %s", path)
-}
-
-// Raw reads a response that is not JSON, such as the zip of an artifact.
-func (g *GitHubAPI) Raw(path string) ([]byte, error) {
-	id, ok := artifactZipID(path)
-	if !ok {
-		return nil, &ApiError{Msg: fmt.Sprintf("GET %s: unexpected path", path)}
-	}
-	ctx := context.Background()
-	var data []byte
-	err := g.request(3, "GET", path, func() error {
-		target, _, err := g.client.Actions.DownloadArtifact(ctx, g.owner, g.name, id, 0)
-		if err != nil {
-			return err
-		}
-		data, err = g.download(target.String())
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
-// artifactZipID reads the ID out of actions/artifacts/ID/zip.
-func artifactZipID(path string) (int64, bool) {
-	rest, ok := strings.CutPrefix(path, "actions/artifacts/")
-	if !ok {
-		return 0, false
-	}
-	id, ok := strings.CutSuffix(rest, "/zip")
-	if !ok {
-		return 0, false
-	}
-	number, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		return 0, false
-	}
-	return number, true
-}
-
-// download follows a URL that is not the API, such as the redirect target of
-// an artifact zip, to its bytes.
-func (g *GitHubAPI) download(url string) ([]byte, error) {
-	client := g.httpClient
-	if client == nil {
-		client = http.DefaultClient
-	}
-	response, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET %s: HTTP %d", url, response.StatusCode)
-	}
-	return io.ReadAll(response.Body)
-}
-
-// Pages returns every item of a list, 100 at a time.
-func (g *GitHubAPI) Pages(path string) ([]any, error) {
-	rest, ok := strings.CutPrefix(path, "issues/")
-	number, ok2 := strings.CutSuffix(rest, "/comments")
-	var issue int
-	if _, err := fmt.Sscanf(number, "%d", &issue); err != nil || !ok || !ok2 {
-		return nil, &ApiError{Msg: fmt.Sprintf("GET %s: unexpected path", path)}
-	}
-	ctx := context.Background()
-	var all []any
-	options := &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}}
-	for page := 1; page <= 10; page++ {
-		options.Page = page
-		var comments []*github.IssueComment
-		err := g.request(3, "GET", path, func() error {
-			var err error
-			comments, _, err = g.client.Issues.ListComments(ctx, g.owner, g.name, issue, options)
-			return err
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, comment := range comments {
-			item, err := toAny(comment)
-			if err != nil {
-				return nil, &ApiError{Msg: fmt.Sprintf("GET %s: %s", path, err)}
-			}
-			all = append(all, item)
-		}
-		if len(comments) < 100 {
-			return all, nil
-		}
-	}
-	return all, nil
-}
-
-// Send writes through POST, PATCH or DELETE.
-func (g *GitHubAPI) Send(method, path string, payload any) (any, error) {
-	// Creating a comment again after a lost response would write it twice.
-	attempts := 3
-	if method == "POST" {
-		attempts = 1
-	}
-	var body string
-	if payload, ok := payload.(map[string]any); ok {
-		body, _ = payload["body"].(string)
-	}
-	ctx := context.Background()
-	var value any
-	err := g.request(attempts, method, path, func() error {
-		result, err := g.send(ctx, method, path, body)
-		if err != nil {
-			return err
-		}
-		value = result
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return value, nil
-}
-
-func (g *GitHubAPI) send(ctx context.Context, method, path, body string) (any, error) {
-	owner, repo := g.owner, g.name
-	if method == "POST" {
-		rest, ok := strings.CutPrefix(path, "issues/")
-		id, ok2 := strings.CutSuffix(rest, "/comments")
-		var number int
-		if _, err := fmt.Sscanf(id, "%d", &number); err != nil || !ok || !ok2 {
-			return nil, fmt.Errorf("unexpected POST %s", path)
-		}
-		comment, _, err := g.client.Issues.CreateComment(ctx, owner, repo, number, github.IssueCommentRequest{Body: body})
-		if err != nil {
-			return nil, err
-		}
-		return toAny(comment)
-	}
-	if method == "PATCH" || method == "DELETE" {
-		id, ok := strings.CutPrefix(path, "issues/comments/")
-		var comment int64
-		if _, err := fmt.Sscanf(id, "%d", &comment); err != nil || !ok {
-			return nil, fmt.Errorf("unexpected %s %s", method, path)
-		}
-		if method == "PATCH" {
-			updated, _, err := g.client.Issues.UpdateComment(ctx, owner, repo, comment, github.IssueCommentRequest{Body: body})
-			if err != nil {
-				return nil, err
-			}
-			return toAny(updated)
-		}
-		if _, err := g.client.Issues.DeleteComment(ctx, owner, repo, comment); err != nil {
-			return nil, err
-		}
-		return nil, nil
-	}
-	return nil, fmt.Errorf("unexpected %s %s", method, path)
-}
-
 // writers relate the report: the CLI prints the comment to stdout and logs to
 // stderr. They are variables so that tests can capture them.
 var (
@@ -969,21 +585,18 @@ func logMessage(message string) {
 
 // readArtifactText returns the content of an artifact, or false when it is not
 // a readable memory.txt. ReadArtifact and the extra sections share it.
-func readArtifactText(gh API, artifact map[string]any) (string, bool) {
-	if expired, _ := artifact["expired"].(bool); expired {
+func readArtifactText(ctx context.Context, repo *Repository, artifact *github.Artifact) (string, bool) {
+	if artifact.GetExpired() || artifact.GetSizeInBytes() > MaxArtifactBytes {
 		return "", false
 	}
-	if asInt(artifact["size_in_bytes"]) > MaxArtifactBytes {
-		return "", false
-	}
-	data, err := gh.Raw(fmt.Sprintf("actions/artifacts/%d/zip", asInt(artifact["id"])))
+	data, err := repo.DownloadArtifact(ctx, artifact.GetID())
 	if err != nil {
-		logMessage(fmt.Sprintf("Cannot read the artifact %v (%v): %v", artifact["name"], artifact["id"], err))
+		logMessage(fmt.Sprintf("Cannot read the artifact %s (%d): %v", artifact.GetName(), artifact.GetID(), err))
 		return "", false
 	}
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		logMessage(fmt.Sprintf("Cannot read the artifact %v (%v): %v", artifact["name"], artifact["id"], err))
+		logMessage(fmt.Sprintf("Cannot read the artifact %s (%d): %v", artifact.GetName(), artifact.GetID(), err))
 		return "", false
 	}
 	if len(reader.File) != 1 || reader.File[0].Name != MemoryFile {
@@ -1006,8 +619,8 @@ func readArtifactText(gh API, artifact map[string]any) (string, bool) {
 
 // ReadArtifact returns the numbers in an artifact, or nil if it is not a valid
 // memory.txt.
-func ReadArtifact(gh API, artifact map[string]any) *Memory {
-	text, ok := readArtifactText(gh, artifact)
+func ReadArtifact(ctx context.Context, repo *Repository, artifact *github.Artifact) *Memory {
+	text, ok := readArtifactText(ctx, repo, artifact)
 	if !ok {
 		return nil
 	}
@@ -1015,58 +628,81 @@ func ReadArtifact(gh API, artifact map[string]any) *Memory {
 }
 
 // Newest returns the newest live artifact, or nil when all have expired.
-func Newest(artifacts []map[string]any) map[string]any {
-	var newest map[string]any
+func Newest(artifacts []*github.Artifact) *github.Artifact {
+	var newest *github.Artifact
 	for _, artifact := range artifacts {
-		if expired, _ := artifact["expired"].(bool); expired {
+		if artifact.GetExpired() {
 			continue
 		}
-		if newest == nil || asString(artifact["created_at"]) > asString(newest["created_at"]) {
+		if newest == nil || artifact.GetCreatedAt().After(newest.GetCreatedAt().Time) {
 			newest = artifact
 		}
 	}
 	return newest
 }
 
+// runArtifacts returns the artifacts of a workflow run that have a name. The
+// endpoint of a run has no filter for the name.
+func runArtifacts(ctx context.Context, repo *Repository, runID int64, name string) ([]*github.Artifact, error) {
+	list, _, err := repo.Client.Actions.ListWorkflowRunArtifacts(ctx, repo.Owner, repo.Name, runID, &github.ListOptions{PerPage: 100})
+	if err != nil {
+		return nil, err
+	}
+	var named []*github.Artifact
+	for _, artifact := range list.Artifacts {
+		if artifact.GetName() == name {
+			named = append(named, artifact)
+		}
+	}
+	return named, nil
+}
+
+// runArtifactText returns the content of the newest live artifact with a name
+// of one run, or false when the run has none.
+func runArtifactText(ctx context.Context, repo *Repository, run *github.WorkflowRun, name string) (string, bool, error) {
+	artifacts, err := runArtifacts(ctx, repo, run.GetID(), name)
+	if err != nil {
+		return "", false, err
+	}
+	if artifact := Newest(artifacts); artifact != nil {
+		if text, ok := readArtifactText(ctx, repo, artifact); ok {
+			return text, true, nil
+		}
+	}
+	return "", false, nil
+}
+
 // baselineCandidate is one readable baseline artifact, newest first.
 type baselineCandidate struct {
 	text     string
-	artifact map[string]any
+	artifact *github.Artifact
 }
 
 // baselineCandidates returns the readable artifacts with a name that were
 // measured on the default branch, newest first.
-func baselineCandidates(gh API, name, defaultBranch string) ([]baselineCandidate, error) {
-	value, err := gh.Get("actions/artifacts", map[string]any{"name": name, "per_page": 100})
+func baselineCandidates(ctx context.Context, repo *Repository, name, defaultBranch string) ([]baselineCandidate, error) {
+	list, _, err := repo.Client.Actions.ListArtifacts(ctx, repo.Owner, repo.Name, &github.ListArtifactsOptions{
+		Name:        &name,
+		ListOptions: github.ListOptions{PerPage: 100},
+	})
 	if err != nil {
 		return nil, err
 	}
-	response, _ := value.(map[string]any)
-	var onDefaultBranch []map[string]any
-	for _, item := range asList(response["artifacts"]) {
-		artifact, _ := item.(map[string]any)
-		if artifact == nil {
-			continue
-		}
+	var onDefaultBranch []*github.Artifact
+	for _, artifact := range list.Artifacts {
 		// A pull request from a fork can have a branch called like the default branch.
-		run, _ := artifact["workflow_run"].(map[string]any)
-		if run == nil {
-			continue
-		}
-		if asString(run["head_branch"]) != defaultBranch {
-			continue
-		}
-		if asInt(run["head_repository_id"]) != asInt(run["repository_id"]) {
+		run := artifact.GetWorkflowRun()
+		if run == nil || run.GetHeadBranch() != defaultBranch || run.GetHeadRepositoryID() != run.GetRepositoryID() {
 			continue
 		}
 		onDefaultBranch = append(onDefaultBranch, artifact)
 	}
-	sort.Slice(onDefaultBranch, func(a, b int) bool {
-		return asString(onDefaultBranch[a]["created_at"]) > asString(onDefaultBranch[b]["created_at"])
+	sort.SliceStable(onDefaultBranch, func(a, b int) bool {
+		return onDefaultBranch[a].GetCreatedAt().After(onDefaultBranch[b].GetCreatedAt().Time)
 	})
 	var candidates []baselineCandidate
 	for _, artifact := range onDefaultBranch {
-		if text, ok := readArtifactText(gh, artifact); ok {
+		if text, ok := readArtifactText(ctx, repo, artifact); ok {
 			candidates = append(candidates, baselineCandidate{text: text, artifact: artifact})
 		}
 	}
@@ -1077,8 +713,8 @@ func baselineCandidates(gh API, name, defaultBranch string) ([]baselineCandidate
 // was measured on the default branch, with the artifact. BaselineOf and the
 // extra sections share it; like Collect, the newest readable artifact wins,
 // and parsing it is the caller's job.
-func BaselineArtifact(gh API, name, defaultBranch string) (string, map[string]any, error) {
-	candidates, err := baselineCandidates(gh, name, defaultBranch)
+func BaselineArtifact(ctx context.Context, repo *Repository, name, defaultBranch string) (string, *github.Artifact, error) {
+	candidates, err := baselineCandidates(ctx, repo, name, defaultBranch)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1090,8 +726,8 @@ func BaselineArtifact(gh API, name, defaultBranch string) (string, map[string]an
 
 // BaselineOf returns the latest numbers of an implementation that were
 // measured on the default branch.
-func BaselineOf(gh API, implementation, defaultBranch string) (*Memory, map[string]any, error) {
-	candidates, err := baselineCandidates(gh, "memory-"+implementation, defaultBranch)
+func BaselineOf(ctx context.Context, repo *Repository, implementation, defaultBranch string) (*Memory, *github.Artifact, error) {
+	candidates, err := baselineCandidates(ctx, repo, "memory-"+implementation, defaultBranch)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1103,34 +739,39 @@ func BaselineOf(gh API, implementation, defaultBranch string) (*Memory, map[stri
 	return nil, nil, nil
 }
 
+// runURL is the page of a workflow run.
+func runURL(repo *Repository, runID int64) string {
+	return fmt.Sprintf("https://github.com/%s/actions/runs/%d", repo.FullName(), runID)
+}
+
 // FindPullRequests returns the open pull requests whose latest commit is sha.
-func FindPullRequests(gh API, owner, branch, sha string) ([]map[string]any, error) {
-	var pulls []map[string]any
+func FindPullRequests(ctx context.Context, repo *Repository, owner, branch, sha string) ([]*github.PullRequest, error) {
+	var pulls []*github.PullRequest
 	if owner != "" {
-		value, err := gh.Get("pulls", map[string]any{"state": "open", "head": owner + ":" + branch, "per_page": 100})
+		listed, _, err := repo.Client.PullRequests.List(ctx, repo.Owner, repo.Name, &github.PullRequestListOptions{
+			State:       "open",
+			Head:        owner + ":" + branch,
+			ListOptions: github.ListOptions{PerPage: 100},
+		})
 		if err != nil {
 			return nil, err
 		}
-		for _, item := range asList(value) {
-			if pull, ok := item.(map[string]any); ok {
-				pulls = append(pulls, pull)
-			}
-		}
+		pulls = listed
 	}
 	if len(pulls) == 0 {
-		value, err := gh.Get(fmt.Sprintf("commits/%s/pulls", sha), map[string]any{"per_page": 100})
+		listed, _, err := repo.Client.PullRequests.ListPullRequestsWithCommit(ctx, repo.Owner, repo.Name, sha, &github.ListOptions{PerPage: 100})
 		if err != nil {
 			return nil, err
 		}
-		for _, item := range asList(value) {
-			if pull, _ := item.(map[string]any); pull != nil && asString(pull["state"]) == "open" {
+		for _, pull := range listed {
+			if pull.GetState() == "open" {
 				pulls = append(pulls, pull)
 			}
 		}
 	}
-	var found []map[string]any
+	var found []*github.PullRequest
 	for _, pull := range pulls {
-		if head, _ := pull["head"].(map[string]any); head != nil && asString(head["sha"]) == sha {
+		if pull.GetHead().GetSHA() == sha {
 			found = append(found, pull)
 		}
 	}
@@ -1144,25 +785,20 @@ func workflowPath(implementation string) string {
 
 // ActiveWorkflows returns the workflows of the implementations, by
 // implementation; one that is gone or disabled is left out.
-func ActiveWorkflows(gh API, implementations []string) (map[string]map[string]any, error) {
-	value, err := gh.Get("actions/workflows", map[string]any{"per_page": 100})
+func ActiveWorkflows(ctx context.Context, repo *Repository, implementations []string) (map[string]*github.Workflow, error) {
+	list, _, err := repo.Client.Actions.ListWorkflows(ctx, repo.Owner, repo.Name, &github.ListOptions{PerPage: 100})
 	if err != nil {
 		return nil, err
 	}
-	response, _ := value.(map[string]any)
-	workflows := map[string]map[string]any{}
-	for _, item := range asList(response["workflows"]) {
-		workflow, _ := item.(map[string]any)
-		if workflow == nil {
-			continue
-		}
-		if path, _ := workflow["path"].(string); path != "" {
+	workflows := map[string]*github.Workflow{}
+	for _, workflow := range list.Workflows {
+		if path := workflow.GetPath(); path != "" {
 			workflows[path] = workflow
 		}
 	}
-	active := map[string]map[string]any{}
+	active := map[string]*github.Workflow{}
 	for _, implementation := range implementations {
-		if workflow, ok := workflows[workflowPath(implementation)]; ok && asString(workflow["state"]) == "active" {
+		if workflow, ok := workflows[workflowPath(implementation)]; ok && workflow.GetState() == "active" {
 			active[implementation] = workflow
 		}
 	}
@@ -1171,20 +807,19 @@ func ActiveWorkflows(gh API, implementations []string) (map[string]map[string]an
 
 // LatestRuns returns the latest run of every workflow of the pull request for
 // a commit, by the path of the workflow.
-func LatestRuns(gh API, headSHA string) (map[string]map[string]any, error) {
-	value, err := gh.Get("actions/runs", map[string]any{"head_sha": headSHA, "event": "pull_request", "per_page": 100})
+func LatestRuns(ctx context.Context, repo *Repository, headSHA string) (map[string]*github.WorkflowRun, error) {
+	list, _, err := repo.Client.Actions.ListRepositoryWorkflowRuns(ctx, repo.Owner, repo.Name, &github.ListWorkflowRunsOptions{
+		HeadSHA:     headSHA,
+		Event:       "pull_request",
+		ListOptions: github.ListOptions{PerPage: 100},
+	})
 	if err != nil {
 		return nil, err
 	}
-	response, _ := value.(map[string]any)
-	runs := map[string]map[string]any{}
-	for _, item := range asList(response["workflow_runs"]) {
-		run, _ := item.(map[string]any)
-		if run == nil {
-			continue
-		}
-		path := asString(run["path"])
-		if current, ok := runs[path]; !ok || asInt(run["id"]) > asInt(current["id"]) {
+	runs := map[string]*github.WorkflowRun{}
+	for _, run := range list.WorkflowRuns {
+		path := run.GetPath()
+		if current, ok := runs[path]; !ok || run.GetID() > current.GetID() {
 			runs[path] = run
 		}
 	}
@@ -1193,7 +828,7 @@ func LatestRuns(gh API, headSHA string) (map[string]map[string]any, error) {
 
 // Unfinished returns the names of the workflows with a run that has not ended,
 // other than the run that has just ended.
-func Unfinished(implementations []string, workflows, runs map[string]map[string]any, finishedRun *int) []string {
+func Unfinished(implementations []string, workflows map[string]*github.Workflow, runs map[string]*github.WorkflowRun, finishedRun *int) []string {
 	var unfinished []string
 	for _, implementation := range implementations {
 		workflow, ok := workflows[implementation]
@@ -1204,49 +839,41 @@ func Unfinished(implementations []string, workflows, runs map[string]map[string]
 		if !ok {
 			continue
 		}
-		if asString(run["status"]) == "completed" {
+		if run.GetStatus() == "completed" {
 			continue
 		}
-		if finishedRun != nil && asInt(run["id"]) == int64(*finishedRun) {
+		if finishedRun != nil && run.GetID() == int64(*finishedRun) {
 			continue
 		}
-		unfinished = append(unfinished, asString(workflow["name"]))
+		unfinished = append(unfinished, workflow.GetName())
 	}
 	return unfinished
 }
 
 // Collect returns the rows of the report: the numbers of the pull request and
 // of the default branch.
-func Collect(gh API, implementations []string, workflows, runs map[string]map[string]any, technologies map[string]string, defaultBranch string, finishedRun *int) ([]Row, error) {
+func Collect(ctx context.Context, repo *Repository, implementations []string, workflows map[string]*github.Workflow, runs map[string]*github.WorkflowRun, technologies map[string]string, defaultBranch string, finishedRun *int) ([]Row, error) {
 	var rows []Row
 	for _, implementation := range implementations {
 		workflow, ok := workflows[implementation]
 		if !ok {
 			continue
 		}
-		row := Row{Implementation: implementation, Name: asString(workflow["name"]), Technology: technologies[implementation]}
+		row := Row{Implementation: implementation, Name: workflow.GetName(), Technology: technologies[implementation]}
 		run, ok := runs[workflowPath(implementation)]
 		if !ok {
 			row.State = "inherited"
 		} else {
-			row.RunURL = asString(run["html_url"])
-			if asString(run["status"]) != "completed" && (finishedRun == nil || asInt(run["id"]) != int64(*finishedRun)) {
+			row.RunURL = run.GetHTMLURL()
+			if run.GetStatus() != "completed" && (finishedRun == nil || run.GetID() != int64(*finishedRun)) {
 				row.State = "running"
 			} else {
-				value, err := gh.Get(fmt.Sprintf("actions/runs/%d/artifacts", asInt(run["id"])),
-					map[string]any{"name": "memory-" + implementation, "per_page": 100})
+				artifacts, err := runArtifacts(ctx, repo, run.GetID(), "memory-"+implementation)
 				if err != nil {
 					return nil, err
 				}
-				response, _ := value.(map[string]any)
-				var artifacts []map[string]any
-				for _, item := range asList(response["artifacts"]) {
-					if artifact, ok := item.(map[string]any); ok {
-						artifacts = append(artifacts, artifact)
-					}
-				}
 				if artifact := Newest(artifacts); artifact != nil {
-					row.Memory = ReadArtifact(gh, artifact)
+					row.Memory = ReadArtifact(ctx, repo, artifact)
 				}
 				if row.Memory != nil {
 					row.State = "measured"
@@ -1256,15 +883,14 @@ func Collect(gh API, implementations []string, workflows, runs map[string]map[st
 			}
 		}
 		if row.State == "measured" || row.State == "inherited" {
-			memory, artifact, err := BaselineOf(gh, implementation, defaultBranch)
+			memory, artifact, err := BaselineOf(ctx, repo, implementation, defaultBranch)
 			if err != nil {
 				return nil, err
 			}
 			if memory != nil {
 				row.Baseline = memory
-				run := artifact["workflow_run"].(map[string]any)
-				row.BaselineSHA = asString(run["head_sha"])
-				row.BaselineURL = fmt.Sprintf("https://github.com/%s/actions/runs/%d", gh.RepoName(), asInt(run["id"]))
+				row.BaselineSHA = artifact.GetWorkflowRun().GetHeadSHA()
+				row.BaselineURL = runURL(repo, artifact.GetWorkflowRun().GetID())
 			} else if row.State == "inherited" {
 				row.State = "missing"
 			}
@@ -1285,45 +911,35 @@ func SameText(left, right string) bool {
 
 // UpsertComment writes the comment of the pull request, or replaces the one
 // that an earlier run wrote. It returns created, updated or unchanged.
-func UpsertComment(gh API, number int64, body string) (string, error) {
-	comments, err := gh.Pages(fmt.Sprintf("issues/%d/comments", number))
-	if err != nil {
-		return "", err
-	}
-	var mine []map[string]any
-	for _, item := range comments {
-		comment, _ := item.(map[string]any)
-		if comment == nil {
-			continue
+func UpsertComment(ctx context.Context, repo *Repository, number int, body string) (string, error) {
+	var mine []*github.IssueComment
+	options := &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}}
+	for comment, err := range repo.Client.Issues.ListCommentsIter(ctx, repo.Owner, repo.Name, number, options) {
+		if err != nil {
+			return "", err
 		}
-		user, _ := comment["user"].(map[string]any)
-		login := ""
-		if user != nil {
-			login, _ = user["login"].(string)
-		}
-		text, _ := comment["body"].(string)
-		if login == Bot && strings.HasPrefix(text, Marker) {
+		if comment.GetUser().GetLogin() == Bot && strings.HasPrefix(comment.GetBody(), Marker) {
 			mine = append(mine, comment)
 		}
 	}
-	sort.Slice(mine, func(a, b int) bool { return asInt(mine[a]["id"]) < asInt(mine[b]["id"]) })
+	sort.Slice(mine, func(a, b int) bool { return mine[a].GetID() < mine[b].GetID() })
+	request := github.IssueCommentRequest{Body: body}
 	if len(mine) == 0 {
-		if _, err := gh.Send("POST", fmt.Sprintf("issues/%d/comments", number), map[string]any{"body": body}); err != nil {
+		if _, _, err := repo.Client.Issues.CreateComment(ctx, repo.Owner, repo.Name, number, request); err != nil {
 			return "", err
 		}
 		return "created", nil
 	}
 	result := "unchanged"
-	first, _ := mine[0]["body"].(string)
-	if !SameText(first, body) {
-		if _, err := gh.Send("PATCH", fmt.Sprintf("issues/comments/%d", asInt(mine[0]["id"])), map[string]any{"body": body}); err != nil {
+	if !SameText(mine[0].GetBody(), body) {
+		if _, _, err := repo.Client.Issues.UpdateComment(ctx, repo.Owner, repo.Name, mine[0].GetID(), request); err != nil {
 			return "", err
 		}
 		result = "updated"
 	}
 	// Two runs at the same time can both have created one.
 	for _, extra := range mine[1:] {
-		if _, err := gh.Send("DELETE", fmt.Sprintf("issues/comments/%d", asInt(extra["id"])), nil); err != nil {
+		if _, err := repo.Client.Issues.DeleteComment(ctx, repo.Owner, repo.Name, extra.GetID()); err != nil {
 			return "", err
 		}
 	}
@@ -1334,61 +950,41 @@ func UpsertComment(gh API, number int64, body string) (string, error) {
 // that has just ended; pullRequest reports on that pull request now, with
 // exactly one of the two set. dryRun prints the comment instead of writing
 // it. It returns 0 when there is nothing to report on, like the script.
-func Report(gh API, implementations []string, technologies map[string]string, runID *int, pullRequest int, dryRun bool) (int, error) {
+func Report(ctx context.Context, repo *Repository, implementations []string, technologies map[string]string, runID *int, pullRequest int, dryRun bool) (int, error) {
 	// Most runs end here, on the way to the one that finds that all of them have: keep it to a few requests.
 	var headSHA string
-	var pulls []map[string]any
+	var pulls []*github.PullRequest
 	if runID != nil {
-		value, err := gh.Get(fmt.Sprintf("actions/runs/%d", *runID), nil)
+		run, _, err := repo.Client.Actions.GetWorkflowRunByID(ctx, repo.Owner, repo.Name, int64(*runID))
 		if err != nil {
 			return 0, err
 		}
-		run, _ := value.(map[string]any)
-		if run == nil {
-			return 0, fmt.Errorf("actions/runs/%d: no such run", *runID)
-		}
-		if asString(run["event"]) != "pull_request" {
-			logMessage(fmt.Sprintf("The run %d is a %s run, not one of a pull request.", *runID, asString(run["event"])))
+		if run.GetEvent() != "pull_request" {
+			logMessage(fmt.Sprintf("The run %d is a %s run, not one of a pull request.", *runID, run.GetEvent()))
 			return 0, nil
 		}
-		headSHA = asString(run["head_sha"])
-		var owner string
-		if repository, _ := run["head_repository"].(map[string]any); repository != nil {
-			if user, _ := repository["owner"].(map[string]any); user != nil {
-				owner, _ = user["login"].(string)
-			}
-		}
-		pulls, err = FindPullRequests(gh, owner, asString(run["head_branch"]), headSHA)
+		headSHA = run.GetHeadSHA()
+		pulls, err = FindPullRequests(ctx, repo, run.GetHeadRepository().GetOwner().GetLogin(), run.GetHeadBranch(), headSHA)
 		if err != nil {
 			return 0, err
 		}
 	} else {
-		value, err := gh.Get(fmt.Sprintf("pulls/%d", pullRequest), nil)
+		pull, _, err := repo.Client.PullRequests.Get(ctx, repo.Owner, repo.Name, pullRequest)
 		if err != nil {
 			return 0, err
 		}
-		pull, _ := value.(map[string]any)
-		if pull == nil {
-			return 0, fmt.Errorf("pulls/%d: no such pull request", pullRequest)
-		}
-		if asString(pull["state"]) != "open" {
+		if pull.GetState() != "open" {
 			logMessage(fmt.Sprintf("The pull request %d is not open.", pullRequest))
 			return 0, nil
 		}
-		if head, _ := pull["head"].(map[string]any); head != nil {
-			headSHA = asString(head["sha"])
-		}
-		pulls = []map[string]any{pull}
+		headSHA = pull.GetHead().GetSHA()
+		pulls = []*github.PullRequest{pull}
 	}
 	if len(pulls) == 0 {
-		short := headSHA
-		if len(short) > 7 {
-			short = short[:7]
-		}
-		logMessage(fmt.Sprintf("No open pull request has %s as its latest commit; there is nothing to report on.", short))
+		logMessage(fmt.Sprintf("No open pull request has %s as its latest commit; there is nothing to report on.", shortSHA(headSHA)))
 		return 0, nil
 	}
-	workflows, err := ActiveWorkflows(gh, append(append([]string{}, implementations...), "android"))
+	workflows, err := ActiveWorkflows(ctx, repo, append(append([]string{}, implementations...), "android"))
 	if err != nil {
 		return 0, err
 	}
@@ -1396,7 +992,7 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 		logMessage("None of the implementations has a workflow.")
 		return 0, nil
 	}
-	runs, err := LatestRuns(gh, headSHA)
+	runs, err := LatestRuns(ctx, repo, headSHA)
 	if err != nil {
 		return 0, err
 	}
@@ -1414,19 +1010,16 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 			return 0, nil
 		}
 	}
-	repository, err := gh.Get("", nil)
+	info, _, err := repo.Client.Repositories.Get(ctx, repo.Owner, repo.Name)
 	if err != nil {
 		return 0, err
 	}
-	defaultBranch := ""
-	if repo, ok := repository.(map[string]any); ok {
-		defaultBranch = asString(repo["default_branch"])
-	}
-	rows, err := Collect(gh, implementations, workflows, runs, technologies, defaultBranch, runID)
+	defaultBranch := info.GetDefaultBranch()
+	rows, err := Collect(ctx, repo, implementations, workflows, runs, technologies, defaultBranch, runID)
 	if err != nil {
 		return 0, err
 	}
-	extras, err := CollectExtras(gh, runs, defaultBranch)
+	extras, err := CollectExtras(ctx, repo, runs, defaultBranch)
 	if err != nil {
 		return 0, err
 	}
@@ -1446,19 +1039,17 @@ func Report(gh API, implementations []string, technologies map[string]string, ru
 		fmt.Fprintln(stdout, body)
 		return 0, nil
 	}
-	for _, pull := range pulls {
-		number := asInt(pull["number"])
-		value, err := gh.Get(fmt.Sprintf("pulls/%d", number), nil)
+	for _, listed := range pulls {
+		number := listed.GetNumber()
+		current, _, err := repo.Client.PullRequests.Get(ctx, repo.Owner, repo.Name, number)
 		if err != nil {
 			return 0, err
 		}
-		current, _ := value.(map[string]any)
-		head, _ := current["head"].(map[string]any)
-		if asString(current["state"]) != "open" || asString(head["sha"]) != headSHA {
+		if current.GetState() != "open" || current.GetHead().GetSHA() != headSHA {
 			logMessage(fmt.Sprintf("The pull request %d has moved on from %s.", number, shortSHA(headSHA)))
 			continue
 		}
-		result, err := UpsertComment(gh, number, body)
+		result, err := UpsertComment(ctx, repo, number, body)
 		if err != nil {
 			return 0, err
 		}
@@ -1474,7 +1065,7 @@ func shortSHA(sha string) string {
 	return sha
 }
 
-// reportFunc runs the report. It is a variable so that tests can stub the API.
+// reportFunc runs the report. It is a variable so that tests can stub the report.
 var reportFunc = Report
 
 // Run runs the tool. args are the command line without the program name.
@@ -1518,65 +1109,17 @@ func Run(args []string) error {
 	if *run != 0 {
 		runID = run
 	}
-	github, err := NewGitHubAPI(*repository)
+	repo, err := NewRepository(*repository, os.Getenv("GH_TOKEN"))
 	if err != nil {
 		return err
 	}
-	_, err = reportFunc(github, names, technologies, runID, *pullRequest, *dryRun)
-	var apiError *ApiError
-	if errors.As(err, &apiError) {
-		if strings.Contains(apiError.Msg, "Resource not accessible by integration") {
-			// A token that cannot write, such as that of a run for a bot's pull request: the report is
-			// already in the summary of the run, which is as far as it can go.
-			encoded := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(apiError.Msg, "%", "%25"), "\r", "%0D"), "\n", "%0A")
-			fmt.Fprintln(stdout, "::warning::The token of this run cannot write the comment; the report is in the summary: "+encoded)
-			return nil
-		}
-		logMessage(fmt.Sprintf("memory-report: %v", apiError))
-		return apiError
+	_, err = reportFunc(context.Background(), repo, names, technologies, runID, *pullRequest, *dryRun)
+	if err != nil && strings.Contains(err.Error(), "Resource not accessible by integration") {
+		// A token that cannot write, such as that of a run for a bot's pull request: the report is
+		// already in the summary of the run, which is as far as it can go.
+		encoded := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(err.Error(), "%", "%25"), "\r", "%0D"), "\n", "%0A")
+		fmt.Fprintln(stdout, "::warning::The token of this run cannot write the comment; the report is in the summary: "+encoded)
+		return nil
 	}
 	return err
-}
-
-// asInt reads an ID or a count out of decoded JSON or a fake.
-func asInt(value any) int64 {
-	switch number := value.(type) {
-	case int:
-		return int64(number)
-	case int8:
-		return int64(number)
-	case int16:
-		return int64(number)
-	case int32:
-		return int64(number)
-	case int64:
-		return number
-	case uint:
-		return int64(number)
-	case uint64:
-		return int64(number)
-	case float32:
-		return int64(number)
-	case float64:
-		return int64(number)
-	case json.Number:
-		n, _ := number.Int64()
-		return n
-	case string:
-		n, _ := strconv.ParseInt(number, 10, 64)
-		return n
-	}
-	return 0
-}
-
-// asString reads text out of decoded JSON or a fake.
-func asString(value any) string {
-	text, _ := value.(string)
-	return text
-}
-
-// asList reads a list out of decoded JSON or a fake.
-func asList(value any) []any {
-	items, _ := value.([]any)
-	return items
 }
