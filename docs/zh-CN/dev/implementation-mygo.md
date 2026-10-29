@@ -84,7 +84,7 @@ Go 模块与构建缓存。
 | `vfxtool sandbox e2e` | 端到端场景，夹具与真实 vfox 各一 |
 | `vfxtool sandbox package` | 发布构建与冒烟测试、`.deb`、`.tar.gz`、`.msix`/`.msixbundle`（lintian 检查），再装入干净 Ubuntu 26.04 容器 |
 | `vfxtool sandbox measure` | Home 页与列出 Node.js 版本时的内存 |
-| `vfxtool sandbox screenshots` | 各页截图 |
+| `vfxtool sandbox screenshots` | 各页截图，以及 Java、Flutter 与 Node.js 选项的截图 |
 | `vfxtool sandbox all` | `check`、`e2e` 与 `package` |
 | `vfxtool sandbox shell` | 沙箱内交互 shell |
 | `vfxtool sandbox clean` | 删除镜像、缓存卷与结果 |
@@ -121,7 +121,7 @@ Go 模块与构建缓存。
   启动应用读其 `e2e: …` 报告；场景通过应用 exit 0。场景在两帧之间主线程点按、填写、
   读取组件注册的节点（角色、名称、点击或输入作用），走真实组件、状态、进程 spawn、
   流式、带 `SIGTERM`（Windows 上 kill）的取消、设置文件与 vfox 本体。
-  `vfxtool screenshots` 跑 `screenshots` 场景。
+  `vfxtool screenshots` 跑三遍 `screenshots` 场景（见[截图](contributing.md#截图)）。
 
 ## 用户界面如何工作
 

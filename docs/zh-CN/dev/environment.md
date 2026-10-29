@@ -73,7 +73,7 @@ GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 
 要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。构建、测试与打包的命令见
 [mygo 指南](implementation-mygo.md#日常命令)。
 
-`vfxtool webheap` 测量 Web 界面的堆并截图，它驱动一个讲 DevTools Protocol 的 Chrome：用
+`vfxtool webheap` 测量 Web 界面的堆并截图（拍一个页面，或 Java 发行版之类的场景），它驱动一个讲 DevTools Protocol 的 Chrome：用
 `--chrome` 指定，或让工具去找 `google-chrome`、`chromium` 之类（见[截图](contributing.md#截图)，
 那里还说明了哪种 Chrome 能给出你要的尺寸）。对真实 vfox 的端到端场景在沙箱里运行，沙箱自带固定版本的
 vfox，所以不会碰你的 `~/.vfox`。

@@ -116,6 +116,15 @@ OpenHarmony builds). They were captured with vfox-java 0.6.3 and vfox-flutter 0.
 and the profiles of `core/profile` are tested against them: every version name of
 `search-java-all` carries a short name that the profile knows.
 
+Their versions are faked, like those of Node.js and Maven that `list` shows: the tool
+creates a directory for each version, so that nothing is downloaded. `list-profiles` and
+`current-profiles` are the `list` and the `current` of a machine that has Java (21.0.12.1+1-tem
+in use, 25.0.4+9-librca-fx and 25.0.2+10) and Flutter (3.47.7-x64 in use, 3.44.9-x64) next to
+Node.js and Maven, and `info-java` and `info-flutter` are what the two plugins say about
+themselves. The fake vfox serves them for `list` and `current` when
+`VFOX_PLUS_FAKE_INVENTORY=profiles` is set, which the screenshots of those plugins need; the
+searches and the plugin information it always serves.
+
 ## Updating for a new vfox release
 
 1. Install the new vfox release and run `vfxtool capture`. It needs

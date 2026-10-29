@@ -160,53 +160,94 @@ error instead of a diagram that it cannot parse.
 
 The images of the documentation are not committed: they are hosted on
 [freeimage.host](https://freeimage.host), a free image host that needs no
-account, and linked. `vfxtool sandbox screenshots` renders the
-screenshots into `dist/sandbox/mygo/screenshots/`, reproducibly: every page, in both
-themes and languages, the compact layout and an installation in progress, with
-the Greybird title bar of xfwm4, the way modern GNOME applications look, over
-the default wallpaper of Ubuntu instead of the black of a bare X server.
-The [user guide](../user/index.md) links `home`, `sdks`, `dark-available`,
-`installing`, `tasks`, `plugins`, `zh-settings`,
-`compact-home` and `compact-detail`. The [remote guide](../user/remote.md)
-links `webapp-en` and `webapp-zh`: the paired web interface in English and
-Simplified Chinese. Render them with the headless server and headless Chrome,
-in a language pinned for the screenshot:
+account, and linked.
+
+**The desktop application.** `vfxtool sandbox screenshots` renders the pictures
+into `dist/sandbox/mygo/screenshots/`, reproducibly: with the Greybird title bar of
+xfwm4, the way modern GNOME applications look, over the default wallpaper of
+Ubuntu instead of the black of a bare X server. It runs the `screenshots`
+scenario of the end-to-end build three times against the fake vfox, and the
+application prints `e2e: SHOT <name>` whenever the screen is to be captured:
+
+| Run | What it shows |
+| --- | --- |
+| plain | every page, in both themes and languages, and the compact layout: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings`, `compact-home`, `compact-detail` |
+| `VFOX_PLUS_FAKE_DELAY=4` | an installation in progress: `installing` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available`, `compact-java` |
+
+To take another picture, add a `s.shot("name")` to `screenshotsScenario` or to
+`profilesScreenshots` in `mygo/ui/e2e_scenarios.go`. The steps before it click and
+wait the way a person does, through the names that the user sees, so a renamed
+button fails the scenario instead of taking a wrong picture.
+
+The README and the [user guide](../user/index.md) link `home`, `sdks`,
+`dark-available`, `installing`, `tasks`, `plugins`, `zh-settings`, `compact-home`,
+`compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`.
+The [usage guide](../user/using.md) links `java-install-name` and `options-mirror`,
+and `zh-java-available` and `zh-options` in Simplified Chinese. The
+[remote guide](../user/remote.md) links `webapp-en` and `webapp-zh`, the paired web
+interface in English and Simplified Chinese, and the scene `java-temurin` of the web
+interface on a phone, in both languages (`web-phone-java-temurin` and
+`web-phone-zh-java-temurin`, taken with `--window 412,915`). The other pictures are
+there to look at when the interface changes; nothing links them.
+
+**The web interface.** Render it with the headless server and headless Chrome, in a
+language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
+that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
+that `--scene` plays: `java-available`, `java-choose`, `java-temurin`,
+`java-install-name`, `flutter-chips`, `options` and `options-mirror` (see
+`shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
+scenes click against `mygo/pair/webapp.html`). Every picture gets a server and a home
+of its own, because choosing a distribution is kept in the settings of the server, and
+a scene that chooses one would change every picture after it:
 
 ```sh
 go -C mygo build -o /tmp/vfox-plus-serve ./cmd/vfox-plus-serve
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
-mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
-HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
-  VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 NO_COLOR=1 \
-  /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
-for i in $(seq 1 30); do
-  LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
-  [ -n "$LINK" ] && break
-  sleep 1
-done
-/tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
-  --pairing "$LINK" --output /tmp/shot.txt --screenshot webapp-en.png \
-  --lang en --window 412,915 --idle 0 --chrome "$(which google-chrome)"
+
+# shoot NAME LANGUAGE WIDTH,HEIGHT [options of webheap]
+shoot() {
+  name=$1 lang=$2 window=$3; shift 3
+  rm -rf /tmp/shot-home && mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
+  HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
+    VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 VFOX_PLUS_FAKE_INVENTORY=profiles NO_COLOR=1 \
+    /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
+  server=$!
+  for i in $(seq 1 30); do
+    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
+    [ -n "$LINK" ] && break
+    sleep 1
+  done
+  /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
+    --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
+    --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
+  kill "$server"
+}
+shoot webapp-en en 412,915
+shoot web-java-temurin en 1280,800 --scene java-temurin
 ```
 
 (`PATH` first carries a `vfox` executable — a copy of `vfxtool` acts as the
-fake vfox with the fixtures — so that the SDK list has content; `--lang`
-pins the interface language; `--window 412,915` shoots the phone portrait for
-the documentation and defaults to the 1280 by 800 desktop window that CI
-measures; `--idle 0` skips the twenty seconds on the open page that the
-measurement of the heap needs; `--tab` opens one of the pages before the
-shot and `--dark` takes it in the dark theme; `--chrome` takes any Chrome that
-speaks CDP, and the tool looks for one in `$CHROME_BIN` and on `PATH` when it
-is left out.) Look at the
+fake vfox with the fixtures — so that the SDK list has content, and
+`VFOX_PLUS_FAKE_INVENTORY=profiles` makes it a machine that has Java and Flutter;
+`--lang` pins the interface language; `--window 412,915` shoots the phone portrait
+and defaults to the 1280 by 800 desktop window that CI measures; `--idle 0` skips
+the twenty seconds on the open page that the measurement of the heap needs; `--dark`
+takes the picture in the dark theme; `--chrome` takes any Chrome that speaks CDP, and
+the tool looks for one in `$CHROME_BIN` and on `PATH` when it is left out.) Look at the
 size of the picture before you upload it (`file webapp-en.png`): not every
 Chrome keeps a window that small. Chrome for Testing 156 answered
 `--window 412,915` with a picture of 500 by 715, and `chrome-headless-shell` of
 the same version gives exactly 412 by 915, so pass that one with `--chrome` when
-the size is wrong. The Android screenshot, `screenshot-android`,
+the size is wrong.
+
+**Android.** The Android screenshot, `screenshot-android`,
 comes from CI instead: the `measure` job of `android.yml` runs the release
 APK on an emulator, `vfxtool measure-apk` captures the cold start, and
 the job uploads it as the `screenshot-android` artifact. Download it with
-`gh run download` and upload it the same way. Upload a new image with
+`gh run download` and upload it the same way.
+
+**Uploading.** Upload a new image with
 
 ```sh
 curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json \

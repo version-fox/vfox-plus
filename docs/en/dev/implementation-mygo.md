@@ -97,7 +97,7 @@ the Go module and build caches in Docker volumes.
 | `vfxtool sandbox e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
 | `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
 | `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
-| `vfxtool sandbox screenshots` | Screenshots of every page |
+| `vfxtool sandbox screenshots` | Screenshots of every page, and of Java, Flutter and the options of Node.js |
 | `vfxtool sandbox all` | `check`, `e2e` and `package` |
 | `vfxtool sandbox shell` | A shell in the sandbox |
 | `vfxtool sandbox clean` | Deletes the image, the cache volumes and the results |
@@ -152,7 +152,8 @@ where you are, and `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive.
   an input does), on the main thread between two frames, so they exercise the
   real components, the state, process spawning, streaming, cancellation with
   `SIGTERM`, the settings file and vfox itself.
-  `vfxtool screenshots` runs the `screenshots` scenario.
+  `vfxtool screenshots` runs the `screenshots` scenario three times (see
+  [Screenshots](contributing.md#screenshots)).
 
 ## How the user interface works
 

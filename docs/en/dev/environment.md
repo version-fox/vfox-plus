@@ -79,7 +79,7 @@ end-to-end tests a virtual display. Add `lintian desktop-file-utils` to check a
 [the mygo guide](implementation-mygo.md#everyday-commands).
 
 `vfxtool webheap`, which measures the heap of the web interface and takes its
-screenshots, drives a Chrome that speaks the DevTools Protocol: name it with
+screenshots (of a page, or of a scene such as the distribution of Java), drives a Chrome that speaks the DevTools Protocol: name it with
 `--chrome`, or let the tool look for `google-chrome`, `chromium` and the like (see
 [Screenshots](contributing.md#screenshots), which also says which Chrome gives the
 size you ask for). The end-to-end scenarios against the real vfox run in the

@@ -104,6 +104,12 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 还有架构后缀与 OpenHarmony 构建）。它们用 vfox-java 0.6.3 与 vfox-flutter 0.2.5 捕获，`core/profile` 的
 档案据此测试：`search-java-all` 里每个版本名带的简称，档案都认识。
 
+它们的版本是伪造的，和 `list` 里的 Node.js、Maven 一样：工具为每个版本建一个目录，不下载任何东西。
+`list-profiles` 与 `current-profiles` 是一台装了 Java（正在用 21.0.12.1+1-tem，另有 25.0.4+9-librca-fx 与
+25.0.2+10）和 Flutter（正在用 3.47.7-x64，另有 3.44.9-x64），同时装着 Node.js 与 Maven 的机器的 `list` 与
+`current`；`info-java` 与 `info-flutter` 是这两个插件对自己的描述。设置了 `VFOX_PLUS_FAKE_INVENTORY=profiles`
+时，假 vfox 用它们回答 `list` 与 `current`，这两个插件的截图需要它；搜索与插件信息则始终由它回答。
+
 ## 跟进 vfox 新版
 
 1. 装新版 vfox 跑 `vfxtool capture`。需联网，约一分钟，写入 `vfox-<版本>/`。
