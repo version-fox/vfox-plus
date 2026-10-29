@@ -41,7 +41,9 @@ The plugins [vfox-java](https://github.com/version-fox/vfox-java),
 [vfox-nodejs](https://github.com/version-fox/vfox-nodejs) and
 [vfox-flutter](https://github.com/version-fox/vfox-flutter) do more than list
 versions, and vfox-plus offers all of it, in the desktop application, in the web
-interface and in the Android app alike:
+interface and in the Android app alike. A plugin that you added under another
+name, as `vfox add --alias coffee java` does, offers the same as the plugin it was
+made from:
 
 - **Distributions of Java.** A plain `vfox search java` lists OpenJDK from
   jdk.java.net only. The button above the list (**Distribution: OpenJDK**) opens a
@@ -64,6 +66,10 @@ interface and in the Android app alike:
   name that **Installed** shows afterwards.
 - **Installed names.** An installed Java version names its distribution, with
   JavaFX if it has it, and an installed Flutter version its architecture.
+
+| Install by name | A download mirror |
+| --- | --- |
+| ![The dialog that installs a version by its name](https://iili.io/n8ex6UN.png) | ![Choosing the download mirror of Node.js](https://iili.io/n8eIKvI.png) |
 
 The **Options** tab holds what is particular to the plugin:
 

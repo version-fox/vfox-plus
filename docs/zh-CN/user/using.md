@@ -30,7 +30,8 @@
 插件 [vfox-java](https://github.com/version-fox/vfox-java)、
 [vfox-nodejs](https://github.com/version-fox/vfox-nodejs) 与
 [vfox-flutter](https://github.com/version-fox/vfox-flutter) 的功能不止列出版本，vfox-plus
-把这些功能都提供出来，桌面应用、Web 界面和安卓应用都一样：
+把这些功能都提供出来，桌面应用、Web 界面和安卓应用都一样。用别名添加的插件，如
+`vfox add --alias coffee java`，与它所自出的插件提供同样的功能：
 
 - **Java 的发行版。** 单独的 `vfox search java` 只列出 jdk.java.net 上的 OpenJDK。列表上方的
   按钮（**发行版：OpenJDK**）会打开 31 个发行版的列表，例如 Temurin、Zulu、Liberica、Corretto 与
@@ -45,6 +46,10 @@
   JavaFX 的 Zulu 21，`28.ea-open` 是抢先体验版的 OpenJDK。对话框会为该插件给出这样的名称，并说明
   各自的含义。通道会被它指向的版本替换，之后在**已安装**里看到的就是那个版本名。
 - **已安装的名称。** 已安装的 Java 版本会标出发行版（带 JavaFX 时也标出），已安装的 Flutter 版本会标出架构。
+
+| 中文界面里的 Java | 中文界面里的选项 |
+| --- | --- |
+| ![中文界面里 Java 的可安装版本](https://iili.io/n8eII44.png) | ![中文界面里 Node.js 的选项](https://iili.io/n8eIaje.png) |
 
 **选项**页签放的是这个插件特有的内容：
 

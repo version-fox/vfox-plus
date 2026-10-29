@@ -24,6 +24,14 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 | --- | --- |
 | ![窄窗口主页](https://iili.io/nkxZhqN.png) | ![窄窗口 SDK 页](https://iili.io/nkxBZt2.png) |
 
+| 选择要列出的 Java 发行版 | Temurin，用 Chip 筛选长期支持版 |
+| --- | --- |
+| ![Java 的发行版](https://iili.io/n8exoAX.png) | ![Temurin 的长期支持版](https://iili.io/n8exXKQ.png) |
+
+| Flutter 的通道与架构 | Node.js 的选项 |
+| --- | --- |
+| ![稳定通道的 Flutter 版本](https://iili.io/n8ezd57.png) | ![Node.js 的选项](https://iili.io/n8ezRzg.png) |
+
 ## 它能做什么
 
 - 一眼看到已安装的 SDK、在用版本与统计。
@@ -32,6 +40,9 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 - 每次变更都是一条任务，可跟随进度、可取消、可重试。
 - 编辑 vfox 配置（代理、仓库源、存储目录、旧版版本文件、缓存、超时）与下载镜像
   等额外环境变量。
+- 提供 vfox-java、vfox-nodejs 与 vfox-flutter 在普通列表之外的功能：选择要列出的 Java
+  发行版（共 31 个）、筛选 Chip（LTS、JavaFX、通道、架构）、按名称安装与下载镜像，见
+  [Java、Node.js 与 Flutter](using.md#javanodejs-与-flutter)。
 
 vfox-plus 通过 vfox 命令行工具干活，vfox 需另行安装（见
 [vfox 安装指南](https://vfox.dev/zh-hans/guides/quick-start.html)）。

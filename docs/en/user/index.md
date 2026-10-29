@@ -26,6 +26,14 @@ colour.
 | --- | --- |
 | ![Home in a compact window](https://iili.io/nkxZhqN.png) | ![An SDK in a compact window](https://iili.io/nkxBZt2.png) |
 
+| The distribution of Java to list | Temurin, with the chip for long-term support |
+| --- | --- |
+| ![The distributions of Java](https://iili.io/n8exoAX.png) | ![Temurin releases with long-term support](https://iili.io/n8exXKQ.png) |
+
+| Flutter, with its channels and architectures | The options of Node.js |
+| --- | --- |
+| ![Flutter versions of the stable channel](https://iili.io/n8ezd57.png) | ![The options of Node.js](https://iili.io/n8ezRzg.png) |
+
 ## What it does
 
 - Shows your installed SDKs, the versions in use and statistics at a glance.
@@ -37,6 +45,10 @@ colour.
 - Edits the vfox configuration (proxy, registry, storage, legacy version
   files, caches, timeouts) and extra environment variables such as download
   mirrors.
+- Offers what vfox-java, vfox-nodejs and vfox-flutter provide beyond a plain
+  list: the distribution of Java to list (31 of them), filter chips (LTS,
+  JavaFX, channels, architectures), installation by name and download mirrors,
+  see [Java, Node.js and Flutter](using.md#java-nodejs-and-flutter).
 
 vfox-plus drives the vfox command line tool, which must be installed
 separately (see the [vfox installation guide](https://vfox.dev/guides/quick-start.html)).
