@@ -191,7 +191,12 @@ fake vfox with the fixtures — so that the SDK list has content; `--lang`
 pins the interface language; `--window 412,915` shoots the phone portrait for
 the documentation and defaults to the 1280 by 800 desktop window that CI
 measures; `--chrome` takes any Chrome that speaks CDP,
-and the script auto-detects one on `PATH` when it is left out.) The Android screenshot, `screenshot-android`,
+and the script auto-detects one on `PATH` when it is left out.) Look at the
+size of the picture before you upload it (`file webapp-en.png`): not every
+Chrome keeps a window that small. Chrome for Testing 156 answered
+`--window 412,915` with a picture of 500 by 715, and `chrome-headless-shell` of
+the same version gives exactly 412 by 915, so pass that one with `--chrome` when
+the size is wrong. The Android screenshot, `screenshot-android`,
 comes from CI instead: the `measure` job of `android.yml` runs the release
 APK on an emulator, `vfxtool measure-apk` captures the cold start, and
 the job uploads it as the `screenshot-android` artifact. Download it with
