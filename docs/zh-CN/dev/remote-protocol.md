@@ -79,7 +79,31 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 | 方法与路径 | 含义 |
 | --- | --- |
 | `GET /api/sdks/<name>/info` | 插件元数据（`core.PluginInfo`）：`{Name, Version, Homepage, InstallPath, Description}`。未知插件 404；vfox 失败 502。 |
-| `GET /api/sdks/<name>/versions` | 可安装版本（`core.AvailableVersion[]`）：`{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`。搜索可能耗时数秒；超时 504。 |
+| `GET /api/sdks/<name>/versions[?search=<value>]` | 可安装版本（`core.AvailableVersion[]`）：`{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`。`search` 是插件[配置档案](#插件配置档案)里某个选择项的值（`java` 是发行版的简称，或 `all`），成为 `vfox search` 的参数；未知的值，以及没有此类选择的插件收到任何值，都回答 400。有档案的插件，每个版本还带 `parts`（拆开的名称：`{version, source: {value, name: {en, zh}}, flavors}`）与 `facets`（`{<维度 id>: [值]}`，为空时省略），这样页面不需要自己的规则。搜索可能耗时数秒；超时 504。 |
+| `GET /api/sdks/<name>/profile` | 插件的配置档案，见下。没有档案的插件回答 404。 |
+| `PUT /api/sdks/<name>/variables` | 设置档案里列出的一个环境变量：`{key, value}`，值为空即取消。插件不读取的变量、它不接受的值与没有 key 的请求体回答 400 并附原因，没有档案的插件回答 404。值会加入设置里的额外环境。 |
+
+### 插件配置档案
+
+`GET /api/sdks/<name>/profile` 回答应用对该插件了解的内容（`mygo/core/profile`，见[架构](architecture.md#插件配置档案)）。
+每段文字都有两种语言，`{"en": …, "zh": …}`（`zh` 与 `en` 相同时省略），页面按自己的语言设置选择：
+
+```json
+{
+  "plugin": "java", "naming": "java",
+  "search": {"label": {"en": "Distribution", "zh": "发行版"}, "default": "open",
+             "choices": [{"value": "tem", "name": {"en": "Temurin"}, "maker": {"en": "Eclipse Adoptium"}, "aliases": ["temurin"], "popular": true}]},
+  "shorthands": [{"name": "21-tem", "meaning": {"en": "The newest Temurin 21", "zh": "最新的 Temurin 21"}}],
+  "variables": [{"key": "VFOX_JAVA_GITHUB_MIRROR", "label": {"en": "GitHub mirror"}, "help": {"en": "…"},
+                 "kind": "url", "presets": [{"value": "https://gh-proxy.org/", "name": {"en": "gh-proxy"}}], "example": "https://gh-proxy.org/", "value": ""}],
+  "legacyFiles": [".sdkmanrc"], "legacyStrategy": false,
+  "facets": [{"id": "support", "label": {"en": "Support"}, "values": ["LTS"]}],
+  "guide": {"en": "…"}, "tips": [{"en": "…"}], "docs": [{"title": {"en": "Versions and names"}, "url": {"en": "https://…"}}],
+  "installed": {"21.0.12.1+1-tem": {"version": "21.0.12.1+1", "source": {"value": "tem", "name": {"en": "Temurin"}}, "flavors": []}}
+}
+```
+
+`variables[].value` 是 vfox 现在运行时用的值，`installed` 把已安装版本的名称拆开。`naming` 是 `java`、`flutter` 或 `plain`。
 
 ## 任务
 

@@ -105,6 +105,17 @@ Parsers must skip lines they do not understand instead of failing, and the
 error summary follows the rules in the
 [CLI contract(vfox-cli-contract.md#errors).
 
+## Plugins of the version-fox organisation
+
+`vfxtool capture` adds vfox-java and vfox-flutter last, so that the outputs of the
+other cases do not list them, and captures their searches: `search-java` (OpenJDK, the
+list without an argument), `search-java-tem` (one distribution), `search-java-all`
+(every distribution, 2,641 versions) and `search-flutter` (457 versions on Linux x64: the
+channels as notes, the Dart SDK as the bundled tool, the architecture suffixes and the
+OpenHarmony builds). They were captured with vfox-java 0.6.3 and vfox-flutter 0.2.5,
+and the profiles of `core/profile` are tested against them: every version name of
+`search-java-all` carries a short name that the profile knows.
+
 ## Updating for a new vfox release
 
 1. Install the new vfox release and run `vfxtool capture`. It needs

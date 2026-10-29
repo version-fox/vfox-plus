@@ -150,6 +150,23 @@ Available versions:
 版本安装态以 `vfox list` 为准而非 `(installed)`，免得每次重搜。搜索可能耗时数秒，
 插件走网络（除非 vfox 缓存，`cache.availableHookDuration`）。
 
+#### 搜索参数
+
+```console
+$ vfox search java
+$ vfox search java tem
+$ vfox search java all
+```
+
+插件名后面的内容会作为 `ctx.args` 交给插件的 `Available` 钩子；多数插件忽略它，但 vfox-java 接受发行版的
+简称或全称（`tem`、`temurin`）或 `all`，列出那个发行版，而不是不带参数时列出的 jdk.java.net 上的 OpenJDK
+（Linux loong64 上是 `loongnix`、`lnxabi1` 与 `lnxabi2`）。vfox 按参数列表分别缓存答案。应用传一个参数，取自
+插件[配置档案](architecture.md#插件配置档案)里的选择项，默认项不传参数。每个参数按插件名的方式检查：不能为空、
+不能以 `-` 开头、不含空白与控制字符。`java all` 的列表有 2641 项，备注的形式有 `LTS`、`JavaFX` 与
+`LTS, JavaFX`，版本名带发行版：`21.0.12.1+1-tem`、`25.0.4+9-librca-fx`。夹具：`search-java`、
+`search-java-tem`、`search-java-all`、`search-flutter`（它的备注是通道，附带工具为 `[dart <版本>]`，最早的版本
+是空的 `[dart ]`，分支的构建带 `(OpenHarmony)`）。
+
 ### 插件仓库
 
 ```console
@@ -201,7 +218,7 @@ vfox 1.0.13 的键（1.0.12 同）：
 
 | 操作 | 命令行 | 工作目录 | 说明 |
 | --- | --- | --- | --- |
-| 安装 | `vfox install --yes <名称>@<版本>` | `/` | 进度在标准错误。无版本失败（`install-without-version`）。 |
+| 安装 | `vfox install --yes <名称>@<版本>` | `/` | 进度在标准错误。无版本失败（`install-without-version`）。版本可以是插件能解析的任何名称，见[插件能解析的名称](#插件能解析的名称)。 |
 | 卸载 | `vfox uninstall <名称>@<版本>` | `/` | 卸载当前版本 vfox 切到另一已安装版本。 |
 | 使用（全局） | `vfox use --global <名称>@<版本>` | `/` | 需 `__VFOX_SHELL`，见下。 |
 | 使用（项目） | `vfox use --project <名称>@<版本>` | 项目目录 | 写 `.vfox.toml`，链接 `.vfox/sdks`，可改 `.gitignore`。 |
@@ -213,6 +230,23 @@ vfox 1.0.13 的键（1.0.12 同）：
 | 更新全部 | `vfox update --all` | `/` | |
 
 选项永远在位置参数前。
+
+### 插件能解析的名称
+
+`<版本>` 不只是搜索列表里的名称。插件的 `PreInstall` 钩子把收到的内容变成安装包，而 version-fox 组织的
+插件能理解的不止列出的名称：vfox-nodejs 接受版本的开头（`24`、`24.21`）与 `latest`；vfox-flutter 接受通道
+`stable` 与 `beta`（可带架构后缀），并以通道指向的版本命名安装；vfox-java 接受版本加发行版（`21-tem`、
+`temurin-21`、`21.0.8-tem`、`21-zulu-fx`）或抢先体验版（`28.ea-open`）。所以应用会安装用户输入的任何名称，
+按其他版本一样检查（不能为空、不能以 `-` 开头、不含空白、不含 `@`），并在之后从 `vfox list` 取已安装的名称，
+因为通道不是已安装的名称。每个插件的[配置档案](architecture.md#插件配置档案)列出值得推荐的名称。
+
+### 插件的环境
+
+插件从 vfox 进程的环境里读环境变量，所以应用把设置里的额外环境传给每条 vfox 命令（见[环境](#环境)）：
+`VFOX_JAVA_GITHUB_MIRROR` 与 `VFOX_FLUTTER_GITHUB_MIRROR`（加在 GitHub 地址前面的前缀，必须以 `http://` 或
+`https://` 开头；vfox 会把其他值当成磁盘上的文件）、`VFOX_NODEJS_MIRROR`、`FLUTTER_STORAGE_BASE_URL` 与
+`VFOX_NODEJS_LIBC`（`musl` 或 `glibc`）。vfox 按参数列表把搜索的答案缓存 `cache.availableHookDuration`，
+与环境无关，所以更换镜像后，列表要等缓存过期才会反映出来。
 
 ### GUI 不跑的命令
 

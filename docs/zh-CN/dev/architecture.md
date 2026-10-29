@@ -129,7 +129,8 @@ flowchart TB
 - *vfox 客户端*：组装命令行、运行只读查询并解析输出，把改变状态的操作描述为
   *命令*（值）而不直接执行；
 - *设置存储*；
-- 带 ICU 消息的*翻译目录*（`core/i18n`）。
+- 带 ICU 消息的*翻译目录*（`core/i18n`）；
+- *插件配置档案*（`core/profile`），见下。
 
 它用 `shared/fixtures` 测试。
 
@@ -147,6 +148,34 @@ Material 3 Expressive 组件在 `ui/kit`，基于 mygo 元素与无样式部件�
 源码中三层是 `mygo/core`、`mygo/state`、`mygo/ui`
 （`ui/kit`、`ui/mcu`、`ui/shapes` 属 UI 层）；`core` 不知道其它层，`state` 只知道
 `core`。
+
+## 插件配置档案
+
+vfox 对每个插件都用同样的方式列出、安装、选择与移除版本，但 version-fox 组织的插件提供的更多，
+这些在 vfox 的输出里一点也看不出来：`vfox search java tem` 列出 Java 的一个发行版，而 `vfox search java`
+只列出 OpenJDK；`nodejs@24` 安装最新的 Node.js 24，`flutter@stable` 安装某个通道的版本；每个插件还会读取
+把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
+第一版的 Web 界面就是这样只显示了 Java 的 OpenJDK 列表（[#43](https://github.com/version-fox/vfox-plus/issues/43)）。
+
+*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs` 与 `flutter`：
+
+| 部分 | 内容 |
+| --- | --- |
+| 搜索 | `vfox search` 里插件名后面的参数：`java` 有 Foojay 的 31 个发行版与 `all`（Linux loong64 上改为 Loongnix JDK），以及 vfox 不带参数时用的那个 |
+| 简写 | `vfox install <插件>@<名称>` 除列出的版本外接受的名称 |
+| 变量 | 插件读取的环境变量，附已检查过的镜像，以及每个变量接受什么（`http://` 或 `https://` 地址，或少数几个值） |
+| 版本文件 | vfox 通过该插件读取的文件，以及 vfox 设置 `legacyVersionFile.strategy` 对它们是否有影响 |
+| 筛选维度 | 适合已列出版本的备注与名称的筛选：`LTS`、`JavaFX`、Flutter 的通道与架构 |
+| 命名 | 版本名称的构成，所以 `21.0.12.1+1-tem` 显示 Temurin，`3.47.7-x64` 显示 x64 |
+| 说明、须知、文档 | 几句关于名称的说明、容易让人意外的地方，以及该插件文档的链接 |
+
+档案里的文字用两种语言写在数据旁边，而不放进翻译目录，因为 Web 界面通过 HTTP 获取它们，无头服务器也不带
+翻译目录。没有档案的插件行为与从前相同。注册表是 `state.AppModel.Profiles`；端到端测试为它们的离线测试
+插件注册了一份档案。
+
+`SdkDetailController` 保存所选的搜索（`SetSearch` 会忘掉之前的列表与筛选维度；有人要列表时才加载）与所选
+筛选维度；`AppModel.SetPluginVariable` 按变量检查一个值，并把它存入设置里的额外环境变量，每个 vfox 进程
+都带着它运行。
 
 ## 与 vfox 对话
 

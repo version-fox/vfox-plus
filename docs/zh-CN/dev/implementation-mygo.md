@@ -11,7 +11,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 | 目录 | 职责 |
 | --- | --- |
-| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录——无 UI |
+| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs 与 vfox-flutter 的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
 | [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面、对话框与端到端场景 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |

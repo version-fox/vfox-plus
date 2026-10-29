@@ -179,6 +179,7 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
 | Loading indicator (contained and uncontained) | [Loading indicator](https://m3.material.io/components/loading-indicator) | `LoadingIndicator` in `ui/kit/loading.go` |
 | Wavy linear progress indicator (determinate and indeterminate) | [Progress indicators](https://m3.material.io/components/progress-indicators) | `WavyProgress` in `ui/kit/loading.go` |
 | Segmented lists | [Lists](https://m3.material.io/components/lists) | `ListGroup`, `ListItem` in `ui/kit/list.go` |
+| Filter chips | [Chips](https://m3.material.io/components/chips) | `FilterChip` in `ui/kit/chip.go` |
 | Search bar, cards, dialogs, menus, snack bars, switches, text fields | Material 3 | `SearchBar`, `Card`, `Menu`, dialogs and snack bars in `ui/kit`, themed in `ui/kit/theme.go` |
 
 ### Wavy progress indicator
@@ -189,6 +190,20 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
   wavelength is 40 dp when determinate and 20 dp when indeterminate.
 - Determinate: the wave flattens below 10 % and above 95 %, and a 2 dp stop
   indicator marks the end of the track.
+
+### Filter chip
+
+- 32 dp high, 12 dp padding, label `labelLarge`. Off: an 8 dp pill with a 1 dp
+  `outlineVariant` outline and `onSurfaceVariant` content. On: a
+  `secondaryContainer` pill with `onSecondaryContainer` content, no outline, a
+  check mark in front.
+- The chip morphs with the fast spatial spring when its state changes: the
+  corners grow from 8 dp to the full height as the filter comes on, the outline
+  fades out, the fill fades in, and a check mark of 18 dp slides in by widening
+  the chip; while the chip is pressed its corners pinch to 4 dp.
+- A row of chips wraps; the chips of one row are alternatives. The web interface
+  draws the same chip in CSS (`.chip`), with the same radii and the same spring
+  as a `cubic-bezier(.34, 1.3, .64, 1)` curve.
 
 ### Loading indicator
 

@@ -37,14 +37,17 @@ local function server()
 end
 
 function PLUGIN:Available(ctx)
-    return {
-        {
-            version = "2.0.0",
-            note = "LTS",
-            addition = { { name = "testtool", version = "2.0" } },
-        },
-        { version = "1.0.0" },
+    local lts = {
+        version = "2.0.0",
+        note = "LTS",
+        addition = { { name = "testtool", version = "2.0" } },
     }
+    -- `vfox search testsdk lts` lists the releases with long-term support only: the
+    -- plugin takes an argument, like vfox-java takes the name of a distribution.
+    if ctx.args ~= nil and ctx.args[1] == "lts" then
+        return { lts }
+    end
+    return { lts, { version = "1.0.0" } }
 end
 
 function PLUGIN:PreInstall(ctx)

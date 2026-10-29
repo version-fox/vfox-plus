@@ -135,7 +135,8 @@ flowchart TB
   parses their output, and describes state-changing operations as *commands*
   (values) instead of running them;
 - the *settings store*;
-- the *translation catalogues* with their ICU messages (`core/i18n`).
+- the *translation catalogues* with their ICU messages (`core/i18n`);
+- the *plugin profiles* (`core/profile`), see below.
 
 It is tested against `shared/fixtures`.
 
@@ -158,6 +159,43 @@ without a UI framework, like `core` and `state`.
 In the sources the layers are `mygo/core`, `mygo/state` and `mygo/ui`
 (`ui/kit`, `ui/mcu` and `ui/shapes` are part of the UI layer); `core` knows
 nothing of the others, and `state` only knows `core`.
+
+## Plugin profiles
+
+vfox lists, installs, selects and removes versions the same way for every plugin,
+but the plugins of the version-fox organisation offer more, and none of it shows
+in the output of vfox: `vfox search java tem` lists one distribution of Java
+where `vfox search java` lists OpenJDK only, `nodejs@24` installs the newest
+Node.js 24 and `flutter@stable` the release of a channel, and each plugin reads
+environment variables that move its downloads to a mirror and version files such
+as `.nvmrc`. Without knowing this, an interface can only offer what every plugin
+has in common, which is how the web interface of the first version came to show
+the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
+
+A *profile* (`core/profile`) writes it down, as plain data that the three
+interfaces share, for `java`, `nodejs` and `flutter`:
+
+| Part | What it is |
+| --- | --- |
+| Search | What follows the plugin name in `vfox search`: for `java` the 31 distributions of Foojay and `all` (on Linux for loong64 the Loongnix JDKs instead), with the one vfox uses without an argument |
+| Shorthands | Names that `vfox install <plugin>@<name>` accepts besides the listed versions |
+| Variables | The environment variables the plugin reads, with the mirrors that were checked, and what each takes (an `http://` or `https://` address, or one of a few values) |
+| Version files | The files vfox reads through the plugin, and whether the vfox setting `legacyVersionFile.strategy` matters for them |
+| Facets | The filters that suit the notes and the names of the listed versions: `LTS`, `JavaFX`, the channels and the architectures of Flutter |
+| Naming | How a version name is put together, so that `21.0.12.1+1-tem` shows Temurin and `3.47.7-x64` shows x64 |
+| Guide, tips, docs | A few sentences on the names, the things that surprise people and links to the documentation of the plugin |
+
+The texts of a profile are written in both languages next to the data, not in
+the catalogues, because the web interface gets them over HTTP and the headless
+server does not carry the catalogues. A plugin without a profile behaves as before.
+The registry is `state.AppModel.Profiles`; the end-to-end tests register a profile
+for their offline test plugin.
+
+`SdkDetailController` carries the chosen search (`SetSearch` forgets the earlier
+list and the facets; the list loads when somebody asks for it) and the chosen
+facets, and `AppModel.SetPluginVariable` checks a value against its variable and
+stores it in the extra environment of the settings, which every vfox process runs
+with.
 
 ## Talking to vfox
 

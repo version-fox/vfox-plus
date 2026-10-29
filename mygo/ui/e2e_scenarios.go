@@ -177,6 +177,31 @@ func realScenario(s *scenario) {
 		}
 	}
 	check(notes == 1, "the note is shown once")
+
+	// The plugin takes an argument, which the real vfox hands to its Available hook:
+	// the long-term support releases only. A chip of the notes narrows the list in the
+	// same way, without asking vfox again.
+	s.step("choose what to list")
+	s.clickButton("LTS")
+	s.waitForText("1 version")
+	s.clickButton("Clear filters")
+	s.waitForText("2 versions")
+	s.clickButton("Channel: Every version")
+	s.waitForText("Long-term support")
+	s.clickItem("Long-term support")
+	s.waitForText("Channel: Long-term support")
+	s.waitUntil("the list of the long-term support releases", func() bool {
+		versions, ok := a.detailFor("testsdk").controller.Versions.Value()
+		return ok && len(versions) == 1
+	}, defaultWait)
+	versions, _ := a.detailFor("testsdk").controller.Versions.Value()
+	check(versions[0].Version == "2.0.0" && versions[0].Note == "LTS", "vfox passed the argument to the plugin")
+	check(strings.Contains(s.vfox("search", "testsdk", "lts"), "2.0.0") && !strings.Contains(s.vfox("search", "testsdk", "lts"), "1.0.0"), "vfox itself lists the same")
+	s.waitForText("1 version")
+	s.clickButton("Channel: Long-term support")
+	s.clickItem("Every version")
+	s.waitForText("2 versions")
+
 	s.clickButtonNear("2.0.0", "Install")
 	s.waitForTask("Install testsdk@2.0.0")
 	progress, _ := s.newestTask().Progress()
@@ -201,11 +226,17 @@ func realScenario(s *scenario) {
 	check(!strings.Contains(s.vfox("list", "testsdk"), "1.0.0"), "vfox does not list the partial version")
 	control("release")
 	pause(500)
-	s.clickButtonNear("1.0.0", "Install")
+	// Install it again by its name, which vfox looks up while it installs.
+	s.step("install by name")
+	s.clickButton("Install by name…")
+	s.waitForText("Install testsdk by name")
+	s.fill("Version name", "1.0.0", false)
+	s.tapDialog(true)
 	s.waitForTask("Install testsdk@1.0.0")
 
 	// Make 2.0.0 the global default.
 	s.step("use")
+	s.navigate("SDKs")
 	s.clickButton("Installed (2)")
 	s.waitForText("1.0.0")
 	s.clickButtonNear("2.0.0", "Use")

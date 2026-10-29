@@ -96,6 +96,14 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 解析器跳过不认识的行，不失败；错误摘要规则见
 [CLI 契约(vfox-cli-contract.md#错误)。
 
+## version-fox 组织的插件
+
+`vfxtool capture` 最后才添加 vfox-java 与 vfox-flutter，这样其他用例的输出里就不会列出它们，并捕获它们的
+搜索：`search-java`（OpenJDK，不带参数的列表）、`search-java-tem`（一个发行版）、`search-java-all`
+（全部发行版，2641 个版本）与 `search-flutter`（Linux x64 上 457 个版本：备注是通道，附带工具是 Dart SDK，
+还有架构后缀与 OpenHarmony 构建）。它们用 vfox-java 0.6.3 与 vfox-flutter 0.2.5 捕获，`core/profile` 的
+档案据此测试：`search-java-all` 里每个版本名带的简称，档案都认识。
+
 ## 跟进 vfox 新版
 
 1. 装新版 vfox 跑 `vfxtool capture`。需联网，约一分钟，写入 `vfox-<版本>/`。
