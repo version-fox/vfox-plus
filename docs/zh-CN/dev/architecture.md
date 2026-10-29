@@ -314,4 +314,5 @@ Android 客户端（`android/`）连同一个服务：它是包住 `/app` 的 We
 配对流程是原生 Material 3 Expressive（粘贴配对链接、核对证书指纹），
 手机以此驱动 PC 上的 vfox-plus 实例。Web 界面本身遵循
 [设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），
-因为配对服务只提供单个无外部请求的嵌入页面。
+因为配对服务只提供单个无外部请求的嵌入页面。`/manifest.webmanifest` 的 Web 应用清单
+让 Chromium 系浏览器能把该页面安装为应用，图标相同。

@@ -241,7 +241,7 @@ One drawing serves every platform:
 | Android launcher | `ic_launcher_background.xml`, `ic_launcher_foreground.xml` and `ic_launcher_monochrome.xml` in [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) | The adaptive icon: the launcher masks the full-bleed plate and the fox. The monochrome layer, for the themed icons of Android 13, has the cheeks at half strength and the eyes and the nose cut out. |
 | Android pairing screen | `ic_mark.xml` in the same directory | The master as a vector drawable. |
 | Windows | `Assets/*.png` in the `.msix` | Drawn by `vfxtool build-msix` from the same paths ([`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)), because no image is committed. |
-| Web interface | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | The plate and the fox without the halo, and the fox larger, which still reads at 16 px. Every page of the pairing server inlines it as a data URI (`favicon.go`), so that the pages make no request for an icon. |
+| Web interface | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | The plate and the fox without the halo, and the fox larger, which still reads at 16 px. Every page of the pairing server inlines it as a data URI (`favicon.go`), so that the pages make no request for an icon; the web interface shows it as the brand mark of its navigation rail, and its web app manifest names it as the icon of the installed application (an SVG icon of the size `any` is one that Chromium accepts for installing). |
 
 The SVG is the master: the vector drawables, `appicon` and the favicon repeat its
 paths, and `go test` in `shared/tooling` (the first two) and in `mygo/pair` (the

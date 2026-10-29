@@ -362,4 +362,6 @@ pairing link, compare the certificate fingerprint), so a phone drives the
 vfox-plus instance on a PC. The web interface itself follows the
 [design system](design-system.md) (seed colour, shapes, motion) with inlined
 assets, the favicon among them, because the pairing server serves a single
-embedded page with no external requests.
+embedded page with no external requests. A web app manifest at
+`/manifest.webmanifest` lets Chromium browsers install the page as an application
+with the same icon.

@@ -30,10 +30,13 @@ import (
 //go:embed webapp.html
 var webappHTML []byte
 
-// webappBefore and webappAfter are the page on both sides of the favicon
-// placeholder. The page is written in three parts, so that serving it copies
-// nothing.
-var webappBefore, webappAfter, _ = bytes.Cut(webappHTML, []byte(faviconPlaceholder))
+// The page around its two placeholders: the favicon link in the head, and the
+// icon in the brand mark of the navigation rail. The page is written in
+// pieces, so that serving it copies nothing.
+var (
+	webappHead, webappRest, _   = bytes.Cut(webappHTML, []byte(faviconPlaceholder))
+	webappMiddle, webappTail, _ = bytes.Cut(webappRest, []byte(logoPlaceholder))
+)
 
 // Web UI routes served by Server when it owns an AppModel:
 //
@@ -63,9 +66,11 @@ func (s *Server) serveApp(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	writer.Header().Set("Cache-Control", "no-store")
-	_, _ = writer.Write(webappBefore)
+	_, _ = writer.Write(webappHead)
 	_, _ = io.WriteString(writer, faviconLink)
-	_, _ = writer.Write(webappAfter)
+	_, _ = writer.Write(webappMiddle)
+	_, _ = io.WriteString(writer, faviconURI)
+	_, _ = writer.Write(webappTail)
 }
 
 func (s *Server) requireModel(writer http.ResponseWriter) *state.AppModel {

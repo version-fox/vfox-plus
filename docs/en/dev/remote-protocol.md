@@ -14,8 +14,8 @@ against. The implementation is `mygo/pair/pair.go` (`Server`), `web.go` and
   once and expire after `--token-ttl` (default 5 minutes). Opening one pairs
   the browser: the server answers `Set-Cookie: vfox-plus-session=<session>`
   (`Secure`, `HttpOnly`, `SameSite=Lax`).
-- A **session** cookie authenticates every route except `/` and
-  `/auth/connect/*`. `serve` sessions expire after `--session-ttl` (default 24
+- A **session** cookie authenticates every route except `/`,
+  `/auth/connect/*` and `/manifest.webmanifest`. `serve` sessions expire after `--session-ttl` (default 24
   hours); expired sessions answer 401 and must pair again.
 - State-changing routes additionally require a same-origin `Origin` or
   `Referer` when the caller sends one; requests without either (like curl)
@@ -57,6 +57,16 @@ explicit `--allow-remote` (the published Docker image opts in through its
 embedded page: no external requests, all assets inlined, `Cache-Control:
 no-store`. It follows the [design system](design-system.md) (seed colour,
 shapes, motion) with inlined SVG icons.
+
+`GET /manifest.webmanifest` (no session) serves the web app manifest of the web
+interface (`application/manifest+json`, `Cache-Control: no-cache`): `name` and
+`short_name` `vfox+`, `id` and `start_url` `/app`, `scope` `/`, `display`
+`standalone`, the colours of the page, and one icon, the favicon as an
+SVG data URI of the size `any`. Chromium browsers offer to install the web interface
+as an application with it. It needs no session because it names only the
+application and its start page, and because a browser may process a manifest without
+the page that links it (the specification mentions installing from a sync service),
+and so without the session cookie.
 
 ## Inventory
 

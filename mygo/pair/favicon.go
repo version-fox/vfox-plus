@@ -26,13 +26,21 @@ import (
 //go:embed favicon.svg
 var faviconSVG string
 
-// faviconPlaceholder marks the place of the favicon in the head of a page.
-const faviconPlaceholder = "<!--favicon-->"
+// faviconPlaceholder marks the place of the favicon link in the head of a
+// page, and logoPlaceholder the place of the same icon as a data URI in the
+// src of the brand mark of the web interface.
+const (
+	faviconPlaceholder = "<!--favicon-->"
+	logoPlaceholder    = "<!--logo-->"
+)
 
-// faviconLink is the link of the favicon. The SVG is inlined as a data URI,
-// like the other assets of the pages: the server answers no request for an
-// icon, and the web interface stays a single page without requests of its own.
-var faviconLink = `<link rel="icon" type="image/svg+xml" href="` + faviconDataURI(faviconSVG) + `">`
+// faviconURI is the favicon as a data URI. The pages inline it, like their
+// other assets: the server answers no request for an icon, and the web
+// interface stays a single page without requests of its own.
+var faviconURI = faviconDataURI(faviconSVG)
+
+// faviconLink is the link of the favicon.
+var faviconLink = `<link rel="icon" type="image/svg+xml" href="` + faviconURI + `">`
 
 // withFavicon puts the favicon in a page text with a faviconPlaceholder.
 func withFavicon(page string) string {

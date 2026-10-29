@@ -16,6 +16,7 @@ package pair
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"os"
 	"path/filepath"
@@ -75,17 +76,63 @@ func TestFaviconLink(t *testing.T) {
 	}
 }
 
-func TestWebappHasAPlaceholderForTheFavicon(t *testing.T) {
-	if bytes.Count(webappHTML, []byte(faviconPlaceholder)) != 1 || len(webappAfter) == 0 {
-		t.Fatalf("webapp.html needs exactly one %s", faviconPlaceholder)
+func TestWebappHasItsPlaceholders(t *testing.T) {
+	for _, placeholder := range []string{faviconPlaceholder, logoPlaceholder} {
+		if bytes.Count(webappHTML, []byte(placeholder)) != 1 {
+			t.Fatalf("webapp.html needs exactly one %s", placeholder)
+		}
 	}
-	if !bytes.Contains(webappBefore, []byte("<head>")) || !bytes.Contains(webappAfter, []byte("</head>")) {
-		t.Error("the placeholder belongs in the head")
+	// The pieces put the page together again, with the favicon in the head and the icon in
+	// the src of the brand mark.
+	whole := string(webappHead) + faviconPlaceholder + string(webappMiddle) + logoPlaceholder + string(webappTail)
+	if whole != string(webappHTML) {
+		t.Fatal("the pieces of the page are not the page")
+	}
+	if !bytes.Contains(webappHead, []byte("<head>")) || !bytes.Contains(webappMiddle, []byte("</head>")) {
+		t.Error("the favicon belongs in the head")
+	}
+	if !bytes.HasSuffix(webappMiddle, []byte(`<img class="mark" src="`)) || !bytes.HasPrefix(webappTail, []byte(`"`)) {
+		t.Error("the icon belongs in the src of the brand mark")
 	}
 	for name, page := range map[string]string{"intro": introTemplate.Tree.Root.String(), "connect": connectTemplate.Tree.Root.String()} {
 		if !strings.Contains(page, `rel="icon"`) || strings.Contains(page, faviconPlaceholder) {
 			t.Errorf("the %s page has no favicon, or still the placeholder", name)
 		}
+	}
+}
+
+func TestManifest(t *testing.T) {
+	var manifest webManifest
+	if err := json.Unmarshal(manifestJSON, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Name != "vfox+" || manifest.ShortName != "vfox+" || manifest.Display != "standalone" {
+		t.Errorf("manifest = %+v", manifest)
+	}
+	// The start page and the scope are the ones of the web interface, and relative: the server
+	// has the address of every machine it runs on.
+	if manifest.StartURL != "/app" || manifest.ID != "/app" || manifest.Scope != "/" {
+		t.Errorf("start_url %q, id %q, scope %q", manifest.StartURL, manifest.ID, manifest.Scope)
+	}
+	// What Chromium asks of an installable icon: a square PNG, SVG or WebP of the purpose "any", at
+	// least 144 px or of any size.
+	if len(manifest.Icons) != 1 {
+		t.Fatalf("icons = %+v", manifest.Icons)
+	}
+	icon := manifest.Icons[0]
+	if icon.Type != "image/svg+xml" || icon.Sizes != "any" || icon.Purpose != "any" || icon.Src != faviconURI {
+		t.Errorf("icon type %q, sizes %q, purpose %q, the favicon: %t", icon.Type, icon.Sizes, icon.Purpose, icon.Src == faviconURI)
+	}
+	// The colours are those of the page.
+	page := string(webappHTML)
+	if !strings.Contains(page, `<meta name="theme-color" content="`+manifest.ThemeColor+`">`) {
+		t.Errorf("theme_color %s is not the theme-color of the page", manifest.ThemeColor)
+	}
+	if !strings.Contains(page, "--m3-background: "+manifest.BackgroundColor+";") {
+		t.Errorf("background_color %s is not the light background of the page", manifest.BackgroundColor)
+	}
+	if !strings.Contains(page, `<link rel="manifest" href="/manifest.webmanifest">`) {
+		t.Error("the page does not link its manifest")
 	}
 }
 

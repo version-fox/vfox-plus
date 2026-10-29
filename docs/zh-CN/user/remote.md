@@ -15,6 +15,11 @@ vfox-plus pair
 
 ![配对后的 Web 界面](https://iili.io/nv67G94.png)
 
+Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
+按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，`serve`
+生成的自签名证书不行。已安装的应用显示配对页时，再运行一次 `vfox-plus pair`，
+打开新的链接即可。
+
 一个 server 拥有应用状态：桌面在设置里打开远端访问（默认关闭）并运行时，
 `pair` 连的就是桌面自己；否则连后台服务或回环 `serve`（有的话），都没有才
 起自己的一次性服务。桌面版 `vfox-plus` 与 headless 版 `vfox-plus-serve`

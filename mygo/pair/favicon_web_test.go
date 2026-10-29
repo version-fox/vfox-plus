@@ -15,6 +15,7 @@
 package pair_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"strings"
@@ -61,5 +62,61 @@ func TestPagesCarryTheFavicon(t *testing.T) {
 		if !strings.HasPrefix(strings.TrimSpace(page), "<!--") && !strings.HasPrefix(strings.TrimSpace(page), "<!doctype html>") {
 			t.Errorf("the %s page does not start as a page: %.40s", name, page)
 		}
+	}
+}
+
+// The manifest needs no session: a browser fetches it without the cookie of the page, and
+// its icon is the favicon that the pages carry.
+func TestManifestIsServed(t *testing.T) {
+	server := webServer(t, testModel(t, testsupport.FixtureRunner()))
+	response, err := http.Get(server.BaseURL() + "/manifest.webmanifest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode != http.StatusOK || response.Header.Get("Content-Type") != "application/manifest+json" {
+		t.Fatalf("status %d, content type %q", response.StatusCode, response.Header.Get("Content-Type"))
+	}
+	var manifest struct {
+		Name     string `json:"name"`
+		StartURL string `json:"start_url"`
+		Icons    []struct {
+			Src   string `json:"src"`
+			Sizes string `json:"sizes"`
+			Type  string `json:"type"`
+		} `json:"icons"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Name != "vfox+" || manifest.StartURL != "/app" || len(manifest.Icons) != 1 || manifest.Icons[0].Sizes != "any" || manifest.Icons[0].Type != "image/svg+xml" {
+		t.Fatalf("manifest = %+v", manifest)
+	}
+	status, app := webGet(t, server.BaseURL()+"/app", webSession(t, server))
+	if status != http.StatusOK {
+		t.Fatalf("app: got %d", status)
+	}
+	if !strings.Contains(app, `<link rel="manifest" href="/manifest.webmanifest">`) {
+		t.Error("the web interface does not link its manifest")
+	}
+	href := regexp.MustCompile(`<link rel="icon" type="image/svg\+xml" href="([^"]+)">`).FindStringSubmatch(app)
+	if href == nil || href[1] != manifest.Icons[0].Src {
+		t.Error("the icon of the manifest is not the favicon of the page")
+	}
+	// The same icon is the brand mark of the navigation rail, in place of the "v+" it had.
+	if !strings.Contains(app, `<img class="mark" src="`+manifest.Icons[0].Src+`"`) || strings.Contains(app, `>v+<`) {
+		t.Error("the navigation rail does not show the icon")
+	}
+	request, err := http.NewRequest(http.MethodPost, server.BaseURL()+"/manifest.webmanifest", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	post, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = post.Body.Close() }()
+	if post.StatusCode != http.StatusMethodNotAllowed || post.Header.Get("Allow") != "GET, HEAD" {
+		t.Errorf("POST: status %d, Allow %q", post.StatusCode, post.Header.Get("Allow"))
 	}
 }

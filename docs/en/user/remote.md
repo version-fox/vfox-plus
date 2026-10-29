@@ -16,6 +16,13 @@ live progress and logs, and the settings.
 
 ![The paired web interface](https://iili.io/nv67lFs.png)
 
+Chrome and Edge can install the paired interface as an application, with a window
+of its own and the vfox+ icon (the install button in the address bar, or *Install*
+in the menu). They offer it on the machine itself and over HTTPS with a certificate
+that they trust, not over the self-signed one that `serve` generates. When the
+installed application shows the pairing page, run `vfox-plus pair` again and open
+the new link.
+
 One server owns the application state: while the desktop application runs
 with Remote access switched on in its Settings (off by default), `pair` links
 to the desktop itself; otherwise it links to the background

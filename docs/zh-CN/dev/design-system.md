@@ -199,7 +199,7 @@ mygo 不能设字体 fill 轴，故同时打包描边与填充（改家族名，
 | 安卓启动器 | [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) 里的 `ic_launcher_background.xml`、`ic_launcher_foreground.xml` 与 `ic_launcher_monochrome.xml` | 自适应图标：启动器给铺满的底板和狐狸加遮罩。单色层供安卓 13 的主题图标，脸颊半强度，眼睛和鼻子镂空。 |
 | 安卓配对界面 | 同目录的 `ic_mark.xml` | 母版的矢量绘制版。 |
 | Windows | `.msix` 里的 `Assets/*.png` | 不提交任何图片，故由 `vfxtool build-msix` 用同样的路径（[`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)）绘制。 |
-| Web 界面 | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | 底板与狐狸，去掉光晕，狐狸更大，16 px 下仍可辨认。配对服务的每个页面都把它以 data URI 内联（`favicon.go`），页面不为图标另发请求。 |
+| Web 界面 | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | 底板与狐狸，去掉光晕，狐狸更大，16 px 下仍可辨认。配对服务的每个页面都把它以 data URI 内联（`favicon.go`），页面不为图标另发请求；Web 界面用它作导航栏的品牌标志，Web 应用清单把它写成已安装应用的图标（尺寸为 `any` 的 SVG 图标是 Chromium 接受用于安装的图标）。 |
 
 SVG 是母版：矢量绘制、`appicon` 与 favicon 重复它的路径，不一致时 `shared/tooling`
 （前两者）与 `mygo/pair`（favicon）的 `go test` 失败。
