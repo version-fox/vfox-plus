@@ -33,6 +33,7 @@ import (
 const (
 	tabInstalled = "installed"
 	tabAvailable = "available"
+	tabOptions   = "options"
 )
 
 // narrowHeader is the width in dp below which the header of the details puts its
@@ -49,8 +50,8 @@ type detailState struct {
 	controller *state.SdkDetailController
 	tab        string
 	stops      []func()
-	// installed and available keep the place of the two lists.
-	installed, available mui.ListState
+	// installed, available and options keep the place of the three lists.
+	installed, available, options mui.ListState
 }
 
 func (d *detailState) dispose() {
@@ -71,6 +72,11 @@ func (a *App) detailFor(name string) *detailState {
 	}
 	controller := a.model.SdkDetail(name)
 	d := &detailState{name: name, controller: controller, tab: tabInstalled}
+	if value := a.pages.searches[name]; value != "" {
+		// The choice that was made before the details were closed; it does not search
+		// until the available versions are asked for.
+		_ = controller.SetSearch(value)
+	}
 	controller.Info.Load()
 	d.stops = append(d.stops,
 		controller.AddListener(a.invalidate),
@@ -87,8 +93,11 @@ func (a *App) detailFor(name string) *detailState {
 
 func (a *App) showTab(d *detailState, tab string) {
 	d.tab = tab
-	if tab == tabAvailable {
+	switch tab {
+	case tabAvailable:
 		d.controller.Versions.EnsureLoaded()
+	case tabOptions:
+		a.model.VfoxConfig.EnsureLoaded()
 	}
 	a.invalidate()
 }
@@ -123,12 +132,15 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 		installed[version] = true
 	}
 	tabs := func() {
+		segments := []kit.Segment{
+			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: "versions"},
+			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: "install"},
+		}
+		if d.controller.HasProfile {
+			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: "options"})
+		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
-			ID: "tabs", Selected: d.tab, OnSelect: func(tab string) { a.showTab(d, tab) },
-			Segments: []kit.Segment{
-				{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: "versions"},
-				{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: "install"},
-			},
+			ID: "tabs", Selected: d.tab, OnSelect: func(tab string) { a.showTab(d, tab) }, Segments: segments,
 		}).AlignSelf(mui.Start).Margin(0, gapXL, gapL, gapXL)
 	}
 	head := []func(){
@@ -137,11 +149,15 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 	}
 	var body detailBody
 	list := &d.installed
-	if d.tab == tabInstalled {
-		body = a.installedBody(k, d, sdk)
-	} else {
+	switch d.tab {
+	case tabAvailable:
 		body = a.availableBody(k, d, sdk, installed)
 		list = &d.available
+	case tabOptions:
+		body = a.optionsBody(k, d)
+		list = &d.options
+	default:
+		body = a.installedBody(k, d, sdk)
 	}
 	list.Key = func(i int) any {
 		switch {
@@ -183,7 +199,13 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 		count: len(sdk.Versions),
 		key:   func(i int) any { return "iv:" + sdk.Versions[i] },
 		item: func(i int) {
-			a.installedVersionRow(k, sdk, sdk.Versions[i], kit.PositionOf(i, len(sdk.Versions))).
+			var line string
+			if d.controller.HasProfile {
+				if parts, ok := d.controller.Profile.Describe(sdk.Versions[i]); ok {
+					line = a.partsLine(parts)
+				}
+			}
+			a.installedVersionRow(k, sdk, sdk.Versions[i], line, kit.PositionOf(i, len(sdk.Versions))).
 				Margin(0, gapXL, hairline, gapXL)
 		},
 	}
@@ -191,32 +213,50 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 
 func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, installed map[string]bool) detailBody {
 	controller := d.controller
+	actions := func() { a.availableActions(k, d) }
 	if !controller.Versions.HasValue() {
-		if err := controller.Versions.Error(); err != nil {
-			return single("status", func() {
-				a.errorView(k, a.T("availableError", "name", sdk.Name), err, func() { controller.Versions.Load() })
-			})
+		// The buttons stay: the user may choose another search while this one loads, or
+		// when it fails.
+		return detailBody{
+			count: 2,
+			key:   func(i int) any { return [2]string{"actions", "status"}[i] },
+			item: func(i int) {
+				if i == 0 {
+					actions()
+					return
+				}
+				mui.Column(k.Context).Height(320).Children(func() {
+					if err := controller.Versions.Error(); err != nil {
+						a.errorView(k, a.T("availableError", "name", sdk.Name), err, func() { controller.Versions.Load() })
+					} else {
+						a.loadingView(k, a.T("availableLoading"))
+					}
+				})
+			},
 		}
-		return single("status", func() { a.loadingView(k, a.T("availableLoading")) })
 	}
 	visible := controller.VisibleVersions(installed)
 	cs := k.Colors()
 	toolbar := func() {
-		mui.Row(k.Context).Wrap().Gap(gapM).GapY(gapS).Margin(0, gapXL, gapM, gapXL).Children(func() {
-			kit.TextField(k, kit.TextFieldSpec{
-				ID: "filter", Hint: a.T("availableSearchHint"), LeadingIcon: "search", Dense: true,
-				Value: controller.Query(), OnChange: controller.SetQuery,
-			}).Width(280)
-			kit.ButtonGroup(k, kit.ButtonGroupSpec{
-				ID: "filters", Selected: string(controller.Filter()),
-				OnSelect: func(value string) { controller.SetFilter(state.VersionFilter(value)) },
-				Segments: []kit.Segment{
-					{Value: string(state.VersionFilterAll), Label: a.T("availableFilterAll")},
-					{Value: string(state.VersionFilterWithNote), Label: a.T("availableFilterTagged")},
-					{Value: string(state.VersionFilterInstalled), Label: a.T("availableFilterInstalled")},
-				},
+		mui.Column(k.Context).Children(func() {
+			actions()
+			mui.Row(k.Context).Wrap().Gap(gapM).GapY(gapS).Margin(0, gapXL, gapM, gapXL).Children(func() {
+				kit.TextField(k, kit.TextFieldSpec{
+					ID: "filter", Hint: a.T("availableSearchHint"), LeadingIcon: "search", Dense: true,
+					Value: controller.Query(), OnChange: controller.SetQuery,
+				}).Width(280)
+				kit.ButtonGroup(k, kit.ButtonGroupSpec{
+					ID: "filters", Selected: string(controller.Filter()),
+					OnSelect: func(value string) { controller.SetFilter(state.VersionFilter(value)) },
+					Segments: []kit.Segment{
+						{Value: string(state.VersionFilterAll), Label: a.T("availableFilterAll")},
+						{Value: string(state.VersionFilterWithNote), Label: a.T("availableFilterTagged")},
+						{Value: string(state.VersionFilterInstalled), Label: a.T("availableFilterInstalled")},
+					},
+				})
+				kit.Label(k, a.T("availableCount", "count", len(visible)), kit.Type(kit.LabelLarge), cs.OnSurfaceVariant)
 			})
-			kit.Label(k, a.T("availableCount", "count", len(visible)), kit.Type(kit.LabelLarge), cs.OnSurfaceVariant)
+			a.facetRow(k, controller)
 		})
 	}
 	if len(visible) == 0 {
@@ -230,6 +270,13 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 				}
 				kit.StatusMessage(k, kit.StatusSpec{Icon: "notFound", Title: a.T("availableEmpty")}).Height(320)
 			},
+		}
+	}
+	// A search that lists several distributions says which one a version is of.
+	showSource := false
+	if controller.HasProfile {
+		if choice, ok := controller.Profile.Search.Choice(controller.Search()); ok {
+			showSource = choice.Everything
 		}
 	}
 	return detailBody{
@@ -246,7 +293,13 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 				return
 			}
 			version := visible[i-1]
-			a.availableVersionRow(k, sdk.Name, version, installed[version.Version], kit.PositionOf(i-1, len(visible))).
+			source := ""
+			if showSource {
+				if parts, ok := controller.Profile.Describe(version.Version); ok {
+					source = a.text(parts.Source)
+				}
+			}
+			a.availableVersionRow(k, sdk.Name, version, source, installed[version.Version], kit.PositionOf(i-1, len(visible))).
 				Margin(0, gapXL, hairline, gapXL)
 		},
 	}
@@ -349,7 +402,7 @@ func (a *App) itemWraps() bool { return a.pages.detailWidth-2*gapXL < wrapWidth 
 
 // installedVersionRow is an installed version, with the buttons that use it,
 // copy its path and uninstall it.
-func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version string, position kit.Position) mui.Element {
+func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version, line string, position kit.Position) mui.Element {
 	cs := k.Colors()
 	current := sdk.HasCurrent && sdk.Current == version
 	task := a.model.Tasks.ActiveTask("", sdk.Name, version)
@@ -394,13 +447,14 @@ func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version stri
 		leadingIcon, leadingFill, leadingColor = "current", 1, cs.Primary
 	}
 	return kit.ListItem(k, kit.ListItemSpec{
-		ID: "iv:" + version, Title: version, TitleStyle: &titleStyle, Position: position, Wrap: a.itemWraps(), Trailing: trailing,
+		ID: "iv:" + version, Title: version, TitleStyle: &titleStyle, Subtitle: line, Position: position, Wrap: a.itemWraps(), Trailing: trailing,
 		Leading: func(mui.Color) { kit.Icon(k, leadingIcon, 24, leadingColor, leadingFill) },
 	})
 }
 
-// availableVersionRow is a version that can be installed.
-func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableVersion, installed bool, position kit.Position) mui.Element {
+// availableVersionRow is a version that can be installed. source names the
+// distribution it is of, for a search that lists several.
+func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableVersion, source string, installed bool, position kit.Position) mui.Element {
 	task := a.model.Tasks.ActiveTask(vfox.OperationInstall, sdk, version.Version)
 	additions := make([]string, len(version.Additions))
 	for i, addition := range version.Additions {
@@ -425,6 +479,9 @@ func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableV
 		TitleWidget: func(foreground mui.Color) {
 			mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {
 				kit.Label(k, version.Version, kit.Type(kit.BodyLarge), foreground)
+				if source != "" {
+					kit.Tag(k, kit.TagSpec{Label: source})
+				}
 				if version.HasNote {
 					kit.Tag(k, kit.TagSpec{Label: version.Note, Emphasized: true})
 				}

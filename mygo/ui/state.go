@@ -28,6 +28,9 @@ type pageStates struct {
 	sdksQuery string
 	sdksList  mui.ListState
 	detail    *detailState
+	// searches is what the user chose to list for the plugins whose search takes an
+	// argument, such as the distribution of Java; it outlives the details.
+	searches map[string]string
 	// detailWidth is the width in dp that the details of a plugin are built in.
 	detailWidth float32
 

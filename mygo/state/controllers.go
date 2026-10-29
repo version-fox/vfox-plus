@@ -384,9 +384,11 @@ func (c *SdkDetailController) SearchArguments() []string {
 }
 
 // SetSearch chooses what the next search lists, by the value of one of the
-// choices of the profile, and loads that list; the versions of the earlier
-// choice go away at once, and so do the facets chosen for them. It refuses a
-// value the plugin does not take, and a plugin whose search takes no argument.
+// choices of the profile. The versions of the earlier choice go away at once,
+// and so do the facets chosen for them; the next list is loaded by whoever asks
+// for it (Versions.EnsureLoaded), because a search can be slow and the user
+// may not look at the available versions at all. It refuses a value the plugin
+// does not take, and a plugin whose search takes no argument.
 func (c *SdkDetailController) SetSearch(value string) error {
 	if !c.HasProfile || c.Profile.Search == nil {
 		return fmt.Errorf("%s takes no search argument", c.Name)
@@ -409,7 +411,6 @@ func (c *SdkDetailController) SetSearch(value string) error {
 	c.mu.Unlock()
 	if changed {
 		c.Versions.Reset()
-		c.Versions.Load()
 	}
 	return nil
 }

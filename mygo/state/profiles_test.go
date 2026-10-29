@@ -55,9 +55,14 @@ func TestSdkDetailListsTheDistributionThatWasChosen(t *testing.T) {
 	if controller.Search() != "tem" || !reflect.DeepEqual(controller.SearchArguments(), []string{"tem"}) {
 		t.Errorf("search = %q %v", controller.Search(), controller.SearchArguments())
 	}
-	// The versions of OpenJDK do not stay on show for Temurin.
-	if controller.Versions.HasValue() || !controller.Versions.IsLoading() {
-		t.Error("the list of the earlier choice goes away while the next one loads")
+	// The versions of OpenJDK do not stay on show for Temurin, and nothing is
+	// searched until somebody asks for the list.
+	if controller.Versions.HasValue() || controller.Versions.IsLoading() || len(runner.Calls("search java tem")) != 0 {
+		t.Error("the list of the earlier choice goes away, and the next one waits to be asked for")
+	}
+	controller.Versions.EnsureLoaded()
+	if !controller.Versions.IsLoading() {
+		t.Error("asking for the list loads it")
 	}
 	close(gate)
 	waitFor(t, "the list of Temurin", func() bool { return controller.Versions.HasValue() })
@@ -77,6 +82,7 @@ func TestSdkDetailListsTheDistributionThatWasChosen(t *testing.T) {
 	if err := controller.SetSearch("open"); err != nil || controller.SearchArguments() != nil || controller.Search() != "open" {
 		t.Errorf("open is the default: %v %q", err, controller.Search())
 	}
+	controller.Versions.EnsureLoaded()
 	waitFor(t, "the list of OpenJDK", func() bool {
 		versions, ok := controller.Versions.Value()
 		return ok && len(versions) == 75
@@ -117,6 +123,7 @@ func TestSdkDetailFiltersByTheNotesOfTheListedVersions(t *testing.T) {
 	if err := controller.SetSearch("tem"); err != nil {
 		t.Fatal(err)
 	}
+	controller.Versions.EnsureLoaded()
 	waitFor(t, "the list of Temurin", func() bool { return controller.Versions.HasValue() })
 	groups := controller.Groups()
 	if len(groups) != 1 || groups[0].ID != "support" || groups[0].Chips[0].Value != "LTS" || groups[0].Chips[0].Count == 0 {
@@ -149,9 +156,8 @@ func TestSdkDetailFiltersByTheNotesOfTheListedVersions(t *testing.T) {
 
 	// A new list has its own values: the choice does not carry over.
 	controller.ToggleFacet("support", "LTS")
-	if err := controller.SetSearch("zulu"); err == nil {
-		// zulu has no fixture, so its list fails; the choice is gone all the same.
-		waitFor(t, "the search of Zulu to settle", func() bool { return controller.Versions.Error() != nil })
+	if err := controller.SetSearch("zulu"); err != nil {
+		t.Fatal(err)
 	}
 	if !controller.Selection().Empty() {
 		t.Error("a new search forgets the facets")
