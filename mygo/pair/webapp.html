@@ -323,6 +323,36 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 .navbar{display:none}
 #error{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;background:var(--m3-error);color:var(--m3-on-error);padding:10px 18px;border-radius:12px;display:none;max-width:88vw;z-index:60}
 .mfab{display:none}
+/* ---------- plugin profiles: tabs, chips, sheets ---------- */
+.btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+.btn.outline{background:transparent;border:1px solid var(--m3-outline);color:var(--m3-on-surface-variant)}
+.btn.outline:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
+.btn .ic.sm{width:20px;height:20px}
+#detailTabs{margin:8px 0 16px}
+.tabpane.enter{animation:fadeThrough .28s cubic-bezier(.2,0,0,1)}
+.actions.row,.row.actions{margin-bottom:12px;gap:12px}
+.chips{gap:8px;align-items:center;margin:0 0 8px}
+.chiplabel{margin:0 4px 0 0}
+.chip{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--m3-outline-variant);color:var(--m3-on-surface-variant);font-size:14px;font-weight:500;transition:border-radius .25s cubic-bezier(.34,1.3,.64,1),background-color .2s,border-color .2s,color .2s}
+.chip .ck{display:inline-flex;width:0;opacity:0;overflow:hidden;margin-right:0;transition:width .25s cubic-bezier(.34,1.3,.64,1),opacity .2s,margin .25s cubic-bezier(.34,1.3,.64,1)}
+.chip .ck .ic{width:18px;height:18px}
+.chip:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
+.chip[aria-pressed="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-color:transparent;border-radius:16px}
+.chip[aria-pressed="true"] .ck{width:18px;opacity:1;margin-right:8px}
+.chip[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
+.chip:active{border-radius:4px}
+.list .item .lead{width:24px;flex:none;display:inline-flex}
+.list .item.guide{align-items:flex-start}
+.list .item .tag{vertical-align:middle}
+.vrow code{overflow-wrap:anywhere}
+.dialog.sheet{max-width:560px;max-height:min(88vh,720px);display:flex;flex-direction:column;overflow:hidden}
+.dialog.sheet h3{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;margin-bottom:12px}
+.dialog.sheet h3 .ic{width:28px;height:28px;color:var(--m3-secondary)}
+#sheetBody{overflow-y:auto;min-height:0;flex:1;padding:2px}
+.choices{max-height:46vh;overflow-y:auto;border-radius:20px}
+.choices .item{text-align:left;font:inherit}
+.t-label.bad,.bad{color:var(--m3-error)}
+input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
 @media (max-width:700px){
   .rail{display:none}
   /* app bar: flat, large title, status as a dot only */
@@ -454,6 +484,7 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
   <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings"/></svg></span><span class="lbl">Settings</span></button>
 </nav>
 <div class="scrim" id="scrim"><div class="dialog" role="alertdialog" aria-modal="true"><h3 id="dlgTitle"></h3><div class="t-body" id="dlgBody"></div><div class="actions"><button class="btn text" id="dlgCancel">Cancel</button><button class="btn primary" id="dlgOk">OK</button></div></div></div>
+<div class="scrim" id="sheet"><div class="dialog sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><h3><span id="sheetIcon"></span><span id="sheetTitle"></span></h3><div id="sheetBody"></div></div></div>
 <div class="menu" id="menu"></div>
 <div id="snacks"></div>
 <div id="error"></div>
@@ -498,12 +529,15 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 <symbol id="i-explore" viewBox="0 -960 960 960"><path d="m330-311 213-66q14-5 24-15t15-24l66-213q3-8.64-3.5-15.32T629-648l-213 66q-14 5-24 15t-15 24l-66 213q-3 8.64 3.5 15.32T330-311Zm149.76-129q-16.76 0-28.26-11.74-11.5-11.73-11.5-28.5 0-16.76 11.74-28.26 11.73-11.5 28.5-11.5 16.76 0 28.26 11.74 11.5 11.73 11.5 28.5 0 16.76-11.74 28.26-11.73 11.5-28.5 11.5Zm.51 360q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34Q80-397.68 80-480.5t31.5-155.66Q143-709 197.5-763t127.34-85.5Q397.68-880 480.5-880t155.66 31.5Q709-817 763-763t85.5 127Q880-563 880-480.27q0 82.74-31.5 155.5Q817-252 763-197.68q-54 54.31-127 86Q563-80 480.27-80Zm.22-60Q622-140 721-239.49q99-99.48 99-241Q820-622 721-721t-240.51-99q-141.52 0-241 99Q140-622 140-480.49q0 141.52 99.49 241 99.48 99.49 241 99.49ZM480-480Z"/></symbol>
 <symbol id="i-schedule" viewBox="0 -960 960 960"><path d="M513-492v-171q0-13-8.5-21.5T483-693q-13 0-21.5 8.5T453-663v183q0 6 2 11t6 10l144 149q9 10 22.5 9.5T650-310q9-9 9-22t-9-22L513-492ZM480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-82 31.5-155t86-127.5Q252-817 325-848.5T480-880q82 0 155 31.5t127.5 86Q817-708 848.5-635T880-480q0 82-31.5 155t-86 127.5Q708-143 635-111.5T480-80Zm0-400Zm0 340q140 0 240-100t100-240q0-140-100-240T480-820q-140 0-240 100T140-480q0 140 100 240t240 100Z"/></symbol>
 <symbol id="i-label" viewBox="0 -960 960 960"><path d="M140-160q-24.75 0-42.37-17.63Q80-195.25 80-220v-520q0-24.75 17.63-42.38Q115.25-800 140-800h471q14.25 0 27 6.37 12.75 6.38 21 17.63l195 260q12 15.68 12 35.84Q866-460 854-444L660-184q-8.25 11.25-21 17.62-12.75 6.38-27 6.38H140Zm0-60h471l195-260-195-260H140v520Zm333-260Z"/></symbol>
+<symbol id="i-hub" viewBox="0 -960 960 960"><path d="M240-40q-50 0-85-35t-35-85q0-50 35-85t85-35q14 0 26 3t23 8l57-71q-28-31-39-70t-5-78l-81-27q-17 25-43 40t-58 15q-50 0-85-35T0-580q0-50 35-85t85-35q50 0 85 35t35 85v8l81 28q20-36 53.5-61t75.5-32v-87q-39-11-64.5-42.5T360-840q0-50 35-85t85-35q50 0 85 35t35 85q0 42-26 73.5T510-724v87q42 7 75.5 32t53.5 61l81-28v-8q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35q-32 0-58.5-15T739-515l-81 27q6 39-5 77.5T614-340l57 70q11-5 23-7.5t26-2.5q50 0 85 35t35 85q0 50-35 85t-85 35q-50 0-85-35t-35-85q0-20 6.5-38.5T624-232l-57-71q-41 23-87.5 23T392-303l-56 71q11 15 17.5 33.5T360-160q0 50-35 85t-85 35ZM120-540q17 0 28.5-11.5T160-580q0-17-11.5-28.5T120-620q-17 0-28.5 11.5T80-580q0 17 11.5 28.5T120-540Zm120 420q17 0 28.5-11.5T280-160q0-17-11.5-28.5T240-200q-17 0-28.5 11.5T200-160q0 17 11.5 28.5T240-120Zm240-680q17 0 28.5-11.5T520-840q0-17-11.5-28.5T480-880q-17 0-28.5 11.5T440-840q0 17 11.5 28.5T480-800Zm0 440q42 0 71-29t29-71q0-42-29-71t-71-29q-42 0-71 29t-29 71q0 42 29 71t71 29Zm240 240q17 0 28.5-11.5T760-160q0-17-11.5-28.5T720-200q-17 0-28.5 11.5T680-160q0 17 11.5 28.5T720-120Zm120-420q17 0 28.5-11.5T880-580q0-17-11.5-28.5T840-620q-17 0-28.5 11.5T800-580q0 17 11.5 28.5T840-540ZM480-840ZM120-580Zm360 120Zm360-120ZM240-160Zm480 0Z"/></symbol>
+<symbol id="i-keyboard-arrow-down" viewBox="0 -960 960 960"><path d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></symbol>
+<symbol id="i-history" viewBox="0 -960 960 960"><path d="M480-120q-126 0-223-76.5T131-392q-4-15 6-27.5t27-14.5q16-2 29 6t18 24q24 90 99 147t170 57q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h70q17 0 28.5 11.5T360-600q0 17-11.5 28.5T320-560H160q-17 0-28.5-11.5T120-600v-160q0-17 11.5-28.5T160-800q17 0 28.5 11.5T200-760v54q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm40-376 100 100q11 11 11 28t-11 28q-11 11-28 11t-28-11L452-452q-6-6-9-13.5t-3-15.5v-159q0-17 11.5-28.5T480-680q17 0 28.5 11.5T520-640v144Z"/></symbol>
 </defs></svg>
 <script>
 "use strict";
 const STR = {
-en: { home:"Home", sdks:"SDKs", plugins:"Plugins", tasks:"Tasks", settings:"Settings", installed:"Installed", pick:"Pick an SDK.", add:"Add a plugin", registry:"Registry", tasksH:"Tasks", clear:"Clear finished", app:"Application", config:"vfox config", install:"Install", installing:"Install…", use:"Use globally", unuse:"Unuse", uninstall:"Uninstall", update:"Update", remove:"Remove", cancel:"Cancel", retry:"Retry", save:"Save", versions:"Available versions", search:"Search versions…", searchSdks:"Search SDKs…", searchPlugins:"Search plugins…", noSdks:"No SDKs installed yet.", noTasks:"No tasks yet.", current:"current", setGlobal:"Set global", confirmUninstall:"Uninstall this version?", confirmRemove:"Remove this plugin?", updateAll:"Update all", updated:"Started.", uploadAdd:"Upload & add", needSession:"Not paired. Open a pairing link first.", failed:"Request failed.", vfoxMissing:"vfox is missing or broken.", installGuide:"Install vfox first.", versionsOf:"Versions of", info:"Plugin info", homepage:"Homepage", installPath:"Install path", description:"Description", log:"Log", state:"State", command:"Command", close:"Close", allVersions:"All", withNote:"With note", installedOnly:"Installed", loading:"Loading…", key:"Key", value:"Value", actions:"Actions", edit:"Edit", reset:"Reset", apply:"Apply", empty:"—", projectOnly:"Only the global scope is offered in the browser.", langName:"EN", official:"official", inUse:"In use", pluginsN:"Plugins", versionsN:"Versions", shell:"Use in a terminal", shellBody:"Add this line to your shell startup file so terminals pick up the global versions:", explore:"Plugin registry", exploreBody:"Browse and install plugins.", docsCard:"Documentation", active:"Plugins in use", activeEmpty:"No version in use yet.", added:"Open", homepageOpen:"Homepage", copyPath:"Copy install path", copied:"Copied.", openPlugin:"Open plugin", refresh:"Refresh", pickFirst:"Pick an SDK on the left.", taskSucceeded:"Task succeeded.", taskFailed:"Task failed.", view:"View", all:"All", community:"Community", droppedHead:"", droppedTail:" earlier lines dropped", downloadLog:"Download full log" },
-zh: { home:"主页", sdks:"SDK", plugins:"插件", tasks:"任务", settings:"设置", installed:"已安装", pick:"选择一个 SDK。", add:"添加插件", registry:"插件仓库", tasksH:"任务", clear:"清除已完成", app:"应用", config:"vfox 配置", install:"安装", installing:"安装中…", use:"设为全局", unuse:"取消使用", uninstall:"卸载", update:"更新", remove:"移除", cancel:"取消", retry:"重试", save:"保存", versions:"可安装版本", search:"搜索版本…", searchSdks:"搜索 SDK…", searchPlugins:"搜索插件…", noSdks:"暂无已安装的 SDK。", noTasks:"暂无任务。", current:"当前", setGlobal:"设为全局", confirmUninstall:"卸载该版本？", confirmRemove:"移除该插件？", updateAll:"全部更新", updated:"已开始。", uploadAdd:"上传并添加", needSession:"未配对，请先打开配对链接。", failed:"请求失败。", vfoxMissing:"vfox 缺失或损坏。", installGuide:"请先安装 vfox。", versionsOf:"的版本", info:"插件信息", homepage:"主页", installPath:"安装路径", description:"描述", log:"日志", state:"状态", command:"命令", close:"关闭", allVersions:"全部", withNote:"有备注", installedOnly:"已安装", loading:"加载中…", key:"键", value:"值", actions:"操作", edit:"修改", reset:"重置", apply:"应用", empty:"—", projectOnly:"浏览器只提供全局作用域。", langName:"中文", official:"官方", inUse:"使用中", pluginsN:"插件", versionsN:"版本", shell:"在终端中使用", shellBody:"把这一行加入 Shell 启动文件，终端即可用全局版本：", explore:"插件仓库", exploreBody:"浏览并安装插件。", docsCard:"文档", active:"在用的插件", activeEmpty:"暂无在用版本。", added:"打开", homepageOpen:"主页", copyPath:"复制安装路径", copied:"已复制。", openPlugin:"打开插件", refresh:"刷新", pickFirst:"在左侧选择一个 SDK。", taskSucceeded:"任务成功。", taskFailed:"任务失败。", view:"查看", all:"全部", community:"社区", droppedHead:"更早的 ", droppedTail:" 行日志已丢弃", downloadLog:"下载完整日志" }
+en: { home:"Home", sdks:"SDKs", plugins:"Plugins", tasks:"Tasks", settings:"Settings", installed:"Installed", pick:"Pick an SDK.", add:"Add a plugin", registry:"Registry", tasksH:"Tasks", clear:"Clear finished", app:"Application", config:"vfox config", install:"Install", installing:"Install…", use:"Use globally", unuse:"Unuse", uninstall:"Uninstall", update:"Update", remove:"Remove", cancel:"Cancel", retry:"Retry", save:"Save", versions:"Available versions", search:"Search versions…", searchSdks:"Search SDKs…", searchPlugins:"Search plugins…", noSdks:"No SDKs installed yet.", noTasks:"No tasks yet.", current:"current", setGlobal:"Set global", confirmUninstall:"Uninstall this version?", confirmRemove:"Remove this plugin?", updateAll:"Update all", updated:"Started.", uploadAdd:"Upload & add", needSession:"Not paired. Open a pairing link first.", failed:"Request failed.", vfoxMissing:"vfox is missing or broken.", installGuide:"Install vfox first.", versionsOf:"Versions of", info:"Plugin info", homepage:"Homepage", installPath:"Install path", description:"Description", log:"Log", state:"State", command:"Command", close:"Close", allVersions:"All", withNote:"With note", installedOnly:"Installed", loading:"Loading…", key:"Key", value:"Value", actions:"Actions", edit:"Edit", reset:"Reset", apply:"Apply", empty:"—", projectOnly:"Only the global scope is offered in the browser.", langName:"EN", official:"official", inUse:"In use", pluginsN:"Plugins", versionsN:"Versions", shell:"Use in a terminal", shellBody:"Add this line to your shell startup file so terminals pick up the global versions:", explore:"Plugin registry", exploreBody:"Browse and install plugins.", docsCard:"Documentation", active:"Plugins in use", activeEmpty:"No version in use yet.", added:"Open", homepageOpen:"Homepage", copyPath:"Copy install path", copied:"Copied.", openPlugin:"Open plugin", refresh:"Refresh", pickFirst:"Pick an SDK on the left.", taskSucceeded:"Task succeeded.", taskFailed:"Task failed.", view:"View", all:"All", community:"Community", droppedHead:"", droppedTail:" earlier lines dropped", downloadLog:"Download full log", availableTab:"Available", optionsTab:"Options", noVersions:"No versions installed yet.", browse:"Browse versions", fetching:"Fetching the available versions…", choiceButton:"{what}: {choice}", installByName:"Install by name…", clearFilters:"Clear filters", nVersions:"{n} versions", noMatch:"No version matches.", showMore:"Show {n} more", chooseHint:"Search by name or short name", chooseEmpty:"Nothing matches.", default:"Default", installNameTitle:"Install {name} by name", versionName:"Version name", installNameHelp:"What follows {name}@ in vfox install", namesToTry:"Names to try", installNameNote:"vfox looks the name up while it installs. A name that matches nothing fails, and the task shows why.", nameRequired:"Type a version name.", nameInvalid:"A version name has no spaces and does not start with a dash.", guideTitle:"Version names", downloads:"Downloads", downloadsHelp:"Environment variables that the plugin reads. They are added to every vfox command that this application runs.", unset:"Not set. The plugin uses its own default.", advanced:"Advanced", change:"Change", legacyTitle:"Version files", legacyNone:"This plugin reads no version files of its own.", legacyFiles:"Files read through this plugin", legacyFilesHelp:"vfox reads them when a shell enters a project directory and selects the version they name, if it is installed.", legacyEnable:"Read legacy version files", legacyEnableHelp:"Such as .nvmrc, .node-version, .python-version and .sdkmanrc.", legacyStrategy:"Version used from legacy files", strategySpecified:"As written", strategyInstalled:"Latest installed", strategyAvailable:"Latest available", legacyIgnored:"{setting} has no effect on this plugin: the version in the file is what counts.", shorthands:"Names you can type", shorthandsHelp:"Besides the versions in the list, vfox install accepts these names for {name}.", installDots:"Install…", tips:"Good to know", docs:"Documentation", address:"Address", quickPicks:"Quick picks", defaultOption:"Default (not set)", saved:"Saved" },
+zh: { home:"主页", sdks:"SDK", plugins:"插件", tasks:"任务", settings:"设置", installed:"已安装", pick:"选择一个 SDK。", add:"添加插件", registry:"插件仓库", tasksH:"任务", clear:"清除已完成", app:"应用", config:"vfox 配置", install:"安装", installing:"安装中…", use:"设为全局", unuse:"取消使用", uninstall:"卸载", update:"更新", remove:"移除", cancel:"取消", retry:"重试", save:"保存", versions:"可安装版本", search:"搜索版本…", searchSdks:"搜索 SDK…", searchPlugins:"搜索插件…", noSdks:"暂无已安装的 SDK。", noTasks:"暂无任务。", current:"当前", setGlobal:"设为全局", confirmUninstall:"卸载该版本？", confirmRemove:"移除该插件？", updateAll:"全部更新", updated:"已开始。", uploadAdd:"上传并添加", needSession:"未配对，请先打开配对链接。", failed:"请求失败。", vfoxMissing:"vfox 缺失或损坏。", installGuide:"请先安装 vfox。", versionsOf:"的版本", info:"插件信息", homepage:"主页", installPath:"安装路径", description:"描述", log:"日志", state:"状态", command:"命令", close:"关闭", allVersions:"全部", withNote:"有备注", installedOnly:"已安装", loading:"加载中…", key:"键", value:"值", actions:"操作", edit:"修改", reset:"重置", apply:"应用", empty:"—", projectOnly:"浏览器只提供全局作用域。", langName:"中文", official:"官方", inUse:"使用中", pluginsN:"插件", versionsN:"版本", shell:"在终端中使用", shellBody:"把这一行加入 Shell 启动文件，终端即可用全局版本：", explore:"插件仓库", exploreBody:"浏览并安装插件。", docsCard:"文档", active:"在用的插件", activeEmpty:"暂无在用版本。", added:"打开", homepageOpen:"主页", copyPath:"复制安装路径", copied:"已复制。", openPlugin:"打开插件", refresh:"刷新", pickFirst:"在左侧选择一个 SDK。", taskSucceeded:"任务成功。", taskFailed:"任务失败。", view:"查看", all:"全部", community:"社区", droppedHead:"更早的 ", droppedTail:" 行日志已丢弃", downloadLog:"下载完整日志", availableTab:"可安装", optionsTab:"选项", noVersions:"还没有安装任何版本。", browse:"浏览版本", fetching:"正在获取可安装的版本…", choiceButton:"{what}：{choice}", installByName:"按名称安装…", clearFilters:"清除筛选", nVersions:"{n} 个版本", noMatch:"没有匹配的版本。", showMore:"再显示 {n} 个", chooseHint:"按名称或简称搜索", chooseEmpty:"没有匹配项。", default:"默认", installNameTitle:"按名称安装 {name}", versionName:"版本名称", installNameHelp:"即 vfox install 中 {name}@ 后面的部分", namesToTry:"可以试试这些名称", installNameNote:"vfox 会在安装时解析这个名称。没有匹配项的名称会失败，任务里会显示原因。", nameRequired:"请输入版本名称。", nameInvalid:"版本名称不能含空格，也不能以短横线开头。", guideTitle:"版本名称", downloads:"下载", downloadsHelp:"插件会读取的环境变量。它们会加到本应用运行的每条 vfox 命令里。", unset:"未设置，插件使用自己的默认来源。", advanced:"高级", change:"更改", legacyTitle:"版本文件", legacyNone:"此插件没有自己的版本文件。", legacyFiles:"通过此插件读取的文件", legacyFilesHelp:"当 Shell 进入项目目录时，vfox 会读取它们，并选中其中写明且已安装的版本。", legacyEnable:"读取旧版版本文件", legacyEnableHelp:"例如 .nvmrc、.node-version、.python-version 和 .sdkmanrc。", legacyStrategy:"旧版版本文件中的版本", strategySpecified:"按文件所写", strategyInstalled:"最新已安装", strategyAvailable:"最新可用", legacyIgnored:"“{setting}”对此插件没有影响：以文件里写的版本为准。", shorthands:"可以直接输入的名称", shorthandsHelp:"除了列表里的版本，vfox install 还接受 {name} 的这些名称。", installDots:"安装…", tips:"须知", docs:"文档", address:"地址", quickPicks:"快速选择", defaultOption:"默认（不设置）", saved:"已保存" }
 };
 let lang = localStorage.getItem("vfox-plus-lang") || ((navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en");
 const t = k => (STR[lang] && STR[lang][k]) || STR.en[k] || k;
@@ -675,6 +709,7 @@ async function refresh(full) {
     renderTasks();
   } catch (e) { showError(e.message); }
   if (full && cache.detail) showDetail(cache.detail, true);
+  else if (cache.detail) updateDetail();
 }
 function watchTasks(tasks) {
   tasks.forEach(task => {
@@ -737,75 +772,384 @@ function renderSdks(inv) {
 }
 function showList(push) {
   document.querySelector("#tab-sdks").classList.remove("detail-open");
-  cache.detail = null; cache.versions = null;
+  cache.detail = null; cache.versions = null; detail = null;
   renderSdks(cache.inventory);
   if (push !== false && location.hash !== "#/sdks") history.pushState({tab: "sdks"}, "", "#/sdks");
 }
+/* sdk details: Installed | Available | Options. A plugin that has a profile (java, nodejs, flutter) also
+   gets the choice of what a search lists, filter chips, installation by name and its options. */
+let detail = null;
+const txt = o => !o ? "" : (lang === "zh" && o.zh) ? o.zh : (o.en || "");
+function savedSearch(name) { try { return localStorage.getItem("vfox-plus-search:" + name) || ""; } catch (e) { return ""; } }
+function saveSearch(name, value) { try { if (value) localStorage.setItem("vfox-plus-search:" + name, value); else localStorage.removeItem("vfox-plus-search:" + name); } catch (e) { /* private mode */ } }
+function installedOf(name) { const inv = cache.inventory; return ((inv && inv.installed.value) || []).find(s => s.Name === name); }
+function configValue(key) { const sec = cache.inventory && cache.inventory.config; const c = ((sec && sec.value) || []).find(x => x.Key === key); return c ? c.Value : ""; }
+function chip(id, label, on, attr) {
+  return '<button class="chip" ' + (attr || "") + ' data-id="' + esc(id) + '" aria-pressed="' + (on ? "true" : "false") + '"><span class="ck">' + icon("check", "sm") + "</span><span>" + esc(label) + "</span></button>";
+}
+function tagList(words) { return words.filter(Boolean).map(w => '<span class="tag">' + esc(w) + "</span>").join(" "); }
+function partsLine(parts) {
+  if (!parts) return "";
+  return [parts.source ? txt(parts.source.name) : "", ...(parts.flavors || [])].filter(Boolean).join(" · ");
+}
 async function showDetail(name, keep) {
+  const tab = keep && detail && detail.name === name ? detail.tab : "installed";
+  detail = {name, tab, info: null, profile: null, versions: null, error: null, search: savedSearch(name), facets: {}, filter: "all", query: "", limit: 200};
   cache.detail = name; cache.versions = null;
   document.querySelector("#tab-sdks").classList.add("detail-open");
   renderSdks(cache.inventory);
   const box = document.getElementById("sdkDetail");
   box.innerHTML = spinner();
-  try {
-    const [info, versions] = await Promise.all([
-      api("/api/sdks/" + encodeURIComponent(name) + "/info").catch(() => null),
-      api("/api/sdks/" + encodeURIComponent(name) + "/versions").catch(() => [])
-    ]);
-    cache.versions = versions || [];
-    const inv = cache.inventory;
-    const sdk = ((inv && inv.installed.value) || []).find(s => s.Name === name);
-    let h = '<div class="row"><button class="iconbtn sm" id="detailBack" title="' + esc(t("close")) + '">' + icon("arrow-back", "sm") + "</button>" +
-      avatar(name, true) + "<span style='flex:1;min-width:0'><span class='t-title-l'><code>" + esc(name) + "</code></span>" +
-      (sdk && sdk.HasCurrent ? ' <span class="tag cur">' + esc(sdk.Current) + "</span>" : "") + "</span>" +
-      '<button class="iconbtn sm" id="detailMenu" title="…">' + icon("more-vert", "sm") + "</button></div>";
-    if (info) h += "<p class='muted t-body'>" + esc(info.Description || "") + (info.Homepage ? ' <a href="' + esc(info.Homepage) + '" target="_blank" rel="noreferrer">' + esc(t("homepage")) + "</a>" : "") + "</p>";
-    if (sdk && sdk.Versions && sdk.Versions.length) {
-      h += "<div class='t-title-m'>" + esc(t("installed")) + " (" + sdk.Versions.length + ")</div><div class='list'>";
-      sdk.Versions.forEach(v => {
-        const isCur = sdk.HasCurrent && sdk.Current === v;
-        h += "<div class='item'><span style='flex:1'><code>" + esc(v) + "</code>" + (isCur ? ' <span class="tag cur">' + esc(t("current")) + "</span>" : "") + "</span>" +
-          (isCur ? "" : "<button class='btn text' data-use='" + esc(v) + "'>" + esc(t("use")) + "</button>") +
-          " <button class='btn text' data-uninstall='" + esc(v) + "'>" + esc(t("uninstall")) + "</button></div>";
-      });
-      h += "</div>";
-    }
-    h += "<div class='t-title-m' style='margin-top:12px'>" + esc(t("versions")) + "</div><div class='row'><div class='search' style='flex:1;margin:0'><svg class='ic sm muted'><use href='#i-search'/></svg><input id='vSearch' placeholder='" + esc(t("search")) + "'></div>" +
-      "<div class='seg' id='vFilter'><button data-vf='all' aria-pressed='true'>" + esc(t("allVersions")) + "</button><button data-vf='note' aria-pressed='false'>" + esc(t("withNote")) + "</button><button data-vf='installed' aria-pressed='false'>" + esc(t("installedOnly")) + "</button></div></div>" +
-      "<div class='row'><input id='vCustom' placeholder='x.y.z' size='10'><button id='vInstall' class='btn primary'>" + esc(t("install")) + "</button></div><div id='vList' class='list' style='margin-top:8px'></div>";
-    box.innerHTML = h;
-    document.getElementById("detailBack").onclick = () => showList(true);
-    document.getElementById("detailMenu").onclick = ev => {
-      const items = [];
-      if (info && info.Homepage) items.push({icon: "open-in-new", label: t("homepageOpen"), onclick: () => window.open(info.Homepage, "_blank", "noreferrer")});
-      if (info && info.InstallPath) items.push({icon: "content-copy", label: t("copyPath"), onclick: () => copyText(info.InstallPath)});
-      items.push({icon: "delete", label: t("remove"), danger: true, onclick: () => removePlugin(name)});
-      openMenu(ev.currentTarget, items);
-    };
-    const drawVersions = () => {
-      const q = (document.getElementById("vSearch").value || "").toLowerCase();
-      const f = (box.querySelector("#vFilter [aria-pressed=true]") || {}).dataset?.vf || "all";
-      const list = document.getElementById("vList");
-      const rows = (cache.versions || []).filter(v => {
-        if (f === "note" && !v.HasNote) return false;
-        if (f === "installed" && !v.Installed) return false;
-        return !q || v.Version.toLowerCase().includes(q) || (v.Note || "").toLowerCase().includes(q);
-      }).slice(0, 200);
-      list.innerHTML = rows.map(v => "<div class='item'><span style='flex:1'><code>" + esc(v.Version) + "</code>" +
-        (v.HasNote ? ' <span class="tag">' + esc(v.Note) + "</span>" : "") +
-        ((v.Additions || []).length ? ' <span class="muted t-label">' + esc(v.Additions.map(a => a.Version ? a.Name + " " + a.Version : a.Name).join(", ")) + "</span>" : "") +
-        (v.Installed ? ' <span class="tag">✓</span>' : "") + "</span>" +
-        (v.Installed ? "" : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>") + "</div>").join("");
-      list.querySelectorAll("[data-install]").forEach(b => b.onclick = () => runTask({operation: "install", sdk: name, version: b.dataset.install}));
-    };
-    document.getElementById("vSearch").oninput = drawVersions;
-    box.querySelectorAll("#vFilter button").forEach(b => b.onclick = () => { box.querySelectorAll("#vFilter button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); drawVersions(); });
-    drawVersions();
-    document.getElementById("vInstall").onclick = () => { const v = document.getElementById("vCustom").value.trim(); if (v) runTask({operation: "install", sdk: name, version: v}); };
-    box.querySelectorAll("[data-use]").forEach(b => b.onclick = () => runTask({operation: "use", sdk: name, version: b.dataset.use, scope: "global"}));
-    box.querySelectorAll("[data-uninstall]").forEach(b => b.onclick = async () => { if (await confirmDlg(t("uninstall"), b.dataset.uninstall, t("uninstall"), true)) runTask({operation: "uninstall", sdk: name, version: b.dataset.uninstall}); });
-  } catch (e) { box.innerHTML = '<p class="bad">' + esc(e.message) + "</p>"; }
+  const [info, profile] = await Promise.all([
+    api("/api/sdks/" + encodeURIComponent(name) + "/info").catch(() => null),
+    api("/api/sdks/" + encodeURIComponent(name) + "/profile").catch(() => null)
+  ]);
+  if (!detail || detail.name !== name) return;
+  detail.info = info; detail.profile = profile;
+  if (!profile || !profile.search) detail.search = "";
+  renderDetail();
   renderSdks(cache.inventory);
+}
+function renderDetail() {
+  const d = detail, box = document.getElementById("sdkDetail");
+  const sdk = installedOf(d.name), info = d.info;
+  let h = '<div class="row"><button class="iconbtn sm" id="detailBack" title="' + esc(t("close")) + '">' + icon("arrow-back", "sm") + "</button>" +
+    avatar(d.name, true) + "<span style='flex:1;min-width:0'><span class='t-title-l'><code>" + esc(d.name) + "</code></span>" +
+    (sdk && sdk.HasCurrent ? ' <span class="tag cur">' + esc(sdk.Current) + "</span>" : "") + "</span>" +
+    '<button class="iconbtn sm" id="detailMenu" title="…">' + icon("more-vert", "sm") + "</button></div>";
+  if (info) h += "<p class='muted t-body'>" + esc(info.Description || "") + (info.Homepage ? ' <a href="' + esc(info.Homepage) + '" target="_blank" rel="noreferrer">' + esc(t("homepage")) + "</a>" : "") + "</p>";
+  h += '<div class="seg" id="detailTabs" role="tablist"></div><div id="detailBody"></div>';
+  box.innerHTML = h;
+  document.getElementById("detailBack").onclick = () => showList(true);
+  document.getElementById("detailMenu").onclick = ev => {
+    const items = [];
+    if (info && info.Homepage) items.push({icon: "open-in-new", label: t("homepageOpen"), onclick: () => window.open(info.Homepage, "_blank", "noreferrer")});
+    if (info && info.InstallPath) items.push({icon: "content-copy", label: t("copyPath"), onclick: () => copyText(info.InstallPath)});
+    items.push({icon: "delete", label: t("remove"), danger: true, onclick: () => removePlugin(d.name)});
+    openMenu(ev.currentTarget, items);
+  };
+  renderTabs();
+  renderTab(false);
+}
+function renderTabs() {
+  const d = detail, sdk = installedOf(d.name);
+  const tabs = [["installed", t("installed") + " (" + ((sdk && sdk.Versions) || []).length + ")", "deployed-code"], ["available", t("availableTab"), "download"]];
+  if (d.profile) tabs.push(["options", t("optionsTab"), "tune"]);
+  const seg = document.getElementById("detailTabs");
+  if (!seg) return;
+  seg.innerHTML = tabs.map(x => '<button role="tab" data-tab="' + x[0] + '" aria-pressed="' + (d.tab === x[0]) + '">' + icon(x[2], "sm") + "<span>" + esc(x[1]) + "</span></button>").join("");
+  seg.querySelectorAll("button").forEach(b => b.onclick = () => { if (detail.tab === b.dataset.tab) return; detail.tab = b.dataset.tab; renderTabs(); renderTab(true); });
+}
+/* fade-through between the tabs */
+function renderTab(animate) {
+  const body = document.getElementById("detailBody");
+  if (!body) return;
+  body.className = "tabpane" + (animate && !RM ? " enter" : "");
+  if (detail.tab === "available") renderAvailable(body);
+  else if (detail.tab === "options") renderOptions(body);
+  else renderInstalled(body);
+}
+/* ---- installed ---- */
+function renderInstalled(body) {
+  const d = detail, sdk = installedOf(d.name), versions = (sdk && sdk.Versions) || [];
+  if (!versions.length) {
+    body.innerHTML = stateBlock("empty", "download", t("noVersions"), "", t("browse"), null);
+    const b = body.querySelector("[data-act]"); if (b) b.onclick = () => { detail.tab = "available"; renderTabs(); renderTab(true); };
+    return;
+  }
+  let h = "<div class='list'>";
+  versions.forEach(v => {
+    const isCur = sdk.HasCurrent && sdk.Current === v;
+    const parts = d.profile && d.profile.installed && d.profile.installed[v];
+    const line = partsLine(parts);
+    h += "<div class='item'><span style='flex:1;min-width:0'><code>" + esc(v) + "</code>" + (isCur ? ' <span class="tag cur">' + esc(t("current")) + "</span>" : "") +
+      (line ? "<br><span class='muted t-label'>" + esc(line) + "</span>" : "") + "</span>" +
+      (isCur ? "" : "<button class='btn text' data-use='" + esc(v) + "'>" + esc(t("use")) + "</button>") +
+      " <button class='btn text' data-uninstall='" + esc(v) + "'>" + esc(t("uninstall")) + "</button></div>";
+  });
+  body.innerHTML = h + "</div>";
+  body.querySelectorAll("[data-use]").forEach(b => b.onclick = () => runTask({operation: "use", sdk: d.name, version: b.dataset.use, scope: "global"}));
+  body.querySelectorAll("[data-uninstall]").forEach(b => b.onclick = async () => { if (await confirmDlg(t("uninstall"), b.dataset.uninstall, t("uninstall"), true)) runTask({operation: "uninstall", sdk: d.name, version: b.dataset.uninstall}); });
+}
+/* ---- available ---- */
+function searchChoice() {
+  const s = detail.profile && detail.profile.search;
+  if (!s) return null;
+  const value = detail.search || s.default;
+  return s.choices.find(c => c.value === value) || null;
+}
+async function loadVersions() {
+  const d = detail, name = d.name, search = d.search;
+  d.versions = null; d.error = null; d.facets = {}; d.limit = 200;
+  drawAvailable();
+  const s = d.profile && d.profile.search;
+  const query = s && search && search !== s.default ? "?search=" + encodeURIComponent(search) : "";
+  try {
+    const versions = await api("/api/sdks/" + encodeURIComponent(name) + "/versions" + query);
+    if (detail !== d || d.search !== search) return;
+    d.versions = versions || [];
+  } catch (e) {
+    if (detail !== d || d.search !== search) return;
+    d.error = e.message;
+  }
+  drawAvailable();
+}
+function renderAvailable(body) {
+  const d = detail, c = searchChoice(), s = d.profile && d.profile.search;
+  body.innerHTML =
+    '<div class="row actions">' +
+    (s ? '<button class="btn tonal" id="chooseBtn">' + icon("hub", "sm") + "<span>" + esc(t("choiceButton").replace("{what}", txt(s.label)).replace("{choice}", c ? txt(c.name) : d.search)) + "</span>" + icon("keyboard-arrow-down", "sm") + "</button>" : "") +
+    '<button class="btn outline" id="byNameBtn">' + icon("terminal", "sm") + "<span>" + esc(t("installByName")) + "</span></button></div>" +
+    '<div id="availBody"></div>';
+  const choose = document.getElementById("chooseBtn"); if (choose) choose.onclick = openChooser;
+  document.getElementById("byNameBtn").onclick = () => openInstallByName("");
+  if (d.versions === null && !d.error) { if (!d.loading) { d.loading = true; loadVersions().finally(() => { d.loading = false; }); } }
+  drawAvailable();
+}
+function drawAvailable() {
+  const d = detail, host = document.getElementById("availBody");
+  if (!host || d.tab !== "available") return;
+  if (d.error) { host.innerHTML = stateBlock("err", "error", t("failed"), esc(d.error), t("retry"), null); const b = host.querySelector("[data-act]"); if (b) b.onclick = loadVersions; return; }
+  if (d.versions === null) { host.innerHTML = spinner() + "<p class='muted t-body' style='text-align:center'>" + esc(t("fetching")) + "</p>"; return; }
+  if (!document.getElementById("vSearch")) {
+    host.innerHTML = "<div class='row'><div class='search' style='flex:1;margin:0;min-width:200px'>" + icon("search", "sm muted") + "<input id='vSearch' placeholder='" + esc(t("search")) + "'></div>" +
+      "<div class='seg' id='vFilter'><button data-vf='all' aria-pressed='true'>" + esc(t("allVersions")) + "</button><button data-vf='note' aria-pressed='false'>" + esc(t("withNote")) + "</button><button data-vf='installed' aria-pressed='false'>" + esc(t("installedOnly")) + "</button></div></div>" +
+      "<div class='row chips' id='vChips'></div><div class='muted t-label' id='vCount' style='margin:4px 4px 8px'></div><div id='vList' class='list'></div>";
+    const input = document.getElementById("vSearch");
+    input.value = d.query;
+    input.oninput = () => { d.query = input.value; d.limit = 200; drawVersions(); };
+    host.querySelectorAll("#vFilter button").forEach(b => b.onclick = () => { d.filter = b.dataset.vf; d.limit = 200; host.querySelectorAll("#vFilter button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); drawVersions(); });
+  }
+  host.querySelectorAll("#vFilter button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.vf === d.filter)));
+  drawChips();
+  drawVersions();
+}
+function facetGroups() {
+  const d = detail, out = [];
+  ((d.profile && d.profile.facets) || []).forEach(f => {
+    const counts = {};
+    (d.versions || []).forEach(v => ((v.facets && v.facets[f.id]) || []).forEach(x => { counts[x] = (counts[x] || 0) + 1; }));
+    const values = f.values.filter(x => counts[x]);
+    if (values.length) out.push({id: f.id, label: f.label, values});
+  });
+  return out;
+}
+function drawChips() {
+  const d = detail, box = document.getElementById("vChips");
+  if (!box) return;
+  const groups = facetGroups();
+  let any = false, h = "";
+  groups.forEach(g => {
+    h += '<span class="muted t-label chiplabel">' + esc(txt(g.label)) + "</span>";
+    g.values.forEach(v => { const on = !!(d.facets[g.id] && d.facets[g.id][v]); any = any || on; h += chip(g.id + ":" + v, v, on, 'data-g="' + esc(g.id) + '" data-v="' + esc(v) + '"'); });
+  });
+  if (any) h += '<button class="btn text" id="clearChips">' + esc(t("clearFilters")) + "</button>";
+  box.innerHTML = h;
+  box.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    const g = b.dataset.g, v = b.dataset.v;
+    d.facets[g] = d.facets[g] || {};
+    if (d.facets[g][v]) delete d.facets[g][v]; else d.facets[g][v] = true;
+    d.limit = 200;
+    b.setAttribute("aria-pressed", String(!!d.facets[g][v]));
+    drawVersions();
+    // the clear button comes and goes; the chips keep their place, so that the check mark can slide
+    const has = Object.values(d.facets).some(o => Object.keys(o).length), clear = document.getElementById("clearChips");
+    if (has && !clear) { const x = document.createElement("button"); x.className = "btn text"; x.id = "clearChips"; x.textContent = t("clearFilters"); x.onclick = clearChips; box.appendChild(x); }
+    else if (!has && clear) clear.remove();
+  });
+  const clear = document.getElementById("clearChips"); if (clear) clear.onclick = clearChips;
+}
+function clearChips() { detail.facets = {}; detail.limit = 200; drawChips(); drawVersions(); }
+function drawVersions() {
+  const d = detail, list = document.getElementById("vList"), count = document.getElementById("vCount");
+  if (!list) return;
+  const q = (d.query || "").toLowerCase(), inst = new Set(((installedOf(d.name) || {}).Versions) || []);
+  const s = d.profile && d.profile.search, c = searchChoice(), showSource = !!(c && c.everything);
+  const rows = (d.versions || []).filter(v => {
+    if (d.filter === "note" && !v.HasNote) return false;
+    if (d.filter === "installed" && !inst.has(v.Version)) return false;
+    for (const g of Object.keys(d.facets)) {
+      const chosen = Object.keys(d.facets[g]);
+      if (chosen.length && !chosen.some(x => (v.facets && v.facets[g] || []).includes(x))) return false;
+    }
+    return !q || v.Version.toLowerCase().includes(q) || (v.Note || "").toLowerCase().includes(q);
+  });
+  count.textContent = t("nVersions").replace("{n}", rows.length);
+  if (!rows.length) { list.innerHTML = stateBlock("empty", "search-off", t("noMatch"), "", null); return; }
+  const shown = rows.slice(0, d.limit);
+  list.innerHTML = shown.map(v => {
+    const source = showSource && v.parts && v.parts.source ? txt(v.parts.source.name) : "";
+    return "<div class='item vrow'><span style='flex:1;min-width:0'><code>" + esc(v.Version) + "</code>" + (source ? " " + tagList([source]) : "") +
+      (v.HasNote ? ' <span class="tag">' + esc(v.Note) + "</span>" : "") +
+      ((v.Additions || []).length ? ' <span class="muted t-label">' + esc(v.Additions.map(a => a.Version ? a.Name + " " + a.Version : a.Name).join(", ")) + "</span>" : "") +
+      (inst.has(v.Version) ? ' <span class="tag">✓</span>' : "") + "</span>" +
+      (inst.has(v.Version) ? "" : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>") + "</div>";
+  }).join("") + (rows.length > shown.length ? "<button class='btn' id='showMore' style='margin-top:8px'>" + esc(t("showMore").replace("{n}", rows.length - shown.length)) + "</button>" : "");
+  list.querySelectorAll("[data-install]").forEach(b => b.onclick = () => runTask({operation: "install", sdk: d.name, version: b.dataset.install}));
+  const more = document.getElementById("showMore"); if (more) more.onclick = () => { d.limit += 400; drawVersions(); };
+}
+/* ---- sheets: the dialog of the choices, the names and the variables ---- */
+function openSheet(title, ic, build) {
+  const scrim = document.getElementById("sheet"), box = document.getElementById("sheetBody");
+  document.getElementById("sheetIcon").innerHTML = ic ? icon(ic) : "";
+  document.getElementById("sheetTitle").textContent = title;
+  box.innerHTML = "";
+  const close = () => { scrim.classList.remove("open"); scrim.onclick = null; document.removeEventListener("keydown", onKey); };
+  const onKey = ev => { if (ev.key === "Escape") close(); };
+  document.addEventListener("keydown", onKey);
+  scrim.onclick = ev => { if (ev.target === scrim) close(); };
+  scrim.classList.add("open");
+  build(box, close);
+  return close;
+}
+function openChooser() {
+  const d = detail, s = d.profile.search;
+  openSheet(txt(s.label), "hub", (box, close) => {
+    box.innerHTML = '<div class="search">' + icon("search", "sm muted") + '<input id="chQuery" placeholder="' + esc(t("chooseHint")) + '"></div><div class="list choices" id="chList"></div><div class="actions"><button class="btn text" id="chClose">' + esc(t("close")) + "</button></div>";
+    document.getElementById("chClose").onclick = close;
+    const input = document.getElementById("chQuery"), list = document.getElementById("chList"), current = d.search || s.default;
+    const matches = (c, q) => !q || [c.value, ...(c.aliases || []), c.name.en, c.name.zh, c.maker.en, c.maker.zh].some(x => (x || "").toLowerCase().includes(q));
+    const draw = () => {
+      const q = input.value.trim().toLowerCase(), rows = s.choices.filter(c => matches(c, q));
+      list.innerHTML = rows.length ? rows.map(c => "<button class='item' data-v='" + esc(c.value) + "' aria-current='" + (c.value === current) + "'>" +
+        '<span class="lead">' + (c.value === current ? icon("check") : "") + "</span><span style='flex:1;min-width:0'><b>" + esc(txt(c.name)) + "</b><br><span class='muted t-label'>" +
+        esc([txt(c.maker), c.value].filter(Boolean).join(" · ")) + "</span></span>" + (c.value === s.default ? '<span class="tag">' + esc(t("default")) + "</span>" : "") + "</button>").join("")
+        : stateBlock("empty", "search-off", t("chooseEmpty"), "", null);
+      list.querySelectorAll("[data-v]").forEach(b => b.onclick = () => {
+        close();
+        d.search = b.dataset.v === s.default ? "" : b.dataset.v;
+        saveSearch(d.name, d.search);
+        renderTab(false);
+        loadVersions();
+      });
+    };
+    input.oninput = draw;
+    draw();
+    setTimeout(() => input.focus(), 50);
+  });
+}
+function validSpec(v) { return v && !/^-|[\s@]/.test(v); }
+function openInstallByName(initial) {
+  const d = detail, p = d.profile;
+  openSheet(t("installNameTitle").replace("{name}", d.name), "terminal", (box, close) => {
+    box.innerHTML = '<div class="field"><label for="nameIn">' + esc(t("versionName")) + '</label><input id="nameIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label" id="nameHelp"></div></div>' +
+      (p && p.shorthands.length ? '<div class="muted t-label chiplabel">' + esc(t("namesToTry")) + '</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>' : "") +
+      '<p class="muted t-label" style="margin:12px 0 0">' + esc(t("installNameNote")) + '</p><div class="actions"><button class="btn text" id="nameCancel">' + esc(t("cancel")) + '</button><button class="btn primary" id="nameOk">' + icon("download", "sm") + "<span>" + esc(t("install")) + "</span></button></div>";
+    const input = document.getElementById("nameIn"), help = document.getElementById("nameHelp");
+    help.textContent = t("installNameHelp").replace("{name}", d.name);
+    input.value = initial || "";
+    const sync = () => {
+      const cur = input.value.trim();
+      if (p) {
+        const row = document.getElementById("nameChips");
+        row.innerHTML = p.shorthands.map(x => chip(x.name, x.name, x.name === cur, 'data-name="' + esc(x.name) + '"')).join("");
+        row.querySelectorAll(".chip").forEach(b => b.onclick = () => { input.value = b.dataset.name; help.textContent = t("installNameHelp").replace("{name}", d.name); help.classList.remove("bad"); sync(); });
+        const m = p.shorthands.find(x => x.name === cur);
+        document.getElementById("nameMeaning").textContent = m ? txt(m.meaning) : "";
+      }
+    };
+    input.oninput = () => { help.textContent = t("installNameHelp").replace("{name}", d.name); help.classList.remove("bad"); sync(); };
+    const submit = () => {
+      const v = input.value.trim();
+      if (!v) { help.textContent = t("nameRequired"); help.classList.add("bad"); return; }
+      if (!validSpec(v)) { help.textContent = t("nameInvalid"); help.classList.add("bad"); return; }
+      close();
+      runTask({operation: "install", sdk: d.name, version: v});
+    };
+    input.onkeydown = ev => { if (ev.key === "Enter") submit(); };
+    document.getElementById("nameOk").onclick = submit;
+    document.getElementById("nameCancel").onclick = close;
+    sync();
+    setTimeout(() => input.focus(), 50);
+  });
+}
+/* ---- options ---- */
+function section(title, help, rows) {
+  return '<div class="t-title-m" style="margin-top:20px">' + esc(title) + "</div>" + (help ? '<p class="muted t-label" style="margin:0 4px 8px">' + esc(help) + "</p>" : "") + '<div class="list">' + rows + "</div>";
+}
+function renderOptions(body) {
+  const d = detail, p = d.profile;
+  if (!p) { body.innerHTML = ""; return; }
+  let h = "";
+  if (p.guide && (p.guide.en || p.guide.zh)) h += '<div class="list"><div class="item guide">' + icon("info") + "<span style='flex:1'><b>" + esc(t("guideTitle")) + "</b><br><span class='muted'>" + esc(txt(p.guide)) + "</span></span></div></div>";
+  if (p.variables.length) {
+    h += section(t("downloads"), t("downloadsHelp"), p.variables.map(v => {
+      const preset = (v.presets || []).find(x => x.value === v.value);
+      const sub = v.value ? (preset ? txt(preset.name) + " · " : "") + v.value : t("unset");
+      return "<div class='item'>" + icon("download") + "<span style='flex:1;min-width:0'><b>" + esc(txt(v.label)) + "</b>" + (v.advanced ? " " + tagList([t("advanced")]) : "") +
+        "<br><span class='muted t-label'><code>" + esc(v.key) + "</code><br>" + esc(sub) + "</span></span><button class='btn tonal' data-var='" + esc(v.key) + "'>" + esc(t("change")) + "</button></div>";
+    }).join(""));
+  }
+  h += '<div class="t-title-m" style="margin-top:20px">' + esc(t("legacyTitle")) + "</div><div class='list'>";
+  if (!p.legacyFiles.length) h += "<div class='item'>" + icon("history") + "<span class='muted'>" + esc(t("legacyNone")) + "</span></div>";
+  else {
+    h += "<div class='item'>" + icon("history") + "<span style='flex:1'><b>" + esc(t("legacyFiles")) + "</b><br><span class='muted t-label'>" + esc(t("legacyFilesHelp")) + "</span><br>" + tagList(p.legacyFiles) + "</span></div>";
+    const on = configValue("legacyVersionFile.enable") === "true";
+    h += "<div class='item'><span class='lead'></span><span style='flex:1'><b>" + esc(t("legacyEnable")) + "</b><br><span class='muted t-label'>" + esc(t("legacyEnableHelp")) + "</span></span><button class='switch' role='switch' id='legacySwitch' aria-checked='" + on + "' aria-label='" + esc(t("legacyEnable")) + "'></button></div>";
+    if (p.legacyStrategy) {
+      const strat = configValue("legacyVersionFile.strategy");
+      h += "<div class='item'><span class='lead'></span><span style='flex:1;min-width:0'><b>" + esc(t("legacyStrategy")) + "</b></span><div class='seg' id='legacyStrategy'>" +
+        [["specified", t("strategySpecified")], ["latest_installed", t("strategyInstalled")], ["latest_available", t("strategyAvailable")]].map(x => "<button data-s='" + x[0] + "' aria-pressed='" + (strat === x[0]) + "'>" + esc(x[1]) + "</button>").join("") + "</div></div>";
+    } else h += "<div class='item'><span class='lead'></span><span class='muted'>" + esc(t("legacyIgnored").replace("{setting}", t("legacyStrategy"))) + "</span></div>";
+  }
+  h += "</div>";
+  if (p.shorthands.length) {
+    h += section(t("shorthands"), t("shorthandsHelp").replace("{name}", d.name), p.shorthands.map(s => "<div class='item'>" + icon("terminal") + "<span style='flex:1;min-width:0'><code>" + esc(s.name) + "</code><br><span class='muted t-label'>" + esc(txt(s.meaning)) + "</span></span><button class='btn tonal' data-try='" + esc(s.name) + "'>" + icon("download", "sm") + "<span>" + esc(t("installDots")) + "</span></button></div>").join(""));
+  }
+  if (p.tips.length) h += section(t("tips"), "", p.tips.map(x => "<div class='item'>" + icon("info") + "<span style='flex:1'>" + esc(txt(x)) + "</span></div>").join(""));
+  if (p.docs.length) h += section(t("docs"), "", p.docs.map(x => "<button class='item' data-doc='" + esc(txt(x.url)) + "'>" + icon("menu-book") + "<span style='flex:1'>" + esc(txt(x.title)) + "</span>" + icon("open-in-new", "sm muted") + "</button>").join(""));
+  body.innerHTML = h;
+  body.querySelectorAll("[data-var]").forEach(b => b.onclick = () => openVariable(p.variables.find(v => v.key === b.dataset.var)));
+  body.querySelectorAll("[data-try]").forEach(b => b.onclick = () => openInstallByName(b.dataset.try));
+  body.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => window.open(b.dataset.doc, "_blank", "noreferrer"));
+  const sw = document.getElementById("legacySwitch");
+  if (sw) sw.onclick = async () => { try { await vfoxConfig("legacyVersionFile.enable", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); await refresh(false); renderTab(false); } catch (e) { showError(e.message); } };
+  body.querySelectorAll("#legacyStrategy button").forEach(b => b.onclick = async () => { try { await vfoxConfig("legacyVersionFile.strategy", b.dataset.s); await refresh(false); renderTab(false); } catch (e) { showError(e.message); } });
+}
+function openVariable(variable) {
+  const d = detail;
+  openSheet(txt(variable.label), "download", (box, close) => {
+    box.innerHTML = '<p class="muted t-body" style="margin:0">' + esc(txt(variable.help)) + '</p><p class="muted t-label"><code>' + esc(variable.key) + "</code></p>" +
+      (variable.kind === "url" ? '<div class="field"><label for="varIn">' + esc(t("address")) + '</label><input id="varIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(variable.example || "") + '"><div class="muted t-label" id="varHelp"></div></div>' : '<div class="muted t-label" id="varHelp"></div>') +
+      '<div class="muted t-label chiplabel">' + esc(t("quickPicks")) + '</div><div class="row chips" id="varChips"></div><div class="actions"><button class="btn text" id="varCancel">' + esc(t("cancel")) + '</button><button class="btn primary" id="varOk">' + esc(t("save")) + "</button></div>";
+    let value = variable.value || "";
+    const input = document.getElementById("varIn"), help = document.getElementById("varHelp");
+    const sync = () => {
+      if (input) input.value = value;
+      const row = document.getElementById("varChips"), cur = value.trim();
+      row.innerHTML = chip("", t("defaultOption"), cur === "", 'data-value=""') + variable.presets.map(x => chip(x.value, txt(x.name), cur === x.value, 'data-value="' + esc(x.value) + '"')).join("");
+      row.querySelectorAll(".chip").forEach(b => b.onclick = () => { value = b.dataset.value; help.textContent = ""; help.classList.remove("bad"); sync(); });
+    };
+    if (input) input.oninput = () => { value = input.value; help.textContent = ""; help.classList.remove("bad"); drawPressed(); };
+    const drawPressed = () => { const cur = value.trim(); document.querySelectorAll("#varChips .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === cur))); };
+    const submit = async () => {
+      try {
+        const r = await api("/api/sdks/" + encodeURIComponent(d.name) + "/variables", {method: "PUT", body: JSON.stringify({key: variable.key, value: value.trim()})});
+        variable.value = r.value || "";
+        close();
+        snack(t("saved"));
+        if (detail === d && d.tab === "options") renderTab(false);
+      } catch (e) { help.textContent = e.message; help.classList.add("bad"); }
+    };
+    if (input) input.onkeydown = ev => { if (ev.key === "Enter") submit(); };
+    document.getElementById("varOk").onclick = submit;
+    document.getElementById("varCancel").onclick = close;
+    sync();
+    if (input) setTimeout(() => input.focus(), 50);
+  });
+}
+/* what a refresh changes in the details: the installed versions, and which listed versions are installed */
+function updateDetail() {
+  const d = detail;
+  if (!d || !d.profile && !d.info && !document.getElementById("detailTabs")) return;
+  renderTabs();
+  const sdk = installedOf(d.name), key = ((sdk && sdk.Versions) || []).join("\n");
+  if (d.installedKey !== undefined && d.installedKey !== key && d.profile) {
+    api("/api/sdks/" + encodeURIComponent(d.name) + "/profile").then(p => { if (detail === d) { d.profile = p; d.installedKey = key; if (d.tab !== "available") renderTab(false); } }).catch(() => {});
+  }
+  d.installedKey = key;
+  if (d.tab === "installed") renderInstalled(document.getElementById("detailBody"));
+  else if (d.tab === "available") drawVersions();
 }
 async function copyText(s) { try { await navigator.clipboard.writeText(s); snack(t("copied")); } catch (e) { showError(t("failed")); } }
 async function removePlugin(name) {

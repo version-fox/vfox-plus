@@ -198,15 +198,19 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 	if model == nil {
 		return
 	}
-	if request.Method != http.MethodGet {
-		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
-		return
-	}
 	rest := strings.TrimPrefix(request.URL.Path, "/api/sdks/")
 	name, kind, _ := strings.Cut(rest, "/")
 	name = strings.TrimSpace(name)
 	if name == "" || strings.Contains(name, "/") {
 		http.Error(writer, "No such SDK.", http.StatusNotFound)
+		return
+	}
+	if kind == "variables" {
+		s.serveVariables(writer, request, model, name)
+		return
+	}
+	if request.Method != http.MethodGet {
+		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
 		return
 	}
 	detail := model.SdkDetail(name)
@@ -228,6 +232,14 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		}
 		writeJSON(writer, info)
 	case "versions":
+		// `search` names what the plugin lists, by the value of a choice of its profile:
+		// the short name of a distribution for java.
+		if search := request.URL.Query().Get("search"); search != "" {
+			if err := detail.SetSearch(search); err != nil {
+				http.Error(writer, err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
 		if !awaitLoad(detail.Versions.EnsureLoaded()) {
 			http.Error(writer, "Searching versions timed out.", http.StatusGatewayTimeout)
 			return
@@ -237,7 +249,9 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 			writeVfoxError(writer, err)
 			return
 		}
-		writeJSON(writer, orEmpty(versions))
+		writeJSON(writer, annotate(detail.Profile, detail.HasProfile, versions))
+	case "profile":
+		s.serveProfile(writer, model, name)
 	default:
 		http.Error(writer, "No such endpoint.", http.StatusNotFound)
 	}

@@ -152,6 +152,24 @@ func (p Profile) Matches(selection Selection, version core.AvailableVersion) boo
 	return true
 }
 
+// Values returns the values that the version has, by facet: the web interface
+// filters in the browser, which then needs no knowledge of how a note is split.
+// Facets the version has no value of are left out.
+func (p Profile) Values(version core.AvailableVersion) map[string][]string {
+	var result map[string][]string
+	for _, facet := range p.Facets {
+		for _, value := range facet.Values {
+			if facet.has(version, value) {
+				if result == nil {
+					result = make(map[string][]string)
+				}
+				result[facet.ID] = append(result[facet.ID], value)
+			}
+		}
+	}
+	return result
+}
+
 func (f Facet) has(version core.AvailableVersion, value string) bool {
 	switch f.Kind {
 	case FacetSuffix:
