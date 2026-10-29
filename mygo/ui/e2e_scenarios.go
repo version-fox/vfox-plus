@@ -330,7 +330,8 @@ func (s *scenario) resize(width, height float32) {
 // screenshotsScenario shows every page against the fake vfox; the harness
 // captures the screen at every `e2e: SHOT <name>` (see
 // `vfxtool screenshots`). With VFOX_PLUS_FAKE_DELAY, it shows an
-// installation in progress instead.
+// installation in progress instead, and with VFOX_PLUS_FAKE_INVENTORY=profiles
+// the pages of the plugins that have a profile (see profilesScreenshots).
 func screenshotsScenario(s *scenario) {
 	a := s.app
 	s.waitForText("Versions in use")
@@ -355,6 +356,10 @@ func screenshotsScenario(s *scenario) {
 			return ok && progress > 0
 		}, defaultWait)
 		s.shot("installing")
+		return
+	}
+	if a.environment["VFOX_PLUS_FAKE_INVENTORY"] == "profiles" {
+		profilesScreenshots(s)
 		return
 	}
 	s.shot("home")
@@ -420,4 +425,85 @@ func screenshotsScenario(s *scenario) {
 	s.clickItem("nodejs")
 	s.waitForText("Node.js runtime environment.")
 	s.shot("compact-detail")
+}
+
+// profilesScreenshots shows what vfox-plus offers for the plugins that it knows:
+// the distributions of Java, the filter chips of its versions and of Flutter's,
+// the installation by name, and the options of Node.js. The fake vfox plays a
+// machine that has Java and Flutter installed next to Node.js.
+func profilesScreenshots(s *scenario) {
+	a := s.app
+	s.navigate("SDKs")
+	s.clickItem("java")
+	s.waitForText("Support for multiple JDK distributions, such as: Oracle, Graalvm, Eclipse & more.")
+	s.waitForText("Liberica · JavaFX")
+	s.shot("java-installed")
+	s.clickButton("Available")
+	s.waitForText("75 versions")
+	s.shot("java-available")
+	s.clickButton("Distribution: OpenJDK")
+	s.waitForText("Search by name or short name")
+	s.shot("java-choose")
+	s.clickItem("Temurin")
+	s.waitForText("120 versions")
+	s.clickButton("LTS")
+	s.waitForTextGone("120 versions")
+	s.shot("java-temurin")
+	s.clickButton("Install by name…")
+	s.waitForText("Install java by name")
+	s.clickButton("21-tem")
+	s.waitForText("The newest Temurin 21")
+	s.shot("java-install-name")
+	s.tapDialog(false)
+	s.clickButton("Distribution: Temurin")
+	s.waitForText("Search by name or short name")
+	s.clickItem("All distributions")
+	s.waitForText("2641 versions")
+	s.shot("java-all")
+
+	s.navigate("SDKs")
+	s.clickItem("flutter")
+	s.clickButton("Available")
+	s.waitForText("457 versions")
+	s.clickButton("stable")
+	s.waitForTextGone("457 versions")
+	s.shot("flutter-available")
+
+	s.navigate("SDKs")
+	s.clickItem("nodejs")
+	s.clickButton("Options")
+	s.waitForText("Download mirror")
+	s.shot("options")
+	s.clickButton("Change")
+	s.waitForText("Address")
+	s.clickButton("npmmirror")
+	s.shot("options-mirror")
+	s.tapDialog(false)
+
+	a.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+		current.Language = settings.LanguageSimplifiedChinese
+		return current
+	})
+	s.waitForText("版本名称")
+	s.shot("zh-options")
+	s.navigate("SDK")
+	s.clickItem("java")
+	s.clickButton("可安装")
+	s.waitForText("75 个版本")
+	s.shot("zh-java-available")
+
+	a.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+		current.Language = settings.LanguageEnglish
+		return current
+	})
+	s.resize(412, 800)
+	s.navigate("Home")
+	s.waitForText("Versions in use")
+	s.clickItem("java")
+	s.clickButton("Available")
+	s.waitForText("75 versions")
+	s.clickButton("Distribution: OpenJDK")
+	s.clickItem("Temurin")
+	s.waitForText("120 versions")
+	s.shot("compact-java")
 }

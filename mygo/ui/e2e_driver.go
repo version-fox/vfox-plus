@@ -127,6 +127,19 @@ func (s *scenario) waitForText(text string) {
 	}, defaultWait)
 }
 
+// waitForTextGone waits until the text is no longer on the screen, such as the
+// count of a list that a filter narrows.
+func (s *scenario) waitForTextGone(text string) {
+	s.waitUntil(fmt.Sprintf("the text %q to go away", text), func() bool {
+		for _, shown := range s.texts() {
+			if shown == text {
+				return false
+			}
+		}
+		return true
+	}, defaultWait)
+}
+
 // find returns the first node that matches.
 func (s *scenario) find(match func(kit.Node, []kit.Node) bool) (kit.Node, bool) {
 	all := s.nodes()

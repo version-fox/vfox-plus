@@ -47,7 +47,7 @@ import (
 	"time"
 )
 
-const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME] [-dark] [-chrome PATH]"
+const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
 
 var windowSize = regexp.MustCompile(`^([0-9]{2,5}),([0-9]{2,5})$`)
 
@@ -70,6 +70,7 @@ type options struct {
 	screenshot string
 	lang       string
 	tab        string
+	scene      string
 	chrome     string
 	width      int
 	height     int
@@ -96,6 +97,7 @@ func parseOptions(args []string) (options, error) {
 	flags.StringVar(&o.screenshot, "screenshot", "", "also write a PNG screenshot of the settled page to this `file`")
 	flags.StringVar(&o.lang, "lang", "", "pin the interface language to `en|zh`")
 	flags.StringVar(&o.tab, "tab", "", "open this page before the screenshot: home, sdks, plugins, tasks or settings")
+	flags.StringVar(&o.scene, "scene", "", "play this scene before the screenshot, which opens a dialog or a tab of a plugin: "+strings.Join(sceneNames(), ", "))
 	flags.StringVar(&o.chrome, "chrome", "", "Chrome `executable` (default: $CHROME_BIN, then google-chrome, chromium, chromium-browser)")
 	window := flags.String("window", "1280,800", "browser window `WIDTH,HEIGHT`")
 	settle := flags.Float64("settle", 5, "`seconds` to settle after the SDK list loads, before the first measurement")
@@ -132,6 +134,14 @@ func parseOptions(args []string) (options, error) {
 	}
 	if o.tab != "" && !contains(tabs, o.tab) {
 		return o, fmt.Errorf("bad -tab (want one of %s)", strings.Join(tabs, ", "))
+	}
+	if o.scene != "" {
+		if _, known := scenes[o.scene]; !known {
+			return o, fmt.Errorf("bad -scene (want one of %s)", strings.Join(sceneNames(), ", "))
+		}
+		if o.tab != "" || o.screenshot == "" {
+			return o, errors.New("a -scene goes with a -screenshot, and instead of a -tab")
+		}
 	}
 	return o, nil
 }
@@ -171,6 +181,7 @@ func formatLines(heap, settled int64) string {
 //	-lang en|zh        pin the interface language (default: the browser's)
 //	-window W,H        browser window (default 1280,800)
 //	-tab NAME          open home, sdks, plugins, tasks or settings before the screenshot
+//	-scene NAME        or play a scene: the details of a plugin, a dialog (see scenes.go)
 //	-dark              emulate the dark colour scheme for the screenshot
 //	-chrome PATH       Chrome executable (default: $CHROME_BIN, then PATH)
 func Run(args []string) error {
@@ -285,7 +296,7 @@ func (s *session) heap(ctx context.Context) (int64, error) {
 }
 
 // capture writes a PNG of the page, in the dark colour scheme and on the page
-// that the options name.
+// or in the scene that the options name.
 func (s *session) capture(ctx context.Context, o options) error {
 	if o.dark {
 		features := map[string]any{"features": []map[string]string{{"name": "prefers-color-scheme", "value": "dark"}}}
@@ -300,6 +311,14 @@ func (s *session) capture(ctx context.Context, o options) error {
 			return err
 		}
 		if err := sleep(ctx, 1200*time.Millisecond); err != nil {
+			return err
+		}
+	}
+	if o.scene != "" {
+		if err := s.play(ctx, o.scene); err != nil {
+			return err
+		}
+		if err := sleep(ctx, 900*time.Millisecond); err != nil {
 			return err
 		}
 	}
