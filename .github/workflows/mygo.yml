@@ -72,7 +72,7 @@ jobs:
       - name: Install golangci-lint
         run: |
           archive="golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64"
-          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+          curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/$archive.tar.gz" \
             "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/$archive.tar.gz"
           echo "$GOLANGCI_LINT_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
           tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
@@ -132,7 +132,7 @@ jobs:
       - name: Install vfox
         run: |
           archive="vfox_${VFOX_VERSION}_linux_x86_64"
-          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive.tar.gz" \
+          curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/$archive.tar.gz" \
             "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/$archive.tar.gz"
           echo "$VFOX_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
           tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
