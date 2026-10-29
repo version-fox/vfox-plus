@@ -40,7 +40,7 @@ Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR` and `SANDBOX_GOPROXY` (see
 ## Go and the native tools
 
 Go, from its release archive and checked against the checksum that
-`mygo/versions.env` pins (`go.mod` asks for 1.27.1 or later). Run this from the
+`mygo/versions.env` pins (`go.mod` asks for 1.27.3 or later). Run this from the
 root of the repository:
 
 ```sh

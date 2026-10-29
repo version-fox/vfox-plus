@@ -16,10 +16,10 @@ the SDKs page with the 872 available versions of Node.js listed.
 
 | Implementation                   | Technology                                                        | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | -------------------------------- | ----------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../../../mygo/README.md#memory) | mygo 0.6.3, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       45 |       58 |           53 |           67 |                  +8 |
+| [mygo](../../../mygo/README.md) | mygo 0.7.3, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       50 |       62 |           58 |           73 |                  +8 |
 
-mygo (45 MB of PSS on the Home page, in one process) draws on the processor from a
-Go executable of 12 MB and loads GTK 3 from the system. Showing the list of versions
+mygo (50 MB of PSS on the Home page, in one process) draws on the processor from a
+Go executable of 18 MB and loads GTK 3 from the system. Showing the list of versions
 adds 8 MB of PSS because only the rows in view are built.
 
 The Android client (`android/`) is not in this table: it is a WebView around

@@ -37,7 +37,7 @@ vfxtool sandbox all
 
 ## Go 与本机工具
 
-Go 用它的发布压缩包，并对照 `mygo/versions.env` 固定的校验和（`go.mod` 要求 1.27.1
+Go 用它的发布压缩包，并对照 `mygo/versions.env` 固定的校验和（`go.mod` 要求 1.27.3
 或更高）。在仓库根目录运行：
 
 ```sh

@@ -6,7 +6,7 @@ vfox-plus 使用 [mygo](https://github.com/egoist/mygo)（Go 桌面应用框架�
 **原生用户界面**（`ui` 包）构建：无 Web 视图、无 HTML、无 JavaScript。mygo 从
 flexbox 布局的元素出发，用自研渲染器绘制窗口，经 GTK 3 打开，无需 C 编译器：
 经 [purego](https://github.com/ebitengine/purego) 调用 GTK、GLib、Pango 与 Cairo，
-故应用是仅链接 C 库、启动时加载 GTK 3 的约 12 MB 单 Go 可执行文件。mygo 没有
+故应用是仅链接 C 库、启动时加载 GTK 3 的约 18 MB 单 Go 可执行文件。mygo 没有
 Material 3 Expressive 观感的部件；其元素与无样式部件之上全部为本项目 Go 手写：
 
 | 目录 | 职责 |
@@ -69,7 +69,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 [`assets/assets.go`](../../../mygo/assets/assets.go) 的 `//go:embed` 缺失即构建失败。
 
 发布二进制用 `CGO_ENABLED=0`、位置无关（`-buildmode=pie`，Windows 除外）、strip、
-关 mygo 原生界面 inspector，约 12 MB。
+关 mygo 原生界面 inspector，约 18 MB。
 
 ## 沙箱
 
@@ -206,8 +206,8 @@ docker run --rm -p 8080:8080 vfox-plus
 
 | 状态 | RSS | PSS |
 | --- | ---: | ---: |
-| Home 页 | 58 MB | 45 MB |
-| 列出 Node.js 版本 | 67 MB | 53 MB |
+| Home 页 | 62 MB | 50 MB |
+| 列出 Node.js 版本 | 73 MB | 58 MB |
 
 mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连接即映射 Mesa，软件驱动
 再加其编译器 LLVM，比应用本身还大（同构建 GDK 打开时 Home 页 PSS 约 78 MB，关闭约
@@ -225,7 +225,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **标题栏是桌面的。**GTK 画标题栏（GNOME Wayland 客户端侧、X11 窗口管理器），随桌面风格；
   mygo 可把标题栏交给应用，本实现暂未用。
 - **缩放**走 GTK 3：整数倍，来自 `GDK_SCALE` 或桌面，加桌面文本缩放。
-- **mygo 年轻**（写作时 v0.6.3，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
+- **mygo 年轻**（写作时 v0.7.3，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
 - **无障碍**走 mygo ATK 对象，GTK 桥到 AT-SPI，Orca 读窗口；场景用的 registry 不是它。
   kit 组件给元素命名（图标按钮 tooltip 即其名），mygo 读屏支持未在此用 Orca 试过。
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。

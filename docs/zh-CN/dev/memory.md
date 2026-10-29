@@ -14,9 +14,9 @@
 
 | 实现 | 技术 | 进程 | Home PSS | Home RSS | Versions PSS | Versions RSS | 列表增加 (PSS) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| [mygo](../../../mygo/README.zh-CN.md#内存) | mygo 0.6.3、Go 1.27.3、GTK 3（purego）、CPU 渲染 | 1 | 45 | 58 | 53 | 67 | +8 |
+| [mygo](../../../mygo/README.zh-CN.md) | mygo 0.7.3、Go 1.27.3、GTK 3（purego）、CPU 渲染 | 1 | 50 | 62 | 58 | 73 | +8 |
 
-mygo（Home 页 PSS 45 MB，单进程）用处理器从 12 MB 的 Go 可执行文件绘制，从系统加载
+mygo（Home 页 PSS 50 MB，单进程）用处理器从 18 MB 的 Go 可执行文件绘制，从系统加载
 GTK 3。版本列表只构建可见行，增加 8 MB PSS。
 
 Android 客户端（`android/`）不在此表：它是包住配对服务的 WebView，内存为系统

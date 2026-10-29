@@ -8,7 +8,7 @@ no web view, no HTML, no JavaScript. mygo draws the window itself, from elements
 that are laid out with flexbox and painted with its own renderer, and opens it
 through GTK 3 without a C compiler: it calls GTK, GLib, Pango and Cairo through
 [purego](https://github.com/ebitengine/purego), so that the application is one
-Go executable of about 12 MB that is linked to the C library alone and loads
+Go executable of about 18 MB that is linked to the C library alone and loads
 GTK 3 when it starts. mygo has no widgets that look like Material 3 Expressive;
 everything above its elements and its headless widgets is written for this
 project, in Go:
@@ -80,7 +80,7 @@ it is missing.
 
 The release binary is built with `CGO_ENABLED=0`, position independent
 (`-buildmode=pie`), stripped, without the inspector of mygo's native user
-interface, and about 12 MB.
+interface, and about 18 MB.
 
 ## Sandbox
 
@@ -271,8 +271,8 @@ Measured with `vfxtool sandbox measure`: Ubuntu 26.04 in Docker, Xvfb, a
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 58 MB | 45 MB |
-| Versions of Node.js listed | 67 MB | 53 MB |
+| Home page | 62 MB | 50 MB |
+| Versions of Node.js listed | 73 MB | 58 MB |
 
 mygo draws with the processor, and the application keeps GTK from loading
 OpenGL: a GDK that opens its OpenGL connection maps Mesa, and with the software
@@ -300,7 +300,7 @@ adds 8 MB because only the rows in view are built.
   does not use yet.
 - **Scaling** is the one of GTK 3: whole numbers, from `GDK_SCALE` or the
   desktop, and the text scale of the desktop.
-- **mygo is young** (v0.6.3 at the time of writing, with a changing API): the
+- **mygo is young** (v0.7.3 at the time of writing, with a changing API): the
   version is pinned in [`go.mod`](../../../mygo/go.mod), and the pages follow what that
   version offers.
 - **Accessibility** goes through mygo's ATK objects, which GTK bridges to AT-SPI,
