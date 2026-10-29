@@ -237,7 +237,7 @@ One drawing serves every platform:
 
 | Platform | Files | Notes |
 | --- | --- | --- |
-| Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | The master, on a squircle plate. `vfxtool build-deb` installs it as the scalable icon. |
+| Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | The master, on a squircle plate. `vfxtool build-deb` installs it as the scalable icon. The AppStream metadata next to it names the colours that software centres put behind the icon: `#FFDCC1` for the light and `#6B3B04` for the dark theme, the primary containers of the colour scheme of the vfox orange (the `--m3-primary-container` of the web interface). |
 | Android launcher | `ic_launcher_background.xml`, `ic_launcher_foreground.xml` and `ic_launcher_monochrome.xml` in [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) | The adaptive icon: the launcher masks the full-bleed plate and the fox. The monochrome layer, for the themed icons of Android 13, has the cheeks at half strength and the eyes and the nose cut out. |
 | Android pairing screen | `ic_mark.xml` in the same directory | The master as a vector drawable. |
 | Windows | `Assets/*.png` in the `.msix` | Drawn by `vfxtool build-msix` from the same paths ([`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)), because no image is committed. |

@@ -195,7 +195,7 @@ mygo 不能设字体 fill 轴，故同时打包描边与填充（改家族名，
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | 母版，方圆底板。`vfxtool build-deb` 装为可缩放图标。 |
+| Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | 母版，方圆底板。`vfxtool build-deb` 装为可缩放图标。旁边的 AppStream 元数据写明软件中心垫在图标后面的颜色：浅色主题 `#FFDCC1`，深色主题 `#6B3B04`，即 vfox 橙配色的主容器色（Web 界面的 `--m3-primary-container`）。 |
 | 安卓启动器 | [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) 里的 `ic_launcher_background.xml`、`ic_launcher_foreground.xml` 与 `ic_launcher_monochrome.xml` | 自适应图标：启动器给铺满的底板和狐狸加遮罩。单色层供安卓 13 的主题图标，脸颊半强度，眼睛和鼻子镂空。 |
 | 安卓配对界面 | 同目录的 `ic_mark.xml` | 母版的矢量绘制版。 |
 | Windows | `.msix` 里的 `Assets/*.png` | 不提交任何图片，故由 `vfxtool build-msix` 用同样的路径（[`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)）绘制。 |
