@@ -20,6 +20,8 @@ import (
 	"sort"
 	"testing"
 
+	mygoi18n "github.com/egoist/mygo/i18n"
+
 	"github.com/version-fox/vfox-plus/mygo/core/i18n"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
@@ -39,100 +41,18 @@ func catalogues(t *testing.T) (i18n.ArbCatalogue, i18n.ArbCatalogue) {
 	return english, chinese
 }
 
-func placeholders(parts []i18n.MessagePart) map[string]bool {
+// placeholders are the names of the arguments of a message, nested ones too.
+func placeholders(t *testing.T, source string) map[string]bool {
+	t.Helper()
+	message, err := mygoi18n.ParseMessage(source)
+	if err != nil {
+		t.Fatalf("%q: %v", source, err)
+	}
 	names := make(map[string]bool)
-	var walk func(items []i18n.MessagePart)
-	walk = func(items []i18n.MessagePart) {
-		for _, part := range items {
-			switch part := part.(type) {
-			case i18n.Argument:
-				names[part.Name] = true
-			case i18n.Plural:
-				names[part.Name] = true
-				for _, nested := range part.Cases {
-					walk(nested)
-				}
-			}
-		}
+	for _, argument := range message.Args() {
+		names[argument.Name] = true
 	}
-	walk(parts)
 	return names
-}
-
-func TestMessageFormat(t *testing.T) {
-	parts, err := i18n.ParseMessage("{count, plural, =0{none} =1{one {name}} other{{count} of {name}}}!")
-	if err != nil {
-		t.Fatal(err)
-	}
-	args := func(count interface{}) i18n.MessageArguments {
-		return i18n.MessageArguments{"count": count, "name": "x"}
-	}
-	if got := i18n.FormatMessage(parts, args(0), "en"); got != "none!" {
-		t.Errorf("got %q", got)
-	}
-	if got := i18n.FormatMessage(parts, args(1), "en"); got != "one x!" {
-		t.Errorf("got %q", got)
-	}
-	if got := i18n.FormatMessage(parts, args(7), "en"); got != "7 of x!" {
-		t.Errorf("got %q", got)
-	}
-	if got := i18n.FormatMessage(parts, args(2.5), "en"); got != "2.5 of x!" {
-		t.Errorf("got %q", got)
-	}
-	if got := i18n.FormatMessage(parts, args("oops"), "en"); got != "none!" {
-		t.Errorf("got %q", got)
-	}
-}
-
-func TestEmptyExactCaseWins(t *testing.T) {
-	parts, err := i18n.ParseMessage("{n, plural, =0{} other{some}}")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := i18n.FormatMessage(parts, i18n.MessageArguments{"n": 0}, "en"); got != "" {
-		t.Errorf("got %q", got)
-	}
-}
-
-func TestPluralCategories(t *testing.T) {
-	parts, err := i18n.ParseMessage("{n, plural, one{single} other{many}}")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := i18n.FormatMessage(parts, i18n.MessageArguments{"n": 1}, "en"); got != "single" {
-		t.Errorf("got %q", got)
-	}
-	if got := i18n.FormatMessage(parts, i18n.MessageArguments{"n": 1.0}, "en"); got != "single" {
-		t.Errorf("got %q", got)
-	}
-	if got := i18n.FormatMessage(parts, i18n.MessageArguments{"n": 1}, "zh"); got != "many" {
-		t.Errorf("got %q", got)
-	}
-}
-
-func TestUnknownPlaceholdersAndApostrophes(t *testing.T) {
-	parts, err := i18n.ParseMessage("don't {x}")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := i18n.FormatMessage(parts, nil, "en"); got != "don't {x}" {
-		t.Errorf("got %q", got)
-	}
-	parts, err = i18n.ParseMessage("{x}")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := i18n.FormatMessage(parts, i18n.MessageArguments{"x": 2.0}, "en"); got != "2" {
-		t.Errorf("got %q", got)
-	}
-}
-
-func TestMalformedMessages(t *testing.T) {
-	for _, source := range []string{"{a, select, x{y} other{z}}", "{a, plural, =1{y}}", "a } b", "{1}", "{a, plural x}"} {
-		if _, err := i18n.ParseMessage(source); err == nil {
-			t.Errorf("%q must fail", source)
-		}
-	}
 }
 
 func TestCatalogues(t *testing.T) {
@@ -162,16 +82,9 @@ func TestCatalogues(t *testing.T) {
 		if meta == nil || meta["description"] == nil {
 			t.Errorf("%s is not described", key)
 		}
-		template, err := i18n.ParseMessage(english[key].(string))
-		if err != nil {
-			t.Fatal(err)
-		}
-		translated, err := i18n.ParseMessage(chinese[key].(string))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for name := range placeholders(template) {
-			if !placeholders(translated)[name] {
+		template, translated := placeholders(t, english[key].(string)), placeholders(t, chinese[key].(string))
+		for name := range template {
+			if !translated[name] {
 				t.Errorf("%s lacks {%s} in app_zh.arb", key, name)
 			}
 		}
@@ -181,8 +94,8 @@ func TestCatalogues(t *testing.T) {
 				declared[name] = true
 			}
 		}
-		if !reflectEqual(sortedMapKeys(placeholders(template)), sortedMapKeys(declared)) {
-			t.Errorf("%s: placeholders %v, declared %v", key, placeholders(template), declared)
+		if !reflectEqual(sortedMapKeys(template), sortedMapKeys(declared)) {
+			t.Errorf("%s: placeholders %v, declared %v", key, template, declared)
 		}
 	}
 }
@@ -273,6 +186,29 @@ func TestSystemLocales(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 	if got := i18n.SystemLocales(map[string]string{"LANG": "POSIX"}); len(got) != 0 {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestLocalizationsFormatPluralsOfTheirLanguage(t *testing.T) {
+	catalogue := i18n.ArbCatalogue{
+		"count":  "{count, plural, =0{none} one{# version} other{# versions}}",
+		"broken": "{count, plural, one{x}}",
+	}
+	en := i18n.NewLocalizations(i18n.English, catalogue, catalogue)
+	zh := i18n.NewLocalizations(i18n.SimplifiedChinese, catalogue, catalogue)
+	for count, want := range map[int]string{0: "none", 1: "1 version", 2: "2 versions", 1234: "1,234 versions"} {
+		if got := en.T("count", i18n.Arguments("count", count)); got != want {
+			t.Errorf("English, %d: got %q, want %q", count, got, want)
+		}
+	}
+	// Chinese has no `one` category: 1 is `other`.
+	if got := zh.T("count", i18n.Arguments("count", 1)); got != "1 versions" {
+		t.Errorf("Chinese, 1: got %q", got)
+	}
+	// A message that does not parse shows its key, which the tests of the
+	// catalogues catch.
+	if got := en.T("broken", i18n.Arguments("count", 1)); got != "broken" {
 		t.Errorf("got %q", got)
 	}
 }

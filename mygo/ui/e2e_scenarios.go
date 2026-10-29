@@ -458,7 +458,7 @@ func profilesScreenshots(s *scenario) {
 	s.clickButton("Distribution: Temurin")
 	s.waitForText("Eclipse Adoptium · tem")
 	s.clickItem("All distributions")
-	s.waitForText("2641 versions")
+	s.waitForText("2,641 versions")
 	s.shot("java-all")
 	// The choice is kept, so Java would list every distribution again at the next visit:
 	// take it back to the default, as a user does.

@@ -21,13 +21,20 @@ import (
 	"strings"
 	"sync"
 
+	mygoi18n "github.com/egoist/mygo/i18n"
+
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 )
 
 // Translations read from the ARB catalogues in `shared/i18n`.
 //
 // The catalogues are bundled as they are; nothing is converted. English is
-// the template and the fallback.
+// the template and the fallback. Their messages are ICU MessageFormat, which
+// the i18n package of mygo (it needs nothing but golang.org/x/text/language)
+// parses and formats with the plural rules of the Unicode CLDR.
+
+// MessageArguments are the arguments of a message, by placeholder name.
+type MessageArguments = map[string]any
 
 // ArbCatalogue is an ARB catalogue: messages and their `@`-prefixed metadata.
 type ArbCatalogue map[string]interface{}
@@ -72,14 +79,10 @@ func ResolveLanguage(preference settings.LanguagePreference, locales []string) S
 		return English
 	}
 	for _, locale := range locales {
-		language := strings.ToLower(locale)
-		if index := strings.IndexAny(language, "-_.@"); index >= 0 {
-			language = language[:index]
-		}
-		if language == "zh" {
+		switch mygoi18n.Base(locale) {
+		case "zh":
 			return SimplifiedChinese
-		}
-		if language == "en" {
+		case "en":
 			return English
 		}
 	}
@@ -136,12 +139,12 @@ type Localizations struct {
 	messages ArbCatalogue
 	fallback ArbCatalogue
 	mu       sync.Mutex
-	cache    map[string][]MessagePart
+	cache    map[string]*mygoi18n.Message
 }
 
 // NewLocalizations creates the messages of language.
 func NewLocalizations(language SupportedLanguage, messages, fallback ArbCatalogue) *Localizations {
-	return &Localizations{Language: language, messages: messages, fallback: fallback, cache: make(map[string][]MessagePart)}
+	return &Localizations{Language: language, messages: messages, fallback: fallback, cache: make(map[string]*mygoi18n.Message)}
 }
 
 // LanguageTag is the BCP 47 tag of the language.
@@ -157,22 +160,32 @@ func (l *Localizations) LanguageTag() string {
 // A key that the language lacks falls back to English; a key that no
 // catalogue has is returned as it is, which the tests catch.
 func (l *Localizations) T(key string, args MessageArguments) string {
-	l.mu.Lock()
-	parts, ok := l.cache[key]
-	if !ok {
-		source, _ := l.messages[key].(string)
-		if source == "" {
-			source, _ = l.fallback[key].(string)
-		}
-		if source == "" {
-			parts = []MessagePart{Text{Content: key}}
-		} else if parsed, err := ParseMessage(source); err == nil {
-			parts = parsed
-		} else {
-			parts = []MessagePart{Text{Content: key}}
-		}
-		l.cache[key] = parts
+	message := l.message(key)
+	if message == nil {
+		return key
 	}
-	l.mu.Unlock()
-	return FormatMessage(parts, args, string(l.Language))
+	return message.Format(l.LanguageTag(), args)
+}
+
+// message parses the message of key once: the one of the language, else the
+// English one. It is nil when no catalogue has the key or the message does not
+// parse.
+func (l *Localizations) message(key string) *mygoi18n.Message {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if message, done := l.cache[key]; done {
+		return message
+	}
+	source, _ := l.messages[key].(string)
+	if source == "" {
+		source, _ = l.fallback[key].(string)
+	}
+	var message *mygoi18n.Message
+	if source != "" {
+		if parsed, err := mygoi18n.ParseMessage(source); err == nil {
+			message = parsed
+		}
+	}
+	l.cache[key] = message
+	return message
 }
