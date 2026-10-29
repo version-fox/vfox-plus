@@ -770,11 +770,14 @@ function renderSdks(inv) {
   const q = (document.getElementById("sdkSearch").value || "").toLowerCase();
   const list = (sec.value || []).filter(s => !q || s.Name.toLowerCase().includes(q));
   if (!list.length) { box.innerHTML = stateBlock("empty", "inventory-2", t("noSdks"), "", null); return; }
+  // The version in use goes under the count, not beside the name: the list is narrow, and the
+  // names of Java and Flutter versions (21.0.12.1+1-tem, 3.47.7-x64) are long.
   box.innerHTML = list.map(sdk =>
     '<button class="item" data-sdk="' + esc(sdk.Name) + '" aria-current="' + (cache.detail === sdk.Name) + '">' + avatar(sdk.Name) +
     "<span style='flex:1;min-width:0'><b><code>" + esc(sdk.Name) + "</code></b><br><span class='muted t-label'>" +
-    (sdk.HasCurrent ? esc(t("current") + " · " + sdk.Current) : esc(t("empty"))) + " · " + (sdk.Versions || []).length + " " + esc(t("versionsN")) +
-    "</span></span>" + (sdk.HasCurrent ? '<span class="tag cur">' + esc(sdk.Current) + "</span>" : "") + icon("chevron-right", "sm muted") + "</button>").join("");
+    (sdk.HasCurrent ? "" : esc(t("empty")) + " · ") + (sdk.Versions || []).length + " " + esc(t("versionsN")) + "</span>" +
+    (sdk.HasCurrent ? '<br><span class="tag cur">' + esc(sdk.Current) + "</span>" : "") +
+    "</span>" + icon("chevron-right", "sm muted") + "</button>").join("");
   box.querySelectorAll("[data-sdk]").forEach(b => b.onclick = () => location.hash = "#/sdk/" + encodeURIComponent(b.dataset.sdk));
 }
 function showList(push) {
