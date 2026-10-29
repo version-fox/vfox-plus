@@ -13,7 +13,7 @@ vfox-plus pair
 已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时进度与日志的任务、
 以及设置。
 
-![配对后的 Web 界面](https://iili.io/nv67G94.png)
+![配对后的 Web 界面](https://iili.io/n87KTiu.png)
 
 Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
 按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，`serve`
