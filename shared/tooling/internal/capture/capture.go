@@ -21,7 +21,7 @@
 // so the real vfox installation is never touched and the captured paths stay
 // stable. It needs network access: it adds the nodejs and maven plugins,
 // searches their versions, installs Maven, and adds the java and flutter
-// plugins to search them. After a run, compare the new
+// plugins to search them and to list them as installed (their versions are faked). After a run, compare the new
 // outputs with cases.json and update the expected values there by hand. See
 // shared/fixtures/README.md.
 package capture
@@ -42,9 +42,11 @@ import (
 // infoFormat is the --format template used for the info captures.
 const infoFormat = `{{.Name}}{{"\x1f"}}{{.Version}}{{"\x1f"}}{{.Homepage}}{{"\x1f"}}{{.InstallPath}}{{"\x1f"}}{{.Description}}`
 
-// versionRe matches the version number in `vfox --version` output,
-// the same pattern capture.sh greps for.
-var versionRe = regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+[^ ]*`)
+// versionRe matches the version number in `vfox --version` output, the same
+// pattern capture.sh greps for. grep looks at one line at a time, so the end of
+// the line ends the match: here it is a character that the match must not take,
+// or the name of the directory of the captures would end with a line feed.
+var versionRe = regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\S*`)
 
 // unsetEnv lists the variables capture.sh removes so vfox uses (and changes)
 // the throw-away HOME instead of a shared vfox directory.
@@ -546,6 +548,37 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 		{"install-plugin-error", []string{"install", "--yes", "java@99-tem"}},
 	} {
 		if err := r.capture(search.name, nil, search.args...); err != nil {
+			return err
+		}
+	}
+
+	// The machine of somebody who uses these plugins: Java and Flutter installed
+	// next to Node.js, with one version of each in use. The versions are faked, like
+	// those above, so that nothing is downloaded. The fake vfox serves these
+	// captures instead of `list` and `current` when it plays that machine.
+	for _, installed := range []struct{ sdk, version string }{
+		{"java", "21.0.12.1+1-tem"}, {"java", "25.0.4+9-librca-fx"}, {"java", "25.0.2+10"},
+		{"flutter", "3.47.7-x64"}, {"flutter", "3.44.9-x64"},
+	} {
+		if err := r.fakeInstall(installed.sdk, installed.version); err != nil {
+			return err
+		}
+	}
+	for _, use := range []string{"java@21.0.12.1+1-tem", "flutter@3.47.7-x64"} {
+		if err := r.runCmd([]string{"__VFOX_SHELL=bash"}, io.Discard, errOut, "use", "--global", use); err != nil {
+			return err
+		}
+	}
+	for _, listing := range []struct {
+		name string
+		args []string
+	}{
+		{"list-profiles", []string{"list"}},
+		{"current-profiles", []string{"current"}},
+		{"info-java", []string{"info", "java", "--format", infoFormat}},
+		{"info-flutter", []string{"info", "flutter", "--format", infoFormat}},
+	} {
+		if err := r.capture(listing.name, nil, listing.args...); err != nil {
 			return err
 		}
 	}

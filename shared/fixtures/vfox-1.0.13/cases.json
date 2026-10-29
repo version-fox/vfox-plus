@@ -789,6 +789,84 @@
       "expect": {
         "error": "nosuch plugin not installed"
       }
+    },
+    {
+      "name": "list-profiles",
+      "command": [
+        "list"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "list": {
+          "flutter": [
+            "3.47.7-x64",
+            "3.44.9-x64"
+          ],
+          "java": [
+            "25.0.4+9-librca-fx",
+            "25.0.2+10",
+            "21.0.12.1+1-tem"
+          ],
+          "maven": [],
+          "nodejs": [
+            "24.11.1",
+            "22.21.0"
+          ]
+        }
+      }
+    },
+    {
+      "name": "current-profiles",
+      "command": [
+        "current"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "current": {
+          "flutter": "3.47.7-x64",
+          "java": "21.0.12.1+1-tem",
+          "maven": null,
+          "nodejs": "24.11.1"
+        }
+      }
+    },
+    {
+      "name": "info-java",
+      "command": [
+        "info",
+        "java",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "name": "java",
+          "version": "0.6.3",
+          "homepage": "https://github.com/version-fox/vfox-java",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/java",
+          "description": "Support for multiple JDK distributions, such as: Oracle, Graalvm, Eclipse & more."
+        }
+      }
+    },
+    {
+      "name": "info-flutter",
+      "command": [
+        "info",
+        "flutter",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "name": "flutter",
+          "version": "0.2.5",
+          "homepage": "https://github.com/version-fox/vfox-flutter",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/flutter",
+          "description": "Flutter plugin, https://flutter.dev"
+        }
+      }
     }
   ]
 }
