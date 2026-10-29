@@ -188,8 +188,9 @@ interfaces share, for `java`, `nodejs` and `flutter`:
 The texts of a profile are written in both languages next to the data, not in
 the catalogues, because the web interface gets them over HTTP and the headless
 server does not carry the catalogues. A plugin without a profile behaves as before.
-The registry is `state.AppModel.Profiles`; the end-to-end tests register a profile
-for their offline test plugin.
+A profile belongs to the name of the plugin: one that was added under another name
+(`vfox add --alias`) gets none. The registry is `state.AppModel.Profiles`; the
+end-to-end tests register a profile for their offline test plugin.
 
 `SdkDetailController` carries the chosen search (`SetSearch` forgets the earlier
 list and the facets; the list loads when somebody asks for it) and the chosen
