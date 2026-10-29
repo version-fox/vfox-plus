@@ -1,0 +1,37 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Configuration of markdownlint (https://github.com/DavidAnson/markdownlint), which
+# checks every Markdown document. The command is in docs/en/dev/contributing.md.
+# Every rule is on unless it is turned off below.
+default: true
+
+# The lines are wrapped by hand at about 100 columns, and Chinese text is not wrapped.
+MD013: false
+
+# A console block shows the command with its prompt, and often nothing else.
+MD014: false
+
+# The stack traces and the Go code in fenced blocks keep their tabs.
+MD010:
+  code_blocks: false
+
+# The README opens with the centred logo.
+MD033:
+  allowed_elements: [div, img]
+MD041:
+  allow_preamble: true
+
+# The cells of a table follow their text; the pipes are not aligned.
+MD060: false

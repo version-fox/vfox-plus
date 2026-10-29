@@ -9,7 +9,7 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
 
 - Code comments, commit messages and pull requests are written in
   **English**. User-visible texts go through the translation catalogues in
-  [`shared/i18n`(../../../shared/i18n) and are available in English and Simplified
+  [`shared/i18n`](../../../shared/i18n) and are available in English and Simplified
   Chinese.
 - Documentation is written in **English with a Simplified Chinese translation**:
   every Markdown document has a Chinese counterpart (see
@@ -24,7 +24,7 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
   design tokens, translations, icons, settings — is specified in this `dev/`
   directory and in [`shared/`](../../../shared/). Change the specification together with the code.
 - Files use UTF-8, LF line endings and a final newline (see
-  [`.editorconfig`(../../../.editorconfig) and [`.gitattributes`(../../../.gitattributes)).
+  [`.editorconfig`](../../../.editorconfig) and [`.gitattributes`](../../../.gitattributes)).
 - Binary files are not committed. Upload screenshots and other images to an
   image host and link them (see [Screenshots](#screenshots)); generate binary
   build inputs, such as the logos of the Windows package, at build time.
@@ -38,7 +38,7 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
 1. Open an issue or comment on an existing one before large changes.
 2. Create a branch from `main` and keep pull requests focused.
 3. Run the checks; they are the same as in CI and listed in the
-   [mygo README(implementation-mygo.md#everyday-commands):
+   [mygo README](implementation-mygo.md#everyday-commands):
 
    ```sh
    cd mygo
@@ -50,7 +50,7 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
    To run every check, the end-to-end tests and the packaging without installing
    anything but Docker, and without any risk for the vfox installation on your
    machine, use the sandbox, `vfxtool sandbox all` (see
-   [shared/sandbox(sandbox.md)).
+   [shared/sandbox](sandbox.md)).
 
 4. Describe what changed and how you tested it in the pull request. Include
    screenshots for visual changes, in light and dark themes.
@@ -59,8 +59,8 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
-| [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), shared JSON, no committed binary files |
-| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests(memory.md#memory-in-pull-requests)) |
+| [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
+| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios in the application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
@@ -81,7 +81,7 @@ saves what it downloaded, so that the next one gets further.
 A pull request that rebuilds the application gets a comment with its memory and
 the difference from `main`, which the next commit replaces instead of adding
 another one. A change that is more than the noise between CI runs is in bold; read
-[Memory in pull requests(memory.md#memory-in-pull-requests) before you trust a small
+[Memory in pull requests](memory.md#memory-in-pull-requests) before you trust a small
 one.
 
 ## Documentation languages
@@ -112,13 +112,36 @@ Each document links to its counterpart at the top (`[简体中文](…)` in Engl
 repository workflow fails when a document has no counterpart. Future documents
 follow the same table: add both files together.
 
+## Markdown
+
+CI checks every document with [markdownlint](https://github.com/DavidAnson/markdownlint),
+configured in [`.markdownlint.yaml`](../../../.markdownlint.yaml). Run the check
+before you push, with the image that CI uses (pinned by its digest):
+
+```sh
+docker run --rm --volume "$PWD:/workdir" \
+  ghcr.io/igorshubovych/markdownlint-cli:v0.50.0@sha256:db7dcb73cd3163cc45854b60fc21eefe1ebe7fa52aad758706010b64a4778900 \
+  --ignore-path .gitignore "**/*.md"
+```
+
+Two habits matter most:
+
+- **Write a URL in angle brackets**, `<https://vfox.dev/>`, or as the target of a
+  link, `[vfox](https://vfox.dev/)`. GitHub turns a bare URL into a link up to
+  the next space, so the `)` after it, and in Chinese text the full-width `）`, `，`
+  and `。`, become part of the address and the preview shows a wrong URL.
+- **Close every link with `]`**: `[text](target)`. A `[text(target)` is no link and
+  shows as it is; `vfxtool docs-check` fails on it.
+
+A `|` ends the cell of a table even inside code; write `\|` there.
+
 ## Common changes
 
 ### Texts
 
-Add or change messages in [`shared/i18n/app_en.arb`(../../../shared/i18n/app_en.arb)
+Add or change messages in [`shared/i18n/app_en.arb`](../../../shared/i18n/app_en.arb)
 with a `description` (and placeholder metadata), then translate them in
-[`app_zh.arb`(../../../shared/i18n/app_zh.arb). See [docs/i18n.md(i18n.md),
+[`app_zh.arb`](../../../shared/i18n/app_zh.arb). See [docs/i18n.md](i18n.md),
 including the glossary.
 
 ### Icons
@@ -143,8 +166,8 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
 
 When vfox changes, recapture the fixtures with
 `vfxtool capture` and follow
-[`shared/fixtures/README.md`(fixtures.md). Document the change in
-[docs/vfox-cli-contract.md(vfox-cli-contract.md).
+[`shared/fixtures/README.md`](fixtures.md). Document the change in
+[docs/vfox-cli-contract.md](vfox-cli-contract.md).
 
 ### Diagrams
 

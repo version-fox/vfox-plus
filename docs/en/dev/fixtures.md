@@ -59,7 +59,7 @@ flowchart TB
 `vfxtool capture` runs every command
 
 - with `NO_COLOR=1`, without a terminal on stdin or stdout, which is how a GUI
-  runs vfox (see [the CLI contract(vfox-cli-contract.md));
+  runs vfox (see [the CLI contract](vfox-cli-contract.md));
 - with `HOME=/tmp/vfox-sb/home`, a throw-away sandbox, and without
   `VFOX_HOME`, so the real vfox installation is never touched and the captured
   paths are stable;
@@ -103,7 +103,7 @@ Expected results by parser:
 
 Parsers must skip lines they do not understand instead of failing, and the
 error summary follows the rules in the
-[CLI contract(vfox-cli-contract.md#errors).
+[CLI contract](vfox-cli-contract.md#errors).
 
 ## Plugins of the version-fox organisation
 
@@ -136,7 +136,7 @@ searches and the plugin information it always serves.
    output to standard error).
 3. Run the parser tests, for example `cd mygo && go test ./core/...`.
 4. Document any change of the output format in
-   [the CLI contract(vfox-cli-contract.md).
+   [the CLI contract](vfox-cli-contract.md).
 
 ## The fake vfox
 

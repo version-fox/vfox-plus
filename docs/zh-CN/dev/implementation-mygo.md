@@ -21,9 +21,9 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`：浏览器配对到本机（一次性链接），或为容器与远端实例常驻服务；配对后的浏览器得到完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
 | [`main.go`](../../../mygo/main.go) | 组装模型与窗口；分发 `pair` 子命令 |
 
-分层见[架构(architecture.md)：`core` 不知道其它层，`state` 只知道
+分层见[架构](architecture.md)：`core` 不知道其它层，`state` 只知道
 `core`，`ui` 在上。`core`、`state`、`ui/mcu` 与 `ui/shapes` 是无 UI 工具包的纯 Go，
-解析器跑 [`fixtures`(fixtures.md) 通过。
+解析器跑 [`fixtures`](fixtures.md) 通过。
 
 ## 依赖
 
@@ -76,7 +76,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 
 `vfxtool sandbox` 在一次性 Docker 容器跑 CI 检查、端到端测试与打包。只需 Docker，
 不改变本机：镜像带 Go、golangci-lint、GTK 3、Xvfb 与 vfox（扩展共享基础镜像，见
-[`shared/sandbox`(sandbox.md)），只读看仓库，在缓存卷保留
+[`shared/sandbox`](sandbox.md)），只读看仓库，在缓存卷保留
 Go 模块与构建缓存。
 
 | 命令 | 作用 |
@@ -98,7 +98,7 @@ Go 模块与构建缓存。
 
 - **单元测试**覆盖 `core`、`state`、配色与形状。门禁：`core` 与 `state` 合计语句
   85%，`ui` 75%，其组件与页面测试把 `ui` 带到约 90%。
-  解析器跑 [`shared/fixtures`(fixtures.md) **全部**用例。
+  解析器跑 [`shared/fixtures`](fixtures.md) **全部**用例。
 - **组件与页面测试**无窗口跑 mygo 视图，用其 `ui.Tester` 在内存布局绘制、点击、输入、
   推进自有时钟（[`ui/kit`](../../../mygo/ui/kit/behaviour_test.go)）。
   [`ui/app_test.go`](../../../mygo/ui/app_test.go) 对捕获的 vfox 输出跑完整应用，每流一测：Home、

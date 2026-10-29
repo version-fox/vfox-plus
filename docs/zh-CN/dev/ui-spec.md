@@ -49,7 +49,7 @@
 
 定位 vfox 时各页（设置除外）显示加载指示器与 `vfoxCheckingTitle`。找不到可执行文件
 显示 `vfoxMissingTitle` / `vfoxMissingBody`，三个动作：打开安装指南
-（https://vfox.dev/guides/quick-start.html）、选择可执行文件（`vfoxLocate`）、重试。
+（<https://vfox.dev/guides/quick-start.html>）、选择可执行文件（`vfoxLocate`）、重试。
 可执行文件报不出版本显示 `vfoxBrokenTitle` / `vfoxBrokenBody`，动作相同。
 设置页始终可达。
 
@@ -63,7 +63,7 @@
 - 终端使用说明卡（`homeShellTitle`、`homeShellBody`），含
   `eval "$(vfox activate bash)"` 行与复制按钮。
 - 两个快捷卡：`homeExploreTitle`（打开 Plugins）、`homeDocsTitle`
-  （打开 https://vfox.dev/）。
+  （打开 <https://vfox.dev/>）。
 
 ## SDKs
 

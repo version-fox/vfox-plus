@@ -18,12 +18,17 @@
 // under docs/, first by language (en, zh-CN) then by audience (user, dev);
 // the repository root and the source directories keep only thin entry points
 // (README.md, CONTRIBUTING.md) that link into docs/.
+//
+// It also finds the links that GitHub does not render as links because their
+// closing bracket is missing, as in [`x`(../x.md): markdownlint does not see
+// them, for the text is no Markdown link.
 package docscheck
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -32,8 +37,8 @@ import (
 //
 //	docs-check [--root DIR]
 //
-// It reports every Markdown document without a counterpart and every document
-// without a link to its counterpart.
+// It reports every Markdown document without a counterpart, every document
+// without a link to its counterpart and every link without its closing bracket.
 func Run(args []string) error {
 	root := ""
 	rest := args
@@ -61,6 +66,13 @@ func Run(args []string) error {
 		if err != nil {
 			return err
 		}
+		content, err := os.ReadFile(file) //nolint:gosec // The repository's own docs.
+		if err != nil {
+			return err
+		}
+		for _, line := range unclosedLinks(string(content)) {
+			problems = append(problems, fmt.Sprintf("%s:%d has a link without its \"]\"", filepath.ToSlash(rel), line))
+		}
 		counterpart := counterpartPath(root, rel)
 		if counterpart == "" {
 			continue
@@ -69,10 +81,6 @@ func Run(args []string) error {
 			problems = append(problems, fmt.Sprintf("%s has no counterpart %s", rel, relPath(root, counterpart)))
 			continue
 		}
-		content, err := os.ReadFile(file) //nolint:gosec // The repository's own docs.
-		if err != nil {
-			return err
-		}
 		want := filepath.Base(counterpart)
 		if !strings.Contains(string(content), want) {
 			problems = append(problems, fmt.Sprintf("%s does not link to %s", rel, want))
@@ -80,10 +88,60 @@ func Run(args []string) error {
 	}
 	if len(problems) > 0 {
 		sort.Strings(problems)
-		return fmt.Errorf("documentation language problems:\n  %s", strings.Join(problems, "\n  "))
+		return fmt.Errorf("documentation problems:\n  %s", strings.Join(problems, "\n  "))
 	}
-	fmt.Printf("docs-check: %d documents, all with counterparts\n", len(files))
+	fmt.Printf("docs-check: %d documents, all with counterparts and closed links\n", len(files))
 	return nil
+}
+
+// unclosedLink finds the beginning of a link that lacks its "]": a "[" with a
+// label that has no bracket, then the "(" of a destination that is a path, an
+// anchor or a URL.
+var unclosedLink = regexp.MustCompile(`\[[^\[\]\n]*\(([^()\s]*[./#][^()\s]*)\)`)
+
+// codeSpan matches an inline code span, which holds no link.
+var codeSpan = regexp.MustCompile("`[^`\n]*`")
+
+// unclosedLinks returns the numbers of the lines of a document that have a link
+// without its "]". Fenced code is left alone, and so is the inside of a code
+// span: [`x`](y.md) is a link, and [`x`(y.md) is not.
+func unclosedLinks(content string) []int {
+	var lines []int
+	fence := ""
+	for number, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimLeft(line, " ")
+		if marker := fenceMarker(trimmed); marker != "" {
+			switch {
+			case fence == "":
+				fence = marker
+			case strings.HasPrefix(trimmed, fence):
+				fence = ""
+			}
+			continue
+		}
+		if fence != "" {
+			continue
+		}
+		if unclosedLink.MatchString(codeSpan.ReplaceAllString(line, "C")) {
+			lines = append(lines, number+1)
+		}
+	}
+	return lines
+}
+
+// fenceMarker returns the run of backticks or tildes that opens or closes a
+// fenced code block, or "" when the line is no fence.
+func fenceMarker(trimmed string) string {
+	for _, mark := range []string{"```", "~~~"} {
+		if strings.HasPrefix(trimmed, mark) {
+			run := mark
+			for strings.HasPrefix(trimmed, run+string(mark[0])) {
+				run += string(mark[0])
+			}
+			return run
+		}
+	}
+	return ""
 }
 
 // counterpartPath returns the absolute path of the counterpart of rel (relative

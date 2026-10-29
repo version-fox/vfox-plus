@@ -49,7 +49,7 @@
 
 | 工作流 | 触发 | 检查 |
 | --- | --- | --- |
-| [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、共享 JSON、无二进制文件 |
+| [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、文档语言与链接（`vfxtool docs-check`）、Markdown（markdownlint）、共享 JSON、无二进制文件 |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | 构建工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、应用内端到端场景（夹具与真实 vfox）、内存测量、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中跑 `vfxtool sandbox all` |
@@ -90,13 +90,34 @@ Android 客户端，绝不涉及源码构建、仓库布局、vfox CLI 契约等
 每个文档顶部互链（英文用 `[简体中文](…)`，中文用 `[English](…)`），
 `vfxtool docs-check` 校验映射；仓库工作流在缺对照时失败。新增文档同样成对添加。
 
+## Markdown
+
+CI 用 [markdownlint](https://github.com/DavidAnson/markdownlint) 检查每个文档，配置在
+[`.markdownlint.yaml`](../../../.markdownlint.yaml)。推送前用 CI 的同一个镜像（按 digest 固定）检查：
+
+```sh
+docker run --rm --volume "$PWD:/workdir" \
+  ghcr.io/igorshubovych/markdownlint-cli:v0.50.0@sha256:db7dcb73cd3163cc45854b60fc21eefe1ebe7fa52aad758706010b64a4778900 \
+  --ignore-path .gitignore "**/*.md"
+```
+
+最要紧的两个习惯：
+
+- **URL 写在尖括号里**，`<https://vfox.dev/>`，或作链接目标 `[vfox](https://vfox.dev/)`。
+  GitHub 把裸 URL 一直识别到下一个空白，所以它后面的 `)`，以及中文里的全角 `）`、`，`、`。`，
+  都会算进地址，预览里就是错误的 URL。
+- **每个链接都用 `]` 闭合**：`[文字](目标)`。`[文字(目标)` 不是链接，会原样显示；
+  `vfxtool docs-check` 对它报错。
+
+表格单元格里的 `|` 哪怕在代码里也会结束单元格，要写成 `\|`。
+
 ## 常见改动
 
 ### 文本
 
-在 [`shared/i18n/app_en.arb`(../../../shared/i18n/app_en.arb) 中添加或修改消息
+在 [`shared/i18n/app_en.arb`](../../../shared/i18n/app_en.arb) 中添加或修改消息
 （含 `description` 与占位符元数据），再译到
-[`app_zh.arb`(../../../shared/i18n/app_zh.arb)。见
+[`app_zh.arb`](../../../shared/i18n/app_zh.arb)。见
 [i18n.md](i18n.md) 及术语表。
 
 ### 图标

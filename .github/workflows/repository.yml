@@ -73,6 +73,13 @@ jobs:
           GOOS=windows CGO_ENABLED=0 go -C shared/tooling vet ./...
       - name: Check documentation languages
         run: go -C shared/tooling run ./cmd/vfxtool docs-check
+      - name: Lint Markdown
+        # markdownlint, with the rules of .markdownlint.yaml, in the image that
+        # docs/en/dev/contributing.md tells to run.
+        run: >-
+          docker run --rm --volume "$PWD:/workdir"
+          ghcr.io/igorshubovych/markdownlint-cli:v0.50.0@sha256:db7dcb73cd3163cc45854b60fc21eefe1ebe7fa52aad758706010b64a4778900
+          --ignore-path .gitignore "**/*.md"
       - name: Keep binary files out of the repository
         run: |
           # Images belong on an image host, and build outputs such as the logos of the

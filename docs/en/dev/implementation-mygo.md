@@ -25,7 +25,7 @@ project, in Go:
 | [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`: pair a browser with this machine (one-time links) or keep the server up for containers and remote instances; the paired browser gets the full web interface (`/app`: SDKs, registry, tasks with live logs, settings) |
 | [`main.go`](../../../mygo/main.go) | Assembles the model and the window; dispatches the `pair` subcommand |
 
-The layers follow [the architecture(architecture.md): `core` knows
+The layers follow [the architecture](architecture.md): `core` knows
 nothing of the others, `state` only knows `core`, and `ui` sits on top. `core`,
 `state`, `ui/mcu` and `ui/shapes` are plain Go without a user interface
 toolkit, and the parsers pass the [fixtures](../../../shared/fixtures/README.md).
@@ -62,7 +62,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | Collect the icons, the translations and the licenses the binary embeds | `vfxtool prepare` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
 | Build (`build/vfox-plus`) | `vfxtool build build/vfox-plus` |
 | Build the headless server (`build/vfox-plus-serve`) | `vfxtool build --package ./cmd/vfox-plus-serve build/vfox-plus-serve` (same `pair`, `serve` and `service` commands, no user interface; about a third smaller) |
-| Cross-compile for Windows | `vfxtool build --goos windows --goarch amd64|arm64 build/vfox-plus.exe` |
+| Cross-compile for Windows | `vfxtool build --goos windows --goarch amd64\|arm64 build/vfox-plus.exe` |
 | Run | `vfxtool build build/vfox-plus && build/vfox-plus` |
 | Format check (CI fails on a difference) | `golangci-lint fmt --diff` |
 | Lint (CI fails on any finding) | `golangci-lint run` and `golangci-lint run --build-tags e2e` |

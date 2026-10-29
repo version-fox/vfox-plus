@@ -228,7 +228,7 @@ vfox 配置（代理、仓库、存储目录等）**不是**这些设置的一�
 ## 依赖
 
 运行时依赖必须属于 Apache 软件基金会许可证分类的 A 或 B 类
-（见 https://www.apache.org/legal/resolved）：ASF 产品允许的即可——宽松许可证
+（见 <https://www.apache.org/legal/resolved>）：ASF 产品允许的即可——宽松许可证
 （如 Apache-2.0、MIT、BSD、Unlicense）或弱 copyleft 许可证（如 MPL-2.0、
 EPL-2.0）。X 类（GPL、AGPL 等强 copyleft）排除在外。
 B 类依赖按自身许可证及其条件发布（声明保留、源码可得）；应用原样链接。应用框架

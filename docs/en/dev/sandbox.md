@@ -10,9 +10,9 @@ it.
 
 | File | Role |
 | --- | --- |
-| [`base.Dockerfile`(../../../shared/sandbox/base.Dockerfile) | The base image: Ubuntu 26.04, a virtual display, fonts, its default wallpaper, the Debian packaging tools, a pinned vfox and the unprivileged user `tester` |
-| [`../tooling/internal/sandbox`(../../../shared/tooling/internal/sandbox) | Host side (`vfxtool sandbox`): builds the images, runs tasks in containers, runs the installation test |
-| [`../tooling/internal/runtask`(../../../shared/tooling/internal/runtask) | Container side (`vfxtool runtask`): copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages |
+| [`base.Dockerfile`](../../../shared/sandbox/base.Dockerfile) | The base image: Ubuntu 26.04, a virtual display, fonts, its default wallpaper, the Debian packaging tools, a pinned vfox and the unprivileged user `tester` |
+| [`../tooling/internal/sandbox`](../../../shared/tooling/internal/sandbox) | Host side (`vfxtool sandbox`): builds the images, runs tasks in containers, runs the installation test |
+| [`../tooling/internal/runtask`](../../../shared/tooling/internal/runtask) | Container side (`vfxtool runtask`): copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages |
 
 ## How the sandbox works
 

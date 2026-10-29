@@ -5,7 +5,7 @@
 低内存占用是项目目标（见[架构](architecture.md#内存)）。
 本页记录应用在 Linux 上的占用，同一方法测量，便于发现回归。数字是快照：行是沙箱
 `measure` 任务单次运行的结果，同样数字见
-[mygo README(implementation-mygo.md#内存)。
+[mygo README](implementation-mygo.md#内存)。
 
 ## 结果
 

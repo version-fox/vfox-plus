@@ -6,7 +6,7 @@ Low memory use is a goal of the project (see [the architecture](architecture.md#
 This page records what the application uses on Linux, measured the same way,
 so that regressions show up. The numbers are a snapshot: the row is the result
 of the `measure` task of the sandbox, run once, and the same numbers are in
-the Memory section of the [mygo README(implementation-mygo.md#memory).
+the Memory section of the [mygo README](implementation-mygo.md#memory).
 
 ## Results
 

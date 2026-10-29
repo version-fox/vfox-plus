@@ -259,7 +259,7 @@ and keeps the settings reachable.
 
 Every runtime dependency must fall in Category A or B of the license
 classification of the Apache Software Foundation
-(see https://www.apache.org/legal/resolved): what the ASF allows in its
+(see <https://www.apache.org/legal/resolved>): what the ASF allows in its
 products may be used here — permissive licenses (for example Apache-2.0,
 MIT, BSD, Unlicense) or weak-copyleft licenses (for example MPL-2.0,
 EPL-2.0). Category X (strong copyleft such as GPL and AGPL) is excluded.
