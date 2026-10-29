@@ -50,6 +50,8 @@ var (
 	// pluginErrorPattern is the error of a hook of a plugin; the file and the line
 	// number are optional, and the first `:<number>: ` ends them.
 	pluginErrorPattern = regexp.MustCompile(`^plugin \[\w+\] method error: (?:.*?:\d+: )?(.+)$`)
+	// tracebackEntryPattern is a line of a Lua stack traceback.
+	tracebackEntryPattern = regexp.MustCompile(`^(?:\[[^\]]*\]|\S.*?:\d+): (?:in .+|\?)$|^\.\.\.`)
 )
 
 // ParseVfoxVersion parses `vfox --version`, for example `vfox version 1.0.12.
@@ -408,7 +410,9 @@ func meaningfulLines(text string) []string {
 			inTraceback = true
 			continue
 		}
-		if inTraceback && strings.HasPrefix(line, "\t") {
+		// A task keeps its lines without the indentation, so an entry is known by its
+		// shape as well: `<file>:<line>: in <what>`, `[G]: in <what>` and `[G]: ?`.
+		if inTraceback && (strings.HasPrefix(line, "\t") || tracebackEntryPattern.MatchString(trimmed)) {
 			continue
 		}
 		inTraceback = false

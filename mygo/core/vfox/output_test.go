@@ -201,6 +201,17 @@ func TestSummarizeErrorOfAPluginLeavesOutTheTraceback(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", line, got, sentence)
 		}
 	}
+	// A task keeps its lines without the indentation.
+	flat := "plugin [PreInstall] method error: /home/u/.vfox/plugin/java/hooks/pre_install.lua:42: " + want + "\n" +
+		"stack traceback:\n[G]: in function 'error'\n/home/u/.vfox/plugin/java/hooks/pre_install.lua:42: in main chunk\n" +
+		"/p/x.lua:9: in function <x.lua:8>\n...(skipping 3 levels)\n[G]: ?\n"
+	if got := vfox.SummarizeError(flat, "failed to install java"); got != want {
+		t.Errorf("got %q", got)
+	}
+	// What follows a traceback and looks like no entry of it stays.
+	if got := vfox.SummarizeError("stack traceback:\n[G]: ?\nfailed to download x@1: EOF\n", ""); got != "failed to download x@1: EOF" {
+		t.Errorf("got %q", got)
+	}
 	// Indented lines that are no part of a traceback stay.
 	if got := vfox.SummarizeError("failed:\n  reason one\n  reason two\n", ""); got != "reason two" {
 		t.Errorf("got %q", got)
