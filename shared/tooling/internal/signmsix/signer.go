@@ -97,41 +97,47 @@ func (s *signer) replaces(c *x509.Certificate) bool {
 		slices.Contains(c.ExtKeyUsage, x509.ExtKeyUsageCodeSigning)
 }
 
-// signAll signs every package in dir with osslsigncode: the .msix files first,
-// then the bundles, which hold them. The key is written to a temporary file
-// for osslsigncode to read, and deleted when the signing is done.
-func signAll(tool string, s *signer, dir string) error {
-	packages, err := packagesIn(dir)
-	if err != nil {
-		return err
-	}
+// signing signs files with osslsigncode. The certificate and the key are in
+// temporary files, for osslsigncode to read, until close deletes them.
+type signing struct {
+	tool    string
+	work    string
+	chain   string
+	private string
+}
+
+// open writes the files that osslsigncode reads, for the tool that is to sign.
+func (s *signer) open(tool string) (*signing, error) {
 	work, err := os.MkdirTemp("", "vfxtool-sign-")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer func() { _ = os.RemoveAll(work) }()
-	chain := filepath.Join(work, "signer.pem")
-	private := filepath.Join(work, "signer.key")
-	if err := os.WriteFile(chain, s.chainPEM, 0o600); err != nil {
-		return err
+	g := &signing{tool: tool, work: work, chain: filepath.Join(work, "signer.pem"), private: filepath.Join(work, "signer.key")}
+	if err := os.WriteFile(g.chain, s.chainPEM, 0o600); err != nil {
+		g.close()
+		return nil, err
 	}
-	if err := os.WriteFile(private, s.keyPEM, 0o600); err != nil {
-		return err
+	if err := os.WriteFile(g.private, s.keyPEM, 0o600); err != nil {
+		g.close()
+		return nil, err
 	}
-	for _, file := range packages {
-		name := filepath.Base(file)
-		fmt.Printf("Signing %s...\n", name)
-		signed := file + ".signed-tmp"
-		command := exec.Command(tool, "sign", "-certs", chain, "-key", private, "-in", file, "-out", signed) //nolint:gosec // The tool is the pinned download or the one that the caller named.
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		if err := command.Run(); err != nil {
-			_ = os.Remove(signed)
-			return fmt.Errorf("osslsigncode failed for %s: %w", name, err)
-		}
-		if err := os.Rename(signed, file); err != nil {
-			return err
-		}
+	return g, nil
+}
+
+// close deletes the temporary files.
+func (g *signing) close() { _ = os.RemoveAll(g.work) }
+
+// sign signs a package or a bundle in place.
+func (g *signing) sign(file string) error {
+	name := filepath.Base(file)
+	fmt.Printf("Signing %s...\n", name)
+	signed := file + ".signed-tmp"
+	command := exec.Command(g.tool, "sign", "-certs", g.chain, "-key", g.private, "-in", file, "-out", signed) //nolint:gosec // The tool is the pinned download or the one that the caller named.
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	if err := command.Run(); err != nil {
+		_ = os.Remove(signed)
+		return fmt.Errorf("osslsigncode failed for %s: %w", name, err)
 	}
-	return nil
+	return os.Rename(signed, file)
 }

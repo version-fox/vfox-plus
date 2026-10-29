@@ -233,30 +233,40 @@ func (c *wsConn) readMessage() ([]byte, error) {
 	}
 }
 
-// writeFrame sends one final frame. A client masks every frame it sends.
+// writeFrame sends one final frame. A client masks every frame it sends. The
+// header and the masked payload go out in one write.
 func (c *wsConn) writeFrame(opcode byte, payload []byte) error {
-	frame := make([]byte, 0, len(payload)+14)
-	frame = append(frame, 0x80|opcode)
+	if len(payload) > maxMessage {
+		return fmt.Errorf("a WebSocket message of %d bytes is too large to send", len(payload))
+	}
+	var header [14]byte
+	header[0] = 0x80 | opcode
+	n := 2
 	switch length := len(payload); {
 	case length < 126:
-		frame = append(frame, 0x80|byte(length))
+		header[1] = 0x80 | byte(length)
 	case length <= 0xffff:
-		frame = append(frame, 0x80|126, byte(length>>8), byte(length))
+		header[1] = 0x80 | 126
+		binary.BigEndian.PutUint16(header[2:], uint16(length))
+		n = 4
 	default:
-		frame = append(frame, 0x80|127)
-		frame = binary.BigEndian.AppendUint64(frame, uint64(length))
+		header[1] = 0x80 | 127
+		binary.BigEndian.PutUint64(header[2:], uint64(length))
+		n = 10
 	}
-	var mask [4]byte
-	if _, err := rand.Read(mask[:]); err != nil {
+	mask := header[n : n+4]
+	if _, err := rand.Read(mask); err != nil {
 		return err
 	}
-	frame = append(frame, mask[:]...)
+	n += 4
+	masked := make([]byte, len(payload))
 	for i, b := range payload {
-		frame = append(frame, b^mask[i%4])
+		masked[i] = b ^ mask[i%4]
 	}
 	c.write.Lock()
 	defer c.write.Unlock()
-	_, err := c.conn.Write(frame)
+	buffers := net.Buffers{header[:n], masked}
+	_, err := buffers.WriteTo(c.conn)
 	return err
 }
 

@@ -21,8 +21,10 @@
 // publisher must equal the subject of the certificate), makes a self-signed
 // code-signing certificate for that subject, signs the packages with
 // osslsigncode (downloaded, pinned and checked by its SHA-256, so that no
-// Windows SDK is needed), trusts the certificate for the local machine and
-// installs the bundle. The key of the certificate lives for this run only: it
+// Windows SDK is needed), puts the signed packages into the bundle again and
+// signs the bundle (the packages in a bundle need their own signatures: the
+// signature of the bundle covers its manifest only), trusts the certificate for
+// the local machine and installs the bundle. The key of the certificate lives for this run only: it
 // is written to a temporary file for osslsigncode, deleted after, and never
 // kept, so the certificate that stays in the TrustedPeople store of the machine
 // can sign nothing any more. A later run replaces the certificate that an
@@ -39,11 +41,13 @@
 package signmsix
 
 import (
+	"archive/zip"
 	"bufio"
 	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -232,12 +236,15 @@ func sign(o options, sys system) error {
 		return err
 	}
 
-	// 3. The signature, with a certificate that lives for this run.
+	// 3. The signature, with a certificate that lives for this run. SignTool
+	// signs the packages of a bundle and then the bundle, made of the signed
+	// packages, and so does this: the signature of a bundle covers its manifest
+	// only, so the packages in it have to be signed themselves.
 	signer, err := newSigner(o.publisherCN, time.Now())
 	if err != nil {
 		return err
 	}
-	if err := signAll(tool, signer, signed); err != nil {
+	if err := signPackagesAndBundle(tool, signer, o, version, stages, signed); err != nil {
 		return err
 	}
 
@@ -320,7 +327,7 @@ func rebuild(o options, version string, stages []string, dir string) error {
 			}
 		}
 	}
-	args := []string{"--package", o.pkg, "--version", version, "--publisher", "CN=" + o.publisherCN, "--executable", executableName}
+	args := []string{"--package", o.pkg, "--version", version, "--identity", buildmsix.DefaultIdentity, "--publisher", "CN=" + o.publisherCN, "--executable", executableName}
 	for _, arch := range stages {
 		args = append(args, "--stage-"+arch, filepath.Join(o.directory, "stage-"+arch))
 	}
@@ -328,28 +335,89 @@ func rebuild(o options, version string, stages []string, dir string) error {
 	return buildmsix.Run(append(args, dir))
 }
 
-// packagesIn lists what to sign in dir: every .msix first, then the bundles,
-// which hold the .msix files.
+// packagesIn lists the .msix files in dir.
 func packagesIn(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	var packages, bundles []string
+	var packages []string
 	for _, entry := range entries {
-		name := entry.Name()
-		switch {
-		case entry.IsDir():
-		case strings.HasSuffix(name, ".msixbundle"):
-			bundles = append(bundles, filepath.Join(dir, name))
-		case strings.HasSuffix(name, ".msix"):
+		if name := entry.Name(); !entry.IsDir() && strings.HasSuffix(name, ".msix") {
 			packages = append(packages, filepath.Join(dir, name))
 		}
 	}
 	sort.Strings(packages)
-	sort.Strings(bundles)
-	if len(packages)+len(bundles) == 0 {
+	if len(packages) == 0 {
 		return nil, errors.New("nothing to sign: " + dir + " has no packages")
 	}
-	return append(packages, bundles...), nil
+	return packages, nil
+}
+
+// signPackagesAndBundle signs every .msix in dir, puts the signed packages into
+// the bundle again (the offsets and the sizes in its manifest are theirs now),
+// and signs the bundle.
+func signPackagesAndBundle(tool string, s *signer, o options, version string, stages []string, dir string) error {
+	packages, err := packagesIn(dir)
+	if err != nil {
+		return err
+	}
+	session, err := s.open(tool)
+	if err != nil {
+		return err
+	}
+	defer session.close()
+	for _, file := range packages {
+		if err := signAndCheck(session, file); err != nil {
+			return err
+		}
+	}
+	fmt.Println("Putting the signed packages into the bundle...")
+	bundle, err := buildmsix.Rebundle(buildmsix.RebundleConfig{
+		Dir:           dir,
+		Package:       o.pkg,
+		Version:       version,
+		Publisher:     "CN=" + o.publisherCN,
+		Architectures: stages,
+	})
+	if err != nil {
+		return err
+	}
+	return signAndCheck(session, bundle)
+}
+
+// signAndCheck signs a file and checks what osslsigncode made of it.
+func signAndCheck(session *signing, file string) error {
+	if err := session.sign(file); err != nil {
+		return err
+	}
+	if err := checkArchive(file); err != nil {
+		return fmt.Errorf("osslsigncode made a corrupt archive of %s: %w", filepath.Base(file), err)
+	}
+	return nil
+}
+
+// checkArchive reads every entry of a ZIP archive to its end, which fails on a
+// size or a CRC that the entry does not keep. osslsigncode rewrites a part of the
+// archive when it signs, and a version that does it wrongly makes a file that its
+// own verification accepts and that Windows refuses (0x8007000D, at the
+// installation): the result is checked here, where the cause is still known.
+func checkArchive(path string) error {
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = reader.Close() }()
+	for _, file := range reader.File {
+		entry, err := file.Open()
+		if err != nil {
+			return fmt.Errorf("%s: %w", file.Name, err)
+		}
+		read, err := io.Copy(io.Discard, entry)
+		_ = entry.Close()
+		if err != nil || uint64(read) != file.UncompressedSize64 {
+			return fmt.Errorf("%s is a corrupt entry (method %d, %d of %d bytes): %v", file.Name, file.Method, read, file.UncompressedSize64, err)
+		}
+	}
+	return nil
 }

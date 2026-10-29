@@ -25,6 +25,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 // serverSocket is the server end of a WebSocket handshake: enough to test the
@@ -285,5 +286,23 @@ func TestAcceptValueOfRFC6455(t *testing.T) {
 	// The example of RFC 6455 section 1.3.
 	if got := acceptValue("dGhlIHNhbXBsZSBub25jZQ=="); got != "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=" {
 		t.Errorf("got %s", got)
+	}
+}
+
+// What the client takes in a message is what it sends at most: a larger one is
+// refused before anything is allocated or written.
+func TestWebSocketRefusesToSendAMessageTooLarge(t *testing.T) {
+	client, server := net.Pipe()
+	defer func() { _ = client.Close() }()
+	defer func() { _ = server.Close() }()
+	ws := &wsConn{conn: client}
+	err := ws.writeFrame(opText, make([]byte, maxMessage+1))
+	if err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("got %v", err)
+	}
+	// Nothing was written: the other end has nothing to read.
+	_ = server.SetReadDeadline(time.Now().Add(20 * time.Millisecond))
+	if n, err := server.Read(make([]byte, 1)); n != 0 || err == nil {
+		t.Errorf("%d bytes were written (%v)", n, err)
 	}
 }

@@ -15,6 +15,7 @@
 package signmsix
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -24,6 +25,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"io"
 	"math/big"
 	"os"
 	"os/exec"
@@ -158,39 +160,94 @@ func TestReplacesOnlyEarlierCertificatesOfThisTool(t *testing.T) {
 	}
 }
 
-// The real osslsigncode takes the PEM files of the tool and signs a real
-// package that vfxtool built, and verifies the signature. Where there is no
-// osslsigncode the test is skipped; CI runs the whole of it on Windows.
+// The real osslsigncode takes the PEM files of the tool, and signs the packages
+// and the bundle that vfxtool built. A signature that osslsigncode verifies is
+// not enough: Windows refused the first signed bundle (0x8007000D) because
+// osslsigncode had rewritten the stored content types as a corrupt ZIP entry,
+// and its own verification did not mind. So the signed files are also read as
+// ZIP archives, every entry to its end (which checks the sizes and the CRC), and
+// the bundle must hold the signed packages where its manifest says. The test is
+// skipped where there is no osslsigncode (CI runs the whole of it on Windows);
+// VFXTOOL_TEST_OSSLSIGNCODE names one that is not in PATH.
 func TestSignWithOsslsigncode(t *testing.T) {
-	tool, err := exec.LookPath("osslsigncode")
-	if err != nil {
-		t.Skip("osslsigncode is not installed")
+	tool := os.Getenv("VFXTOOL_TEST_OSSLSIGNCODE")
+	if tool == "" {
+		var err error
+		if tool, err = exec.LookPath("osslsigncode"); err != nil {
+			t.Skip("osslsigncode is not installed")
+		}
 	}
-	directory := artifact(t, "", "x64", "arm64")
+	stages := []string{"x64", "arm64"}
+	directory := artifact(t, "", stages...)
 	signed := filepath.Join(directory, "signed")
 	o := options{directory: directory, publisherCN: "vfox-plus", pkg: "vfox-plus"}
-	if err := rebuild(o, "0.1.0", []string{"x64", "arm64"}, signed); err != nil {
+	if err := rebuild(o, "0.1.0", stages, signed); err != nil {
+		t.Fatal(err)
+	}
+	unsigned, err := os.ReadFile(filepath.Join(signed, "vfox-plus_0.1.0_x64.msix"))
+	if err != nil {
 		t.Fatal(err)
 	}
 	s, err := newSigner("vfox-plus", time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := signAll(tool, s, signed); err != nil {
+	if err := signPackagesAndBundle(tool, s, o, "0.1.0", stages, signed); err != nil {
 		t.Fatal(err)
 	}
 	trust := filepath.Join(t.TempDir(), "trust.pem")
 	if err := os.WriteFile(trust, s.chainPEM, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := packagesIn(signed)
-	if err != nil || len(packages) != 3 {
-		t.Fatalf("%v, %v", packages, err)
-	}
-	for _, file := range packages {
+	for _, name := range []string{"vfox-plus_0.1.0_x64.msix", "vfox-plus_0.1.0_arm64.msix", "vfox-plus_0.1.0.msixbundle"} {
+		file := filepath.Join(signed, name)
 		output, err := exec.Command(tool, "verify", "-in", file, "-CAfile", trust).CombinedOutput() //nolint:gosec // The tool of the test.
 		if err != nil {
-			t.Errorf("%s does not verify: %v\n%s", filepath.Base(file), err, output)
+			t.Errorf("%s does not verify: %v\n%s", name, err, output)
 		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkZipEntries(t, name, data, true)
+	}
+	if after, _ := os.ReadFile(filepath.Join(signed, "vfox-plus_0.1.0_x64.msix")); bytes.Equal(after, unsigned) {
+		t.Error("the package was not changed by the signing")
+	}
+	checkBundleHoldsPackages(t, signed, "vfox-plus_0.1.0.msixbundle", func(t *testing.T, name string, data []byte) {
+		checkZipEntries(t, name+" in the bundle", data, true)
+	})
+}
+
+// checkZipEntries reads a ZIP archive the way a strict reader does: every entry
+// to its end, which fails on a size or a CRC that the entry does not keep. With
+// signed, it also wants the signature part, and the content types that name it.
+func checkZipEntries(t *testing.T, name string, data []byte, signed bool) {
+	t.Helper()
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Errorf("%s is not a ZIP archive: %v", name, err)
+		return
+	}
+	found := map[string]bool{}
+	for _, file := range reader.File {
+		found[file.Name] = true
+		entry, err := file.Open()
+		if err != nil {
+			t.Errorf("%s: %s: %v", name, file.Name, err)
+			continue
+		}
+		content, err := io.ReadAll(entry)
+		_ = entry.Close()
+		if err != nil || uint64(len(content)) != file.UncompressedSize64 {
+			t.Errorf("%s: %s is a corrupt entry (method %d, %d of %d bytes): %v", name, file.Name, file.Method, len(content), file.UncompressedSize64, err)
+			continue
+		}
+		if signed && file.Name == "[Content_Types].xml" && !bytes.Contains(content, []byte("/AppxSignature.p7x")) {
+			t.Errorf("%s: the content types do not name the signature", name)
+		}
+	}
+	if signed && !found["AppxSignature.p7x"] {
+		t.Errorf("%s has no signature part", name)
 	}
 }

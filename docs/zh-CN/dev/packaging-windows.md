@@ -42,7 +42,9 @@ SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" vfxtool build-msix \
 ```
 
 只需单架构则只传一个 `--stage-*`，bundle 含单包。输出可复现：ZIP 条目 Store
-（不压缩）、排序、时间戳取 `SOURCE_DATE_EPOCH`。
+（不压缩）、排序、时间戳取 `SOURCE_DATE_EPOCH`。例外是 `[Content_Types].xml`：它是由存储块
+组成的 DEFLATE 条目（仍未压缩，所以没有压缩器会改变字节）；原因见
+[签名说明](#签名说明维护者)。
 
 ## 在 Windows 11 安装
 
@@ -85,8 +87,8 @@ Remove-AppxPackage -Package dev.vfox.VfoxPlus_<版本>_neutral_~_<发布者标�
    Windows SDK。`--osslsigncode PATH` 改用你已有的，`--force` 重新下载。
 2. 用发布者 `CN=vfox-plus`（`--publisher-cn`）而不是未签名包的 OID 把包重建到 `signed/`，
    因为已签名包的发布者必须与证书主题一致。
-3. 为该主题做一张自签名代码签名证书（RSA 2048，有效期五年），给每个 `.msix`
-   再给 bundle 签名。
+3. 为该主题做一张自签名代码签名证书（RSA 2048，有效期五年），给每个 `.msix` 签名，
+   再像 SignTool 那样把签好名的包放回 bundle，并给 bundle 签名。
 4. 在本机的 `TrustedPeople` 证书库中信任这张证书——旁加载已签名包看的就是它——
    并删掉此前某次运行添加的证书。
 5. 用 `Add-AppxPackage` 安装 bundle（`--skip-install` 则在此之前停下）。
@@ -116,6 +118,15 @@ UAC 的管理员；改动之后需要在有 UAC 的机器上跑一次。
 
 - 已签名包的发布者必须与证书主题完全一致、不带 OID——签名因此重建包，而非直接签
   未签名包（其发布者带未签名 OID）。
+- bundle 的签名只覆盖它的清单（bundle 的块映射不列别的文件），所以 bundle 里的包带着自己的签名，
+  清单按偏移与大小指向它们。装着未签名包的 bundle 即使自己签了名也会被拒绝。SignTool 先给
+  bundle 里的包签名再放进去；osslsigncode 一次只签一个文件，所以 `sign-msix` 先签 `.msix`，
+  再用它们重新写 bundle（新的偏移、大小与块映射），然后签它（`buildmsix.Rebundle`）。
+- osslsigncode 为加入签名部分会改写 `[Content_Types].xml`，它总是把新内容压缩后写入，却沿用该条目原来
+  的方法。Store 的条目因此变成了损坏的条目（方法是 Store，压缩后大小小于原大小），osslsigncode 自己的
+  `verify` 接受它，Windows 的部署平台不接受：`Add-AppxPackage` 以 `0x8007000D`
+  “Opening the package ... failed” 失败。所以 `build-msix` 像 MakeAppx 那样，只把这一个部分写成由存储块组成的
+  DEFLATE 条目；`sign-msix` 的测试也要把 osslsigncode 签出的每个条目读到末尾，只检查签名是查不出这个的。
 - 公开发布且不希望每台机器单独信任，可上架 Microsoft Store（由微软签名），或用
   公开受信的代码签名证书 / Azure Trusted Signing 签名；构建相同，只换 `--publisher`
   与签名步骤。

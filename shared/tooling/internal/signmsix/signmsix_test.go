@@ -15,15 +15,19 @@
 package signmsix
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -78,20 +82,23 @@ func fakeTool(args []string) error {
 	if err != nil {
 		return err
 	}
-	if bytes.Contains(data, []byte(trailer)) {
+	if signedBy(data) != "" {
 		return errors.New("the file is signed already")
 	}
 	data = append(data, []byte("\n"+trailer+hex.EncodeToString(leaf.SerialNumber.Bytes())+"\n")...)
 	return os.WriteFile(args[8], data, 0o644)
 }
 
-// signedBy returns the serial number that a fake signature names, or "".
+// signedBy returns the serial number that the fake signature at the end of a
+// file names, or "": the file is signed when its last line is one. (The packages
+// in a signed bundle have such a line of their own, inside.)
 func signedBy(data []byte) string {
-	_, after, found := bytes.Cut(data, []byte(trailer))
-	if !found {
-		return ""
+	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
+	last := lines[len(lines)-1]
+	if serial, found := strings.CutPrefix(last, trailer); found {
+		return strings.TrimSpace(serial)
 	}
-	return strings.TrimSpace(string(after))
+	return ""
 }
 
 // fakeSystem records what the command asks of the system.
@@ -225,6 +232,7 @@ func TestSignRebuildsSignsTrustsAndInstalls(t *testing.T) {
 			t.Errorf("%s has the wrong publisher", name)
 		}
 	}
+	checkBundleHoldsSignedPackages(t, signed, "vfox-plus_0.1.0.msixbundle")
 	if len(sys.stored) != 1 {
 		t.Fatalf("%d certificates added", len(sys.stored))
 	}
@@ -498,5 +506,108 @@ func TestStagesIn(t *testing.T) {
 	}
 	if _, err := stagesIn(directory); err == nil {
 		t.Error("a directory counted as the executable")
+	}
+}
+
+// checkBundleHoldsSignedPackages checks what makes a signed bundle installable,
+// with the fake signatures of these tests (see checkBundleHoldsPackages).
+func checkBundleHoldsSignedPackages(t *testing.T, dir, bundleName string) {
+	t.Helper()
+	checkBundleHoldsPackages(t, dir, bundleName, func(t *testing.T, name string, data []byte) {
+		if signedBy(data) == "" {
+			t.Errorf("%s is not signed", name)
+		}
+	})
+}
+
+// checkBundleHoldsPackages checks what makes a signed bundle installable: the
+// signature of the bundle covers its manifest only, so the packages in it are the
+// signed files (not the unsigned ones that the bundle was first built of), each
+// one where the manifest says, as large as it says. look sees each package of
+// the directory once, to check its signature.
+func checkBundleHoldsPackages(t *testing.T, dir, bundleName string, look func(t *testing.T, name string, data []byte)) {
+	t.Helper()
+	bundle, err := os.ReadFile(filepath.Join(dir, bundleName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := zip.NewReader(bytes.NewReader(bundle), int64(len(bundle)))
+	if err != nil {
+		// A fake signature is a line after the end of the archive: read it as the signed file.
+		reader = nil
+	}
+	manifest := bundle
+	if reader != nil {
+		for _, file := range reader.File {
+			if file.Name == "AppxMetadata/AppxBundleManifest.xml" {
+				entry, err := file.Open()
+				if err != nil {
+					t.Fatal(err)
+				}
+				manifest, _ = io.ReadAll(entry)
+				_ = entry.Close()
+			}
+		}
+	}
+	listed := regexp.MustCompile(`FileName="([^"]+)"[^>]*Offset="(\d+)" Size="(\d+)"`).FindAllStringSubmatch(string(manifest), -1)
+	if len(listed) == 0 {
+		t.Fatalf("%s lists no package", bundleName)
+	}
+	for _, match := range listed {
+		offset, _ := strconv.Atoi(match[2])
+		size, _ := strconv.Atoi(match[3])
+		alone, err := os.ReadFile(filepath.Join(dir, match[1]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		look(t, match[1], alone)
+		if size != len(alone) || offset+size > len(bundle) || !bytes.Equal(bundle[offset:offset+size], alone) {
+			t.Errorf("%s: the bundle does not hold the signed file at %d, %d bytes", match[1], offset, size)
+		}
+	}
+}
+
+// A file whose entry keeps neither its size nor its CRC is what osslsigncode made
+// of a stored [Content_Types].xml: it is found where it is made.
+func TestCheckArchiveFindsACorruptEntry(t *testing.T) {
+	var buffer bytes.Buffer
+	archive := zip.NewWriter(&buffer)
+	good, err := archive.Create("good.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = good.Write([]byte("<a/>"))
+	// The entry says Store and 479 bytes, and holds 243 bytes of deflated data.
+	bad, err := archive.CreateRaw(&zip.FileHeader{Name: "[Content_Types].xml", Method: zip.Store, CRC32: 0x75c98439, CompressedSize64: 243, UncompressedSize64: 479})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = bad.Write(bytes.Repeat([]byte{0x5a}, 243))
+	if err := archive.Close(); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "corrupt.msix")
+	if err := os.WriteFile(path, buffer.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err = checkArchive(path)
+	if err == nil || !strings.Contains(err.Error(), "[Content_Types].xml is a corrupt entry") {
+		t.Fatalf("got %v", err)
+	}
+
+	var whole bytes.Buffer
+	valid := zip.NewWriter(&whole)
+	entry, _ := valid.Create("a.xml")
+	_, _ = entry.Write([]byte("<a/>"))
+	_ = valid.Close()
+	good2 := filepath.Join(t.TempDir(), "good.msix")
+	if err := os.WriteFile(good2, whole.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkArchive(good2); err != nil {
+		t.Errorf("a good archive: %v", err)
+	}
+	if err := checkArchive(filepath.Join(t.TempDir(), "missing.msix")); err == nil {
+		t.Error("a missing file passed")
 	}
 }

@@ -32,7 +32,12 @@
 // Everything is pure Go with no Windows SDK: the .msix files are built by
 // cross-compiling (GOOS=windows GOARCH=amd64/arm64 CGO_ENABLED=0 go build)
 // and the ZIPs use no compression (Store), fixed timestamps from
-// SOURCE_DATE_EPOCH and sorted entries, so the output is reproducible.
+// SOURCE_DATE_EPOCH and sorted entries, so the output is reproducible. The one
+// exception is [Content_Types].xml, a DEFLATE entry (made of stored blocks, so
+// it is still not compressed): signing adds the signature to that part, and
+// osslsigncode, which signs the packages without the Windows SDK, always writes
+// the part deflated and keeps the method that it finds, so a stored part came
+// out as a corrupt entry that Windows refuses (0x8007000D).
 package buildmsix
 
 import (
@@ -54,6 +59,10 @@ import (
 )
 
 const appID = "dev.vfox.VfoxPlus"
+
+// DefaultIdentity is the identity of the packages unless build-msix is told
+// another one.
+const DefaultIdentity = appID
 
 // UnsignedPublisherOID is the special OID that unsigned packages must carry
 // in their Publisher so that Windows accepts them for -AllowUnsigned installs
@@ -482,99 +491,56 @@ type zipEntry struct {
 	name string
 	data []byte
 	mode os.FileMode
+	// deflated writes the entry with the method DEFLATE, in stored blocks: the
+	// bytes are not compressed (see storedDeflate).
+	deflated bool
 }
 
-// writeZip writes entries sorted by name with fixed timestamps and no
-// compression (Store). Headers carry the real sizes upfront (no data
-// descriptor), so parseLocalHeaders can read them back and Windows accepts
-// the OPC packages.
+// writeZip writes entries sorted by name; see writeZipOrdered.
 func writeZip(entries []zipEntry, mtime time.Time) ([]byte, error) {
 	sorted := append([]zipEntry(nil), entries...)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].name < sorted[j].name })
-	dosTime, dosDate := dosDateTime(mtime)
-	type central struct {
-		name      string
-		crc       uint32
-		size      uint32
-		headerOff int64
-		external  uint32
-	}
-	var buf bytes.Buffer
-	var centrals []central
-	for _, e := range sorted {
-		if len(e.data) > 0xFFFFFFFF {
-			return nil, fmt.Errorf("%s too large", e.name)
-		}
-		nameBytes := []byte(e.name)
-		crc := crc32.ChecksumIEEE(e.data)
-		size := uint32(len(e.data))
-		headerOff := int64(buf.Len())
-		var h bytes.Buffer
-		binary.Write(&h, binary.LittleEndian, uint32(0x04034b50))
-		binary.Write(&h, binary.LittleEndian, uint16(20))
-		binary.Write(&h, binary.LittleEndian, uint16(0x800))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		binary.Write(&h, binary.LittleEndian, dosTime)
-		binary.Write(&h, binary.LittleEndian, dosDate)
-		binary.Write(&h, binary.LittleEndian, crc)
-		binary.Write(&h, binary.LittleEndian, size)
-		binary.Write(&h, binary.LittleEndian, size)
-		binary.Write(&h, binary.LittleEndian, uint16(len(nameBytes)))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		h.Write(nameBytes)
-		buf.Write(h.Bytes())
-		buf.Write(e.data)
-		centrals = append(centrals, central{name: e.name, crc: crc, size: size, headerOff: headerOff, external: uint32(e.mode.Perm())<<16 | 0x20})
-	}
-	centralOff := int64(buf.Len())
-	for _, c := range centrals {
-		nameBytes := []byte(c.name)
-		var h bytes.Buffer
-		binary.Write(&h, binary.LittleEndian, uint32(0x02014b50))
-		binary.Write(&h, binary.LittleEndian, uint16(0x031E))
-		binary.Write(&h, binary.LittleEndian, uint16(20))
-		binary.Write(&h, binary.LittleEndian, uint16(0x800))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		binary.Write(&h, binary.LittleEndian, dosTime)
-		binary.Write(&h, binary.LittleEndian, dosDate)
-		binary.Write(&h, binary.LittleEndian, c.crc)
-		binary.Write(&h, binary.LittleEndian, c.size)
-		binary.Write(&h, binary.LittleEndian, c.size)
-		binary.Write(&h, binary.LittleEndian, uint16(len(nameBytes)))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
-		binary.Write(&h, binary.LittleEndian, uint32(c.external))
-		binary.Write(&h, binary.LittleEndian, uint32(c.headerOff))
-		h.Write(nameBytes)
-		buf.Write(h.Bytes())
-	}
-	centralSize := int64(buf.Len()) - centralOff
-	var end bytes.Buffer
-	binary.Write(&end, binary.LittleEndian, uint32(0x06054b50))
-	binary.Write(&end, binary.LittleEndian, uint16(0))
-	binary.Write(&end, binary.LittleEndian, uint16(0))
-	binary.Write(&end, binary.LittleEndian, uint16(len(centrals)))
-	binary.Write(&end, binary.LittleEndian, uint16(len(centrals)))
-	binary.Write(&end, binary.LittleEndian, uint32(centralSize))
-	binary.Write(&end, binary.LittleEndian, uint32(centralOff))
-	binary.Write(&end, binary.LittleEndian, uint16(0))
-	buf.Write(end.Bytes())
-	return buf.Bytes(), nil
+	return writeZipOrdered(sorted, mtime)
 }
 
-// writeZipOrdered writes entries in the given order (no sorting) with the
-// same deterministic Store layout as writeZip. Bundles use it to keep payload
-// .msix files before the manifest, so the manifest offsets are stable.
+// storedDeflate wraps data in a DEFLATE stream (RFC 1951) of stored blocks, one
+// for every 65535 bytes, the last one final. The stream does not compress, so it
+// does not depend on a compressor and the output stays reproducible, and the
+// entry that carries it has the method DEFLATE.
+func storedDeflate(data []byte) []byte {
+	var out bytes.Buffer
+	for {
+		n := min(len(data), 0xFFFF)
+		final := byte(0)
+		if n == len(data) {
+			final = 1
+		}
+		out.WriteByte(final) // BFINAL in the first bit, BTYPE 00 (stored) in the next two.
+		_ = binary.Write(&out, binary.LittleEndian, uint16(n))
+		_ = binary.Write(&out, binary.LittleEndian, ^uint16(n))
+		out.Write(data[:n])
+		data = data[n:]
+		if final == 1 {
+			return out.Bytes()
+		}
+	}
+}
+
+// writeZipOrdered writes entries in the given order, with fixed timestamps and
+// no compression (Store, or the stored blocks of a deflated entry). Headers
+// carry the real sizes upfront (no data descriptor), so parseLocalHeaders can
+// read them back and Windows accepts the OPC packages. Bundles keep their
+// payload .msix files before the manifest, so the manifest offsets are stable.
 func writeZipOrdered(entries []zipEntry, mtime time.Time) ([]byte, error) {
 	dosTime, dosDate := dosDateTime(mtime)
 	type central struct {
-		name      string
-		crc       uint32
-		size      uint32
-		headerOff int64
-		external  uint32
+		name       string
+		method     uint16
+		crc        uint32
+		compressed uint32
+		size       uint32
+		headerOff  int64
+		external   uint32
 	}
 	var buf bytes.Buffer
 	var centrals []central
@@ -585,23 +551,33 @@ func writeZipOrdered(entries []zipEntry, mtime time.Time) ([]byte, error) {
 		nameBytes := []byte(e.name)
 		crc := crc32.ChecksumIEEE(e.data)
 		size := uint32(len(e.data))
+		method := uint16(0)
+		payload := e.data
+		if e.deflated {
+			method = 8
+			payload = storedDeflate(e.data)
+			if len(payload) > 0xFFFFFFFF { // The blocks add their headers.
+				return nil, fmt.Errorf("%s too large", e.name)
+			}
+		}
+		compressed := uint32(len(payload))
 		headerOff := int64(buf.Len())
 		var h bytes.Buffer
 		binary.Write(&h, binary.LittleEndian, uint32(0x04034b50))
 		binary.Write(&h, binary.LittleEndian, uint16(20))
 		binary.Write(&h, binary.LittleEndian, uint16(0x800))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
+		binary.Write(&h, binary.LittleEndian, method)
 		binary.Write(&h, binary.LittleEndian, dosTime)
 		binary.Write(&h, binary.LittleEndian, dosDate)
 		binary.Write(&h, binary.LittleEndian, crc)
-		binary.Write(&h, binary.LittleEndian, size)
+		binary.Write(&h, binary.LittleEndian, compressed)
 		binary.Write(&h, binary.LittleEndian, size)
 		binary.Write(&h, binary.LittleEndian, uint16(len(nameBytes)))
 		binary.Write(&h, binary.LittleEndian, uint16(0))
 		h.Write(nameBytes)
 		buf.Write(h.Bytes())
-		buf.Write(e.data)
-		centrals = append(centrals, central{name: e.name, crc: crc, size: size, headerOff: headerOff, external: uint32(e.mode.Perm())<<16 | 0x20})
+		buf.Write(payload)
+		centrals = append(centrals, central{name: e.name, method: method, crc: crc, compressed: compressed, size: size, headerOff: headerOff, external: uint32(e.mode.Perm())<<16 | 0x20})
 	}
 	centralOff := int64(buf.Len())
 	for _, c := range centrals {
@@ -611,11 +587,11 @@ func writeZipOrdered(entries []zipEntry, mtime time.Time) ([]byte, error) {
 		binary.Write(&h, binary.LittleEndian, uint16(0x031E))
 		binary.Write(&h, binary.LittleEndian, uint16(20))
 		binary.Write(&h, binary.LittleEndian, uint16(0x800))
-		binary.Write(&h, binary.LittleEndian, uint16(0))
+		binary.Write(&h, binary.LittleEndian, c.method)
 		binary.Write(&h, binary.LittleEndian, dosTime)
 		binary.Write(&h, binary.LittleEndian, dosDate)
 		binary.Write(&h, binary.LittleEndian, c.crc)
-		binary.Write(&h, binary.LittleEndian, c.size)
+		binary.Write(&h, binary.LittleEndian, c.compressed)
 		binary.Write(&h, binary.LittleEndian, c.size)
 		binary.Write(&h, binary.LittleEndian, uint16(len(nameBytes)))
 		binary.Write(&h, binary.LittleEndian, uint16(0))
@@ -672,8 +648,9 @@ func parseLocalHeaders(data []byte) (map[string]localInfo, error) {
 		if data[pos] != 0x50 || data[pos+1] != 0x4b || data[pos+2] != 0x03 || data[pos+3] != 0x04 {
 			break // central directory or end
 		}
-		flags := int(data[pos+8]) | int(data[pos+9])<<8
-		method := int(data[pos+10]) | int(data[pos+11])<<8
+		// The general purpose flags are at 6 and the method at 8 of a local header.
+		flags := int(data[pos+6]) | int(data[pos+7])<<8
+		method := int(data[pos+8]) | int(data[pos+9])<<8
 		compressedSize := int64(uint32(data[pos+18]) | uint32(data[pos+19])<<8 | uint32(data[pos+20])<<16 | uint32(data[pos+21])<<24)
 		nameLen := int(data[pos+26]) | int(data[pos+27])<<8
 		extraLen := int(data[pos+28]) | int(data[pos+29])<<8
@@ -789,7 +766,7 @@ func WriteMsix(cfg MsixConfig) ([]byte, error) {
 	}
 	var entries []zipEntry
 	entries = append(entries, zipEntry{name: "AppxManifest.xml", data: []byte(manifest), mode: 0o644})
-	entries = append(entries, zipEntry{name: "[Content_Types].xml", data: []byte(contentTypes), mode: 0o644})
+	entries = append(entries, zipEntry{name: "[Content_Types].xml", data: []byte(contentTypes), mode: 0o644, deflated: true})
 	entries = append(entries, zipEntry{name: cfg.Executable, data: cfg.ExecutableData, mode: 0o644})
 	for name, data := range assets {
 		entries = append(entries, zipEntry{name: name, data: data, mode: 0o644})
@@ -857,7 +834,7 @@ func assembleBundle(sorted []BundlePackage, manifest, contentTypes, blockMap str
 	}
 	entries = append(entries,
 		zipEntry{name: "AppxMetadata/AppxBundleManifest.xml", data: []byte(manifest), mode: 0o644},
-		zipEntry{name: "[Content_Types].xml", data: []byte(contentTypes), mode: 0o644},
+		zipEntry{name: "[Content_Types].xml", data: []byte(contentTypes), mode: 0o644, deflated: true},
 		zipEntry{name: "AppxBlockMap.xml", data: []byte(blockMap), mode: 0o644},
 	)
 	return writeZipOrdered(entries, mtime)
@@ -943,4 +920,57 @@ func WriteBundle(cfg BundleConfig) ([]byte, string, error) {
 	}
 	bundleName := fmt.Sprintf("%s_%s.msixbundle", cfg.Package, cfg.Version)
 	return finalData, bundleName, nil
+}
+
+// RebundleConfig names what Rebundle puts into a bundle again.
+type RebundleConfig struct {
+	Dir           string   // holds <Package>_<Version>_<arch>.msix
+	Package       string   // file name prefix
+	Version       string   // original version, e.g. 0.1.0
+	Identity      string   // default DefaultIdentity
+	Publisher     string   // the same publisher as in the packages
+	Architectures []string // x64 and arm64, whichever Dir has a package for
+}
+
+// Rebundle replaces <Package>_<Version>.msixbundle in Dir by a bundle of the
+// .msix files that are in Dir now, and returns its path.
+//
+// It is the step between signing the packages and signing the bundle. The
+// signature of a bundle covers its manifest only: the block map of a bundle
+// lists nothing else, and the manifest names the packages by offset and size.
+// The packages therefore carry their own signatures, which is why SignTool
+// signs the packages of a bundle first and puts them into it, and why a bundle
+// of unsigned packages is refused even when the bundle itself is signed. A
+// signed package is larger than the unsigned one, so the manifest (and its
+// entry in the block map) is written again with the new offsets and sizes.
+func Rebundle(cfg RebundleConfig) (string, error) {
+	identity := cfg.Identity
+	if identity == "" {
+		identity = DefaultIdentity
+	}
+	var packages []BundlePackage
+	for _, arch := range cfg.Architectures {
+		filename := fmt.Sprintf("%s_%s_%s.msix", cfg.Package, cfg.Version, arch)
+		data, err := os.ReadFile(filepath.Join(cfg.Dir, filename)) //nolint:gosec // The caller names the directory of its own packages.
+		if err != nil {
+			return "", err
+		}
+		packages = append(packages, BundlePackage{Architecture: arch, Filename: filename, Data: data})
+	}
+	bundle, name, err := WriteBundle(BundleConfig{
+		Package:   cfg.Package,
+		Version:   cfg.Version,
+		Identity:  identity,
+		Publisher: cfg.Publisher,
+		Packages:  packages,
+		MTime:     time.Unix(sourceEpoch(), 0).UTC(),
+	})
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(cfg.Dir, name)
+	if err := os.WriteFile(path, bundle, 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
 }

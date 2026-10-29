@@ -386,10 +386,28 @@ jobs:
           if ((Get-SigningCertificates).Count -ne 0) { throw "the runner trusts $subject already" }
 
           & msix/vfxtool.exe sign-msix --directory msix --no-relaunch
-          if ($LASTEXITCODE -ne 0) {
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            # The deployment log says that the package could not be opened;
+            # the packaging log says why (a signature, a block map, a manifest).
             Write-Host "--- AppX deployment log (tail) ---"
             Get-AppPackageLog | Select-Object -Last 60
-            throw "sign-msix failed with exit code $LASTEXITCODE"
+            Write-Host "--- AppxPackaging log (tail) ---"
+            Get-WinEvent -LogName "Microsoft-Windows-AppxPackaging/Operational" -MaxEvents 20 -ErrorAction SilentlyContinue |
+              Format-List TimeCreated, Id, Message
+            # Whether the signed package of this machine installs alone tells a
+            # fault of the package from one of the bundle.
+            Write-Host "--- the signed package of this machine, alone ---"
+            Get-ChildItem msix/signed | Format-Table Name, Length
+            $alone = Get-ChildItem "msix/signed/*_${{ matrix.arch }}.msix" | Select-Object -First 1
+            try {
+              Add-AppxPackage -Path $alone.FullName
+              Write-Host "$($alone.Name) installs"
+              Get-AppxPackage -Name "dev.vfox.VfoxPlus" | Remove-AppxPackage
+            } catch {
+              Write-Host "$($alone.Name) does not install: $_"
+            }
+            throw "sign-msix failed with exit code $code"
           }
           $pkg = Get-AppxPackage -Name "dev.vfox.VfoxPlus"
           if (-not $pkg) { throw "package not registered after the signed install" }

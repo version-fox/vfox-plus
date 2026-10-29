@@ -47,7 +47,9 @@ SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" vfxtool build-msix \
 
 Only one `--stage-*` is needed for a single-architecture bundle. The output is
 reproducible: ZIP entries are stored (no compression), sorted, with timestamps
-from `SOURCE_DATE_EPOCH`.
+from `SOURCE_DATE_EPOCH`. The exception is `[Content_Types].xml`, which is a
+DEFLATE entry made of stored blocks (still not compressed, so no compressor
+changes the bytes); see [Signing notes](#signing-notes-for-maintainers) for why.
 
 ## Installing on Windows 11
 
@@ -98,7 +100,8 @@ It does this, in this order:
    (`--publisher-cn`) instead of the OID of unsigned packages, because the
    publisher of a signed package must equal the subject of the certificate.
 3. It makes a self-signed code-signing certificate for that subject (RSA 2048,
-   valid for five years) and signs every `.msix`, then the bundle.
+   valid for five years) and signs every `.msix`, then puts the signed packages
+   into the bundle again and signs the bundle, as SignTool does.
 4. It trusts the certificate for the local machine, in its `TrustedPeople` store,
    which is what the sideloading of a signed package looks at, and takes out the
    certificate that an earlier run added.
@@ -137,6 +140,22 @@ off; it needs a run on a machine with UAC after a change.
 - A signed package's publisher must exactly equal the certificate subject, with
   no OID — which is why signing rebuilds the packages instead of signing the
   unsigned ones in place (their publisher carries the unsigned-package OID).
+- The signature of a bundle covers only its manifest (the block map of a bundle
+  lists nothing else), so the packages in it carry their own signatures, and the
+  manifest names them by offset and size. A bundle of unsigned packages is
+  refused even when it is signed itself. SignTool signs the packages of a bundle
+  first and puts them in; osslsigncode signs one file at a time, so `sign-msix`
+  signs the `.msix` files, writes the bundle again from them (new offsets, sizes
+  and block map) and signs that (`buildmsix.Rebundle`).
+- osslsigncode rewrites `[Content_Types].xml` to add the signature part, and it
+  always writes the new content deflated while keeping the method that the entry
+  had. A stored entry therefore came out as a corrupt one (the method Store, a
+  compressed size below the size), which its own `verify` accepts and the
+  deployment platform of Windows does not: `Add-AppxPackage` fails with
+  `0x8007000D`, "Opening the package ... failed". That is why `build-msix` writes
+  that one part as a DEFLATE entry of stored blocks, like MakeAppx does, and why
+  the test of `sign-msix` reads every entry of what osslsigncode signed to its end,
+  which a signature check alone does not.
 - For public distribution without any per-machine step, either publish to the
   Microsoft Store (Microsoft signs) or sign with a publicly trusted
   code-signing certificate or Azure Trusted Signing; the build is the same,
