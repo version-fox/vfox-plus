@@ -7,7 +7,7 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| [`base.Dockerfile`(../../../shared/sandbox/base.Dockerfile) | 基础镜像：Ubuntu 26.04、虚拟显示器、字体、默认壁纸、Debian 打包工具、裁剪图标字体的 Material Symbols 字体、锁定的 vfox 与非特权用户 `tester` |
+| [`base.Dockerfile`(../../../shared/sandbox/base.Dockerfile) | 基础镜像：Ubuntu 26.04、虚拟显示器、字体、默认壁纸、Debian 打包工具、锁定的 vfox 与非特权用户 `tester` |
 | [`../tooling/internal/sandbox`(../../../shared/tooling/internal/sandbox) | 宿主侧（`vfxtool sandbox`）：构建镜像、在容器跑任务、跑安装测试 |
 | [`../tooling/internal/runtask`(../../../shared/tooling/internal/runtask) | 容器侧（`vfxtool runtask`）：复制仓库、以 `tester` 跑命令、发布结果、启动虚拟显示器、冒烟测试与安装测试包 |
 

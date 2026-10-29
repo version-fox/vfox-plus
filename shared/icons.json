@@ -1,6 +1,6 @@
 {
-  "description": "Icons used by the vfox-plus user interface, by meaning. Every implementation uses the Material Symbols Rounded variable font with these symbol names, so that the GUIs look the same. Browse the symbols at https://fonts.google.com/icons?icon.style=Rounded.",
-  "font": "Material Symbols Rounded",
+  "description": "Icons used by the vfox-plus user interface, by meaning. Every implementation uses the Material Symbols Rounded icons with these symbol names, so that the GUIs look the same; the desktop interface draws the SVGs of shared/icons (SYMBOL.svg outlined, SYMBOL-fill.svg filled). Browse the symbols at https://fonts.google.com/icons?icon.style=Rounded.",
+  "set": "Material Symbols Rounded",
   "license": "Apache-2.0",
   "icons": {
     "add": "add",

@@ -25,14 +25,12 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fakevfox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fetch"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/golicenses"
-	"github.com/version-fox/vfox-plus/shared/tooling/internal/iconfont"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/installpkgs"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measure"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureapk"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureserve"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
-	"github.com/version-fox/vfox-plus/shared/tooling/internal/renamefont"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/sandbox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/screenshots"
@@ -44,8 +42,6 @@ import (
 
 func init() {
 	commands["golicenses"] = golicenses.Run
-	commands["iconfont"] = iconfont.Run
-	commands["renamefont"] = renamefont.Run
 	commands["build"] = build.Run
 	commands["prepare"] = prepare.Run
 	commands["coverage"] = coverage.Run

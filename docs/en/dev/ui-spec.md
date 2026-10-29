@@ -271,7 +271,7 @@ Grouped in segmented lists:
   `configOther` for keys the GUI does not know.
 - **About**: application name, version and license, links to the source code
   and the vfox documentation, and the open-source licenses of the dependencies,
-  including the bundled Material Symbols font (Apache-2.0, Google).
+  including the bundled Material Symbols icons (Apache-2.0, Google).
 
 ## Accessibility
 

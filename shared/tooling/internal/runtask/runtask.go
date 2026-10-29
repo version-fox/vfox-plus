@@ -116,8 +116,8 @@ var copyExcludes = []string{
 	"--exclude=*.iml",
 	"--exclude=./mygo/build",
 	"--exclude=./mygo/coverage.out",
-	"--exclude=./mygo/assets/fonts",
 	"--exclude=./mygo/assets/i18n",
+	"--exclude=./mygo/assets/icons",
 	"--exclude=./mygo/assets/icons.json",
 	"--exclude=./mygo/assets/licenses.txt",
 }

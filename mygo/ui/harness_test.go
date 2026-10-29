@@ -40,23 +40,6 @@ const (
 	windowHeight = 700
 )
 
-// TestMain gives the tests of this package a font cache of their own: mygo
-// writes the fonts that an application registers to the cache directory of the
-// user, under a name made of their hash, and two test programs that register the
-// same fonts at the same moment, such as those of two packages, race there.
-func TestMain(m *testing.M) {
-	cache, err := os.MkdirTemp("", "vfox-plus-cache-")
-	if err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("XDG_CACHE_HOME", cache); err != nil {
-		panic(err)
-	}
-	status := m.Run()
-	_ = os.RemoveAll(cache)
-	os.Exit(status)
-}
-
 // recorder is the desktop of the tests: it notes what the application asks of
 // it, and opens nothing.
 type recorder struct {

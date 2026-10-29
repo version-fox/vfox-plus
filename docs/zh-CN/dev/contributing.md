@@ -20,7 +20,7 @@
 - 文件使用 UTF-8、LF 换行并以换行结尾（见
   [`.editorconfig`](../../../.editorconfig) 和 [`.gitattributes`](../../../.gitattributes)）。
 - 不提交二进制文件。截图等图片上传到图床后引用（见
-  [截图](#截图)）；图标字体等二进制构建输入在构建时生成。
+  [截图](#截图)）；Windows 包的徽标等二进制构建输入在构建时生成。
   CI 会拒绝二进制文件。
 
 ## 工作流
@@ -101,9 +101,19 @@ Android 客户端，绝不涉及源码构建、仓库布局、vfox CLI 契约等
 
 ### 图标
 
-在 [`shared/icons.json`(../../../shared/icons.json) 中按含义添加 Material Symbol，
-再重新生成图标字体（构建时 `vfxtool prepare` 会经 `vfxtool iconfont` 裁剪）。
-字体构建时生成，不提交。
+在 [`shared/icons.json`](../../../shared/icons.json) 中按含义添加 Material Symbol，并把它的两个 SVG
+放进 [`shared/icons`](../../../shared/icons)（构建时 `vfxtool prepare` 收集），
+取自[设计系统](design-system.md#图标)所记的修订：
+
+```sh
+rev=10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7
+symbol=history   # 名字同 https://fonts.google.com/icons
+base=https://raw.githubusercontent.com/google/material-design-icons/$rev/symbols/web/$symbol/materialsymbolsrounded
+curl -fsS "$base/${symbol}_24px.svg" > "shared/icons/$symbol.svg"; echo >> "shared/icons/$symbol.svg"
+curl -fsS "$base/${symbol}_fill1_24px.svg" > "shared/icons/$symbol-fill.svg"; echo >> "shared/icons/$symbol-fill.svg"
+```
+
+某含义缺了两个文件之一，kit 的测试会失败。
 
 ### vfox 输出
 

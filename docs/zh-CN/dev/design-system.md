@@ -175,13 +175,15 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 
 ## 图标
 
-图标为 [Material Symbols](https://fonts.google.com/icons) **Rounded** 风格可变字体，
-沿坐标轴做动画：选中导航目的地图标填充（`FILL` 1），其余描边（`FILL` 0）。
-图标与含义见 [`shared/icons.json`](../../../shared/icons.json)。应用只打包所用字形：
-构建时 `vfxtool iconfont`（`shared/tooling/internal/iconfont`）从锁定版本字体按
-ligature 裁剪；锁定字重、grade 与 optical size，只留 fill 轴，得 9 KB WOFF2 字体。
-mygo 不能设字体 fill 轴，故同时打包描边与填充（改家族名，`vfxtool renamefont`
-改名）两套，交叉淡入淡出（共 36 KB）。
+图标为 [Material Symbols](https://fonts.google.com/icons) **Rounded** 风格，字重 400、
+grade 0、optical size 24：选中导航目的地图标填充（`FILL` 1），其余描边（`FILL` 0）。
+图标与含义见 [`shared/icons.json`](../../../shared/icons.json)；SVG 在
+[`shared/icons`](../../../shared/icons)，`SYMBOL.svg` 为描边、`SYMBOL-fill.svg` 为填充：
+取自 [google/material-design-icons](https://github.com/google/material-design-icons)
+修订 `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7` 的 24 px 文件，仅补了结尾换行，并附其
+Apache-2.0 许可证。mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；
+导航与按钮的填充动画是描边与填充两个图标的交叉淡入淡出，源码中的 SVG 共约
+60 KB，首次绘制某图标时才解析。
 
 ### 应用图标
 

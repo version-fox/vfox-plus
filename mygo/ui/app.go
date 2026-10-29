@@ -20,6 +20,7 @@ package ui
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"strings"
@@ -96,19 +97,15 @@ type themeKey struct {
 
 // New creates the application.
 func New(options Options) (*App, error) {
-	outlined, err := assets.Files.ReadFile("fonts/MaterialSymbolsRounded.ttf")
+	table, err := assets.Files.ReadFile("icons.json")
 	if err != nil {
 		return nil, err
 	}
-	filled, err := assets.Files.ReadFile("fonts/MaterialSymbolsRoundedFilled.ttf")
+	icons, err := fs.Sub(assets.Files, "icons")
 	if err != nil {
 		return nil, err
 	}
-	codes, err := assets.Files.ReadFile("icons.json")
-	if err != nil {
-		return nil, err
-	}
-	loadIcons(outlined, filled, codes)
+	loadIcons(table, icons)
 	english, err := readCatalogue(i18n.English)
 	if err != nil {
 		return nil, err

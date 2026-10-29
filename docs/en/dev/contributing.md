@@ -27,7 +27,7 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
   [`.editorconfig`(../../../.editorconfig) and [`.gitattributes`(../../../.gitattributes)).
 - Binary files are not committed. Upload screenshots and other images to an
   image host and link them (see [Screenshots](#screenshots)); generate binary
-  build inputs, such as the icon fonts, at build time.
+  build inputs, such as the logos of the Windows package, at build time.
   CI rejects binary files.
 
 ## Workflow
@@ -123,11 +123,20 @@ including the glossary.
 
 ### Icons
 
-Add the Material Symbol to [`shared/icons.json`(../../../shared/icons.json) under a
-name that describes its meaning, then regenerate the icon fonts
-(`vfxtool prepare`, which cuts them with
-`vfxtool iconfont` when it builds).
-Fonts are generated at build time and not committed.
+Add the Material Symbol to [`shared/icons.json`](../../../shared/icons.json) under a
+name that describes its meaning, and its two SVGs to
+[`shared/icons`](../../../shared/icons) (`vfxtool prepare` collects them when it builds),
+from the revision of [the design system](design-system.md#icons):
+
+```sh
+rev=10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7
+symbol=history   # as at https://fonts.google.com/icons
+base=https://raw.githubusercontent.com/google/material-design-icons/$rev/symbols/web/$symbol/materialsymbolsrounded
+curl -fsS "$base/${symbol}_24px.svg" > "shared/icons/$symbol.svg"; echo >> "shared/icons/$symbol.svg"
+curl -fsS "$base/${symbol}_fill1_24px.svg" > "shared/icons/$symbol-fill.svg"; echo >> "shared/icons/$symbol-fill.svg"
+```
+
+The tests of the kit fail for a meaning that lacks one of its two files.
 
 ### vfox output
 

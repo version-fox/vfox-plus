@@ -696,7 +696,7 @@ func TestProgressIndicatorsShapesAndAvatarsAreDrawn(t *testing.T) {
 		t.Error("a closed section shows nothing")
 	}
 	if HasIcon("no-such-icon") || !HasIcon("home") {
-		t.Error("the icon fonts know the icons of the interface")
+		t.Error("the icons of the interface are known, and a made-up one is not")
 	}
 }
 

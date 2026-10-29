@@ -41,7 +41,7 @@ flowchart TB
     end
     subgraph shared["<b>shared/</b> · machine-readable resources used by the application"]
         direction LR
-        s1("<b>i18n/</b><br/>translation catalogues<br/>(ARB: JSON with ICU messages)") ~~~ s2("<b>icons.json</b><br/>Material Symbols used<br/>by the user interface") ~~~ s3("<b>fixtures/</b><br/>captured vfox output and<br/>the expected parser results") ~~~ s4("<b>test-plugin/</b><br/>offline vfox plugin for end-to-end<br/>tests against the real vfox")
+        s1("<b>i18n/</b><br/>translation catalogues<br/>(ARB: JSON with ICU messages)") ~~~ s2("<b>icons.json, icons/</b><br/>Material Symbols used by<br/>the user interface, and their SVGs") ~~~ s3("<b>fixtures/</b><br/>captured vfox output and<br/>the expected parser results") ~~~ s4("<b>test-plugin/</b><br/>offline vfox plugin for end-to-end<br/>tests against the real vfox")
         s5("<b>packaging/linux/</b><br/>desktop entry, AppStream metadata<br/>and icon, for <code>vfxtool build-deb</code>") ~~~ s6("<b>packaging/windows/</b><br/>MSIX manifest, logos and bundle<br/>layout, for <code>vfxtool build-msix</code>") ~~~ s7("<b>tooling/</b><br/><code>vfxtool</code>, the Go tool that builds,<br/>tests and packages everything") ~~~ s8("<b>sandbox/</b><br/>shared parts of the<br/>Docker sandbox")
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
@@ -281,8 +281,7 @@ ships no strong-copyleft (Category X) code; weak-copyleft (Category B)
 dependencies, if any, ship under their own license terms. The build tooling
 in `shared/tooling` (`vfxtool`, never shipped in the application) additionally
 uses `go-github` (the GitHub API for the memory report),
-`nfpm` (Debian packaging as a library), `andybalholm/brotli` (WOFF2
-compression for the icon font), `go-licenses` (license classification for
+`nfpm` (Debian packaging as a library), `go-licenses` (license classification for
 the license collector), `go-getter` (resumable downloads for the package
 prefetch), `golang.org/x/image` (the vector rasterizer that draws the
 Windows logos, BSD-3-Clause) and `golang.org/x/sys` (the Windows calls of
@@ -302,7 +301,7 @@ Low memory use is a goal of the project. The application:
 - keeps the newest 500 lines of each finished task in memory (2000 while it
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
-- ships only the icons it uses (the two icon font subsets total about 36 KB);
+- ships only the icons it uses (55 symbols, outlined and filled, about 60 KB of SVG, parsed when first drawn);
 - stops animations that are not visible, and honours the platform's reduced
   motion setting;
 - avoids caching data that vfox can produce again cheaply.

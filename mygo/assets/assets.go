@@ -13,19 +13,19 @@
 // limitations under the License.
 
 // Package assets embeds what the application needs at run time and that
-// `vfxtool prepare` generates: the icon fonts, the code points of the icons,
-// the translations and the licenses. Run it before building.
+// `vfxtool prepare` collects: the icons, the translations and the licenses.
+// Run it before building.
 package assets
 
 import "embed"
 
-// Files holds the generated assets:
+// Files holds the collected assets:
 //
-//   - fonts/MaterialSymbolsRounded.ttf: the icon font, outlined (fill 0);
-//   - fonts/MaterialSymbolsRoundedFilled.ttf: the icon font, filled (fill 1);
-//   - icons.json: the code points of the icons, by meaning;
+//   - icons.json: the symbols of the icons, by meaning (shared/icons.json);
+//   - icons/SYMBOL.svg and icons/SYMBOL-fill.svg: the icons, outlined and
+//     filled (shared/icons);
 //   - i18n/app_<language>.arb: the translations of shared/i18n;
 //   - licenses.txt: the licenses of everything the application is built from.
 //
-//go:embed fonts/MaterialSymbolsRounded.ttf fonts/MaterialSymbolsRoundedFilled.ttf icons.json i18n/*.arb licenses.txt
+//go:embed icons.json icons/*.svg i18n/*.arb licenses.txt
 var Files embed.FS

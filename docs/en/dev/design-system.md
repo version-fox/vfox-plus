@@ -214,16 +214,18 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
 ## Icons
 
 Icons are [Material Symbols](https://fonts.google.com/icons), **Rounded** style,
-from the variable font, so that they can be animated along their axes: the
-icon of the selected navigation destination is filled (`FILL` 1) and the others
-are outlined (`FILL` 0). The icons and their meanings are listed in
-[`shared/icons.json`](../../../shared/icons.json). The application ships only these
-glyphs: `vfxtool iconfont` (`shared/tooling/internal/iconfont`) cuts the
-same glyphs, with their ligatures, out of a pinned version of the font at
-build time; pinning the weight, grade and optical size and keeping only the
-fill axis gives a 9 KB WOFF2 font. mygo cannot set the fill axis of a font, so
-it ships the subset twice — outlined and filled under another family name —
-and cross-fades between the two (36 KB together).
+at weight 400, grade 0 and optical size 24: the icon of the selected navigation
+destination is filled (`FILL` 1) and the others are outlined (`FILL` 0). The
+icons and their meanings are listed in
+[`shared/icons.json`](../../../shared/icons.json); their SVGs are in
+[`shared/icons`](../../../shared/icons), `SYMBOL.svg` outlined and
+`SYMBOL-fill.svg` filled: the 24 px files of
+[google/material-design-icons](https://github.com/google/material-design-icons) at
+revision `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`, unchanged but for a final newline, with their
+Apache-2.0 license. mygo draws an SVG in the colour of the text (`ui.Icon`), so
+the application carries no icon font; the fill that the navigation and the
+buttons animate is the cross-fade of the outlined and the filled icon, and the
+SVGs are about 60 KB in the source and parsed when an icon is first drawn.
 
 ### Application icon
 

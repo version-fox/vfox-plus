@@ -75,8 +75,8 @@ jobs:
         run: go -C shared/tooling run ./cmd/vfxtool docs-check
       - name: Keep binary files out of the repository
         run: |
-          # Images belong on an image host, and build outputs such as the icon
-          # font are generated. The fixtures escape their control characters.
+          # Images belong on an image host, and build outputs such as the logos of the
+          # Windows package are generated. The fixtures escape their control characters.
           binaries="$(git ls-files --eol | awk -F '\t' '{ split($1, info, " ") } info[1] == "i/-text" { print $2 }')"
           if [ -n "$binaries" ]; then
             echo "::error::Do not commit binary files; host images and generate build outputs instead: $binaries"

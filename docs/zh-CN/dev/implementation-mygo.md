@@ -17,7 +17,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
 | [`ui/mcu/`](../../../mygo/ui/mcu) | 配色：Material 颜色工具的 Go 移植（HCT、CAM16、tonal spot） |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
-| [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标字体、翻译与许可证（构建时生成） |
+| [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标、翻译与许可证（构建时收集） |
 | [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`：浏览器配对到本机（一次性链接），或为容器与远端实例常驻服务；配对后的浏览器得到完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
 | [`main.go`](../../../mygo/main.go) | 组装模型与窗口；分发 `pair` 子命令 |
 
@@ -51,7 +51,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 
 | 任务 | 命令 |
 | --- | --- |
-| 生成二进制嵌入的图标字体、翻译与许可证 | `vfxtool prepare`（`MYGO_SKIP_LICENSES=1` 跳过需 `go mod download` 的 Go 模块许可证） |
+| 收集二进制嵌入的图标、翻译与许可证 | `vfxtool prepare`（`MYGO_SKIP_LICENSES=1` 跳过需 `go mod download` 的 Go 模块许可证） |
 | 构建（`build/vfox-plus`） | `vfxtool build build/vfox-plus` |
 | 构建无头服务（`build/vfox-plus-serve`） | `vfxtool build --package ./cmd/vfox-plus-serve build/vfox-plus-serve`（同样的 `pair`、`serve`、`service` 命令，无用户界面，小约三分之一） |
 | 交叉编译 Windows | `vfxtool build --goos windows --goarch amd64\|arm64 build/vfox-plus.exe` |
@@ -62,10 +62,10 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | 覆盖率门禁 | `vfxtool coverage coverage.out 85` |
 | `.deb`、`.tar.gz`、`.msix`、`.msixbundle` | 见[打包](#打包) |
 
-`vfxtool prepare` 首次需联网：下载锁定的 Material Symbols 字体（或设
-`VFOX_PLUS_SYMBOLS` 指向已有目录），裁剪
-[`shared/icons.json`](../../../shared/icons.json) 的 57 个图标，描边填充各一（见
-[用户界面如何工作](#用户界面如何工作)）。结果不提交；
+`vfxtool prepare` 把 [`shared/icons.json`](../../../shared/icons.json) 的图标及其 SVG
+（[`shared/icons`](../../../shared/icons)，描边与填充各一，见
+[用户界面如何工作](#用户界面如何工作)）、[`shared/i18n`](../../../shared/i18n) 的翻译目录复制到
+`mygo/assets` 并在那里写许可证；只有 Go 模块许可证需要的 `go mod download` 才用网络。结果不提交；
 [`assets/assets.go`](../../../mygo/assets/assets.go) 的 `//go:embed` 缺失即构建失败。
 
 发布二进制用 `CGO_ENABLED=0`、位置无关（`-buildmode=pie`，Windows 除外）、strip、
@@ -152,9 +152,9 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   按路径绘制（[`ui/shapes`](../../../mygo/ui/shapes)）。
 - **文本**由 Pango 用桌面 sans-serif 排版绘制：Ubuntu 上 Ubuntu Sans，中文字体按系统
   选（Noto Sans CJK），字重按 type scale，桌面文本缩放生效。
-- **图标**为 Material Symbols Rounded 可变字体子集，故可沿坐标轴做动画：选中导航目的地图标
-  填充（`FILL` 1），其余描边（`FILL` 0）。mygo 按字重画字体、不能设 fill 轴，故打包两套字体——
-  描边与改家族名的填充（`vfxtool renamefont` 改名）——交叉淡入淡出（共 36 KB）。
+- **图标**为 [`shared/icons`](../../../shared/icons) 里 Material Symbols Rounded 的 SVG，由 mygo 的
+  `ui.Icon` 以文本颜色绘制，每个符号一个描边、一个填充；导航与按钮的填充动画是两者的交叉淡入淡出
+  （[`ui/kit/icon.go`](../../../mygo/ui/kit/icon.go)）。SVG 在首次绘制该图标时才解析。
 
 ## 打包
 
@@ -165,7 +165,7 @@ Linux 上，共享工具 `vfxtool build-deb` 打包为
 [`shared/packaging/linux`](../../../shared/packaging/linux) 的桌面入口、AppStream 元数据与图标；
 版本取 [`VERSION`](../../../mygo/VERSION)，有测试保证与应用显示一致。应用窗口名
 `dev.vfox.VfoxPlus`（Wayland 应用 ID 与 X11 窗口类取自程序名，应用在 mygo 启动 GTK 前
-用 `g_set_prgname` 设置），与桌面入口对应。Go 模块、Go 标准库、移植代码与图标字体
+用 `g_set_prgname` 设置），与桌面入口对应。Go 模块、Go 标准库、移植代码与图标
 许可证装为 `/usr/share/doc/vfox-plus/THIRD-PARTY-LICENSES` 并在应用内展示
 （[`NOTICE.txt`](../../../mygo/NOTICE.txt) 存移植声明；其余 `vfxtool golicenses` 收集，
   不兼容 Apache License 2.0 即失败）。
@@ -229,10 +229,6 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **无障碍**走 mygo ATK 对象，GTK 桥到 AT-SPI，Orca 读窗口；场景用的 registry 不是它。
   kit 组件给元素命名（图标按钮 tooltip 即其名），mygo 读屏支持未在此用 Orca 试过。
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。
-- **图标字体写缓存。**fontconfig 从文件加载字体，mygo 注册的字体（此处两套图标字体共
-  36 KB）首次启动写入 `$XDG_CACHE_HOME/mygo/fonts/`，按哈希命名。該目录不可写则用临时文件
-  下新目录，再失败界面无图标继续。单元测试给每包独立缓存目录，避免两测试程序同时注册
-  同字体竞态。
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 11 打包为
   未签名 `.msixbundle`（x64 与 arm64），CI 校验；安装为 `Add-AppxPackage -AllowUnsigned`

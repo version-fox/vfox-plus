@@ -334,10 +334,9 @@ func ImplImageName(imageName, parent string, dockerfile, versionsEnv []byte) str
 }
 
 // toolingFiles lists the sources the sandbox images embed the behavior of:
-// the tooling module definition and every Go source under it, sorted. The
-// base image carries the symbols the icon font is cut from (see
-// base.Dockerfile), and every container runs tasks through `go run` of this
-// module, so an image is rebuilt exactly when one of these changes.
+// the tooling module definition and every Go source under it, sorted. Every
+// container runs tasks through `go run` of this module, so an image is rebuilt
+// exactly when one of these changes.
 func toolingFiles(repo string) ([]string, error) {
 	var files []string
 	root := filepath.Join(repo, "shared", "tooling")

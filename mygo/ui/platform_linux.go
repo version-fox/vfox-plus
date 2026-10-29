@@ -23,25 +23,6 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-// ownFontCache points the cache directory of the process at a new directory
-// below the temporary files, and reports whether it did. mygo gives the fonts that
-// an application registers to fontconfig as files in the cache directory of the
-// user, which can be read-only, and where two programs that register the same
-// fonts at the same moment race; a directory of the process's own has neither
-// problem.
-func ownFontCache() bool {
-	dir, err := os.MkdirTemp("", "vfox-plus-cache-")
-	if err != nil {
-		log.Printf("cannot make a cache directory for the fonts: %v", err)
-		return false
-	}
-	if err := os.Setenv("XDG_CACHE_HOME", dir); err != nil {
-		log.Printf("cannot use the cache directory %s for the fonts: %v", dir, err)
-		return false
-	}
-	return true
-}
-
 // prepareProcess does what the application needs before mygo starts GTK.
 //
 // GTK names the window after the program: the application id on Wayland and the

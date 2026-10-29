@@ -199,7 +199,7 @@
   `legacyVersionFile.strategy` 菜单、其余文本框（回车或失焦保存；清空重置），未知键
   `configOther`。
 - **关于**：应用名、版本与许可证，源码与 vfox 文档链接，依赖开源许可证含打包的
-  Material Symbols 字体（Apache-2.0，Google）。
+  Material Symbols 图标（Apache-2.0，Google）。
 
 ## 无障碍
 

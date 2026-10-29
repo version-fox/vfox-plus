@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -28,43 +29,24 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/assets"
 )
 
-// TestMain gives the tests of this package a font cache of their own: mygo
-// writes the fonts that an application registers to the cache directory of the
-// user, under a name made of their hash, and two test programs that register the
-// same fonts at the same moment, such as those of two packages, race there.
-func TestMain(m *testing.M) {
-	cache, err := os.MkdirTemp("", "vfox-plus-cache-")
-	if err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("XDG_CACHE_HOME", cache); err != nil {
-		panic(err)
-	}
-	status := m.Run()
-	_ = os.RemoveAll(cache)
-	os.Exit(status)
-}
-
 const testSeed = 0xFFF28C1B
 
 var loadIconsOnce sync.Once
 
-// loadTestIcons registers the icon fonts that `vfxtool prepare` generated.
+// loadTestIcons registers the icons that `vfxtool prepare` collected.
 func loadTestIcons(t testing.TB) {
 	t.Helper()
 	var err error
 	loadIconsOnce.Do(func() {
-		var outlined, filled, codes []byte
-		if outlined, err = assets.Files.ReadFile("fonts/MaterialSymbolsRounded.ttf"); err != nil {
+		var table []byte
+		var files fs.FS
+		if table, err = assets.Files.ReadFile("icons.json"); err != nil {
 			return
 		}
-		if filled, err = assets.Files.ReadFile("fonts/MaterialSymbolsRoundedFilled.ttf"); err != nil {
+		if files, err = fs.Sub(assets.Files, "icons"); err != nil {
 			return
 		}
-		if codes, err = assets.Files.ReadFile("icons.json"); err != nil {
-			return
-		}
-		err = LoadIcons(outlined, filled, codes)
+		err = LoadIcons(table, files)
 	})
 	if err != nil {
 		t.Fatal(err)

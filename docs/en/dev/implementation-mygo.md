@@ -21,7 +21,7 @@ project, in Go:
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |
 | [`ui/mcu/`](../../../mygo/ui/mcu) | The colour scheme: a Go port of the Material colour utilities (HCT, CAM16, tonal spot) |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
-| [`assets/`](../../../mygo/assets) | What the binary embeds: the icon fonts, the translations and the licenses (all generated at build time) |
+| [`assets/`](../../../mygo/assets) | What the binary embeds: the icons, the translations and the licenses (all collected at build time) |
 | [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`: pair a browser with this machine (one-time links) or keep the server up for containers and remote instances; the paired browser gets the full web interface (`/app`: SDKs, registry, tasks with live logs, settings) |
 | [`main.go`](../../../mygo/main.go) | Assembles the model and the window; dispatches the `pair` subcommand |
 
@@ -59,7 +59,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 
 | Task | Command |
 | --- | --- |
-| Generate the icon fonts, the translations and the licenses the binary embeds | `vfxtool prepare` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
+| Collect the icons, the translations and the licenses the binary embeds | `vfxtool prepare` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
 | Build (`build/vfox-plus`) | `vfxtool build build/vfox-plus` |
 | Build the headless server (`build/vfox-plus-serve`) | `vfxtool build --package ./cmd/vfox-plus-serve build/vfox-plus-serve` (same `pair`, `serve` and `service` commands, no user interface; about a third smaller) |
 | Cross-compile for Windows | `vfxtool build --goos windows --goarch amd64|arm64 build/vfox-plus.exe` |
@@ -70,13 +70,13 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | Coverage gates | `vfxtool coverage coverage.out 85` |
 | `.deb`, `.tar.gz`, `.msix`, `.msixbundle` | see [Packaging](#packaging) |
 
-`vfxtool prepare` needs the network the first time: it
-downloads the pinned Material Symbols font (or set `VFOX_PLUS_SYMBOLS` to a
-directory that has it) and cuts out the 57 icons of
-[`shared/icons.json`](../../../shared/icons.json), twice: outlined and filled (see
-[Icons](#how-the-user-interface-works)). The result is not committed;
-`//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if it is
-missing.
+`vfxtool prepare` copies the icons of [`shared/icons.json`](../../../shared/icons.json) and
+their SVGs of [`shared/icons`](../../../shared/icons) (outlined and filled, see
+[Icons](#how-the-user-interface-works)), and the catalogues of
+[`shared/i18n`](../../../shared/i18n), to `mygo/assets`, and writes the licenses there; it needs the
+network only for `go mod download`, which the licenses of the Go modules need. The result is not
+committed; `//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if
+it is missing.
 
 The release binary is built with `CGO_ENABLED=0`, position independent
 (`-buildmode=pie`), stripped, without the inspector of mygo's native user
@@ -202,11 +202,11 @@ pages are built from its components.
 - **Text** is laid out and drawn by Pango, in the sans-serif font of the desktop
   found with fontconfig: Ubuntu Sans on Ubuntu, with the weights of the type
   scale, and the fonts that the system chooses for Chinese (Noto Sans CJK).
-- **Icons** are subsets of Material Symbols Rounded. mygo draws a font at its
-  weight and cannot set its fill axis, so there are two fonts, the outlined and
-  the filled one (under another family name, renamed by `vfxtool renamefont`),
-  and the fill that the navigation and the buttons animate is the cross-fade of
-  the two.
+- **Icons** are the SVGs of Material Symbols Rounded in
+  [`shared/icons`](../../../shared/icons), drawn by mygo's `ui.Icon` in the colour of the text,
+  the outlined and the filled one of each symbol; the fill that the navigation and
+  the buttons animate is the cross-fade of the two ([`ui/kit/icon.go`](../../../mygo/ui/kit/icon.go)).
+  An SVG is parsed when its icon is first drawn.
 
 ## Packaging
 
@@ -220,7 +220,7 @@ one the application shows. The application names its window `dev.vfox.VfoxPlus`
 (GTK takes the application ID of Wayland and the window class of X11 from the
 program name, which the application sets with `g_set_prgname` before mygo starts
 GTK), so that it matches the desktop entry. The licenses of the Go modules, of
-the Go standard library, of the ports and of the icon font are installed as
+the Go standard library, of the ports and of the icons are installed as
 `/usr/share/doc/vfox-plus/THIRD-PARTY-LICENSES` and shown in the
 application ([`NOTICE.txt`](../../../mygo/NOTICE.txt) holds the notices of the ports; the rest
 is collected by `vfxtool golicenses`, which fails on a license that is not
@@ -308,14 +308,6 @@ adds 8 MB because only the rows in view are built.
   The components of the kit name their elements (the tooltip of an icon button is
   its name), but mygo's screen reader support has not been tried with Orca here.
 - **Input methods** are the ones of GTK 3 (IBus, Fcitx, the Wayland text input).
-- **The icon fonts are written to the cache.** fontconfig loads fonts from files,
-  so mygo writes the fonts that an application registers (here the two icon fonts,
-  36 KB together) to `$XDG_CACHE_HOME/mygo/fonts/`, named by their hash, the first
-  time the application starts. Where that directory cannot be written, the fonts
-  go to a new directory below the temporary files, and if that fails, too, the
-  interface goes on without its icons. The unit tests give each package a cache
-  directory of its own, because two test programs that register the same fonts at
-  the same moment race there.
 - **Only Linux on x86-64 is run and tested end to end.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on
   arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows 11

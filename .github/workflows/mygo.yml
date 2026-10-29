@@ -77,15 +77,10 @@ jobs:
           echo "$GOLANGCI_LINT_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
           tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/$archive" >> "$GITHUB_PATH"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          # Where vfxtool prepare keeps the variable font it downloads.
-          path: ~/.cache/vfox-plus/material-symbols
-          key: material-symbols-${{ hashFiles('shared/tooling/internal/iconfont/**') }}
       - name: Build vfxtool
         run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
       - name: Prepare the embedded assets
-        # The icon font, the translations and the licenses of the Go modules.
+        # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
       - name: Build the release
         run: '"$RUNNER_TEMP/vfxtool" build --root mygo mygo/build/vfox-plus'
