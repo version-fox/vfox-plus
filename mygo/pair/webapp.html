@@ -750,7 +750,14 @@ document.getElementById("shellCopy").onclick = async () => {
   catch (e) { showError(t("failed")); }
 };
 document.getElementById("exploreBtn").onclick = () => location.hash = "#/plugins";
-document.getElementById("docsBtn").onclick = () => window.open("https://vfox.dev/", "_blank", "noreferrer");
+/* Opens an address of another site in a new tab. A link is clicked rather than calling window.open, because the WebView of the
+   Android app reports the navigation of a link to its shell, which hands the address to the browser of the phone. */
+function openExternal(url) {
+  const a = document.createElement("a");
+  a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+document.getElementById("docsBtn").onclick = () => openExternal("https://vfox.dev/");
 /* ---------------- sdks ---------------- */
 document.getElementById("sdkSearch").oninput = () => renderSdks(cache.inventory);
 document.getElementById("sdkRefresh").onclick = () => refresh(true);
@@ -823,7 +830,7 @@ function renderDetail() {
   document.getElementById("detailBack").onclick = () => showList(true);
   document.getElementById("detailMenu").onclick = ev => {
     const items = [];
-    if (info && info.Homepage) items.push({icon: "open-in-new", label: t("homepageOpen"), onclick: () => window.open(info.Homepage, "_blank", "noreferrer")});
+    if (info && info.Homepage) items.push({icon: "open-in-new", label: t("homepageOpen"), onclick: () => openExternal(info.Homepage)});
     if (info && info.InstallPath) items.push({icon: "content-copy", label: t("copyPath"), onclick: () => copyText(info.InstallPath)});
     items.push({icon: "delete", label: t("remove"), danger: true, onclick: () => removePlugin(d.name)});
     openMenu(ev.currentTarget, items);
@@ -1106,7 +1113,7 @@ function renderOptions(body) {
   body.innerHTML = h;
   body.querySelectorAll("[data-var]").forEach(b => b.onclick = () => openVariable(p.variables.find(v => v.key === b.dataset.var)));
   body.querySelectorAll("[data-try]").forEach(b => b.onclick = () => openInstallByName(b.dataset.try));
-  body.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => window.open(b.dataset.doc, "_blank", "noreferrer"));
+  body.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => openExternal(b.dataset.doc));
   const sw = document.getElementById("legacySwitch");
   if (sw) sw.onclick = async () => { try { await vfoxConfig("legacyVersionFile.enable", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); await refresh(false); renderTab(false); } catch (e) { showError(e.message); } };
   body.querySelectorAll("#legacyStrategy button").forEach(b => b.onclick = async () => { try { await vfoxConfig("legacyVersionFile.strategy", b.dataset.s); await refresh(false); renderTab(false); } catch (e) { showError(e.message); } });
@@ -1200,7 +1207,7 @@ function renderPlugins(inv) {
     (installed.has(p.Name)
       ? '<button class="btn text" data-open="' + esc(p.Name) + '">' + esc(t("added")) + "</button><span style='flex:1'></span><button class='btn text' data-update='" + esc(p.Name) + "'>" + esc(t("update")) + "</button><button class='btn text' data-remove='" + esc(p.Name) + "'>" + esc(t("remove")) + "</button>"
       : '<button class="btn primary" data-addname="' + esc(p.Name) + '">' + esc(t("install")) + "</button>") + "</div></div>").join("");
-  box.querySelectorAll("[data-home]").forEach(b => b.onclick = () => window.open(b.dataset.home, "_blank", "noreferrer"));
+  box.querySelectorAll("[data-home]").forEach(b => b.onclick = () => openExternal(b.dataset.home));
   box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => location.hash = "#/sdk/" + encodeURIComponent(b.dataset.open));
   box.querySelectorAll("[data-addname]").forEach(b => b.onclick = () => runTask({operation: "add", source: b.dataset.addname}));
   box.querySelectorAll("[data-update]").forEach(b => b.onclick = () => runTask({operation: "update", sdk: b.dataset.update}));

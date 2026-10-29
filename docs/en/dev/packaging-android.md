@@ -34,7 +34,11 @@ Go code. Users install the `.apk` and pair it with the PC; see
   new link, disconnect). After a one-time link sets the cookie, the client
   moves to `/app` itself. The web download of a failed task's full log is
   hidden inside the WebView, which cannot download files; read it in a
-  browser instead.
+  browser instead. The window stays on the paired server: the address of
+  another site that the page links to (the homepage of a plugin, its
+  documentation) opens in the browser of the phone (`shouldOverrideUrlLoading`;
+  the page clicks a link for them instead of calling `window.open`, which the
+  WebView does not report).
 - **TLS** (`onReceivedSslError`) shows the SHA-256 fingerprint dialog before
   trusting a self-signed certificate — the same fingerprint the PC terminal
   prints. Bringing your own certificate on the server avoids the warning.
