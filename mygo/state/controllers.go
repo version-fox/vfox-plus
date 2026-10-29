@@ -337,6 +337,10 @@ type SdkDetailController struct {
 	search    string
 	selection profile.Selection
 	stop      Unsubscribe
+	// groups are the groups of the list that starts at groupsOf and has groupsLen versions.
+	groups    []profile.Group
+	groupsOf  *core.AvailableVersion
+	groupsLen int
 }
 
 // NewSdkDetailController creates the controller for the detail view of name.
@@ -406,7 +410,9 @@ func (c *SdkDetailController) SetSearch(value string) error {
 	changed := value != c.search
 	c.search = value
 	if changed {
+		// Nothing of the earlier list stays, so that it can be freed.
 		c.selection = nil
+		c.groups, c.groupsOf, c.groupsLen = nil, nil, 0
 	}
 	c.mu.Unlock()
 	if changed {
@@ -416,13 +422,24 @@ func (c *SdkDetailController) SetSearch(value string) error {
 }
 
 // Groups returns the filters that suit the versions that are listed, with the
-// values that some of them have.
+// values that some of them have. The interface asks for them on every frame, and
+// they only change with the list, so they are worked out once per list.
 func (c *SdkDetailController) Groups() []profile.Group {
 	if !c.HasProfile {
 		return nil
 	}
 	versions, _ := c.Versions.Value()
-	return c.Profile.Groups(versions)
+	if len(versions) == 0 {
+		return nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.groupsOf == &versions[0] && c.groupsLen == len(versions) {
+		return c.groups
+	}
+	c.groups = c.Profile.Groups(versions)
+	c.groupsOf, c.groupsLen = &versions[0], len(versions)
+	return c.groups
 }
 
 // Selection returns the values that the user chose in the groups.

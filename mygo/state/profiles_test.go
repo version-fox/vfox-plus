@@ -129,6 +129,9 @@ func TestSdkDetailFiltersByTheNotesOfTheListedVersions(t *testing.T) {
 	if len(groups) != 1 || groups[0].ID != "support" || groups[0].Chips[0].Value != "LTS" || groups[0].Chips[0].Count == 0 {
 		t.Fatalf("Temurin has releases with long-term support and no JavaFX build: %+v", groups)
 	}
+	if again := controller.Groups(); &again[0] != &groups[0] {
+		t.Error("the groups of a list are worked out once")
+	}
 	all := len(controller.VisibleVersions(nil))
 	controller.ToggleFacet("support", "LTS")
 	if !controller.Selection().Has("support", "LTS") {
