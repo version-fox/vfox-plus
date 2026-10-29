@@ -407,8 +407,13 @@ func (c *SdkDetailController) onInfo() {
 	c.search = search
 	c.mu.Unlock()
 	if changed {
-		// What is listed, or being listed, answers another search.
+		// What is listed, or being listed, answers another search: list the right one when
+		// somebody asked for a list, who would wait for it for ever otherwise.
+		asked := c.Versions.HasValue() || c.Versions.IsLoading() || c.Versions.Error() != nil
 		c.Versions.Reset()
+		if asked {
+			c.Versions.EnsureLoaded()
+		}
 	}
 	c.NotifyListeners()
 }

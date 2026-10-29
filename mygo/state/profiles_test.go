@@ -370,16 +370,17 @@ func TestSdkDetailOfAnAliasHasTheProfileOfThePluginItWasMadeFrom(t *testing.T) {
 	if controller.Search() != "tem" || !reflect.DeepEqual(controller.SearchArguments(), []string{"tem"}) {
 		t.Errorf("the choice that was remembered applies: %q %v", controller.Search(), controller.SearchArguments())
 	}
-	if controller.Versions.HasValue() {
-		t.Error("the list of the default is not the list of the choice")
-	}
 	select {
 	case <-notified:
 	default:
 		t.Error("whoever shows the details is told that it has a profile now")
 	}
-	controller.Versions.EnsureLoaded()
-	waitFor(t, "the list of Temurin", func() bool { return controller.Versions.HasValue() })
+	// Somebody had asked for a list, so the list of the choice follows by itself: the
+	// list of the default is not the one that they wait for.
+	waitFor(t, "the list of Temurin", func() bool {
+		versions, ok := controller.Versions.Value()
+		return ok && len(versions) == 120
+	})
 	if calls := runner.Calls("search coffee tem"); len(calls) != 1 {
 		t.Errorf("the plugin is searched by its own name: %v", runner.Invocations())
 	}
@@ -387,6 +388,24 @@ func TestSdkDetailOfAnAliasHasTheProfileOfThePluginItWasMadeFrom(t *testing.T) {
 	// A choice of the user is kept for the name of the plugin.
 	if err := controller.ChooseSearch("zulu"); err != nil || remembered["coffee"] != "zulu" {
 		t.Errorf("the choice is kept under the alias: %v %v", err, remembered)
+	}
+}
+
+func TestSdkDetailOfAnAliasListsNothingThatNobodyAskedFor(t *testing.T) {
+	runner := aliasRunner("coffee", "java")
+	controller := state.NewSdkDetailController(testClient(runner), "coffee", linuxProfiles(), memory{"coffee": "tem"})
+	defer controller.Dispose()
+	<-controller.Info.Load()
+	if _, known := controller.Profile(); !known || controller.Search() != "tem" {
+		t.Fatalf("the profile is found: %q", controller.Search())
+	}
+	if calls := runner.Calls("search"); len(calls) != 0 || controller.Versions.HasValue() || controller.Versions.IsLoading() {
+		t.Errorf("a list is searched when somebody asks for it: %v", calls)
+	}
+	// Asking loads the list of the choice at once.
+	<-controller.Versions.EnsureLoaded()
+	if calls := runner.Calls("search coffee tem"); len(calls) != 1 {
+		t.Errorf("the choice is searched: %v", runner.Invocations())
 	}
 }
 
