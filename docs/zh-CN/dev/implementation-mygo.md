@@ -64,7 +64,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 
 `vfxtool prepare` 首次需联网：下载锁定的 Material Symbols 字体（或设
 `VFOX_PLUS_SYMBOLS` 指向已有目录），裁剪
-[`shared/icons.json`](../../../shared/icons.json) 的 56 个图标，描边填充各一（见
+[`shared/icons.json`](../../../shared/icons.json) 的 57 个图标，描边填充各一（见
 [用户界面如何工作](#用户界面如何工作)）。结果不提交；
 [`assets/assets.go`](../../../mygo/assets/assets.go) 的 `//go:embed` 缺失即构建失败。
 

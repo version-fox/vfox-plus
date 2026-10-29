@@ -72,7 +72,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 
 `vfxtool prepare` needs the network the first time: it
 downloads the pinned Material Symbols font (or set `VFOX_PLUS_SYMBOLS` to a
-directory that has it) and cuts out the 56 icons of
+directory that has it) and cuts out the 57 icons of
 [`shared/icons.json`](../../../shared/icons.json), twice: outlined and filled (see
 [Icons](#how-the-user-interface-works)). The result is not committed;
 `//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if it is
