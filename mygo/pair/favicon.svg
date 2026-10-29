@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2026 Han Li and contributors
+  SPDX-License-Identifier: Apache-2.0
+
+  The favicon of the web interface: the plate and the fox of the application icon
+  (shared/packaging/linux/dev.vfox.VfoxPlus.svg) without the halo and with a larger fox,
+  which still reads at 16 px. The pages of the pairing server inline it as a data URI
+  (favicon.go), and a test compares its paths and colours with the master.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="plate" gradientUnits="userSpaceOnUse" x1="8" y1="8" x2="248" y2="248">
+      <stop offset="0" stop-color="#5444E4"/>
+      <stop offset="1" stop-color="#1B1268"/>
+    </linearGradient>
+    <linearGradient id="fur" gradientUnits="userSpaceOnUse" x1="0" y1="-10" x2="0" y2="140">
+      <stop offset="0" stop-color="#FFB63F"/>
+      <stop offset="1" stop-color="#FF8419"/>
+    </linearGradient>
+    <linearGradient id="cream" gradientUnits="userSpaceOnUse" x1="0" y1="-8" x2="0" y2="160">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFE7CB"/>
+    </linearGradient>
+  </defs>
+  <path id="plate-shape" fill="url(#plate)" d="M66,8 L190,8 C222,8 248,34 248,66 L248,190 C248,222 222,248 190,248 L66,248 C34,248 8,222 8,190 L8,66 C8,34 34,8 66,8 Z"/>
+  <g id="fox" transform="translate(33.6 39.33) scale(1.18)">
+    <path id="cheeks" fill="url(#cream)" d="M71.5,38 L65.1,34.2 C63.7,33.4 62.4,32.4 61.3,31.3 L45,14.5 C36.6,5.9 22.1,8.9 17.8,20.1 L5.3,53.2 C5.1,53.7 4.9,54.3 4.8,54.9 L-5.3,92.2 C-6.8,97.7 -3.8,103.5 1.5,105.4 L38.4,118.7 C40.8,119.6 42.9,120.9 44.6,122.7 L61.2,140.2 C71.4,150.9 88.6,150.9 98.8,140.2 L115.4,122.7 C117.1,120.9 119.2,119.6 121.6,118.7 L158.5,105.4 C163.8,103.5 166.8,97.7 165.3,92.2 L155.2,54.9 C155.1,54.3 154.9,53.7 154.7,53.2 L142.2,20.1 C137.9,8.9 123.4,5.9 115,14.5 L98.7,31.3 C97.6,32.4 96.3,33.4 94.9,34.2 L88.5,38 C83.3,41.1 76.7,41.1 71.5,38 Z"/>
+    <path id="fur" fill="url(#fur)" d="M71,35.5 L64.7,32.4 C62.9,31.5 61.3,30.3 59.9,28.8 L42,10.5 C33,1.3 17.5,5.2 13.8,17.5 L4.9,47.7 C3.7,51.7 4.4,56 6.7,59.5 L28.3,91.4 C29.4,93.1 30.8,94.7 32.3,96 L68.1,127.5 C74.9,133.5 85.1,133.5 91.9,127.5 L127.7,96 C129.2,94.7 130.6,93.1 131.7,91.4 L153.3,59.5 C155.6,56 156.3,51.7 155.1,47.7 L146.2,17.5 C142.5,5.2 127,1.3 118,10.5 L100.1,28.8 C98.7,30.3 97.1,31.5 95.3,32.4 L89,35.5 C83.3,38.3 76.7,38.3 71,35.5 Z"/>
+    <path id="ear-left" fill="#FFE3C4" d="M32,20 L45.6,31.6 C49.2,34.7 48.7,40.5 44.6,43 L31.4,50.7 C26.4,53.6 20.2,49.5 20.9,43.7 L23.8,23.1 C24.3,19.2 29,17.4 32,20 Z"/>
+    <path id="ear-right" fill="#FFE3C4" d="M128,20 L114.4,31.6 C110.8,34.7 111.3,40.5 115.4,43 L128.6,50.7 C133.6,53.6 139.8,49.5 139.1,43.7 L136.2,23.1 C135.7,19.2 131,17.4 128,20 Z"/>
+    <path id="eye-left" fill="#17123F" d="M40.5,86 C40.5,79.4 44.8,74 50,74 C55.2,74 59.5,79.4 59.5,86 C59.5,92.6 55.2,98 50,98 C44.8,98 40.5,92.6 40.5,86 Z"/>
+    <path id="eye-right" fill="#17123F" d="M100.5,86 C100.5,79.4 104.8,74 110,74 C115.2,74 119.5,79.4 119.5,86 C119.5,92.6 115.2,98 110,98 C104.8,98 100.5,92.6 100.5,86 Z"/>
+    <path id="spark-left" fill="#FFFFFF" d="M49.8,81.6 C49.8,79.7 51.3,78.2 53.2,78.2 C55.1,78.2 56.6,79.7 56.6,81.6 C56.6,83.5 55.1,85 53.2,85 C51.3,85 49.8,83.5 49.8,81.6 Z"/>
+    <path id="spark-right" fill="#FFFFFF" d="M109.8,81.6 C109.8,79.7 111.3,78.2 113.2,78.2 C115.1,78.2 116.6,79.7 116.6,81.6 C116.6,83.5 115.1,85 113.2,85 C111.3,85 109.8,83.5 109.8,81.6 Z"/>
+    <path id="nose" fill="#17123F" d="M77.4,124 L82.6,124 C87.2,124 89.8,129.3 87,133 L86.3,133.9 C83.1,138 76.9,138 73.7,133.9 L73,133 C70.2,129.3 72.8,124 77.4,124 Z"/>
+  </g>
+</svg>

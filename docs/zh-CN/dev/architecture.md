@@ -259,5 +259,5 @@ headless `pair` 才起自己的只读快照服务。
 Android 客户端（`android/`）连同一个服务：它是包住 `/app` 的 WebView，
 配对流程是原生 Material 3 Expressive（粘贴配对链接、核对证书指纹），
 手机以此驱动 PC 上的 vfox-plus 实例。Web 界面本身遵循
-[设计系统](design-system.md)（种子色、形状、动效），资源全部内联，
+[设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），
 因为配对服务只提供单个无外部请求的嵌入页面。

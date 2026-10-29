@@ -471,9 +471,9 @@ type connectData struct {
 	Fingerprint string
 }
 
-var introTemplate = template.Must(template.New("intro").Parse(`<!doctype html>
+var introTemplate = template.Must(template.New("intro").Parse(withFavicon(`<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox-plus pair</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox-plus pair</title><!--favicon--></head>
 <body>
 <h1>vfox-plus pair</h1>
 <p>This page pairs a browser with the vfox-plus instance on this machine.</p>
@@ -482,11 +482,11 @@ var introTemplate = template.Must(template.New("intro").Parse(`<!doctype html>
 {{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code></p>
 <p>证书指纹：<code>{{.Fingerprint}}</code>（信任自签名证书前请核对）。</p>{{end}}
 </body>
-</html>`))
+</html>`)))
 
-var connectTemplate = template.Must(template.New("connect").Parse(`<!doctype html>
+var connectTemplate = template.Must(template.New("connect").Parse(withFavicon(`<!doctype html>
 <html lang="{{if .Chinese}}zh-CN{{else}}en{{end}}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox-plus {{if .Chinese}}已配对{{else}}paired{{end}}</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox-plus {{if .Chinese}}已配对{{else}}paired{{end}}</title><!--favicon--></head>
 <body>
 <h1>vfox-plus {{if .Chinese}}已配对{{else}}paired{{end}}</h1>
 {{if .Chinese}}
@@ -511,4 +511,4 @@ var connectTemplate = template.Must(template.New("connect").Parse(`<!doctype htm
 <p>{{if .Chinese}}未找到可用的 vfox：{{.VfoxError}}。请先安装 vfox（https://vfox.dev/zh-hans/guides/quick-start.html），再重新配对。{{else}}No working vfox: {{.VfoxError}}. Install vfox first (https://vfox.dev/guides/quick-start.html), then pair again.{{end}}</p>
 {{end}}
 </body>
-</html>`))
+</html>`)))

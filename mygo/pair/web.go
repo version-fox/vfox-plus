@@ -15,9 +15,11 @@
 package pair
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -27,6 +29,11 @@ import (
 
 //go:embed webapp.html
 var webappHTML []byte
+
+// webappBefore and webappAfter are the page on both sides of the favicon
+// placeholder. The page is written in three parts, so that serving it copies
+// nothing.
+var webappBefore, webappAfter, _ = bytes.Cut(webappHTML, []byte(faviconPlaceholder))
 
 // Web UI routes served by Server when it owns an AppModel:
 //
@@ -56,7 +63,9 @@ func (s *Server) serveApp(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	writer.Header().Set("Cache-Control", "no-store")
-	_, _ = writer.Write(webappHTML)
+	_, _ = writer.Write(webappBefore)
+	_, _ = io.WriteString(writer, faviconLink)
+	_, _ = writer.Write(webappAfter)
 }
 
 func (s *Server) requireModel(writer http.ResponseWriter) *state.AppModel {
