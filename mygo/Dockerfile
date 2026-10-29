@@ -55,7 +55,7 @@ set -eu
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl
 rm -rf /var/lib/apt/lists/*
-curl -fsSL --retry 5 -o /tmp/go.tar.gz "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz"
+curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz"
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /opt
 rm /tmp/go.tar.gz
@@ -68,7 +68,7 @@ ENV PATH=/opt/go/bin:$PATH \
 RUN <<EOF
 set -eu
 mkdir -p /out
-curl -fsSL --retry 5 -o /tmp/vfox.tar.gz \
+curl -fsSL --retry 5 --retry-all-errors -o /tmp/vfox.tar.gz \
   "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/vfox_${VFOX_VERSION}_linux_x86_64.tar.gz"
 echo "$VFOX_SHA256  /tmp/vfox.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/vfox.tar.gz -C /tmp
