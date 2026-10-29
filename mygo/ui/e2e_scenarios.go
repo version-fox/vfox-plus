@@ -442,7 +442,7 @@ func profilesScreenshots(s *scenario) {
 	s.waitForText("75 versions")
 	s.shot("java-available")
 	s.clickButton("Distribution: OpenJDK")
-	s.waitForText("Search by name or short name")
+	s.waitForText("Eclipse Adoptium · tem")
 	s.shot("java-choose")
 	s.clickItem("Temurin")
 	s.waitForText("120 versions")
@@ -456,10 +456,16 @@ func profilesScreenshots(s *scenario) {
 	s.shot("java-install-name")
 	s.tapDialog(false)
 	s.clickButton("Distribution: Temurin")
-	s.waitForText("Search by name or short name")
+	s.waitForText("Eclipse Adoptium · tem")
 	s.clickItem("All distributions")
 	s.waitForText("2641 versions")
 	s.shot("java-all")
+	// The choice is kept, so Java would list every distribution again at the next visit:
+	// take it back to the default, as a user does.
+	s.clickButton("Distribution: All distributions")
+	s.waitForText("Eclipse Adoptium · tem")
+	s.clickItem("OpenJDK")
+	s.waitForText("75 versions")
 
 	s.navigate("SDKs")
 	s.clickItem("flutter")
