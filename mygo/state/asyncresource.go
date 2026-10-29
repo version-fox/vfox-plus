@@ -114,6 +114,22 @@ func (r *AsyncResource[T]) SetValue(value T) {
 	r.NotifyListeners()
 }
 
+// Reset forgets the value and the error, and drops the load that is in
+// progress, for a resource whose value no longer answers the question that is
+// asked of it, such as the list of another distribution. Unlike Load it keeps
+// nothing on show while the next load runs.
+func (r *AsyncResource[T]) Reset() {
+	var zero T
+	r.mu.Lock()
+	r.generation++
+	r.value = zero
+	r.loaded = false
+	r.err = nil
+	r.loading = false
+	r.mu.Unlock()
+	r.NotifyListeners()
+}
+
 func (r *AsyncResource[T]) run(generation uint64, done chan struct{}) {
 	value, err := r.loader()
 	r.mu.Lock()

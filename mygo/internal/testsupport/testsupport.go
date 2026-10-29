@@ -350,7 +350,9 @@ var errMissing = missingExecutable{}
 
 // FixtureRunner returns a runner that answers the read-only commands like the
 // `list` and `current` fixtures: maven 3.9.16 (current) and 3.8.9, mvn2
-// without versions and nodejs 24.11.1 (current) and 22.21.0.
+// without versions and nodejs 24.11.1 (current) and 22.21.0. It also answers
+// the searches of java (`open` without an argument, `tem` and `all`) and of
+// flutter, which the fixtures hold.
 func FixtureRunner() *FakeProcessRunner {
 	return NewFakeProcessRunner().
 		On("--version", FixtureOutput("version", 0)).
@@ -360,5 +362,9 @@ func FixtureRunner() *FakeProcessRunner {
 		On("config --list", FixtureOutput("config-list", 0)).
 		On("search maven", FixtureOutput("search-maven-installed", 0)).
 		On("search nodejs", FixtureOutput("search-nodejs", 0)).
+		On("search java", FixtureOutput("search-java", 0)).
+		On("search java tem", FixtureOutput("search-java-tem", 0)).
+		On("search java all", FixtureOutput("search-java-all", 0)).
+		On("search flutter", FixtureOutput("search-flutter", 0)).
 		On("info nodejs --format "+vfox.PluginInfoTemplate, FixtureOutput("info", 0))
 }

@@ -16,11 +16,13 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 )
@@ -317,25 +319,135 @@ type SdkDetailController struct {
 	Notifier
 	// Name is the plugin name.
 	Name string
+	// Profile is what the application knows about the plugin, when it knows
+	// something; see HasProfile.
+	Profile profile.Profile
+	// HasProfile reports whether the plugin has a profile.
+	HasProfile bool
 	// Info is the plugin metadata, loaded on demand.
 	Info *AsyncResource[core.PluginInfo]
 	// Versions are the installable versions, loaded on demand because the
-	// search can be slow.
+	// search can be slow. They are the versions of the chosen search: a change
+	// of SetSearch empties them and loads the next list.
 	Versions *AsyncResource[[]core.AvailableVersion]
 
-	mu     sync.Mutex
-	query  string
-	filter VersionFilter
-	stop   Unsubscribe
+	mu        sync.Mutex
+	query     string
+	filter    VersionFilter
+	search    string
+	selection profile.Selection
+	stop      Unsubscribe
 }
 
 // NewSdkDetailController creates the controller for the detail view of name.
-func NewSdkDetailController(cli *vfox.Client, name string) *SdkDetailController {
+// profiles may be nil, which is the same as a registry that knows no plugin.
+func NewSdkDetailController(cli *vfox.Client, name string, profiles *profile.Registry) *SdkDetailController {
 	c := &SdkDetailController{Name: name, filter: VersionFilterAll}
+	c.Profile, c.HasProfile = profiles.Lookup(name)
 	c.Info = NewAsyncResource(func() (core.PluginInfo, error) { return cli.PluginInfo(name) })
-	c.Versions = NewAsyncResource(func() ([]core.AvailableVersion, error) { return cli.SearchVersions(name) })
+	c.Versions = NewAsyncResource(func() ([]core.AvailableVersion, error) {
+		return cli.SearchVersions(name, c.SearchArguments()...)
+	})
 	c.stop = c.Versions.AddListener(c.NotifyListeners)
 	return c
+}
+
+// Search returns the value of the chosen search: the short name of a
+// distribution for vfox-java. It is the default of the plugin until
+// SetSearch chooses another, and empty for a plugin whose search takes no
+// argument.
+func (c *SdkDetailController) Search() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.searchValue()
+}
+
+func (c *SdkDetailController) searchValue() string {
+	if !c.HasProfile || c.Profile.Search == nil {
+		return ""
+	}
+	if c.search == "" {
+		return c.Profile.Search.Default
+	}
+	return c.search
+}
+
+// SearchArguments returns what follows the plugin name in the `vfox search`
+// of the chosen search: nothing for the default.
+func (c *SdkDetailController) SearchArguments() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.HasProfile {
+		return nil
+	}
+	return c.Profile.Search.Arguments(c.search)
+}
+
+// SetSearch chooses what the next search lists, by the value of one of the
+// choices of the profile, and loads that list; the versions of the earlier
+// choice go away at once, and so do the facets chosen for them. It refuses a
+// value the plugin does not take, and a plugin whose search takes no argument.
+func (c *SdkDetailController) SetSearch(value string) error {
+	if !c.HasProfile || c.Profile.Search == nil {
+		return fmt.Errorf("%s takes no search argument", c.Name)
+	}
+	choice, ok := c.Profile.Search.Choice(value)
+	if !ok {
+		return fmt.Errorf("%s does not list %q", c.Name, value)
+	}
+	if choice.Value == c.Profile.Search.Default {
+		value = ""
+	} else {
+		value = choice.Value
+	}
+	c.mu.Lock()
+	changed := value != c.search
+	c.search = value
+	if changed {
+		c.selection = nil
+	}
+	c.mu.Unlock()
+	if changed {
+		c.Versions.Reset()
+		c.Versions.Load()
+	}
+	return nil
+}
+
+// Groups returns the filters that suit the versions that are listed, with the
+// values that some of them have.
+func (c *SdkDetailController) Groups() []profile.Group {
+	if !c.HasProfile {
+		return nil
+	}
+	versions, _ := c.Versions.Value()
+	return c.Profile.Groups(versions)
+}
+
+// Selection returns the values that the user chose in the groups.
+func (c *SdkDetailController) Selection() profile.Selection {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.selection
+}
+
+// ToggleFacet chooses the value of a group, or takes the choice back.
+func (c *SdkDetailController) ToggleFacet(group, value string) {
+	c.mu.Lock()
+	c.selection = c.selection.Toggled(group, value)
+	c.mu.Unlock()
+	c.NotifyListeners()
+}
+
+// ClearFacets takes back every choice of the groups.
+func (c *SdkDetailController) ClearFacets() {
+	c.mu.Lock()
+	changed := !c.selection.Empty()
+	c.selection = nil
+	c.mu.Unlock()
+	if changed {
+		c.NotifyListeners()
+	}
 }
 
 // Query returns the text the available versions are filtered by.
@@ -382,15 +494,19 @@ func (c *SdkDetailController) SetFilter(value VersionFilter) {
 // searching again.
 func (c *SdkDetailController) VisibleVersions(installed map[string]bool) []core.AvailableVersion {
 	c.mu.Lock()
-	query, filter := c.query, c.filter
+	query, filter, selection := c.query, c.filter, c.selection
 	c.mu.Unlock()
 	versions, _ := c.Versions.Value()
 	needle := strings.ToLower(strings.TrimSpace(query))
 	var result []core.AvailableVersion
 	for _, version := range versions {
-		if matchesFilter(version, filter, installed) && matchesQuery(version, needle) {
-			result = append(result, version)
+		if !matchesFilter(version, filter, installed) || !matchesQuery(version, needle) {
+			continue
 		}
+		if c.HasProfile && !c.Profile.Matches(selection, version) {
+			continue
+		}
+		result = append(result, version)
 	}
 	return result
 }

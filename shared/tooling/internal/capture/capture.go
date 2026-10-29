@@ -20,7 +20,8 @@
 // Every command runs against a throw-away HOME under a fixed sandbox path,
 // so the real vfox installation is never touched and the captured paths stay
 // stable. It needs network access: it adds the nodejs and maven plugins,
-// searches their versions and installs Maven. After a run, compare the new
+// searches their versions, installs Maven, and adds the java and flutter
+// plugins to search them. After a run, compare the new
 // outputs with cases.json and update the expected values there by hand. See
 // shared/fixtures/README.md.
 package capture
@@ -520,6 +521,30 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 		return err
 	} else if err := os.Chmod(mavenCache, st.Mode().Perm()|0o200); err != nil {
 		return err
+	}
+
+	// The plugins of the version-fox organisation whose lists have notes and
+	// names of their own: vfox-java takes an argument (`vfox search java tem`
+	// lists one distribution, `all` every one), vfox-flutter's notes are the
+	// channels. They are added last, so that the outputs above do not list
+	// them.
+	for _, plugin := range []string{"java", "flutter"} {
+		if err := r.retry("add", plugin); err != nil {
+			return err
+		}
+	}
+	for _, search := range []struct {
+		name string
+		args []string
+	}{
+		{"search-java", []string{"search", "java"}},
+		{"search-java-tem", []string{"search", "java", "tem"}},
+		{"search-java-all", []string{"search", "java", "all"}},
+		{"search-flutter", []string{"search", "flutter"}},
+	} {
+		if err := r.capture(search.name, nil, search.args...); err != nil {
+			return err
+		}
 	}
 
 	fmt.Fprintf(print, "Fixtures written to %s\n", out)

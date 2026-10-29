@@ -15,10 +15,13 @@
 package state
 
 import (
+	"fmt"
 	"maps"
+	"strings"
 	"sync"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 )
@@ -41,6 +44,10 @@ type AppModelOptions struct {
 	// files while it runs. Successful and cancelled tasks delete theirs when
 	// they finish; failed tasks keep theirs, pruned to the newest files.
 	TaskLogDir string
+	// Profiles is what the application knows about particular plugins; nil
+	// takes the profiles of the plugins of the version-fox organisation, for
+	// the platform the application runs on.
+	Profiles *profile.Registry
 }
 
 // AppModel is the application state: every controller, wired together.
@@ -63,6 +70,8 @@ type AppModel struct {
 	VfoxConfig *VfoxConfigController
 	// Tasks runs state-changing operations.
 	Tasks *TaskQueue
+	// Profiles is what the application knows about particular plugins.
+	Profiles *profile.Registry
 
 	mu               sync.Mutex
 	stops            []Unsubscribe
@@ -78,8 +87,13 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	}
 	config := vfox.DefaultLaunchConfig()
 	config.BaseEnvironment = options.Environment
+	profiles := options.Profiles
+	if profiles == nil {
+		profiles = profile.NewRegistry(profile.CurrentPlatform())
+	}
 	model := &AppModel{
 		Cli:              vfox.NewClient(options.Runner, config),
+		Profiles:         profiles,
 		lastAvailability: VfoxUnknown,
 	}
 	model.Settings = NewSettingsController(options.SettingsStore)
@@ -120,7 +134,46 @@ func (m *AppModel) InstalledSdk(name string) (core.InstalledSdk, bool) {
 
 // SdkDetail creates the controller for the detail view of name.
 func (m *AppModel) SdkDetail(name string) *SdkDetailController {
-	return NewSdkDetailController(m.Cli, name)
+	return NewSdkDetailController(m.Cli, name, m.Profiles)
+}
+
+// PluginVariable returns the value that vfox runs with for an environment
+// variable of a plugin, empty when the variable is not set.
+func (m *AppModel) PluginVariable(key string) string {
+	return m.Settings.Settings().ExtraEnvironment[key]
+}
+
+// SetPluginVariable sets an environment variable that the profile of the
+// plugin lists, such as the download mirror of Node.js, and removes it for an
+// empty value. The variable joins the extra environment of the settings, which
+// every vfox process runs with, so the settings page shows it among the
+// others. It refuses a variable the plugin does not read, and a value the
+// variable does not take (a *profile.ValueError).
+func (m *AppModel) SetPluginVariable(plugin, key, value string) error {
+	known, ok := m.Profiles.Lookup(plugin)
+	if !ok {
+		return fmt.Errorf("%s has no profile", plugin)
+	}
+	variable, ok := known.Variable(key)
+	if !ok {
+		return fmt.Errorf("%s does not read %s", plugin, key)
+	}
+	if err := variable.Validate(value); err != nil {
+		return err
+	}
+	value = strings.TrimSpace(value)
+	m.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+		if value == "" {
+			delete(current.ExtraEnvironment, key)
+			return current
+		}
+		if current.ExtraEnvironment == nil {
+			current.ExtraEnvironment = map[string]string{}
+		}
+		current.ExtraEnvironment[key] = value
+		return current
+	})
+	return nil
 }
 
 // Run queues command and returns its task.
