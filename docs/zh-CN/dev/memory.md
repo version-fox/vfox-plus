@@ -42,7 +42,7 @@ Pull Request 评论还跟踪桌面表格没有的三处：去头服务、Web 客
   `vfox-plus-serve serve`，在两个静置点打印服务进程树的 RSS 与 PSS：`serve-idle`
   无浏览器，`serve-loaded` 配对浏览器走完首次清单（SSE）。与桌面一样，超过
   5 MB 且 5% 才算变化。
-- **Web 客户端堆。**`shared/tooling/webheap/check.cjs`（Node 22，无依赖）用
+- **Web 客户端堆。**`vfxtool webheap`（只需要一个 Chrome）用
   Chrome DevTools Protocol 在 headless Chrome 中打开配对后的 `/app` 页，
   写两处 JavaScript 堆字节数：清单列表静置后 `app`，打开页面带实时事件空闲
   20 秒后 `app-settled`（可发现事件流泄漏）。报告按 KB 展示；超过 100 KB 且

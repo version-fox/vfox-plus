@@ -2,15 +2,11 @@
 
 > [English](../../en/dev/packaging-windows.md)
 
-本目录是 vfox+ Windows 打包的输入：
+vfox+ 的 Windows 打包是 `vfxtool` 的两个命令：
 `vfxtool build-msix` 把暂存的 Windows 可执行文件打包为未签名 `.msix`
-（每架构一包）与 `.msixbundle`，目标 **Windows 11**。
-
-| 文件 | 用途 |
-| --- | --- |
-| `README.md` | 本文档（英文）。 |
-| `README.zh-CN.md` | 中文译文。 |
-| [`Sign-Msix.ps1`(../../../shared/packaging/windows/Sign-Msix.ps1) | 维护者本地重建与签名包的辅助脚本；用户不需要使用（见下）。 |
+（每架构一包）与 `.msixbundle`，目标 **Windows 11**；`vfxtool sign-msix` 用它自己做的证书给
+它们签名并安装 bundle（见[自己签名](#自己签名)）。
+`shared/packaging/windows/` 只放一个指向本页的入口。
 
 包标识、清单、徽标与 bundle 布局由 `vfxtool build-msix`
 （`shared/tooling/internal/buildmsix`）生成；此处不提交任何二进制。徽标就是应用图标，
@@ -71,6 +67,50 @@ Remove-AppxPackage -Package dev.vfox.VfoxPlus_<版本>_neutral_~_<发布者标�
 
 `.msix` 与 `.msixbundle` 目前**未签名**，按上用 `Add-AppxPackage -AllowUnsigned`
 安装即可，无需自签名。日后会提供官方签名的安装包。
+
+## 自己签名
+
+`vfxtool sign-msix` 用它自己做的证书给 bundle 签名并安装，适合希望不带 `-AllowUnsigned`
+就能安装的机器，以及测试签名路径的人。它取代了原来的 `Sign-Msix.ps1`。在解压后的
+`vfox-plus-windows` 构件目录里运行，该目录含 `stage-x64/`、`stage-arm64/`、
+`vfxtool.exe` 与未签名包：
+
+```powershell
+.\vfxtool.exe sign-msix
+```
+
+它依次做：
+
+1. 把 osslsigncode 2.14 下载到 `tools/`，版本固定并核对 SHA-256，因此不需要
+   Windows SDK。`--osslsigncode PATH` 改用你已有的，`--force` 重新下载。
+2. 用发布者 `CN=vfox-plus`（`--publisher-cn`）而不是未签名包的 OID 把包重建到 `signed/`，
+   因为已签名包的发布者必须与证书主题一致。
+3. 为该主题做一张自签名代码签名证书（RSA 2048，有效期五年），给每个 `.msix`
+   再给 bundle 签名。
+4. 在本机的 `TrustedPeople` 证书库中信任这张证书——旁加载已签名包看的就是它——
+   并删掉此前某次运行添加的证书。
+5. 用 `Add-AppxPackage` 安装 bundle（`--skip-install` 则在此之前停下）。
+
+私钥只活一次运行：写到临时文件交给 osslsigncode，签完即删，从不保留。留在本机受信任
+的证书因此再也签不了任何东西，也没有需要保护的密钥。代价是每次运行都做新证书，
+所以此前某次签的 bundle 不能再安装：重新签名，安装新的。
+
+信任证书与安装包需要管理员权限。在未提权的 shell 里，命令请 Windows 以管理员权限启动自己的
+一个副本：你回答 UAC 提示，副本在自己的窗口里工作，结束时等你按 Enter，好让你读完它做了什么。
+在已提权的 shell 里直接运行；`--no-relaunch` 让它失败而不是询问，供脚本使用。其他系统没有证书库
+也没有安装，所以命令在那里只签名：传 `--skip-install` 与该系统的 `--osslsigncode`。
+
+要撤销，删除包（见上）与证书：
+
+```powershell
+Get-ChildItem Cert:\LocalMachine\TrustedPeople |
+  Where-Object Subject -eq "CN=vfox-plus" | Remove-Item
+```
+
+[`mygo.yml`](../../../.github/workflows/mygo.yml) 的 `validate-windows` 任务在 Windows Server 2025
+（x64）与 Windows 11 on ARM（arm64）上运行该命令：签名、不带 `-AllowUnsigned` 安装、检查架构、
+卸载、再运行一次，并检查恰有一张证书受信任。提权副本是 CI 走不到的唯一路径，因为 runner 是关了
+UAC 的管理员；改动之后需要在有 UAC 的机器上跑一次。
 
 ## 签名说明（维护者）
 

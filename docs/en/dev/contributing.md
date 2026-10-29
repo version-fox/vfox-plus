@@ -32,6 +32,9 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
 
 ## Workflow
 
+To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
+[Development environment](environment.md).
+
 1. Open an issue or comment on an existing one before large changes.
 2. Create a branch from `main` and keep pull requests focused.
 3. Run the checks; they are the same as in CI and listed in the
@@ -181,17 +184,20 @@ for i in $(seq 1 30); do
   [ -n "$LINK" ] && break
   sleep 1
 done
-node shared/tooling/webheap/check.cjs --server "${LINK%%/auth/connect/*}" \
+/tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
   --pairing "$LINK" --output /tmp/shot.txt --screenshot webapp-en.png \
-  --lang en --window 412,915 --chrome "$(which google-chrome)"
+  --lang en --window 412,915 --idle 0 --chrome "$(which google-chrome)"
 ```
 
 (`PATH` first carries a `vfox` executable — a copy of `vfxtool` acts as the
 fake vfox with the fixtures — so that the SDK list has content; `--lang`
 pins the interface language; `--window 412,915` shoots the phone portrait for
 the documentation and defaults to the 1280 by 800 desktop window that CI
-measures; `--chrome` takes any Chrome that speaks CDP,
-and the script auto-detects one on `PATH` when it is left out.) Look at the
+measures; `--idle 0` skips the twenty seconds on the open page that the
+measurement of the heap needs; `--tab` opens one of the pages before the
+shot and `--dark` takes it in the dark theme; `--chrome` takes any Chrome that
+speaks CDP, and the tool looks for one in `$CHROME_BIN` and on `PATH` when it
+is left out.) Look at the
 size of the picture before you upload it (`file webapp-en.png`): not every
 Chrome keeps a window that small. Chrome for Testing 156 answered
 `--window 412,915` with a picture of 500 by 715, and `chrome-headless-shell` of

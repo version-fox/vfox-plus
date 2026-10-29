@@ -63,12 +63,12 @@ above.
   with no browser, and `serve-loaded` with a paired browser past its first
   inventory over server-sent events. A change counts only past 5 MB and 5%,
   like the desktop.
-- **Web client heap.** `shared/tooling/webheap/check.cjs` (Node 22, no
-  dependencies) drives the paired `/app` page in headless Chrome through the
-  Chrome DevTools Protocol and writes the JavaScript heap in bytes at two
-  points: `app` after the SDK list settles, and `app-settled` after twenty
-  seconds idle on the open page with live events, which catches leaks in the
-  event stream. The report shows KB; a change counts only past 100 KB and 5%.
+- **Web client heap.** `vfxtool webheap` (which needs a Chrome and nothing else)
+  drives the paired `/app` page in headless Chrome through the Chrome DevTools
+  Protocol and writes the JavaScript heap in bytes at two points: `app` after
+  the SDK list settles, and `app-settled` after twenty seconds idle on the open
+  page with live events, which catches leaks in the event stream. The report
+  shows KB; a change counts only past 100 KB and 5%.
 - **Android client.** The `measure` job of `android.yml` installs the release
   APK on an emulator (API 36, x86_64), cold-starts it through the launcher,
   settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary

@@ -237,8 +237,10 @@ uses `go-github` (the GitHub API for the memory report),
 `nfpm` (Debian packaging as a library), `andybalholm/brotli` (WOFF2
 compression for the icon font), `go-licenses` (license classification for
 the license collector), `go-getter` (resumable downloads for the package
-prefetch) and `golang.org/x/image` (the vector rasterizer that draws the
-Windows logos, BSD-3-Clause), all Category A. The Windows `.msix` and `.msixbundle` need no
+prefetch), `golang.org/x/image` (the vector rasterizer that draws the
+Windows logos, BSD-3-Clause) and `golang.org/x/sys` (the Windows calls of
+`vfxtool sign-msix`: the token for the elevation, the certificate store;
+BSD-3-Clause), all Category A. The Windows `.msix` and `.msixbundle` need no
 additional runtime dependency: the Go executable is self-contained and the
 package carries its own logos.
 Prefer the platform and the official libraries of a technology over third-party

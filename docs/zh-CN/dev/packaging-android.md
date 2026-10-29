@@ -44,7 +44,7 @@ cd android
 ./gradlew :app:assembleRelease
 ```
 
-首次运行要用 JDK 编译 `GradleWrapperNeo.java`，并下载 Gradle 与依赖，需要几分钟。
+构建不需要 KVM；在模拟器上运行 APK 才需要（见[模拟器与 KVM](environment.md#模拟器与-kvm)）。首次运行要用 JDK 编译 `GradleWrapperNeo.java`，并下载 Gradle 与依赖，需要几分钟。
 `services.gradle.org` 慢的地方，请给你的用户而不是给项目配置下载镜像；见 Neo
 README 的 “Configure download mirrors”。
 

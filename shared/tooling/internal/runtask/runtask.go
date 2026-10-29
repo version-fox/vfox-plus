@@ -482,9 +482,9 @@ func Run(args []string) error {
 		if err := asTester(app, exe, "validate-msix", "/home/tester/dist"); err != nil {
 			return err
 		}
-		// The inputs of the Windows self-sign script (Sign-Msix.ps1): the
-		// loose executables, a Windows vfxtool to rebuild with the
-		// self-signed publisher, and the script itself.
+		// The inputs of `vfxtool sign-msix`, which signs on the user's Windows
+		// machine: the loose executables, and a Windows vfxtool, which
+		// rebuilds the packages with the self-signed publisher.
 		if err := run("install", "-d", "-o", "tester", "-g", "tester",
 			"/home/tester/dist/stage-x64", "/home/tester/dist/stage-arm64"); err != nil {
 			return err
@@ -502,11 +502,6 @@ func Run(args []string) error {
 		if err := asTester(tooling, append(append([]string{}, goOffline...),
 			"env", "CGO_ENABLED=0", "GOOS=windows", "GOARCH=amd64",
 			"go", "build", "-o", "/home/tester/dist/vfxtool.exe", "./cmd/vfxtool")...); err != nil {
-			return err
-		}
-		if err := run("install", "-o", "tester", "-m", "644",
-			filepath.Join(e.work, "shared", "packaging", "windows", "Sign-Msix.ps1"),
-			"/home/tester/dist/Sign-Msix.ps1"); err != nil {
 			return err
 		}
 		files, err := filepath.Glob("/home/tester/dist/*")

@@ -36,8 +36,10 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/sandbox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/screenshots"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/signmsix"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/smoketest"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/validatemsix"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/webheap"
 )
 
 func init() {
@@ -50,6 +52,7 @@ func init() {
 	commands["measure"] = measure.Run
 	commands["measure-serve"] = measureserve.Run
 	commands["measure-apk"] = measureapk.Run
+	commands["webheap"] = webheap.Run
 	commands["screenshots"] = screenshots.Run
 	commands["smoke-test"] = smoketest.Run
 	commands["e2e-run"] = e2erun.Run
@@ -57,6 +60,7 @@ func init() {
 	commands["fake-vfox"] = fakevfox.Run
 	commands["build-deb"] = builddeb.Run
 	commands["build-msix"] = buildmsix.Run
+	commands["sign-msix"] = signmsix.Run
 	commands["validate-msix"] = validatemsix.Run
 	commands["docs-check"] = docscheck.Run
 	commands["sandbox"] = sandbox.Run

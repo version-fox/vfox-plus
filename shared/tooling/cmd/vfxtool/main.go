@@ -69,6 +69,7 @@ Commands:
   measure       measure memory use (replaces shared/tools/measure.sh)
   measure-serve measure the memory use of the headless server
   measure-apk   measure the memory use of the Android app on an emulator
+  webheap       measure the JavaScript heap of the web interface, and screenshot it (replaces shared/tooling/webheap/check.cjs)
   screenshots   capture page screenshots (replaces shared/tools/screenshots.sh)
   smoke-test    start a graphical application and check that it stays up
   e2e-run       run an end-to-end scenario (replaces shared/e2e/run.sh)
@@ -76,6 +77,7 @@ Commands:
   fake-vfox     replay captured vfox output (replaces shared/fixtures/fake-vfox.sh)
   build-deb     package a .deb and .tar.gz (replaces shared/packaging/linux/build-deb.sh)
   build-msix    package unsigned .msix and .msixbundle for Windows 11 (see shared/packaging/windows)
+  sign-msix     self-sign the .msix and .msixbundle files and install the bundle on Windows 11 (replaces shared/packaging/windows/Sign-Msix.ps1)
   validate-msix validate .msix and .msixbundle files without the Windows SDK
   docs-check    verify every Markdown document has a Chinese counterpart
   sandbox       host side of the Docker sandbox (replaces mygo/sandbox/sandbox.sh + shared/sandbox/sandbox-lib.sh)
