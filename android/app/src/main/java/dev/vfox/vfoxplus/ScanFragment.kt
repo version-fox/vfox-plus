@@ -36,7 +36,6 @@ import com.google.zxing.DecodeHintType
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
-import com.google.android.material.transition.MaterialSharedAxis
 import dev.vfox.vfoxplus.databinding.FragmentScanBinding
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -56,8 +55,11 @@ class ScanFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
-        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+        val context = requireContext()
+        enterTransition = Motion.sharedAxisX(context, true)
+        exitTransition = Motion.sharedAxisX(context, true)
+        reenterTransition = Motion.sharedAxisX(context, false)
+        returnTransition = Motion.sharedAxisX(context, false)
     }
 
     override fun onCreateView(
@@ -70,10 +72,27 @@ class ScanFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolbar.setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+        // The bar above and the toolbar below keep clear of the system bars; the square of
+        // the viewfinder lies between them.
+        binding.topBar.padToSafeArea(bottom = false)
+        binding.bottomBar.padToSafeArea(top = false)
+        binding.closeButton.setOnClickListener { parentFragmentManager.popBackStack() }
         binding.manualButton.setOnClickListener { parentFragmentManager.popBackStack() }
-        binding.torchSwitch.setOnCheckedChangeListener { _, checked -> setTorch(checked) }
+        binding.torchButton.addOnCheckedChangeListener { button, checked ->
+            button.setIconResource(if (checked) R.drawable.ic_torch_on_fill else R.drawable.ic_torch_off)
+            setTorch(checked)
+        }
+        binding.root.post { placeViewfinder() }
+        binding.viewfinder.settleIn()
         startCamera()
+    }
+
+    // The square is placed between the bar at the top and the hint with the toolbar at the bottom.
+    private fun placeViewfinder() {
+        _binding?.let {
+            it.viewfinder.clearTop = it.topBar.bottom.toFloat()
+            it.viewfinder.clearBottom = (it.root.height - it.bottomBar.top).toFloat()
+        }
     }
 
     private fun startCamera() {
@@ -97,7 +116,7 @@ class ScanFragment : Fragment() {
                     analysis,
                 )
                 camera = bound
-                binding.torchSwitch.isVisible = bound.cameraInfo.hasFlashUnit()
+                binding.torchButton.isVisible = bound.cameraInfo.hasFlashUnit()
             } catch (_: Exception) {
                 binding.hint.text = getString(R.string.scan_failed)
             }

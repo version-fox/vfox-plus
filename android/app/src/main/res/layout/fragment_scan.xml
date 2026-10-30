@@ -18,7 +18,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black">
+    android:background="@android:color/black"
+    android:transitionGroup="true">
 
     <androidx.camera.view.PreviewView
         android:id="@+id/preview"
@@ -26,58 +27,87 @@
         android:layout_height="match_parent"
         app:scaleType="fillCenter" />
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <dev.vfox.vfoxplus.ViewfinderView
+        android:id="@+id/viewfinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.Material3.Dark"
-        app:title="@string/scan_title"
-        app:navigationIcon="@drawable/ic_back" />
+        android:layout_gravity="top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
 
-    <com.google.android.material.card.MaterialCardView
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/closeButton"
+            style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/close"
+            app:icon="@drawable/ic_close" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/scan_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge.Emphasized"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/bottomBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_margin="16dp">
+        android:orientation="vertical"
+        android:paddingBottom="16dp">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:gravity="center"
+            android:paddingHorizontal="32dp"
+            android:text="@string/scan_hint"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="@android:color/white" />
 
-            <TextView
-                android:id="@+id/hint"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/scan_hint"
-                android:textAppearance="?attr/textAppearanceBodyMedium" />
+        <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
+            android:id="@+id/toolbar"
+            style="@style/Widget.Material3.FloatingToolbar.Vibrant"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="20dp">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/torchSwitch"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/torchButton"
+                    style="@style/Widget.Material3.FloatingToolbar.IconButton.Vibrant"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/torch"
-                    android:visibility="gone" />
-
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
+                    android:checkable="true"
+                    android:contentDescription="@string/torch"
+                    android:visibility="gone"
+                    app:icon="@drawable/ic_torch_off" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/manualButton"
+                    style="@style/Widget.Material3.FloatingToolbar.TextButton.Vibrant"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/enter_manually"
-                    style="@style/Widget.Material3.Button.TextButton" />
+                    app:icon="@drawable/ic_keyboard" />
             </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.floatingtoolbar.FloatingToolbarLayout>
+    </LinearLayout>
 </FrameLayout>

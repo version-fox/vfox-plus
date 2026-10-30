@@ -63,6 +63,9 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.google.android.material:material:1.14.0")
+    // What Material 1.14.0 builds on, which the app uses itself: springs and the shape library.
+    implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
+    implementation("androidx.graphics:graphics-shapes:1.0.1")
     // CameraX scans the terminal QR code; zxing decodes it. Both Apache-2.0.
     implementation("androidx.camera:camera-core:1.6.2")
     implementation("androidx.camera:camera-camera2:1.6.2")
