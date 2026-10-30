@@ -81,11 +81,15 @@ do. This is where it lives in `android/`.
   shadow and scrim have none), with the same literal values as the `--m3-*`
   variables of the web interface. A test in `mygo/pair` (`webapp_design_test.go`)
   computes the scheme with `mygo/ui/mcu` and fails when the page or these files
-  differ from it. Neither the theme nor a layout names a baseline
-  `Widget.Material3.*` style: the Expressive styles
-  (`Widget.Material3Expressive.*`) are the defaults of the theme, a layout only
-  sets the size of a button (`materialSizeOverlay`), and a baseline style in a
-  layout would hide the shape morph and the sizes.
+  differ from it. The Expressive styles (`Widget.Material3Expressive.*`) are the
+  defaults of the theme, which names no style of a component. A layout that
+  needs another variant names the Expressive style
+  (`Widget.Material3Expressive.Button.TextButton`) or a theme attribute
+  (`?attr/materialButtonTonalStyle`), and sets the size of a button with
+  `materialSizeOverlay`. It names no baseline `Widget.Material3.*` style, for
+  that would hide the shape morph and the sizes, except for the floating toolbar
+  of the scanner: Material 1.14.0 has no Expressive style for it, so it takes
+  `Widget.Material3.FloatingToolbar.*`.
 - **Icons.** Material Symbols Rounded, from the same npm package as the other
   interfaces, as the vector drawables that `vfxtool android-icons` writes
   ([Icons](design-system.md#icons)).

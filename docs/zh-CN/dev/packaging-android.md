@@ -47,9 +47,11 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
 - **主题。** `Theme.VfoxPlus` 继承 `Theme.Material3Expressive.DayNight.NoActionBar`。`values/colors.xml` 与
   `values-night/colors.xml` 存放种子 `#F28C1B` 的配色方案的 48 个角色（主题把其中 46 个映射到属性，shadow 与 scrim 没有
   对应属性），字面值与 Web 界面的 `--m3-*` 变量相同。`mygo/pair` 的一个测试（`webapp_design_test.go`）用 `mygo/ui/mcu`
-  计算该方案，页面或这些文件与之不同时失败。主题和布局都不写基线的 `Widget.Material3.*` 样式：Expressive 样式
-  （`Widget.Material3Expressive.*`）是主题的默认值，布局只设按钮的尺寸（`materialSizeOverlay`），布局里的基线样式会盖掉
-  形状形变与尺寸。
+  计算该方案，页面或这些文件与之不同时失败。Expressive 样式（`Widget.Material3Expressive.*`）是主题的默认值，主题不为任何
+  组件指定样式。布局需要别的变体时，写 Expressive 样式（`Widget.Material3Expressive.Button.TextButton`）或主题属性
+  （`?attr/materialButtonTonalStyle`），并用 `materialSizeOverlay` 设按钮的尺寸。布局不写基线的 `Widget.Material3.*` 样式，
+  因为它会盖掉形状形变与尺寸；扫码页的浮动工具栏除外：Material 1.14.0 没有它的 Expressive 样式，所以用
+  `Widget.Material3.FloatingToolbar.*`。
 - **图标。** Material Symbols Rounded，与其它界面出自同一个 npm 包，是 `vfxtool android-icons` 写出的矢量图
   （[图标](design-system.md#图标)）。
 - **动效。** 弹簧取自主题的 `motionSpring*` 属性（`Motion.kt`）。`springIn` 让屏幕的各部分依次进入，按 default spatial

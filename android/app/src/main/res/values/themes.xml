@@ -18,7 +18,8 @@
     <!-- Material 3 Expressive in the colours of the design system: the roles of colors.xml (values-night for the dark scheme),
          which are the m3-* variables of the web interface, so that the app and the page look like one. The theme names no style of a
          component: the component styles of the Expressive theme (Widget.Material3Expressive.*) are the defaults, and the
-         layouts must not override them with Widget.Material3.* styles. -->
+         layouts must not override them with Widget.Material3.* styles. The one exception is the floating toolbar of the
+         scanner: Material 1.14.0 has no Expressive style for it, so that layout takes Widget.Material3.FloatingToolbar.*. -->
     <style name="Theme.VfoxPlus" parent="Theme.Material3Expressive.DayNight.NoActionBar">
         <item name="android:colorBackground">@color/m3_background</item>
         <item name="colorOnBackground">@color/m3_on_background</item>
