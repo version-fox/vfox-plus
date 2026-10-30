@@ -100,6 +100,31 @@ homepage of a plugin or its documentation, open in the browser of the phone.
    pairing expires, scan or paste a fresh link: mint a new one from a paired
    browser, or restart `vfox-plus-serve serve`.
 
+The app opens on the pairing screen: scan the QR code of the terminal (Android
+asks for the camera once) or paste the link. A self-signed certificate shows its
+fingerprint first, to compare with the one on the PC terminal.
+
+| The pairing screen | Scanning the QR code | The fingerprint of a self-signed certificate |
+| --- | --- | --- |
+| ![The pairing screen of the Android app](https://iili.io/nSoyuyX.png) | ![The scanner of the Android app, with the viewfinder and the toolbar](https://iili.io/nSoyU91.png) | ![The dialog that shows the fingerprint of a self-signed certificate](https://iili.io/nSoyiMv.png) |
+
+Once paired, the app shows the interface of the paired browser: the home page
+with the plugins in use, the SDKs with their versions, and the settings. The
+first card of the settings, *This phone*, pairs another link or disconnects the
+phone.
+
+| Home | An SDK | The settings, with the card of this phone |
+| --- | --- | --- |
+| ![The home page in the Android app](https://iili.io/nSx9JVf.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nSx9BR9.png) | ![The settings in the Android app, with the card of this phone](https://iili.io/nSx91WJ.png) |
+
+The app follows the dark theme of the phone. When it cannot reach the PC (the
+server stopped, another network, a firewall in the way), it says so and offers to
+try again or to pair a new link.
+
+| The pairing screen in the dark theme | Home in the dark theme | A PC that cannot be reached |
+| --- | --- | --- |
+| ![The pairing screen of the Android app in the dark theme](https://iili.io/nSx9kWG.png) | ![The home page in the Android app in the dark theme](https://iili.io/nSx94JS.png) | ![The Android app when the PC cannot be reached](https://iili.io/nSx9QWb.png) |
+
 The app needs your PC reachable from the phone (same Wi-Fi or another network
 route) and the server port (for example 8080) allowed through the PC
 firewall. Browsers can only set the global version; pinning versions to a

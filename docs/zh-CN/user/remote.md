@@ -79,5 +79,25 @@ docker run --rm -p 8080:8080 vfox-plus
 4. App 保持配对，同一网络下自动重连。配对过期后扫码或粘贴新链接：从已配对浏览器
    增发，或重启 `vfox-plus-serve serve` 拿新的。
 
+App 打开是配对屏：扫描终端里的二维码（Android 会请求一次相机权限），或粘贴链接。自签名证书会先显示指纹，
+与 PC 终端上的核对。
+
+| 配对屏 | 扫描二维码 | 自签名证书的指纹 |
+| --- | --- | --- |
+| ![安卓 App 的配对屏](https://iili.io/nSx9mgV.png) | ![安卓 App 的扫码界面，有取景框与工具栏](https://iili.io/nSxHq1R.png) | ![显示自签名证书指纹的对话框](https://iili.io/nSxHhEx.png) |
+
+配对后，App 显示与配对浏览器相同的界面：主页里正在使用的插件、各个 SDK 与它们的版本，以及设置。设置的第一张卡片
+“这台手机”用来配对另一条链接，或断开这台手机。
+
+| 主页 | 一个 SDK | 设置，带“这台手机”卡片 |
+| --- | --- | --- |
+| ![安卓 App 里的主页](https://iili.io/nSxHN2V.png) | ![安卓 App 里的一个 SDK：flutter 与它已安装的版本](https://iili.io/nSxHrCJ.png) | ![安卓 App 里的设置，带“这台手机”卡片](https://iili.io/nSxH4Ev.png) |
+
+App 跟随手机的深色主题。连不上 PC 时（服务停了、在另一个网络、被防火墙挡住），它会说明，并让你重试或配对新链接。
+
+| 深色主题的配对屏 | 深色主题的主页 | 连不上 PC |
+| --- | --- | --- |
+| ![深色主题下安卓 App 的配对屏](https://iili.io/nSxHQpt.png) | ![深色主题下安卓 App 里的主页](https://iili.io/nSxHyGf.png) | ![连不上 PC 时的安卓 App](https://iili.io/nSxJ2vS.png) |
+
 手机须能连到 PC（同一 Wi-Fi 或其它可达路由），PC 防火墙须放行服务端口（如 8080）。
 浏览器只能设全局版本；固定版本到项目仍在桌面应用里做。

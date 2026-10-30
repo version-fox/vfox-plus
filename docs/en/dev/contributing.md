@@ -230,7 +230,10 @@ and `zh-java-available` and `zh-options` in Simplified Chinese. The
 [remote guide](../user/remote.md) links `webapp-en` and `webapp-zh`, the paired web
 interface in English and Simplified Chinese, and the scene `java-temurin` of the web
 interface on a phone, in both languages (`web-phone-java-temurin` and
-`web-phone-zh-java-temurin`, taken with `--window 412,915`). The other pictures are
+`web-phone-zh-java-temurin`, taken with `--window 412,915`), and the nine of the Android app
+in both languages (`android-pairing`, `android-scan`, `android-trust`, `android-home`,
+`android-sdk`, `android-settings`, `android-dark-pairing`, `android-dark-home` and
+`android-unreachable`, with the prefix `zh-` in Simplified Chinese). The other pictures are
 there to look at when the interface changes; nothing links them.
 
 **The web interface.** Render it with the headless server and headless Chrome, in a
@@ -283,12 +286,36 @@ Chrome keeps a window that small. Chrome for Testing 156 answered
 the same version gives exactly 412 by 915, so pass that one with `--chrome` when
 the size is wrong.
 
-**Android.** The Android screenshot, `screenshot-android`,
-comes from CI instead: the `measure` job of `android.yml` runs the release
-APK on an emulator, `vfxtool measure-apk` captures the cold start, and
-the job uploads it as the `screenshot-android` artifact. Download it with
-`gh run download` and upload it the same way. To look at the app yourself, run it
-on an emulator ([Run the app](environment.md#run-the-app)).
+**Android.** CI takes one picture, `screenshot-android`: the `measure` job of
+`android.yml` runs the release APK on an emulator, `vfxtool measure-apk` captures the
+cold start, and the job uploads it as an artifact (`gh run download`). The nine
+pictures of the [remote guide](../user/remote.md) are taken by hand, on an emulator
+(API 36, 1080 by 2400 at 420 dpi) with the release build
+(`./gradlew :app:assembleRelease`), paired as [Run the app](environment.md#run-the-app)
+describes, against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles` and a server on
+`--port 8080`, so that the command of the pairing screen is the one that runs. What
+makes the pictures alike:
+
+- The demo mode of the status bar fixes the clock and shows a full battery and
+  wifi and no notifications: `adb shell settings put global sysui_demo_allowed 1`,
+  then `adb shell am broadcast -a com.android.systemui.demo -e command` with `enter`,
+  `clock -e hhmm 1000`, `battery -e level 100 -e plugged false`,
+  `network -e wifi show -e level 4 -e fully true`, `network -e mobile hide` (its icons
+  come out white on the light theme) and `notifications -e visible false`.
+- The language and the theme are the ones of the app and of the system:
+  `adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` and
+  `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
+  the camera again, which `pm clear` drops, or the system dialog covers the scanner.
+- Type the pairing link with the app in English. With the app in Chinese Gboard turns
+  to Pinyin and writes the link with full-width punctuation and "author" for "auth";
+  the field keeps its text when the language is changed back before *Connect*.
+- Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has
+  settled. The scanner shows the living room of the emulator, as there is no code
+  to point it at.
+
+The pictures are 1080 by 2400 as they come, with the rounded corners of a phone display
+(a radius of 96 px) and a grey border of 5 px (`#7A7A84`) added: the cream screens of the
+light theme have no edge against the white page of GitHub.
 
 **Uploading.** Upload a new image with
 

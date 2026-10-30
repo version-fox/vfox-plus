@@ -187,7 +187,9 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 `java-install-name` 与 `options-mirror`，中文版引用 `zh-java-available` 与 `zh-options`。
 [远端指南](../user/remote.md)引用 `webapp-en` 与 `webapp-zh`（英文与简体中文的配对后 Web 界面），
 以及手机上 Web 界面的 `java-temurin` 场景的两种语言版本（`web-phone-java-temurin` 与
-`web-phone-zh-java-temurin`，用 `--window 412,915` 拍）。其余的图是改界面时用来看的，没有文档引用它们。
+`web-phone-zh-java-temurin`，用 `--window 412,915` 拍），还有安卓 App 的九张两种语言版本（`android-pairing`、
+`android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、`android-dark-pairing`、
+`android-dark-home` 与 `android-unreachable`，简体中文的加前缀 `zh-`）。其余的图是改界面时用来看的，没有文档引用它们。
 
 **Web 界面。** 用 headless 服务与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
 可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
@@ -232,9 +234,25 @@ vfox——SDK 列表才有内容，`VFOX_PLUS_FAKE_INVENTORY=profiles` 让它成
 Testing 156 把 `--window 412,915` 拍成了 500×715 的图，同版本的
 `chrome-headless-shell` 恰好是 412×915，尺寸不对时用 `--chrome` 传它。
 
-**Android。** Android 截图 `screenshot-android` 来自 CI：`android.yml` 的 `measure` 任务在模拟器跑
-release APK，`vfxtool measure-apk` 截冷启动，任务上传为
-`screenshot-android` 构件。用 `gh run download` 取回后同样上传。想自己看看 App，就在模拟器上运行它（[运行 App](environment.md#运行-app)）。
+**Android。** CI 拍一张图 `screenshot-android`：`android.yml` 的 `measure` 任务在模拟器跑 release APK，
+`vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[远端指南](../user/remote.md)里的
+九张图是手工拍的：在模拟器（API 36，1080×2400，420 dpi）上跑 release 构建（`./gradlew :app:assembleRelease`），
+按[运行 App](environment.md#运行-app)的方法配对，对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 与
+`--port 8080` 的服务，让配对屏上的命令就是实际运行的那条。让图保持一致的做法：
+
+- 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
+  再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
+  `battery -e level 100 -e plugged false`、`network -e wifi show -e level 4 -e fully true`、
+  `network -e mobile hide`（它的图标在浅色主题下是白的）与 `notifications -e visible false`。
+- 语言与主题是 App 与系统的：`adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` 与
+  `adb shell cmd uimode night yes`。每轮之间清数据（`pm clear`），并重新授予相机权限（`pm clear` 会收回它），
+  否则系统对话框会盖住扫码界面。
+- 配对链接要在 App 为英文时输入。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
+  `author`；在点*连接*之前把语言改回来，输入框的文字会保留。
+- 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅，因为没有二维码可对。
+
+图保持截下来的 1080×2400，另加手机屏幕的圆角（半径 96 px）与 5 px 的灰色边框（`#7A7A84`）：浅色主题的米色屏幕
+在 GitHub 的白色页面上没有边缘。
 
 **上传。** 上传新图：
 
