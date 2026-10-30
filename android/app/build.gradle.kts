@@ -81,15 +81,43 @@ val symbolFiles by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
-val copyMaterialSymbols = tasks.register<Sync>("copyMaterialSymbols") {
-    // The cache of Gradle calls the files SYMBOL-COMMIT[-VARIANT].xml.
-    val resource = materialSymbols.associate { (name, symbol, variant) ->
-        "$symbol-$materialSymbolsCommit${variant?.let { "-$it" } ?: ""}.xml" to "$name.xml"
+
+// Puts the files that Gradle imported among the resources, under the names that the code uses.
+abstract class CopyMaterialSymbols : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val symbols: ConfigurableFileCollection
+
+    // The file in the cache of Gradle (SYMBOL-COMMIT[-VARIANT].xml) and the resource that it becomes.
+    @get:Input
+    abstract val names: MapProperty<String, String>
+
+    // The root of a resource directory, which the Android plugin chooses: the files go to drawable/ in it.
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val drawable = outputDir.get().asFile.resolve("drawable")
+        drawable.deleteRecursively()
+        drawable.mkdirs()
+        val resource = names.get()
+        symbols.files.forEach { it.copyTo(drawable.resolve(resource.getValue(it.name) + ".xml")) }
     }
-    from(symbolFiles) { rename { resource.getValue(it) } }
-    into(layout.buildDirectory.dir("generated/res/materialSymbols/drawable"))
 }
-android.sourceSets.getByName("main").res.srcDir(copyMaterialSymbols.map { it.destinationDir.parentFile })
+
+val symbolFileNames = materialSymbols.associate { (name, symbol, variant) ->
+    "$symbol-$materialSymbolsCommit${variant?.let { "-$it" } ?: ""}.xml" to name
+}
+// One task for each variant, registered as the source of its generated resources, so that the Android plugin runs it before it
+// merges them: a directory that is only added to the sources of the app would not make Gradle run the task.
+androidComponents.onVariants { variant ->
+    val copy = tasks.register<CopyMaterialSymbols>("copyMaterialSymbols${variant.name.replaceFirstChar { it.uppercase() }}") {
+        symbols.from(symbolFiles)
+        names.set(symbolFileNames)
+    }
+    variant.sources.res?.addGeneratedSourceDirectory(copy, CopyMaterialSymbols::outputDir)
+}
 
 dependencies {
     materialSymbols.forEach { (_, symbol, variant) ->

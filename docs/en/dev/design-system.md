@@ -275,9 +275,10 @@ else, and `app/build.gradle.kts` lists the symbols with the commit
 dependencies, `symbols:SYMBOL:COMMIT@xml`, with the classifier `fill1` for a filled
 one: the files `symbols/android/SYMBOL/materialsymbolsrounded/SYMBOL_24px.xml` and
 `SYMBOL_fill1_24px.xml`. Gradle fetches them once into its cache, which a build
-offline uses afterwards, and the task `copyMaterialSymbols` puts them, unchanged, as
-`ic_NAME.xml` among the resources that it generates
-(`app/build/generated/res/materialSymbols/drawable`). A file has the colour of the
+offline uses afterwards, and a task for each variant (`copyMaterialSymbolsRelease`,
+`copyMaterialSymbolsDebug`) puts them, unchanged, as `ic_NAME.xml` among the generated
+resources that the Android plugin merges with the others
+(`app/build/generated/res/copyMaterialSymbolsRelease/drawable`). A file has the colour of the
 theme (`colorControlNormal`) unless a view tints it, and Google marks the symbols that
 turn around in a right-to-left language (`autoMirrored`, here `copy`, `forward` and
 `help`). The app uses `ic_close` (`close`), `ic_copy` (`content_copy`), `ic_forward` (`arrow_forward`), `ic_help` (`help`), `ic_history` (`history`), `ic_keyboard` (`keyboard`), `ic_link` (`link`), `ic_lock` (`lock`), `ic_paste` (`content_paste`), `ic_retry` (`replay`), `ic_scan_qr` (`qr_code_scanner`), `ic_torch_off` (`flashlight_off`), `ic_torch_on_fill` (`flashlight_on`, filled) and `ic_unreachable` (`cloud_off`). They and the npm package above are two copies of one
