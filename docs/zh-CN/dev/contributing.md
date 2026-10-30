@@ -126,6 +126,9 @@ docker run --rm --volume "$PWD:/workdir" \
 <https://fonts.google.com/icons>（`history`、`folder_open`），其余不用加：构建时 `vfxtool prepare`
 从锁定的 npm 包切出 SVG；包里没有的符号会失败并列出这些图标。
 
+Android 应用有自己的清单，即同一文件的 `android` 一节。改动它之后，或换了新版本的包之后，运行 `vfxtool android-icons`，
+并提交它写出的 drawable（Gradle 构建只需要 Gradle，所以这些文件会提交）。
+
 要换新版本的包，改该文件 `source` 里的 `version` 与 `sha512`。注册表给的校验和是 base64，文件里要十六进制：
 
 ```sh
@@ -231,7 +234,7 @@ Testing 156 把 `--window 412,915` 拍成了 500×715 的图，同版本的
 
 **Android。** Android 截图 `screenshot-android` 来自 CI：`android.yml` 的 `measure` 任务在模拟器跑
 release APK，`vfxtool measure-apk` 截冷启动，任务上传为
-`screenshot-android` 构件。用 `gh run download` 取回后同样上传。
+`screenshot-android` 构件。用 `gh run download` 取回后同样上传。想自己看看 App，就在模拟器上运行它（[运行 App](environment.md#运行-app)）。
 
 **上传。** 上传新图：
 

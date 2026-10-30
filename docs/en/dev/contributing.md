@@ -152,6 +152,11 @@ name that describes its meaning, with the name of the symbol as at
 added: `vfxtool prepare` cuts the SVGs out of the pinned npm package when it builds,
 and fails, naming the icons, for a symbol that the package does not have.
 
+The Android app has its own list, the `android` section of the same file. After a
+change there, or after a new version of the package, run `vfxtool android-icons`
+and commit the drawables that it writes (the Gradle build needs nothing but
+Gradle, so these are committed).
+
 To move to a newer version of the package, change `version` and `sha512` in the
 `source` of that file. The registry says the checksum in base64; the file wants it
 in hexadecimal:
@@ -282,7 +287,8 @@ the size is wrong.
 comes from CI instead: the `measure` job of `android.yml` runs the release
 APK on an emulator, `vfxtool measure-apk` captures the cold start, and
 the job uploads it as the `screenshot-android` artifact. Download it with
-`gh run download` and upload it the same way.
+`gh run download` and upload it the same way. To look at the app yourself, run it
+on an emulator ([Run the app](environment.md#run-the-app)).
 
 **Uploading.** Upload a new image with
 

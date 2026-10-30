@@ -23,6 +23,10 @@ defines them.
   `surfaceContainerHighest`. Primary, secondary and tertiary containers mark the
   statistic tiles and avatars.
 - Destructive actions use `error`.
+- The web interface (the `--m3-*` variables of `mygo/pair/webapp.html`) and the
+  Android app (`values/colors.xml` and `values-night/colors.xml`) hold the 48 roles
+  of the scheme as literal values, and `go test ./pair` in `mygo` fails when they
+  are not the roles that `mygo/ui/mcu` computes for the seed.
 
 mygo: `PaletteFor` in `mygo/ui/kit/theme.go`, computed from `mygo/ui/mcu` (a
 Go port of the Material colour utilities, tonal spot).
@@ -137,6 +141,21 @@ page transitions, which bring their own curves, last as long as the slow effects
 spring needs to settle. When the platform asks for reduced motion, springs jump
 to their target and indeterminate indicators stop.
 
+The web interface is such an API: CSS has durations and curves, no springs. Its
+`--sp-*` variables are the six springs, each as `--sp-NAME-t`, the milliseconds
+that it needs to settle, and `--sp-NAME`, its step response sampled into a
+`linear()` curve with as few stops as keep the line within 0.6 % of the curve.
+Every `transition` and `animation` takes its time and its curve from them; a
+dialog scales in on the default spatial spring while it fades in on the default
+effects spring, which makes two animations. A test in `mygo/pair` recomputes the
+variables from `kit.Expressive` and fails, printing the lines to paste, when they
+differ, and when a declaration has a duration or a curve of its own (the wavy
+progress and the loading indicator, which run until the work is done, are the
+exception). A browser without `linear()` keeps the Bézier curves that the page
+had before. The Android app takes the springs from its theme (`motionSpring*`):
+`SpringAnimation` for what moves and a `SpringInterpolator` for the transitions
+of its screens.
+
 mygo: the springs and `AnimateTo` in `mygo/ui/kit/motion.go`, drawn only while
 they move, so the window is idle when nothing changes.
 
@@ -182,6 +201,22 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
 | Filter chips | [Chips](https://m3.material.io/components/chips) | `FilterChip` in `ui/kit/chip.go` |
 | Search bar, cards, dialogs, menus, snack bars, switches, text fields | Material 3 | `SearchBar`, `Card`, `Menu`, dialogs and snack bars in `ui/kit`, themed in `ui/kit/theme.go` |
 
+### Android app
+
+The app builds its screens from the components of Material Components 1.14.0,
+whose Expressive styles are the defaults of its theme.
+
+| Component | In the app |
+| --- | --- |
+| Buttons (filled, tonal, text) and icon buttons | `Widget.Material3Expressive.Button*`, which come with the shape morph; a layout only sets the size (`materialSizeOverlay`, Medium) |
+| Floating toolbar | `FloatingToolbarLayout` with `Widget.Material3.FloatingToolbar.Vibrant`, on the scanner: the torch and "Enter manually" |
+| Cards | filled `MaterialCardView` with 28 dp corners: the command on `surfaceContainerHigh`, the last server on `secondaryContainer` |
+| Text field | outlined `TextInputLayout` with the 4 dp corners of the specification; its end icon pastes and clears |
+| Loading indicator | `LoadingIndicator` in the place of the Connect button |
+| Wavy progress indicator | `Widget.Material3Expressive.LinearProgressIndicator.Wavy`, while the page of the session loads |
+| Dialogs | `MaterialAlertDialogBuilder`, in the style of the Expressive theme; the certificate fingerprint sits in a `surfaceContainerHighest` card |
+| Shapes | the cookie behind the fox of the pairing screen and the soft burst behind the icon of the error state (`ExpressiveShapes`) |
+
 ### Wavy progress indicator
 
 - Track and active indicator: 4 dp thick, rounded ends; a 4 dp gap between them.
@@ -203,7 +238,7 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
   the chip; while the chip is pressed its corners pinch to 4 dp.
 - A row of chips wraps; the chips of one row are alternatives. The web interface
   draws the same chip in CSS (`.chip`), with the same radii and the same spring
-  as a `cubic-bezier(.34, 1.3, .64, 1)` curve.
+  (`--sp-fast-spatial`).
 
 ### Loading indicator
 
@@ -227,6 +262,17 @@ committed. mygo draws an SVG in the colour of the text (`ui.Icon`), so the
 application carries no icon font; the fill that the navigation and the buttons
 animate is the cross-fade of the outlined and the filled icon, and the SVGs
 (about 60 KB) are parsed when an icon is first drawn.
+
+The Android app draws the same symbols as vector drawables. The `android`
+section of the manifest names them (by name, with the symbol; which of them also
+have a filled variant; which turn around in a right-to-left language), and
+`vfxtool android-icons` cuts them out of the same package and writes
+`android/app/src/main/res/drawable/ic_NAME.xml` (and `ic_NAME_fill.xml`), in the
+colour of the theme (`colorControlNormal`) unless a view tints them. Unlike the
+SVGs of the desktop interface these are committed, because the Gradle build needs
+nothing but Gradle. `go test` in `shared/tooling` fails when a drawable is missing,
+comes from another symbol or from another version of the package, or when one that
+the tool wrote is no longer named.
 
 ### Application icon
 

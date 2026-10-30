@@ -16,23 +16,37 @@ Go code. Users install the `.apk` and pair it with the PC; see
 | `gradlew`, `gradlew.bat`, `gradlew.ps1`, `gradle/wrapper/` | The Gradle wrapper ([Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)); `gradle-wrapper.properties` pins Gradle with its SHA-256. |
 | `versions.env` | Pinned tool versions CI reads (Java, AGP, Kotlin, Material). |
 | `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. |
-| `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, Material 3 Expressive theme, strings in English and Simplified Chinese, the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
+| `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, the Material 3 Expressive theme with the colours of the [design system](design-system.md#colour) (`values/colors.xml`, `values-night/colors.xml`), strings in English and Simplified Chinese, the Material Symbols as vector drawables (`drawable/ic_*.xml`, written by `vfxtool android-icons`; see the [design system](design-system.md#icons)), and the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
 
 ## What the app does
 
-- **Pairing** (`PairingFragment`) is native: scan the terminal QR code, paste
-  the one-time link the PC printed, or reconnect to the last server; compare
-  the TLS fingerprint, and connect. Shared-axis transitions, wavy
-  indeterminate progress while connecting.
+- **Pairing** (`PairingFragment`) is native: the fox on the 9-sided cookie of the
+  shape library, the command that the PC has to run (with a button that copies
+  it), a button that scans the terminal QR code, and a field for the one-time
+  link (its end icon pastes while the field is empty and clears it when it is
+  not). After a first pairing the screen offers the last server first, with a
+  button that reconnects. Connecting hides the keyboard, puts the loading
+  indicator in the place of the button, and opens one session however often Go
+  or Connect is pressed.
 - **Scanning** (`ScanFragment`) is a CameraX preview with a zxing decoder: the
-  decoded link fills the pairing field and connects at once. `CAMERA` is
-  requested as not required — without a camera, or when permission is denied,
-  paste the link instead.
+  decoded link fills the pairing field and connects at once. The picture is
+  dimmed except for a square with 32 dp corners and corner brackets
+  (`ViewfinderView`), which settles in on the default spatial spring, and a
+  floating toolbar offers the torch, where the phone has one, and "Enter
+  manually". `CAMERA` is requested as not required — without a camera, or when
+  permission is denied, paste the link instead.
 - **Session** (`ViewerFragment`) is a WebView of `/app` with the session
   cookie persisted across launches, file upload enabled (for plugin `.zip`
-  and `.lua` files), pull-to-refresh, and an overflow menu (refresh, pair a
-  new link, disconnect). After a one-time link sets the cookie, the client
-  moves to `/app` itself. The web download of a failed task's full log is
+  and `.lua` files), pull-to-refresh, and a wavy progress indicator while a
+  page loads. After a one-time link sets the cookie, the client moves to
+  `/app` itself and starts the history of the page there, so that back does
+  not load the used link again. The two things that only the app can do,
+  pairing another link and disconnecting, are on the **This phone** card of
+  the page's Settings: the app gives the page the object `window.vfoxAndroid`
+  ([the bridge](remote-protocol.md#android-client)), and the page shows the
+  card when it is there. A server that cannot be reached shows a native state
+  (the error shape, "Try again", "Pair a new link") in place of the error page
+  of the WebView. The web download of a failed task's full log is
   hidden inside the WebView, which cannot download files; read it in a
   browser instead. The window stays on the paired server: the address of
   another site that the page links to (the homepage of a plugin, its
@@ -41,8 +55,55 @@ Go code. Users install the `.apk` and pair it with the PC; see
   WebView does not report).
 - **TLS** (`onReceivedSslError`) shows the SHA-256 fingerprint dialog before
   trusting a self-signed certificate — the same fingerprint the PC terminal
-  prints. Bringing your own certificate on the server avoids the warning.
-- **Back** walks the WebView history before leaving the session.
+  prints, in rows of eight bytes so that the two can be compared at a glance.
+  Bringing your own certificate on the server avoids the warning.
+- **Back** walks the WebView history before leaving the session, and the app
+  opts in to the predictive back animation (`enableOnBackInvokedCallback`).
+- **A new Activity** (the dark theme, another language, the phone turned) gets
+  the page and its history back: the session screen saves the state of the
+  WebView.
+
+## The design system in the app
+
+The app follows the [design system](design-system.md) as the other interfaces
+do. This is where it lives in `android/`.
+
+- **Edge to edge.** `MainActivity` calls `enableEdgeToEdge()`, and the app draws
+  under the system bars. A screen keeps clear of them with `padToSafeArea`
+  (`Insets.kt`: the bars, the display cutout and the keyboard become padding); a
+  scroll view also brings the field that has the focus above the keyboard,
+  because the system does not resize an edge-to-edge window. The page in the
+  WebView gets the same insets as the CSS variables `--sai-*` ([the
+  bridge](remote-protocol.md#android-client)).
+- **Theme.** `Theme.VfoxPlus` extends `Theme.Material3Expressive.DayNight.NoActionBar`.
+  `values/colors.xml` and `values-night/colors.xml` hold the 48 roles of the
+  colour scheme of the seed `#F28C1B` (the theme maps 46 of them to attributes;
+  shadow and scrim have none), with the same literal values as the `--m3-*`
+  variables of the web interface. A test in `mygo/pair` (`webapp_design_test.go`)
+  computes the scheme with `mygo/ui/mcu` and fails when the page or these files
+  differ from it. Neither the theme nor a layout names a baseline
+  `Widget.Material3.*` style: the Expressive styles
+  (`Widget.Material3Expressive.*`) are the defaults of the theme, a layout only
+  sets the size of a button (`materialSizeOverlay`), and a baseline style in a
+  layout would hide the shape morph and the sizes.
+- **Icons.** Material Symbols Rounded, from the same npm package as the other
+  interfaces, as the vector drawables that `vfxtool android-icons` writes
+  ([Icons](design-system.md#icons)).
+- **Motion.** The springs are the `motionSpring*` attributes of the theme
+  (`Motion.kt`). `springIn` brings the parts of a screen in, one after the
+  other, on the default spatial spring (they rise) and the default effects
+  spring (they fade in); the transitions between screens are shared axes on the
+  slow effects spring, sampled into a curve over the time it needs to settle
+  (`SpringInterpolator`). The root of each screen is a transition group
+  (`android:transitionGroup`), so that the screen slides as one piece: otherwise
+  each part slides by itself, and the outlined text field, which places its
+  label from where its input is when it is laid out, keeps a label that was
+  placed half way across. When the user removed the animations, everything
+  jumps to its end.
+- **Shapes.** The cookie and the soft burst of the shape library
+  (`ExpressiveShapes`, drawn by `PolygonDrawable`) are built from the public API
+  of `androidx.graphics:graphics-shapes`: `MaterialShapes` of Material 1.14.0 is
+  restricted to the library group, and its drawable draws nothing.
 
 ## Building
 

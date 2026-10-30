@@ -260,6 +260,21 @@ browsers send it back over plain HTTP there.
   session cookie.
 - The **main content** is a WebView of `/app` with file upload enabled (for
   plugin `.zip`/`.lua` files) and pull handling left to the page.
+- The page and the app talk through `window.vfoxAndroid`, an object that the app
+  adds to the WebView (`WebBridge`) and that no other client has, so that a page
+  that finds it knows that it runs in the app:
+  - `insets()` returns the safe area as `"top,right,bottom,left,keyboard"` in CSS
+    pixels: what the system bars and a display cutout cover, and the height of the
+    keyboard while it is open. The page puts the first four into the CSS
+    variables `--sai-top`, `--sai-right`, `--sai-bottom` and `--sai-left` (in a
+    browser they are `env(safe-area-inset-*)`, and a WebView does not give
+    that in every version), and marks the root element `kb` while the keyboard
+    is open. The app calls `window.vfoxInsets()` again whenever the insets
+    change.
+  - `server()` returns the address of the paired server, scheme and authority.
+  - `pairNew()` and `disconnect()` leave the session for the pairing screen;
+    the second forgets the server and the session cookie first. The settings of
+    the page offer both on the **This phone** card, which only the app shows.
 - It programs against this document, not against the Go code: inventory for
   lists, `/api/tasks` + `/api/events` for progress, `POST` routes for
   actions.
