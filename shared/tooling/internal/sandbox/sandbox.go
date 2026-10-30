@@ -24,7 +24,9 @@ package sandbox
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -450,11 +452,52 @@ func (s *session) ensureImage() error {
 // ownerArgs tells a rootful Docker daemon whom the results belong to. Under
 // rootless Docker, root in a container is the user on the host.
 func ownerArgs() []string {
-	out, err := exec.Command("docker", "info", "--format", "{{.SecurityOptions}}").Output()
+	out, err := dockerOutput("info", "--format", "{{.SecurityOptions}}")
 	if err != nil || !strings.Contains(string(out), "rootless") {
 		return []string{fmt.Sprintf("--env=OUT_OWNER=%d:%d", os.Getuid(), os.Getgid())}
 	}
 	return nil
+}
+
+// removeResults deletes a directory of results. Under rootless Docker the files
+// that a task wrote belong to a subordinate user, whom the user of the host may not
+// delete from (a directory that the task made has no write permission for others).
+// Root in a container may, so when the host refuses, the directory is deleted by a
+// throw-away container of the sandbox image.
+func (s *session) removeResults(dir string) error {
+	err := os.RemoveAll(dir)
+	if err == nil || !errors.Is(err, fs.ErrPermission) {
+		return err
+	}
+	image := s.imageToDeleteWith()
+	if image == "" {
+		return fmt.Errorf("%w\nThe files belong to a subordinate user of rootless Docker: delete the directory as root, or build the image of the sandbox, which can do it", err)
+	}
+	fmt.Fprintf(os.Stderr, "Deleting %s in a container: what a task wrote under rootless Docker is not the user's to delete.\n", dir)
+	if err := docker("run", "--rm", "--network", "none",
+		"--volume", filepath.Dir(dir)+":/parent", "--entrypoint", "rm",
+		image, "-rf", "--", "/parent/"+filepath.Base(dir)); err != nil {
+		return fmt.Errorf("delete %s in a container: %w", dir, err)
+	}
+	return os.RemoveAll(dir)
+}
+
+// imageToDeleteWith is an image that is there to run rm in: the image of the
+// implementation, else the base image or the clean Ubuntu. It is "" if there is none.
+func (s *session) imageToDeleteWith() string {
+	var candidates []string
+	if image, err := s.implImage(); err == nil {
+		candidates = append(candidates, image)
+	}
+	if image, err := s.baseImage(); err == nil {
+		candidates = append(candidates, image)
+	}
+	for _, image := range append(candidates, cleanBaseImage) {
+		if imageExists(image) {
+			return image
+		}
+	}
+	return ""
 }
 
 // runTask runs a task of the implementation in a new container that sees the
@@ -482,7 +525,7 @@ func (s *session) runTask(network, task string, extra []string) error {
 		opts = append(opts, "--volume", volume)
 	}
 	resultsTask := filepath.Join(s.results, task)
-	if err := os.RemoveAll(resultsTask); err != nil {
+	if err := s.removeResults(resultsTask); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(resultsTask, 0o755); err != nil {
@@ -573,7 +616,10 @@ func (s *session) all() error {
 }
 
 func (s *session) clean() error {
-	if out, err := exec.Command("docker", "image", "ls", "--format", "{{.Repository}}:{{.Tag}}", s.imageName).Output(); err == nil {
+	// The results go first: the image that can delete them under rootless Docker is
+	// about to go.
+	resultsErr := s.removeResults(s.results)
+	if out, err := dockerOutput("image", "ls", "--format", "{{.Repository}}:{{.Tag}}", s.imageName); err == nil {
 		var images []string
 		for _, line := range strings.Split(string(out), "\n") {
 			if line = strings.TrimSpace(line); line != "" {
@@ -586,27 +632,29 @@ func (s *session) clean() error {
 	}
 	for _, volume := range s.config.cacheVolumes {
 		if name, _, ok := strings.Cut(volume, ":"); ok {
-			cmd := exec.Command("docker", "volume", "rm", "--force", name)
-			cmd.Stdout = nil
-			_ = cmd.Run()
+			_ = docker("volume", "rm", "--force", name)
 		}
 	}
-	return os.RemoveAll(s.results)
+	return resultsErr
 }
 
-// imageExists reports whether a Docker image exists locally.
-func imageExists(image string) bool {
-	cmd := exec.Command("docker", "image", "inspect", image)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	return cmd.Run() == nil
-}
-
-// docker runs a docker command with the standard streams attached.
-func docker(args ...string) error {
-	cmd := exec.Command("docker", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
+// The commands of Docker that the sandbox runs. They are variables so that the
+// tests need no Docker.
+var (
+	// imageExists reports whether a Docker image exists locally.
+	imageExists = func(image string) bool {
+		return exec.Command("docker", "image", "inspect", image).Run() == nil
+	}
+	// docker runs a docker command with the standard streams attached.
+	docker = func(args ...string) error {
+		cmd := exec.Command("docker", args...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+	// dockerOutput runs a docker command and returns what it printed.
+	dockerOutput = func(args ...string) ([]byte, error) {
+		return exec.Command("docker", args...).Output()
+	}
+)

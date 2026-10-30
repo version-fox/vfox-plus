@@ -22,6 +22,11 @@ it.
 - Every task runs in a new container that sees the repository read-only at
   `/src`, copies it and works on the copy as `tester`. Results go to
   `dist/sandbox/mygo/<task>/`.
+- A task starts by deleting the results of its last run. Under rootless Docker the
+  files that `tester` wrote belong to a subordinate user of the host, whom you may
+  not delete from; a throw-away container of the image deletes them then, as root
+  in a container may. `vfxtool sandbox clean` does the same before it deletes the
+  image.
 - The `deps` task downloads the dependencies into Docker volumes (the Go module
   cache, and the npm package of the icons) with network access; the checks, the
   tests and the builds then run with `--network none`.
