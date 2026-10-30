@@ -24,8 +24,9 @@
 // caller may place with the usual element methods (Grow, Margin, Width, ...).
 //
 // What a frame knows about its widgets (what they are called, what a click on
-// them does) goes into a Registry, which is how the end-to-end scenarios drive
-// the interface like a user.
+// them does) goes into a Registry, which is how the tests of the interface find
+// the widgets and click them. The end-to-end tests run against the built
+// application instead, through the elements that it gives assistive technology.
 package kit
 
 import (

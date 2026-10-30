@@ -22,6 +22,9 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
+// The window opens with this size in dp, unless the end-to-end tests ask for another.
+const defaultWidth, defaultHeight = 1280, 820
+
 // compactWidth is the width in dp below which the navigation moves to the bottom
 // (docs/en/dev/ui-spec.md#window-and-navigation).
 const compactWidth = 600

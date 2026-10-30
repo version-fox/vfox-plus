@@ -16,11 +16,15 @@ the SDKs page with the 872 available versions of Node.js listed.
 
 | Implementation                   | Technology                                                        | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | -------------------------------- | ----------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../../../mygo/README.md) | mygo 0.7.3, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       50 |       62 |           58 |           73 |                  +8 |
+| [mygo](../../../mygo/README.md) | mygo 0.7.3, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       51 |       63 |           59 |           73 |                  +8 |
 
-mygo (50 MB of PSS on the Home page, in one process) draws on the processor from a
+mygo (51 MB of PSS on the Home page, in one process) draws on the processor from a
 Go executable of 18 MB and loads GTK 3 from the system. Showing the list of versions
 adds 8 MB of PSS because only the rows in view are built.
+
+The build that is measured is the end-to-end build: the release build with the inspector
+of the native user interface and the automation plugin of mygo, which the measuring drives
+it through. They take up to 1 MB of PSS, which the release build does not.
 
 The Android client (`android/`) is not in this table: it is a WebView around
 the pairing server, so its memory is the system WebView's plus the page, and it
@@ -89,17 +93,16 @@ whose collector may behave differently.
 
 `vfxtool measure` measures the application:
 
-1. It starts the application on the current display, with a new, empty home
-   directory and the fake vfox of [`shared/fixtures`](../../../shared/fixtures), which
-   replays captured output (so no real vfox runs), in the `measure` scenario of the
-   application.
-2. The application shows the Home page, waits 3 seconds so that it has settled and
-   reports `e2e: MEASURE home`. The tool, which reads the report, adds up `Rss`
-   and `Pss` from `/proc/<pid>/smaps_rollup` for the application and every process
-   below it; the application waits 5 more seconds, so that the page does not change
-   during the measurement.
-3. The application opens the available versions of Node.js, waits 3 seconds and
-   reports `e2e: MEASURE nodejs`, and the tool measures again.
+1. It starts the end-to-end build of the application (`vfxtool build --e2e`, see
+   [above](#results)) on the current display, with a new, empty home directory and
+   the fake vfox of [`shared/fixtures`](../../../shared/fixtures), which replays
+   captured output (so no real vfox runs).
+2. It waits for the Home page and for 3 seconds more, so that the application has
+   settled, and adds up `Rss` and `Pss` from `/proc/<pid>/smaps_rollup` for the
+   application and every process below it.
+3. It opens the available versions of Node.js through the elements of the window
+   (the automation plugin of mygo), waits for the 872 versions and for 3 seconds, and
+   measures again.
 
 The sizes are in MiB, which the tool calls MB. The `measure` task of the sandbox runs
 all of this in Docker (`vfxtool sandbox measure`, which needs
@@ -140,7 +143,7 @@ table [above](#results) with the difference from `main` next to the PSS. A new
 commit replaces that comment instead of adding another one.
 
 - The workflow of the implementation ([`mygo.yml`](../../../.github/workflows/mygo.yml))
-  runs the `measure` scenario of [How it is measured](#how-it-is-measured) and
+  runs `vfxtool measure` ([How it is measured](#how-it-is-measured)) and
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
   workflow's `measure-remote` job uploads `memory-serve` and `memory-web`, and the

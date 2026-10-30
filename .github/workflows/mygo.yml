@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # The application: formatting, golangci-lint and the unit tests (with
-# coverage gates), the end-to-end scenarios in the application (against captured
-# output and against the real vfox), the Linux packages and the Windows MSIX
-# bundle.
+# coverage gates), the end-to-end scenarios that drive the built application
+# (against captured output and against the real vfox), the Linux packages and the
+# Windows MSIX bundle.
 # shared/tooling/internal/runtask runs the same steps locally; keep them in sync.
 # The tool versions are in mygo/versions.env.
 name: mygo
@@ -139,7 +139,7 @@ jobs:
           echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
       - name: Run the end-to-end scenarios in a virtual display
         env:
-          # The "measure" scenario writes its numbers here for memory.yml.
+          # `vfxtool measure` writes its numbers here for memory.yml.
           VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory/memory.txt
         run: |
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"

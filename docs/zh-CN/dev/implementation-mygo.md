@@ -13,13 +13,14 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | --- | --- |
 | [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs 与 vfox-flutter 的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
-| [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面、对话框与端到端场景 |
+| [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面与对话框 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
 | [`ui/mcu/`](../../../mygo/ui/mcu) | 配色：Material 颜色工具的 Go 移植（HCT、CAM16、tonal spot） |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
 | [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标、翻译与许可证（构建时收集） |
 | [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`：浏览器配对到本机（一次性链接），或为容器与远端实例常驻服务；配对后的浏览器得到完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
 | [`main.go`](../../../mygo/main.go) | 组装模型与窗口；分发 `pair` 子命令 |
+| [`automation_e2e.go`](../../../mygo/automation_e2e.go) | 仅在构建标签 `e2e` 下链接 mygo 的自动化插件：端到端测试、内存测量与截图经它驱动应用 |
 
 分层见[架构](architecture.md)：`core` 不知道其它层，`state` 只知道
 `core`，`ui` 在上。`core`、`state`、`ui/mcu` 与 `ui/shapes` 是无 UI 工具包的纯 Go，
@@ -108,9 +109,13 @@ Go 模块与构建缓存。
   存 82 种子色双主题配色，bit 一致；[`ui/shapes/testdata`](../../../mygo/ui/shapes/testdata) 存形状轮廓，
   尺寸 2% 内一致。各 `testdata` 说明重生成方法：配色需 Node.js 跑 JS 参考实现，形状
   `go run generate.go` 即可，无需 Node.js。
-- **端到端场景**在 `VFOX_PLUS_E2E_SCENARIO` 置位时跑在构建的应用中：`fake` 对夹具假 vfox，
-  `real` 对带离线测试插件及其服务器的真实 vfox，`measure` 测内存，`screenshots` 截图。代码
-  在 [`ui/e2e*.go`](../../../mygo/ui)，仅 `e2e` 构建标签编译：
+- **端到端场景**从外部驱动构建好的应用，像辅助技术那样。`vfxtool build --e2e` 以标签 `e2e`
+  构建，链接 mygo 的[自动化插件](https://github.com/egoist/mygo/blob/v0.7.3/docs/plugins/automation.md)
+  （[`automation_e2e.go`](../../../mygo/automation_e2e.go)）：`MYGO_AUTOMATION` 指定 Unix 套接字时，
+  应用在其上监听，应答这些请求：列出窗口元素（给屏幕阅读器的那些，带组件设的 key）、按下元素、
+  填写输入框、发送按键、截取窗口。场景在 [`shared/tooling`](../../../shared/tooling)
+  （`internal/e2erun`）；应用里没有场景代码，只有离线测试插件的配置档案与窄布局的窗口尺寸
+  （`VFOX_PLUS_E2E_WINDOW`，形如 `宽x高`）：
 
   ```sh
   vfxtool build --e2e build/vfox-plus-e2e
@@ -119,11 +124,12 @@ Go 模块与构建缓存。
     vfxtool e2e-run real build/vfox-plus-e2e
   ```
 
-  `vfxtool e2e-run` 准备全新空家目录、假 vfox 或带离线测试插件及服务器的真实 vfox，
-  启动应用读其 `e2e: …` 报告；场景通过应用 exit 0。场景在两帧之间主线程点按、填写、
-  读取组件注册的节点（角色、名称、点击或输入作用），走真实组件、状态、进程 spawn、
-  流式、带 `SIGTERM`（Windows 上 kill）的取消、设置文件与 vfox 本体。
-  `vfxtool screenshots` 跑三遍 `screenshots` 场景（见[截图](contributing.md#截图)）。
+  `fake` 对夹具假 vfox，`real` 对带离线测试插件及其服务器的真实 vfox。`vfxtool e2e-run` 准备
+  全新空家目录，启动应用，等它的窗口出现，跑场景，再结束应用。等待超时即场景失败，并先打印窗口
+  当时显示的元素。场景走真实组件、状态、进程 spawn、流式、带 `SIGTERM`（Windows 上 kill）的取消、
+  设置文件与 vfox 本体。`vfxtool measure` 与 `vfxtool screenshots` 以同样方式启动应用
+  （见[如何测量](memory.md#如何测量)与[截图](contributing.md#截图)）。该构建保留原生用户界面的
+  inspector，插件需要它而发布构建不带，所以大约大 0.4 MB。
 
 ## 用户界面如何工作
 
@@ -146,8 +152,8 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   toast，管焦点、Escape 与外部按压；kit 定样式。
 - **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 872 项。
 - **registry**（[`registry.go`](../../../mygo/ui/kit/registry.go)）是某次构建组件注册节点的扁平表：
-  角色、名称、状态、所在列表项或对话框、点击或输入作用。端到端场景用它找操作部件；
-  不是无障碍树（mygo 给屏幕阅读器另有一套，见[局限](#局限)）。
+  角色、名称、状态、所在列表项或对话框、点击或输入作用。组件与页面测试用它找操作部件；
+  不是无障碍树（mygo 给屏幕阅读器另有一套，端到端场景读的是那一套，见[局限](#局限)）。
 - **颜色**运行时从种子色或桌面强调色按 Material 颜色工具（[`ui/mcu`](../../../mygo/ui/mcu)，
   tonal spot 2021）生成。mygo 自有部件（文本框、滚动条、tooltip）经其主题跟随。
 - **形状**——头像、统计块、swatch、加载指示器——是 Material 3 Expressive 多边形与形变，
@@ -204,12 +210,12 @@ docker run --rm -p 8080:8080 vfox-plus
 ## 内存
 
 `vfxtool sandbox measure` 测量：Docker 内 Ubuntu 26.04，Xvfb，1280×800 窗口，单进程，
-发布构建。
+端到端构建（发布构建加 inspector 与测量借以驱动应用的自动化插件，多占至多 1 MB PSS）。
 
 | 状态 | RSS | PSS |
 | --- | ---: | ---: |
-| Home 页 | 62 MB | 50 MB |
-| 列出 Node.js 版本 | 73 MB | 58 MB |
+| Home 页 | 63 MB | 51 MB |
+| 列出 Node.js 版本 | 73 MB | 59 MB |
 
 mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连接即映射 Mesa，软件驱动
 再加其编译器 LLVM，比应用本身还大（同构建 GDK 打开时 Home 页 PSS 约 78 MB，关闭约
@@ -228,8 +234,9 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
   mygo 可把标题栏交给应用，本实现暂未用。
 - **缩放**走 GTK 3：整数倍，来自 `GDK_SCALE` 或桌面，加桌面文本缩放。
 - **mygo 年轻**（写作时 v0.7.3，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
-- **无障碍**走 mygo ATK 对象，GTK 桥到 AT-SPI，Orca 读窗口；场景用的 registry 不是它。
-  kit 组件给元素命名（图标按钮 tooltip 即其名），mygo 读屏支持未在此用 Orca 试过。
+- **无障碍**走 mygo ATK 对象，GTK 桥到 AT-SPI，Orca 读窗口。端到端场景经自动化插件读的是同一批
+  元素，所以组件给它们命名（图标按钮 tooltip 即其名；任务行说出它的状态）。mygo 读屏支持未在此用
+  Orca 试过。
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 11 打包为

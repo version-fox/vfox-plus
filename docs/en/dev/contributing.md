@@ -61,7 +61,7 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios in the application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 
@@ -198,20 +198,24 @@ account, and linked.
 **The desktop application.** `vfxtool sandbox screenshots` renders the pictures
 into `dist/sandbox/mygo/screenshots/`, reproducibly: with the Greybird title bar of
 xfwm4, the way modern GNOME applications look, over the default wallpaper of
-Ubuntu instead of the black of a bare X server. It runs the `screenshots`
-scenario of the end-to-end build three times against the fake vfox, and the
-application prints `e2e: SHOT <name>` whenever the screen is to be captured:
+Ubuntu instead of the black of a bare X server. It starts the end-to-end build
+five times against the fake vfox, drives it to every page through the automation plugin
+of mygo, and captures the screen with ImageMagick when the page has settled:
 
 | Run | What it shows |
 | --- | --- |
-| plain | every page, in both themes and languages, and the compact layout: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings`, `compact-home`, `compact-detail` |
+| plain | every page, in both themes and languages: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | an installation in progress: `installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available`, `compact-java` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available` |
+| `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
+| both of the above | the distributions of Java in the compact layout: `compact-java` |
 
-To take another picture, add a `s.shot("name")` to `screenshotsScenario` or to
-`profilesScreenshots` in `mygo/ui/e2e_scenarios.go`. The steps before it click and
-wait the way a person does, through the names that the user sees, so a renamed
-button fails the scenario instead of taking a wrong picture.
+To take another picture, add a `c.shot(s, "name")` to the function of the run in
+`shared/tooling/internal/screenshots/screenshots.go` (`pages`, `installing`, `profiles`,
+`compactPages` or `compactProfiles`). The steps before it click and wait the way a
+person with a screen reader does, through the names that the user sees (the label
+of a button, the key that a component gave it), so a renamed button fails the
+scenario instead of taking a wrong picture.
 
 The README and the [user guide](../user/index.md) link `home`, `sdks`,
 `dark-available`, `installing`, `tasks`, `plugins`, `zh-settings`, `compact-home`,

@@ -84,7 +84,6 @@ type App struct {
 	watched map[*state.VfoxTask]func()
 	shell   shellState
 	pages   pageStates
-	e2e     e2eHooks //nolint:unused // Used by the build with the tag e2e.
 }
 
 // themeKey is what the theme depends on: the theme is built again when it
@@ -167,8 +166,9 @@ func (a *App) Run() {
 	mygo.App.SetMenu(nil)
 	mygo.App.WhenReady(func() {
 		a.useSystemLanguages(mygo.App.PreferredLanguages())
+		width, height := a.windowSize()
 		a.win = mygo.NewWindow(mygo.WindowOptions{
-			Title: a.T("appTitle"), Width: 1280, Height: 820, MinWidth: 360, MinHeight: 480,
+			Title: a.T("appTitle"), Width: width, Height: height, MinWidth: 360, MinHeight: 480,
 			Content: mui.View(a.view),
 		})
 		a.listen()
@@ -213,7 +213,6 @@ func (a *App) view(c *mui.Context) {
 	a.env.LayoutDialogs(k)
 	a.env.LayoutSnackbars(k)
 	a.watchTasks()
-	a.afterFrame(k)
 }
 
 // watchTasks asks for a frame whenever a task changes, such as when it reports

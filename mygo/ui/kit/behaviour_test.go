@@ -565,6 +565,25 @@ func TestListItemsAndGroupsAreSegmented(t *testing.T) {
 	h.mustText("Inside the card")
 }
 
+// The name that assistive technology reads may say more than the title of the item, as
+// the row of a task says its status; the widgets in the item are still in it by its title.
+func TestAListItemIsCalledByItsNameAndHoldsItsWidgetsByItsTitle(t *testing.T) {
+	h := newTested(t, 500, 300, func(c Ctx) {
+		Column(c).Padding(16).Children(func() {
+			ListItem(c, ListItemSpec{
+				ID: "task", Title: "Install x", Name: "Install x, Done", OnClick: func() {},
+				Trailing: func() { Button(c, ButtonSpec{ID: "retry", Label: "Retry"}) },
+			})
+		})
+	})
+	if _, ok := h.node(RoleListItem, "Install x, Done"); !ok {
+		t.Error("the item is not called by the name that assistive technology reads")
+	}
+	if retry, ok := h.node(RoleButton, "Retry"); !ok || retry.Scope != "Install x" {
+		t.Errorf("the button is not in the item by its title: %+v", retry)
+	}
+}
+
 func TestStatusMessagesPanesAndHeadersShowTheirText(t *testing.T) {
 	h := newTested(t, 700, 700, func(c Ctx) {
 		Column(c).Fill().Children(func() {

@@ -17,13 +17,14 @@ project, in Go:
 | --- | --- |
 | [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs and vfox-flutter) — no UI |
 | [`state/`](../../../mygo/state) | The observable controllers, the task queue (one state-changing command at a time, streamed output, download progress, cancellation, retry) |
-| [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages, the dialogs and the end-to-end scenarios |
+| [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages and the dialogs |
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |
 | [`ui/mcu/`](../../../mygo/ui/mcu) | The colour scheme: a Go port of the Material colour utilities (HCT, CAM16, tonal spot) |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
 | [`assets/`](../../../mygo/assets) | What the binary embeds: the icons, the translations and the licenses (all collected at build time) |
 | [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`: pair a browser with this machine (one-time links) or keep the server up for containers and remote instances; the paired browser gets the full web interface (`/app`: SDKs, registry, tasks with live logs, settings) |
 | [`main.go`](../../../mygo/main.go) | Assembles the model and the window; dispatches the `pair` subcommand |
+| [`automation_e2e.go`](../../../mygo/automation_e2e.go) | Links the automation plugin of mygo, only with the build tag `e2e`: the end-to-end tests, the memory measurement and the screenshots drive the application through it |
 
 The layers follow [the architecture](architecture.md): `core` knows
 nothing of the others, `state` only knows `core`, and `ui` sits on top. `core`,
@@ -133,12 +134,16 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   how to regenerate its file: the colour schemes need Node.js to run the
   JavaScript reference implementation, while the shapes are regenerated with
   plain `go run generate.go`, no Node.js required.
-- **End-to-end scenarios** run in the built application when
-  `VFOX_PLUS_E2E_SCENARIO` is set: `fake` against the fake vfox of the
-  fixtures, `real` against the real vfox with the offline test plugin and its
-  server, `measure` for the memory measurement and `screenshots` for the
-  screenshots. The code
-  is in [`ui/e2e*.go`](../../../mygo/ui) and is only compiled with the build tag `e2e`:
+- **End-to-end scenarios** drive the built application from outside, the way
+  assistive technology does. `vfxtool build --e2e` builds it with the tag `e2e`, which links the
+  [automation plugin](https://github.com/egoist/mygo/blob/v0.7.3/docs/plugins/automation.md) of
+  mygo ([`automation_e2e.go`](../../../mygo/automation_e2e.go)): when `MYGO_AUTOMATION` names a Unix
+  socket, the application listens on it and answers requests to list the elements of its window
+  (the ones it gives screen readers, with the keys that the components set), to press them, to
+  fill the fields, to send keys and to capture the window. The scenarios are in
+  [`shared/tooling`](../../../shared/tooling) (`internal/e2erun`); the application has no code for
+  them, except the profile of the offline test plugin and the size of the window of the compact
+  layout (`VFOX_PLUS_E2E_WINDOW`, as `WIDTHxHEIGHT`):
 
   ```sh
   vfxtool build --e2e build/vfox-plus-e2e
@@ -147,16 +152,15 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
     vfxtool e2e-run real build/vfox-plus-e2e
   ```
 
-  `vfxtool e2e-run` prepares a new, empty home directory,
-  the fake vfox or the real vfox with the offline test plugin and its server,
-  starts the application and reads its `e2e: …` report; the application ends
-  with exit code 0 when the scenario passed. The scenarios click, fill and read
-  the nodes that the components register (their role, name and what a click or
-  an input does), on the main thread between two frames, so they exercise the
-  real components, the state, process spawning, streaming, cancellation with
-  `SIGTERM`, the settings file and vfox itself.
-  `vfxtool screenshots` runs the `screenshots` scenario three times (see
-  [Screenshots](contributing.md#screenshots)).
+  `fake` runs against the fake vfox of the fixtures, `real` against the real vfox with the offline
+  test plugin and its server. `vfxtool e2e-run` prepares a new, empty home directory, starts the
+  application, waits for its window, runs the scenario and ends the application. A wait that times
+  out fails the scenario, after the elements that the window showed are printed. The scenarios
+  exercise the real components, the state, process spawning, streaming, cancellation with `SIGTERM`,
+  the settings file and vfox itself. `vfxtool measure` and `vfxtool screenshots` start the application
+  the same way (see [How it is measured](memory.md#how-it-is-measured) and
+  [Screenshots](contributing.md#screenshots)). The build keeps the inspector of the native user
+  interface, which the plugin needs and the release build leaves out; it is about 0.4 MB larger.
 
 ## How the user interface works
 
@@ -192,9 +196,10 @@ pages are built from its components.
   version list of Node.js has 872 entries.
 - **The registry** ([`registry.go`](../../../mygo/ui/kit/registry.go)) is a flat list of the
   nodes the components of a build registered: role, name, state, the list item or
-  dialog they are in, and what a click or an input does. The end-to-end scenarios
-  use it to find and operate widgets; it is not an accessibility tree (mygo
-  gives screen readers its own, see [Limits](#limits)).
+  dialog they are in, and what a click or an input does. The tests of the components
+  and the pages use it to find and operate widgets; it is not an accessibility tree
+  (mygo gives screen readers its own, which the end-to-end scenarios read, see
+  [Limits](#limits)).
 - **Colours** are generated at run time from the seed colour or the accent
   colour of the desktop with the Material colour utilities
   ([`ui/mcu`](../../../mygo/ui/mcu), tonal spot 2021). mygo's
@@ -269,12 +274,14 @@ the network the container is reachable on.
 ## Memory
 
 Measured with `vfxtool sandbox measure`: Ubuntu 26.04 in Docker, Xvfb, a
-1280 × 800 window, one process, the release build.
+1280 × 800 window, one process, the end-to-end build (the release build with the
+inspector and the automation plugin that the measuring drives it through, which
+take up to 1 MB of PSS).
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 62 MB | 50 MB |
-| Versions of Node.js listed | 73 MB | 58 MB |
+| Home page | 63 MB | 51 MB |
+| Versions of Node.js listed | 73 MB | 59 MB |
 
 mygo draws with the processor, and the application keeps GTK from loading
 OpenGL: a GDK that opens its OpenGL connection maps Mesa, and with the software
@@ -306,9 +313,10 @@ adds 8 MB because only the rows in view are built.
   version is pinned in [`go.mod`](../../../mygo/go.mod), and the pages follow what that
   version offers.
 - **Accessibility** goes through mygo's ATK objects, which GTK bridges to AT-SPI,
-  so that Orca reads the window; the registry that the scenarios use is not it.
-  The components of the kit name their elements (the tooltip of an icon button is
-  its name), but mygo's screen reader support has not been tried with Orca here.
+  so that Orca reads the window. The end-to-end scenarios read the same elements
+  through the automation plugin, which is why the components name theirs (the
+  tooltip of an icon button is its name; the row of a task says its status). mygo's
+  screen reader support has not been tried with Orca here.
 - **Input methods** are the ones of GTK 3 (IBus, Fcitx, the Wayland text input).
 - **Only Linux on x86-64 is run and tested end to end.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on

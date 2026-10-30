@@ -594,7 +594,7 @@ func TestParseMemory(t *testing.T) {
 		}
 	})
 	t.Run("rejects anything else", func(t *testing.T) {
-		if ParseMemory(defaultMemoryText()+"e2e: MEASURE home\n") != nil {
+		if ParseMemory(defaultMemoryText()+"e2e: scenario measure passed in 8 s\n") != nil {
 			t.Fatal("want nil")
 		}
 		if ParseMemory(strings.Replace(defaultMemoryText(), "MB, PSS", "MB, PSS -", 1)) != nil {

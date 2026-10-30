@@ -42,8 +42,8 @@ func TestParseArgs(t *testing.T) {
 	if !cfg.e2e {
 		t.Error("e2e = false, want true")
 	}
-	if got := cfg.tags(); got != "mygo_noinspector,e2e" {
-		t.Errorf("tags = %q, want %q", got, "mygo_noinspector,e2e")
+	if got := cfg.tags(); got != "e2e" {
+		t.Errorf("tags = %q, want %q", got, "e2e")
 	}
 
 	cfg, err = parseArgs([]string{"--e2e", "--root", "/tmp/mygo", "dist/mygo"})

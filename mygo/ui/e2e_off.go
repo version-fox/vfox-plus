@@ -16,12 +16,9 @@
 
 package ui
 
-import "github.com/version-fox/vfox-plus/mygo/ui/kit"
-
-// e2eHooks are what the end-to-end scenarios add to the application, which
-// release builds do not have.
-type e2eHooks struct{} //nolint:unused // The build with the tag e2e fills it.
+// The builds without the tag e2e, which are the releases, have no hook for the
+// end-to-end tests.
 
 func (a *App) startE2E() {}
 
-func (a *App) afterFrame(kit.Ctx) {}
+func (a *App) windowSize() (width, height int) { return defaultWidth, defaultHeight }

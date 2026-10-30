@@ -12,22 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows
+//go:build e2e
 
-package screenshots
+package main
 
-import (
-	"errors"
-	"syscall"
-)
-
-// procAlive reports whether pid is still running.
-func procAlive(pid int) bool {
-	err := syscall.Kill(pid, 0)
-	return err == nil || errors.Is(err, syscall.EPERM)
-}
-
-// killProcess terminates pid.
-func killProcess(pid int) {
-	_ = syscall.Kill(pid, syscall.SIGKILL)
-}
+// The end-to-end tests drive the application from outside, through the automation
+// plugin of mygo: it listens on the Unix socket that MYGO_AUTOMATION names, and
+// answers the requests of vfxtool (shared/tooling/internal/automation) to list the
+// elements of the window, act on them and capture it. Only builds with the tag e2e
+// have it, and builds with mygo_noinspector, which the releases are, leave it out
+// even then.
+import _ "github.com/egoist/mygo/plugins/automation"

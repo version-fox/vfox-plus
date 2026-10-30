@@ -17,36 +17,22 @@
 package ui
 
 import (
-	"fmt"
-	"os"
+	"strconv"
 	"strings"
-	"sync/atomic"
-	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/core/profile"
-	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// e2eHooks is what the end-to-end tests add to the application: the count of the
-// builds of the view, which the scenario waits on, so that it acts on what the
-// user sees.
-type e2eHooks struct {
-	builds atomic.Uint64
-}
-
-// startE2E runs the scenario that VFOX_PLUS_E2E_SCENARIO names, if there is one,
-// as vfxtool e2e-run, measure and screenshots expect: every step is reported
-// as `e2e: …` on the standard output, and the
-// application ends with the exit code 0 when the scenario passed and 1 when it
-// failed.
+// startE2E prepares the application for the end-to-end tests, which vfxtool runs
+// through the automation plugin of mygo (see mygo/automation_e2e.go, and
+// MYGO_AUTOMATION, which names the socket): the offline test plugin gets a
+// profile that takes an argument, like vfox-java does. The scenarios themselves
+// are in shared/tooling; the application has no code for them.
 func (a *App) startE2E() {
-	name := a.environment["VFOX_PLUS_E2E_SCENARIO"]
-	if name == "" {
+	if a.environment["MYGO_AUTOMATION"] == "" {
 		return
 	}
-	a.env.Reg.CollectText = true
 	a.model.Profiles.Register(testsdkProfile())
-	go a.runScenario(name)
 }
 
 // testsdkProfile is the profile of the offline test plugin, which takes an argument
@@ -66,45 +52,16 @@ func testsdkProfile() profile.Profile {
 	}
 }
 
-// afterFrame counts the build of the view that has just ended, when the registry
-// knows every widget of the frame.
-func (a *App) afterFrame(kit.Ctx) { a.e2e.builds.Add(1) }
-
-// report writes a line for the harness.
-func report(format string, args ...any) {
-	_, _ = fmt.Fprintf(os.Stdout, "e2e: "+format+"\n", args...)
-}
-
-func (a *App) runScenario(name string) {
-	run, ok := scenarios[name]
-	if !ok {
-		names := make([]string, 0, len(scenarios))
-		for known := range scenarios {
-			names = append(names, known)
+// windowSize is the size of the window in dp: VFOX_PLUS_E2E_WINDOW, as WIDTHxHEIGHT,
+// opens the window of the compact layout for its screenshots.
+func (a *App) windowSize() (width, height int) {
+	width, height = defaultWidth, defaultHeight
+	if w, h, ok := strings.Cut(a.environment["VFOX_PLUS_E2E_WINDOW"], "x"); ok {
+		wn, werr := strconv.Atoi(w)
+		hn, herr := strconv.Atoi(h)
+		if werr == nil && herr == nil && wn > 0 && hn > 0 {
+			return wn, hn
 		}
-		report("unknown scenario %q; use one of %s", name, strings.Join(names, ", "))
-		os.Exit(2)
 	}
-	started := time.Now()
-	report("scenario %s started", name)
-	current := newScenario(a)
-	if err := protect(func() { run(current) }); err != nil {
-		report("scenario %s FAILED: %v", name, err)
-		// What the user would have seen, to find out why.
-		_ = protect(func() { current.dump() })
-		os.Exit(1)
-	}
-	report("scenario %s passed in %d s", name, int(time.Since(started).Seconds()+0.5))
-	os.Exit(0)
-}
-
-// protect turns the panic of a failed check into an error.
-func protect(f func()) (err error) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = fmt.Errorf("%v", recovered)
-		}
-	}()
-	f()
-	return nil
+	return width, height
 }
