@@ -27,6 +27,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
+import androidx.core.view.WindowCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResult
@@ -36,7 +37,6 @@ import com.google.zxing.DecodeHintType
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
-import com.google.android.material.transition.MaterialSharedAxis
 import dev.vfox.vfoxplus.databinding.FragmentScanBinding
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -53,11 +53,15 @@ class ScanFragment : Fragment() {
     private var executor: ExecutorService? = null
     private val fired = AtomicBoolean(false)
     private var torchOn = false
+    private var lightStatusBars = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
-        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+        val context = requireContext()
+        enterTransition = Motion.sharedAxisX(context, true)
+        exitTransition = Motion.sharedAxisX(context, true)
+        reenterTransition = Motion.sharedAxisX(context, false)
+        returnTransition = Motion.sharedAxisX(context, false)
     }
 
     override fun onCreateView(
@@ -70,10 +74,45 @@ class ScanFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolbar.setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+        // The bar above and the toolbar below keep clear of the system bars; the square of
+        // the viewfinder lies between them.
+        binding.topBar.padToSafeArea(bottom = false)
+        binding.bottomBar.padToSafeArea(top = false)
+        binding.closeButton.setOnClickListener { parentFragmentManager.popBackStack() }
         binding.manualButton.setOnClickListener { parentFragmentManager.popBackStack() }
-        binding.torchSwitch.setOnCheckedChangeListener { _, checked -> setTorch(checked) }
+        binding.torchButton.addOnCheckedChangeListener { button, checked ->
+            button.setIconResource(if (checked) R.drawable.ic_torch_on_fill else R.drawable.ic_torch_off)
+            setTorch(checked)
+        }
+        binding.root.post { placeViewfinder() }
+        binding.viewfinder.settleIn()
         startCamera()
+    }
+
+    // The camera fills the screen under the status bar, so the clock and the icons are light
+    // whatever the theme is (the theme gives dark ones in the light theme, which vanish on the
+    // picture). The other screens get theirs back as soon as this one pauses, which is when it
+    // starts to leave, not when its exit transition has ended.
+    override fun onResume() {
+        super.onResume()
+        val window = requireActivity().window
+        val bars = WindowCompat.getInsetsController(window, window.decorView)
+        lightStatusBars = bars.isAppearanceLightStatusBars
+        bars.isAppearanceLightStatusBars = false
+    }
+
+    override fun onPause() {
+        val window = requireActivity().window
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = lightStatusBars
+        super.onPause()
+    }
+
+    // The square is placed between the bar at the top and the hint with the toolbar at the bottom.
+    private fun placeViewfinder() {
+        _binding?.let {
+            it.viewfinder.clearTop = it.topBar.bottom.toFloat()
+            it.viewfinder.clearBottom = (it.root.height - it.bottomBar.top).toFloat()
+        }
     }
 
     private fun startCamera() {
@@ -97,7 +136,7 @@ class ScanFragment : Fragment() {
                     analysis,
                 )
                 camera = bound
-                binding.torchSwitch.isVisible = bound.cameraInfo.hasFlashUnit()
+                binding.torchButton.isVisible = bound.cameraInfo.hasFlashUnit()
             } catch (_: Exception) {
                 binding.hint.text = getString(R.string.scan_failed)
             }

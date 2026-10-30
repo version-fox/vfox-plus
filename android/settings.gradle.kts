@@ -24,6 +24,21 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // The Android XML of the Material Symbols, which google/material-design-icons keeps in git and does not publish as a
+        // library: this repository serves its raw files to the group "symbols" and to nothing else, so that they are
+        // dependencies like any other. The module is the symbol, the version the commit, the classifier the variant (fill1).
+        exclusiveContent {
+            forRepository {
+                ivy {
+                    url = uri("https://raw.githubusercontent.com/google/material-design-icons/")
+                    patternLayout {
+                        artifact("[revision]/symbols/android/[module]/materialsymbolsrounded/[module](_[classifier])_24px.[ext]")
+                    }
+                    metadataSources { artifact() }
+                }
+            }
+            filter { includeGroup("symbols") }
+        }
     }
 }
 rootProject.name = "vfox-plus"

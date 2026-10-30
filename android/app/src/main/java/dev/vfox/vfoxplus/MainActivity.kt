@@ -15,19 +15,21 @@
 package dev.vfox.vfoxplus
 
 import android.os.Bundle
-import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import dev.vfox.vfoxplus.databinding.ActivityMainBinding
 
-// Single-activity host: pairing first, the WebView after. The system back
-// button walks the WebView history before leaving the session.
+// Single-activity host: pairing first, the WebView after. The app draws edge to edge,
+// and every screen keeps clear of the system bars itself (Insets.kt). The system back
+// gesture walks the back stack of the screens, and the session screen takes it first
+// while its page has a history; the app does not handle it here, so that the system
+// can show the predictive back animation.
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge()
         HighRefreshRate.request(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -37,16 +39,5 @@ class MainActivity : AppCompatActivity() {
                 .add(R.id.container, PairingFragment())
                 .commit()
         }
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                val current = supportFragmentManager.findFragmentById(R.id.container)
-                if (current is ViewerFragment && current.goBack()) return
-                if (supportFragmentManager.backStackEntryCount > 0) {
-                    supportFragmentManager.popBackStack()
-                } else {
-                    finish()
-                }
-            }
-        })
     }
 }

@@ -228,5 +228,14 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
   TLS 指纹供核对、持久化会话 cookie。
 - **主内容**是 `/app` 的 WebView，打开文件上传（供插件 `.zip`/`.lua` 文件），
   下拉等交互留给页面。
+- 页面与 App 通过 `window.vfoxAndroid` 对话：它是 App 加进 WebView 的对象（`WebBridge`），别的客户端没有，所以页面
+  找到它就知道自己运行在 App 里：
+  - `insets()` 以 `"top,right,bottom,left,keyboard"` 返回安全区（CSS 像素）：系统栏与刘海遮住的部分，以及键盘打开时的
+    高度。页面把前四个值写进 CSS 变量 `--sai-top`、`--sai-right`、`--sai-bottom`、`--sai-left`（在浏览器里它们是
+    `env(safe-area-inset-*)`，而 WebView 并非每个版本都给出），键盘打开时给根元素加上 `kb`。边距变化时 App 再次调用
+    `window.vfoxInsets()`。
+  - `server()` 返回已配对服务器的地址（scheme 与 authority）。
+  - `pairNew()` 与 `disconnect()` 离开会话回到配对屏；后者先忘掉服务器与会话 cookie。页面的设置在**这台手机**卡片上
+    提供这两项，只有 App 才显示这张卡片。
 - 它按本文档编程，不直连 Go 代码：列表用总览，进度用 `/api/tasks` +
   `/api/events`，动作用 POST 路由。

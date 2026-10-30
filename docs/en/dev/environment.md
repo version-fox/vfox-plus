@@ -171,6 +171,37 @@ and does not help.
   server`, and let the Windows firewall through). Its numbers belong to that
   device: they do not compare with the emulator of CI.
 
+### Run the app
+
+With an emulator that has booted (`adb devices` lists it), build the app, install
+it and pair it with a server on your machine:
+
+```sh
+cd android && ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # for the scanner
+```
+
+The emulator reaches the loopback of your machine as `10.0.2.2`. The session
+cookie of the pairing server is `Secure`, and a WebView keeps it for `https://`
+and for loopback only, so pairing over `http://10.0.2.2:PORT` does not work. Pair
+over HTTPS instead: a self-signed certificate that names `10.0.2.2`, and a server
+on loopback that uses it (`go -C mygo build ./cmd/vfox-plus-serve`):
+
+```sh
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
+  -subj /CN=vfox-plus-emulator -addext subjectAltName=IP:10.0.2.2,IP:127.0.0.1 \
+  -keyout key.pem -out cert.pem
+vfox-plus-serve serve -bind 127.0.0.1 -port 0 -tls-cert cert.pem -tls-key key.pem
+```
+
+Type the link that it prints into the app, with `127.0.0.1` replaced by
+`10.0.2.2`. The app shows the fingerprint of the certificate; it has to be the one
+that `openssl x509 -in cert.pem -noout -fingerprint -sha256` prints.
+
+`vfxtool measure-apk` runs on the same emulator. It installs without `-r`, so
+uninstall the app first (`adb uninstall dev.vfox.vfoxplus`).
+
 ## WSL2
 
 - **systemd** is needed by the steps above and by rootless Docker. `[boot]`,

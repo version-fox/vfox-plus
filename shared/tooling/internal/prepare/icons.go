@@ -338,3 +338,18 @@ func writeIcons(set iconSet, symbols []string, dir string) error {
 	}
 	return nil
 }
+
+// fetchTarball makes sure that the package of the source is in the cache of the
+// icons, from the registry that VFOX_PLUS_NPM_REGISTRY names or else the one of
+// npm, and returns the file.
+func fetchTarball(ctx context.Context, source iconSource, log io.Writer) (string, error) {
+	cache, err := iconCacheDir(os.Getenv, os.UserCacheDir)
+	if err != nil {
+		return "", err
+	}
+	registry := os.Getenv("VFOX_PLUS_NPM_REGISTRY")
+	if registry == "" {
+		registry = defaultRegistry
+	}
+	return ensureTarball(ctx, source, cache, registry, log)
+}

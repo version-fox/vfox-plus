@@ -1,5 +1,5 @@
 {
-  "description": "Icons used by the vfox-plus user interface, by meaning. Every implementation uses the Material Symbols Rounded icons with these symbol names, so that the GUIs look the same. The desktop interface draws the SVGs that `vfxtool prepare` cuts out of the npm package of source, SYMBOL.svg outlined and SYMBOL-fill.svg filled. Browse the symbols at https://fonts.google.com/icons?icon.style=Rounded.",
+  "description": "Icons used by the vfox-plus user interface, by meaning. Every implementation uses the Material Symbols Rounded icons with these symbol names, so that the GUIs look the same. The Android app imports the Android XML that google/material-design-icons publishes for the symbols that it uses (docs/en/dev/design-system.md, Icons). The desktop interface draws the SVGs that `vfxtool prepare` cuts out of the npm package of source, SYMBOL.svg outlined and SYMBOL-fill.svg filled. Browse the symbols at https://fonts.google.com/icons?icon.style=Rounded.",
   "set": "Material Symbols Rounded",
   "license": "Apache-2.0",
   "source": {

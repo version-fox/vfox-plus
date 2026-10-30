@@ -16,31 +16,45 @@
 -->
 <resources>
     <string name="app_name">vfox-plus</string>
+
+    <!-- Pairing -->
     <string name="pair_title">Connect to vfox-plus</string>
-    <string name="pair_body">Run this on your PC, then paste the link it prints. Links work once and expire after a few minutes.</string>
+    <string name="pair_body">Pair this phone with your PC to manage your SDK versions from here.</string>
     <string name="pair_command">vfox-plus serve --port 8080</string>
-    <string name="link_hint">Pairing link (https://…/auth/connect/…)</string>
-    <string name="connect">Connect</string>
+    <string name="command_label">Run on your PC</string>
+    <string name="command_copied">Command copied</string>
+    <string name="copy_command">Copy the command</string>
     <string name="scan">Scan QR code</string>
+    <string name="or_paste_link">or paste the pairing link</string>
+    <string name="link_hint">Pairing link</string>
+    <string name="link_helper">https://…/auth/connect/…</string>
+    <string name="paste">Paste the link</string>
+    <string name="clear">Clear</string>
+    <string name="connect">Connect</string>
+    <string name="invalid_link">That is not a pairing link. Paste the full link the PC printed.</string>
+    <string name="recent_title">Last server</string>
+    <string name="reconnect">Reconnect</string>
+    <string name="how">How to pair</string>
+    <string name="how_title">Pair with your PC</string>
+    <string name="how_body">1. On the PC, run `vfox-plus serve --port 8080` (or the Docker image) and keep it running.\n\n2. The terminal prints a pairing link, a QR code and, for HTTPS, a certificate fingerprint.\n\n3. Scan the QR code, or paste the link here and connect. If the server uses a self-signed certificate, compare its fingerprint with the PC terminal before trusting it.\n\n4. The app stays paired and reconnects on the same network. The phone must reach the PC (same Wi-Fi or another route) and the port must be allowed through the PC firewall.</string>
+
+    <!-- The scanner -->
     <string name="scan_title">Scan to pair</string>
     <string name="scan_hint">Point the camera at the QR code the PC terminal shows.</string>
     <string name="scan_failed">Cannot start the camera.</string>
     <string name="scan_denied">Camera denied. Paste the link instead.</string>
     <string name="torch">Torch</string>
     <string name="enter_manually">Enter manually</string>
-    <string name="invalid_link">That is not a pairing link. Paste the full link the PC printed.</string>
-    <string name="how">How to pair</string>
-    <string name="how_title">Pair with your PC</string>
-    <string name="how_body">1. On the PC, run `vfox-plus serve --port 8080` (or the Docker image) and keep it running.\n\n2. The terminal prints a pairing link, a QR code and, for HTTPS, a certificate fingerprint.\n\n3. Scan the QR code, or paste the link here and connect. If the server uses a self-signed certificate, compare its fingerprint with the PC terminal before trusting it.\n\n4. The app stays paired and reconnects on the same network. The phone must reach the PC (same Wi-Fi or another route) and the port must be allowed through the PC firewall.</string>
-    <string name="recent_title">Last server</string>
-    <string name="reconnect">Reconnect</string>
+    <string name="close">Close</string>
+
+    <!-- The paired session -->
+    <string name="unreachable_title">Cannot reach the server</string>
+    <string name="unreachable_body">Check that vfox-plus serve is running on your PC and that this phone can reach it.</string>
+    <string name="try_again">Try again</string>
+    <string name="pair_new">Pair a new link</string>
+    <string name="open_link_failed">No app can open this link.</string>
     <string name="tls_title">Trust this certificate?</string>
-    <string name="tls_body">The server uses a self-signed certificate. Only continue if this fingerprint matches the one on the PC terminal:\n\n%1$s</string>
+    <string name="tls_body">The server uses a self-signed certificate. Only continue if this fingerprint matches the one on the PC terminal:</string>
     <string name="tls_body_unknown">The server certificate cannot be verified. Only continue on a network you trust.</string>
     <string name="trust_once">Trust once</string>
-    <string name="load_failed">Cannot reach the server. Check the network and try again.</string>
-    <string name="open_link_failed">No app can open this link.</string>
-    <string name="action_refresh">Refresh</string>
-    <string name="action_pair_new">Pair a new link</string>
-    <string name="action_disconnect">Disconnect</string>
 </resources>

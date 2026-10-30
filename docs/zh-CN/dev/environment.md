@@ -146,6 +146,32 @@ Windows 11 的累积更新 KB5127648（2026 年 10 月；版本 26100.9711，25H
   模拟器（在 WSL 里设置 `ANDROID_ADB_SERVER_ADDRESS` 与 `ANDROID_ADB_SERVER_PORT`，让那台服务器用
   `adb -a nodaemon server` 监听，并让 Windows 防火墙放行）。它的数字属于那台设备，不能与 CI 的模拟器比较。
 
+### 运行 App
+
+模拟器启动后（`adb devices` 能列出它），构建 App、安装，并与你机器上的服务器配对：
+
+```sh
+cd android && ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # 供扫码页使用
+```
+
+模拟器把你机器的回环地址当作 `10.0.2.2`。配对服务的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
+用 `http://10.0.2.2:PORT` 配对行不通。改用 HTTPS：一份写有 `10.0.2.2` 的自签名证书，以及在回环地址上使用它的服务器
+（`go -C mygo build ./cmd/vfox-plus-serve`）：
+
+```sh
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
+  -subj /CN=vfox-plus-emulator -addext subjectAltName=IP:10.0.2.2,IP:127.0.0.1 \
+  -keyout key.pem -out cert.pem
+vfox-plus-serve serve -bind 127.0.0.1 -port 0 -tls-cert cert.pem -tls-key key.pem
+```
+
+把它打印的链接里的 `127.0.0.1` 换成 `10.0.2.2`，输入到 App 里。App 会显示证书的指纹，它必须与
+`openssl x509 -in cert.pem -noout -fingerprint -sha256` 打印的相同。
+
+`vfxtool measure-apk` 在同一个模拟器上运行。它安装时不带 `-r`，所以要先卸载 App（`adb uninstall dev.vfox.vfoxplus`）。
+
 ## WSL2
 
 - **systemd** 是上面几步与 rootless Docker 都需要的。在 `/etc/wsl.conf` 里 `[boot]` 下写

@@ -17,6 +17,8 @@ vfox-plus 遵循 [Material 3 Expressive](https://m3.material.io/)——2025 年 
   `surfaceContainer`，突出卡片 `surfaceContainerHighest`。主、次、第三容器标记统计块
   与头像。
 - 危险操作用 `error`。
+- Web 界面（`mygo/pair/webapp.html` 的 `--m3-*` 变量）与 Android 应用（`values/colors.xml`、`values-night/colors.xml`）以字面值存放
+  方案的 48 个角色，它们与 `mygo/ui/mcu` 按种子算出的角色不同时，`mygo` 里的 `go test ./pair` 会失败。
 
 mygo：`mygo/ui/kit/theme.go` 的 `PaletteFor`，由 `mygo/ui/mcu`（Material 颜色工具的 Go
 移植，tonal spot）计算。
@@ -113,6 +115,13 @@ vfox-plus 使用 **expressive** 方案：
 弹簧采样为 settle 时间内的曲线；自带曲线的页面切换持续 slow effects 弹簧 settle
 时长。平台要求减少动态效果时弹簧直达目标，不定指示器静止。
 
+Web 界面就是这样的 API：CSS 只有时长和曲线，没有弹簧。它的 `--sp-*` 变量就是六个弹簧：`--sp-NAME-t` 是 settle 所需的毫秒数，
+`--sp-NAME` 是阶跃响应采样成的 `linear()` 曲线，取尽量少的采样点，使折线与曲线相差不超过 0.6 %。每个 `transition` 与
+`animation` 的时间和曲线都取自它们；对话框在淡入（default effects）的同时缩放进入（default spatial），所以是两个动画。
+`mygo/pair` 的一个测试按 `kit.Expressive` 重新计算这些变量，它们不同、或某条声明带着自己的时长或曲线时失败，并打印该粘贴
+的行（一直运行到工作结束的波浪进度与加载指示器除外）。没有 `linear()` 的浏览器沿用此前页面的贝塞尔曲线。Android 应用从主题
+（`motionSpring*`）取弹簧：会动的东西用 `SpringAnimation`，屏幕之间的转场用 `SpringInterpolator`。
+
 mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，静止时窗口空闲。
 
 ### 转场
@@ -152,6 +161,22 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 | 筛选 Chip | [Chips](https://m3.material.io/components/chips) | `ui/kit/chip.go` 的 `FilterChip` |
 | 搜索栏、卡片、对话框、菜单、snack bar、开关、文本框 | Material 3 | `ui/kit` 的 `SearchBar`、`Card`、`Menu`、对话框与 snack bar，`ui/kit/theme.go` 定制 |
 
+### Android 应用
+
+App 的屏幕由 Material Components 1.14.0 的组件搭成（用 View 而不是 Compose：[原因](packaging-android.md#为什么用-view-而不是-compose)），
+其 Expressive 样式是主题的默认值。
+
+| 组件 | 在 App 里 |
+| --- | --- |
+| 按钮（filled、tonal、text）与图标按钮 | `Widget.Material3Expressive.Button*`，自带形状形变；布局只设尺寸（`materialSizeOverlay`，Medium） |
+| 浮动工具栏 | 扫码页的 `FloatingToolbarLayout`，样式 `Widget.Material3.FloatingToolbar.Vibrant`：手电筒与“手动输入” |
+| 卡片 | 28 dp 圆角的 filled `MaterialCardView`：命令在 `surfaceContainerHigh`，上次的服务器在 `secondaryContainer` |
+| 文本框 | outlined `TextInputLayout`，圆角取规约的 4 dp；框尾图标粘贴与清除 |
+| 加载指示器 | 取代“连接”按钮位置的 `LoadingIndicator` |
+| 波浪进度指示器 | `Widget.Material3Expressive.LinearProgressIndicator.Wavy`，会话页面加载时 |
+| 对话框 | `MaterialAlertDialogBuilder`，Expressive 主题的样式；证书指纹放在 `surfaceContainerHighest` 卡片里 |
+| 形状 | 配对屏狐狸背后的 cookie 与错误状态图标背后的 soft burst（`ExpressiveShapes`） |
+
 ### 波浪进度指示器
 
 - 轨道与指示器 4 dp 粗、圆端；间距 4 dp。
@@ -165,8 +190,8 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
   `onSurfaceVariant`。开：`secondaryContainer` 胶囊，内容 `onSecondaryContainer`，无描边，前面有勾号。
 - 状态变化时 Chip 用快速空间弹簧形变：筛选开启时圆角从 8 dp 长到整个高度，描边淡出，填充淡入，18 dp 的勾号
   通过撑宽 Chip 滑入；按下时圆角收到 4 dp。
-- 一行 Chip 可换行；同一行的 Chip 互为“或”。Web 界面用 CSS（`.chip`）画同样的 Chip，圆角相同，弹簧用
-  `cubic-bezier(.34, 1.3, .64, 1)` 曲线表示。
+- 一行 Chip 可换行；同一行的 Chip 互为“或”。Web 界面用 CSS（`.chip`）画同样的 Chip，圆角相同，弹簧相同
+  （`--sp-fast-spatial`）。
 
 ### 加载指示器
 
@@ -183,6 +208,18 @@ grade 0、optical size 24：选中导航目的地图标填充（`FILL` 1），�
 校验后切出所用符号的 SVG（`SYMBOL.svg` 描边、`SYMBOL-fill.svg` 填充），所以仓库里不提交任何图标。
 mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；导航与按钮的填充动画是描边与填充两个图标的
 交叉淡入淡出，SVG（共约 60 KB）在首次绘制某图标时才解析。
+
+Android 应用把同样的符号画成矢量图，仓库里没有任何东西保存或生成它们：它们是
+[google/material-design-icons](https://github.com/google/material-design-icons)
+为每个符号发布的 Android XML（Apache-2.0，与本仓库相同），由构建导入。那个仓库把它们放在 git 里，不当作库发布，所以
+`settings.gradle.kts` 有一个指向其 raw 文件的 Ivy 仓库，只服务组 `symbols`，别的一概不经过它；`app/build.gradle.kts`
+列出符号与提交（`10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`，2026-10-23），
+每个符号是一个依赖 `symbols:SYMBOL:COMMIT@xml`，填充的加分类器 `fill1`：对应文件
+`symbols/android/SYMBOL/materialsymbolsrounded/SYMBOL_24px.xml` 与 `SYMBOL_fill1_24px.xml`。Gradle 把它们取到自己的缓存里
+一次，之后离线构建也能用；每个变体一个任务（`copyMaterialSymbolsRelease`、`copyMaterialSymbolsDebug`）把它们原样写成
+`ic_NAME.xml`，作为生成的资源交给 Android 插件与其它资源合并（`app/build/generated/res/copyMaterialSymbolsRelease/drawable`）。文件的颜色取主题的 `colorControlNormal`，除非视图另外着色；在从右到左的
+语言里要翻转的符号由 Google 标出（`autoMirrored`，这里是 `copy`、`forward` 与 `help`）。应用用到 `ic_close`（`close`）、`ic_copy`（`content_copy`）、`ic_forward`（`arrow_forward`）、`ic_help`（`help`）、`ic_history`（`history`）、`ic_keyboard`（`keyboard`）、`ic_link`（`link`）、`ic_lock`（`lock`）、`ic_paste`（`content_paste`）、`ic_retry`（`replay`）、`ic_scan_qr`（`qr_code_scanner`）、`ic_torch_off`（`flashlight_off`）、`ic_torch_on_fill`（`flashlight_on`，填充）与 `ic_unreachable`（`cloud_off`）。
+它们与上面的 npm 包是同一套图标的两份拷贝，即 Material Symbols Rounded、字重 400、24 px，所以各界面看起来一样。
 
 ### 应用图标
 

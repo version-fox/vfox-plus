@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 Han Li and contributors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<resources>
+    <!-- The colour roles of the design system (docs/en/dev/design-system.md), dark: the scheme of the seed #F28C1B,
+         tonal spot. The web interface has the same values as the m3-* variables of mygo/pair/webapp.html, and a test of
+         mygo/pair fails when they differ. -->
+    <color name="m3_background">#19120c</color>
+    <color name="m3_on_background">#efe0d6</color>
+    <color name="m3_surface">#19120c</color>
+    <color name="m3_surface_dim">#19120c</color>
+    <color name="m3_surface_bright">#413731</color>
+    <color name="m3_surface_container_lowest">#140d08</color>
+    <color name="m3_surface_container_low">#221a14</color>
+    <color name="m3_surface_container">#261e18</color>
+    <color name="m3_surface_container_high">#312822</color>
+    <color name="m3_surface_container_highest">#3c332c</color>
+    <color name="m3_on_surface">#efe0d6</color>
+    <color name="m3_on_surface_variant">#d6c3b6</color>
+    <color name="m3_outline">#9e8e82</color>
+    <color name="m3_outline_variant">#51443b</color>
+    <color name="m3_inverse_surface">#efe0d6</color>
+    <color name="m3_inverse_on_surface">#372f28</color>
+    <color name="m3_primary">#ffb779</color>
+    <color name="m3_on_primary">#4c2700</color>
+    <color name="m3_primary_container">#6b3b04</color>
+    <color name="m3_on_primary_container">#ffdcc1</color>
+    <color name="m3_primary_fixed">#ffdcc1</color>
+    <color name="m3_primary_fixed_dim">#ffb779</color>
+    <color name="m3_on_primary_fixed">#2e1500</color>
+    <color name="m3_on_primary_fixed_variant">#6b3b04</color>
+    <color name="m3_inverse_primary">#88521c</color>
+    <color name="m3_secondary">#e3c0a5</color>
+    <color name="m3_on_secondary">#412c19</color>
+    <color name="m3_secondary_container">#5a422e</color>
+    <color name="m3_on_secondary_container">#ffdcc1</color>
+    <color name="m3_secondary_fixed">#ffdcc1</color>
+    <color name="m3_secondary_fixed_dim">#e3c0a5</color>
+    <color name="m3_on_secondary_fixed">#2a1707</color>
+    <color name="m3_on_secondary_fixed_variant">#5a422e</color>
+    <color name="m3_tertiary">#c3cb97</color>
+    <color name="m3_on_tertiary">#2d330e</color>
+    <color name="m3_tertiary_container">#434a22</color>
+    <color name="m3_on_tertiary_container">#e0e7b1</color>
+    <color name="m3_tertiary_fixed">#e0e7b1</color>
+    <color name="m3_tertiary_fixed_dim">#c3cb97</color>
+    <color name="m3_on_tertiary_fixed">#181e00</color>
+    <color name="m3_on_tertiary_fixed_variant">#434a22</color>
+    <color name="m3_error">#ffb4ab</color>
+    <color name="m3_on_error">#690005</color>
+    <color name="m3_error_container">#93000a</color>
+    <color name="m3_on_error_container">#ffdad6</color>
+    <color name="m3_surface_variant">#51443b</color>
+    <color name="m3_shadow">#000000</color>
+    <color name="m3_scrim">#000000</color>
+</resources>

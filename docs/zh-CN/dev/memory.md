@@ -23,7 +23,8 @@ GTK 3。版本列表只构建可见行，增加 8 MB PSS。
 它们多占至多 1 MB PSS，发布构建没有。
 
 Android 客户端（`android/`）不在此表：它是包住配对服务的 WebView，内存为系统
-WebView 加页面，在设备上衡量，不用本方法。
+WebView 加页面，在设备上衡量，不用本方法。它的工具包要付出什么，见
+[Android 应用用 View 还是 Compose](#android-应用用-view-还是-compose)。
 
 ## 配对服务与后台服务
 
@@ -63,6 +64,33 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-serve` 与 `memory-w
 覆盖缺口：没有配对后 WebView APK 状态（模拟器无可配对服务，`apk-cold` 是未配对
 首屏），堆在桌面 Chrome 中测量，而非 APK 内嵌的系统 WebView，其回收器行为
 可能不同。
+
+### Android 应用用 View 还是 Compose
+
+Android 应用用 View 写，配 Material Components。为了看清 Compose 要付出什么，把它的配对屏用 Compose
+又写了一遍（字符串、颜色、图标、形状都相同），2026-10-30 把这几个应用在同一个模拟器（API 36、x86_64、
+无 GPU）上以 R8 的 release 构建依次运行：安装、经 launcher 启动、静置 12 秒，从 `dumpsys meminfo` 读 PSS，
+每个应用轮流三轮。“新装”指刚安装完，代码在解释器与即时编译中运行；“已编译”指执行
+`cmd package compile -m speed -f` 之后，即整个应用已提前编译。
+
+| 应用 | APK（字节） | 新装 PSS（MB） | 已编译 PSS（MB） |
+| --- | ---: | ---: | ---: |
+| View，用 Material 3 Expressive 重做之前 | 3,176,011 | 40.8 | 44.5 |
+| View，用 Material 3 Expressive 重做后 | 3,228,463 | 43.5 | 46.9 |
+| Compose，只有配对屏 | 3,589,067 | 44.4 | 47.4 |
+
+- **内存分不出高下。**Compose 屏比 View 应用多 0.9 MB（新装）与 0.5 MB（已编译），与噪声同量级：六次新装它读到
+  43.1 到 45.1 MB（原生堆在 9.8 与 11.5 MB 之间跳），View 应用读到 43.4 到 43.6 MB。View 应用这次重做带来的变化更大
+  （+2.4 到 +2.7 MB）。内存不是选择任一工具包的理由。
+- **APK 体积分得出。**在 View 应用上加 Compose，APK 变成 4,434,858 字节，多 1.2 MB（37%）；只有配对屏、没有扫码、
+  会话屏、CameraX 与 zxing 的 Compose 应用，就已经比整个 View 应用大。
+- **比较时只带要运行的东西。**第一个 Compose 构建里还留着从未运行的 View 屏幕，读数比 View 应用多约 3 MB（新装）与
+  约 6 MB（已编译）：APK 里的代码一旦被系统编译，就会占内存。
+- **Compose 屏**用的是 Compose BOM 2026.06.01（Compose 1.11.4、Material 3 1.4.0，只用稳定 API）、
+  activity-compose 1.13.0，以及与锁定的 Kotlin 2.1.20 对应的 Compose 编译器插件。
+- **绝对数值属于这一次测量**：更早的一次，View 应用读到 30 到 34 MB。只比较表中各行。
+- **没有测：**带 Expressive 组件的 Compose（锁定的工具链构建不了，见[为什么用 View 而不是
+  Compose](packaging-android.md#为什么用-view-而不是-compose)）、带 WebView 的会话屏、真机。
 
 ## 如何测量
 
