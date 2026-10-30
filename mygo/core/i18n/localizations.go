@@ -50,7 +50,8 @@ const (
 )
 
 // SystemLocales returns the locales of the desktop, most preferred first, as
-// GLib reads them from environment.
+// GLib reads them from environment. Windows sets none of the variables: the user
+// interface asks mygo for the display languages once it runs (ui.App.Run).
 func SystemLocales(environment map[string]string) []string {
 	var locales []string
 	add := func(value string) {

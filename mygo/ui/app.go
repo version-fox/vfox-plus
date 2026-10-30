@@ -23,6 +23,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -165,6 +166,7 @@ func (a *App) Run() {
 	// fields bring their own editing commands.
 	mygo.App.SetMenu(nil)
 	mygo.App.WhenReady(func() {
+		a.useSystemLanguages(mygo.App.PreferredLanguages())
 		a.win = mygo.NewWindow(mygo.WindowOptions{
 			Title: a.T("appTitle"), Width: 1280, Height: 820, MinWidth: 360, MinHeight: 480,
 			Content: mui.View(a.view),
@@ -256,6 +258,16 @@ func (a *App) syncTheme(desktopDark bool, preferences mui.Preferences) {
 	a.themeKey = key
 	a.env.Theme = kit.NewTheme(seed, dark, reduced, preferences.TextScale)
 	a.uiTheme = a.env.Theme.UI()
+}
+
+// useSystemLanguages puts the languages that the system says the user reads before the
+// locales of the environment, and loads the messages again. The environment is all that
+// there is before the application runs, and Windows has no variable for the display
+// language, which mygo can tell only once the application is ready. On Linux it reads
+// the same variables, so nothing changes there.
+func (a *App) useSystemLanguages(preferred []string) {
+	a.locales = append(slices.Clone(preferred), a.locales...)
+	a.syncLanguage()
 }
 
 // syncLanguage loads the messages of the language the settings ask for.

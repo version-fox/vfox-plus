@@ -22,6 +22,7 @@ import (
 	mui "github.com/egoist/mygo/ui"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/i18n"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
@@ -602,6 +603,46 @@ func TestTheLanguageFollowsTheDesktopLocale(t *testing.T) {
 	ta.mustText("正在使用的版本")
 	if got := ta.app.T("homeStatPlugins", "count", 1); got != "插件" {
 		t.Errorf("got %q", got)
+	}
+}
+
+// Windows sets none of the variables of the locale: mygo tells the display languages
+// of the user once the application is ready, and they come before the environment.
+func TestTheLanguageFollowsTheDisplayLanguagesOfTheSystem(t *testing.T) {
+	cases := map[string]struct {
+		preference  settings.LanguagePreference
+		environment []string
+		system      []string
+		want        i18n.SupportedLanguage
+	}{
+		"Chinese Windows, no variable":              {settings.LanguageSystem, nil, []string{"zh-Hans-CN", "en-US"}, i18n.SimplifiedChinese},
+		"Traditional Chinese has the one catalogue": {settings.LanguageSystem, nil, []string{"zh-Hant-TW"}, i18n.SimplifiedChinese},
+		"English Windows":                           {settings.LanguageSystem, nil, []string{"en-US"}, i18n.English},
+		"the first language that has a catalogue":   {settings.LanguageSystem, nil, []string{"de-DE", "zh-Hans-CN", "en-US"}, i18n.SimplifiedChinese},
+		"none of them has one":                      {settings.LanguageSystem, nil, []string{"de-DE", "fr-FR"}, i18n.English},
+		"the system lists none":                     {settings.LanguageSystem, []string{"zh_CN.UTF-8"}, nil, i18n.SimplifiedChinese},
+		"the system comes first":                    {settings.LanguageSystem, []string{"en_US.UTF-8"}, []string{"zh-Hans-CN"}, i18n.SimplifiedChinese},
+		"a language of the settings wins":           {settings.LanguageEnglish, nil, []string{"zh-Hans-CN"}, i18n.English},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			defaults := settings.DefaultSettings()
+			defaults.Language = c.preference
+			ta := newTestApp(t, testsupport.FixtureRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(defaults))
+			ta.app.locales = c.environment
+			ta.app.useSystemLanguages(c.system)
+			// The settings of the user are read when the model starts.
+			ta.start()
+			ta.settle()
+			if got := ta.app.l10n.Load().Language; got != c.want {
+				t.Fatalf("the language is %q, want %q", got, c.want)
+			}
+			if c.want == i18n.SimplifiedChinese {
+				ta.mustText("正在使用的版本")
+			} else {
+				ta.mustText("Versions in use")
+			}
+		})
 	}
 }
 
