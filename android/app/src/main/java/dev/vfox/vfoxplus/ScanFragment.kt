@@ -27,6 +27,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
+import androidx.core.view.WindowCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResult
@@ -52,6 +53,7 @@ class ScanFragment : Fragment() {
     private var executor: ExecutorService? = null
     private val fired = AtomicBoolean(false)
     private var torchOn = false
+    private var lightStatusBars = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +87,24 @@ class ScanFragment : Fragment() {
         binding.root.post { placeViewfinder() }
         binding.viewfinder.settleIn()
         startCamera()
+    }
+
+    // The camera fills the screen under the status bar, so the clock and the icons are light
+    // whatever the theme is (the theme gives dark ones in the light theme, which vanish on the
+    // picture). The other screens get theirs back as soon as this one pauses, which is when it
+    // starts to leave, not when its exit transition has ended.
+    override fun onResume() {
+        super.onResume()
+        val window = requireActivity().window
+        val bars = WindowCompat.getInsetsController(window, window.decorView)
+        lightStatusBars = bars.isAppearanceLightStatusBars
+        bars.isAppearanceLightStatusBars = false
+    }
+
+    override fun onPause() {
+        val window = requireActivity().window
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = lightStatusBars
+        super.onPause()
     }
 
     // The square is placed between the bar at the top and the hint with the toolbar at the bottom.
