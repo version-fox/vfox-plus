@@ -65,5 +65,26 @@
     "versions": "layers",
     "vfoxConfig": "tune",
     "warning": "warning"
+  },
+  "android": {
+    "description": "The icons of the Android app, which `vfxtool android-icons` writes as the vector drawables android/app/src/main/res/drawable/ic_NAME.xml (NAME in snake case) from the package of \"source\": the outlined symbol, and for the names of \"filled\" the filled one as ic_NAME_fill.xml. \"mirrored\" names turn around in a right-to-left language. A name that \"icons\" has too means the same symbol.",
+    "icons": {
+      "close": "close",
+      "copy": "content_copy",
+      "forward": "arrow_forward",
+      "help": "help",
+      "history": "history",
+      "keyboard": "keyboard",
+      "link": "link",
+      "lock": "lock",
+      "paste": "content_paste",
+      "retry": "replay",
+      "scanQr": "qr_code_scanner",
+      "torchOff": "flashlight_off",
+      "torchOn": "flashlight_on",
+      "unreachable": "cloud_off"
+    },
+    "filled": ["torchOn"],
+    "mirrored": ["forward"]
   }
 }

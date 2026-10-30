@@ -63,6 +63,7 @@ Commands:
   golicenses    collect Go module licenses (replaces shared/tools/go_licenses.py)
   build         build the mygo application (replaces mygo/tools/build.sh)
   prepare       collect the embedded assets (replaces mygo/tools/prepare.sh)
+  android-icons write the vector drawables of the icons of the Android app (shared/icons.json)
   coverage      gate unit-test coverage (replaces mygo/tools/coverage.sh)
   measure       measure memory use (replaces shared/tools/measure.sh)
   measure-serve measure the memory use of the headless server

@@ -44,6 +44,7 @@ func init() {
 	commands["golicenses"] = golicenses.Run
 	commands["build"] = build.Run
 	commands["prepare"] = prepare.Run
+	commands["android-icons"] = prepare.RunAndroidIcons
 	commands["coverage"] = coverage.Run
 	commands["measure"] = measure.Run
 	commands["measure-serve"] = measureserve.Run

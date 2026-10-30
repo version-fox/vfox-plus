@@ -74,15 +74,7 @@ func Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	cache, err := iconCacheDir(os.Getenv, os.UserCacheDir)
-	if err != nil {
-		return err
-	}
-	registry := os.Getenv("VFOX_PLUS_NPM_REGISTRY")
-	if registry == "" {
-		registry = defaultRegistry
-	}
-	tarball, err := ensureTarball(ctx, manifest.Source, cache, registry, os.Stdout)
+	tarball, err := fetchTarball(ctx, manifest.Source, os.Stdout)
 	if err != nil {
 		return err
 	}
