@@ -61,6 +61,22 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
   `androidx.graphics:graphics-shapes` 的公开 API 构造：Material 1.14.0 的 `MaterialShapes` 限于库组内部使用，它的
   drawable 什么也不画。
 
+## 为什么用 View 而不是 Compose
+
+各屏用 View 与 Material Components 1.14.0 写，不是 Compose。内存没有起决定作用：配对屏两种写法占用相当，差别在测量的噪声
+之内（[Android 应用用 View 还是 Compose](memory.md#android-应用用-view-还是-compose)）。起决定作用的是：
+
+- **Material 3 Expressive 在 View 里用锁定的工具链就能做到。**Material Components 1.14.0 是稳定版，带 Expressive 主题、
+  有形状形变的按钮、浮动工具栏、加载指示器与波浪进度指示器，用 AGP 8.13.2 与 compileSdk 36 就能构建。在 Compose 里
+  （2026-10-30 核对）：稳定版 Material 3 1.4.0 把 Expressive 主题、动效方案与强调字体样式留作 `internal`，其形状库也用不了；
+  Material 3 1.5.0-beta02 是 beta，需要 AGP 9.1.0、compileSdk 37 与 Compose 1.12.0，最新的 Compose 1.12.1 对 AGP 与
+  compileSdk 的要求相同。用 Compose 就要引入预发布依赖并换一套工具链。
+- **APK 更小。**加上 Compose 会让 APK 多 1.2 MB（37%）。
+- **原生部分小。**App 是包住 WebView 的三个屏：用户操作的是 Web 界面，任何工具包都不会改变它。
+
+等 Compose 的 Material 3 在能用锁定工具链构建的稳定版里提供 Expressive 时，按[内存页](memory.md#android-应用用-view-还是-compose)
+所述再测一次。那时要比较的是 APK 体积与迁移成本，而不是内存。
+
 ## 构建
 
 需要 JDK 17 与 Android SDK（platform 36、build-tools 35.0.0；后者是所 pin AGP

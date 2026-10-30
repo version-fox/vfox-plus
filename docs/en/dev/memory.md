@@ -28,7 +28,8 @@ it through. They take up to 1 MB of PSS, which the release build does not.
 
 The Android client (`android/`) is not in this table: it is a WebView around
 the pairing server, so its memory is the system WebView's plus the page, and it
-is measured on the device, not with this method.
+is measured on the device, not with this method. What its toolkit costs is in
+[Views or Compose in the Android app](#views-or-compose-in-the-android-app).
 
 ## The pairing server and the background service
 
@@ -88,6 +89,46 @@ Coverage gaps: there is no paired-WebView APK state (the emulator has no
 server to pair with, so `apk-cold` is the unpaired first screen), and the heap
 is measured in desktop Chrome, not in the system WebView that the APK embeds,
 whose collector may behave differently.
+
+### Views or Compose in the Android app
+
+The Android app is written in Views, with Material Components. To see what Compose
+would cost, its pairing screen was written a second time in Compose, with the same
+strings, colours, icons and shapes, and the apps were run on one emulator (API 36,
+x86_64, no GPU) as release builds with R8: installed, started through the launcher,
+settled for 12 seconds, and the PSS read from `dumpsys meminfo`, three rounds of each
+app in turn, on 2026-10-30. "Fresh" is right after the install, where the code is
+interpreted and compiled just in time; "compiled" is after
+`cmd package compile -m speed -f`, which compiles all of the app ahead of time.
+
+| App | APK (bytes) | PSS fresh (MB) | PSS compiled (MB) |
+| --- | ---: | ---: | ---: |
+| Views, before the rebuild in Material 3 Expressive | 3,176,011 | 40.8 | 44.5 |
+| Views, rebuilt in Material 3 Expressive | 3,228,463 | 43.5 | 46.9 |
+| Compose, the pairing screen only | 3,589,067 | 44.4 | 47.4 |
+
+- **Memory does not tell them apart.** The Compose screen took 0.9 MB (fresh) and
+  0.5 MB (compiled) more than the Views app, which is the size of the noise: in six
+  fresh runs it read between 43.1 and 45.1 MB (its native heap alternated between 9.8
+  and 11.5 MB), where the Views app read between 43.4 and 43.6 MB. The rebuild of the
+  Views app changed more (+2.4 to +2.7 MB). Memory is no reason to choose either
+  toolkit.
+- **The size of the APK does.** Adding Compose to the Views app makes it 4,434,858
+  bytes, 1.2 MB (37 %) more, and the Compose screen alone, without the scanner, the
+  session screen, CameraX and zxing, is already larger than the whole Views app.
+- **Compare apps that carry only what they run.** The first Compose build still had
+  the Views screens in it, which never ran, and read about 3 MB (fresh) and 6 MB
+  (compiled) more than the Views app: code that is in the APK costs memory once the
+  system has compiled it.
+- **The Compose screen** used the Compose BOM 2026.06.01 (Compose 1.11.4 and
+  Material 3 1.4.0, stable API only), activity-compose 1.13.0 and the Compose
+  compiler plugin of the pinned Kotlin 2.1.20.
+- **The absolute numbers belong to this session**: an earlier one read 30 to 34 MB
+  for the Views apps. Compare the rows of the table.
+- **Not measured:** Compose with the Expressive components, which the pinned
+  toolchain cannot build (see [Why Views and not
+  Compose](packaging-android.md#why-views-and-not-compose)), the session screen with
+  its WebView, and a phone.
 
 ## How it is measured
 

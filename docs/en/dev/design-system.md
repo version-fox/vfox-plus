@@ -203,7 +203,8 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
 
 ### Android app
 
-The app builds its screens from the components of Material Components 1.14.0,
+The app builds its screens from the components of Material Components 1.14.0
+(Views, not Compose: [why](packaging-android.md#why-views-and-not-compose)),
 whose Expressive styles are the defaults of its theme.
 
 | Component | In the app |

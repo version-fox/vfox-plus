@@ -163,7 +163,8 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 
 ### Android 应用
 
-App 的屏幕由 Material Components 1.14.0 的组件搭成，其 Expressive 样式是主题的默认值。
+App 的屏幕由 Material Components 1.14.0 的组件搭成（用 View 而不是 Compose：[原因](packaging-android.md#为什么用-view-而不是-compose)），
+其 Expressive 样式是主题的默认值。
 
 | 组件 | 在 App 里 |
 | --- | --- |

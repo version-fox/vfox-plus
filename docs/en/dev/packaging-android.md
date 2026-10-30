@@ -105,6 +105,32 @@ do. This is where it lives in `android/`.
   of `androidx.graphics:graphics-shapes`: `MaterialShapes` of Material 1.14.0 is
   restricted to the library group, and its drawable draws nothing.
 
+## Why Views and not Compose
+
+The screens are Views with Material Components 1.14.0, not Compose. Memory did not
+decide it: the pairing screen written both ways takes about the same, within the
+noise of the measuring ([Views or Compose in the Android
+app](memory.md#views-or-compose-in-the-android-app)). These did:
+
+- **Material 3 Expressive works in Views with the pinned toolchain.** Material
+  Components 1.14.0 is a stable release with the Expressive theme, the buttons
+  with their shape morph, the floating toolbar and the loading and wavy progress
+  indicators, and it builds with AGP 8.13.2 and compileSdk 36. In Compose, as
+  checked on 2026-10-30, the stable Material 3 1.4.0 keeps the Expressive theme,
+  the motion schemes and the emphasized text styles `internal`, and its shape
+  library cannot be used; Material 3 1.5.0-beta02 is a beta that needs AGP 9.1.0,
+  compileSdk 37 and Compose 1.12.0, and the latest Compose, 1.12.1, needs the same
+  AGP and compileSdk. Compose would mean a pre-release dependency and a new
+  toolchain.
+- **The APK is smaller.** Adding Compose makes it 1.2 MB (37 %) larger.
+- **The native part is small.** The app is three screens around a WebView: what the
+  user works in is the web interface, which no toolkit changes.
+
+When Material 3 for Compose offers Expressive in a stable release that builds with
+the pinned toolchain, measure again as [the memory
+page](memory.md#views-or-compose-in-the-android-app) describes. The question will
+then be the size of the APK and the cost of the migration, not memory.
+
 ## Building
 
 JDK 17 and the Android SDK (platform 36 and build-tools 35.0.0, the default of
