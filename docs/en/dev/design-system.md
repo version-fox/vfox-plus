@@ -264,16 +264,25 @@ application carries no icon font; the fill that the navigation and the buttons
 animate is the cross-fade of the outlined and the filled icon, and the SVGs
 (about 60 KB) are parsed when an icon is first drawn.
 
-The Android app draws the same symbols as vector drawables. The `android`
-section of the manifest names them (by name, with the symbol; which of them also
-have a filled variant; which turn around in a right-to-left language), and
-`vfxtool android-icons` cuts them out of the same package and writes
-`android/app/src/main/res/drawable/ic_NAME.xml` (and `ic_NAME_fill.xml`), in the
-colour of the theme (`colorControlNormal`) unless a view tints them. Unlike the
-SVGs of the desktop interface these are committed, because the Gradle build needs
-nothing but Gradle. `go test` in `shared/tooling` fails when a drawable is missing,
-comes from another symbol or from another version of the package, or when one that
-the tool wrote is no longer named.
+The Android app draws the same symbols as vector drawables, which nothing in the
+repository holds or generates: they are the Android XML that
+[google/material-design-icons](https://github.com/google/material-design-icons)
+publishes for each symbol (Apache-2.0, like the repository), and the build imports
+them. That repository keeps them in git, not as a library, so `settings.gradle.kts`
+has an Ivy repository over its raw files, for the group `symbols` and for nothing
+else, and `app/build.gradle.kts` lists the symbols with the commit
+(`10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`, of 2026-10-23) as
+dependencies, `symbols:SYMBOL:COMMIT@xml`, with the classifier `fill1` for a filled
+one: the files `symbols/android/SYMBOL/materialsymbolsrounded/SYMBOL_24px.xml` and
+`SYMBOL_fill1_24px.xml`. Gradle fetches them once into its cache, which a build
+offline uses afterwards, and the task `copyMaterialSymbols` puts them, unchanged, as
+`ic_NAME.xml` among the resources that it generates
+(`app/build/generated/res/materialSymbols/drawable`). A file has the colour of the
+theme (`colorControlNormal`) unless a view tints it, and Google marks the symbols that
+turn around in a right-to-left language (`autoMirrored`, here `copy`, `forward` and
+`help`). The app uses `ic_close` (`close`), `ic_copy` (`content_copy`), `ic_forward` (`arrow_forward`), `ic_help` (`help`), `ic_history` (`history`), `ic_keyboard` (`keyboard`), `ic_link` (`link`), `ic_lock` (`lock`), `ic_paste` (`content_paste`), `ic_retry` (`replay`), `ic_scan_qr` (`qr_code_scanner`), `ic_torch_off` (`flashlight_off`), `ic_torch_on_fill` (`flashlight_on`, filled) and `ic_unreachable` (`cloud_off`). They and the npm package above are two copies of one
+set, Material Symbols Rounded at weight 400 and 24 px, so the interfaces look the
+same.
 
 ### Application icon
 

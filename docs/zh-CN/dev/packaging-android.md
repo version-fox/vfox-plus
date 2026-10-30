@@ -13,8 +13,8 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
 | `settings.gradle.kts`、`build.gradle.kts`、`gradle.properties` | 工程配置；插件版本 pin 在此。 |
 | `gradlew`、`gradlew.bat`、`gradlew.ps1`、`gradle/wrapper/` | Gradle wrapper（[Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)）；`gradle-wrapper.properties` 连同 SHA-256 pin 住 Gradle。 |
 | `versions.env` | CI 读取的工具 pin（Java、AGP、Kotlin、Material）。 |
-| `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.3（均为 Apache-2.0）扫二维码。 |
-| `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题与[设计系统](design-system.md#颜色)的颜色（`values/colors.xml`、`values-night/colors.xml`）、英/中字符串、作为矢量图的 Material Symbols（`drawable/ic_*.xml`，由 `vfxtool android-icons` 写出；见[设计系统](design-system.md#图标)）、启动图标（自适应，含供主题图标用的单色层；见[设计系统](design-system.md#应用图标)）。 |
+| `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.3（均为 Apache-2.0）扫二维码。Material Symbols 也是导入的，来自 google/material-design-icons（见[设计系统](design-system.md#图标)）。 |
+| `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题与[设计系统](design-system.md#颜色)的颜色（`values/colors.xml`、`values-night/colors.xml`）、英/中字符串、启动图标（自适应，含供主题图标用的单色层；见[设计系统](design-system.md#应用图标)）。 |
 
 ## App 行为
 
@@ -52,7 +52,7 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
   （`?attr/materialButtonTonalStyle`），并用 `materialSizeOverlay` 设按钮的尺寸。布局不写基线的 `Widget.Material3.*` 样式，
   因为它会盖掉形状形变与尺寸；扫码页的浮动工具栏除外：Material 1.14.0 没有它的 Expressive 样式，所以用
   `Widget.Material3.FloatingToolbar.*`。
-- **图标。** Material Symbols Rounded，与其它界面出自同一个 npm 包，是 `vfxtool android-icons` 写出的矢量图
+- **图标。** Material Symbols Rounded，是 Google 为它们发布的矢量图，由构建原样导入
   （[图标](design-system.md#图标)）。
 - **动效。** 弹簧取自主题的 `motionSpring*` 属性（`Motion.kt`）。`springIn` 让屏幕的各部分依次进入，按 default spatial
   弹簧上升、按 default effects 弹簧淡入；屏幕之间的转场是 slow effects 弹簧上的 shared axis，弹簧被采样为 settle 时间内

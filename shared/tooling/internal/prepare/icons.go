@@ -56,9 +56,8 @@ type iconSource struct {
 
 // iconManifest is shared/icons.json, of which prepare reads what it needs.
 type iconManifest struct {
-	Source  iconSource        `json:"source"`
-	Icons   map[string]string `json:"icons"`
-	Android androidIcons      `json:"android"`
+	Source iconSource        `json:"source"`
+	Icons  map[string]string `json:"icons"`
 }
 
 // readManifest reads the manifest of the icons.
@@ -80,9 +79,6 @@ func readManifest(file string) (iconManifest, error) {
 	}
 	if len(manifest.Icons) == 0 {
 		return manifest, fmt.Errorf("%s: no icons", file)
-	}
-	if err := manifest.Android.validate(manifest.Icons); err != nil {
-		return manifest, fmt.Errorf("%s: \"android\": %w", file, err)
 	}
 	return manifest, nil
 }

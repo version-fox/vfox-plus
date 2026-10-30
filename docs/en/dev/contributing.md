@@ -152,10 +152,12 @@ name that describes its meaning, with the name of the symbol as at
 added: `vfxtool prepare` cuts the SVGs out of the pinned npm package when it builds,
 and fails, naming the icons, for a symbol that the package does not have.
 
-The Android app has its own list, the `android` section of the same file. After a
-change there, or after a new version of the package, run `vfxtool android-icons`
-and commit the drawables that it writes (the Gradle build needs nothing but
-Gradle, so these are committed).
+The Android app does not take its icons from the package: its build imports the
+Android XML that google/material-design-icons publishes ([Icons](design-system.md#icons)
+says how). To add one, add a line to the list `materialSymbols` in
+`android/app/build.gradle.kts`: the name of the drawable, the symbol, and `"fill1"` if
+the filled variant is wanted. To move to a newer commit of that repository, change
+`materialSymbolsCommit` there. Nothing is copied or committed.
 
 To move to a newer version of the package, change `version` and `sha512` in the
 `source` of that file. The registry says the checksum in base64; the file wants it

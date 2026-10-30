@@ -209,11 +209,17 @@ grade 0、optical size 24：选中导航目的地图标填充（`FILL` 1），�
 mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；导航与按钮的填充动画是描边与填充两个图标的
 交叉淡入淡出，SVG（共约 60 KB）在首次绘制某图标时才解析。
 
-Android 应用把同样的符号画成矢量图。清单的 `android` 一节给出它们（名字与符号；哪些还有填充变体；哪些在从右到左的语言里要
-翻转），`vfxtool android-icons` 从同一个包里切出它们，写成 `android/app/src/main/res/drawable/ic_NAME.xml`（及
-`ic_NAME_fill.xml`），颜色取主题的 `colorControlNormal`，除非视图另外着色。与桌面界面的 SVG 不同，这些文件会提交，因为
-Gradle 构建只需要 Gradle。`shared/tooling` 里的 `go test` 在缺少某个 drawable、它来自另一个符号或另一个版本的包、或工具写出
-的某个文件已不再被清单提到时失败。
+Android 应用把同样的符号画成矢量图，仓库里没有任何东西保存或生成它们：它们是
+[google/material-design-icons](https://github.com/google/material-design-icons)
+为每个符号发布的 Android XML（Apache-2.0，与本仓库相同），由构建导入。那个仓库把它们放在 git 里，不当作库发布，所以
+`settings.gradle.kts` 有一个指向其 raw 文件的 Ivy 仓库，只服务组 `symbols`，别的一概不经过它；`app/build.gradle.kts`
+列出符号与提交（`10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`，2026-10-23），
+每个符号是一个依赖 `symbols:SYMBOL:COMMIT@xml`，填充的加分类器 `fill1`：对应文件
+`symbols/android/SYMBOL/materialsymbolsrounded/SYMBOL_24px.xml` 与 `SYMBOL_fill1_24px.xml`。Gradle 把它们取到自己的缓存里
+一次，之后离线构建也能用；任务 `copyMaterialSymbols` 把它们原样写成 `ic_NAME.xml`，放进它生成的资源目录
+（`app/build/generated/res/materialSymbols/drawable`）。文件的颜色取主题的 `colorControlNormal`，除非视图另外着色；在从右到左的
+语言里要翻转的符号由 Google 标出（`autoMirrored`，这里是 `copy`、`forward` 与 `help`）。应用用到 `ic_close`（`close`）、`ic_copy`（`content_copy`）、`ic_forward`（`arrow_forward`）、`ic_help`（`help`）、`ic_history`（`history`）、`ic_keyboard`（`keyboard`）、`ic_link`（`link`）、`ic_lock`（`lock`）、`ic_paste`（`content_paste`）、`ic_retry`（`replay`）、`ic_scan_qr`（`qr_code_scanner`）、`ic_torch_off`（`flashlight_off`）、`ic_torch_on_fill`（`flashlight_on`，填充）与 `ic_unreachable`（`cloud_off`）。
+它们与上面的 npm 包是同一套图标的两份拷贝，即 Material Symbols Rounded、字重 400、24 px，所以各界面看起来一样。
 
 ### 应用图标
 

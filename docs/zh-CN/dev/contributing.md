@@ -126,8 +126,10 @@ docker run --rm --volume "$PWD:/workdir" \
 <https://fonts.google.com/icons>（`history`、`folder_open`），其余不用加：构建时 `vfxtool prepare`
 从锁定的 npm 包切出 SVG；包里没有的符号会失败并列出这些图标。
 
-Android 应用有自己的清单，即同一文件的 `android` 一节。改动它之后，或换了新版本的包之后，运行 `vfxtool android-icons`，
-并提交它写出的 drawable（Gradle 构建只需要 Gradle，所以这些文件会提交）。
+Android 应用不用这个包里的图标：它的构建导入 google/material-design-icons 发布的 Android XML
+（做法见[图标](design-system.md#图标)）。要添加一个，在 `android/app/build.gradle.kts` 的 `materialSymbols` 列表里加一行：
+drawable 的名字、符号，要填充变体就再写 `"fill1"`。要换到该仓库更新的提交，改那里的 `materialSymbolsCommit`。
+不用复制，也不用提交任何文件。
 
 要换新版本的包，改该文件 `source` 里的 `version` 与 `sha512`。注册表给的校验和是 base64，文件里要十六进制：
 

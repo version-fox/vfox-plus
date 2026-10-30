@@ -15,8 +15,8 @@ Go code. Users install the `.apk` and pair it with the PC; see
 | `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties` | Project setup; plugin versions are pinned here. |
 | `gradlew`, `gradlew.bat`, `gradlew.ps1`, `gradle/wrapper/` | The Gradle wrapper ([Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)); `gradle-wrapper.properties` pins Gradle with its SHA-256. |
 | `versions.env` | Pinned tool versions CI reads (Java, AGP, Kotlin, Material). |
-| `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. |
-| `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, the Material 3 Expressive theme with the colours of the [design system](design-system.md#colour) (`values/colors.xml`, `values-night/colors.xml`), strings in English and Simplified Chinese, the Material Symbols as vector drawables (`drawable/ic_*.xml`, written by `vfxtool android-icons`; see the [design system](design-system.md#icons)), and the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
+| `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. The Material Symbols are imported too, from google/material-design-icons (see the [design system](design-system.md#icons)). |
+| `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, the Material 3 Expressive theme with the colours of the [design system](design-system.md#colour) (`values/colors.xml`, `values-night/colors.xml`), strings in English and Simplified Chinese, and the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
 
 ## What the app does
 
@@ -90,8 +90,8 @@ do. This is where it lives in `android/`.
   that would hide the shape morph and the sizes, except for the floating toolbar
   of the scanner: Material 1.14.0 has no Expressive style for it, so it takes
   `Widget.Material3.FloatingToolbar.*`.
-- **Icons.** Material Symbols Rounded, from the same npm package as the other
-  interfaces, as the vector drawables that `vfxtool android-icons` writes
+- **Icons.** Material Symbols Rounded, as the vector drawables that Google
+  publishes for them, which the build imports unchanged
   ([Icons](design-system.md#icons)).
 - **Motion.** The springs are the `motionSpring*` attributes of the theme
   (`Motion.kt`). `springIn` brings the parts of a screen in, one after the
