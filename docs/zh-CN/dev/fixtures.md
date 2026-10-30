@@ -57,7 +57,7 @@ flowchart TB
 `vfxtool capture` 跑每个命令时：
 
 - `NO_COLOR=1`，stdin 与 stdout 都不是终端——正是 GUI 跑 vfox 的方式（见
-  [CLI 契约(vfox-cli-contract.md)）；
+  [CLI 契约](vfox-cli-contract.md)）；
 - `HOME=/tmp/vfox-sb/home` 一次性沙箱，不设 `VFOX_HOME`，故不碰真实 vfox 安装，
   捕获路径稳定；
 - 工作目录 `/`。
@@ -94,7 +94,7 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 | `error` | stdout + stderr | 展示给用户的一行错误摘要。 |
 
 解析器跳过不认识的行，不失败；错误摘要规则见
-[CLI 契约(vfox-cli-contract.md#错误)。
+[CLI 契约](vfox-cli-contract.md#错误)。
 
 ## version-fox 组织的插件
 
@@ -117,7 +117,7 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
    目录，解析器对两版都测（vfox 1.0.13 把错误从标准输出搬到标准错误）。
 3. 跑解析器测试，如 `cd mygo && go test ./core/...`。
 4. 输出格式变化记入
-   [CLI 契约(vfox-cli-contract.md)。
+   [CLI 契约](vfox-cli-contract.md)。
 
 ## 假 vfox
 

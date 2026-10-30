@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package screenshots ports shared/tools/screenshots.sh: it runs the
-// "screenshots" scenario three times (plain, with a slow fake vfox, and with
-// Java and Flutter installed next to Node.js) and captures the screen with
-// ImageMagick whenever the application prints "e2e: SHOT <name>".
+// Package screenshots ports shared/tools/screenshots.sh: it starts the application
+// against the fake vfox five times (plain, with a slow fake vfox, with Java and
+// Flutter installed next to Node.js, and the last two in the window of the compact
+// layout), drives it to every page through the automation plugin (see package
+// appsession), and captures the screen with ImageMagick at each page: the window
+// with its title bar, as a person sees it.
 package screenshots
 
 import (
@@ -26,249 +28,45 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/appsession"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/automation"
 )
 
-// ParseShotName extracts the screenshot name from an application log line.
-// Only lines starting with "e2e: SHOT " carry a shot. Names containing "/"
-// or ".." are rejected to prevent path traversal outside the output
-// directory, as are empty names.
-func ParseShotName(line string) (name string, ok bool) {
-	const prefix = "e2e: SHOT "
-	if !strings.HasPrefix(line, prefix) {
-		return "", false
-	}
-	name = strings.TrimSpace(strings.TrimPrefix(line, prefix))
-	if name == "" {
-		return "", false
-	}
-	if strings.Contains(name, "/") || strings.Contains(name, "..") {
-		return "", false
-	}
-	return name, true
+// shooter captures the screen when a page has settled.
+type shooter struct {
+	dir string
 }
 
-func removeSandbox(sandbox string) {
-	for attempt := 1; attempt <= 5; attempt++ {
-		if err := os.RemoveAll(sandbox); err == nil {
-			return
-		}
-		time.Sleep(time.Duration(attempt) * time.Second)
+// shot waits for the page to settle, and captures the screen.
+func (c shooter) shot(s *appsession.Session, name string) {
+	s.Settle()
+	s.Pause(1500 * time.Millisecond)
+	target := filepath.Join(c.dir, name+".png")
+	command := exec.Command("import", "-window", "root", target)
+	if out, err := command.CombinedOutput(); err != nil {
+		s.Fail("capture screenshot %s: %v: %s", name, err, strings.TrimSpace(string(out)))
 	}
-	fmt.Fprintf(os.Stderr, "Could not remove %s\n", sandbox)
+	fmt.Println(name + ".png")
 }
 
-func searchRepoRootUp(dir string) (string, bool) {
-	for {
-		if fi, err := os.Stat(filepath.Join(dir, "shared", "fixtures")); err == nil && fi.IsDir() {
-			return dir, true
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", false
-		}
-		dir = parent
-	}
+// A run of the application: what the fake vfox plays (its environment), and the
+// scenario that shows the pages.
+type run struct {
+	name     string
+	env      []string
+	scenario func(*appsession.Session, shooter)
 }
 
-func findRepoRoot() (string, error) {
-	if cwd, err := os.Getwd(); err == nil {
-		if root, ok := searchRepoRootUp(cwd); ok {
-			return root, nil
-		}
-	}
-	if exe, err := os.Executable(); err == nil {
-		if root, ok := searchRepoRootUp(filepath.Dir(exe)); ok {
-			return root, nil
-		}
-	}
-	return "", errors.New("cannot locate repository root (no shared/fixtures above working directory)")
-}
-
-// materializeFakeVfox installs the fake vfox executable at dest: the running
-// vfxtool binary is copied, which answers vfox commands when executed under
-// the name "vfox" (see cmd/vfxtool).
-func materializeFakeVfox(dest string) error {
-	self, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	data, err := os.ReadFile(self)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(dest, data, 0o755)
-}
-
-func buildScreenshotsEnv(homeDir, fixturesDir string, extra []string) []string {
-	var env []string
-	for _, kv := range os.Environ() {
-		if strings.HasPrefix(kv, "VFOX_HOME=") || strings.HasPrefix(kv, "XDG_CONFIG_HOME=") {
-			continue
-		}
-		env = append(env, kv)
-	}
-	env = append(env,
-		"HOME="+homeDir,
-		"LANG=C.UTF-8",
-		"VFOX_PLUS_E2E_SCENARIO=screenshots",
-		"VFOX_PLUS_FIXTURES="+fixturesDir,
-	)
-	return append(env, extra...)
-}
-
-func writeSettings(homeDir, vfoxPath string) error {
-	dir := filepath.Join(homeDir, ".config", "vfox-plus")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	content := fmt.Sprintf("{\n  \"language\": \"english\",\n  \"vfoxExecutable\": \"%s\"\n}\n", vfoxPath)
-	return os.WriteFile(filepath.Join(dir, "settings.json"), []byte(content), 0o644)
-}
-
-// newCompleteLines returns complete log lines added since printed.
-func newCompleteLines(logPath string, printed int) ([]string, int, error) {
-	data, err := os.ReadFile(logPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, printed, nil
-		}
-		return nil, printed, err
-	}
-	n := strings.Count(string(data), "\n")
-	if n <= printed {
-		return nil, printed, nil
-	}
-	lines := strings.Split(string(data), "\n")
-	return append([]string(nil), lines[printed:n]...), n, nil
-}
-
-func captureShot(outputDir, name string) error {
-	target := filepath.Join(outputDir, name+".png")
-	cmd := exec.Command("import", "-window", "root", target)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("capture screenshot %s: %w: %s", name, err, strings.TrimSpace(string(out)))
-	}
-	return nil
-}
-
-func handleLogLine(outputDir, line string) error {
-	if name, ok := ParseShotName(line); ok {
-		if err := captureShot(outputDir, name); err != nil {
-			return err
-		}
-		fmt.Println(name + ".png")
-		return nil
-	}
-	if strings.HasPrefix(line, "e2e: ") {
-		fmt.Println(line)
-	}
-	return nil
-}
-
-func runOnce(outputDir string, appCmd []string, extraEnv []string) error {
-	root, err := findRepoRoot()
-	if err != nil {
-		return err
-	}
-	fixturesDir := filepath.Join(root, "shared", "fixtures", "vfox-1.0.13")
-	sandbox, err := os.MkdirTemp("", "vfox-plus-screenshots.*")
-	if err != nil {
-		return err
-	}
-	appPid := 0
-	defer func() {
-		if appPid != 0 && procAlive(appPid) {
-			killProcess(appPid)
-		}
-		removeSandbox(sandbox)
-	}()
-	homeDir := filepath.Join(sandbox, "home")
-	logPath := filepath.Join(sandbox, "app.log")
-	if err := os.MkdirAll(filepath.Join(homeDir, ".config", "vfox-plus"), 0o755); err != nil {
-		return err
-	}
-	vfoxPath := filepath.Join(sandbox, "vfox")
-	if err := materializeFakeVfox(vfoxPath); err != nil {
-		return fmt.Errorf("install fake vfox: %w", err)
-	}
-	if err := writeSettings(homeDir, vfoxPath); err != nil {
-		return err
-	}
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
-	if err != nil {
-		return err
-	}
-	// extraEnv holds VAR=value assignments that precede the application command,
-	// mirroring the second run with VFOX_PLUS_FAKE_DELAY=4 of the old script.
-	cmd := exec.Command(appCmd[0], appCmd[1:]...)
-	cmd.Env = buildScreenshotsEnv(homeDir, fixturesDir, extraEnv)
-	// Interpret extraEnv entries of the form NAME=value as overrides; entries
-	// without '=' are ignored by exec but already appended above.
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	if err := cmd.Start(); err != nil {
-		_ = logFile.Close()
-		return fmt.Errorf("start application: %w", err)
-	}
-	defer logFile.Close()
-	appPid = cmd.Process.Pid
-	printed := 0
-	// Reap the application in the background: a `kill -0` probe cannot
-	// tell a live process from an unreaped zombie, so liveness is observed
-	// through Wait instead of polling.
-	done := make(chan int, 1)
-	go func() { done <- exitStatus(cmd.Wait()) }()
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		select {
-		case status := <-done:
-			lines, _, err := newCompleteLines(logPath, printed)
-			if err != nil {
-				return err
-			}
-			for _, line := range lines {
-				if herr := handleLogLine(outputDir, line); herr != nil {
-					return herr
-				}
-			}
-			appPid = 0
-			if status != 0 {
-				// Mirror screenshots.sh: dump the log on failure.
-				if data, rerr := os.ReadFile(logPath); rerr == nil {
-					fmt.Fprintf(os.Stderr, "%s", string(data))
-				}
-				return fmt.Errorf("application exited with status %d", status)
-			}
-			return nil
-		case <-ticker.C:
-			lines, next, err := newCompleteLines(logPath, printed)
-			if err != nil {
-				return err
-			}
-			for _, line := range lines {
-				if herr := handleLogLine(outputDir, line); herr != nil {
-					return herr
-				}
-			}
-			printed = next
-		}
-	}
-}
-
-// exitStatus maps the result of Wait to an exit code. A process killed by a
-// signal has a non-zero status, like any other failure.
-func exitStatus(err error) int {
-	if err == nil {
-		return 0
-	}
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		if code := exitErr.ExitCode(); code != 0 {
-			return code
-		}
-	}
-	return 1
+var runs = []run{
+	{"pages", nil, pages},
+	// A slow fake vfox, so that an installation is in progress.
+	{"installing", []string{"VFOX_PLUS_FAKE_DELAY=4"}, installing},
+	// The pages of the plugins that have a profile need a machine that has them.
+	{"profiles", []string{"VFOX_PLUS_FAKE_INVENTORY=profiles"}, profiles},
+	// The compact layout is that of a window less than 600 dp wide.
+	{"compact pages", []string{"VFOX_PLUS_E2E_WINDOW=412x800"}, compactPages},
+	{"compact profiles", []string{"VFOX_PLUS_E2E_WINDOW=412x800", "VFOX_PLUS_FAKE_INVENTORY=profiles"}, compactProfiles},
 }
 
 // Run implements `screenshots <output-dir> <app command...>`,
@@ -277,20 +75,186 @@ func Run(args []string) error {
 	if len(args) < 2 {
 		return errors.New("Usage: screenshots <output directory> <application command...>")
 	}
-	outputDir := args[0]
-	appCmd := args[1:]
-	if len(appCmd) == 0 {
-		return errors.New("Usage: screenshots <output directory> <application command...>")
-	}
+	outputDir, command := args[0], args[1:]
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return err
 	}
-	if err := runOnce(outputDir, appCmd, nil); err != nil {
+	root, err := appsession.FindRepoRoot()
+	if err != nil {
 		return err
 	}
-	if err := runOnce(outputDir, appCmd, []string{"VFOX_PLUS_FAKE_DELAY=4"}); err != nil {
-		return err
+	for _, r := range runs {
+		config := appsession.Config{Name: "screenshots", Command: command, Fixtures: appsession.FixturesDir(root), Env: r.env}
+		err := appsession.RunScenario(config, r.name, func(s *appsession.Session) {
+			// The startup overlay fades out after vfox is found; the first shot must
+			// wait for it, or the Home page is still dimmed.
+			s.WaitForText("Versions in use")
+			s.WaitUntil("the startup overlay to go away", 30*time.Second, func(t automation.Tree) bool { return !t.Shows("Looking for vfox…") })
+			r.scenario(s, shooter{outputDir})
+		})
+		if err != nil {
+			return err
+		}
 	}
-	// The pages of the plugins that have a profile need a machine that has them.
-	return runOnce(outputDir, appCmd, []string{"VFOX_PLUS_FAKE_INVENTORY=profiles"})
+	return nil
+}
+
+// pages shows every page against the fake vfox, in the light theme and in the
+// dark, and in Chinese.
+func pages(s *appsession.Session, c shooter) {
+	c.shot(s, "home")
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("nodejs")
+	s.WaitForText("Node.js runtime environment.")
+	c.shot(s, "sdks")
+	s.ClickButton("Available")
+	s.WaitForText("872 versions")
+	c.shot(s, "available")
+	s.Fill("Filter versions", "24.11.0", false)
+	s.WaitForText("1 version")
+	s.ClickButtonNear("24.11.0", "Install")
+	s.WaitForTask("Install nodejs@24.11.0")
+	s.Navigate(appsession.Tasks)
+	// A click on the row of a task shows what vfox printed.
+	s.ClickItem("Install nodejs@24.11.0")
+	c.shot(s, "tasks")
+	s.Navigate(appsession.Plugins)
+	s.WaitForText("dotnet")
+	c.shot(s, "plugins")
+	s.ClickButton("Add from source…")
+	s.WaitForText("Add a plugin from source")
+	c.shot(s, "dialog")
+	s.TapDialog(false)
+	s.Navigate(appsession.Settings)
+	s.WaitForText("Plugin registry")
+	c.shot(s, "settings")
+
+	s.PressKey("dark")
+	s.ClickButton("Show labels")
+	s.Navigate(appsession.Home)
+	c.shot(s, "dark-expanded")
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("maven")
+	s.WaitForText("3.8.9")
+	c.shot(s, "dark-sdks")
+	s.ClickItem("nodejs")
+	s.WaitForText("Node.js runtime environment.")
+	s.ClickButton("Available")
+	s.WaitForText("872 versions")
+	c.shot(s, "dark-available")
+
+	s.Navigate(appsession.Settings)
+	s.PressKey("light")
+	s.ClickButton("Hide labels")
+	s.PressKey("simplifiedChinese")
+	s.Navigate(appsession.Home)
+	s.WaitForText("正在使用的版本")
+	c.shot(s, "zh-home")
+	s.Navigate(appsession.Settings)
+	s.WaitForText("插件仓库")
+	c.shot(s, "zh-settings")
+}
+
+// installing shows an installation in progress.
+func installing(s *appsession.Session, c shooter) {
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("nodejs")
+	s.ClickButton("Available")
+	s.WaitForText("872 versions")
+	s.ClickButtonNear("26.12.0", "Install")
+	s.WaitUntil("the download to start", 30*time.Second, func(t automation.Tree) bool {
+		percent, _ := t.Downloading()
+		return percent > 0
+	})
+	c.shot(s, "installing")
+}
+
+// profiles shows what vfox-plus offers for the plugins that it knows: the
+// distributions of Java, the filter chips of its versions and of Flutter's, the
+// installation by name, and the options of Node.js. The fake vfox plays a machine
+// that has Java and Flutter installed next to Node.js.
+func profiles(s *appsession.Session, c shooter) {
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("java")
+	s.WaitForText("Support for multiple JDK distributions, such as: Oracle, Graalvm, Eclipse & more.")
+	s.WaitForText("Liberica · JavaFX")
+	c.shot(s, "java-installed")
+	s.ClickButton("Available")
+	s.WaitForText("75 versions")
+	c.shot(s, "java-available")
+	s.ClickButton("Distribution: OpenJDK")
+	s.WaitForText("Distribution")
+	c.shot(s, "java-choose")
+	s.ClickItem("Temurin")
+	s.WaitForText("120 versions")
+	s.ClickButton("LTS")
+	s.WaitForTextGone("120 versions")
+	c.shot(s, "java-temurin")
+	s.ClickButton("Install by name…")
+	s.WaitForText("Install java by name")
+	s.ClickButton("21-tem")
+	s.WaitForText("The newest Temurin 21")
+	c.shot(s, "java-install-name")
+	s.TapDialog(false)
+	s.ClickButton("Distribution: Temurin")
+	s.WaitForText("Distribution")
+	s.ClickItem("All distributions")
+	s.WaitForText("2,641 versions")
+	c.shot(s, "java-all")
+	// The choice is kept, so Java would list every distribution again at the next visit:
+	// take it back to the default, as a user does.
+	s.ClickButton("Distribution: All distributions")
+	s.WaitForText("Distribution")
+	s.ClickItem("OpenJDK")
+	s.WaitForText("75 versions")
+
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("flutter")
+	s.ClickButton("Available")
+	s.WaitForText("457 versions")
+	s.ClickButton("stable")
+	s.WaitForTextGone("457 versions")
+	c.shot(s, "flutter-available")
+
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("nodejs")
+	s.ClickButton("Options")
+	s.WaitForText("Download mirror")
+	c.shot(s, "options")
+	s.ClickButton("Change")
+	s.WaitForText("Address")
+	s.ClickButton("npmmirror")
+	c.shot(s, "options-mirror")
+	s.TapDialog(false)
+
+	s.Navigate(appsession.Settings)
+	s.PressKey("simplifiedChinese")
+	s.Navigate(appsession.SDKs)
+	s.WaitForText("版本名称")
+	c.shot(s, "zh-options")
+	s.ClickItem("java")
+	s.ClickButton("可安装")
+	s.WaitForText("75 个版本")
+	c.shot(s, "zh-java-available")
+}
+
+// compactPages shows the Home page and the versions of Node.js in a window of the
+// compact layout, where the navigation is at the bottom.
+func compactPages(s *appsession.Session, c shooter) {
+	c.shot(s, "compact-home")
+	// The versions in use on the Home page lead to their SDK.
+	s.ClickItem("nodejs")
+	s.WaitForText("Node.js runtime environment.")
+	c.shot(s, "compact-detail")
+}
+
+// compactProfiles shows the distributions of Java in a window of the compact layout.
+func compactProfiles(s *appsession.Session, c shooter) {
+	s.ClickItem("java")
+	s.ClickButton("Available")
+	s.WaitForText("75 versions")
+	s.ClickButton("Distribution: OpenJDK")
+	s.ClickItem("Temurin")
+	s.WaitForText("120 versions")
+	c.shot(s, "compact-java")
 }

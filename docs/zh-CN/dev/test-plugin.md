@@ -2,7 +2,7 @@
 
 > [English](../../en/dev/test-plugin.md)
 
-[`testsdk.lua`(../../../shared/test-plugin/testsdk.lua) 是让端到端测试对**真实** vfox 离线运行、不碰任何人 vfox
+[`testsdk.lua`](../../../shared/test-plugin/testsdk.lua) 是让端到端测试对**真实** vfox 离线运行、不碰任何人 vfox
 安装的 vfox 插件：`vfxtool e2e-run` 启动进程内测试服务器
 （`shared/tooling/internal/testserver`）实现下述协议，驱动应用跑 `real` 场景。
 

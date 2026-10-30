@@ -1,16 +1,20 @@
 module github.com/version-fox/vfox-plus/mygo
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/ebitengine/purego v0.11.2
-	github.com/egoist/mygo v0.6.3
+	github.com/egoist/mygo v0.7.3
 	// Prints the pairing link of `vfox-plus serve` as a terminal QR code
 	// for the Android app (MIT; see docs/en/dev/architecture.md#dependencies).
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	// Cross-process task lock on Windows, where the standard syscall
 	// package has no file locking (BSD; same section of the architecture).
 	golang.org/x/sys v0.49.0
+	// Tells a terminal from a file or a pipe, so that `vfox-plus serve` prints its
+	// QR code only where it renders (BSD-3-Clause; see
+	// docs/en/dev/architecture.md#dependencies).
+	golang.org/x/term v0.47.0
 )
 
 require (

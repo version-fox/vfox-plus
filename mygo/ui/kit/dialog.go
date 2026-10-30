@@ -77,6 +77,10 @@ func (e *Env) LayoutDialogs(c Ctx) {
 		if e.dialogs[i].layout(c) {
 			e.dialogs = append(e.dialogs[:i], e.dialogs[i+1:]...)
 			i--
+			// The frame that is being built still has the dialog, which has faded
+			// out: build one more, so that no frame keeps it, for the elements that
+			// assistive technology reads are those of the last one.
+			c.Invalidate()
 		}
 	}
 }

@@ -32,12 +32,12 @@ go -C shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 vfxtool sandbox all
 ```
 
-网络慢时，设置 `SANDBOX_UBUNTU_MIRROR` 与 `SANDBOX_GOPROXY`（见
+网络慢时，设置 `SANDBOX_UBUNTU_MIRROR`、`SANDBOX_GOPROXY` 与 `SANDBOX_NPM_REGISTRY`（见
 [mygo 指南](implementation-mygo.md#沙箱)）。
 
 ## Go 与本机工具
 
-Go 用它的发布压缩包，并对照 `mygo/versions.env` 固定的校验和（`go.mod` 要求 1.27.1
+Go 用它的发布压缩包，并对照 `mygo/versions.env` 固定的校验和（`go.mod` 要求 1.27.3
 或更高）。在仓库根目录运行：
 
 ```sh

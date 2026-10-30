@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # The application: formatting, golangci-lint and the unit tests (with
-# coverage gates), the end-to-end scenarios in the application (against captured
-# output and against the real vfox), the Linux packages and the Windows MSIX
-# bundle.
+# coverage gates), the end-to-end scenarios that drive the built application
+# (against captured output and against the real vfox), the Linux packages and the
+# Windows MSIX bundle.
 # shared/tooling/internal/runtask runs the same steps locally; keep them in sync.
 # The tool versions are in mygo/versions.env.
 name: mygo
@@ -79,13 +79,13 @@ jobs:
           echo "$RUNNER_TEMP/$archive" >> "$GITHUB_PATH"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          # Where vfxtool prepare keeps the variable font it downloads.
-          path: ~/.cache/vfox-plus/material-symbols
-          key: material-symbols-${{ hashFiles('shared/tooling/internal/iconfont/**') }}
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
       - name: Build vfxtool
         run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
       - name: Prepare the embedded assets
-        # The icon font, the translations and the licenses of the Go modules.
+        # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
       - name: Build the release
         run: '"$RUNNER_TEMP/vfxtool" build --root mygo mygo/build/vfox-plus'
@@ -139,7 +139,7 @@ jobs:
           echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
       - name: Run the end-to-end scenarios in a virtual display
         env:
-          # The "measure" scenario writes its numbers here for memory.yml.
+          # `vfxtool measure` writes its numbers here for memory.yml.
           VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory/memory.txt
         run: |
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"

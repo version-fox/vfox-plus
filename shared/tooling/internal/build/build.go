@@ -43,9 +43,10 @@ type config struct {
 //
 // Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] [--package PKG] <output>
 //
-// With --e2e the build includes the end-to-end scenarios, which run in the
-// application when VFOX_PLUS_E2E_SCENARIO is set; release builds must not have
-// them. With --goos/--goarch the build cross-compiles, for example
+// With --e2e the build links the automation plugin of mygo, which vfxtool drives
+// the application through for the end-to-end scenarios, the memory measurement and
+// the screenshots (MYGO_AUTOMATION names its socket); release builds must not have
+// it. With --goos/--goarch the build cross-compiles, for example
 // --goos windows --goarch amd64 for the MSIX packaging. --package selects the
 // main package: the desktop application (".", the default) or the headless
 // server without the user interface ("./cmd/vfox-plus-serve"), which makes
@@ -127,10 +128,13 @@ func (c config) targetGoos() string {
 	return runtime.GOOS
 }
 
-// tags returns the -tags value: mygo_noinspector, plus e2e with --e2e.
+// tags returns the -tags value: mygo_noinspector, which leaves the inspector of the
+// native user interface out, as the releases do. With --e2e it is e2e instead,
+// whose builds keep the inspector, for the automation plugin that the tests drive
+// them through is left out of the builds without it.
 func (c config) tags() string {
 	if c.e2e {
-		return "mygo_noinspector,e2e"
+		return "e2e"
 	}
 	return "mygo_noinspector"
 }

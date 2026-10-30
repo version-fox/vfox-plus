@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"io/fs"
 	"log"
 
 	"github.com/egoist/mygo"
@@ -22,22 +23,11 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// loadIcons registers the icon fonts with the toolkit. The interface works
-// without its icons (a button that has only an icon keeps its name and its
-// tooltip), so a failure is reported and not fatal. Where registering a font means
-// writing it to a cache directory, which can be read-only, the fonts get a second
-// try in a directory of their own.
-func loadIcons(outlined, filled, codepoints []byte) {
-	err := kit.LoadIcons(outlined, filled, codepoints)
-	if err == nil {
-		return
-	}
-	log.Printf("cannot register the icon fonts: %v", err)
-	if !ownFontCache() {
-		log.Print("the interface goes without icons")
-		return
-	}
-	if err := kit.LoadIcons(outlined, filled, codepoints); err != nil {
+// loadIcons registers the icons with the toolkit. The interface works without
+// its icons (a button that has only an icon keeps its name and its tooltip), so
+// a failure is reported and not fatal.
+func loadIcons(table []byte, files fs.FS) {
+	if err := kit.LoadIcons(table, files); err != nil {
 		log.Printf("the interface goes without icons: %v", err)
 	}
 }

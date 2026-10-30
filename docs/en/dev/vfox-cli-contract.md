@@ -36,7 +36,7 @@ Start from the environment of the GUI, then:
 | --------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `__VFOX_SHELL`, `__VFOX_PID`, `__VFOX_CURTMPPATH`, `__VFOX_INITIALIZED` | remove      | Set by an activated shell. A GUI started from such a terminal would otherwise act on that terminal's session scope.                   |
 | user-defined variables (`extraEnvironment` setting)      | add         | Download mirrors such as `VFOX_NODEJS_MIRROR` live in shell profiles, which desktop launchers do not read.                           |
-| `NO_COLOR`                                                | set to `1`  | Disables colours in most output (https://no-color.org).                                                                             |
+| `NO_COLOR`                                                | set to `1`  | Disables colours in most output (<https://no-color.org>).                                                                             |
 | `__VFOX_SHELL`                                            | set to `bash`, for `vfox use` only | See [Selecting a version](#selecting-a-version).                                                                  |
 
 Everything else passes through, including `VFOX_HOME`: when it is set, vfox
@@ -154,8 +154,8 @@ mvn2 -> N/A
 nodejs -> v24.11.1
 ```
 
-Each line is `<name> -> v<version>` or `<name> -> N/A ` (note the trailing
-space). Strip **one** leading `v`. `vfox current` reflects the scope chain
+Each line is `<name> -> v<version>` or `<name> -> N/A` followed by a space (note
+the trailing space). Strip **one** leading `v`. `vfox current` reflects the scope chain
 global < session < project, which is why it must run in `/`. Fixtures:
 `current`, `current-unset`, `current-empty`.
 

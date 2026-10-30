@@ -2,7 +2,7 @@
 
 > [简体中文](../../zh-CN/dev/test-plugin.md)
 
-[`testsdk.lua`(../../../shared/test-plugin/testsdk.lua) is a vfox plugin that lets the end-to-end tests run
+[`testsdk.lua`](../../../shared/test-plugin/testsdk.lua) is a vfox plugin that lets the end-to-end tests run
 against the **real** vfox without the network and without touching anybody's
 vfox installation: `vfxtool e2e-run` starts an in-process test server
 (`shared/tooling/internal/testserver`), which implements the protocol below,

@@ -58,7 +58,7 @@ Long-running operations never block the interface: they become tasks (see
 While vfox is being located, every page except Settings shows the loading
 indicator with `vfoxCheckingTitle`. If no executable is found it shows
 `vfoxMissingTitle` / `vfoxMissingBody` with three actions: open the
-installation guide (https://vfox.dev/guides/quick-start.html), choose the
+installation guide (<https://vfox.dev/guides/quick-start.html>), choose the
 executable (`vfoxLocate`) and retry. If the executable does not report a
 version it shows `vfoxBrokenTitle` / `vfoxBrokenBody` with the same actions.
 Settings stay reachable in every case.
@@ -78,7 +78,7 @@ Settings stay reachable in every case.
   `homeShellBody`) with the line `eval "$(vfox activate bash)"` and a copy
   button.
 - Two shortcut cards: `homeExploreTitle` (opens Plugins) and `homeDocsTitle`
-  (opens https://vfox.dev/).
+  (opens <https://vfox.dev/>).
 
 ## SDKs
 
@@ -271,7 +271,7 @@ Grouped in segmented lists:
   `configOther` for keys the GUI does not know.
 - **About**: application name, version and license, links to the source code
   and the vfox documentation, and the open-source licenses of the dependencies,
-  including the bundled Material Symbols font (Apache-2.0, Google).
+  including the bundled Material Symbols icons (Apache-2.0, Google).
 
 ## Accessibility
 

@@ -9,7 +9,7 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
 
 - Code comments, commit messages and pull requests are written in
   **English**. User-visible texts go through the translation catalogues in
-  [`shared/i18n`(../../../shared/i18n) and are available in English and Simplified
+  [`shared/i18n`](../../../shared/i18n) and are available in English and Simplified
   Chinese.
 - Documentation is written in **English with a Simplified Chinese translation**:
   every Markdown document has a Chinese counterpart (see
@@ -24,10 +24,10 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
   design tokens, translations, icons, settings — is specified in this `dev/`
   directory and in [`shared/`](../../../shared/). Change the specification together with the code.
 - Files use UTF-8, LF line endings and a final newline (see
-  [`.editorconfig`(../../../.editorconfig) and [`.gitattributes`(../../../.gitattributes)).
+  [`.editorconfig`](../../../.editorconfig) and [`.gitattributes`](../../../.gitattributes)).
 - Binary files are not committed. Upload screenshots and other images to an
   image host and link them (see [Screenshots](#screenshots)); generate binary
-  build inputs, such as the icon fonts, at build time.
+  build inputs, such as the logos of the Windows package, at build time.
   CI rejects binary files.
 
 ## Workflow
@@ -38,7 +38,7 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
 1. Open an issue or comment on an existing one before large changes.
 2. Create a branch from `main` and keep pull requests focused.
 3. Run the checks; they are the same as in CI and listed in the
-   [mygo README(implementation-mygo.md#everyday-commands):
+   [mygo README](implementation-mygo.md#everyday-commands):
 
    ```sh
    cd mygo
@@ -50,7 +50,7 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
    To run every check, the end-to-end tests and the packaging without installing
    anything but Docker, and without any risk for the vfox installation on your
    machine, use the sandbox, `vfxtool sandbox all` (see
-   [shared/sandbox(sandbox.md)).
+   [shared/sandbox](sandbox.md)).
 
 4. Describe what changed and how you tested it in the pull request. Include
    screenshots for visual changes, in light and dark themes.
@@ -59,9 +59,9 @@ To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
-| [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), shared JSON, no committed binary files |
-| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests(memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios in the application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
+| [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
+| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 
@@ -81,7 +81,7 @@ saves what it downloaded, so that the next one gets further.
 A pull request that rebuilds the application gets a comment with its memory and
 the difference from `main`, which the next commit replaces instead of adding
 another one. A change that is more than the noise between CI runs is in bold; read
-[Memory in pull requests(memory.md#memory-in-pull-requests) before you trust a small
+[Memory in pull requests](memory.md#memory-in-pull-requests) before you trust a small
 one.
 
 ## Documentation languages
@@ -112,29 +112,62 @@ Each document links to its counterpart at the top (`[简体中文](…)` in Engl
 repository workflow fails when a document has no counterpart. Future documents
 follow the same table: add both files together.
 
+## Markdown
+
+CI checks every document with [markdownlint](https://github.com/DavidAnson/markdownlint),
+configured in [`.markdownlint.yaml`](../../../.markdownlint.yaml). Run the check
+before you push, with the image that CI uses (pinned by its digest):
+
+```sh
+docker run --rm --volume "$PWD:/workdir" \
+  ghcr.io/igorshubovych/markdownlint-cli:v0.50.0@sha256:db7dcb73cd3163cc45854b60fc21eefe1ebe7fa52aad758706010b64a4778900 \
+  --ignore-path .gitignore "**/*.md"
+```
+
+Two habits matter most:
+
+- **Write a URL in angle brackets**, `<https://vfox.dev/>`, or as the target of a
+  link, `[vfox](https://vfox.dev/)`. GitHub turns a bare URL into a link up to
+  the next space, so the `)` after it, and in Chinese text the full-width `）`, `，`
+  and `。`, become part of the address and the preview shows a wrong URL.
+- **Close every link with `]`**: `[text](target)`. A `[text(target)` is no link and
+  shows as it is; `vfxtool docs-check` fails on it.
+
+A `|` ends the cell of a table even inside code; write `\|` there.
+
 ## Common changes
 
 ### Texts
 
-Add or change messages in [`shared/i18n/app_en.arb`(../../../shared/i18n/app_en.arb)
+Add or change messages in [`shared/i18n/app_en.arb`](../../../shared/i18n/app_en.arb)
 with a `description` (and placeholder metadata), then translate them in
-[`app_zh.arb`(../../../shared/i18n/app_zh.arb). See [docs/i18n.md(i18n.md),
+[`app_zh.arb`](../../../shared/i18n/app_zh.arb). See [docs/i18n.md](i18n.md),
 including the glossary.
 
 ### Icons
 
-Add the Material Symbol to [`shared/icons.json`(../../../shared/icons.json) under a
-name that describes its meaning, then regenerate the icon fonts
-(`vfxtool prepare`, which cuts them with
-`vfxtool iconfont` when it builds).
-Fonts are generated at build time and not committed.
+Add the Material Symbol to [`shared/icons.json`](../../../shared/icons.json) under a
+name that describes its meaning, with the name of the symbol as at
+<https://fonts.google.com/icons> (`history`, `folder_open`). Nothing else is to be
+added: `vfxtool prepare` cuts the SVGs out of the pinned npm package when it builds,
+and fails, naming the icons, for a symbol that the package does not have.
+
+To move to a newer version of the package, change `version` and `sha512` in the
+`source` of that file. The registry says the checksum in base64; the file wants it
+in hexadecimal:
+
+```sh
+version=1.2.98
+curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version" |
+  grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
+```
 
 ### vfox output
 
 When vfox changes, recapture the fixtures with
 `vfxtool capture` and follow
-[`shared/fixtures/README.md`(fixtures.md). Document the change in
-[docs/vfox-cli-contract.md(vfox-cli-contract.md).
+[`shared/fixtures/README.md`](fixtures.md). Document the change in
+[docs/vfox-cli-contract.md](vfox-cli-contract.md).
 
 ### Diagrams
 
@@ -165,20 +198,24 @@ account, and linked.
 **The desktop application.** `vfxtool sandbox screenshots` renders the pictures
 into `dist/sandbox/mygo/screenshots/`, reproducibly: with the Greybird title bar of
 xfwm4, the way modern GNOME applications look, over the default wallpaper of
-Ubuntu instead of the black of a bare X server. It runs the `screenshots`
-scenario of the end-to-end build three times against the fake vfox, and the
-application prints `e2e: SHOT <name>` whenever the screen is to be captured:
+Ubuntu instead of the black of a bare X server. It starts the end-to-end build
+five times against the fake vfox, drives it to every page through the automation plugin
+of mygo, and captures the screen with ImageMagick when the page has settled:
 
 | Run | What it shows |
 | --- | --- |
-| plain | every page, in both themes and languages, and the compact layout: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings`, `compact-home`, `compact-detail` |
+| plain | every page, in both themes and languages: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | an installation in progress: `installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available`, `compact-java` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available` |
+| `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
+| both of the above | the distributions of Java in the compact layout: `compact-java` |
 
-To take another picture, add a `s.shot("name")` to `screenshotsScenario` or to
-`profilesScreenshots` in `mygo/ui/e2e_scenarios.go`. The steps before it click and
-wait the way a person does, through the names that the user sees, so a renamed
-button fails the scenario instead of taking a wrong picture.
+To take another picture, add a `c.shot(s, "name")` to the function of the run in
+`shared/tooling/internal/screenshots/screenshots.go` (`pages`, `installing`, `profiles`,
+`compactPages` or `compactProfiles`). The steps before it click and wait the way a
+person with a screen reader does, through the names that the user sees (the label
+of a button, the key that a component gave it), so a renamed button fails the
+scenario instead of taking a wrong picture.
 
 The README and the [user guide](../user/index.md) link `home`, `sdks`,
 `dark-available`, `installing`, `tasks`, `plugins`, `zh-settings`, `compact-home`,

@@ -95,6 +95,12 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 	if name == "" {
 		name = it.Title
 	}
+	// The widgets in the item are said to be in it by its title; the name that
+	// assistive technology reads may say more, as the status of a task does.
+	scope := it.Title
+	if scope == "" {
+		scope = name
+	}
 	var (
 		el   ui.Element
 		in   interaction
@@ -155,7 +161,7 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 		})
 	}
 	return el.Children(func() {
-		defer c.Env.Reg.EnterScope(name)()
+		defer c.Env.Reg.EnterScope(scope)()
 		if it.Leading != nil {
 			it.Leading(iconColor)
 		}

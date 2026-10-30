@@ -141,7 +141,10 @@ func (a *App) taskRow(k kit.Ctx, task *state.VfoxTask, position kit.Position) mu
 	isLast := position == kit.PosLast || position == kit.PosSingle
 	return column.Children(func() {
 		kit.ListItem(k, kit.ListItemSpec{
+			// The row is one button, which assistive technology reads by its name:
+			// the status is part of it, as it is of what the row shows.
 			ID: "item", Position: itemPosition, Title: a.taskTitle(task.Command), TitleStyle: &titleStyle,
+			Name:    a.taskTitle(task.Command) + ", " + statusText,
 			Leading: func(mui.Color) { mui.Box(k.Context).Size(32, 32).Shrink(0).Center().Children(leading) },
 			SubtitleWidget: func(mui.Color) {
 				mui.Column(k.Context).Children(func() {

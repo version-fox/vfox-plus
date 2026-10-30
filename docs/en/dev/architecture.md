@@ -259,7 +259,7 @@ and keeps the settings reachable.
 
 Every runtime dependency must fall in Category A or B of the license
 classification of the Apache Software Foundation
-(see https://www.apache.org/legal/resolved): what the ASF allows in its
+(see <https://www.apache.org/legal/resolved>): what the ASF allows in its
 products may be used here — permissive licenses (for example Apache-2.0,
 MIT, BSD, Unlicense) or weak-copyleft licenses (for example MPL-2.0,
 EPL-2.0). Category X (strong copyleft such as GPL and AGPL) is excluded.
@@ -281,13 +281,18 @@ ships no strong-copyleft (Category X) code; weak-copyleft (Category B)
 dependencies, if any, ship under their own license terms. The build tooling
 in `shared/tooling` (`vfxtool`, never shipped in the application) additionally
 uses `go-github` (the GitHub API for the memory report),
-`nfpm` (Debian packaging as a library), `andybalholm/brotli` (WOFF2
-compression for the icon font), `go-licenses` (license classification for
-the license collector), `go-getter` (resumable downloads for the package
-prefetch), `golang.org/x/image` (the vector rasterizer that draws the
-Windows logos, BSD-3-Clause) and `golang.org/x/sys` (the Windows calls of
+`nfpm` (Debian packaging as a library), `go-licenses` (license classification for
+the license collector), `go-getter` (resumable downloads with a checksum, for the
+package prefetch and the npm package of the icons), `chromedp` (starts Chrome and speaks the DevTools Protocol for the
+measurement of the web heap and the screenshots of the web interface, MIT),
+`golang.org/x/image` (the vector rasterizer that draws the
+Windows logos, BSD-3-Clause), `golang.org/x/tools` (the parser of the coverage
+profiles, BSD-3-Clause) and `golang.org/x/sys` (the Windows calls of
 `vfxtool sign-msix`: the token for the elevation, the certificate store;
-BSD-3-Clause), all Category A. The Windows `.msix` and `.msixbundle` need no
+BSD-3-Clause), all Category A. The icons are Material Symbols Rounded by Google (Apache-2.0),
+which `vfxtool prepare` cuts out of the npm package `@iconify-json/material-symbols` that
+`shared/icons.json` pins: the package is downloaded and checked at build time, never linked,
+and only the SVGs of the symbols in use are embedded. The Windows `.msix` and `.msixbundle` need no
 additional runtime dependency: the Go executable is self-contained and the
 package carries its own logos.
 Prefer the platform and the official libraries of a technology over third-party
@@ -302,7 +307,7 @@ Low memory use is a goal of the project. The application:
 - keeps the newest 500 lines of each finished task in memory (2000 while it
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
-- ships only the icons it uses (the two icon font subsets total about 36 KB);
+- ships only the icons it uses (55 symbols, outlined and filled, about 60 KB of SVG, parsed when first drawn);
 - stops animations that are not visible, and honours the platform's reduced
   motion setting;
 - avoids caching data that vfox can produce again cheaply.

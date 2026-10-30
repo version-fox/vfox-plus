@@ -16,10 +16,6 @@
 
 package ui
 
-// ownFontCache is for Linux, where mygo hands the fonts that an application
-// registers to fontconfig as files; there is nothing to do elsewhere.
-func ownFontCache() bool { return false }
-
 // prepareProcess does what the application needs before mygo starts: nothing
 // outside Linux.
 func prepareProcess() {}

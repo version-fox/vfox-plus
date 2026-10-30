@@ -27,7 +27,7 @@
 | --- | --- | --- |
 | `__VFOX_SHELL`、`__VFOX_PID`、`__VFOX_CURTMPPATH`、`__VFOX_INITIALIZED` | 删除 | 激活 shell 设置。GUI 若从此类终端启动，否则会作用于该终端会话域。 |
 | 用户变量（`extraEnvironment` 设置） | 添加 | `VFOX_NODEJS_MIRROR` 等下载镜像在 shell profile，桌面启动器不读。 |
-| `NO_COLOR` | 置 `1` | 关掉多数输出颜色（https://no-color.org）。 |
+| `NO_COLOR` | 置 `1` | 关掉多数输出颜色（<https://no-color.org>）。 |
 | `__VFOX_SHELL` | 仅 `vfox use` 置 `bash` | 见[选择版本](#选择版本)。 |
 
 其余透传，含 `VFOX_HOME`：设置时 vfox 把插件、缓存与配置放在该共享目录而非
@@ -129,7 +129,7 @@ mvn2 -> N/A
 nodejs -> v24.11.1
 ```
 
-每行 `<名称> -> v<版本>` 或 `<名称> -> N/A `（注意尾空格）。去掉**一个**前导 `v`。
+每行 `<名称> -> v<版本>` 或 `<名称> -> N/A` 加一个空格（注意尾空格）。去掉**一个**前导 `v`。
 `vfox current` 反映 global < session < project 作用域链，故必须在 `/` 跑。夹具：
 `current`、`current-unset`、`current-empty`。
 

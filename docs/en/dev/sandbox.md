@@ -10,9 +10,9 @@ it.
 
 | File | Role |
 | --- | --- |
-| [`base.Dockerfile`(../../../shared/sandbox/base.Dockerfile) | The base image: Ubuntu 26.04, a virtual display, fonts, its default wallpaper, the Debian packaging tools, the Material Symbols font that icon fonts are cut from, a pinned vfox and the unprivileged user `tester` |
-| [`../tooling/internal/sandbox`(../../../shared/tooling/internal/sandbox) | Host side (`vfxtool sandbox`): builds the images, runs tasks in containers, runs the installation test |
-| [`../tooling/internal/runtask`(../../../shared/tooling/internal/runtask) | Container side (`vfxtool runtask`): copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages |
+| [`base.Dockerfile`](../../../shared/sandbox/base.Dockerfile) | The base image: Ubuntu 26.04, a virtual display, fonts, its default wallpaper, the Debian packaging tools, a pinned vfox and the unprivileged user `tester` |
+| [`../tooling/internal/sandbox`](../../../shared/tooling/internal/sandbox) | Host side (`vfxtool sandbox`): builds the images, runs tasks in containers, runs the installation test |
+| [`../tooling/internal/runtask`](../../../shared/tooling/internal/runtask) | Container side (`vfxtool runtask`): copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages |
 
 ## How the sandbox works
 
@@ -22,9 +22,14 @@ it.
 - Every task runs in a new container that sees the repository read-only at
   `/src`, copies it and works on the copy as `tester`. Results go to
   `dist/sandbox/mygo/<task>/`.
+- A task starts by deleting the results of its last run. Under rootless Docker the
+  files that `tester` wrote belong to a subordinate user of the host, whom you may
+  not delete from; a throw-away container of the image deletes them then, as root
+  in a container may. `vfxtool sandbox clean` does the same before it deletes the
+  image.
 - The `deps` task downloads the dependencies into Docker volumes (the Go module
-  cache) with network access; the checks, the tests and the builds then run
-  with `--network none`.
+  cache, and the npm package of the icons) with network access; the checks, the
+  tests and the builds then run with `--network none`.
 - The installation test installs the `.deb` into a clean `ubuntu:26.04`
   container, which downloads the declared dependencies, and starts the
   application there: GUI toolkits load some libraries at run time, which `ldd`
@@ -37,4 +42,4 @@ it.
 `measure`, `shell`, `image` and `clean`; its usage text lists what it does.
 Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR` (for example
 `http://mirrors.aliyun.com/ubuntu/`) and the mirror variables of the
-implementation, such as `SANDBOX_GOPROXY`.
+implementation, such as `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY`.

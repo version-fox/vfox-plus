@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/state"
@@ -55,10 +54,10 @@ var (
 //	/api/events           server-sent events: task, inventory and vfox
 //
 // Every route except the intro and the pairing links needs a paired session.
-// State-changing routes additionally need a same-origin Origin or Referer
-// header when the browser sends one, so that a foreign page cannot drive a
-// paired browser with cross-site requests. Requests without either header,
-// like curl, are allowed through: the session cookie is the credential.
+// State-changing routes additionally refuse the cross-origin requests of
+// browsers (see requireSameOrigin), so that a foreign page cannot drive a paired
+// browser. Requests that no browser sent, like curl, are allowed through: the
+// session cookie is the credential.
 func (s *Server) serveApp(writer http.ResponseWriter, request *http.Request) {
 	if !s.hasSession(request) {
 		http.Redirect(writer, request, "/", http.StatusFound)
@@ -90,36 +89,17 @@ func (s *Server) requireSession(writer http.ResponseWriter, request *http.Reques
 	return true
 }
 
-// requireSameOrigin rejects cross-site requests that carry an Origin or a
-// Referer header from elsewhere. Same-origin fetches from the web interface
-// always carry the server itself.
+// requireSameOrigin rejects the cross-origin requests of browsers that change
+// state, with the cross-origin protection of net/http: a request is refused when
+// the browser says it comes from another site (Sec-Fetch-Site), or, from a
+// browser that does not say, when the host of its Origin is not the one asked.
+// Requests with neither header are not from a browser and pass.
 func (s *Server) requireSameOrigin(writer http.ResponseWriter, request *http.Request) bool {
-	origin := request.Header.Get("Origin")
-	if origin == "" {
-		referer := request.Header.Get("Referer")
-		if referer == "" {
-			return true
-		}
-		if sameHost(referer, request.Host) {
-			return true
-		}
-	} else if sameHost(origin, request.Host) {
-		return true
+	if err := s.crossOrigin.Check(request); err != nil {
+		http.Error(writer, "Cross-site requests are not allowed.", http.StatusForbidden)
+		return false
 	}
-	http.Error(writer, "Cross-site requests are not allowed.", http.StatusForbidden)
-	return false
-}
-
-// sameHost reports whether rawURL names host.
-func sameHost(rawURL, host string) bool {
-	withoutScheme := rawURL
-	if i := strings.Index(withoutScheme, "://"); i >= 0 {
-		withoutScheme = withoutScheme[i+3:]
-	}
-	if i := strings.IndexByte(withoutScheme, '/'); i >= 0 {
-		withoutScheme = withoutScheme[:i]
-	}
-	return strings.EqualFold(withoutScheme, host)
+	return true
 }
 
 // writeJSON answers with value.

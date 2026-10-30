@@ -61,10 +61,8 @@ func usage() {
 
 Commands:
   golicenses    collect Go module licenses (replaces shared/tools/go_licenses.py)
-  iconfont      download/subset the icon font (replaces shared/tools/icon_font.py)
-  renamefont    rename a font family (replaces mygo/tools/rename_font.py)
   build         build the mygo application (replaces mygo/tools/build.sh)
-  prepare       generate embedded assets (replaces mygo/tools/prepare.sh)
+  prepare       collect the embedded assets (replaces mygo/tools/prepare.sh)
   coverage      gate unit-test coverage (replaces mygo/tools/coverage.sh)
   measure       measure memory use (replaces shared/tools/measure.sh)
   measure-serve measure the memory use of the headless server

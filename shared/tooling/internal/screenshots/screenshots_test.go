@@ -14,38 +14,48 @@
 
 package screenshots
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
-func TestParseShotName(t *testing.T) {
-	cases := []struct {
-		name string
-		line string
-		shot string
-		ok   bool
-	}{
-		{"simple", "e2e: SHOT home", "home", true},
-		{"with dash", "e2e: SHOT settings-page", "settings-page", true},
-		{"other e2e line", "e2e: scenario screenshots passed", "", false},
-		{"missing prefix", "SHOT home", "", false},
-		{"contains but no prefix", "xx e2e: SHOT home", "", false},
-		{"empty name", "e2e: SHOT ", "", false},
-		{"only spaces", "e2e: SHOT    ", "", false},
-		{"slash rejected", "e2e: SHOT a/b", "", false},
-		{"absolute rejected", "e2e: SHOT /tmp/x", "", false},
-		{"dotdot rejected", "e2e: SHOT ..", "", false},
-		{"dotdot path rejected", "e2e: SHOT ../escape", "", false},
-		{"embedded dotdot rejected", "e2e: SHOT a..b", "", false},
-		{"trailing spaces trimmed", "e2e: SHOT home  ", "home", true},
+func TestRunsAreNamedAndAskForOneKindOfMachine(t *testing.T) {
+	names := map[string]bool{}
+	for _, r := range runs {
+		if r.name == "" || r.scenario == nil || names[r.name] {
+			t.Errorf("run %+v is unnamed, without a scenario or repeated", r)
+		}
+		names[r.name] = true
+		inventories := 0
+		for _, assignment := range r.env {
+			if !strings.Contains(assignment, "=") {
+				t.Errorf("%s: %q is no NAME=value", r.name, assignment)
+			}
+			if strings.HasPrefix(assignment, "VFOX_PLUS_FAKE_DELAY=") || strings.HasPrefix(assignment, "VFOX_PLUS_FAKE_INVENTORY=") {
+				inventories++
+			}
+		}
+		if inventories > 1 {
+			t.Errorf("%s: more than one thing that the fake vfox plays", r.name)
+		}
 	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			shot, ok := ParseShotName(c.line)
-			if ok != c.ok {
-				t.Fatalf("ParseShotName(%q) ok=%v, want %v", c.line, ok, c.ok)
-			}
-			if ok && shot != c.shot {
-				t.Fatalf("ParseShotName(%q)=%q, want %q", c.line, shot, c.shot)
-			}
-		})
+}
+
+func TestRunFailsWhenTheApplicationCannotBeStarted(t *testing.T) {
+	t.Setenv("TMPDIR", t.TempDir())
+	out := filepath.Join(t.TempDir(), "new", "screenshots")
+	if err := Run([]string{out, "/nonexistent/application"}); err == nil || !strings.Contains(err.Error(), "start the application") {
+		t.Fatalf("got %v, want a failure to start the application", err)
+	}
+	if info, err := os.Stat(out); err != nil || !info.IsDir() {
+		t.Errorf("the directory of the screenshots is not made: %v", err)
+	}
+}
+
+func TestRunWithoutAnApplication(t *testing.T) {
+	if err := Run([]string{t.TempDir()}); err == nil || !strings.Contains(err.Error(), "Usage") {
+		t.Fatalf("Run without an application = %v, want the usage", err)
 	}
 }

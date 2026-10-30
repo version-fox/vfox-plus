@@ -22,13 +22,14 @@
 package coverage
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"golang.org/x/tools/cover"
 )
 
 // uiMinimum is the minimum percent of the user interface that the tests must
@@ -56,53 +57,28 @@ func classify(file string) string {
 	}
 }
 
-// summarize parses a coverage profile, skipping its header line, and counts
-// the statements and covered statements of every area.
+// summarize parses a coverage profile (with the parser of golang.org/x/tools,
+// which merges the blocks that several packages report twice) and counts the
+// statements and covered statements of every area.
 func summarize(r io.Reader) (map[string]*areaStats, error) {
+	profiles, err := cover.ParseProfilesFromReader(r)
+	if err != nil {
+		return nil, err
+	}
 	stats := map[string]*areaStats{}
-	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-	header := true
-	lineNo := 0
-	for scanner.Scan() {
-		lineNo++
-		line := scanner.Text()
-		if header {
-			header = false
-			continue
-		}
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 3 {
-			return nil, fmt.Errorf("line %d: expected a file, a statement count and a cover count: %q", lineNo, line)
-		}
-		file := fields[0]
-		if i := strings.IndexByte(file, ':'); i >= 0 {
-			file = file[:i]
-		}
-		statements, err := strconv.Atoi(fields[1])
-		if err != nil {
-			return nil, fmt.Errorf("line %d: bad statement count: %w", lineNo, err)
-		}
-		count, err := strconv.Atoi(fields[2])
-		if err != nil {
-			return nil, fmt.Errorf("line %d: bad cover count: %w", lineNo, err)
-		}
-		area := classify(file)
+	for _, profile := range profiles {
+		area := classify(profile.FileName)
 		s, ok := stats[area]
 		if !ok {
 			s = &areaStats{}
 			stats[area] = s
 		}
-		s.statements += statements
-		if count > 0 {
-			s.covered += statements
+		for _, block := range profile.Blocks {
+			s.statements += block.NumStmt
+			if block.Count > 0 {
+				s.covered += block.NumStmt
+			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
 	}
 	return stats, nil
 }

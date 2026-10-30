@@ -17,9 +17,11 @@ against. The implementation is `mygo/pair/pair.go` (`Server`), `web.go` and
 - A **session** cookie authenticates every route except `/`,
   `/auth/connect/*` and `/manifest.webmanifest`. `serve` sessions expire after `--session-ttl` (default 24
   hours); expired sessions answer 401 and must pair again.
-- State-changing routes additionally require a same-origin `Origin` or
-  `Referer` when the caller sends one; requests without either (like curl)
-  are allowed through with the session cookie.
+- State-changing routes additionally refuse the cross-origin requests of
+  browsers, with the cross-origin protection of `net/http`: a request whose
+  `Sec-Fetch-Site` is not `same-origin` (or `none`), or, without that header,
+  whose `Origin` names another host than the one asked, answers 403. Requests with
+  neither header (like curl) are allowed through with the session cookie.
 - One **shared server** owns the application state per user: the desktop embeds
   one while it runs, a `service start` daemon or a loopback `serve` registers
   itself as one, and `pair` mints from whichever is live. Discovery is `server.json` next to the

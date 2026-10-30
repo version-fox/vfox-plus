@@ -20,7 +20,7 @@
 - 文件使用 UTF-8、LF 换行并以换行结尾（见
   [`.editorconfig`](../../../.editorconfig) 和 [`.gitattributes`](../../../.gitattributes)）。
 - 不提交二进制文件。截图等图片上传到图床后引用（见
-  [截图](#截图)）；图标字体等二进制构建输入在构建时生成。
+  [截图](#截图)）；Windows 包的徽标等二进制构建输入在构建时生成。
   CI 会拒绝二进制文件。
 
 ## 工作流
@@ -49,9 +49,9 @@
 
 | 工作流 | 触发 | 检查 |
 | --- | --- | --- |
-| [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、共享 JSON、无二进制文件 |
+| [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、文档语言与链接（`vfxtool docs-check`）、Markdown（markdownlint）、共享 JSON、无二进制文件 |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | 构建工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、应用内端到端场景（夹具与真实 vfox）、内存测量、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、内存测量、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中跑 `vfxtool sandbox all` |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（debug 密钥签名）并作为 `vfox-plus-android` 上传 |
 
@@ -90,20 +90,49 @@ Android 客户端，绝不涉及源码构建、仓库布局、vfox CLI 契约等
 每个文档顶部互链（英文用 `[简体中文](…)`，中文用 `[English](…)`），
 `vfxtool docs-check` 校验映射；仓库工作流在缺对照时失败。新增文档同样成对添加。
 
+## Markdown
+
+CI 用 [markdownlint](https://github.com/DavidAnson/markdownlint) 检查每个文档，配置在
+[`.markdownlint.yaml`](../../../.markdownlint.yaml)。推送前用 CI 的同一个镜像（按 digest 固定）检查：
+
+```sh
+docker run --rm --volume "$PWD:/workdir" \
+  ghcr.io/igorshubovych/markdownlint-cli:v0.50.0@sha256:db7dcb73cd3163cc45854b60fc21eefe1ebe7fa52aad758706010b64a4778900 \
+  --ignore-path .gitignore "**/*.md"
+```
+
+最要紧的两个习惯：
+
+- **URL 写在尖括号里**，`<https://vfox.dev/>`，或作链接目标 `[vfox](https://vfox.dev/)`。
+  GitHub 把裸 URL 一直识别到下一个空白，所以它后面的 `)`，以及中文里的全角 `）`、`，`、`。`，
+  都会算进地址，预览里就是错误的 URL。
+- **每个链接都用 `]` 闭合**：`[文字](目标)`。`[文字(目标)` 不是链接，会原样显示；
+  `vfxtool docs-check` 对它报错。
+
+表格单元格里的 `|` 哪怕在代码里也会结束单元格，要写成 `\|`。
+
 ## 常见改动
 
 ### 文本
 
-在 [`shared/i18n/app_en.arb`(../../../shared/i18n/app_en.arb) 中添加或修改消息
+在 [`shared/i18n/app_en.arb`](../../../shared/i18n/app_en.arb) 中添加或修改消息
 （含 `description` 与占位符元数据），再译到
-[`app_zh.arb`(../../../shared/i18n/app_zh.arb)。见
+[`app_zh.arb`](../../../shared/i18n/app_zh.arb)。见
 [i18n.md](i18n.md) 及术语表。
 
 ### 图标
 
-在 [`shared/icons.json`(../../../shared/icons.json) 中按含义添加 Material Symbol，
-再重新生成图标字体（构建时 `vfxtool prepare` 会经 `vfxtool iconfont` 裁剪）。
-字体构建时生成，不提交。
+在 [`shared/icons.json`](../../../shared/icons.json) 中按含义添加 Material Symbol，符号名同
+<https://fonts.google.com/icons>（`history`、`folder_open`），其余不用加：构建时 `vfxtool prepare`
+从锁定的 npm 包切出 SVG；包里没有的符号会失败并列出这些图标。
+
+要换新版本的包，改该文件 `source` 里的 `version` 与 `sha512`。注册表给的校验和是 base64，文件里要十六进制：
+
+```sh
+version=1.2.98
+curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version" |
+  grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
+```
 
 ### vfox 输出
 
@@ -133,18 +162,21 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 
 **桌面应用。** `vfxtool sandbox screenshots` 可复现地把图渲染到
 `dist/sandbox/mygo/screenshots/`：xfwm4 Greybird 标题栏（现代 GNOME 应用观感），
-Ubuntu 默认壁纸而非裸 X 的黑色。它让端到端构建的 `screenshots` 场景对着假 vfox
-跑三遍，应用每到要截屏的时刻就打印 `e2e: SHOT <名称>`：
+Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动五遍，经 mygo 的自动化插件
+把它带到每个页面，页面沉降后用 ImageMagick 截取屏幕：
 
 | 运行 | 拍什么 |
 | --- | --- |
-| 普通 | 每个页面 × 双主题 × 双语言与窄布局：`home`、`sdks`、`available`、`tasks`、`plugins`、`dialog`、`settings`、`dark-expanded`、`dark-sdks`、`dark-available`、`zh-home`、`zh-settings`、`compact-home`、`compact-detail` |
+| 普通 | 每个页面 × 双主题 × 双语言：`home`、`sdks`、`available`、`tasks`、`plugins`、`dialog`、`settings`、`dark-expanded`、`dark-sdks`、`dark-available`、`zh-home`、`zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | 安装中：`installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`zh-options`、`zh-java-available`、`compact-java` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`zh-options`、`zh-java-available` |
+| `VFOX_PLUS_E2E_WINDOW=412x800` | 窄布局（窗口窄于 600 dp）：`compact-home`、`compact-detail` |
+| 上面两个一起 | 窄布局下 Java 的发行版：`compact-java` |
 
-要多拍一张，就在 `mygo/ui/e2e_scenarios.go` 的 `screenshotsScenario` 或 `profilesScreenshots` 里加一句
-`s.shot("名称")`。它之前的步骤像人一样点击、等待，靠用户看到的名字找控件，所以改了名的按钮
-会让场景失败，而不是拍出一张错的图。
+要多拍一张，就在 `shared/tooling/internal/screenshots/screenshots.go` 里该运行的函数
+（`pages`、`installing`、`profiles`、`compactPages` 或 `compactProfiles`）加一句
+`c.shot(s, "名称")`。它之前的步骤像用屏幕阅读器的人一样点击、等待，靠用户看到的名字
+（按钮的标签，或组件给它的 key）找控件，所以改了名的按钮会让场景失败，而不是拍出一张错的图。
 
 README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-available`、`installing`、
 `tasks`、`plugins`、`zh-settings`、`compact-home`、`compact-detail`、`java-choose`、

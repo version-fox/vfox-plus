@@ -5,7 +5,7 @@
 低内存占用是项目目标（见[架构](architecture.md#内存)）。
 本页记录应用在 Linux 上的占用，同一方法测量，便于发现回归。数字是快照：行是沙箱
 `measure` 任务单次运行的结果，同样数字见
-[mygo README(implementation-mygo.md#内存)。
+[mygo README](implementation-mygo.md#内存)。
 
 ## 结果
 
@@ -14,10 +14,13 @@
 
 | 实现 | 技术 | 进程 | Home PSS | Home RSS | Versions PSS | Versions RSS | 列表增加 (PSS) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| [mygo](../../../mygo/README.zh-CN.md#内存) | mygo 0.6.3、Go 1.27.3、GTK 3（purego）、CPU 渲染 | 1 | 45 | 58 | 53 | 67 | +8 |
+| [mygo](../../../mygo/README.zh-CN.md) | mygo 0.7.3、Go 1.27.3、GTK 3（purego）、CPU 渲染 | 1 | 51 | 63 | 59 | 73 | +8 |
 
-mygo（Home 页 PSS 45 MB，单进程）用处理器从 12 MB 的 Go 可执行文件绘制，从系统加载
+mygo（Home 页 PSS 51 MB，单进程）用处理器从 18 MB 的 Go 可执行文件绘制，从系统加载
 GTK 3。版本列表只构建可见行，增加 8 MB PSS。
+
+被测的是端到端构建：发布构建加原生用户界面的 inspector 与 mygo 的自动化插件（测量借它驱动应用）。
+它们多占至多 1 MB PSS，发布构建没有。
 
 Android 客户端（`android/`）不在此表：它是包住配对服务的 WebView，内存为系统
 WebView 加页面，在设备上衡量，不用本方法。
@@ -65,13 +68,11 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-serve` 与 `memory-w
 
 `vfxtool measure` 测量应用：
 
-1. 在当前显示器启动应用，家目录全新为空，vfox 用
-   [`shared/fixtures`](../../../shared/fixtures) 的假 vfox（回放捕获输出，不跑真实 vfox），
-   跑应用的 `measure` 场景。
-2. 应用展示 Home 页，等待 3 秒沉降后报告 `e2e: MEASURE home`。工具读报告，从
-   `/proc/<pid>/smaps_rollup` 累加应用及以下每个进程的 `Rss` 与 `Pss`；应用再等 5 秒，
-   保证测量时页面不变。
-3. 应用打开 Node.js 可用版本，等待 3 秒后报告 `e2e: MEASURE nodejs`，工具再测一次。
+1. 在当前显示器启动应用的端到端构建（`vfxtool build --e2e`，见[上文](#结果)），家目录全新为空，
+   vfox 用 [`shared/fixtures`](../../../shared/fixtures) 的假 vfox（回放捕获输出，不跑真实 vfox）。
+2. 等 Home 页出现，再等 3 秒沉降，然后从 `/proc/<pid>/smaps_rollup` 累加应用及以下每个进程的
+   `Rss` 与 `Pss`。
+3. 经窗口元素（mygo 的自动化插件）打开 Node.js 可用版本，等 872 个版本出现，再等 3 秒，再测一次。
 
 大小为 MiB，工具称 MB。沙箱 `measure` 任务在 Docker 中跑全套（`vfxtool sandbox measure`，
 只需 Docker）；上表数字来自 16 逻辑 CPU 的 WSL2 主机。
@@ -98,7 +99,7 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-serve` 与 `memory-w
 评论，不追加。
 
 - 实现的工作流（[`mygo.yml`](../../../.github/workflows/mygo.yml)）
-  跑[如何测量](#如何测量)的 `measure` 场景，把打印的行作为构件 `memory-mygo` 上传。
+  跑 `vfxtool measure`（[如何测量](#如何测量)），把打印的行作为构件 `memory-mygo` 上传。
   `vfxtool measure` 也把它们写入 `VFOX_PLUS_MEASURE_OUTPUT` 指定文件。同一工作流的
   `measure-remote` 任务上传 `memory-serve` 与 `memory-web`，
   [`android.yml`](../../../.github/workflows/android.yml) 的 `measure` 任务上传

@@ -15,29 +15,46 @@
 package e2erun
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
-func TestStreamAppReapsPromptly(t *testing.T) {
-	// /bin/true exits instantly: the run must fail fast on the missing
-	// "passed" line instead of polling a zombie until the deadline.
-	// (With kill -0 polling an unreaped exit looks alive.)
-	if _, err := os.Stat("/bin/true"); err != nil {
-		t.Skip("no /bin/true on this platform")
+func TestRunValidatesItsArguments(t *testing.T) {
+	cases := map[string]struct {
+		args []string
+		want string
+	}{
+		"nothing":                    {nil, "Usage: e2e-run"},
+		"no application":             {[]string{"fake"}, "Usage: e2e-run"},
+		"a scenario that is not one": {[]string{"screenshots", "application"}, "Unknown scenario: screenshots"},
 	}
-	dir := t.TempDir()
-	start := time.Now()
-	err := streamApp("fake", []string{"/bin/true"}, os.Environ(), dir, filepath.Join(dir, "app.log"), 60*time.Second)
-	elapsed := time.Since(start)
-	if err == nil || !strings.Contains(err.Error(), "did not pass") {
-		t.Fatalf("streamApp(/bin/true) = %v, want a did-not-pass failure", err)
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			if err := Run(c.args); err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("Run(%q) = %v, want %q", c.args, err, c.want)
+			}
+		})
 	}
-	if elapsed >= 30*time.Second {
-		t.Fatalf("streamApp took %v; the finished process was polled instead of reaped", elapsed)
+}
+
+func TestRunRealNeedsTheRealVfox(t *testing.T) {
+	t.Setenv("VFOX_PLUS_E2E_VFOX", "")
+	if err := Run([]string{"real", "/nonexistent/application"}); err == nil || !strings.Contains(err.Error(), "VFOX_PLUS_E2E_VFOX") {
+		t.Fatalf("got %v, want the demand for the real vfox", err)
+	}
+}
+
+// An application that cannot be started fails every scenario in the same way, after the
+// scenario has set up what it needs (the test server of the real one).
+func TestRunFailsWhenTheApplicationCannotBeStarted(t *testing.T) {
+	t.Setenv("TMPDIR", t.TempDir())
+	t.Setenv("VFOX_PLUS_E2E_VFOX", "/bin/true")
+	for _, scenario := range []string{"fake", "real", "measure"} {
+		t.Run(scenario, func(t *testing.T) {
+			if err := Run([]string{scenario, "/nonexistent/application"}); err == nil || !strings.Contains(err.Error(), "start the application") {
+				t.Fatalf("Run(%s) = %v, want a failure to start the application", scenario, err)
+			}
+		})
 	}
 }
 

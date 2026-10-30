@@ -116,8 +116,8 @@ var copyExcludes = []string{
 	"--exclude=*.iml",
 	"--exclude=./mygo/build",
 	"--exclude=./mygo/coverage.out",
-	"--exclude=./mygo/assets/fonts",
 	"--exclude=./mygo/assets/i18n",
+	"--exclude=./mygo/assets/icons",
 	"--exclude=./mygo/assets/icons.json",
 	"--exclude=./mygo/assets/licenses.txt",
 }
@@ -227,7 +227,16 @@ func Run(args []string) error {
 		}
 		// The container runs every task through `go run` of the vfxtool,
 		// so its modules belong in the shared module cache too.
-		return asTester(filepath.Join(e.work, "shared", "tooling"), append(download, "go", "mod", "download")...)
+		if err := asTester(filepath.Join(e.work, "shared", "tooling"), append(download, "go", "mod", "download")...); err != nil {
+			return err
+		}
+		// The offline tasks prepare the assets, which needs the npm package of
+		// the icons: it goes into the cache volume now.
+		var registry []string
+		if mirror := os.Getenv("SANDBOX_NPM_REGISTRY"); mirror != "" {
+			registry = []string{"VFOX_PLUS_NPM_REGISTRY=" + mirror}
+		}
+		return tool(app, registry, "prepare", "--fetch", "--root", app)
 
 	case "check":
 		if err := prepareLight(); err != nil {

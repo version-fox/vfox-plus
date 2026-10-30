@@ -160,7 +160,7 @@ func TestTheFilterChipsNarrowTheVersionsThatAreListed(t *testing.T) {
 		return len(ta.runner.Calls("search java all")) == 1 && ta.app.detailFor("java").controller.Versions.HasValue()
 	})
 	ta.settle()
-	ta.mustText("2641 versions")
+	ta.mustText("2,641 versions")
 	ta.mustText("OpenJDK") // the tag of the first versions, which are OpenJDK's
 	ta.mustText("Flavor")
 	ta.snapshot("java-all")
