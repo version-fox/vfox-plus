@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	// Starts Chrome and speaks the DevTools Protocol for `vfxtool webheap` (MIT;
 	// see docs/en/dev/architecture.md#dependencies).
-	github.com/chromedp/cdproto v0.157.8
+	github.com/chromedp/cdproto v0.158.6
 	github.com/chromedp/chromedp v0.21.0
 	github.com/google/go-github/v93 v93.0.0
 	github.com/google/go-licenses/v2 v2.0.1
@@ -18,7 +18,7 @@ require (
 	golang.org/x/sys v0.49.0
 	// The parser of the coverage profiles for `vfxtool coverage` (BSD-3-Clause;
 	// same section).
-	golang.org/x/tools v0.51.0
+	golang.org/x/tools v0.52.0
 )
 
 require (
@@ -72,8 +72,8 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
