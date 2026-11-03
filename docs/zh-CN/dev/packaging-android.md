@@ -12,7 +12,7 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
 | --- | --- |
 | `settings.gradle.kts`、`build.gradle.kts`、`gradle.properties` | 工程配置；插件版本 pin 在此。 |
 | `gradlew`、`gradlew.bat`、`gradlew.ps1`、`gradle/wrapper/` | Gradle wrapper（[Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)）；`gradle-wrapper.properties` 连同 SHA-256 pin 住 Gradle。 |
-| `versions.env` | CI 读取的工具 pin（Java、AGP、Kotlin、Material）。 |
+| `versions.env` | CI 与[开发容器](environment.md#开发容器)读取的工具 pin（Java、Android SDK 的命令行工具与软件包、AGP、Kotlin、Material）。 |
 | `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.3（均为 Apache-2.0）扫二维码。Material Symbols 也是导入的，来自 google/material-design-icons（见[设计系统](design-system.md#图标)）。 |
 | `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题与[设计系统](design-system.md#颜色)的颜色（`values/colors.xml`、`values-night/colors.xml`）、英/中字符串、启动图标（自适应，含供主题图标用的单色层；见[设计系统](design-system.md#应用图标)）。 |
 
@@ -82,8 +82,8 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
 ## 构建
 
 需要 JDK 17 与 Android SDK（platform 36、build-tools 35.0.0；后者是所 pin AGP
-的默认值）。CI 会装；本地把 `ANDROID_HOME` 指向 SDK（或把 `sdk.dir` 写进被 git
-忽略的 `local.properties`）；缺少的包要先接受其许可（`sdkmanager --licenses`）
+的默认值）。CI 会装，[开发容器](environment.md#开发容器)也会装并设好 `ANDROID_HOME`；本地把
+`ANDROID_HOME` 指向 SDK（或把 `sdk.dir` 写进被 git 忽略的 `local.properties`）；缺少的包要先接受其许可（`sdkmanager --licenses`）
 Gradle 才会安装。wrapper 会下载 `gradle/wrapper/gradle-wrapper.properties` pin
 住的 Gradle，不必另装 Gradle：
 

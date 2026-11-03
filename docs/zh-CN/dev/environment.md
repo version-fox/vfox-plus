@@ -3,10 +3,11 @@
 > [English](../../en/dev/environment.md)
 
 如何配置一台参与 vfox-plus 开发的机器：Ubuntu 26.04 LTS，单独使用或在 Windows 11 的
-WSL2 中。要装什么取决于你做什么：
+WSL2 中，或者用装齐了这一切的开发容器。要装什么取决于你做什么：
 
 | 你想 | 你需要 |
 | --- | --- |
+| 在编辑器里一次拥有全部工具，且不改动你的机器 | Docker，以及能打开开发容器的编辑器（见[开发容器](#开发容器)） |
 | 跑全部检查、端到端测试与打包，且不改动你的机器 | Docker，以及构建 `vfxtool` 用的 Go（见[沙箱](#沙箱)） |
 | 快速编辑并测试 Go 代码 | Go、几个软件包与 golangci-lint（见[Go 与本机工具](#go-与本机工具)） |
 | 构建 Android 客户端 | JDK 17 与 Android SDK（见 [Android](#android)） |
@@ -14,7 +15,7 @@ WSL2 中。要装什么取决于你做什么：
 
 固定的版本在 [`mygo/versions.env`](../../../mygo/versions.env) 与
 [`android/versions.env`](../../../android/versions.env)。下面的命令直接读取它们，
-所以某个版本改了，本页不会过时。
+所以某个版本改了，本页不会过时；开发容器的镜像在构建时也读取它们。
 
 ## 沙箱
 
@@ -34,6 +35,85 @@ vfxtool sandbox all
 
 网络慢时，设置 `SANDBOX_UBUNTU_MIRROR`、`SANDBOX_GOPROXY` 与 `SANDBOX_NPM_REGISTRY`（见
 [mygo 指南](implementation-mygo.md#沙箱)）。
+
+## 开发容器
+
+[`.devcontainer`](../../../.devcontainer) 描述了一个容器，下面各节要装的东西它都有，所以你什么都不用装：
+Ubuntu 26.04，固定版本的 Go、golangci-lint 与 vfox，CI 安装的软件包，一块虚拟显示，JDK 与 Android SDK，
+以及 Docker。VS Code（装有 Dev Containers 扩展）、GitHub Codespaces 与
+[开发容器 CLI](https://github.com/devcontainers/cli) 都能打开它。镜像面向 x86-64，与它所装的压缩包一致；
+在别的处理器上，Docker 以模拟方式运行它。
+
+在 VS Code 里打开仓库，运行 *Dev Containers: Reopen in Container*（在容器中重新打开）。在终端里，Docker 运行时：
+
+```sh
+npm install --global @devcontainers/cli
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . bash
+```
+
+首次启动要构建镜像，需要几分钟，下载约 1 GB，占用 3.6 GB 磁盘，然后运行
+[`devcontainer.json`](../../../.devcontainer/devcontainer.json) 的 `postCreateCommand`：把 `vfxtool`
+构建到 `/home/vscode/go/bin`（用户的 `~/go/bin`，在 `PATH` 上），下载 Go 模块，并准备应用内嵌的资源
+（不含 Go 模块的许可证，那只有打包才需要；不带 `MYGO_SKIP_LICENSES` 的 `vfxtool prepare` 会收集它们）。
+之后，[mygo 指南](implementation-mygo.md#日常命令)与[参与贡献](contributing.md#工作流)里的命令照写的样子就能运行：
+
+```sh
+cd mygo
+golangci-lint run && CGO_ENABLED=1 go test -race ./...
+vfxtool build --e2e build/vfox-plus-e2e
+xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run real build/vfox-plus-e2e
+```
+
+`VFOX_PLUS_E2E_VFOX` 指向镜像装的 vfox，版本就是 `mygo/versions.env` 固定的，所以对真实 vfox 的场景不用加前缀，
+也没有你的 `~/.vfox` 可碰。`ANDROID_HOME` 已设好，`cd android && ./gradlew :app:assembleRelease`
+即可构建 Android 客户端（见 [Android](#android)）。
+
+容器带 init 进程运行（`init`），用来回收测试留下的进程；并带 1 GB 共享内存（`--shm-size`），因为软件渲染和
+内嵌的测试服务器需要的，比 Docker 默认给容器的 64 MB 多。沙箱的容器也是这样运行的。
+
+### 重建
+
+Dockerfile 在构建镜像时读取 `mygo/versions.env` 与 `android/versions.env`，CI 与沙箱也这样做，所以那里改了
+某个版本（比如一次 `git pull`），重建容器时它就会进入容器：*Dev Containers: Rebuild Container*（重建容器），或
+`devcontainer up --workspace-folder . --remove-existing-container`。工具在 `/usr/local` 与 `/opt`，供用户使用而不是修改。
+用户下载的东西放在 `/home/vscode` 下，两个 Docker 卷让它们在容器重建后得以保留：`vfox-plus-devcontainer-go`
+（Go 的模块与构建缓存）与 `vfox-plus-devcontainer-gradle`（Gradle 与 Android 应用的库）。`docker volume rm` 可删除它们。
+
+### 网络慢时
+
+沙箱的那些变量在这里同样有效。在启动编辑器或 CLI 的环境里设置 `SANDBOX_UBUNTU_MIRROR`（构建镜像时用）、
+`SANDBOX_GOPROXY` 与 `SANDBOX_NPM_REGISTRY`（它们以 `GOPROXY` 与 `VFOX_PLUS_NPM_REGISTRY` 进入容器）。
+Go、golangci-lint、vfox 与 Android 命令行工具分别来自 go.dev、GitHub 与 dl.google.com，Docker feature 来自 ghcr.io，
+它们都没有可指定的镜像（连不上 ghcr.io 时怎么办，见[容器里的 Docker](#容器里的-docker)）。
+你的 `~/.gradle` 不是容器的：Gradle wrapper 从 `gradle-wrapper-neo.json` 读取的下载镜像
+（见[构建](packaging-android.md#构建)）要放在容器的 Gradle 用户目录 `/home/vscode/.gradle`（`$GRADLE_USER_HOME`）里。
+
+### Rootless Docker
+
+Rootless Docker 把容器的 root 映射为你，把其余用户都映射为从属用户，而从属用户不能写你的文件：在以 `vscode`
+运行的容器里，仓库是只读的。在启动编辑器或 CLI 的环境里设置 `VFOX_PLUS_DEVCONTAINER_USER=root`（写在
+`~/.profile` 里，先于 `code .` 或 `devcontainer up`），容器就以 root 运行，也就是容器外的你：它写的文件归你。
+用 Docker Desktop、以 root 运行的 Docker Engine 或 Codespaces 时不要动它。此时用户是 `vscode`，有 `sudo` 且无需密码，
+在 Linux 上它会取得你的 uid（`updateRemoteUserUID`）。
+
+### 容器里的 Docker
+
+Docker Engine 在容器里运行，有自己的镜像，靠
+[`docker-in-docker`](https://github.com/devcontainers/features/tree/main/src/docker-in-docker)
+feature，它让容器成为特权容器。本仓库用到 Docker 的三件事在里面照写的样子就能工作：`vfxtool sandbox`，
+以及[参与贡献](contributing.md#markdown)里的许可证头检查与 Markdown 检查。容器本身已经是带有沙箱工具的用后即弃环境，
+所以只有沙箱固定下来的那些才需要在里面再用沙箱：装进干净 Ubuntu 的安装测试（`package`）、内存（`measure`）与桌面应用的截图
+（`screenshots`）。不允许特权容器、或连不上 ghcr.io（feature 的来源）的地方，从 `devcontainer.json` 里删掉
+`features`；其余一切都不需要它。
+
+### 限制
+
+- 没有模拟器，也没有 KVM（见[模拟器与 KVM](#模拟器与-kvm)）：用 CI 的 `measure` 任务，或像[没有 KVM 时](#没有-kvm-时)那样用一台 adb 设备。
+- 没有显示。应用的窗口需要显示：测试在 `xvfb` 里运行，要使用应用，运行 `vfox-plus-serve`，在容器外配对一个浏览器。
+- 没有 Chrome，`vfxtool webheap` 驱动的那个（见 [Go 与本机工具](#go-与本机工具)）。自己装一个，用 `--chrome` 指定。
+- git worktree 是这样一个文件夹：它的 `.git` 是个文件，指向它所属的克隆，而那在容器挂载的文件夹之外，所以 git
+  在容器里用不了（Go 仍能构建）。请打开那个克隆。
 
 ## Go 与本机工具
 
@@ -181,3 +261,6 @@ vfox-plus-serve serve -bind 127.0.0.1 -port 0 -tls-cert cert.pem -tls-key key.pe
 - 图形程序的**显示**来自 WSLg（`.wslconfig` 里的 `guiApplications` 除非另有说明为 `true`）。需要显示但不要窗口的
   测试用 `xvfb` 或沙箱。
 - Linux 文件系统里（`~/...`）的**文件**比 `/mnt/c` 下的快得多：把仓库克隆到 Linux 家目录里。
+- **开发容器**可与 Docker Desktop 的 WSL 集成配合，也可与发行版里的 Docker Engine 配合。在 VS Code 的 WSL
+  窗口里打开克隆（在发行版里运行 `code .`），再在容器中重新打开。Engine 是 rootless 的，就先设置
+  `VFOX_PLUS_DEVCONTAINER_USER=root`（见 [Rootless Docker](#rootless-docker)）。

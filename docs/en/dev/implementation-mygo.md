@@ -45,7 +45,7 @@ toolkit, and the parsers pass the [fixtures](../../../shared/fixtures/README.md)
   needs cgo); the application is built without one.
 
 [Development environment](environment.md) says how to install all of this on
-Ubuntu 26.04, also in WSL2.
+Ubuntu 26.04, also in WSL2, and how to have it in a dev container.
 
 ## Everyday commands
 

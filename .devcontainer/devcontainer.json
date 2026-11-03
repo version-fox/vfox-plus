@@ -1,0 +1,37 @@
+{
+  "name": "vfox-plus",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": {
+      "UBUNTU_MIRROR": "${localEnv:SANDBOX_UBUNTU_MIRROR}"
+    }
+  },
+  "remoteUser": "${localEnv:VFOX_PLUS_DEVCONTAINER_USER:vscode}",
+  "containerUser": "${localEnv:VFOX_PLUS_DEVCONTAINER_USER:vscode}",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {
+      "moby": false
+    }
+  },
+  "init": true,
+  "runArgs": ["--shm-size=1g"],
+  "containerEnv": {
+    "GOPROXY": "${localEnv:SANDBOX_GOPROXY}",
+    "VFOX_PLUS_NPM_REGISTRY": "${localEnv:SANDBOX_NPM_REGISTRY}"
+  },
+  "mounts": [
+    "source=vfox-plus-devcontainer-go,target=/home/vscode/go,type=volume",
+    "source=vfox-plus-devcontainer-gradle,target=/home/vscode/.gradle,type=volume"
+  ],
+  "postCreateCommand": "go -C shared/tooling build -o \"$GOPATH/bin/vfxtool\" ./cmd/vfxtool && go -C mygo mod download && MYGO_SKIP_LICENSES=1 vfxtool prepare --root mygo",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "editorconfig.editorconfig",
+        "davidanson.vscode-markdownlint"
+      ]
+    }
+  }
+}

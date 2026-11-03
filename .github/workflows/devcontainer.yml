@@ -1,0 +1,107 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The dev container (.devcontainer, docs/en/dev/environment.md#the-dev-container):
+# whenever it, or the pinned versions that it reads, change, starts it the way an
+# editor does and uses it for what a contributor does, so that it keeps working for
+# contributors. The runner has an ordinary user (uid 1001), who is not the 1000 of
+# the image: the user of the container follows it (updateRemoteUserUID), as it does
+# on a developer's Linux machine.
+name: Dev container
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .devcontainer/**
+      - mygo/versions.env
+      - android/versions.env
+      - .github/workflows/devcontainer.yml
+  pull_request:
+    paths:
+      - .devcontainer/**
+      - mygo/versions.env
+      - android/versions.env
+      - .github/workflows/devcontainer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devcontainer:
+    name: Build, start and use
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install the dev container CLI
+        run: |
+          npm install --prefix "$RUNNER_TEMP/devcontainer-cli" @devcontainers/cli@0.90.0
+          echo "$RUNNER_TEMP/devcontainer-cli/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Start the dev container
+        # Builds the image, adds Docker, and runs the post-create command.
+        run: devcontainer up --workspace-folder .
+      - name: Check the tools against the pinned versions
+        run: |
+          devcontainer exec --workspace-folder . bash -eu <<'EOF'
+          . mygo/versions.env
+          . android/versions.env
+          test "$(go env GOVERSION)" = "go$GO_VERSION"
+          golangci-lint version | grep -F "has version $GOLANGCI_LINT_VERSION "
+          vfox --version | grep -F "version $VFOX_VERSION"
+          java -version 2>&1 | grep -F "version \"$JAVA_VERSION."
+          test -d "$ANDROID_HOME/platforms/android-$ANDROID_SDK_PLATFORM"
+          test -d "$ANDROID_HOME/build-tools/$ANDROID_SDK_BUILD_TOOLS"
+          command -v vfxtool
+          EOF
+      - name: Lint, and compile the tests with the race detector
+        run: |
+          devcontainer exec --workspace-folder . bash -eu <<'EOF'
+          cd mygo
+          golangci-lint run
+          CGO_ENABLED=1 go test -race -run '^$' ./...
+          EOF
+      - name: Run the end-to-end scenarios in the virtual display
+        run: |
+          devcontainer exec --workspace-folder . bash -eu <<'EOF'
+          cd mygo
+          vfxtool build --e2e build/vfox-plus-e2e
+          for scenario in fake real; do
+            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+              vfxtool e2e-run "$scenario" build/vfox-plus-e2e
+          done
+          EOF
+      - name: Build the Android client
+        run: |
+          devcontainer exec --workspace-folder . bash -eu <<'EOF'
+          cd android
+          ./gradlew :app:assembleRelease
+          EOF
+      - name: Run the checks that use Docker
+        # The Markdown check and the license headers, as docs/en/dev/contributing.md
+        # writes them, with the Docker of the container.
+        run: |
+          devcontainer exec --workspace-folder . bash -eu <<'EOF'
+          docker run --rm --volume "$PWD:/workdir" \
+            ghcr.io/igorshubovych/markdownlint-cli:v0.50.0@sha256:db7dcb73cd3163cc45854b60fc21eefe1ebe7fa52aad758706010b64a4778900 \
+            --ignore-path .gitignore "**/*.md"
+          docker run --rm -v "$PWD:/github/workspace" apache/skywalking-eyes:0.9.0 header check
+          EOF

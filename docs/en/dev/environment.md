@@ -3,10 +3,12 @@
 > [简体中文](../../zh-CN/dev/environment.md)
 
 How to set up a machine to work on vfox-plus: Ubuntu 26.04 LTS, on its own or in
-WSL2 on Windows 11. What you install depends on what you do:
+WSL2 on Windows 11, or a dev container that has all of it. What you install
+depends on what you do:
 
 | You want to | You need |
 | --- | --- |
+| Have every tool in your editor at once, and change nothing on your machine | Docker, and an editor that opens dev containers ([The dev container](#the-dev-container)) |
 | Run every check, the end-to-end tests and the packaging, and change nothing on your machine | Docker, and Go to build `vfxtool` ([The sandbox](#the-sandbox)) |
 | Edit and test the Go code quickly | Go, a few packages and golangci-lint ([Go and the native tools](#go-and-the-native-tools)) |
 | Build the Android client | A JDK 17 and the Android SDK ([Android](#android)) |
@@ -15,7 +17,8 @@ WSL2 on Windows 11. What you install depends on what you do:
 The pinned versions live in
 [`mygo/versions.env`](../../../mygo/versions.env) and
 [`android/versions.env`](../../../android/versions.env). The commands below read
-them, so that this page does not go stale when one changes.
+them, so that this page does not go stale when one changes, and so does the image of
+the dev container when it is built.
 
 ## The sandbox
 
@@ -36,6 +39,115 @@ vfxtool sandbox all
 
 Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR`, `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY` (see
 [the mygo guide](implementation-mygo.md#sandbox)).
+
+## The dev container
+
+[`.devcontainer`](../../../.devcontainer) describes a container that has what the
+sections below install, so that you install none of it: Ubuntu 26.04 with Go,
+golangci-lint and vfox in the pinned versions, the packages that CI installs, a
+virtual display, a JDK and the Android SDK, and Docker. VS Code (with the Dev
+Containers extension), GitHub Codespaces and the [dev container
+CLI](https://github.com/devcontainers/cli) open it. The image is for x86-64, like
+the archives it installs; Docker runs it under emulation on another processor.
+
+In VS Code, open the repository and run *Dev Containers: Reopen in Container*. From a
+terminal, with Docker running:
+
+```sh
+npm install --global @devcontainers/cli
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . bash
+```
+
+The first start builds the image, which takes minutes, downloads about 1 GB and fills
+3.6 GB of disk, and then runs the `postCreateCommand` of
+[`devcontainer.json`](../../../.devcontainer/devcontainer.json): it builds `vfxtool`
+into `/home/vscode/go/bin` (`~/go/bin` of the user, on the `PATH`), downloads the Go
+modules and prepares the assets that the application embeds (without the licenses of
+the Go modules, which only a package needs; `vfxtool prepare` without
+`MYGO_SKIP_LICENSES` collects them). After that the commands of [the mygo
+guide](implementation-mygo.md#everyday-commands) and of
+[Contributing](contributing.md#workflow) run as they are written:
+
+```sh
+cd mygo
+golangci-lint run && CGO_ENABLED=1 go test -race ./...
+vfxtool build --e2e build/vfox-plus-e2e
+xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run real build/vfox-plus-e2e
+```
+
+`VFOX_PLUS_E2E_VFOX` names the vfox that the image installs, in the version that
+`mygo/versions.env` pins, so the scenario against the real vfox needs no prefix and
+has no `~/.vfox` of yours to touch. `ANDROID_HOME` is set, and `cd android &&
+./gradlew :app:assembleRelease` builds the Android client ([Android](#android)).
+
+The container runs with an init process (`init`), which reaps the processes that the
+tests leave behind, and with 1 GB of shared memory (`--shm-size`), because software
+rendering and the embedded test server need more than the 64 MB that Docker gives a
+container by default. The sandbox runs its containers the same way.
+
+### Rebuilding
+
+The Dockerfile reads `mygo/versions.env` and `android/versions.env` while the image is
+built, as CI and the sandbox do, so a version that changes there (in a `git pull`,
+say) reaches the container when you rebuild it: *Dev Containers: Rebuild Container*,
+or `devcontainer up --workspace-folder . --remove-existing-container`. The
+tools are in `/usr/local` and `/opt`, for the user to use and not to change. What
+the user downloads lives under `/home/vscode`, and two Docker volumes keep it when the
+container is rebuilt: `vfox-plus-devcontainer-go` (the modules and the build cache of
+Go) and `vfox-plus-devcontainer-gradle` (Gradle, and the libraries of the Android
+app). `docker volume rm` deletes them.
+
+### Behind a slow connection
+
+The variables of the sandbox work here too. Set `SANDBOX_UBUNTU_MIRROR` (for the
+build of the image), `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY` (they reach the
+container as `GOPROXY` and `VFOX_PLUS_NPM_REGISTRY`) in the environment that starts the
+editor or the CLI. Go, golangci-lint, vfox and the Android command-line tools come
+from go.dev, GitHub and dl.google.com, and the Docker feature from ghcr.io, with no
+mirror to name for any of them ([Docker inside](#docker-inside) says what to do where
+ghcr.io cannot be reached). Your `~/.gradle` is not
+the container's: the download mirror that the Gradle wrapper reads from
+`gradle-wrapper-neo.json` ([Building](packaging-android.md#building)) belongs in the
+Gradle user home of the container, `/home/vscode/.gradle` (`$GRADLE_USER_HOME`).
+
+### Rootless Docker
+
+Rootless Docker maps the root of a container to you and every other user to a
+subordinate user, who may not write to your files: in a container that runs as
+`vscode`, the repository is read-only. Set `VFOX_PLUS_DEVCONTAINER_USER=root` in the
+environment that starts the editor or the CLI (in `~/.profile`, before `code .` or
+`devcontainer up`), and the container runs as root, which is you outside it: the files
+it writes are yours. With Docker Desktop, Docker Engine as root, or Codespaces, leave
+it alone. The user is `vscode`, with `sudo` and no password, and on Linux it gets
+your uid (`updateRemoteUserUID`).
+
+### Docker inside
+
+Docker Engine runs in the container, with images of its own (the
+[`docker-in-docker`](https://github.com/devcontainers/features/tree/main/src/docker-in-docker)
+feature, which makes the container privileged). The three things of this
+repository that use Docker work in it as they are written: `vfxtool sandbox`, and the
+license header check and the Markdown check of [Contributing](contributing.md#markdown).
+The container already is a throw-away environment with the tools of the sandbox, so
+you need the sandbox inside it only for what it fixes: the installation into a clean
+Ubuntu (`package`), the memory (`measure`) and the screenshots of the desktop
+application (`screenshots`). Where privileged containers are not allowed, or ghcr.io
+(where the feature comes from) cannot be reached, delete `features` from
+`devcontainer.json`; nothing else needs it.
+
+### Limits
+
+- There is no emulator and no KVM ([The emulator and KVM](#the-emulator-and-kvm)): use
+  the `measure` job of CI, or an adb device, as in [Without KVM](#without-kvm).
+- There is no display. The window of the application needs one: the tests run in
+  `xvfb`, and to use the application, run `vfox-plus-serve` and pair a browser outside
+  the container.
+- There is no Chrome, which `vfxtool webheap` drives ([Go and the native
+  tools](#go-and-the-native-tools)). Install one and name it with `--chrome`.
+- A git worktree is a folder whose `.git` is a file that points into the clone it
+  belongs to, outside the folder that the container mounts, so git does not work in
+  it there (Go still builds). Open the clone.
 
 ## Go and the native tools
 
@@ -214,3 +326,8 @@ uninstall the app first (`adb uninstall dev.vfox.vfoxplus`).
   without a window use `xvfb` or the sandbox.
 - **Files** in the Linux file system (`~/...`) are much faster than the ones under
   `/mnt/c`: clone the repository into your Linux home.
+- **The dev container** works with the WSL integration of Docker Desktop and with a
+  Docker Engine in the distribution. Open the clone in the WSL window of VS Code
+  (`code .` in the distribution) and reopen it in the container. With a rootless
+  Engine, set `VFOX_PLUS_DEVCONTAINER_USER=root` first ([Rootless
+  Docker](#rootless-docker)).
