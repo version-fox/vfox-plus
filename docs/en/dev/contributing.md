@@ -32,8 +32,8 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
 
 ## Workflow
 
-To set up a machine (Ubuntu 26.04, on its own or in WSL2), see
-[Development environment](environment.md).
+To set up a machine (Ubuntu 26.04, on its own or in WSL2), or to work in the dev
+container, see [Development environment](environment.md).
 
 1. Open an issue or comment on an existing one before large changes.
 2. Create a branch from `main` and keep pull requests focused.

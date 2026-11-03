@@ -25,7 +25,7 @@
 
 ## 工作流
 
-配置机器（Ubuntu 26.04，单独使用或在 WSL2 中）见[开发环境](environment.md)。
+配置机器（Ubuntu 26.04，单独使用或在 WSL2 中），或使用开发容器，见[开发环境](environment.md)。
 
 1. 大改动先开 issue 或在已有 issue 下留言。
 2. 从 `main` 建分支，Pull Request 保持聚焦。

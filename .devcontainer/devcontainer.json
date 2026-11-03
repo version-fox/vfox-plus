@@ -1,0 +1,65 @@
+// The development container of vfox-plus. What it contains, how to open it and
+// what to set behind a slow connection or rootless Docker is in
+// docs/en/dev/environment.md#the-dev-container.
+{
+  "name": "vfox-plus",
+  "build": {
+    "dockerfile": "Dockerfile",
+    // The root of the repository: the Dockerfile reads the pinned versions in
+    // mygo/versions.env and android/versions.env. Dockerfile.dockerignore keeps
+    // everything else out of the build.
+    "context": "..",
+    "args": {
+      // The mirror variables of the sandbox, when they are set.
+      "UBUNTU_MIRROR": "${localEnv:SANDBOX_UBUNTU_MIRROR}"
+    }
+  },
+  // Rootless Docker maps root of the container to you and every other user to a
+  // subordinate one, which may not write to your files: set
+  // VFOX_PLUS_DEVCONTAINER_USER=root there. Elsewhere the user is vscode, whose
+  // uid follows yours on Linux (updateRemoteUserUID).
+  "remoteUser": "${localEnv:VFOX_PLUS_DEVCONTAINER_USER:vscode}",
+  "containerUser": "${localEnv:VFOX_PLUS_DEVCONTAINER_USER:vscode}",
+  // Docker Engine inside the container, with its own images (the feature makes
+  // the container privileged). `vfxtool sandbox` and the checks of
+  // docs/en/dev/contributing.md that run in Docker, markdownlint and the license
+  // headers, work in it as they are written there. Delete this where privileged
+  // containers are not allowed or ghcr.io cannot be reached: nothing else needs it.
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {
+      "moby": false
+    }
+  },
+  // Reaps the processes that the tests leave behind (the sandbox runs with it too).
+  "init": true,
+  // Software rendering and the embedded test server need more shared memory than
+  // Docker gives containers by default (the sandbox does the same).
+  "runArgs": ["--shm-size=1g"],
+  "containerEnv": {
+    // The mirror variables of the sandbox, when they are set; empty means the
+    // default of Go and of vfxtool.
+    "GOPROXY": "${localEnv:SANDBOX_GOPROXY}",
+    "VFOX_PLUS_NPM_REGISTRY": "${localEnv:SANDBOX_NPM_REGISTRY}"
+  },
+  // What is downloaded once and kept when the container is rebuilt: the modules
+  // and the build cache of Go (and the programs that go install puts in
+  // /home/vscode/go/bin), and Gradle with the libraries of the Android app.
+  "mounts": [
+    "source=vfox-plus-devcontainer-go,target=/home/vscode/go,type=volume",
+    "source=vfox-plus-devcontainer-gradle,target=/home/vscode/.gradle,type=volume"
+  ],
+  // vfxtool (into /home/vscode/go/bin, which is on the PATH of the image), the Go
+  // modules, and the assets that the application embeds (icons, translations;
+  // MYGO_SKIP_LICENSES leaves out the licenses, which only a package needs), so
+  // that the checks and the tests run at once.
+  "postCreateCommand": "go -C shared/tooling build -o \"$GOPATH/bin/vfxtool\" ./cmd/vfxtool && go -C mygo mod download && MYGO_SKIP_LICENSES=1 vfxtool prepare --root mygo",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "editorconfig.editorconfig",
+        "davidanson.vscode-markdownlint"
+      ]
+    }
+  }
+}

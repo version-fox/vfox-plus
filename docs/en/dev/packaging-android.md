@@ -14,7 +14,7 @@ Go code. Users install the `.apk` and pair it with the PC; see
 | --- | --- |
 | `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties` | Project setup; plugin versions are pinned here. |
 | `gradlew`, `gradlew.bat`, `gradlew.ps1`, `gradle/wrapper/` | The Gradle wrapper ([Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)); `gradle-wrapper.properties` pins Gradle with its SHA-256. |
-| `versions.env` | Pinned tool versions CI reads (Java, AGP, Kotlin, Material). |
+| `versions.env` | Pinned tool versions that CI and the [dev container](environment.md#the-dev-container) read (Java, the command-line tools and the packages of the Android SDK, AGP, Kotlin, Material). |
 | `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. The Material Symbols are imported too, from google/material-design-icons (see the [design system](design-system.md#icons)). |
 | `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, the Material 3 Expressive theme with the colours of the [design system](design-system.md#colour) (`values/colors.xml`, `values-night/colors.xml`), strings in English and Simplified Chinese, and the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
 
@@ -138,9 +138,10 @@ then be the size of the APK and the cost of the migration, not memory.
 ## Building
 
 JDK 17 and the Android SDK (platform 36 and build-tools 35.0.0, the default of
-the pinned AGP) are required. CI installs them; locally point `ANDROID_HOME` at
-an SDK (or write `sdk.dir` into the git-ignored `local.properties`); Gradle
-installs a missing package only after its license is accepted
+the pinned AGP) are required. CI installs them, and so does the [dev
+container](environment.md#the-dev-container), with `ANDROID_HOME` set; locally point
+`ANDROID_HOME` at an SDK (or write `sdk.dir` into the git-ignored
+`local.properties`); Gradle installs a missing package only after its license is accepted
 (`sdkmanager --licenses`). The wrapper downloads the Gradle that
 `gradle/wrapper/gradle-wrapper.properties` pins, so no Gradle install is needed:
 

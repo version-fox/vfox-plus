@@ -38,7 +38,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 - C 编译器仅单元测试竞态检测需要（`go test -race` 需 cgo）；应用构建不用。
 
-怎样在 Ubuntu 26.04（也包括 WSL2）上装齐这些，见[开发环境](environment.md)。
+怎样在 Ubuntu 26.04（也包括 WSL2）上装齐这些，以及怎样在开发容器里拥有它们，见[开发环境](environment.md)。
 
 ## 日常命令
 
