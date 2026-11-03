@@ -81,6 +81,11 @@ xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run real 
 has no `~/.vfox` of yours to touch. `ANDROID_HOME` is set, and `cd android &&
 ./gradlew :app:assembleRelease` builds the Android client ([Android](#android)).
 
+The container runs with an init process (`init`), which reaps the processes that the
+tests leave behind, and with 1 GB of shared memory (`--shm-size`), because software
+rendering and the embedded test server need more than the 64 MB that Docker gives a
+container by default. The sandbox runs its containers the same way.
+
 ### Rebuilding
 
 The Dockerfile reads `mygo/versions.env` and `android/versions.env` while the image is

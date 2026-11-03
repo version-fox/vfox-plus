@@ -69,6 +69,9 @@ xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run real 
 也没有你的 `~/.vfox` 可碰。`ANDROID_HOME` 已设好，`cd android && ./gradlew :app:assembleRelease`
 即可构建 Android 客户端（见 [Android](#android)）。
 
+容器带 init 进程运行（`init`），用来回收测试留下的进程；并带 1 GB 共享内存（`--shm-size`），因为软件渲染和
+内嵌的测试服务器需要的，比 Docker 默认给容器的 64 MB 多。沙箱的容器也是这样运行的。
+
 ### 重建
 
 Dockerfile 在构建镜像时读取 `mygo/versions.env` 与 `android/versions.env`，CI 与沙箱也这样做，所以那里改了
