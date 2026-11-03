@@ -64,6 +64,10 @@ jobs:
           # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
           # no wrapper jar to validate.
           validate-wrappers: false
+          # Since v6 the default caching is gradle-actions-caching, which is
+          # closed source and under its own terms of use; `basic` is
+          # MIT-licensed and built on actions/cache.
+          cache-provider: basic
       - name: Build the release APK
         run: ./gradlew :app:assembleRelease
         working-directory: android
