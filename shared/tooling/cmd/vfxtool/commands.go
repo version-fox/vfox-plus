@@ -24,6 +24,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/e2erun"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fakevfox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fetch"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/gatewaycheck"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/gnomesession"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/golicenses"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/installpkgs"
@@ -53,6 +54,7 @@ func init() {
 	commands["screenshots"] = screenshots.Run
 	commands["smoke-test"] = smoketest.Run
 	commands["e2e-run"] = e2erun.Run
+	commands["gateway-check"] = gatewaycheck.Run
 	commands["gnome-session"] = gnomesession.Run
 	commands["capture"] = capture.Run
 	commands["fake-vfox"] = fakevfox.Run

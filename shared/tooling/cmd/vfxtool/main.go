@@ -82,6 +82,7 @@ Commands:
   screenshots         capture page screenshots (replaces shared/tools/screenshots.sh)
   smoke-test          start a graphical application and check that it stays up
   e2e-run             run an end-to-end scenario (replaces shared/e2e/run.sh)
+  gateway-check       check the gateway (the Docker image vfox-plus-gateway) against the application
   gnome-session       run a command inside a headless GNOME Shell session, with the AppIndicator extension
   capture             capture vfox CLI fixtures (replaces shared/fixtures/capture.sh)
   fake-vfox           replay captured vfox output (replaces shared/fixtures/fake-vfox.sh)
