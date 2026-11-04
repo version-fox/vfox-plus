@@ -30,7 +30,7 @@ or extract the `.tar.gz` anywhere and run `./vfox-plus`.
 
 vfox-plus is a desktop application: it takes no arguments, and needs a desktop session
 to show its window. To use it from a browser or a phone as well, turn on its web
-interface in its settings (see [The web interface, other devices and Android](remote.md)).
+interface in its settings (see [The web interface and other devices](remote.md)).
 
 ## Windows 11
 
@@ -51,11 +51,11 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 ## Android
 
 Install the `vfox-plus-android` artifact's `.apk` on your phone and pair it
-with the vfox-plus on your PC. See [The web interface, other devices and Android](remote.md).
+with the vfox-plus on your PC. See [The Android app](android.md).
 
 ## Docker
 
-The Docker image is the [gateway](remote.md#the-gateway-docker): it shows the web interface of a
+The Docker image is the [gateway](gateway.md): it shows the web interface of a
 vfox-plus that runs on a computer, in the browsers that you pair with it. It contains no vfox
 and no window, so it does not replace the installation above. Build it from the repository
 (it is not published) and run it:

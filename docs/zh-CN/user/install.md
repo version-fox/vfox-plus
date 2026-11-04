@@ -26,7 +26,7 @@ vfox-plus
 或把 `.tar.gz` 解到任意位置，运行 `./vfox-plus`。
 
 vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示窗口。想同时在浏览器或手机上用，
-在它的设置里开启网页界面（见[网页界面、其他设备与安卓](remote.md)）。
+在它的设置里开启网页界面（见[网页界面与其他设备](remote.md)）。
 
 ## Windows 11
 
@@ -46,11 +46,11 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 ## 安卓
 
 在手机上安装 `vfox-plus-android` 产物的 `.apk`，再与 PC 上的 vfox-plus 配对。
-见[网页界面、其他设备与安卓](remote.md)。
+见[安卓 App](android.md)。
 
 ## Docker
 
-Docker 镜像是[网关](remote.md#网关docker)：它把某台电脑上运行着的 vfox-plus 的网页界面，显示给
+Docker 镜像是[网关](gateway.md)：它把某台电脑上运行着的 vfox-plus 的网页界面，显示给
 与它配对的浏览器。镜像里没有 vfox，也没有窗口，所以它不能代替上面的安装。从仓库构建（暂未发布）并
 运行：
 

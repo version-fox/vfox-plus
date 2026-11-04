@@ -99,7 +99,7 @@ the Go module and build caches in Docker volumes.
 | `vfxtool sandbox e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
 | `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
 | `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
-| `vfxtool sandbox screenshots` | Screenshots of every page, and of Java, Flutter and the options of Node.js |
+| `vfxtool sandbox screenshots` | Screenshots of every page, of Java, Flutter and the options of Node.js, and of the settings of the web interface |
 | `vfxtool sandbox all` | `check`, `e2e` and `package` |
 | `vfxtool sandbox shell` | A shell in the sandbox |
 | `vfxtool sandbox clean` | Deletes the image, the cache volumes and the results |
@@ -185,6 +185,10 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   The Dockerfile has the Go version and checksum of `mygo/versions.env` as the defaults of its build
   arguments, and the job fails when they differ. Where the Ubuntu archive or the Go proxy is slow, the build
   arguments `UBUNTU_MIRROR` and `GOPROXY` say where else to get them from.
+
+  `vfxtool gateway-shots` walks the same way with a headless Chrome in the place of the person, and keeps what it
+  shows at each step: the pictures of the pages of the gateway for the user guide (see
+  [Screenshots](contributing.md#screenshots), which says how to run it).
 
   The end-to-end build also does what the tools write into the file that `VFOX_PLUS_E2E_CONTROL`
   names (`close`, `show`, `quit`: what a person does with the close button and the menu of the icon), and

@@ -85,7 +85,7 @@ Go 模块与构建缓存。
 | `vfxtool sandbox e2e` | 端到端场景，夹具与真实 vfox 各一 |
 | `vfxtool sandbox package` | 发布构建与冒烟测试、`.deb`、`.tar.gz`、`.msix`/`.msixbundle`（lintian 检查），再装入干净 Ubuntu 26.04 容器 |
 | `vfxtool sandbox measure` | Home 页与列出 Node.js 版本时的内存 |
-| `vfxtool sandbox screenshots` | 各页截图，以及 Java、Flutter 与 Node.js 选项的截图 |
+| `vfxtool sandbox screenshots` | 各页截图，Java、Flutter 与 Node.js 选项的截图，以及网页界面设置的截图 |
 | `vfxtool sandbox all` | `check`、`e2e` 与 `package` |
 | `vfxtool sandbox shell` | 沙箱内交互 shell |
 | `vfxtool sandbox clean` | 删除镜像、缓存卷与结果 |
@@ -151,6 +151,9 @@ Go 模块与构建缓存。
 
   Dockerfile 的构建参数默认值就是 `mygo/versions.env` 里的 Go 版本与校验和，两者不一致时任务失败。Ubuntu 软件源或
   Go 代理较慢的地方，可以用构建参数 `UBUNTU_MIRROR` 和 `GOPROXY` 指定别处。
+
+  `vfxtool gateway-shots` 照同样的路线走一遍，只是用无头 Chrome 代替人，并把每一步看到的画面留下来：用户指南里
+  网关各页的截图（怎么运行见[截图](contributing.md#截图)）。
 
   端到端构建还会照 `VFOX_PLUS_E2E_CONTROL` 指定的文件里工具写下的话去做（`close`、`show`、`quit`：用户用关闭按钮和
   图标菜单所做的事），并在 `SIGUSR1` 时关闭窗口。Windows 上的场景由 `run-windows` 任务运行，用 `build` 任务交叉

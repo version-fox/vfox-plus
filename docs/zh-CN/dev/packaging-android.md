@@ -4,7 +4,7 @@
 
 本目录是安卓远端客户端：包住 PC 上应用网页界面的 WebView，原生
 Material 3 Expressive 配对流程。它按[远端协议](remote-protocol.md)编程，不直连
-Go 代码。用户装 `.apk` 后与 PC 配对；见[网页界面、其他设备与安卓](../user/remote.md)。
+Go 代码。用户装 `.apk` 后与 PC 配对；见[安卓 App](../user/android.md)。
 
 ## 布局
 
@@ -104,7 +104,7 @@ cp app/build/outputs/apk/release/app-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
-装到手机（提示时允许安装未知应用），按[网页界面、其他设备与安卓](../user/remote.md)配对。
+装到手机（提示时允许安装未知应用），按[安卓 App](../user/android.md)配对。
 
 ## 签名状态
 

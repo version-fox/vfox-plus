@@ -1,12 +1,13 @@
-# The web interface, other devices and Android
+# The web interface and other devices
 
 > [简体中文](../../zh-CN/user/remote.md)
 
 vfox-plus is a desktop application, and it has no command line: you start it like any
 other application, and what else it does is a matter of its settings. This page is about
 three of them, in *Settings → Web interface*: the web interface, the lightweight mode and
-the other devices that may connect. It also tells how to use that interface from a phone
-(the [Android app](#android-app)) and from a container host (the [gateway](#the-gateway-docker)).
+the other devices that may connect. To use that interface from a phone, see the
+[Android app](android.md); to show it at an address of your choice, from a container,
+see the [gateway](gateway.md).
 
 ## The web interface
 
@@ -16,18 +17,20 @@ like `http://127.0.0.1:41233`, which no other computer can reach. Choose *Open i
 and your browser opens it, paired by a one-time link. The link works once and expires after
 five minutes, and *Copy link* makes another one for the clipboard.
 
+![The settings of the web interface: the switch and the address that serves, the button that opens it in the browser, the lightweight mode and the other devices](https://iili.io/niyPoCB.png)
+
 The paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
 live progress and logs, and the settings. The plugins vfox-java, vfox-nodejs and
 vfox-flutter get everything they offer, as in the desktop application: the
 distribution of Java to list, filter chips, installation by name and the options
 with the download mirrors (see [Java, Node.js and
-Flutter](using.md#java-nodejs-and-flutter)). The Android app shows the same
+Flutter](using.md#java-nodejs-and-flutter)). The [Android app](android.md) shows the same
 interface.
 
 | The paired web interface | Java in it: Temurin, long-term support |
 | --- | --- |
-| ![The paired web interface](https://iili.io/nv67lFs.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/n8eIitn.png) |
+| ![The paired web interface](https://iili.io/niyieDv.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/niyi4UX.png) |
 
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*
@@ -86,6 +89,10 @@ A phone, or another computer, can use the web interface too. Turn on *Other devi
 (it needs the web interface), and confirm. It is off by default: it opens vfox-plus to the
 network, so allow it only in a network that you trust.
 
+| The question that comes first | What the settings show once it is allowed |
+| --- | --- |
+| ![The question that asks whether other devices may connect](https://iili.io/niyP7Tv.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/niyP14t.png) |
+
 - vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
   firewall of this computer has to allow it.
 - Other devices connect over **HTTPS**. Without a certificate of your own, vfox-plus makes
@@ -95,125 +102,19 @@ network, so allow it only in a network that you trust.
   (PEM files).
 - *Pair a phone* shows the **QR code** of a pairing link, and the link. A computer that is
   on more than one network has more than one address; choose the one that the phone
-  reaches. Scan the code with the [Android app](#android-app), or open the link in a
+  reaches. Scan the code with the [Android app](android.md), or open the link in a
   browser of another computer. It works once and expires after five minutes.
 - A paired device keeps its session for 24 hours. Turning *Other devices* off, or
   closing vfox-plus, ends the connections of all of them at once, and they have to pair
   again.
+
+| The code and the link of *Pair a phone*, on the computer | The same, in a browser that is paired |
+| --- | --- |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/niyPwZl.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/niysVIf.png) |
 
 The settings of the web interface show the same switches: from a paired browser or phone
 you can allow other devices, change the port and turn the lightweight mode on or off, and
 *Pair a phone* shows the code there, too, which is how a computer without a window
 (lightweight mode) pairs a phone.
 
-## Android app
-
-The Android app drives the vfox-plus on your PC from your phone: it shows the
-same interface as the paired browser above. Links to other sites, such as the
-homepage of a plugin or its documentation, open in the browser of the phone.
-
-1. On the PC, open vfox-plus, go to *Settings → Web interface* and turn on the web
-   interface and *Other devices*. Allow the port in the firewall of the PC.
-2. Install the `vfox-plus-android` artifact's `.apk` on your phone and open
-   it.
-3. Choose *Show code* next to *Pair a phone* on the PC, and scan the QR code with the
-   app, or copy the link and paste it into the app, and connect. If the PC uses a
-   certificate that it made itself, the app shows its fingerprint: compare it with the one
-   in the settings on the PC before accepting, exactly as you would in a browser.
-4. The app stays paired and reconnects automatically on the same network. If
-   pairing expires, or vfox-plus on the PC was restarted, scan a fresh code.
-
-The app opens on the pairing screen: scan the QR code of the PC (Android
-asks for the camera once) or paste the link. A self-signed certificate shows its
-fingerprint first, to compare with the one on the PC.
-
-| The pairing screen | Scanning the QR code | The fingerprint of a self-signed certificate |
-| --- | --- | --- |
-| ![The pairing screen of the Android app](https://iili.io/nSoyuyX.png) | ![The scanner of the Android app, with the viewfinder and the toolbar](https://iili.io/nSoyU91.png) | ![The dialog that shows the fingerprint of a self-signed certificate](https://iili.io/nSoyiMv.png) |
-
-Once paired, the app shows the interface of the paired browser: the home page
-with the plugins in use, the SDKs with their versions, and the settings. The
-first card of the settings, *This phone*, pairs another link or disconnects the
-phone.
-
-| Home | An SDK | The settings, with the card of this phone |
-| --- | --- | --- |
-| ![The home page in the Android app](https://iili.io/nSx9JVf.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nSx9BR9.png) | ![The settings in the Android app, with the card of this phone](https://iili.io/nSx91WJ.png) |
-
-The app follows the dark theme of the phone. When it cannot reach the PC (vfox-plus
-stopped, another network, a firewall in the way), it says so and offers to
-try again or to pair a new link.
-
-| The pairing screen in the dark theme | Home in the dark theme | A PC that cannot be reached |
-| --- | --- | --- |
-| ![The pairing screen of the Android app in the dark theme](https://iili.io/nSx9kWG.png) | ![The home page in the Android app in the dark theme](https://iili.io/nSx94JS.png) | ![The Android app when the PC cannot be reached](https://iili.io/nSx9QWb.png) |
-
-The app needs your PC reachable from the phone (same Wi-Fi or another network
-route) and the port of the web interface (8369 by default) allowed through the PC
-firewall. Browsers can only set the global version; pinning versions to a
-project stays in the desktop application.
-
-## The gateway (Docker)
-
-The Docker image is not vfox-plus in a container: it has no vfox, no window and no SDKs of
-its own, and it takes no arguments. It is a *gateway*. Like the Android app, it connects to
-one vfox-plus that runs on a computer (with the web interface and *Other devices* turned
-on), and shows the interface of that vfox-plus to the browsers that you pair with the
-gateway. Use it to put the interface at an address of your choice, for example on a
-container host that your browsers reach and your phone does not.
-
-There is no published image yet. Build it from the repository, and run it with the port
-mapped:
-
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
-docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-plus-gateway vfox-plus-gateway
-```
-
-The volume keeps what the gateway remembers between runs: the vfox-plus it is paired with,
-its session there, and the certificate of the gateway itself. Without it, the gateway starts
-from nothing each time the container is made.
-
-1. **Pair a browser with the gateway.** The gateway prints (see `docker logs`) the SHA-256
-   fingerprint of its certificate, and a one-time link such as
-   `https://localhost:8080/auth/connect/…`. Replace `localhost` with the address that reaches
-   the container and open the link in a browser. The gateway serves HTTPS with a certificate
-   that it makes for itself, so the browser warns about it: compare the fingerprint that the
-   browser shows with the printed one before you go on. The link works once and expires after
-   five minutes; restart the container for a new one, which is the last in the log.
-2. **Pair the gateway with vfox-plus.** The page of the gateway has a field for the pairing
-   link of a vfox-plus. On the PC, choose *Settings → Web interface → Pair a phone → Show
-   code → Copy link*, and paste the link there. The gateway then shows the fingerprint of the
-   certificate of vfox-plus: compare it with the one in the settings of vfox-plus
-   (*Certificate*), and choose *They are the same: trust and pair*. From then on the gateway
-   trusts that certificate and no other, and asks again, with a warning, if the one at the
-   address changes. A certificate that an authority signed needs no comparison.
-3. **Use it.** The browser is taken to the interface of vfox-plus: the one a paired browser
-   has, served by that vfox-plus itself, so the page always fits the version that runs. Pair
-   more browsers with *Pair another browser* on the page of the gateway, and pair the gateway
-   with another vfox-plus by pasting its link there (*Forget this vfox+* lets go of the one it
-   has).
-
-The session of the gateway at vfox-plus lasts a day, like that of a phone, and the gateway
-renews it every few hours for as long as it runs. When vfox-plus quits or starts again its
-sessions end: the page of the gateway says so, and you paste a new link. While vfox-plus is
-not running, the interface says that it cannot be reached.
-
-Good to know:
-
-- **A vfox-plus on the same computer.** The link for other devices works from the container:
-  it is an address of the PC on the network. The *Open in browser* link
-  (`http://127.0.0.1:…`) names the container itself when it is pasted into the gateway. On
-  Linux, run the container with `--network host` instead of `-p` to reach the loopback address
-  of the computer; the gateway then listens on port 8080 of the computer.
-- **A certificate of your own.** Put a certificate that browsers trust in the volume, as
-  `cert.pem` and `key.pem` (PEM files), and the gateway serves with it and makes none of its
-  own.
-- **Who may use it.** A browser that is paired with the gateway has the whole interface of the
-  vfox-plus it is paired with, as a paired phone does, and it can have the gateway connect to any
-  address that the container can reach (that is how the gateway is paired with a vfox-plus). The
-  gateway keeps its session at vfox-plus in the volume, in a file that only its user can read:
-  keep the volume as you keep a password. The log of the container shows the link that pairs a
-  browser, so whoever can read the log can pair one.
-- **The port.** The port inside the container is 8080; map it as you like (`-p 9443:8080`),
-  and allow it in the firewall of the host.
+![The connections in the settings of a paired web interface, on a phone](https://iili.io/niysfsV.png)

@@ -168,7 +168,7 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 
 **桌面应用。** `vfxtool sandbox screenshots` 可复现地把图渲染到
 `dist/sandbox/mygo/screenshots/`：xfwm4 Greybird 标题栏（现代 GNOME 应用观感），
-Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动五遍，经 mygo 的自动化插件
+Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动七遍，经 mygo 的自动化插件
 把它带到每个页面，页面沉降后用 ImageMagick 截取屏幕：
 
 | 运行 | 拍什么 |
@@ -178,46 +178,59 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 | `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`zh-options`、`zh-java-available` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | 窄布局（窗口窄于 600 dp）：`compact-home`、`compact-detail` |
 | 上面两个一起 | 窄布局下 Java 的发行版：`compact-java` |
+| 设置 `webInterface`，以及 `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 网页界面的设置，像用户操作那样一步步走：已开启的开关与它的地址、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
+| 同上，先选好语言 | 同样四张的简体中文版：`zh-web-interface`、`zh-web-allow`、`zh-web-remote`、`zh-web-pair` |
+
+端到端构建可以用 `VFOX_PLUS_E2E_ADDRESSES`（逗号分隔的列表）被告知这台电脑的地址，而不是从网卡上读。图里
+显示的是 `192.168.1.20`：家用网络常见的那种地址，每次运行都一样，也不属于任何一台机器；没有网络、因而没有
+自己地址的沙箱，也就有了一个可以给手机配对的地址。
 
 要多拍一张，就在 `shared/tooling/internal/screenshots/screenshots.go` 里该运行的函数
-（`pages`、`installing`、`profiles`、`compactPages` 或 `compactProfiles`）加一句
+（`pages`、`installing`、`profiles`、`compactPages`、`compactProfiles` 或 `webInterface`）加一句
 `c.shot(s, "名称")`。它之前的步骤像用屏幕阅读器的人一样点击、等待，靠用户看到的名字
 （按钮的标签，或组件给它的 key）找控件，所以改了名的按钮会让场景失败，而不是拍出一张错的图。
 
 README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-available`、`installing`、
 `tasks`、`plugins`、`zh-settings`、`compact-home`、`compact-detail`、`java-choose`、
-`java-temurin`、`flutter-available` 与 `options`。[使用说明](../user/using.md)引用
-`java-install-name` 与 `options-mirror`，中文版引用 `zh-java-available` 与 `zh-options`。
-[远端指南](../user/remote.md)引用 `webapp-en` 与 `webapp-zh`（英文与简体中文的配对后 Web 界面），
-以及手机上 Web 界面的 `java-temurin` 场景的两种语言版本（`web-phone-java-temurin` 与
-`web-phone-zh-java-temurin`，用 `--window 412,915` 拍），还有安卓 App 的九张两种语言版本（`android-pairing`、
-`android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、`android-dark-pairing`、
-`android-dark-home` 与 `android-unreachable`，简体中文的加前缀 `zh-`）。其余的图是改界面时用来看的，没有文档引用它们。
+`java-temurin`、`flutter-available` 与 `options`，以及手机上的网页界面 `webapp-en` 与
+`web-phone-java-temurin`（简体中文是 `webapp-zh` 与 `web-phone-zh-java-temurin`，见下）。
+[使用说明](../user/using.md)引用 `java-install-name` 与 `options-mirror`，中文版引用
+`zh-java-available` 与 `zh-options`。[网页界面指南](../user/remote.md)引用 `web-interface`、`web-allow`、
+`web-remote` 与 `web-pair`（简体中文加前缀 `zh-`），以及手机上的网页界面：`webapp-en`、
+`web-phone-java-temurin`、`web-connections` 与 `web-connections-pair`（简体中文是 `webapp-zh`、
+`web-phone-zh-java-temurin`、`web-zh-connections` 与 `web-zh-connections-pair`）。
+[安卓 App 指南](../user/android.md)引用 App 的图，[网关指南](../user/gateway.md)引用网关的图（见下）。其余的图
+是改界面时用来看的，没有文档引用它们。
 
 **Web 界面。** 用应用的端到端构建（在虚拟显示里）与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
 可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
-`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`flutter-chips`、`options` 与
-`options-mirror`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
+`connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
+`java-install-name`、`options` 与 `options-mirror`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
 `mygo/pair/webapp.html` 检查场景点击的元素）。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
-设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面
-（`{"webInterface":true}`），端到端构建没有命令行可打印链接，所以把配对链接写进
-`VFOX_PLUS_E2E_LINK` 指定的文件：
+设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面，并允许其他设备（连接卡片与给
+手机配对的二维码需要它：`{"webInterface":true,"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
+命令行可打印链接，所以把配对链接写进 `VFOX_PLUS_E2E_LINK` 指定的文件。Java 的场景需要一台装着 Java 和 Flutter 的
+机器，主页需要一台没装的，所以假 vfox 的库存是调用时给的变量：
 
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
 /tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
 
 # shoot 名称 语言 宽,高 [webheap 的其他选项]
+# INVENTORY=profiles shoot ... 让假 vfox 成为装着 Java 与 Flutter 的机器。
 shoot() {
   name=$1 lang=$2 window=$3; shift 3
   home=/tmp/shot-home
   rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
   cp /tmp/vfxtool $home/bin/vfox
-  echo '{"webInterface":true}' > $home/.config/vfox-plus/settings.json
-  HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH \
-    VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 VFOX_PLUS_FAKE_INVENTORY=profiles NO_COLOR=1 \
-    VFOX_PLUS_E2E_LINK=$home/link.txt \
-    setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >app.log 2>&1 &
+  echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
+  (
+    export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
+      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.0.13 VFOX_PLUS_E2E_LINK=$home/link.txt \
+      VFOX_PLUS_E2E_ADDRESSES=192.168.1.20
+    [ -n "${INVENTORY:-}" ] && export VFOX_PLUS_FAKE_INVENTORY=$INVENTORY
+    exec setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >$home/app.log 2>&1
+  ) &
   app=$!
   for i in $(seq 1 30); do
     LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' $home/link.txt 2>/dev/null | head -1)"
@@ -230,11 +243,17 @@ shoot() {
   kill -- -$app
 }
 shoot webapp-en en 412,915
-shoot web-java-temurin en 1280,800 --scene java-temurin
+shoot webapp-zh zh 412,915
+INVENTORY=profiles shoot web-phone-java-temurin en 412,915 --scene java-temurin
+INVENTORY=profiles shoot web-phone-zh-java-temurin zh 412,915 --scene java-temurin
+shoot web-connections en 412,915 --scene connections
+shoot web-connections-pair en 412,915 --scene connections-pair
+shoot web-zh-connections zh 412,915 --scene connections
+shoot web-zh-connections-pair zh 412,915 --scene connections-pair
 ```
 
 （`PATH` 首位放一个 `vfox` 可执行文件——`vfxtool` 的复制品配夹具即假
-vfox——SDK 列表才有内容，`VFOX_PLUS_FAKE_INVENTORY=profiles` 让它成为装着 Java 与 Flutter 的机器；
+vfox——SDK 列表才有内容，`INVENTORY=profiles` 让它成为装着 Java 与 Flutter 的机器；
 `setsid` 让应用成为自己进程组的组长，`kill -- -$app` 把它连同虚拟显示一起结束；
 `--lang` 固定界面语言；`--window 412,915` 拍手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；
 `--idle 0` 跳过测量堆所需的、停在打开页面上的 20 秒；`--dark` 用深色主题拍；
@@ -244,11 +263,34 @@ vfox——SDK 列表才有内容，`VFOX_PLUS_FAKE_INVENTORY=profiles` 让它成
 Testing 156 把 `--window 412,915` 拍成了 500×715 的图，同版本的
 `chrome-headless-shell` 恰好是 412×915，尺寸不对时用 `--chrome` 传它。
 
+**网关。** `vfxtool gateway-shots` 拍它各页的图：它做 `vfxtool gateway-check` 做的事（见[实现指南](implementation-mygo.md)），
+只是用无头 Chrome 代替人，并把 Chrome 每一步显示的画面留下来。它写出 `gateway-intro`（还没有配对的浏览器）、
+`gateway-home`（浏览器已与网关配对，网关还没有配对任何东西）、`gateway-link`（粘贴了应用的链接）、
+`gateway-trust`（要核对的指纹）、`gateway-app` 与 `gateway-zh-app`（通过网关看到的应用界面，英文与简体中文）
+和 `gateway-paired`，每张的高度都恰好是那一页的高度。网关的页面本来就是中英文同时出现，所以一张图两份指南通用。
+图里显示的是应用的地址，网关真的会连它，所以这台电脑得有这个地址：`unshare -rn` 在自己的网络命名空间里运行命令，
+你在里面是 root，里面只有一个回环接口，地址就加到那个接口上，不碰你的网络。电脑没有这个地址时，命令在启动任何东西
+之前就会停下并说明。
+
+```sh
+go -C mygo build -o /tmp/vfox-plus-gateway ./cmd/vfox-plus-gateway
+unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+  /tmp/vfxtool gateway-shots --binary /tmp/vfox-plus-gateway --output /tmp/gateway-shots /tmp/vfox-plus-e2e'
+```
+
+（应用的构建就是上面那个；要在仓库根目录运行，命令靠它找假 vfox 的夹具；`--chrome` 和 `webheap` 一样指定 Chrome。）
+
 **Android。** CI 拍一张图 `screenshot-android`：`android.yml` 的 `measure` 任务在模拟器跑 release APK，
-`vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[远端指南](../user/remote.md)里的
-九张图是手工拍的：在模拟器（API 36，1080×2400，420 dpi）上跑 release 构建（`./gradlew :app:assembleRelease`），
+`vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。App 的九张图是手工拍的：
+在模拟器（API 36，1080×2400，420 dpi）上跑 release 构建（`./gradlew :app:assembleRelease`），
 按[运行 App](environment.md#运行-app)的方法配对，对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 与
-开启了网页界面和其他设备、端口为 8080 的应用，让配对屏上的地址就是实际使用的那个。让图保持一致的做法：
+开启了网页界面和其他设备、端口为 8080 的应用，让配对屏上的地址就是实际使用的那个。它们是 `android-pairing`、
+`android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、`android-dark-pairing`、
+`android-dark-home` 与 `android-unreachable`。[安卓 App 指南](../user/android.md)引用其中四张：`android-home`、
+`android-sdk`、`android-settings` 与 `android-dark-home`，两种语言的指南都用英文版；它们显示的是 App 只是包起来的
+网页界面。另外五张显示的是应用还没有自己的设置时 App 的说法：命令 `vfox-plus serve` 和打印二维码的终端，
+重新拍过之前，指南不放它们。让图保持一致的做法：
 
 - 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
   再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
@@ -273,5 +315,5 @@ curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json 
 ```
 
 输出 URL（key 是 freeimage.host 在 [API 页](https://freeimage.host/api) 给所有人的公开
-key），替换 README 中的链接。curl 以 56 退出是连接断了：重试。每次上传都有新 URL，
+key），替换文档中的链接。curl 以 56 退出是连接断了：重试。每次上传都有新 URL，
 旧图缓存不会串。匿名图无法删除；不可公开的东西不要传。

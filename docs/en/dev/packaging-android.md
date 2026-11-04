@@ -6,7 +6,7 @@ This directory holds the Android remote client: a WebView around the web
 interface of the application on the PC, with a native Material 3 Expressive
 pairing flow. It programs against [the remote protocol](remote-protocol.md), not
 against the Go code. Users install the `.apk` and pair it with the PC; see
-[The web interface, other devices and Android](../user/remote.md).
+[The Android app](../user/android.md).
 
 ## Layout
 
@@ -167,7 +167,7 @@ cp app/build/outputs/apk/release/app-release.apk \
 ```
 
 Install it on the phone (allow installing unknown apps when asked) and pair
-it as described in [The web interface, other devices and Android](../user/remote.md).
+it as described in [The Android app](../user/android.md).
 
 ## Signing status
 
