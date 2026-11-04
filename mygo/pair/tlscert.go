@@ -187,8 +187,17 @@ func CertFingerprint(certFile string) (string, error) {
 }
 
 // LocalAddresses lists the machine's non-loopback IP addresses, for the
-// certificate of a server behind a port mapping.
-func LocalAddresses() []string {
+// certificate of a server behind a port mapping and for the links that pair
+// other devices.
+func LocalAddresses() []string { return localAddresses() }
+
+// localAddresses is what LocalAddresses asks for: the addresses of the interfaces, and,
+// in the end-to-end build, the ones that VFOX_PLUS_E2E_ADDRESSES names (addresses_e2e.go).
+var localAddresses = interfaceAddresses
+
+// interfaceAddresses lists the non-loopback, non-link-local addresses of the interfaces
+// that are up.
+func interfaceAddresses() []string {
 	var addresses []string
 	interfaces, err := net.Interfaces()
 	if err != nil {
