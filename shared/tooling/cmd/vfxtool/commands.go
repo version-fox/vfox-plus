@@ -32,6 +32,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureapk"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measurelightweight"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/phoneframe"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/sandbox"
@@ -56,6 +57,7 @@ func init() {
 	commands["e2e-run"] = e2erun.Run
 	commands["gateway-check"] = gatewaycheck.Run
 	commands["gateway-shots"] = gatewaycheck.Shots
+	commands["frame-phone"] = phoneframe.Run
 	commands["gnome-session"] = gnomesession.Run
 	commands["capture"] = capture.Run
 	commands["fake-vfox"] = fakevfox.Run

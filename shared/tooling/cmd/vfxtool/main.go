@@ -84,6 +84,7 @@ Commands:
   e2e-run             run an end-to-end scenario (replaces shared/e2e/run.sh)
   gateway-check       check the gateway (the Docker image vfox-plus-gateway) against the application
   gateway-shots       take the pictures of the pages of the gateway for the documentation, in a headless Chrome
+  frame-phone         frame the screenshot of a phone for the documentation: rounded corners and a grey border
   gnome-session       run a command inside a headless GNOME Shell session, with the AppIndicator extension
   capture             capture vfox CLI fixtures (replaces shared/fixtures/capture.sh)
   fake-vfox           replay captured vfox output (replaces shared/fixtures/fake-vfox.sh)
