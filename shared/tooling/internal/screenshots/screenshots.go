@@ -50,23 +50,36 @@ func (c shooter) shot(s *appsession.Session, name string) {
 	fmt.Println(name + ".png")
 }
 
-// A run of the application: what the fake vfox plays (its environment), and the
+// A run of the application: what the fake vfox plays (its environment), the
+// settings that it starts with besides the language and the vfox executable, and the
 // scenario that shows the pages.
 type run struct {
 	name     string
 	env      []string
+	settings map[string]any
 	scenario func(*appsession.Session, shooter)
 }
 
+// documentationAddress is the address of the computer in the pictures of the web interface: the
+// one that the end-to-end build is told (VFOX_PLUS_E2E_ADDRESSES), an address of the kind that a home
+// network has, the same at every run, and the address of no machine.
+const documentationAddress = "192.168.1.20"
+
 var runs = []run{
-	{"pages", nil, pages},
+	{name: "pages", scenario: pages},
 	// A slow fake vfox, so that an installation is in progress.
-	{"installing", []string{"VFOX_PLUS_FAKE_DELAY=4"}, installing},
+	{name: "installing", env: []string{"VFOX_PLUS_FAKE_DELAY=4"}, scenario: installing},
 	// The pages of the plugins that have a profile need a machine that has them.
-	{"profiles", []string{"VFOX_PLUS_FAKE_INVENTORY=profiles"}, profiles},
+	{name: "profiles", env: []string{"VFOX_PLUS_FAKE_INVENTORY=profiles"}, scenario: profiles},
 	// The compact layout is that of a window less than 600 dp wide.
-	{"compact pages", []string{"VFOX_PLUS_E2E_WINDOW=412x800"}, compactPages},
-	{"compact profiles", []string{"VFOX_PLUS_E2E_WINDOW=412x800", "VFOX_PLUS_FAKE_INVENTORY=profiles"}, compactProfiles},
+	{name: "compact pages", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800"}, scenario: compactPages},
+	{name: "compact profiles", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800", "VFOX_PLUS_FAKE_INVENTORY=profiles"}, scenario: compactProfiles},
+	// The settings of the web interface: it is on, as a person turns it on, and the computer has an address to pair a phone with.
+	// The pictures for the guide in Simplified Chinese are the same in that language, which the run chooses first, as a person does.
+	{name: "web interface", env: []string{"VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
+		settings: map[string]any{"webInterface": true}, scenario: webInterface(english)},
+	{name: "web interface in Simplified Chinese", env: []string{"VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
+		settings: map[string]any{"webInterface": true}, scenario: webInterface(chinese)},
 }
 
 // Run implements `screenshots <output-dir> <app command...>`,
@@ -84,7 +97,7 @@ func Run(args []string) error {
 		return err
 	}
 	for _, r := range runs {
-		config := appsession.Config{Name: "screenshots", Command: command, Fixtures: appsession.FixturesDir(root), Env: r.env}
+		config := appsession.Config{Name: "screenshots", Command: command, Fixtures: appsession.FixturesDir(root), Env: r.env, Settings: r.settings}
 		err := appsession.RunScenario(config, r.name, func(s *appsession.Session) {
 			// The startup overlay fades out after vfox is found; the first shot must
 			// wait for it, or the Home page is still dimmed.
@@ -153,6 +166,66 @@ func pages(s *appsession.Session, c shooter) {
 	s.Navigate(appsession.Settings)
 	s.WaitForText("插件仓库")
 	c.shot(s, "zh-settings")
+}
+
+// scrollTo moves the page so that the element with the key is in view: a page that is longer than
+// the window shows its top, and the picture of what is further down needs the page moved first.
+func scrollTo(s *appsession.Session, key string) {
+	var found automation.Node
+	s.WaitUntil("the element with the key "+key, 30*time.Second, func(t automation.Tree) bool {
+		node, ok := t.Find(func(n automation.Node) bool { return n.KeyText() == key })
+		found = node
+		return ok
+	})
+	if err := s.Client().Act(found.ID, automation.ScrollIntoView, ""); err != nil {
+		s.Fail("scroll to %s: %v", key, err)
+	}
+	s.Settle()
+}
+
+// words are what the scenario of the web interface waits for and clicks, in the language of the run, and the
+// prefix of the names of its pictures.
+type words struct {
+	prefix                                  string
+	language                                string // the key of the button that chooses the language, or "" to keep English.
+	section, allow, pair, showCode, newCode string
+}
+
+var (
+	english = words{"", "", "Web interface", "Allow other devices?", "Pair a phone", "Show code", "New code"}
+	chinese = words{"zh-", "simplifiedChinese", "网页界面", "允许其他设备？", "配对手机", "显示二维码", "换一个二维码"}
+)
+
+// webInterface shows what the settings say of the web interface, as a person goes through it: the
+// switch that is on and the address that serves, the dialog that asks before other devices may connect,
+// the settings that come with them, and the code that pairs a phone.
+func webInterface(w words) func(*appsession.Session, shooter) {
+	return func(s *appsession.Session, c shooter) {
+		s.Navigate(appsession.Settings)
+		if w.language != "" {
+			s.PressKey(w.language)
+		}
+		s.WaitForText(w.section)
+		// The page is scrolled to its end and back up to the row of the language, so that the window starts there, with
+		// the group of the web interface after it, as the pictures that follow do: scrolling shows an element with
+		// as little movement as it takes, which puts one that is above the window at the top of it.
+		scrollTo(s, "licenses")
+		scrollTo(s, "english")
+		c.shot(s, w.prefix+"web-interface")
+
+		s.PressKey("web-remote")
+		s.WaitForText(w.allow)
+		c.shot(s, w.prefix+"web-allow")
+		s.TapDialog(true)
+		s.WaitForText(w.pair)
+		s.PressKey("lightweight")
+		scrollTo(s, "web-quit-button")
+		c.shot(s, w.prefix+"web-remote")
+
+		s.ClickButton(w.showCode)
+		s.WaitForText(w.newCode)
+		c.shot(s, w.prefix+"web-pair")
+	}
 }
 
 // installing shows an installation in progress.

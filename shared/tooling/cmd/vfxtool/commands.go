@@ -55,6 +55,7 @@ func init() {
 	commands["smoke-test"] = smoketest.Run
 	commands["e2e-run"] = e2erun.Run
 	commands["gateway-check"] = gatewaycheck.Run
+	commands["gateway-shots"] = gatewaycheck.Shots
 	commands["gnome-session"] = gnomesession.Run
 	commands["capture"] = capture.Run
 	commands["fake-vfox"] = fakevfox.Run

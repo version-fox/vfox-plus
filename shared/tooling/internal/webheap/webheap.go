@@ -50,6 +50,8 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/chrome"
 )
 
 const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
@@ -102,7 +104,7 @@ func parseOptions(args []string) (options, error) {
 	flags.StringVar(&o.screenshot, "screenshot", "", "also write a PNG screenshot of the settled page to this `file`")
 	flags.StringVar(&o.lang, "lang", "", "pin the interface language to `en|zh`")
 	flags.StringVar(&o.tab, "tab", "", "open this page before the screenshot: home, sdks, plugins, tasks or settings")
-	flags.StringVar(&o.scene, "scene", "", "play this scene before the screenshot, which opens a dialog or a tab of a plugin: "+strings.Join(sceneNames(), ", "))
+	flags.StringVar(&o.scene, "scene", "", "play this scene before the screenshot, which opens a dialog, a tab of a plugin or the connections of the settings: "+strings.Join(sceneNames(), ", "))
 	flags.StringVar(&o.chrome, "chrome", "", "Chrome `executable` (default: $CHROME_BIN, then google-chrome, chromium, chromium-browser)")
 	window := flags.String("window", "1280,800", "browser window `WIDTH,HEIGHT`")
 	settle := flags.Float64("settle", 5, "`seconds` to settle after the SDK list loads, before the first measurement")
@@ -335,11 +337,11 @@ func (s *session) capture(ctx context.Context, o options) error {
 // measure runs the whole measurement in one browser.
 func measure(ctx context.Context, o options) (measurement, error) {
 	var found measurement
-	binary, err := findChrome(o.chrome)
+	binary, err := chrome.Find(o.chrome)
 	if err != nil {
 		return found, err
 	}
-	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, chromeOptions(binary, o.width, o.height)...)
+	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, chrome.Options(binary, o.width, o.height)...)
 	defer stopAllocator()
 	tab, closeTab := chromedp.NewContext(allocator)
 	defer closeTab()

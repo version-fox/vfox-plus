@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webheap
+// Package chrome finds the Chrome that the tools drive with the DevTools Protocol, and says how to start
+// it: the screenshots of the web interface and of the gateway, and the measurement of the heap of the web
+// interface, all take pictures of a page in a headless browser that is theirs alone.
+package chrome
 
 import (
 	"errors"
@@ -25,11 +28,11 @@ import (
 // macChrome is where Chrome lives on macOS, which has no google-chrome in PATH.
 const macChrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
-// findChrome returns the browser to start: the one that was named, then
+// Find returns the browser to start: the one that was named, then
 // $CHROME_BIN, then the first of the usual names in PATH. (chromedp looks for
 // a browser itself when it is not told, but it does not know the name that
 // Chrome for Testing gives its headless build, chrome-headless-shell.)
-func findChrome(named string) (string, error) {
+func Find(named string) (string, error) {
 	if named == "" {
 		named = os.Getenv("CHROME_BIN")
 	}
@@ -47,12 +50,12 @@ func findChrome(named string) (string, error) {
 	return "", errors.New("no Chrome found (set -chrome or CHROME_BIN)")
 }
 
-// chromeOptions are the options of a throw-away headless browser: its own empty
+// Options are the options of a throw-away headless browser: its own empty
 // profile (chromedp makes one and removes it), no network of its own, no
 // proxy, and the window size that was asked for. They are the whole list: the
 // defaults of chromedp, which are made for scraping, are not used, so that the
 // pages look the way that the screenshots of the documentation always showed them.
-func chromeOptions(binary string, width, height int) []chromedp.ExecAllocatorOption {
+func Options(binary string, width, height int) []chromedp.ExecAllocatorOption {
 	return []chromedp.ExecAllocatorOption{
 		chromedp.ExecPath(binary),
 		chromedp.Flag("headless", "new"),

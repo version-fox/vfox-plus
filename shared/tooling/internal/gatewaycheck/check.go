@@ -25,6 +25,9 @@
 // (its page, its API, its events, a task). It restarts the gateway, to see that it is paired still,
 // and ends the application, to see what the gateway says then.
 //
+// `vfxtool gateway-shots` (shots.go) walks the same way with a headless Chrome, and keeps what it shows
+// at each step: the pictures of the pages of the gateway for the user guide.
+//
 // The application is a desktop application: the command that starts it needs a display, which the
 // caller provides (xvfb-run).
 package gatewaycheck
