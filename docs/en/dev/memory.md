@@ -155,6 +155,11 @@ RSS (the collection that follows the paging out is that call). What stays in the
 is, among other things, the text engine of mygo (its paragraph cache, its glyph atlas and its SVG paths), which
 the application has no way to release.
 
+The runner of CI, Ubuntu 26.04 on GitHub, agrees with these numbers, as two runs of the job on the same code
+show: the lightweight mode settles at 45 MB of RSS and 31 to 32 MB of PSS, and at 47 to 48 MB and 34 to 35 MB
+with a browser paired, where the table has 46 and 33, and 50 and 37; and the icon in the tray costs 0.5 MB of RSS and
+0.06 to 0.18 MB of private memory there, where it cost 0.4 MB and 0.08 MB here.
+
 ## Beyond the desktop
 
 The pull-request comment also tracks what the desktop table does not: the

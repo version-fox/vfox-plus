@@ -447,10 +447,15 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   指示器并为它生成菜单（用 `org.gnome.Shell.Eval` 读取，Shell 在不安全模式下提供它），像用户那样选择
   *打开 vfox+*、*打开网页界面* 和 *退出 vfox+*，做法是让扩展发出点击事件，应用照做；窗口回来时 Shell 隐藏图标，
   应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
-- **Windows**：`run-windows` 任务在 Windows Server 2025 与 Windows 11 ARM 上，用 Windows 的端到端构建运行
-  `vfxtool e2e-run fake` 与 `vfxtool e2e-run tray`。运行器的通知区域要给图标一个位置（端到端构建把 `Tray.Bounds`
-  说的图标位置写进日志），窗口回来、应用结束则按端到端构建的控制文件的要求发生，因为点击任务栏的图标不是程序
-  该做的事。Windows 的场景是为它们运行所在的机器写的，由这个任务首次运行：那里的失败是它的第一个消息。
+- **Windows**：`run-windows` 任务在 Windows Server 2025（x64）与 Windows 11 ARM 上，用 Windows 的端到端构建，
+  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake` 与 `vfxtool e2e-run tray`。
+  窗口回来、应用结束按端到端构建的控制文件的要求发生，因为点击任务栏的图标不是程序该做的事。图标的位置由应用向桌面
+  询问（mygo 的 `Tray.Bounds`，即 `Shell_NotifyIconGetRect`），应用为它创建的每个图标把答案写进日志：在
+  Windows Server 2025 上，图标两次创建都在通知区域得到了位置。桌面能不能说出图标在哪，由场景自己添加的一个普通图标
+  来查明，用 `Shell_NotifyIconW` 和每个程序都用的结构（`tray_windows_probe.go`），应用的图标拿它来对照。在 Windows 11
+  ARM 的运行器上，shell 不接受任何程序的图标（连那个普通图标也被这个调用拒绝，而 `explorer.exe` 及其任务栏与测试在
+  同一个桌面、会话和用户下），所以那里不检查图标的位置：场景用一条 NOTE 说明，并检查能检查的，也就是窗口和应用。
+  场景的第一行会说它运行在哪个 Windows 上。
 
 控制文件是端到端构建的 `VFOX_PLUS_E2E_CONTROL`：工具往里写 `close`、`show` 或 `quit`，应用就做用户用关闭按钮和
 菜单的两个条目所做的事，并把文件删掉。mygo 的自动化插件没有关闭窗口的办法，Windows 也没有可发的信号。

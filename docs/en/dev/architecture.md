@@ -538,11 +538,18 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   the event of the click, and the application does what they say; the shell hides the icon when the window comes
   back, and drops it when the application ends, and is still up after it all.
 - **Windows** by the `run-windows` job, which runs `vfxtool e2e-run fake` and `vfxtool e2e-run tray` on Windows
-  Server 2025 and Windows 11 on ARM with the end-to-end build for Windows. The notification area of the
-  runner has to give the icon a place (the end-to-end build writes where `Tray.Bounds` says it is to the log),
-  and the window comes back and the application ends as the control file of the end-to-end build asks, since
-  a click on an icon of the taskbar is not for a program to make. The scenarios of Windows are written
-  for the machine that they run on, and are first run by the job: a failure there is the first news of it.
+  Server 2025 (x64) and Windows 11 on ARM with the end-to-end build for Windows, on the desktop of the runner
+  (`explorer.exe` runs there, with its taskbar). The window comes back and the application ends as the control
+  file of the end-to-end build asks, since a click on an icon of the taskbar is not for a program to make. The
+  place of the icon is asked of the desktop by the application (`Tray.Bounds` of mygo, which is
+  `Shell_NotifyIconGetRect`), and the application writes the answer to its log, for each icon that it makes:
+  on Windows Server 2025 the icon gets a place in the notification area, both times that it is made.
+  Whether a desktop can say where an icon is is found out by a plain icon that the scenario adds itself, with
+  `Shell_NotifyIconW` and the structures that every program uses (`tray_windows_probe.go`), and the application's
+  icon is judged against it. On the runner for Windows 11 on ARM the shell takes no icon of any program (the
+  call refuses even the plain one, with `explorer.exe` and its taskbar on the same desktop, session and user as
+  the test), so there the place of the icon is not checked: the scenario says so in a note and checks what it
+  can, the window and the application. The first line of the scenario says which Windows it runs on.
 
 The control file is `VFOX_PLUS_E2E_CONTROL` of the end-to-end build: the tool writes `close`, `show` or `quit`
 into it, and the application does what the user does with the close button and with the two entries of the
