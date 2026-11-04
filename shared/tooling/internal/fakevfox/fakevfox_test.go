@@ -135,6 +135,28 @@ func TestRunCommandInstallProgress(t *testing.T) {
 	}
 }
 
+// rootDirectory is the root of the file system that the temporary directory is on: / on Unix,
+// and the root of the drive on Windows, where the application runs the commands that are not
+// about a project.
+func rootDirectory() string {
+	return filepath.VolumeName(os.TempDir()) + string(filepath.Separator)
+}
+
+func TestOnlyTheRootOfAFileSystemIsTheRoot(t *testing.T) {
+	root := rootDirectory()
+	for dir, want := range map[string]bool{
+		root:                       true,
+		filepath.Join(root, "tmp"): false,
+		t.TempDir():                false,
+		".":                        false,
+		"":                         false,
+	} {
+		if got := isRoot(dir); got != want {
+			t.Errorf("isRoot(%q) = %t, want %t", dir, got, want)
+		}
+	}
+}
+
 func TestRunCommandContract(t *testing.T) {
 	dir := t.TempDir()
 	fixtureEnv(t, dir)
@@ -167,14 +189,17 @@ func TestRunCommandContract(t *testing.T) {
 		if code := runCommand([]string{"list"}, &out, &errOut); code != exitNotAtRoot {
 			t.Errorf("exit code = %d, want %d", code, exitNotAtRoot)
 		}
+		if got := out.String(); !strings.HasPrefix(got, "not run in the root of the file system: ") {
+			t.Errorf("stdout = %q, want to be told where it ran", got)
+		}
 	})
 
 	t.Run("leaked PWD is ignored for the real root", func(t *testing.T) {
 		// The environment PWD leaks in through every launcher layer; only
 		// the working directory decides.
 		t.Setenv("PWD", "/somewhere")
-		if err := os.Chdir("/"); err != nil {
-			t.Skipf("cannot change to /: %v", err)
+		if err := os.Chdir(rootDirectory()); err != nil {
+			t.Skipf("cannot change to %s: %v", rootDirectory(), err)
 		}
 		var out, errOut strings.Builder
 		if code := runCommand([]string{"config", "--list"}, &out, &errOut); code != 0 {
@@ -190,8 +215,8 @@ func TestRunCommandContract(t *testing.T) {
 		if err != nil {
 			t.Skipf("cannot read working directory: %v", err)
 		}
-		if err := os.Chdir("/"); err != nil {
-			t.Skipf("cannot change to /: %v", err)
+		if err := os.Chdir(rootDirectory()); err != nil {
+			t.Skipf("cannot change to %s: %v", rootDirectory(), err)
 		}
 		defer func() { _ = os.Chdir(previous) }()
 		var out, errOut strings.Builder

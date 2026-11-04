@@ -19,8 +19,10 @@
 // $VFOX_PLUS_FIXTURES), pretends to install versions with a progress bar on
 // standard error, and fails like vfox when `vfox use` runs without the hook
 // environment. It also checks what the CLI contract requires of the caller:
-// NO_COLOR=1, no __VFOX_PID of an activated shell and the working directory /
-// for commands that are not about a project. It keeps no state: installing a
+// NO_COLOR=1, no __VFOX_PID of an activated shell and the root of the file
+// system as the working directory (/ on Unix, the root of the system drive,
+// such as C:\, on Windows) for commands that are not about a project. It keeps
+// no state: installing a
 // version does not add it to the output of `vfox list`.
 //
 // It also replays the searches and the plugin information of java and flutter,
@@ -74,12 +76,15 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(out, "__VFOX_PID leaked")
 		return exitPIDLeaked
 	}
-	// Commands that are not about a project run in the filesystem root.
+	// Commands that are not about a project run in the filesystem root: / on
+	// Unix, the root of the system drive on Windows, where the application
+	// uses C:\ (see the contract).
 	// Only an exact "/" in PWD is trusted: like bash, which overwrites an
 	// invalid PWD with the working directory on startup, anything else that
 	// leaked in through the environment is replaced with the ground truth.
 	// Go sets no PWD itself, so without this the value that the launcher
-	// happened to have would decide.
+	// happened to have would decide. Windows has no PWD, and the working
+	// directory decides there.
 	first := ""
 	if len(args) > 0 {
 		first = args[0]
@@ -90,8 +95,8 @@ func runCommand(args []string, out, errOut io.Writer) int {
 			wd = cwd
 		}
 	}
-	if wd != "/" && first != "use" && first != "unuse" {
-		fmt.Fprintln(out, "not run in /: "+wd)
+	if !isRoot(wd) && first != "use" && first != "unuse" {
+		fmt.Fprintln(out, "not run in the root of the file system: "+wd)
 		return exitNotAtRoot
 	}
 
@@ -188,6 +193,15 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		fmt.Fprintf(errOut, "unexpected command: %s\n", joined)
 		return exitUnexpected
 	}
+}
+
+// isRoot reports whether dir is the root of a file system: the one directory
+// that is its own parent. That is "/" on Unix and the root of a drive, such as
+// C:\, on Windows, where the contract has the application run the commands
+// that are not about a project. The relative "." is its own parent too, and is
+// no root.
+func isRoot(dir string) bool {
+	return dir != "." && filepath.Dir(dir) == dir
 }
 
 // isInfoFormat reports whether joined matches the shell pattern
