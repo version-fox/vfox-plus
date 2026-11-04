@@ -69,6 +69,65 @@ func TestAPairingLinkIsTakenApartForWhatItMayBeUsedFor(t *testing.T) {
 	}
 }
 
+func TestTheAddressInALinkHasTheFormOfAHostNameOrAnIPAddressAndAPort(t *testing.T) {
+	path := "/auth/connect/abcdefgh12345678"
+	for _, address := range []string{
+		"https://192.168.1.20:8369", "https://localhost", "https://localhost:1", "https://host_name.example:65535", "https://vfox.example.com",
+		"https://[::1]:8369", "https://[2001:db8::1]:8369", "https://[::ffff:192.168.1.5]:8369", "https://a-b.c-d.example:8369",
+		"https://" + strings.Repeat("a", 63) + ".example:8369", "https://host.docker.internal:8369", "https://10.0.2.2:8369", "https://1e3.example",
+	} {
+		if base, _, err := parseLink(address + path); err != nil || base.String() != address {
+			t.Errorf("parseLink(%q) = %v, %v; want the address to be taken as it is", address, base, err)
+		}
+	}
+	bad := map[string]string{
+		// Numbers that a resolver reads as an address of a form of its own, and the loopback with it: they are not names,
+		// and not addresses.
+		"https://127.1:8369":      "is not a host name or an IP address",
+		"https://2130706433:8369": "is not a host name or an IP address",
+		"https://0x7f.0.0.1:8369": "is not a host name or an IP address",
+		"http://127.1:8369":       "is not a host name or an IP address",
+		"http://2130706433":       "is not a host name or an IP address",
+		"https://1.2.3:8369":      "is not a host name or an IP address",
+		// What has the form of an address and is none.
+		"https://999.1.1.1:8369":           "is not an IP address",
+		"https://010.0.0.1:8369":           "is not an IP address",
+		"https://1.2.3.4.5:8369":           "is not a host name or an IP address",
+		"https://[::gg]:8369":              "not a pairing link",
+		"https://[1:2:3:4:5:6:7:8:9]:8369": "not a pairing link",
+		// A zone is of one computer's interface and means nothing to the gateway.
+		"https://[fe80::1%25eth0]:8369": "not a pairing link",
+		// A port is a number from 1 to 65535.
+		"https://host:0":     "is not a port",
+		"https://host:65536": "is not a port",
+		"https://host:99999": "is not a port",
+		"https://host:":      "not a pairing link",
+		"https://host:80a":   "not a pairing link",
+		// What a URL allows in a host and a host name does not have.
+		"https://exa!mple.com:8369":                       "is not a host name or an IP address",
+		"https://exa(mple.com":                            "is not a host name or an IP address",
+		"https://a;b.example":                             "is not a host name or an IP address",
+		"https://a,b.example":                             "is not a host name or an IP address",
+		"https://a'b.example":                             "is not a host name or an IP address",
+		"https://a*b.example":                             "is not a host name or an IP address",
+		"https://a+b.example":                             "is not a host name or an IP address",
+		"https://a=b.example":                             "is not a host name or an IP address",
+		"https://münchen.example":                         "is not a host name or an IP address",
+		"https://-host.example":                           "is not a host name or an IP address",
+		"https://host-.example":                           "is not a host name or an IP address",
+		"https://host..example":                           "is not a host name or an IP address",
+		"https://.example":                                "is not a host name or an IP address",
+		"https://host.example.":                           "is not a host name or an IP address",
+		"https://" + strings.Repeat("a", 64) + ".example": "is not a host name or an IP address",
+	}
+	for address, reason := range bad {
+		base, _, err := parseLink(address + path)
+		if err == nil || !strings.Contains(err.Error(), reason) {
+			t.Errorf("parseLink(%q) = %v, %v; want an error with %q", address, base, err, reason)
+		}
+	}
+}
+
 func TestOnlyTheLoopbackIsTheLoopback(t *testing.T) {
 	for host, want := range map[string]bool{
 		"localhost": true, "LOCALHOST": true, "127.0.0.1": true, "127.1.2.3": true, "::1": true, "[::1]": true,

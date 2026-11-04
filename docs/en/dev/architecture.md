@@ -636,7 +636,14 @@ flowchart LR
   in it, and the gateway may reach the computer by another). The certificate that was shown is the one
   that is trusted: it is looked at again when the person agrees, and a different one is refused. A
   certificate that changes later is not served with the session of the gateway, and is asked about again
-  with a warning. Plain HTTP is for loopback addresses only, where the application serves it.
+  with a warning. Plain HTTP is for loopback addresses only, where the application serves it. The address
+  in the pasted link is checked for its form (`hostPattern`, `checkAddress`): a host name or an IP address
+  and a port from 1 to 65535, which the numbers that a resolver reads as addresses of forms of their own
+  (`127.1`, `2130706433`, `0x7f.1`) are not, nor are characters that a host name has no use for. That is
+  all that is said of the address. Which hosts a person may name is not restricted, since the instance may
+  be anywhere, and the people who are paired with the gateway are trusted with that (the user guide says
+  so); a list of the targets that the person who runs the gateway authorizes would restrict it, and the
+  gateway has none.
 - **What the gateway serves, and what is the instance's.** The page `/`, `/auth/connect/`, `/api/token`
   and the forms under `/gateway/` are the gateway's (see [the remote protocol](remote-protocol.md#the-gateway)).
   `/app`, `/api/*` and `/manifest.webmanifest` are the instance's, forwarded by `httputil.ReverseProxy`
@@ -662,6 +669,11 @@ flowchart LR
 - **Stopping.** The events of the page never end, so a browser with the interface open would keep
   `docker stop` waiting for the whole grace period: the gateway lets the requests that are on their way
   finish for one second, and ends with the code 0.
+- **What CodeQL says of it.** The pairing of the gateway makes a request to an address that a person typed,
+  which `go/request-forgery` reports. It is not removed by a check on the value (the gateway is for that),
+  and the check of its form above is what the query takes as validation: it accepts any match of a regular
+  expression, whatever the expression says. It does not make the gateway safe from a person who is paired
+  with it, and nobody should read it so.
 - **Tests.** The package tests run the gateway against the real servers of `mygo/pair`, in plain HTTP and
   in HTTPS with the certificate that the application makes. `vfxtool gateway-check` runs the image, or the
   program, against the application itself (see [the implementation guide](implementation-mygo.md)).
