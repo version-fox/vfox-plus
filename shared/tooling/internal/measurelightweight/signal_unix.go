@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pair_test
+//go:build !windows
+
+package measurelightweight
 
 import (
-	"testing"
-
-	"github.com/version-fox/vfox-plus/mygo/pair"
+	"os"
+	"syscall"
 )
 
-// Remote access is off by default: a non-loopback bind without confirmation
-// is refused before anything listens.
-func TestServeNonLoopbackNeedsAllowRemote(t *testing.T) {
-	if got := pair.ServeMain([]string{"--bind", "0.0.0.0", "--port", "0"}); got != 2 {
-		t.Fatalf("got %d, want 2", got)
-	}
-}
+// closeSignal asks the end-to-end build of the application to close its window,
+// as the close button does.
+var closeSignal os.Signal = syscall.SIGUSR1

@@ -13,8 +13,8 @@
 // limitations under the License.
 
 // Package assets embeds what the application needs at run time and that
-// `vfxtool prepare` collects: the icons, the translations and the licenses.
-// Run it before building.
+// `vfxtool prepare` collects: the icons, the translations, the icon of the tray
+// and the licenses. Run it before building.
 package assets
 
 import "embed"
@@ -25,7 +25,8 @@ import "embed"
 //   - icons/SYMBOL.svg and icons/SYMBOL-fill.svg: the icons, outlined and
 //     filled, cut out of the npm package that shared/icons.json pins;
 //   - i18n/app_<language>.arb: the translations of shared/i18n;
+//   - tray.png: the icon of the tray, drawn from the application icon;
 //   - licenses.txt: the licenses of everything the application is built from.
 //
-//go:embed icons.json icons/*.svg i18n/*.arb licenses.txt
+//go:embed icons.json icons/*.svg i18n/*.arb tray.png licenses.txt
 var Files embed.FS

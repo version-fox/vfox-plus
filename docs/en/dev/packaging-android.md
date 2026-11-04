@@ -2,11 +2,11 @@
 
 > [简体中文](../../zh-CN/dev/packaging-android.md)
 
-This directory holds the Android remote client: a WebView around the pairing
-server (`vfox-plus serve`), with a native Material 3 Expressive pairing flow.
-It programs against [the remote protocol](remote-protocol.md), not against the
-Go code. Users install the `.apk` and pair it with the PC; see
-[Remote and Android](../user/remote.md).
+This directory holds the Android remote client: a WebView around the web
+interface of the application on the PC, with a native Material 3 Expressive
+pairing flow. It programs against [the remote protocol](remote-protocol.md), not
+against the Go code. Users install the `.apk` and pair it with the PC; see
+[The web interface, other devices and Android](../user/remote.md).
 
 ## Layout
 
@@ -21,8 +21,8 @@ Go code. Users install the `.apk` and pair it with the PC; see
 ## What the app does
 
 - **Pairing** (`PairingFragment`) is native: the fox on the 9-sided cookie of the
-  shape library, the command that the PC has to run (with a button that copies
-  it), a button that scans the terminal QR code, and a field for the one-time
+  shape library, where to find the pairing on the PC (*Settings → Web interface →
+  Pair a phone*), a button that scans the QR code that the PC shows, and a field for the one-time
   link (its end icon pastes while the field is empty and clears it when it is
   not). After a first pairing the screen offers the last server first, with a
   button that reconnects. Connecting hides the keyboard, puts the loading
@@ -54,9 +54,9 @@ Go code. Users install the `.apk` and pair it with the PC; see
   the page clicks a link for them instead of calling `window.open`, which the
   WebView does not report).
 - **TLS** (`onReceivedSslError`) shows the SHA-256 fingerprint dialog before
-  trusting a self-signed certificate — the same fingerprint the PC terminal
-  prints, in rows of eight bytes so that the two can be compared at a glance.
-  Bringing your own certificate on the server avoids the warning.
+  trusting a self-signed certificate — the same fingerprint that the settings of
+  vfox-plus on the PC show, in rows of eight bytes so that the two can be compared at a glance.
+  Bringing your own certificate on the PC avoids the warning.
 - **Back** walks the WebView history before leaving the session, and the app
   opts in to the predictive back animation (`enableOnBackInvokedCallback`).
 - **A new Activity** (the dark theme, another language, the phone turned) gets
@@ -167,7 +167,7 @@ cp app/build/outputs/apk/release/app-release.apk \
 ```
 
 Install it on the phone (allow installing unknown apps when asked) and pair
-it as described in [Remote and Android](../user/remote.md).
+it as described in [The web interface, other devices and Android](../user/remote.md).
 
 ## Signing status
 

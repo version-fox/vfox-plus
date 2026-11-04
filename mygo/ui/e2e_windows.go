@@ -12,27 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows
+//go:build e2e && windows
 
-package pair
+package ui
 
-import (
-	"os"
-	"os/exec"
-	"syscall"
-)
-
-// detachProcess detaches command so that it survives the parent: the service
-// daemon keeps running after `service start` exits.
-func detachProcess(command *exec.Cmd) {
-	command.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
-}
-
-// terminateProcess asks pid to stop.
-func terminateProcess(pid int) error {
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return err
-	}
-	return process.Signal(syscall.SIGTERM)
-}
+// closeOnSignal does nothing on Windows: the tools that close the window by a signal
+// measure memory through /proc, which Windows has not.
+func (a *App) closeOnSignal() {}

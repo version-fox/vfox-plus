@@ -12,14 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package measureserve implements `vfxtool measure-serve`: it starts the
-// headless server with a fresh home directory and the fake vfox, pairs a
-// browser, loads the inventory over server-sent events, and prints the
-// resident (RSS) and proportional (PSS) set size of the server and all of its
-// child processes at two measuring points: settled idle, and settled with a
-// paired browser. Like `vfxtool measure`, it needs nothing but the binary and
-// a loopback interface; unlike it, no display is involved.
-package measureserve
+// Package measurelightweight implements `vfxtool measure-lightweight`: it starts
+// the application with a fresh home directory and the fake vfox, with the web
+// interface and the lightweight mode on, closes its window, pairs a browser, loads
+// the inventory over server-sent events, and prints the resident (RSS) and
+// proportional (PSS) set size of the application and all of its child processes at
+// two measuring points: settled without its window (lightweight-idle), and settled
+// with a paired browser (lightweight-loaded).
+//
+// With --tray it measures instead what the icon in the tray costs (see tray.go).
+//
+// It needs the end-to-end build of the application, which closes its window on
+// SIGUSR1 and writes a pairing link to the file that VFOX_PLUS_E2E_LINK names, and a
+// display, which the caller provides (xvfb-run); the application is a desktop
+// application, and has no other way to start the web interface than its settings.
+package measurelightweight
 
 import (
 	"bufio"
@@ -32,21 +39,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measure"
 )
-
-// pairingLink finds the one-time pairing link the server prints at start.
-var pairingLink = regexp.MustCompile(`http://127\.0\.0\.1:\d+/auth/connect/[0-9a-f]+`)
-
-// pairingURLFromLine extracts the pairing link from a line of the server log.
-func pairingURLFromLine(line string) (string, bool) {
-	url := pairingLink.FindString(line)
-	return url, url != ""
-}
 
 // sessionCookieValue reads the session cookie out of a Set-Cookie header.
 // The value is passed back as a Cookie header by hand, so that pairing does
@@ -61,21 +58,25 @@ func sessionCookieValue(header string) (string, bool) {
 	return "", false
 }
 
-// Run implements `measure-serve [--output FILE] [--settle SECONDS] [--fixtures-root DIR] [--fake-vfox FILE] <server command...>`.
-// The server command usually is the headless binary followed by
-// `serve --bind 127.0.0.1 --port 0`.
+// settings are the settings of the measured application: the web interface is on, and
+// the lightweight mode keeps the application running when its window is closed.
+const settings = `{"webInterface":true,"lightweight":true}`
+
+// Run implements `measure-lightweight [--output FILE] [--settle SECONDS] [--fixtures-root DIR] [--fake-vfox FILE] <application command...>`.
+// The application command usually is the end-to-end build of the application.
 func Run(args []string) error {
-	flags := flag.NewFlagSet("measure-serve", flag.ContinueOnError)
+	flags := flag.NewFlagSet("measure-lightweight", flag.ContinueOnError)
 	outputFlag := flags.String("output", "", "file collecting the memory(<point>) lines (also $VFOX_PLUS_MEASURE_OUTPUT)")
 	settleFlag := flags.Int("settle", 10, "seconds to settle before each measuring point")
 	fixturesRootFlag := flags.String("fixtures-root", "", "shared/fixtures directory (default: found via repository root)")
 	fakeVfoxFlag := flags.String("fake-vfox", "", "explicit fake vfox executable (default: this vfxtool binary, executed as vfox)")
+	trayFlag := flags.Bool("tray", false, "measure what the icon in the tray costs instead: run the application where nothing shows an icon and where a stand-in host does (Linux, in a desktop session), and fail when the icon costs more memory than it may")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	rest := flags.Args()
 	if len(rest) == 0 {
-		return errors.New("Usage: measure-serve [--output FILE] [--settle SECONDS] [--fixtures-root DIR] [--fake-vfox FILE] <server command...>")
+		return errors.New("Usage: measure-lightweight [--output FILE] [--settle SECONDS] [--fixtures-root DIR] [--fake-vfox FILE] [--tray] <application command...>")
 	}
 	if *settleFlag < 0 {
 		return errors.New("--settle must not be negative")
@@ -95,51 +96,42 @@ func Run(args []string) error {
 			return err
 		}
 	}
-	homeDir, err := os.MkdirTemp("", "vfox-plus-measure-serve-")
-	if err != nil {
-		return err
-	}
-	defer func() { _ = os.RemoveAll(homeDir) }()
 	fixturesDir, err := resolveFixturesDir(*fixturesRootFlag, *fakeVfoxFlag)
 	if err != nil {
 		return err
 	}
-	env, err := measureEnv(homeDir, fixturesDir, *fakeVfoxFlag)
+	if *trayFlag {
+		return measureTray(rest, fixturesDir, *fakeVfoxFlag, settle)
+	}
+	homeDir, err := os.MkdirTemp("", "vfox-plus-measure-lightweight-")
 	if err != nil {
 		return err
 	}
-	command := exec.Command(rest[0], rest[1:]...)
-	command.Env = env
-	stdout, err := command.StdoutPipe()
+	defer func() { _ = os.RemoveAll(homeDir) }()
+	env, linkFile, err := measureEnv(homeDir, fixturesDir, *fakeVfoxFlag)
 	if err != nil {
 		return err
 	}
-	command.Stderr = command.Stdout
-	if err := command.Start(); err != nil {
+	app, err := startApplication(rest, env)
+	if err != nil {
 		return err
 	}
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
-	lines := make(chan string, 64)
-	go func() {
-		scanner := bufio.NewScanner(stdout)
-		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
-		for scanner.Scan() {
-			lines <- scanner.Text()
-		}
-		close(lines)
-	}()
-	pairingURL, err := waitForPairingURL(lines, done, 60*time.Second)
+	command, done, stop := app.command, app.done, app.stop
+	pairingURL, err := waitForLink(linkFile, done, 60*time.Second)
 	if err != nil {
-		_ = command.Process.Kill()
-		<-done
+		stop()
 		return err
+	}
+	// The window goes; the application stays, with the web interface it was asked for.
+	if err := command.Process.Signal(closeSignal); err != nil {
+		stop()
+		return fmt.Errorf("cannot ask the application to close its window: %w", err)
 	}
 	report := func(point string) (string, error) {
 		time.Sleep(settle)
 		select {
 		case err := <-done:
-			return "", fmt.Errorf("the server exited early: %v", err)
+			return "", fmt.Errorf("the application exited early: %v", err)
 		default:
 		}
 		return "memory (" + point + "): " + measure.MemoryOf(command.Process.Pid), nil
@@ -156,56 +148,74 @@ func Run(args []string) error {
 		_, err = fmt.Fprintln(file, line)
 		return errors.Join(err, file.Close())
 	}
-	idle, err := report("serve-idle")
+	idle, err := report("lightweight-idle")
 	if err != nil {
-		_ = command.Process.Kill()
-		<-done
+		stop()
 		return err
 	}
 	if err := emit(idle); err != nil {
-		_ = command.Process.Kill()
-		<-done
+		stop()
 		return err
 	}
 	events, err := pairAndLoad(pairingURL)
 	if err != nil {
-		_ = command.Process.Kill()
-		<-done
+		stop()
 		return err
 	}
 	defer func() { _ = events.Close() }()
-	loaded, err := report("serve-loaded")
+	loaded, err := report("lightweight-loaded")
 	_ = events.Close()
-	_ = command.Process.Kill()
-	<-done
+	stop()
 	if err != nil {
 		return err
 	}
 	return emit(loaded)
 }
 
-// waitForPairingURL reads server log lines until one holds the pairing link,
-// or the server exits, or the timeout passes.
-func waitForPairingURL(lines <-chan string, done <-chan error, timeout time.Duration) (string, error) {
+// application is the application that is running, and the way to end it.
+type application struct {
+	command *exec.Cmd
+	// done receives how it ended, once.
+	done chan error
+}
+
+// startApplication starts the application with the environment and its output on that of the tool.
+func startApplication(argv, env []string) (*application, error) {
+	command := exec.Command(argv[0], argv[1:]...) //nolint:gosec // The application that the caller names.
+	command.Env = env
+	command.Stdout, command.Stderr = os.Stdout, os.Stderr
+	if err := command.Start(); err != nil {
+		return nil, err
+	}
+	done := make(chan error, 1)
+	go func() { done <- command.Wait() }()
+	return &application{command: command, done: done}, nil
+}
+
+// stop ends the application at once, and waits until it has.
+func (a *application) stop() {
+	_ = a.command.Process.Kill()
+	<-a.done
+}
+
+// waitForLink waits for the application to write its one-time pairing link to
+// file, or to exit, or for the timeout to pass.
+func waitForLink(file string, done <-chan error, timeout time.Duration) (string, error) {
 	deadline := time.After(timeout)
 	for {
 		select {
 		case err := <-done:
-			return "", fmt.Errorf("the server exited before printing a pairing link: %v", err)
+			return "", fmt.Errorf("the application exited before it wrote a pairing link: %v", err)
 		case <-deadline:
 			return "", errors.New("timed out waiting for the pairing link")
-		case line, ok := <-lines:
-			if !ok {
-				select {
-				case err := <-done:
-					return "", fmt.Errorf("the server exited before printing a pairing link: %v", err)
-				default:
-					return "", errors.New("the server closed its output before printing a pairing link")
-				}
-			}
-			if url, ok := pairingURLFromLine(line); ok {
-				return url, nil
-			}
+		case <-time.After(100 * time.Millisecond):
+		}
+		content, err := os.ReadFile(file) //nolint:gosec // The file is in the temporary directory of this run.
+		if err != nil {
+			continue
+		}
+		if link := strings.TrimSpace(string(content)); strings.Contains(link, "/auth/connect/") {
+			return link, nil
 		}
 	}
 }
@@ -214,7 +224,9 @@ func waitForPairingURL(lines <-chan string, done <-chan error, timeout time.Dura
 // inventory (which loads everything the desktop would show) and opens the
 // server-sent events stream past its first event. It returns the open stream.
 func pairAndLoad(pairingURL string) (io.ReadCloser, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
+	// The link answers with the session and a redirect to the interface: the cookie is in
+	// the first answer, so the redirect is not followed.
+	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	pair, err := client.Get(pairingURL)
 	if err != nil {
 		return nil, err
@@ -287,35 +299,46 @@ func get(client *http.Client, url, cookie string) (*http.Response, error) {
 	return response, nil
 }
 
-// measureEnv builds the environment of the measured server: a fresh home
-// directory, the fake vfox first on PATH, and the fixtures it replays,
-// mirroring how the GUI drives vfox.
-func measureEnv(homeDir, fixturesDir, fakeVfox string) ([]string, error) {
+// measureEnv builds the environment of the measured application: a fresh home
+// directory with the settings of the measurement, the fake vfox first on PATH, the
+// fixtures it replays, a runtime directory of its own, so that no other application
+// of the user is the one that it starts beside, and the file that gets its pairing
+// link. It returns that file.
+func measureEnv(homeDir, fixturesDir, fakeVfox string) (env []string, linkFile string, err error) {
 	fake := fakeVfox
 	if fake == "" {
 		executable, err := os.Executable()
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		fake = executable
 	}
 	binDir := filepath.Join(homeDir, "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		return nil, err
+	runtimeDir := filepath.Join(homeDir, "run")
+	settingsDir := filepath.Join(homeDir, ".config", "vfox-plus")
+	for _, dir := range []string{binDir, runtimeDir, settingsDir} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, "", err
+		}
 	}
-	content, err := os.ReadFile(fake)
+	content, err := os.ReadFile(fake) //nolint:gosec // The fake vfox is this tool or the file that the caller named.
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	if err := os.WriteFile(filepath.Join(binDir, "vfox"), content, 0o755); err != nil {
-		return nil, err
+	if err := os.WriteFile(filepath.Join(binDir, "vfox"), content, 0o755); err != nil { //nolint:gosec // The fake vfox is executable.
+		return nil, "", err
 	}
-	var env []string
+	if err := os.WriteFile(filepath.Join(settingsDir, "settings.json"), []byte(settings), 0o600); err != nil {
+		return nil, "", err
+	}
+	linkFile = filepath.Join(homeDir, "link.txt")
 	for _, kv := range os.Environ() {
-		if strings.HasPrefix(kv, "VFOX_HOME=") || strings.HasPrefix(kv, "XDG_CONFIG_HOME=") ||
+		if strings.HasPrefix(kv, "VFOX_HOME=") || strings.HasPrefix(kv, "HOME=") || strings.HasPrefix(kv, "XDG_CONFIG_HOME=") ||
+			strings.HasPrefix(kv, "XDG_RUNTIME_DIR=") || strings.HasPrefix(kv, "XDG_CACHE_HOME=") ||
 			strings.HasPrefix(kv, "__VFOX_SHELL=") || strings.HasPrefix(kv, "__VFOX_PID=") ||
 			strings.HasPrefix(kv, "__VFOX_CURTMPPATH=") || strings.HasPrefix(kv, "__VFOX_INITIALIZED=") ||
-			strings.HasPrefix(kv, "VFOX_PLUS_FIXTURES=") || strings.HasPrefix(kv, "NO_COLOR=") {
+			strings.HasPrefix(kv, "VFOX_PLUS_FIXTURES=") || strings.HasPrefix(kv, "VFOX_PLUS_E2E_LINK=") ||
+			strings.HasPrefix(kv, "NO_COLOR=") {
 			continue
 		}
 		if strings.HasPrefix(kv, "PATH=") {
@@ -326,9 +349,11 @@ func measureEnv(homeDir, fixturesDir, fakeVfox string) ([]string, error) {
 	}
 	return append(env,
 		"HOME="+homeDir,
+		"XDG_RUNTIME_DIR="+runtimeDir,
 		"NO_COLOR=1",
 		"VFOX_PLUS_FIXTURES="+fixturesDir,
-	), nil
+		"VFOX_PLUS_E2E_LINK="+linkFile,
+	), linkFile, nil
 }
 
 // resolveFixturesDir locates the captured vfox output the fake vfox replays:

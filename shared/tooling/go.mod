@@ -7,6 +7,7 @@ require (
 	// see docs/en/dev/architecture.md#dependencies).
 	github.com/chromedp/cdproto v0.158.6
 	github.com/chromedp/chromedp v0.21.0
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/google/go-github/v93 v93.0.0
 	github.com/google/go-licenses/v2 v2.0.1
 	github.com/goreleaser/nfpm/v2 v2.48.0

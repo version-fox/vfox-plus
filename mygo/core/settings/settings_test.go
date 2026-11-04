@@ -42,7 +42,12 @@ func TestSettingsRoundTrip(t *testing.T) {
 		VfoxExecutable:   "/opt/vfox",
 		ExtraEnvironment: map[string]string{"A": "1"},
 		RailExpanded:     true,
-		RemoteAccess:     true,
+		WebInterface:     true,
+		Lightweight:      true,
+		WebRemote:        true,
+		WebPort:          9000,
+		WebCertificate:   "/etc/vfox/cert.pem",
+		WebKey:           "/etc/vfox/key.pem",
 		Searches:         map[string]string{"java": "tem"},
 		Unknown:          map[string]interface{}{"future": true},
 	}
@@ -61,7 +66,7 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"remoteAccess"`, `"searches"`}
+	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"webInterface"`, `"lightweight"`, `"webRemote"`, `"searches"`}
 	previous := -1
 	for _, key := range keys {
 		index := strings.Index(text, key)
@@ -70,19 +75,23 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		}
 		previous = index
 	}
-	if strings.Contains(text, "vfoxExecutable") {
-		t.Errorf("absent executable must be omitted: %s", text)
+	for _, absent := range []string{"vfoxExecutable", "webPort", "webCertificate", "webKey", "remoteAccess"} {
+		if strings.Contains(text, absent) {
+			t.Errorf("%s must be omitted while it is not set: %s", absent, text)
+		}
 	}
 }
 
 func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 	parsed := settings.SettingsFromJSON(decode(t, `{"theme":"purple","useSystemColor":"yes",`+
 		`"seedColor":"#fff","language":42,"vfoxExecutable":"",`+
-		`"extraEnvironment":{"A":"1","B":2},"railExpanded":1,"remoteAccess":"yes","future":true}`))
+		`"extraEnvironment":{"A":"1","B":2},"railExpanded":1,"webInterface":"yes","lightweight":1,`+
+		`"webRemote":"on","webPort":"8080","webCertificate":7,"remoteAccess":"yes","future":true}`))
 	if parsed.Theme != settings.ThemeSystem || !parsed.UseSystemColor ||
 		parsed.SeedColor != settings.DefaultSeedColor || parsed.Language != settings.LanguageSystem ||
 		parsed.VfoxExecutable != "" || !reflect.DeepEqual(parsed.ExtraEnvironment, map[string]string{"A": "1"}) ||
-		parsed.RailExpanded || parsed.RemoteAccess {
+		parsed.RailExpanded || parsed.WebInterface || parsed.Lightweight || parsed.WebRemote ||
+		parsed.WebPort != 0 || parsed.WebCertificate != "" {
 		t.Errorf("got %#v", parsed)
 	}
 	raw, err := json.Marshal(parsed)
@@ -140,8 +149,8 @@ func TestSettingsKeepTheSearchOfEachPlugin(t *testing.T) {
 
 func TestSettingsCompareByValue(t *testing.T) {
 	base := settings.DefaultSettings()
-	if base.RemoteAccess {
-		t.Error("remote access is off by default")
+	if base.WebInterface || base.Lightweight || base.WebRemote {
+		t.Error("the web interface, the lightweight mode and the access of other devices are off by default")
 	}
 	other := base
 	other.ExtraEnvironment = map[string]string{}
@@ -151,6 +160,76 @@ func TestSettingsCompareByValue(t *testing.T) {
 	other.RailExpanded = true
 	if base.Equal(other) {
 		t.Error("expected a difference")
+	}
+	for name, change := range map[string]func(*settings.AppSettings){
+		"the web interface":           func(s *settings.AppSettings) { s.WebInterface = true },
+		"the lightweight mode":        func(s *settings.AppSettings) { s.Lightweight = true },
+		"the access of other devices": func(s *settings.AppSettings) { s.WebRemote = true },
+		"the port":                    func(s *settings.AppSettings) { s.WebPort = 9000 },
+		"the certificate":             func(s *settings.AppSettings) { s.WebCertificate = "cert.pem" },
+		"the key":                     func(s *settings.AppSettings) { s.WebKey = "key.pem" },
+	} {
+		changed := base.Clone()
+		change(&changed)
+		if base.Equal(changed) {
+			t.Errorf("%s is a difference", name)
+		}
+	}
+	// The default port is the port of a setting that was never made, so that choosing it
+	// again is no difference.
+	same := base.Clone()
+	same.WebPort = settings.DefaultWebPort
+	if !base.Equal(same) {
+		t.Error("the default port and no port are the same port")
+	}
+}
+
+func TestTheWebInterfaceKeepsTheNameOfTheOldRemoteAccessSwitch(t *testing.T) {
+	// The switch of the first versions was called remoteAccess: whoever turned it on keeps the
+	// web interface, but nothing more (it never reached the network).
+	parsed := settings.SettingsFromJSON(decode(t, `{"remoteAccess":true}`))
+	if !parsed.WebInterface || parsed.WebRemote || parsed.Lightweight {
+		t.Errorf("the old switch is the web interface and nothing else: %#v", parsed)
+	}
+	raw, err := json.Marshal(parsed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "remoteAccess") || !strings.Contains(string(raw), `"webInterface":true`) {
+		t.Errorf("the old key is read and not written again: %s", raw)
+	}
+	if parsed := settings.SettingsFromJSON(decode(t, `{"remoteAccess":true,"webInterface":false}`)); parsed.WebInterface {
+		t.Error("the new key wins over the old one")
+	}
+	if _, kept := settings.SettingsFromJSON(decode(t, `{"remoteAccess":true}`)).Unknown["remoteAccess"]; kept {
+		t.Error("the old key is known, so it is not kept as an unknown one")
+	}
+}
+
+func TestThePortOfTheWebInterfaceIsOneThatAnApplicationMayListenOn(t *testing.T) {
+	for _, port := range []int{settings.MinWebPort, 8080, settings.MaxWebPort} {
+		if !settings.ValidWebPort(port) {
+			t.Errorf("%d is a port to listen on", port)
+		}
+	}
+	for _, port := range []int{-1, 0, 80, settings.MinWebPort - 1, settings.MaxWebPort + 1} {
+		if settings.ValidWebPort(port) {
+			t.Errorf("%d is no port to listen on", port)
+		}
+	}
+	if got := (settings.AppSettings{}).EffectiveWebPort(); got != settings.DefaultWebPort {
+		t.Errorf("no choice is the default port, got %d", got)
+	}
+	if got := (settings.AppSettings{WebPort: 9000}).EffectiveWebPort(); got != 9000 {
+		t.Errorf("a choice is the port, got %d", got)
+	}
+	for _, text := range []string{`{"webPort":80}`, `{"webPort":70000}`, `{"webPort":8080.5}`, `{"webPort":"8080"}`, `{"webPort":null}`} {
+		if got := settings.SettingsFromJSON(decode(t, text)); got.WebPort != 0 {
+			t.Errorf("%s: a port that cannot be one is no choice, got %d", text, got.WebPort)
+		}
+	}
+	if got := settings.SettingsFromJSON(decode(t, `{"webPort":8080}`)); got.WebPort != 8080 {
+		t.Errorf("got %d", got.WebPort)
 	}
 }
 

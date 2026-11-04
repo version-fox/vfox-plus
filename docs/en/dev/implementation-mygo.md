@@ -22,8 +22,8 @@ project, in Go:
 | [`ui/mcu/`](../../../mygo/ui/mcu) | The colour scheme: a Go port of the Material colour utilities (HCT, CAM16, tonal spot) |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
 | [`assets/`](../../../mygo/assets) | What the binary embeds: the icons, the translations and the licenses (all collected at build time) |
-| [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`: pair a browser with this machine (one-time links) or keep the server up for containers and remote instances; the paired browser gets the full web interface (`/app`: SDKs, registry, tasks with live logs, settings) |
-| [`main.go`](../../../mygo/main.go) | Assembles the model and the window; dispatches the `pair` subcommand |
+| [`pair/`](../../../mygo/pair) | The web interface: the `Host` that runs its servers as the settings say (a loopback server for the browsers of this computer, and a second one over HTTPS for other devices when they are allowed), one-time pairing links and their QR codes, and the full web interface that a paired browser gets (`/app`: SDKs, registry, tasks with live logs, settings) |
+| [`main.go`](../../../mygo/main.go) | Assembles the model, the web interface and the window. The application takes no arguments |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | Links the automation plugin of mygo, only with the build tag `e2e`: the end-to-end tests, the memory measurement and the screenshots drive the application through it |
 
 The layers follow [the architecture](architecture.md): `core` knows
@@ -62,7 +62,6 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | --- | --- |
 | Collect the icons, the translations and the licenses the binary embeds | `vfxtool prepare` (set `MYGO_SKIP_LICENSES=1` to skip the licenses of the Go modules, which need `go mod download`) |
 | Build (`build/vfox-plus`) | `vfxtool build build/vfox-plus` |
-| Build the headless server (`build/vfox-plus-serve`) | `vfxtool build --package ./cmd/vfox-plus-serve build/vfox-plus-serve` (same `pair`, `serve` and `service` commands, no user interface; about a third smaller) |
 | Cross-compile for Windows | `vfxtool build --goos windows --goarch amd64\|arm64 build/vfox-plus.exe` |
 | Run | `vfxtool build build/vfox-plus && build/vfox-plus` |
 | Format check (CI fails on a difference) | `golangci-lint fmt --diff` |
@@ -150,10 +149,28 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run fake build/vfox-plus-e2e
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
   `fake` runs against the fake vfox of the fixtures, `real` against the real vfox with the offline
-  test plugin and its server. `vfxtool e2e-run` prepares a new, empty home directory, starts the
+  test plugin and its server. `tray` is the icon in the tray: on Linux against a stand-in for the host
+  of the tray icons that needs the session bus that `dbus-run-session` gives and `libayatana-appindicator3`
+  (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine.
+  `tray-gnome` is the same icon against a real GNOME Shell with no screen, which the container of
+  `shared/sandbox/gnome.Dockerfile` has (Docker; the build is mounted in):
+
+  ```sh
+  docker build --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
+  docker run --rm --init --volume "$PWD:/repo:ro" --workdir /repo \
+    --volume "$(command -v vfxtool):/usr/local/bin/vfxtool:ro" \
+    --volume "$PWD/build/vfox-plus-e2e:/usr/local/bin/vfox-plus-e2e:ro" vfox-plus-gnome \
+    vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
+  ```
+
+  The end-to-end build also does what the tools write into the file that `VFOX_PLUS_E2E_CONTROL`
+  names (`close`, `show`, `quit`: what a person does with the close button and the menu of the icon), and
+  closes its window on `SIGUSR1`. Windows runs the scenarios in the `run-windows` job, with the end-to-end
+  build that the `build` job cross-compiles. `vfxtool e2e-run` prepares a new, empty home directory, starts the
   application, waits for its window, runs the scenario and ends the application. A wait that times
   out fails the scenario, after the elements that the window showed are printed. The scenarios
   exercise the real components, the state, process spawning, streaming, cancellation with `SIGTERM`,
@@ -236,7 +253,7 @@ compatible with the Apache License 2.0).
 The package depends on GTK 3 (which brings GLib, Pango, Cairo and the rest of
 what mygo loads), fontconfig and a font (`fonts-ubuntu` or `fonts-noto-core`),
 and recommends `fonts-noto-cjk` for Chinese, a desktop portal and `xdg-utils` for
-links. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
+links, and `libayatana-appindicator3-1` for the icon in the tray. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
 installs the package into a clean Ubuntu container to prove that it is complete.
 
 On Windows 11, `vfxtool build-msix` packages cross-compiled executables
@@ -250,26 +267,6 @@ officially signed bundle will be provided later. CI cross-compiles and
 packages on Linux, validates with
 `vfxtool validate-msix`, and installs/uninstalls the bundle on Windows
 Server 2025 (x64) and Windows 11 on ARM (arm64).
-
-### Docker image
-
-[`Dockerfile`](../../../mygo/Dockerfile) builds the published image from the repository
-root: a minimal Ubuntu runtime with vfox and the headless server
-(`vfox-plus-serve serve`, the image entry point), needing no display server.
-The toolchain versions default to [`versions.env`](../../../mygo/versions.env).
-The toolchain versions default to [`versions.env`](../../../mygo/versions.env).
-
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus .
-docker run --rm -p 8080:8080 vfox-plus
-```
-
-Open the pairing link it prints, with `0.0.0.0` replaced by the reachable
-address. The link is `https`: the container generates a self-signed
-certificate on first start and prints its fingerprint for comparison in
-the browser. A `-v vfox-plus-data:/home/vfoxplus` volume keeps the installed
-SDKs between runs. A browser on another machine pairs the same way, over
-the network the container is reachable on.
 
 ## Memory
 
@@ -329,7 +326,7 @@ adds 8 MB because only the rows in view are built.
   platform.
 - **`.apk` lives in `android/`, not here.** mygo has no Android backend, so the
   interface cannot be a native Android app built from this code. The Android
-  client is a WebView around the pairing server (`vfox-plus serve`): the phone
+  client is a WebView around the web interface of the application: the phone
   drives the vfox-plus instance on the PC over the
   [remote protocol](remote-protocol.md), and the web interface it shows follows
   the [design system](design-system.md) (see

@@ -13,6 +13,11 @@ Requirements: GTK 3, fontconfig and a font, plus vfox 1.0.0 or later:
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 ```
 
+One more package is optional: `libayatana-appindicator3-1`, which draws the tray icon that
+vfox-plus shows while it runs without its window (the
+[lightweight mode](remote.md#lightweight-mode)), on GNOME. Without it vfox-plus has no tray icon and
+works as ever. The package of vfox-plus recommends it.
+
 Download the `vfox-plus-linux-x64` artifact of the latest successful build,
 then either install the package (Ubuntu 26.04):
 
@@ -23,11 +28,9 @@ vfox-plus
 
 or extract the `.tar.gz` anywhere and run `./vfox-plus`.
 
-To run only the pairing server, without the desktop interface or its GTK
-dependency — on a server or a container host, for example — download the
-`vfox-plus-serve-linux` artifact instead and run
-`./vfox-plus-serve serve --allow-remote --port 8080`. It accepts the same
-`pair`, `serve` and `service` commands; only the desktop application is gone.
+vfox-plus is a desktop application: it takes no arguments, and needs a desktop session
+to show its window. To use it from a browser or a phone as well, turn on its web
+interface in its settings (see [The web interface, other devices and Android](remote.md)).
 
 ## Windows 11
 
@@ -45,17 +48,7 @@ later. To remove it again:
 Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFullName
 ```
 
-## Docker (no display needed)
-
-The published image runs the pairing server with no display. See
-[Remote and Android](remote.md).
-
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus .
-docker run --rm -p 8080:8080 vfox-plus
-```
-
 ## Android
 
 Install the `vfox-plus-android` artifact's `.apk` on your phone and pair it
-with the vfox-plus on your PC. See [Remote and Android](remote.md).
+with the vfox-plus on your PC. See [The web interface, other devices and Android](remote.md).

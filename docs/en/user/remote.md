@@ -1,16 +1,21 @@
-# Remote and Android
+# The web interface, other devices and Android
 
 > [简体中文](../../zh-CN/user/remote.md)
 
-`vfox-plus pair` connects a browser to the vfox-plus on your machine. It works
-the same in bash on Ubuntu and in PowerShell on Windows:
+vfox-plus is a desktop application, and it has no command line: you start it like any
+other application, and what else it does is a matter of its settings. This page is about
+three of them, in *Settings → Web interface*: the web interface, the lightweight mode and
+the other devices that may connect.
 
-```sh
-vfox-plus pair
-```
+## The web interface
 
-Open the link it prints. Links work once and expire after a few minutes. The
-paired browser gets the full interface: installed SDKs with
+Turn on *Web interface* and vfox-plus serves its interface to the browsers of this
+computer, for as long as it runs. The item says where: an address on this computer only,
+like `http://127.0.0.1:41233`, which no other computer can reach. Choose *Open in browser*
+and your browser opens it, paired by a one-time link. The link works once and expires after
+five minutes, and *Copy link* makes another one for the clipboard.
+
+The paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
 live progress and logs, and the settings. The plugins vfox-java, vfox-nodejs and
 vfox-flutter get everything they offer, as in the desktop application: the
@@ -26,59 +31,79 @@ interface.
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*
 in the menu). They offer it on the machine itself and over HTTPS with a certificate
-that they trust, not over the self-signed one that `serve` generates. When the
-installed application shows the pairing page, run `vfox-plus pair` again and open
-the new link.
+that they trust, not over the one that vfox-plus makes for itself. Pairing does not
+survive a restart of vfox-plus: when the installed application shows the pairing page,
+choose *Open in browser* in the settings again.
 
-One server owns the application state: while the desktop application runs
-with Remote access switched on in its Settings (off by default), `pair` links
-to the desktop itself; otherwise it links to the background
-service or a loopback `serve` if one runs, and starts its own one-shot server
-if not. The desktop `vfox-plus` and the headless `vfox-plus-serve` accept the
-same `pair`, `serve` and `service` commands; only the desktop application is
-gone from the latter.
+Only the window can turn the web interface on or off. A paired browser or phone
+cannot, because that would end the connection it is using.
 
-## Background service
+## Lightweight mode
 
-Without the desktop, keep a shared server up with the background service.
-`service start` and `pair` on loopback need no extra confirmation: they never
-leave the machine.
+Closing the window quits vfox-plus, and the web interface with it. Turn on *Lightweight
+mode* (it needs the web interface) and closing the window leaves vfox-plus running
+without it. The web interface stays up for the browsers and the phones that use it, and
+the tasks that run go on.
 
-```sh
-vfox-plus service start
-vfox-plus service status
-vfox-plus service stop
-```
+- **Bring the window back** from the icon that vfox-plus puts in the tray while it has no
+  window: choose *Open vfox+* in its menu. Starting vfox-plus again, from the launcher as
+  always, does the same, and works without a tray: no second vfox-plus starts, the one that
+  runs opens its window and the new one ends.
+- **Open the web interface** in the browser of this computer from the same menu, with
+  *Open the web interface*.
+- **End it for good** with *Quit vfox+*, which the menu of the icon has, and which the window
+  shows in the settings while the lightweight mode is on, or from a paired browser or phone
+  (*Settings → Connections → Quit vfox+*). Quitting cancels the tasks that run. Ending the
+  process from the system quits it, too.
 
-`pair` and browsers attach to it the same way. `service set disabled
-true` switches the background sharing off (`pair` then needs the desktop or a
-`serve` running; `unset disabled` turns it back on).
+Closing the window frees what the window held, but vfox-plus stays a desktop application:
+it keeps the toolkit of its window loaded, so it uses a few MB less, not a few tens.
 
-## Another machine, or a container
+### The tray icon
 
-To connect a browser on another machine, or to run vfox-plus in a container,
-keep the pairing server up instead. Remote access is off by default: opening
-the machine to the network needs an explicit `--allow-remote`:
+The icon shows only while there is no window, and goes when the window opens, so a
+vfox-plus with a window has none. It is for the two desktops that vfox-plus is made and
+tested for:
 
-```sh
-vfox-plus-serve serve --allow-remote --port 8080
-```
+- **Windows 11.** In the notification area, with the other icons of the taskbar. Click it to
+  bring the window back, or right-click it for the menu.
+- **GNOME**, the desktop of Ubuntu. In the panel at the top, which shows such icons through
+  its AppIndicator extension: Ubuntu has it on, and other distributions have it as the package
+  `gnome-shell-extension-appindicator`. Click the icon for the menu. It also needs the library
+  `libayatana-appindicator3`: the package of vfox-plus recommends it, so it comes with it
+  unless you install without recommended packages (`sudo apt install libayatana-appindicator3-1`
+  adds it later).
 
-and open the link it prints, with its address replaced by the reachable one.
-The published Docker image runs this server with no display needed:
+Other desktops are not supported. KDE Plasma and the desktops whose tray is of the old kind get
+no icon that vfox-plus promises: use GNOME. Where there is no icon, nothing else changes: vfox-plus
+runs without its window as before, and you bring the window back by starting vfox-plus again, or use
+the browser.
 
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus .
-docker run --rm -p 8080:8080 vfox-plus
-```
+## Other devices
 
-A `-v vfox-plus-data:/home/vfoxplus` volume keeps the installed SDKs between
-runs. A paired browser mints links for more browsers from the interface.
+A phone, or another computer, can use the web interface too. Turn on *Other devices*
+(it needs the web interface), and confirm. It is off by default: it opens vfox-plus to the
+network, so allow it only in a network that you trust.
 
-Non-loopback servers speak HTTPS: without your own certificate a
-self-signed one is generated on first start, and its fingerprint is printed
-for comparison in the browser. Bring your own certificate with
-`--tls-cert/--tls-key` to avoid the warning.
+- vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
+  firewall of this computer has to allow it.
+- Other devices connect over **HTTPS**. Without a certificate of your own, vfox-plus makes
+  one for itself and signs it itself, and the settings show its SHA-256 fingerprint: compare
+  it with the one that the browser or the Android app shows before you trust it. To use
+  your own, choose *Certificate → Browse…*, then the certificate and its private key
+  (PEM files).
+- *Pair a phone* shows the **QR code** of a pairing link, and the link. A computer that is
+  on more than one network has more than one address; choose the one that the phone
+  reaches. Scan the code with the [Android app](#android-app), or open the link in a
+  browser of another computer. It works once and expires after five minutes.
+- A paired device keeps its session for 24 hours. Turning *Other devices* off, or
+  closing vfox-plus, ends the connections of all of them at once, and they have to pair
+  again.
+
+The settings of the web interface show the same switches: from a paired browser or phone
+you can allow other devices, change the port and turn the lightweight mode on or off, and
+*Pair a phone* shows the code there, too, which is how a computer without a window
+(lightweight mode) pairs a phone.
 
 ## Android app
 
@@ -86,23 +111,20 @@ The Android app drives the vfox-plus on your PC from your phone: it shows the
 same interface as the paired browser above. Links to other sites, such as the
 homepage of a plugin or its documentation, open in the browser of the phone.
 
-1. On the PC, run `vfox-plus-serve serve --allow-remote --port 8080` (or the Docker
-   image, which opts in by itself) and keep it running. The terminal prints a
-   pairing link and, for HTTPS, a certificate fingerprint. On a non-loopback
-   bind it also prints a QR code of the link.
+1. On the PC, open vfox-plus, go to *Settings → Web interface* and turn on the web
+   interface and *Other devices*. Allow the port in the firewall of the PC.
 2. Install the `vfox-plus-android` artifact's `.apk` on your phone and open
    it.
-3. Scan the QR code with the app, or paste the pairing link into it and
-   connect. If the server uses a self-signed certificate, the app shows its
-   fingerprint: compare it with the one on the PC terminal before accepting,
-   exactly as you would in a browser.
+3. Choose *Show code* next to *Pair a phone* on the PC, and scan the QR code with the
+   app, or copy the link and paste it into the app, and connect. If the PC uses a
+   certificate that it made itself, the app shows its fingerprint: compare it with the one
+   in the settings on the PC before accepting, exactly as you would in a browser.
 4. The app stays paired and reconnects automatically on the same network. If
-   pairing expires, scan or paste a fresh link: mint a new one from a paired
-   browser, or restart `vfox-plus-serve serve`.
+   pairing expires, or vfox-plus on the PC was restarted, scan a fresh code.
 
-The app opens on the pairing screen: scan the QR code of the terminal (Android
+The app opens on the pairing screen: scan the QR code of the PC (Android
 asks for the camera once) or paste the link. A self-signed certificate shows its
-fingerprint first, to compare with the one on the PC terminal.
+fingerprint first, to compare with the one on the PC.
 
 | The pairing screen | Scanning the QR code | The fingerprint of a self-signed certificate |
 | --- | --- | --- |
@@ -117,8 +139,8 @@ phone.
 | --- | --- | --- |
 | ![The home page in the Android app](https://iili.io/nSx9JVf.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nSx9BR9.png) | ![The settings in the Android app, with the card of this phone](https://iili.io/nSx91WJ.png) |
 
-The app follows the dark theme of the phone. When it cannot reach the PC (the
-server stopped, another network, a firewall in the way), it says so and offers to
+The app follows the dark theme of the phone. When it cannot reach the PC (vfox-plus
+stopped, another network, a firewall in the way), it says so and offers to
 try again or to pair a new link.
 
 | The pairing screen in the dark theme | Home in the dark theme | A PC that cannot be reached |
@@ -126,6 +148,6 @@ try again or to pair a new link.
 | ![The pairing screen of the Android app in the dark theme](https://iili.io/nSx9kWG.png) | ![The home page in the Android app in the dark theme](https://iili.io/nSx94JS.png) | ![The Android app when the PC cannot be reached](https://iili.io/nSx9QWb.png) |
 
 The app needs your PC reachable from the phone (same Wi-Fi or another network
-route) and the server port (for example 8080) allowed through the PC
+route) and the port of the web interface (8369 by default) allowed through the PC
 firewall. Browsers can only set the global version; pinning versions to a
 project stays in the desktop application.

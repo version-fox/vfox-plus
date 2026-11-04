@@ -15,131 +15,59 @@
 package pair
 
 import (
-	"net"
-	"os"
+	"strconv"
 	"strings"
 
 	"github.com/skip2/go-qrcode"
-	"golang.org/x/term"
 )
 
-// QRQuietZone is the blank margin around the code, in modules.
-const QRQuietZone = 2
-
-// ReachablePairingURL renders scheme://host:port/auth/connect/token for the
-// first reachable literal IP in hosts: IPv4 first, then IPv6 bracketed,
-// skipping loopback and link-local addresses (LocalAddresses already skips
-// them, callers with other sources stay safe). It reports "" when no host is
-// usable, for example on a machine without a network route.
-func ReachablePairingURL(scheme, port, token string, hosts []string) string {
-	var fallback string
-	for _, host := range hosts {
-		trimmed := strings.Trim(strings.TrimSpace(host), "[]")
-		ip := net.ParseIP(trimmed)
-		if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() {
-			continue
-		}
-		if ip.To4() != nil {
-			return scheme + "://" + trimmed + portSuffixOf(port) + "/auth/connect/" + token
-		}
-		if fallback == "" {
-			fallback = trimmed
-		}
+// QRMatrix encodes text as a QR code, with the medium level of error correction,
+// and returns its modules by row, true for a dark one. The matrix includes the
+// quiet zone around the code, four modules wide on every side, which a scanner
+// needs: draw it on a light ground. It is square.
+func QRMatrix(text string) ([][]bool, error) {
+	code, err := qrcode.New(text, qrcode.Medium)
+	if err != nil {
+		return nil, err
 	}
-	if fallback == "" {
-		return ""
-	}
-	return scheme + "://[" + fallback + "]" + portSuffixOf(port) + "/auth/connect/" + token
+	return code.Bitmap(), nil
 }
 
-// portSuffixOf renders port with a leading colon, unless it is empty.
-func portSuffixOf(port string) string {
-	if port == "" {
-		return ""
-	}
-	return ":" + strings.TrimPrefix(port, ":")
-}
-
-// TerminalQRCode renders url as a QR code for terminals: half-block pairs on
-// an explicit white background with a black foreground, so the code scans on
-// dark and light themes alike. Every line ends with a reset.
-func TerminalQRCode(url string) (string, error) {
-	code, err := qrcode.New(url, qrcode.Medium)
+// QRSVG renders text as the QR code of QRMatrix, as an SVG with a white ground
+// and black modules, that scales to any size: one path, a bar for each run of
+// dark modules.
+func QRSVG(text string) (string, error) {
+	matrix, err := QRMatrix(text)
 	if err != nil {
 		return "", err
 	}
-	bitmap := code.Bitmap()
-	size := len(bitmap)
-	padded := size + 2*QRQuietZone
-	at := func(x, y int) bool {
-		x -= QRQuietZone
-		y -= QRQuietZone
-		if x < 0 || y < 0 || x >= size || y >= size {
-			return false
-		}
-		return bitmap[y][x]
-	}
-	const whiteBG = "\x1b[47m"
-	const blackFG = "\x1b[30m"
-	const reset = "\x1b[0m"
+	size := strconv.Itoa(len(matrix))
 	var out strings.Builder
-	for y := 0; y < padded; y += 2 {
-		out.WriteString(whiteBG)
-		black := false
-		for x := 0; x < padded; x++ {
-			top, bottom := at(x, y), at(x, y+1)
-			switch {
-			case top && bottom:
-				if !black {
-					out.WriteString(blackFG)
-					black = true
-				}
-				out.WriteString("█")
-			case top:
-				if !black {
-					out.WriteString(blackFG)
-					black = true
-				}
-				out.WriteString("▀")
-			case bottom:
-				if !black {
-					out.WriteString(blackFG)
-					black = true
-				}
-				out.WriteString("▄")
-			default:
-				if black {
-					out.WriteString(reset + whiteBG)
-					black = false
-				}
-				out.WriteString(" ")
+	out.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ` + size + " " + size + `" shape-rendering="crispEdges" role="img">`)
+	out.WriteString(`<rect width="` + size + `" height="` + size + `" fill="#fff"/><path fill="#000" d="`)
+	for y, row := range matrix {
+		for x := 0; x < len(row); x++ {
+			if !row[x] {
+				continue
 			}
+			end := x
+			for end < len(row) && row[end] {
+				end++
+			}
+			out.WriteString("M" + strconv.Itoa(x) + " " + strconv.Itoa(y) + "h" + strconv.Itoa(end-x) + "v1h-" + strconv.Itoa(end-x) + "z")
+			x = end
 		}
-		out.WriteString(reset + "\n")
 	}
+	out.WriteString(`"/></svg>`)
 	return out.String(), nil
 }
 
 // PairingURL renders the pairing link for an explicit host, with the scheme
-// and port of the server. The QR code of `vfox-plus serve` uses a LAN address
-// here, because the display base URL may hold the 0.0.0.0 placeholder.
+// and port of the server. The code that a phone scans uses an address of the
+// local network here, because the server listens on a wildcard address.
 func (s *Server) PairingURL(host, token string) string {
 	if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
 		host = "[" + host + "]"
 	}
 	return s.scheme() + "://" + host + s.portSuffix() + "/auth/connect/" + token
 }
-
-// pairingPort reports the listening port of the server, without the colon.
-func (s *Server) pairingPort() string {
-	_, port, err := net.SplitHostPort(s.listener.Addr().String())
-	if err != nil {
-		return ""
-	}
-	return port
-}
-
-// isTerminal reports whether file is a terminal, so that control sequences like
-// the QR code are only printed where they render (a character device such as
-// /dev/null is not one).
-func isTerminal(file *os.File) bool { return term.IsTerminal(int(file.Fd())) }

@@ -239,37 +239,44 @@ in both languages (`android-pairing`, `android-scan`, `android-trust`, `android-
 `android-unreachable`, with the prefix `zh-` in Simplified Chinese). The other pictures are
 there to look at when the interface changes; nothing links them.
 
-**The web interface.** Render it with the headless server and headless Chrome, in a
-language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
+**The web interface.** Render it with the end-to-end build of the application, in a virtual
+display, and headless Chrome, in a language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
 that `--scene` plays: `java-available`, `java-choose`, `java-temurin`,
 `java-install-name`, `flutter-chips`, `options` and `options-mirror` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
-scenes click against `mygo/pair/webapp.html`). Every picture gets a server and a home
-of its own, because choosing a distribution is kept in the settings of the server, and
-a scene that chooses one would change every picture after it:
+scenes click against `mygo/pair/webapp.html`). Every picture gets an application and a home
+of its own, because choosing a distribution is kept in the settings of the application, and
+a scene that chooses one would change every picture after it. The application serves its web
+interface because its settings say so (`{"webInterface":true}`), and the end-to-end build
+writes a pairing link to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command
+line to print it on:
 
 ```sh
-go -C mygo build -o /tmp/vfox-plus-serve ./cmd/vfox-plus-serve
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
+/tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
 
 # shoot NAME LANGUAGE WIDTH,HEIGHT [options of webheap]
 shoot() {
   name=$1 lang=$2 window=$3; shift 3
-  rm -rf /tmp/shot-home && mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
-  HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
+  home=/tmp/shot-home
+  rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
+  cp /tmp/vfxtool $home/bin/vfox
+  echo '{"webInterface":true}' > $home/.config/vfox-plus/settings.json
+  HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH \
     VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 VFOX_PLUS_FAKE_INVENTORY=profiles NO_COLOR=1 \
-    /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
-  server=$!
+    VFOX_PLUS_E2E_LINK=$home/link.txt \
+    setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >app.log 2>&1 &
+  app=$!
   for i in $(seq 1 30); do
-    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
+    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' $home/link.txt 2>/dev/null | head -1)"
     [ -n "$LINK" ] && break
     sleep 1
   done
   /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
     --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
     --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
-  kill "$server"
+  kill -- -$app
 }
 shoot webapp-en en 412,915
 shoot web-java-temurin en 1280,800 --scene java-temurin
@@ -278,6 +285,8 @@ shoot web-java-temurin en 1280,800 --scene java-temurin
 (`PATH` first carries a `vfox` executable — a copy of `vfxtool` acts as the
 fake vfox with the fixtures — so that the SDK list has content, and
 `VFOX_PLUS_FAKE_INVENTORY=profiles` makes it a machine that has Java and Flutter;
+`setsid` makes the application the leader of a group of processes of its own, which `kill -- -$app`
+ends together with the virtual display;
 `--lang` pins the interface language; `--window 412,915` shoots the phone portrait
 and defaults to the 1280 by 800 desktop window that CI measures; `--idle 0` skips
 the twenty seconds on the open page that the measurement of the heap needs; `--dark`
@@ -295,8 +304,8 @@ cold start, and the job uploads it as an artifact (`gh run download`). The nine
 pictures of the [remote guide](../user/remote.md) are taken by hand, on an emulator
 (API 36, 1080 by 2400 at 420 dpi) with the release build
 (`./gradlew :app:assembleRelease`), paired as [Run the app](environment.md#run-the-app)
-describes, against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles` and a server on
-`--port 8080`, so that the command of the pairing screen is the one that runs. What
+describes, against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles` and the application with
+the web interface and the other devices on and the port 8080, so that the address of the pairing screen is the one that runs. What
 makes the pictures alike:
 
 - The demo mode of the status bar fixes the clock and shows a full battery and

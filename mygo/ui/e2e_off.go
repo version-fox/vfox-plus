@@ -21,4 +21,10 @@ package ui
 
 func (a *App) startE2E() {}
 
+func (a *App) reportTray(trayIcon) {}
+
 func (a *App) windowSize() (width, height int) { return defaultWidth, defaultHeight }
+
+// allowsSeveralInstances tells whether more than one application may run: never,
+// outside the end-to-end tests.
+func (a *App) allowsSeveralInstances() bool { return false }

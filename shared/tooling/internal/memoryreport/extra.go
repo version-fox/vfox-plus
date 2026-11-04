@@ -26,18 +26,19 @@ import (
 )
 
 // The artifacts of the measurements beyond the desktop table, by upload name:
-// the headless server and the web client from the mygo workflow, the APK from
-// the android workflow.
+// the application in the lightweight mode and the web client from the mygo
+// workflow, the APK from the android workflow.
 const (
-	ServeArtifact   = "memory-serve"
-	WebArtifact     = "memory-web"
-	AndroidArtifact = "memory-android"
+	LightweightArtifact = "memory-lightweight"
+	WebArtifact         = "memory-web"
+	AndroidArtifact     = "memory-android"
 )
 
-// serveLine matches one line of the memory-serve artifact: the server and all
-// of its child processes, settled with no browser (serve-idle) or with a
-// paired browser past its first inventory (serve-loaded).
-var serveLine = regexp.MustCompile(`^memory \((serve-idle|serve-loaded)\): RSS ([0-9]{1,6}) MB, PSS ([0-9]{1,6}) MB in ([0-9]{1,4}) processes$`)
+// lightweightLine matches one line of the memory-lightweight artifact: the
+// application and all of its child processes, without its window, settled with no
+// browser (lightweight-idle) or with a paired browser past its first inventory
+// (lightweight-loaded).
+var lightweightLine = regexp.MustCompile(`^memory \((lightweight-idle|lightweight-loaded)\): RSS ([0-9]{1,6}) MB, PSS ([0-9]{1,6}) MB in ([0-9]{1,4}) processes$`)
 
 // webLine matches one line of the memory-web artifact: the JavaScript heap in
 // bytes of the paired page, after the SDK list settles (app) and after twenty
@@ -48,8 +49,8 @@ var webLine = regexp.MustCompile(`^webheap \((app|app-settled)\): ([0-9]{1,12}) 
 // cold-started on an emulator, from dumpsys meminfo after settling.
 var androidLine = regexp.MustCompile(`^memory \((apk-cold)\): RSS ([0-9]{1,6}) MB, PSS ([0-9]{1,6}) MB in ([0-9]{1,4}) processes$`)
 
-// ServeMemory is what vfxtool measure-serve prints.
-type ServeMemory struct {
+// LightweightMemory is what vfxtool measure-lightweight prints.
+type LightweightMemory struct {
 	Idle   Point
 	Loaded Point
 }
@@ -65,16 +66,16 @@ type AndroidMemory struct {
 	Cold Point
 }
 
-// ParseServeMemory parses the memory-serve artifact. It returns nil when the
-// file is not exactly the two serve points.
-func ParseServeMemory(text string) *ServeMemory {
+// ParseLightweightMemory parses the memory-lightweight artifact. It returns nil
+// when the file is not exactly the two lightweight points.
+func ParseLightweightMemory(text string) *LightweightMemory {
 	points := map[string]Point{}
 	for _, raw := range strings.Split(text, "\n") {
 		line := strings.TrimSpace(raw)
 		if line == "" {
 			continue
 		}
-		match := serveLine.FindStringSubmatch(line)
+		match := lightweightLine.FindStringSubmatch(line)
 		if match == nil {
 			return nil
 		}
@@ -89,12 +90,12 @@ func ParseServeMemory(text string) *ServeMemory {
 	if len(points) != 2 {
 		return nil
 	}
-	idle, okIdle := points["serve-idle"]
-	loaded, okLoaded := points["serve-loaded"]
+	idle, okIdle := points["lightweight-idle"]
+	loaded, okLoaded := points["lightweight-loaded"]
 	if !okIdle || !okLoaded {
 		return nil
 	}
-	return &ServeMemory{Idle: idle, Loaded: loaded}
+	return &LightweightMemory{Idle: idle, Loaded: loaded}
 }
 
 // ParseWebHeap parses the memory-web artifact. It returns nil when the file
@@ -171,9 +172,9 @@ type Extra struct {
 	BaselineSHA string
 }
 
-// serveNoise is the difference from main that counts as a change for the
-// headless server: the same code varies as much as the desktop between runs.
-func serveNoise(baseline int) float64 {
+// lightweightNoise is the difference from main that counts as a change for the
+// lightweight mode: the same code varies as much as the desktop between runs.
+func lightweightNoise(baseline int) float64 {
 	return math.Max(MinChangeMB, DefaultTolerance*float64(baseline))
 }
 
@@ -218,35 +219,36 @@ func baselineLink(extra *Extra, repo *Repository, artifact *github.Artifact) {
 	extra.BaselineURL = runURL(repo, run.GetID())
 }
 
-// collectServe collects the headless-server section from the mygo run.
-func collectServe(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
+// collectLightweight collects the lightweight-mode section from the mygo run.
+func collectLightweight(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
-		Title: "Headless server",
-		Intro: "What `vfox-plus-serve serve` uses on loopback with the fake vfox, in MB for the server " +
-			"and all of its child processes: `serve-idle` is settled with no browser, `serve-loaded` with a " +
-			"paired browser past its first inventory over server-sent events (`vfxtool measure-serve`).",
+		Title: "Lightweight mode",
+		Intro: "What the application uses with the web interface on and its window closed, with the fake vfox, in MB " +
+			"for the application and all of its child processes: `lightweight-idle` is settled with no browser, " +
+			"`lightweight-loaded` with a paired browser past its first inventory over server-sent events " +
+			"(`vfxtool measure-lightweight`).",
 	}
 	if run != nil {
 		extra.RunURL = run.GetHTMLURL()
 	}
-	var memory *ServeMemory
+	var memory *LightweightMemory
 	inherited := run == nil
 	if run != nil && run.GetStatus() != "completed" {
 		extra.Note = "Still running; the report is written again when it ends."
 		return extra, nil
 	}
 	if run != nil {
-		if text, ok, err := runArtifactText(ctx, repo, run, ServeArtifact); err != nil {
+		if text, ok, err := runArtifactText(ctx, repo, run, LightweightArtifact); err != nil {
 			return extra, err
 		} else if ok {
-			memory = ParseServeMemory(text)
+			memory = ParseLightweightMemory(text)
 		}
 	}
-	var baseline *ServeMemory
-	if text, artifact, err := BaselineArtifact(ctx, repo, ServeArtifact, defaultBranch); err != nil {
+	var baseline *LightweightMemory
+	if text, artifact, err := BaselineArtifact(ctx, repo, LightweightArtifact, defaultBranch); err != nil {
 		return extra, err
 	} else if text != "" {
-		baseline = ParseServeMemory(text)
+		baseline = ParseLightweightMemory(text)
 		if baseline != nil {
 			baselineLink(&extra, repo, artifact)
 		}
@@ -282,7 +284,7 @@ func collectServe(ctx context.Context, repo *Repository, run *github.WorkflowRun
 			value = point.now.PSS
 			before = point.base.PSS
 		}
-		prCell, mainCell := extraCell(value, before, "MB", serveNoise(before), inherited)
+		prCell, mainCell := extraCell(value, before, "MB", lightweightNoise(before), inherited)
 		extra.Rows = append(extra.Rows, ExtraRow{Measure: point.label, PR: prCell, Main: mainCell})
 	}
 	return extra, nil
@@ -414,11 +416,11 @@ func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowR
 }
 
 // CollectExtras returns the sections of the report beyond the desktop table:
-// the headless server and the web client from the mygo run, the APK from the
+// the lightweight mode and the web client from the mygo run, the APK from the
 // android run. A section with neither numbers nor baseline is left out.
 func CollectExtras(ctx context.Context, repo *Repository, runs map[string]*github.WorkflowRun, defaultBranch string) ([]Extra, error) {
 	var extras []Extra
-	serve, err := collectServe(ctx, repo, runs[workflowPath("mygo")], defaultBranch)
+	lightweight, err := collectLightweight(ctx, repo, runs[workflowPath("mygo")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +432,7 @@ func CollectExtras(ctx context.Context, repo *Repository, runs map[string]*githu
 	if err != nil {
 		return nil, err
 	}
-	for _, extra := range []Extra{serve, web, android} {
+	for _, extra := range []Extra{lightweight, web, android} {
 		if extra.Title == "" {
 			continue
 		}

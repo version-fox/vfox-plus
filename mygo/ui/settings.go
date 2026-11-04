@@ -66,7 +66,7 @@ func (a *App) settingsPage(k kit.Ctx) {
 			kit.ContentWidth(k, 840, func() {
 				mui.Column(k.Context).Padding(0, gapXL, gapXXL, gapXL).Children(func() {
 					a.appearanceSection(k)
-					a.remoteSection(k)
+					a.webSection(k)
 					a.vfoxSection(k)
 					a.configSection(k)
 					a.aboutSection(k)
@@ -176,30 +176,6 @@ func (a *App) environmentInitial() {
 		a.pages.environmentReady = true
 		a.pages.environmentText = settings.FormatEnvironmentLines(a.model.Settings.Settings().ExtraEnvironment)
 	}
-}
-
-// remoteSection switches remote access to this desktop: browsers on this
-// machine pair with it through an embedded loopback server. Off by default;
-// flipping it takes effect on the next start.
-func (a *App) remoteSection(k kit.Ctx) {
-	current := a.model.Settings.Settings()
-	items := []kit.ListItemSpec{
-		{
-			ID: "remote-access", Title: a.T("settingsRemoteAccess"), Subtitle: a.T("settingsRemoteAccessHelp"),
-			Leading: icon(k, "proxy"), Wrap: a.wideSettingsWrap(k),
-			Trailing: func() {
-				kit.Switch(k, kit.SwitchSpec{
-					ID: "remote-access-switch", On: current.RemoteAccess, Label: a.T("settingsRemoteAccess"),
-					OnChange: func(on bool) { a.updateSettings(func(s *settings.AppSettings) { s.RemoteAccess = on }) },
-				})
-			},
-			OnClick: func() {
-				a.updateSettings(func(s *settings.AppSettings) { s.RemoteAccess = !s.RemoteAccess })
-			},
-		},
-	}
-	kit.GroupHeader(k, a.T("settingsRemote"), nil)
-	kit.ListGroup(k, items...)
 }
 
 func (a *App) vfoxSection(k kit.Ctx) {

@@ -51,6 +51,52 @@ func Render(width, height int) *image.NRGBA {
 	return img
 }
 
+// foxAir is the empty border around the fox alone, as a fraction of the side of its image.
+// The panels that show the tray icon scale and crop it, and an ear that reaches the edge
+// would be cut.
+const foxAir = 1.0 / 16
+
+// RenderFox draws the fox alone, without the plate and its halo, on a transparent image of
+// size by size pixels, as big as the image allows with the air around it that foxAir
+// leaves. It is the icon of the tray, which sits on the panel of the desktop: the plate would
+// make a square of it at 16 pixels, and the orange of the fox shows on a light panel and on
+// a dark one.
+func RenderFox(size int) *image.NRGBA {
+	img := image.NewNRGBA(image.Rect(0, 0, size, size))
+	left, top, right, bottom := foxBounds()
+	scale := float64(size) * (1 - 2*foxAir) / math.Max(right-left, bottom-top)
+	// Centre the box of the fox in the image, on both axes.
+	tr := affine{scale, scale, (float64(size) - (right-left)*scale) / 2, (float64(size) - (bottom-top)*scale) / 2}
+	tr.tx -= left * scale
+	tr.ty -= top * scale
+	for _, s := range foxShapes {
+		fill(img, s, tr)
+	}
+	return img
+}
+
+// foxBounds is the smallest box, in the units of the fox, that holds the points of its paths.
+// The control points of a curve may lie a little outside the curve, so the box is a little
+// loose, which only adds to the air around the fox.
+func foxBounds() (left, top, right, bottom float64) {
+	left, top = math.Inf(1), math.Inf(1)
+	right, bottom = math.Inf(-1), math.Inf(-1)
+	for _, s := range foxShapes {
+		cmds, err := parsePath(s.d)
+		if err != nil {
+			panic(fmt.Sprintf("appicon: path %s: %v", s.id, err)) // The data is part of the source.
+		}
+		for _, c := range cmds {
+			for i := 0; i < c.n; i++ {
+				x, y := c.pts[i][0], c.pts[i][1]
+				left, right = math.Min(left, x), math.Max(right, x)
+				top, bottom = math.Min(top, y), math.Max(bottom, y)
+			}
+		}
+	}
+	return left, top, right, bottom
+}
+
 // shape is a closed outline with its fill.
 type shape struct {
 	id   string // the id of the path in the SVG

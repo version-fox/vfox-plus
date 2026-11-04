@@ -22,7 +22,7 @@ audience:
 
 Start with the [user guide](docs/en/user/index.md) ([简体中文](docs/zh-CN/user/index.md)):
 what it does, [install](docs/en/user/install.md), [use](docs/en/user/using.md),
-[remote and Android](docs/en/user/remote.md).
+[web interface and Android](docs/en/user/remote.md).
 
 ## Screenshots
 

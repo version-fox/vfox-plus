@@ -57,9 +57,9 @@ separately (see the [vfox installation guide](https://vfox.dev/guides/quick-star
 
 | Guide | Content |
 | --- | --- |
-| [Install](install.md) | Get vfox-plus on Linux, Windows 11, Docker or Android. |
+| [Install](install.md) | Get vfox-plus on Linux, Windows 11 or Android. |
 | [Use](using.md) | The desktop application: Home, SDKs, plugins, tasks and settings. |
-| [Remote and Android](remote.md) | Drive the vfox-plus on your PC from a browser or from the Android app. |
+| [Web interface and Android](remote.md) | Drive the vfox-plus on your PC from a browser or from the Android app. |
 
 ## License
 

@@ -2,7 +2,7 @@
 
 > [简体中文](README.zh-CN.md)
 
-The desktop application and its pairing server (Go).
+The desktop application and its web interface (Go).
 
 The full guide moved into the documentation:
 

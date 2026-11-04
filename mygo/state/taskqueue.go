@@ -479,10 +479,10 @@ func (o *taskOutput) close() {
 // vfox does not lock its data directory, so concurrent installs, uses and
 // removals could corrupt `.vfox.toml` or the symlinks. The queue therefore
 // runs at most one command at a time, in the order they were enqueued.
-// LockPath, when set, extends that guarantee across processes (the desktop
-// application, `vfox-plus serve` and the background service may run side by
-// side): every task holds a cross-process lock on the file while its process
-// runs. An empty path disables it, as in tests.
+// LockPath, when set, extends that guarantee across processes (the
+// applications of two users, or the end-to-end tests, may run side by side on
+// one vfox data directory): every task holds a cross-process lock on the file
+// while its process runs. An empty path disables it, as in tests.
 type TaskQueue struct {
 	Notifier
 	cli *vfox.Client

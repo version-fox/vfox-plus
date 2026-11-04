@@ -194,34 +194,40 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 `android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、`android-dark-pairing`、
 `android-dark-home` 与 `android-unreachable`，简体中文的加前缀 `zh-`）。其余的图是改界面时用来看的，没有文档引用它们。
 
-**Web 界面。** 用 headless 服务与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
+**Web 界面。** 用应用的端到端构建（在虚拟显示里）与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
 可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
 `java-available`、`java-choose`、`java-temurin`、`java-install-name`、`flutter-chips`、`options` 与
 `options-mirror`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
-`mygo/pair/webapp.html` 检查场景点击的元素）。每张图都用自己的服务与 HOME，因为所选发行版保存在服务的
-设置里，选了发行版的场景会改变它之后的每一张图：
+`mygo/pair/webapp.html` 检查场景点击的元素）。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
+设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面
+（`{"webInterface":true}`），端到端构建没有命令行可打印链接，所以把配对链接写进
+`VFOX_PLUS_E2E_LINK` 指定的文件：
 
 ```sh
-go -C mygo build -o /tmp/vfox-plus-serve ./cmd/vfox-plus-serve
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
+/tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
 
 # shoot 名称 语言 宽,高 [webheap 的其他选项]
 shoot() {
   name=$1 lang=$2 window=$3; shift 3
-  rm -rf /tmp/shot-home && mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
-  HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
+  home=/tmp/shot-home
+  rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
+  cp /tmp/vfxtool $home/bin/vfox
+  echo '{"webInterface":true}' > $home/.config/vfox-plus/settings.json
+  HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH \
     VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 VFOX_PLUS_FAKE_INVENTORY=profiles NO_COLOR=1 \
-    /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
-  server=$!
+    VFOX_PLUS_E2E_LINK=$home/link.txt \
+    setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >app.log 2>&1 &
+  app=$!
   for i in $(seq 1 30); do
-    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
+    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' $home/link.txt 2>/dev/null | head -1)"
     [ -n "$LINK" ] && break
     sleep 1
   done
   /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
     --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
     --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
-  kill "$server"
+  kill -- -$app
 }
 shoot webapp-en en 412,915
 shoot web-java-temurin en 1280,800 --scene java-temurin
@@ -229,6 +235,7 @@ shoot web-java-temurin en 1280,800 --scene java-temurin
 
 （`PATH` 首位放一个 `vfox` 可执行文件——`vfxtool` 的复制品配夹具即假
 vfox——SDK 列表才有内容，`VFOX_PLUS_FAKE_INVENTORY=profiles` 让它成为装着 Java 与 Flutter 的机器；
+`setsid` 让应用成为自己进程组的组长，`kill -- -$app` 把它连同虚拟显示一起结束；
 `--lang` 固定界面语言；`--window 412,915` 拍手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；
 `--idle 0` 跳过测量堆所需的、停在打开页面上的 20 秒；`--dark` 用深色主题拍；
 `--chrome` 接受任何讲 CDP 的 Chrome，不传则工具在 `$CHROME_BIN` 和 `PATH`
@@ -241,7 +248,7 @@ Testing 156 把 `--window 412,915` 拍成了 500×715 的图，同版本的
 `vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[远端指南](../user/remote.md)里的
 九张图是手工拍的：在模拟器（API 36，1080×2400，420 dpi）上跑 release 构建（`./gradlew :app:assembleRelease`），
 按[运行 App](environment.md#运行-app)的方法配对，对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 与
-`--port 8080` 的服务，让配对屏上的命令就是实际运行的那条。让图保持一致的做法：
+开启了网页界面和其他设备、端口为 8080 的应用，让配对屏上的地址就是实际使用的那个。让图保持一致的做法：
 
 - 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
   再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、

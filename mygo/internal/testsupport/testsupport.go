@@ -16,12 +16,15 @@
 package testsupport
 
 import (
+	"math/rand/v2"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"testing"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
@@ -31,6 +34,25 @@ import (
 func SharedDir() string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(file), "..", "..", "..", "shared")
+}
+
+// FreePort is a port that nothing listens on, that a test may listen on, close and listen
+// on again. It is not one that the system hands out: those are the ports of the connections
+// that the other tests make, and a port that was free a moment ago is not free when a
+// server that was stopped starts again. These are below them, from 20000 to 29999.
+func FreePort(t testing.TB) int {
+	t.Helper()
+	for range 200 {
+		port := 20000 + rand.IntN(10000)                                                    //nolint:gosec // A port for a test, not a secret.
+		listener, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", strconv.Itoa(port))) //nolint:gosec // The test wants a port that is free on every interface, where the server for other devices listens.
+		if err != nil {
+			continue
+		}
+		_ = listener.Close()
+		return port
+	}
+	t.Fatal("no free port between 20000 and 29999")
+	return 0
 }
 
 // FixturesVersion is the captured vfox outputs in shared/fixtures that the

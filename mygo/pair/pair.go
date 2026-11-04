@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net"
@@ -27,68 +28,44 @@ import (
 	"sync"
 	"time"
 
-	core "github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/state"
 )
 
 // DefaultTokenTTL is how long a pairing link works: five minutes.
 const DefaultTokenTTL = 5 * time.Minute
 
-// DefaultBind is the only interface the server listens on: the IPv4
-// loopback, so a pairing link never leaves the machine.
+// DefaultBind is the interface the server on this computer listens on: the
+// IPv4 loopback, so a pairing link never leaves the machine.
 const DefaultBind = "127.0.0.1"
 
-// SdkSummary is one installed SDK on the pairing page.
-type SdkSummary struct {
-	// Name is the plugin name, for example "nodejs".
-	Name string `json:"name"`
-	// Current is the version in use, if any.
-	Current string `json:"current"`
-	// HasCurrent reports whether Current is set.
-	HasCurrent bool `json:"hasCurrent"`
-	// Versions are the installed versions.
-	Versions []string `json:"versions"`
-}
-
-// Snapshot is the read-only state the paired browser sees.
-type Snapshot struct {
-	// HasVfox reports whether vfox answered `--version`.
-	HasVfox bool `json:"hasVfox"`
-	// VfoxVersion is the version of vfox, when it answered.
-	VfoxVersion string `json:"vfoxVersion,omitempty"`
-	// VfoxError is why vfox is not available, when it is not.
-	VfoxError string `json:"vfoxError,omitempty"`
-	// SDKs are the installed SDKs, when vfox answered `list`.
-	SDKs []SdkSummary `json:"sdks"`
-}
-
-// Summarize converts installed SDKs to the shape the page shows.
-func Summarize(installed []core.InstalledSdk) []SdkSummary {
-	summaries := make([]SdkSummary, 0, len(installed))
-	for _, sdk := range installed {
-		summaries = append(summaries, SdkSummary{
-			Name:       sdk.Name,
-			Current:    sdk.Current,
-			HasCurrent: sdk.HasCurrent,
-			Versions:   append([]string(nil), sdk.Versions...),
-		})
-	}
-	return summaries
-}
-
-// DefaultSessionTTL is how long a paired browser stays paired on a
-// persistent server. Zero means the session lives as long as the server.
+// DefaultSessionTTL is how long a device that connects over the network stays
+// paired. Zero means the session lives as long as the server.
 const DefaultSessionTTL = 24 * time.Hour
+
+// Control is what the web interface asks of the application besides vfox: how
+// the other devices can connect, and the end of the application. The Host
+// implements it. Its listeners are told when the status may have changed.
+type Control interface {
+	state.Listenable
+	// Status describes the servers of the web interface.
+	Status() Status
+	// RemoteLink mints a pairing link for a device on the network, with host as
+	// the address of this computer in it, or the most likely one when host is
+	// empty. It fails while no server listens for other devices.
+	RemoteLink(host string) (string, error)
+	// Quit ends the application.
+	Quit()
+}
 
 // Options configures a Server.
 type Options struct {
 	// Bind is the interface to listen on. Empty means DefaultBind. Only
-	// loopback addresses are accepted unless AllowNonLoopback is set, for a
-	// server behind a port mapping or on a trusted network.
+	// loopback addresses are accepted unless AllowNonLoopback is set, for the
+	// server that other devices connect to.
 	Bind string
-	// AllowNonLoopback permits listening on a non-loopback interface. Pair
-	// links then travel the network: only use it where the network is
-	// trusted, and prefer pairing over an encrypted tunnel.
+	// AllowNonLoopback permits listening on a non-loopback interface. Pairing
+	// links then travel the network, so such a server speaks HTTPS only
+	// (TLSCertFile and TLSKeyFile).
 	AllowNonLoopback bool
 	// Port is the port to listen on. Zero picks a free one.
 	Port int
@@ -98,25 +75,18 @@ type Options struct {
 	// session lives as long as the server. Expired sessions answer 401 and
 	// must pair again.
 	SessionTTL time.Duration
-	// Snapshot returns the read-only state the paired browser sees.
-	Snapshot func() Snapshot
-	// Model is the application state behind the web interface. When nil,
-	// the server only pairs and serves the read-only snapshot: the
-	// `vfox-plus pair` mode. `vfox-plus serve` hands it a started AppModel.
+	// Model is the application state behind the web interface.
 	Model *state.AppModel
 	// TLSCertFile and TLSKeyFile switch the server to HTTPS. Empty means
 	// plain HTTP, which only loopback binds use.
 	TLSCertFile string
 	TLSKeyFile  string
 	// Fingerprint is the SHA-256 fingerprint of the TLS certificate, shown
-	// on the intro and pairing pages for comparison with the browser.
+	// on the intro page for comparison with the browser.
 	Fingerprint string
-	// AdminToken mints pairing links over loopback without a session: it
-	// authenticates the local CLI (`pair`, `serve --bind 127.0.0.1`) against
-	// the shared server recorded in the service file. It is refused on
-	// non-loopback connections even when known, and it never becomes a
-	// cookie. Empty disables it.
-	AdminToken string
+	// Control answers what the web interface asks of the application besides
+	// vfox. Nil leaves those routes unavailable.
+	Control Control
 }
 
 // Server is a pairing server. Create it with NewServer, hand out links with
@@ -132,18 +102,19 @@ type Server struct {
 	sessions    map[string]time.Time
 	ttl         time.Duration
 	sttl        time.Duration
-	snapshot    func() Snapshot
 	model       *state.AppModel
+	control     Control
 	tls         bool
 	// fingerprint is the SHA-256 fingerprint of the TLS certificate,
-	// shown on the intro and pairing pages for comparison.
+	// shown on the intro page for comparison.
 	fingerprint string
-	// adminToken mints pairing links over loopback without a session.
-	adminToken string
 }
 
 // NewServer starts a pairing server, by default on the loopback interface.
 func NewServer(options Options) (*Server, error) {
+	if options.Model == nil {
+		return nil, errors.New("pair: a server needs the application state to serve")
+	}
 	bind := options.Bind
 	if bind == "" {
 		bind = DefaultBind
@@ -153,15 +124,25 @@ func NewServer(options Options) (*Server, error) {
 			return nil, fmt.Errorf("pair: refusing to listen on non-loopback %q", bind)
 		}
 	}
+	if (options.TLSCertFile == "") != (options.TLSKeyFile == "") {
+		return nil, fmt.Errorf("pair: a TLS certificate and key go together")
+	}
+	if options.AllowNonLoopback && options.TLSCertFile == "" {
+		return nil, fmt.Errorf("pair: a server that other devices connect to needs a TLS certificate")
+	}
 	ttl := options.TokenTTL
 	if ttl <= 0 {
 		ttl = DefaultTokenTTL
 	}
-	snapshot := options.Snapshot
-	if snapshot == nil {
-		snapshot = func() Snapshot { return Snapshot{} }
+	var certificate tls.Certificate
+	if options.TLSCertFile != "" {
+		var err error
+		certificate, err = tls.LoadX509KeyPair(options.TLSCertFile, options.TLSKeyFile)
+		if err != nil {
+			return nil, err
+		}
 	}
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", bind, options.Port))
+	listener, err := net.Listen("tcp", net.JoinHostPort(bind, fmt.Sprint(options.Port)))
 	if err != nil {
 		return nil, err
 	}
@@ -172,29 +153,17 @@ func NewServer(options Options) (*Server, error) {
 		sessions:    make(map[string]time.Time),
 		ttl:         ttl,
 		sttl:        options.SessionTTL,
-		snapshot:    snapshot,
 		model:       options.Model,
+		control:     options.Control,
 		fingerprint: options.Fingerprint,
-		adminToken:  options.AdminToken,
 	}
-	if options.TLSCertFile != "" || options.TLSKeyFile != "" {
-		if options.TLSCertFile == "" || options.TLSKeyFile == "" {
-			_ = listener.Close()
-			return nil, fmt.Errorf("pair: a TLS certificate and key go together")
-		}
-		cert, err := tls.LoadX509KeyPair(options.TLSCertFile, options.TLSKeyFile)
-		if err != nil {
-			_ = listener.Close()
-			return nil, err
-		}
+	if options.TLSCertFile != "" {
 		server.tls = true
-		listener = tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{cert}})
-		server.listener = listener
+		listener = tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12})
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", server.serveIntro)
 	mux.HandleFunc("/auth/connect/", server.serveConnect)
-	mux.HandleFunc("/api/status", server.serveStatus)
 	mux.HandleFunc("/api/token", server.serveToken)
 	mux.HandleFunc("/app", server.serveApp)
 	mux.HandleFunc("/manifest.webmanifest", server.serveManifest)
@@ -204,6 +173,9 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/api/tasks/", server.serveTask)
 	mux.HandleFunc("/api/plugins", server.servePlugins)
 	mux.HandleFunc("/api/settings", server.serveSettings)
+	mux.HandleFunc("/api/web", server.serveWeb)
+	mux.HandleFunc("/api/web/pairing", server.serveWebPairing)
+	mux.HandleFunc("/api/quit", server.serveQuit)
 	mux.HandleFunc("/api/config", server.serveConfig)
 	mux.HandleFunc("/api/events", server.serveEvents)
 	server.handler = mux
@@ -241,20 +213,6 @@ func (s *Server) BaseURL() string {
 	return s.scheme() + "://" + host + ":" + port
 }
 
-// DisplayBaseURL is the URL to show to the user. When the server listens on
-// a wildcard address, browsers cannot open it as is, so it renders
-// 0.0.0.0 as a placeholder for the reachable address.
-func (s *Server) DisplayBaseURL() string {
-	host, port, err := net.SplitHostPort(s.listener.Addr().String())
-	if err != nil {
-		return s.BaseURL()
-	}
-	if ip := net.ParseIP(strings.Trim(host, "[]")); host == "" || (ip != nil && ip.IsUnspecified()) {
-		return s.scheme() + "://0.0.0.0:" + port
-	}
-	return s.BaseURL()
-}
-
 // NewToken creates a one-time pairing link. Expired unused tokens are swept
 // along the way, so minting links for more browsers cannot grow the map
 // without bound on a long-lived server.
@@ -276,7 +234,8 @@ func (s *Server) NewToken() (token string, url string, err error) {
 	return token, s.BaseURL() + "/auth/connect/" + token, nil
 }
 
-// Close stops the server.
+// Close stops the server and ends every connection to it, the open streams of
+// the paired browsers included.
 func (s *Server) Close() error {
 	return s.httpServer.Close()
 }
@@ -329,35 +288,6 @@ func (s *Server) hasSession(request *http.Request) bool {
 	return true
 }
 
-// allowAdmin reports whether request carries the admin bearer over
-// loopback. The token lives in a 0600 file on this machine and only ever
-// travels loopback; it is refused anywhere else even when correct, and it
-// never becomes a session cookie.
-func (s *Server) allowAdmin(request *http.Request) bool {
-	if s.adminToken == "" {
-		return false
-	}
-	host, _, err := net.SplitHostPort(request.RemoteAddr)
-	if err != nil {
-		return false
-	}
-	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
-		return false
-	}
-	scheme, token, ok := strings.Cut(request.Header.Get("Authorization"), " ")
-	if !ok || !strings.EqualFold(scheme, "Bearer") {
-		return false
-	}
-	if len(token) != len(s.adminToken) {
-		return false
-	}
-	match := 0
-	for i := 0; i < len(token); i++ {
-		match |= int(token[i] ^ s.adminToken[i])
-	}
-	return match == 0
-}
-
 // publicURL renders a pairing path with the host the client used, so that a
 // browser behind a port mapping gets a link it can open. It falls back to
 // the listening address when the request carries no usable host.
@@ -394,11 +324,12 @@ func (s *Server) serveIntro(writer http.ResponseWriter, request *http.Request) {
 	_ = introTemplate.Execute(writer, map[string]string{"Fingerprint": s.fingerprint})
 }
 
-// serveConnect pairs a browser holding a one-time link.
+// serveConnect pairs a browser holding a one-time link, and takes it to the
+// web interface.
 func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request) {
 	token := strings.TrimPrefix(request.URL.Path, "/auth/connect/")
 	if token == "" || strings.Contains(token, "/") || !s.takeToken(token) {
-		http.Error(writer, "This pairing link is invalid, already used or expired. Run `vfox-plus pair` again for a new one.", http.StatusForbidden)
+		http.Error(writer, "This pairing link is invalid, already used or expired. Open vfox+ on the computer, go to Settings and get a new one.", http.StatusForbidden)
 		return
 	}
 	session := s.newSession()
@@ -414,32 +345,16 @@ func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request)
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
-	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = connectTemplate.Execute(writer, connectData{
-		Snapshot:    s.snapshot(),
-		Chinese:     prefersChinese(request.Header.Get("Accept-Language")),
-		Fingerprint: s.fingerprint,
-	})
-}
-
-// serveStatus answers the read-only API for paired browsers.
-func (s *Server) serveStatus(writer http.ResponseWriter, request *http.Request) {
-	if !s.hasSession(request) {
-		http.Error(writer, "Not paired. Open a `vfox-plus pair` link first.", http.StatusUnauthorized)
-		return
-	}
-	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(writer).Encode(s.snapshot())
+	http.Redirect(writer, request, "/app", http.StatusSeeOther)
 }
 
 // serveToken mints another one-time pairing link for an already paired
 // browser, so that a second browser can join without returning to the
-// terminal. It renders the link with the host the caller used, which is the
-// reachable address behind a port mapping. The local CLI mints the same way
-// with the admin bearer over loopback, without a session.
+// computer. It renders the link with the host the caller used, which is the
+// reachable address behind a port mapping.
 func (s *Server) serveToken(writer http.ResponseWriter, request *http.Request) {
-	if !s.allowAdmin(request) && !s.hasSession(request) {
-		http.Error(writer, "Not paired. Open a `vfox-plus pair` link first.", http.StatusUnauthorized)
+	if !s.hasSession(request) {
+		http.Error(writer, "Not paired. Open a pairing link first.", http.StatusUnauthorized)
 		return
 	}
 	token, _, err := s.NewToken()
@@ -451,68 +366,16 @@ func (s *Server) serveToken(writer http.ResponseWriter, request *http.Request) {
 	_ = json.NewEncoder(writer).Encode(map[string]string{"url": s.publicURL(request, token)})
 }
 
-// prefersChinese reports whether the browser prefers Simplified Chinese.
-func prefersChinese(header string) bool {
-	for _, part := range strings.Split(header, ",") {
-		language := strings.ToLower(strings.TrimSpace(strings.SplitN(part, ";", 2)[0]))
-		if strings.HasPrefix(language, "zh") {
-			return true
-		}
-		if language == "" {
-			continue
-		}
-		if language == "*" {
-			continue
-		}
-		return false
-	}
-	return false
-}
-
-type connectData struct {
-	Snapshot
-	Chinese     bool
-	Fingerprint string
-}
-
 var introTemplate = template.Must(template.New("intro").Parse(withFavicon(`<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox-plus pair</title><!--favicon--></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox+</title><!--favicon--></head>
 <body>
-<h1>vfox-plus pair</h1>
-<p>This page pairs a browser with the vfox-plus instance on this machine.</p>
-<p>Run <code>vfox-plus pair</code> in a terminal (bash on Ubuntu, PowerShell on Windows) and open the link it prints. Links work once and expire after a few minutes.</p>
-<p>运行 <code>vfox-plus pair</code>（Ubuntu 用 bash，Windows 用 PowerShell），在浏览器打开它输出的一次性链接即可配对。链接一次性有效，几分钟后过期。</p>
+<h1>vfox+</h1>
+<p>This is the web interface of vfox+. To use it, pair this browser with a one-time link from the computer that runs vfox+.</p>
+<p>On that computer, open vfox+, go to Settings and choose <em>Open in browser</em>. For a phone, scan the pairing code of the same page with the Android app. Links work once and expire after a few minutes.</p>
+<p>这是 vfox+ 的网页界面。要使用它，请先用运行 vfox+ 的电脑上的一次性链接配对此浏览器。</p>
+<p>在那台电脑上打开 vfox+，进入“设置”，选择“在浏览器中打开”。手机请用安卓应用扫描同一页面上的配对二维码。链接一次性有效，几分钟后过期。</p>
 {{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code></p>
 <p>证书指纹：<code>{{.Fingerprint}}</code>（信任自签名证书前请核对）。</p>{{end}}
-</body>
-</html>`)))
-
-var connectTemplate = template.Must(template.New("connect").Parse(withFavicon(`<!doctype html>
-<html lang="{{if .Chinese}}zh-CN{{else}}en{{end}}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox-plus {{if .Chinese}}已配对{{else}}paired{{end}}</title><!--favicon--></head>
-<body>
-<h1>vfox-plus {{if .Chinese}}已配对{{else}}paired{{end}}</h1>
-{{if .Chinese}}
-<p>此浏览器已与本机的 vfox-plus 配对。配对链接一次性有效，请勿分享。</p>
-{{if .Fingerprint}}<p>证书指纹：<code>{{.Fingerprint}}</code>。</p>{{end}}
-{{else}}
-<p>This browser is paired with vfox-plus on this machine. Pairing links work once; do not share them.</p>
-{{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code>.</p>{{end}}
-{{end}}
-<h2>vfox</h2>
-{{if .HasVfox}}
-<p><code>{{.VfoxVersion}}</code></p>
-<h2>{{if .Chinese}}已安装{{else}}Installed{{end}}</h2>
-{{if .SDKs}}
-<ul>
-{{range .SDKs}}<li><code>{{.Name}}</code>{{if .HasCurrent}} — {{.Current}}{{end}} ({{range $i, $v := .Versions}}{{if $i}}, {{end}}{{$v}}{{end}})</li>{{end}}
-</ul>
-{{else}}
-<p>{{if .Chinese}}暂无已安装的 SDK。{{else}}No SDKs installed yet.{{end}}</p>
-{{end}}
-{{else}}
-<p>{{if .Chinese}}未找到可用的 vfox：{{.VfoxError}}。请先安装 vfox（https://vfox.dev/zh-hans/guides/quick-start.html），再重新配对。{{else}}No working vfox: {{.VfoxError}}. Install vfox first (https://vfox.dev/guides/quick-start.html), then pair again.{{end}}</p>
-{{end}}
 </body>
 </html>`)))

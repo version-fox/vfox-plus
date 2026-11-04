@@ -33,15 +33,17 @@ import (
 	"time"
 )
 
-// certFileName and keyFileName are the self-signed server certificate of
-// `vfox-plus serve`, next to the GUI settings.
+// certFileName and keyFileName are the self-signed certificate that the
+// application makes for the server that other devices connect to, next to the
+// settings.
 const (
 	certFileName = "serve-cert.pem"
 	keyFileName  = "serve-key.pem"
 )
 
 // certValidity is how long a generated certificate lasts. Rotation is
-// manual: deleting the files mints a fresh pair on the next start.
+// manual: deleting the files mints a fresh pair the next time that other
+// devices are allowed to connect.
 const certValidity = 10 * 365 * 24 * time.Hour
 
 // EnsureServerCert returns the certificate and key in dir, generating a
@@ -103,7 +105,7 @@ func generateCert(hosts []string) (certDER, keyDER []byte, err error) {
 	now := time.Now()
 	template := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: "vfox-plus serve"},
+		Subject:      pkix.Name{CommonName: "vfox-plus"},
 		NotBefore:    now.Add(-time.Hour),
 		NotAfter:     now.Add(certValidity),
 		KeyUsage:     x509.KeyUsageDigitalSignature,

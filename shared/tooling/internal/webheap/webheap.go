@@ -249,10 +249,10 @@ func evaluate[T any](s *session, expression string) (T, error) {
 }
 
 // open navigates to address and waits for the page to load. It then checks
-// where the browser ended up: a server that redirects /app to its intro page
-// (the pairing link did not work) would otherwise show as a long wait for an
-// SDK list that never comes.
-func (s *session) open(address, label string) error {
+// where the browser ended up, which is landing, or address when that is empty: a
+// server that redirects /app to its intro page (the pairing link did not work)
+// would otherwise show as a long wait for an SDK list that never comes.
+func (s *session) open(address, label, landing string) error {
 	if err := chromedp.Do(s.page, chromedp.Navigate(address)); err != nil {
 		return fmt.Errorf("cannot open %s: %w", label, err)
 	}
@@ -260,7 +260,10 @@ func (s *session) open(address, label string) error {
 	if err != nil {
 		return fmt.Errorf("reading the address of %s: %w", label, err)
 	}
-	if !strings.HasPrefix(href, address) {
+	if landing == "" {
+		landing = address
+	}
+	if !strings.HasPrefix(href, landing) {
 		return fmt.Errorf("%s did not open: the browser ended up on %s (was the pairing link used before?)", label, href)
 	}
 	return nil
@@ -342,13 +345,13 @@ func measure(ctx context.Context, o options) (measurement, error) {
 	defer closeTab()
 	s := &session{page: tab}
 
-	// Pair first, exactly like a browser: the pairing page sets the session
-	// cookie, and /app opens paired.
-	if err := s.open(o.pairing, "the pairing page"); err != nil {
+	// Pair first, exactly like a browser: the pairing link sets the session
+	// cookie and takes the browser to the app, which then opens paired.
+	app := strings.TrimSuffix(o.server, "/") + "/app"
+	if err := s.open(o.pairing, "the pairing page", app); err != nil {
 		return found, err
 	}
-	app := strings.TrimSuffix(o.server, "/") + "/app"
-	if err := s.open(app, "the app"); err != nil {
+	if err := s.open(app, "the app", ""); err != nil {
 		return found, err
 	}
 	if o.lang != "" {

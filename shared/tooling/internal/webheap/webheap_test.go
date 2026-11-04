@@ -112,7 +112,7 @@ func newServer(t *testing.T, mode serverMode) *server {
 	mux.HandleFunc("/auth/connect/abc", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "paired", Path: "/"})
-		_, _ = fmt.Fprint(w, "<!doctype html><title>paired</title>paired")
+		http.Redirect(w, r, "/app", http.StatusSeeOther)
 	})
 	mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
@@ -237,7 +237,7 @@ func TestRunMeasures(t *testing.T) {
 	if !strings.Contains(string(got.stdout), `"heapUsedBytes":`) {
 		t.Errorf("the keys of the summary changed: %s", got.stdout)
 	}
-	// It pairs first and opens the app after: the pairing page sets the cookie.
+	// It pairs first and opens the app after: the pairing link sets the cookie.
 	// (The browser asks for the icon of each page, too.)
 	pairing, app := indexOf(s.requests, "GET /auth/connect/abc"), indexOf(s.requests, "GET /app")
 	if pairing < 0 || app < pairing {
@@ -341,7 +341,7 @@ func TestRunFailures(t *testing.T) {
 		args  []string
 		want  string
 	}{
-		{"the app sends an unpaired browser away", redirects, nil, "the app did not open: the browser ended up on " + "http://127.0.0.1:"},
+		{"the app sends an unpaired browser away", redirects, nil, "the pairing page did not open: the browser ended up on " + "http://127.0.0.1:"},
 		{"the SDK list never comes", neverList, []string{"-timeout", "4"}, "timed out waiting for the SDK list"},
 	} {
 		t.Run(tc.label, func(t *testing.T) {

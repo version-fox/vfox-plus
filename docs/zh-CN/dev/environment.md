@@ -144,13 +144,16 @@ Ubuntu 软件包与 CI 安装的相同（[`mygo.yml`](../../../.github/workflows
 `LINUX_PACKAGES`）：
 
 ```sh
-sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
+sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11
 ```
 
 `build-essential` 只为单元测试的竞态检测器，它需要 C 编译器；应用本身构建时不需要。
 GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 给端到端测试一块虚拟显示。
-要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。构建、测试与打包的命令见
+要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。`libayatana-appindicator3-1` 画出应用没有窗口时代表它的托盘图标，端到端场景 `tray` 需要它，并且要在
+`dbus-run-session` 给的会话总线里运行，因为它用一个替身托盘宿主（见[托盘](architecture.md#托盘)）。要在自己的桌面上
+看到这个图标，桌面需要是 GNOME（带它的 AppIndicator 扩展）或 Windows。场景 `tray-gnome` 在
+`shared/sandbox/gnome.Dockerfile` 的容器里运行，所以需要 Docker。构建、测试与打包的命令见
 [mygo 指南](implementation-mygo.md#日常命令)。
 
 `vfxtool webheap` 测量 Web 界面的堆并截图（拍一个页面，或 Java 发行版之类的场景），它驱动一个讲 DevTools Protocol 的 Chrome：用
@@ -236,18 +239,22 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # 供扫码页使用
 ```
 
-模拟器把你机器的回环地址当作 `10.0.2.2`。配对服务的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
-用 `http://10.0.2.2:PORT` 配对行不通。改用 HTTPS：一份写有 `10.0.2.2` 的自签名证书，以及在回环地址上使用它的服务器
-（`go -C mygo build ./cmd/vfox-plus-serve`）：
+模拟器把你的机器当作 `10.0.2.2`。服务器的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
+用 `http://10.0.2.2:PORT` 配对行不通；给其他设备的服务器本来也只讲 HTTPS。做一份写有 `10.0.2.2` 的自签名证书，
+交给应用：
 
 ```sh
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
   -subj /CN=vfox-plus-emulator -addext subjectAltName=IP:10.0.2.2,IP:127.0.0.1 \
   -keyout key.pem -out cert.pem
-vfox-plus-serve serve -bind 127.0.0.1 -port 0 -tls-cert cert.pem -tls-key key.pem
 ```
 
-把它打印的链接里的 `127.0.0.1` 换成 `10.0.2.2`，输入到 App 里。App 会显示证书的指纹，它必须与
+启动应用（`vfxtool build build/vfox-plus && build/vfox-plus`），在它的设置里开启网页界面和*其他设备*，再选择
+*证书 → 浏览…* 和文件 `cert.pem`、`key.pem`。（也可以在启动前把这些设置写进
+`~/.config/vfox-plus/settings.json`：`"webInterface": true`、`"webRemote": true`、
+`"webCertificate": "/path/cert.pem"` 与 `"webKey": "/path/key.pem"`。）
+
+点*配对手机*旁的*显示二维码*，复制链接，输入到 App 里，并把其中你机器的地址换成 `10.0.2.2`。App 会显示证书的指纹，它必须与设置里显示的、以及
 `openssl x509 -in cert.pem -noout -fingerprint -sha256` 打印的相同。
 
 `vfxtool measure-apk` 在同一个模拟器上运行。它安装时不带 `-r`，所以要先卸载 App（`adb uninstall dev.vfox.vfoxplus`）。

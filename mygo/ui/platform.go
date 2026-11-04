@@ -52,8 +52,12 @@ func (a *App) chooseFile(options chooseOptions) string {
 	if len(options.Extensions) > 0 {
 		filters = []mygo.FileFilter{{Name: options.FilterLabel, Extensions: options.Extensions}}
 	}
+	var parent *mygo.Window
+	if win := a.window(); win != nil {
+		parent, _ = win.(*mygo.Window)
+	}
 	paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-		Parent: a.win, Title: options.Title, DefaultPath: options.Initial, Filters: filters, Directory: options.Directory,
+		Parent: parent, Title: options.Title, DefaultPath: options.Initial, Filters: filters, Directory: options.Directory,
 	})
 	if err != nil {
 		log.Printf("the file chooser failed: %v", err)

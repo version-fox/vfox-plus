@@ -19,3 +19,7 @@ package ui
 // prepareProcess does what the application needs before mygo starts: nothing
 // outside Linux.
 func prepareProcess() {}
+
+// trayHostAvailable tells whether the desktop has a host for tray icons: Windows and macOS
+// always do.
+func trayHostAvailable() bool { return true }

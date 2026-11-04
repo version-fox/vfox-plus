@@ -27,24 +27,15 @@ import (
 var faviconLinkPattern = regexp.MustCompile(`<link rel="icon" type="image/svg\+xml" href="data:image/svg\+xml,[^"]+">`)
 
 // Every page of the server is seen in a tab: the intro that a visit without a
-// link gets, the page that confirms a pairing and the web interface.
+// link gets, and the web interface.
 func TestPagesCarryTheFavicon(t *testing.T) {
 	server := webServer(t, testModel(t, testsupport.FixtureRunner()))
-	_, link, err := server.NewToken()
-	if err != nil {
-		t.Fatal(err)
-	}
 	pages := map[string]string{}
 	status, body := webGet(t, server.BaseURL()+"/", "")
 	if status != http.StatusOK {
 		t.Fatalf("intro: got %d", status)
 	}
 	pages["intro"] = body
-	status, body = webGet(t, link, "")
-	if status != http.StatusOK {
-		t.Fatalf("connect: got %d", status)
-	}
-	pages["connect"] = body
 	session := webSession(t, server)
 	status, body = webGet(t, server.BaseURL()+"/app", session)
 	if status != http.StatusOK {

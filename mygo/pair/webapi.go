@@ -140,10 +140,7 @@ func (s *Server) serveInventory(writer http.ResponseWriter, request *http.Reques
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	if request.Method != http.MethodGet {
 		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
 		return
@@ -195,10 +192,7 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	rest := strings.TrimPrefix(request.URL.Path, "/api/sdks/")
 	name, kind, _ := strings.Cut(rest, "/")
 	name = strings.TrimSpace(name)
@@ -283,10 +277,7 @@ func (s *Server) serveTasks(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	switch request.Method {
 	case http.MethodGet:
 		tasks := make([]TaskDTO, 0)
@@ -412,10 +403,7 @@ func (s *Server) serveTask(writer http.ResponseWriter, request *http.Request) {
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	rest := strings.TrimPrefix(request.URL.Path, "/api/tasks/")
 	idText, action, _ := strings.Cut(rest, "/")
 	id, err := strconv.Atoi(idText)
@@ -484,10 +472,7 @@ func (s *Server) servePlugins(writer http.ResponseWriter, request *http.Request)
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	if request.Method != http.MethodPost {
 		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
 		return
@@ -582,10 +567,7 @@ func (s *Server) serveConfig(writer http.ResponseWriter, request *http.Request) 
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	if !s.requireSameOrigin(writer, request) {
 		return
 	}
@@ -625,10 +607,7 @@ func (s *Server) serveSettings(writer http.ResponseWriter, request *http.Request
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	switch request.Method {
 	case http.MethodGet:
 		writeJSON(writer, settingsDTO(model.Settings.Settings()))
@@ -679,3 +658,161 @@ func settingsDTO(current settings.AppSettings) map[string]interface{} {
 		"language":         string(current.Language),
 	}
 }
+
+// WebDTO is how other devices connect and whether the application stays after
+// its window closes, for the web interface: the settings that say so, and what
+// the servers made of them.
+type WebDTO struct {
+	// Remote is the setting that allows other devices to connect.
+	Remote bool `json:"remote"`
+	// Port is the port that other devices connect to.
+	Port int `json:"port"`
+	// Lightweight is the setting that keeps the application running without its window.
+	Lightweight bool `json:"lightweight"`
+	// Listening reports whether other devices can connect now.
+	Listening bool `json:"listening"`
+	// Addresses are the addresses of this computer that they can connect to.
+	Addresses []string `json:"addresses"`
+	// Fingerprint is the SHA-256 fingerprint of the certificate they get.
+	Fingerprint string `json:"fingerprint"`
+	// SelfSigned reports whether the application made that certificate itself.
+	SelfSigned bool `json:"selfSigned"`
+	// Error says why other devices cannot connect, when they are allowed to.
+	Error string `json:"error"`
+}
+
+// webDTO describes the connections of other devices.
+func (s *Server) webDTO() WebDTO {
+	current := s.model.Settings.Settings()
+	dto := WebDTO{Remote: current.WebRemote, Port: current.EffectiveWebPort(), Lightweight: current.Lightweight, Addresses: []string{}}
+	if s.control != nil {
+		status := s.control.Status()
+		dto.Listening, dto.Fingerprint, dto.SelfSigned, dto.Error = status.Remote, status.Fingerprint, status.SelfSigned, status.RemoteError
+		dto.Addresses = orEmpty(status.Addresses)
+	}
+	return dto
+}
+
+// serveWeb reads and writes how other devices connect and the lightweight mode.
+// The servers follow the settings by themselves, and tell the page by an event
+// when they have: turning off the access of other devices ends the connection of
+// a device that uses it, so the answer cannot wait for them.
+func (s *Server) serveWeb(writer http.ResponseWriter, request *http.Request) {
+	if !s.requireSession(writer, request) {
+		return
+	}
+	switch request.Method {
+	case http.MethodGet:
+		writeJSON(writer, s.webDTO())
+	case http.MethodPut:
+		if !s.requireSameOrigin(writer, request) {
+			return
+		}
+		var req struct {
+			Remote      *bool `json:"remote"`
+			Port        *int  `json:"port"`
+			Lightweight *bool `json:"lightweight"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&req); err != nil {
+			http.Error(writer, "Invalid request.", http.StatusBadRequest)
+			return
+		}
+		if req.Port != nil && !settings.ValidWebPort(*req.Port) {
+			http.Error(writer, "Choose a port between "+strconv.Itoa(settings.MinWebPort)+" and "+strconv.Itoa(settings.MaxWebPort)+".", http.StatusBadRequest)
+			return
+		}
+		s.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+			if req.Remote != nil {
+				current.WebRemote = *req.Remote
+			}
+			if req.Port != nil {
+				current.WebPort = *req.Port
+			}
+			if req.Lightweight != nil {
+				current.Lightweight = *req.Lightweight
+			}
+			return current
+		})
+		writeJSON(writer, s.webDTO())
+	default:
+		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
+	}
+}
+
+// serveWebPairing makes a pairing link for a device on the network, and the code
+// of it that a phone scans: {url, svg}. The body may name the address of this
+// computer to use, one of those that GET /api/web lists.
+func (s *Server) serveWebPairing(writer http.ResponseWriter, request *http.Request) {
+	if !s.requireSession(writer, request) {
+		return
+	}
+	if request.Method != http.MethodPost {
+		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.requireSameOrigin(writer, request) {
+		return
+	}
+	if s.control == nil {
+		http.Error(writer, "This server cannot pair other devices.", http.StatusNotFound)
+		return
+	}
+	var req struct {
+		Host string `json:"host"`
+	}
+	// No body is no address; a body that is not JSON is a mistake.
+	if err := json.NewDecoder(io.LimitReader(request.Body, 1<<10)).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+		http.Error(writer, "Invalid request.", http.StatusBadRequest)
+		return
+	}
+	link, err := s.control.RemoteLink(strings.TrimSpace(req.Host))
+	switch {
+	case errors.Is(err, ErrNoRemote):
+		http.Error(writer, "Other devices are not allowed to connect. Turn that on first.", http.StatusConflict)
+		return
+	case errors.Is(err, ErrNoAddress):
+		http.Error(writer, "This computer has no such address on a network.", http.StatusConflict)
+		return
+	case err != nil:
+		http.Error(writer, "Cannot make a link right now.", http.StatusInternalServerError)
+		return
+	}
+	code, err := QRSVG(link)
+	if err != nil {
+		http.Error(writer, "Cannot make a code right now.", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(writer, map[string]string{"url": link, "svg": code})
+}
+
+// serveQuit ends the application, for the paired device of whoever runs it
+// without a window. The answer goes first: quitting ends the connection.
+func (s *Server) serveQuit(writer http.ResponseWriter, request *http.Request) {
+	if !s.requireSession(writer, request) {
+		return
+	}
+	if request.Method != http.MethodPost {
+		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.requireSameOrigin(writer, request) {
+		return
+	}
+	if s.control == nil {
+		http.Error(writer, "This server cannot end the application.", http.StatusNotFound)
+		return
+	}
+	writer.WriteHeader(http.StatusAccepted)
+	writeJSON(writer, map[string]bool{"quitting": true})
+	if flusher, ok := writer.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	go func() {
+		time.Sleep(quitDelay)
+		s.control.Quit()
+	}()
+}
+
+// quitDelay is how long the application waits after it has answered that it
+// quits, so that the answer reaches the page.
+const quitDelay = 300 * time.Millisecond

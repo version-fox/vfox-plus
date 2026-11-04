@@ -2,9 +2,9 @@
 
 > [English](../../en/dev/packaging-android.md)
 
-本目录是安卓远端客户端：包住配对服务（`vfox-plus serve`）的 WebView，原生
+本目录是安卓远端客户端：包住 PC 上应用网页界面的 WebView，原生
 Material 3 Expressive 配对流程。它按[远端协议](remote-protocol.md)编程，不直连
-Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/remote.md)。
+Go 代码。用户装 `.apk` 后与 PC 配对；见[网页界面、其他设备与安卓](../user/remote.md)。
 
 ## 布局
 
@@ -18,8 +18,8 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
 
 ## App 行为
 
-- **配对**（`PairingFragment`）是原生的：9 瓣 cookie 形状上的狐狸、PC 上要运行的命令（带复制按钮）、
-  扫描终端二维码的按钮，以及一次性链接的输入框（框尾的图标在框为空时粘贴、不为空时清除）。配对过一次后，
+- **配对**（`PairingFragment`）是原生的：9 瓣 cookie 形状上的狐狸、PC 上哪里能找到配对（*设置 → 网页界面 → 配对手机*）、
+  扫描 PC 上二维码的按钮，以及一次性链接的输入框（框尾的图标在框为空时粘贴、不为空时清除）。配对过一次后，
   屏幕把上次的服务器放在最前，一个按钮即可重连。连接时收起键盘，用加载指示器代替按钮，并且不论 Go 键或
   “连接”被按了几次，只打开一个会话。
 - **扫码**（`ScanFragment`）是 CameraX 预览加 zxing 解码：解出的链接填入配对框并立即连接。画面在一个 32 dp 圆角的
@@ -32,8 +32,8 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[远端与安卓](../user/rem
   原生状态（错误形状、“重试”“配对新链接”），而不是 WebView 的错误页。WebView 内无法下载文件，失败任务完整日志的网页下载
   按钮只在浏览器里出现。窗口始终停在已配对的服务器上：页面链到其它站点的地址（插件主页、文档）在手机的浏览器里打开
   （`shouldOverrideUrlLoading`；页面为它们点击一个链接，而不调用 `window.open`，后者 WebView 不会上报）。
-- **TLS**（`onReceivedSslError`）在信任自签名证书前弹出 SHA-256 指纹对话框——与 PC 终端打印的是同一个，每行八个字节，
-  方便一眼对照。服务端自带证书可免去警告。
+- **TLS**（`onReceivedSslError`）在信任自签名证书前弹出 SHA-256 指纹对话框——与 PC 上 vfox-plus 设置里显示的是同一个，每行八个字节，
+  方便一眼对照。PC 端自带证书可免去警告。
 - **返回键**先走 WebView 历史，再退出会话；App 启用预测性返回动画（`enableOnBackInvokedCallback`）。
 - **新的 Activity**（深色主题、换语言、转屏）会拿回页面与它的历史：会话页保存 WebView 的状态。
 
@@ -104,7 +104,7 @@ cp app/build/outputs/apk/release/app-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
-装到手机（提示时允许安装未知应用），按[远端与安卓](../user/remote.md)配对。
+装到手机（提示时允许安装未知应用），按[网页界面、其他设备与安卓](../user/remote.md)配对。
 
 ## 签名状态
 

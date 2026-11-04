@@ -27,6 +27,8 @@ func TestRunValidatesItsArguments(t *testing.T) {
 		"nothing":                    {nil, "Usage: e2e-run"},
 		"no application":             {[]string{"fake"}, "Usage: e2e-run"},
 		"a scenario that is not one": {[]string{"screenshots", "application"}, "Unknown scenario: screenshots"},
+		"no application for tray":    {[]string{"tray"}, "Usage: e2e-run"},
+		"no application for gnome":   {[]string{"tray-gnome"}, "Usage: e2e-run"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

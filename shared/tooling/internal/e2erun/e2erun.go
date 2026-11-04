@@ -27,12 +27,12 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measure"
 )
 
-const usage = "Usage: e2e-run <fake|real|measure> <application command...>"
+const usage = "Usage: e2e-run <fake|real|measure|tray|tray-gnome> <application command...>"
 
 // IsValidScenario reports whether s names a known end-to-end scenario.
 func IsValidScenario(s string) bool {
 	switch s {
-	case "fake", "real", "measure":
+	case "fake", "real", "measure", "tray", "tray-gnome":
 		return true
 	default:
 		return false
@@ -47,7 +47,7 @@ func ValidateScenario(s string) error {
 	return nil
 }
 
-// Run implements `e2e-run <fake|real|measure> <app command...>`. The measure
+// Run implements `e2e-run <fake|real|measure|tray|tray-gnome> <app command...>`. The measure
 // scenario delegates to the measure package in-process.
 func Run(args []string) error {
 	if len(args) < 2 {
@@ -62,6 +62,10 @@ func Run(args []string) error {
 		return measure.Run(command)
 	case "fake":
 		return runFake(command)
+	case "tray":
+		return runTray(command)
+	case "tray-gnome":
+		return runTrayGnome(command)
 	default:
 		return runReal(command)
 	}

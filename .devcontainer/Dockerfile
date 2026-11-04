@@ -39,8 +39,9 @@ FROM --platform=linux/amd64 ubuntu:26.04
 ARG UBUNTU_MIRROR=
 
 # The packages of LINUX_PACKAGES in .github/workflows/mygo.yml (a C compiler
-# for the race detector, GTK 3 and the fonts that the application loads, a
-# virtual display, lintian and desktop-file-utils for the .deb), and the tools
+# for the race detector, GTK 3, the library of the tray icon and the fonts that
+# the application loads, a virtual display, lintian and desktop-file-utils for
+# the .deb), and the tools
 # of a shell that works in a repository.
 RUN <<EOF
 set -eu
@@ -50,7 +51,7 @@ if [ -n "$UBUNTU_MIRROR" ]; then
 fi
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
+  build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11 lintian desktop-file-utils \
   ca-certificates curl file git jq less nano openssh-client sudo unzip xz-utils zip
 rm -rf /var/lib/apt/lists/*

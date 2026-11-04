@@ -14,28 +14,10 @@
 
 //go:build windows
 
-package pair
+package measurelightweight
 
-import (
-	"os"
-	"os/exec"
+import "os"
 
-	"golang.org/x/sys/windows"
-)
-
-// detachProcess detaches command so that it survives the parent: the service
-// daemon keeps running after `service start` exits. Like the file lock, the
-// standard syscall package has no detached flag on Windows, so this uses
-// golang.org/x/sys.
-func detachProcess(command *exec.Cmd) {
-	command.SysProcAttr = &windows.SysProcAttr{CreationFlags: windows.DETACHED_PROCESS}
-}
-
-// terminateProcess stops pid.
-func terminateProcess(pid int) error {
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return err
-	}
-	return process.Kill()
-}
+// closeSignal is what the tool sends to the application on Windows, where it
+// cannot measure anything (it reads /proc) and only has to compile.
+var closeSignal os.Signal = os.Interrupt

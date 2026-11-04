@@ -13,6 +13,9 @@
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 ```
 
+另有一个可选的包：`libayatana-appindicator3-1`，它画出 vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）
+在 GNOME 的托盘里显示的图标。没有它 vfox-plus 就没有托盘图标，其他照常。vfox-plus 的软件包推荐安装它。
+
 下载最新成功构建的 `vfox-plus-linux-x64` 产物，二选一（Ubuntu 26.04 装包）：
 
 ```sh
@@ -22,10 +25,8 @@ vfox-plus
 
 或把 `.tar.gz` 解到任意位置，运行 `./vfox-plus`。
 
-只跑配对服务、不要桌面界面及其 GTK 依赖时（比如服务器或容器宿主机），下载
-`vfox-plus-serve-linux` 产物，运行
-`./vfox-plus-serve serve --allow-remote --port 8080`。它接受同样的 `pair`、
-`serve` 和 `service` 命令，只是没有桌面应用。
+vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示窗口。想同时在浏览器或手机上用，
+在它的设置里开启网页界面（见[网页界面、其他设备与安卓](remote.md)）。
 
 ## Windows 11
 
@@ -42,16 +43,7 @@ Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned
 Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFullName
 ```
 
-## Docker（无需显示器）
-
-发布镜像直接跑配对服务，无需显示器。见[远端与安卓](remote.md)。
-
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus .
-docker run --rm -p 8080:8080 vfox-plus
-```
-
 ## 安卓
 
 在手机上安装 `vfox-plus-android` 产物的 `.apk`，再与 PC 上的 vfox-plus 配对。
-见[远端与安卓](remote.md)。
+见[网页界面、其他设备与安卓](remote.md)。

@@ -15,6 +15,7 @@
 package appsession
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -48,6 +49,18 @@ func TestHelperApplication(t *testing.T) {
 	}
 	app := &fakeApp{nodes: []automation.Node{node("1", "", "text", "Versions in use")}}
 	go app.serve(listener)
+	if control := os.Getenv("VFOX_PLUS_E2E_CONTROL"); control != "" {
+		// What the application does with the file that the tools write a word into.
+		go func() {
+			for range time.Tick(20 * time.Millisecond) {
+				word, err := os.ReadFile(control)
+				if err != nil || os.Remove(control) != nil {
+					continue
+				}
+				fmt.Printf("HELPER TOLD %s\n", strings.TrimSpace(string(word)))
+			}
+		}()
+	}
 	time.Sleep(time.Minute)
 }
 
@@ -116,6 +129,87 @@ func TestRunScenarioStartsTheApplicationAndRemovesItsSandbox(t *testing.T) {
 	}
 	if left := sandboxes(t); len(left) != 0 {
 		t.Errorf("left in the directory of the sandboxes: %v", left)
+	}
+}
+
+func TestTheSettingsOfTheScenarioAreAddedToTheDefaultOnes(t *testing.T) {
+	captureReports(t)
+	config := helperConfig(t, "serve")
+	config.Settings = map[string]any{"webInterface": true, "lightweight": true, "language": "simplifiedChinese"}
+	err := RunScenario(config, "helper", func(s *Session) {
+		content, err := os.ReadFile(filepath.Join(SettingsDir(s.Home), "settings.json"))
+		s.Check(err == nil, "the application has settings")
+		var settings map[string]any
+		s.Check(json.Unmarshal(content, &settings) == nil, "the settings are JSON")
+		s.Check(settings["webInterface"] == true && settings["lightweight"] == true, "the settings of the scenario are there")
+		s.Check(settings["language"] == "simplifiedChinese", "the scenario chooses the language")
+		s.Check(settings["vfoxExecutable"] == "/bin/true", "the vfox to use is still named")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTheApplicationIsToldWhatAPersonDoes(t *testing.T) {
+	captureReports(t)
+	config := helperConfig(t, "serve")
+	err := RunScenario(config, "helper", func(s *Session) {
+		s.WaitForText("Versions in use")
+		for _, word := range []string{"close", "show", "quit"} {
+			s.Check(s.Tell(word) == nil, "the application is told "+word)
+			s.WaitFor("the application to take the word "+word, 10*time.Second, func() bool {
+				return strings.Contains(s.LogText(), "HELPER TOLD "+word+"\n")
+			})
+		}
+		_, err := os.Stat(s.control)
+		s.Check(os.IsNotExist(err), "the application removes the file that it has read")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTheSettingsAreWhereTheApplicationLooksForThem(t *testing.T) {
+	home := filepath.Join("home", "user")
+	want := filepath.Join(home, ".config", "vfox-plus")
+	if runtime.GOOS == "windows" {
+		want = filepath.Join(home, "AppData", "Roaming", "vfox-plus")
+	}
+	if got := SettingsDir(home); got != want {
+		t.Errorf("SettingsDir(%q) = %q, want %q", home, got, want)
+	}
+	wantName := "vfox"
+	if runtime.GOOS == "windows" {
+		wantName = "vfox.exe"
+	}
+	if got := fakeVfoxName(); got != wantName {
+		t.Errorf("the fake vfox is named %q, want %q", got, wantName)
+	}
+}
+
+func TestAWindowIsThereUntilTheApplicationHasNone(t *testing.T) {
+	s, app := newSession(t, node("1", "", "text", "Versions in use"))
+	if !s.HasWindow() {
+		t.Error("the application has its window")
+	}
+	app.setWindowless(true)
+	if s.HasWindow() {
+		t.Error("the application has no window and a window is reported")
+	}
+	app.setWindowless(false)
+	if !s.HasWindow() {
+		t.Error("the window came back and is not reported")
+	}
+}
+
+func TestWaitingForTheApplicationToEnd(t *testing.T) {
+	s, _ := newSession(t)
+	if s.WaitExit(20 * time.Millisecond) {
+		t.Error("the application runs, and it is said to have ended")
+	}
+	close(s.exited)
+	if !s.WaitExit(time.Second) {
+		t.Error("the application ended and it is not said")
 	}
 }
 

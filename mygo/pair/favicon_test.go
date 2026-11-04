@@ -94,7 +94,7 @@ func TestWebappHasItsPlaceholders(t *testing.T) {
 	if !bytes.HasSuffix(webappMiddle, []byte(`<img class="mark" src="`)) || !bytes.HasPrefix(webappTail, []byte(`"`)) {
 		t.Error("the icon belongs in the src of the brand mark")
 	}
-	for name, page := range map[string]string{"intro": introTemplate.Tree.Root.String(), "connect": connectTemplate.Tree.Root.String()} {
+	for name, page := range map[string]string{"intro": introTemplate.Tree.Root.String()} {
 		if !strings.Contains(page, `rel="icon"`) || strings.Contains(page, faviconPlaceholder) {
 			t.Errorf("the %s page has no favicon, or still the placeholder", name)
 		}

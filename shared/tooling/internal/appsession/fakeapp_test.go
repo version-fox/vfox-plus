@@ -48,6 +48,15 @@ type fakeApp struct {
 	onAct func(app *fakeApp, a act) *automation.Error
 	// treeFailure makes every tree request fail.
 	treeFailure *automation.Error
+	// windowless is an application that has no window: it answers that there is none.
+	windowless bool
+}
+
+// setWindowless makes the application close its window, or open one.
+func (f *fakeApp) setWindowless(windowless bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.windowless = windowless
 }
 
 // set replaces the elements of the window.
@@ -76,6 +85,9 @@ func (f *fakeApp) handle(method string, params map[string]any) (any, *automation
 	defer f.mu.Unlock()
 	switch method {
 	case "windows":
+		if f.windowless {
+			return nil, &automation.Error{Code: "no_window", Message: "the application has no window"}
+		}
 		return map[string]any{"windows": []map[string]any{{"id": 1, "title": "vfox+", "kind": "content"}}}, nil
 	case "tree":
 		if f.treeFailure != nil {

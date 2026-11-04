@@ -63,7 +63,6 @@ android {
 val materialSymbolsCommit = "10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7"
 val materialSymbols = listOf(
     Triple("ic_close", "close", null),
-    Triple("ic_copy", "content_copy", null),
     Triple("ic_forward", "arrow_forward", null),
     Triple("ic_help", "help", null),
     Triple("ic_history", "history", null),

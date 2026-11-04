@@ -19,11 +19,11 @@ import "os"
 // ProcessLock serializes state-changing vfox commands across processes.
 //
 // The task queue runs one command at a time, but only within its own process:
-// the desktop application, `vfox-plus serve` and a background service can run
-// side by side on one machine, and vfox itself does not lock its data
-// directory. Every task therefore holds this lock on `tasks.lock` next to the
-// settings while its process runs, so concurrent installs, uses and removals
-// in different processes still cannot corrupt `.vfox.toml` or the symlinks.
+// one application runs for each user, yet two users, or the end-to-end tests,
+// can share a vfox data directory, and vfox itself does not lock it. Every task
+// therefore holds this lock on `tasks.lock` next to the settings while its
+// process runs, so concurrent installs, uses and removals in different
+// processes still cannot corrupt `.vfox.toml` or the symlinks.
 // The lock is advisory and released when the holder dies, so a crashed
 // process never wedges the others; pass an empty path to disable it.
 type ProcessLock struct {

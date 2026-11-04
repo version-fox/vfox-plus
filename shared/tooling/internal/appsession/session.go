@@ -21,12 +21,14 @@ package appsession
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -56,6 +58,13 @@ type Config struct {
 	Fixtures string
 	// Env adds NAME=value variables to the environment of the application.
 	Env []string
+	// Settings adds keys to the settings that the application starts with: the language
+	// and the vfox executable are always there.
+	Settings map[string]any
+	// Setup prepares the home directory of the application before it starts, and may add
+	// variables to its environment: what the desktop of the user has, for a scenario that
+	// needs more than the settings.
+	Setup func(home string) (env []string, err error)
 }
 
 // Session is the application that is running, and the connection to it.
@@ -70,11 +79,16 @@ type Session struct {
 	// Log is the file with what the application wrote to its output.
 	Log string
 
+	// control is the file through which the tools ask the application to do what a person
+	// does: see Tell.
+	control string
+
 	client *automation.Client
 	env    []string
 	cmd    *exec.Cmd
-	// exited is closed when the application has ended.
+	// exited is closed when the application has ended, and exit is how.
 	exited chan struct{}
+	exit   error
 }
 
 // reportTo is where the progress of a scenario goes: the output of vfxtool, which
@@ -116,23 +130,57 @@ func Start(cfg Config) (*Session, error) {
 	return session, nil
 }
 
+// SettingsDir is the directory of the settings of the application with the home directory:
+// where the application looks for them on this system.
+func SettingsDir(home string) string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(home, "AppData", "Roaming", "vfox-plus")
+	}
+	return filepath.Join(home, ".config", "vfox-plus")
+}
+
+// fakeVfoxName is the name of the fake vfox: vfxtool answers as vfox when it runs under that
+// name, and Windows runs only what has its extension.
+func fakeVfoxName() string {
+	if runtime.GOOS == "windows" {
+		return "vfox.exe"
+	}
+	return "vfox"
+}
+
 func (s *Session) start(cfg Config) error {
-	if err := os.MkdirAll(filepath.Join(s.Home, ".config", "vfox-plus"), 0o755); err != nil {
+	if err := os.MkdirAll(SettingsDir(s.Home), 0o755); err != nil {
 		return err
 	}
 	s.Vfox = cfg.Vfox
 	if s.Vfox == "" {
-		s.Vfox = filepath.Join(s.Sandbox, "vfox")
+		s.Vfox = filepath.Join(s.Sandbox, fakeVfoxName())
 		if err := materializeFakeVfox(s.Vfox, cfg.FakeVfox); err != nil {
 			return fmt.Errorf("install the fake vfox: %w", err)
 		}
 	}
-	settings := fmt.Sprintf("{\n  \"language\": \"english\",\n  \"vfoxExecutable\": %q\n}\n", s.Vfox)
-	if err := os.WriteFile(filepath.Join(s.Home, ".config", "vfox-plus", "settings.json"), []byte(settings), 0o644); err != nil {
+	settings := map[string]any{"language": "english", "vfoxExecutable": s.Vfox}
+	for key, value := range cfg.Settings {
+		settings[key] = value
+	}
+	content, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(SettingsDir(s.Home), "settings.json"), append(content, '\n'), 0o644); err != nil {
 		return err
 	}
 	socket := filepath.Join(s.Sandbox, "automation.sock")
+	s.control = filepath.Join(s.Sandbox, "control")
 	env := environment(s.Home, socket, s.Vfox, cfg)
+	env = append(env, "VFOX_PLUS_E2E_CONTROL="+s.control)
+	if cfg.Setup != nil {
+		more, err := cfg.Setup(s.Home)
+		if err != nil {
+			return fmt.Errorf("prepare the home directory: %w", err)
+		}
+		env = append(env, more...)
+	}
 	s.env = env
 	logFile, err := os.OpenFile(s.Log, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
@@ -148,7 +196,7 @@ func (s *Session) start(cfg Config) error {
 	// Reap it in the background: that is how its end is noticed.
 	s.exited = make(chan struct{})
 	go func() {
-		_ = s.cmd.Wait()
+		s.exit = s.cmd.Wait()
 		close(s.exited)
 	}()
 
@@ -205,6 +253,14 @@ func environment(home, socket, vfox string, cfg Config) []string {
 		"MYGO_AUTOMATION="+socket,
 		"VFOX_PLUS_E2E_VFOX="+vfox,
 	)
+	if runtime.GOOS == "windows" {
+		// Windows looks for the home and the settings of a user elsewhere than the variable HOME.
+		env = append(env,
+			"USERPROFILE="+home,
+			"APPDATA="+filepath.Join(home, "AppData", "Roaming"),
+			"LOCALAPPDATA="+filepath.Join(home, "AppData", "Local"),
+		)
+	}
 	if cfg.Fixtures != "" {
 		env = append(env, "VFOX_PLUS_FIXTURES="+cfg.Fixtures, "__VFOX_PID=1", "__VFOX_SHELL=bash")
 	}
@@ -254,13 +310,64 @@ func (s *Session) Alive() bool {
 	}
 }
 
+// Tell asks the application to do what a person does, through the file that it follows:
+// "close" closes its window, "show" chooses *Open vfox+* of its icon in the tray and "quit"
+// *Quit vfox+* of it. The application removes the file when it has taken the word.
+func (s *Session) Tell(word string) error {
+	temporary := s.control + ".tmp"
+	if err := os.WriteFile(temporary, []byte(word+"\n"), 0o600); err != nil {
+		return err
+	}
+	// Windows refuses to replace a file that the application has open at that moment, which is
+	// as long as it takes it to read the word that it was told before: a few tries are enough.
+	var err error
+	for attempt := 0; attempt < 20; attempt++ {
+		if err = os.Rename(temporary, s.control); err == nil {
+			return nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return err
+}
+
+// HasWindow reports whether the application has a window open.
+func (s *Session) HasWindow() bool {
+	windows, err := s.client.Windows()
+	return err == nil && len(windows) > 0
+}
+
+// WaitExit waits for the application to end, and says whether it did in time.
+func (s *Session) WaitExit(timeout time.Duration) bool {
+	select {
+	case <-s.exited:
+		return true
+	case <-time.After(timeout):
+		return false
+	}
+}
+
+// ExitError is how the application ended: nil when it ended by itself, with the code 0. It is
+// only to be read once the application has ended (see WaitExit).
+func (s *Session) ExitError() error { return s.exit }
+
+// LogText is what the application has written to its output so far.
+func (s *Session) LogText() string {
+	data, _ := os.ReadFile(s.Log)
+	return string(data)
+}
+
 // Close ends the application and removes the sandbox.
 func (s *Session) Close() {
 	if s.client != nil {
 		_ = s.client.Close()
 	}
 	if s.exited != nil && s.Alive() {
-		_ = s.cmd.Process.Signal(syscall.SIGTERM)
+		// Windows has no signal to end a program with: it is killed at once.
+		if runtime.GOOS != "windows" {
+			_ = s.cmd.Process.Signal(syscall.SIGTERM)
+		} else {
+			_ = s.cmd.Process.Kill()
+		}
 		select {
 		case <-s.exited:
 		case <-time.After(terminateGrace):

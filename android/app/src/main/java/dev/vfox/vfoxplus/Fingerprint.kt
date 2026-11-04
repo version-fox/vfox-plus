@@ -18,7 +18,7 @@ import android.net.http.SslCertificate
 import java.security.MessageDigest
 
 // Renders the SHA-256 fingerprint of a TLS certificate the way the
-// `vfox-plus serve` terminal prints it, so the user can compare the two
+// settings of vfox+ on the PC show it, so the user can compare the two
 // before trusting a self-signed certificate.
 object Fingerprint {
     fun sha256HexColon(certificate: SslCertificate): String? {

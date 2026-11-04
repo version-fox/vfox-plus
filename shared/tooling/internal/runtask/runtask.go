@@ -49,8 +49,11 @@ const usage = "Usage: runtask <task>"
 const Depends = "libc6, libgtk-3-0t64, libglib2.0-0t64, libpango-1.0-0, libpangoft2-1.0-0, libcairo2, libgdk-pixbuf-2.0-0, fontconfig, fonts-ubuntu | fonts-noto-core"
 
 // Chinese text needs a CJK font, the file choosers go through the desktop
-// portal where there is one, and links open in the browser.
-const Recommends = "fonts-noto-cjk, xdg-desktop-portal, xdg-utils"
+// portal where there is one, links open in the browser, and the icon that
+// stands for the application in the tray, while it runs without its window,
+// is drawn with libayatana-appindicator3, which mygo loads when it is there:
+// the application runs without it, and without an icon.
+const Recommends = "fonts-noto-cjk, xdg-desktop-portal, xdg-utils, libayatana-appindicator3-1"
 
 // tasks are the valid first arguments, mirroring the case of the old
 // run-task.sh.
