@@ -15,6 +15,8 @@
 package e2erun
 
 import (
+	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -72,17 +74,86 @@ func waitForTheWindow(s *appsession.Session) {
 	s.WaitForText("Versions in use")
 }
 
-// The end-to-end build writes these to its log: the desktop gave the icon a place on the screen (the
-// notification area of the taskbar), or it did not within the time that it has. Windows tells the application that
-// much of its icon, and it is what a person sees of it. The words are the application's (reportTray of
-// mygo/ui/e2e.go); a test reads them there.
+// The end-to-end build writes these to its log, for the icon that it makes each time the window closes: the
+// desktop gave the icon a place on the screen (the notification area of the taskbar), or it did not within the
+// time that it has. Windows tells the application that much of its icon, and it is what a person sees of it. The
+// words are the application's (reportTray of mygo/ui/e2e.go); a test reads them there.
 const (
 	iconPlaced  = "e2e: the icon is in the tray at"
 	iconNoPlace = "e2e: the icon has no place in the tray"
 )
 
-// placedCount is how many times the log says that the desktop gave the icon a place.
-func placedCount(log string) int { return strings.Count(log, iconPlaced) }
+// iconOutcome is what the desktop answered for an icon that the application made.
+type iconOutcome struct {
+	// Placed is true when the icon has a place on the screen, which the line says.
+	Placed bool
+	// Line is what the application wrote.
+	Line string
+}
 
-// gaveNoPlace says whether the log says that the desktop gave the icon none.
-func gaveNoPlace(log string) bool { return strings.Contains(log, iconNoPlace) }
+// iconOutcomes reads the log of the application for what the desktop answered for each icon that it made, in the
+// order in which it answered.
+func iconOutcomes(log string) []iconOutcome {
+	var outcomes []iconOutcome
+	for _, line := range strings.Split(log, "\n") {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.Contains(line, iconPlaced):
+			outcomes = append(outcomes, iconOutcome{Placed: true, Line: line})
+		case strings.Contains(line, iconNoPlace):
+			outcomes = append(outcomes, iconOutcome{Line: line})
+		}
+	}
+	return outcomes
+}
+
+// shellRecord is what the shell of Windows 11 keeps of an icon that an application adds to the notification area:
+// it records each under HKEY_CURRENT_USER\Control Panel\NotifyIconSettings, which is where the page of the
+// settings that lists the icons of the taskbar reads them from. It is made when the icon is added, and says that
+// the shell took it, where the icon has no place that the application can ask for: Windows 11 puts a new icon in
+// the overflow of the taskbar, which the notification area of Windows Server, which shows all of its icons, does
+// not.
+type shellRecord struct {
+	Key        string
+	Executable string
+	ToolTip    string
+	// Promoted is 1 when the user has the icon on the taskbar itself and not in the overflow, 0 when not, and -1
+	// when the record does not say.
+	Promoted int
+}
+
+// baseName is the name of the file of a path of either system.
+func baseName(name string) string { return path.Base(strings.ReplaceAll(name, "\\", "/")) }
+
+// recordOf finds the record of the icon of the executable among the records. The shell keeps the path of the
+// program that made the icon, written as the system writes it (the scenario was given it with the slashes of the
+// shell that started it), so the files are compared by name.
+func recordOf(records []shellRecord, executable string) (shellRecord, bool) {
+	name := baseName(executable)
+	for _, record := range records {
+		if record.Executable != "" && strings.EqualFold(baseName(record.Executable), name) {
+			return record, true
+		}
+	}
+	return shellRecord{}, false
+}
+
+func describeRecord(record shellRecord) string {
+	return fmt.Sprintf("%s: %s, tool tip %q, promoted %d", record.Key, record.Executable, record.ToolTip, record.Promoted)
+}
+
+// describeRecords lists the records, or says why there are none to list, for the one who reads the log of a
+// failure.
+func describeRecords(records []shellRecord, err error) string {
+	switch {
+	case err != nil:
+		return "the records of the shell cannot be read: " + err.Error()
+	case len(records) == 0:
+		return "the shell has no records of icons"
+	}
+	lines := make([]string, 0, len(records))
+	for _, record := range records {
+		lines = append(lines, "  "+describeRecord(record))
+	}
+	return fmt.Sprintf("the shell has %d records of icons:\n%s", len(records), strings.Join(lines, "\n"))
+}
