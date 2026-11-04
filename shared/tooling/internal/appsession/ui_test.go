@@ -550,6 +550,52 @@ func TestRunReportsTheEndOfTheApplicationAndALongScreen(t *testing.T) {
 	}
 }
 
+func TestRunReportsWhatTheApplicationWroteBesideWhatTheWindowShows(t *testing.T) {
+	out := captureReports(t)
+	s, app := newSession(t, node("1", "", "text", "Versions in use"))
+
+	// An application that has written nothing has nothing to report.
+	_ = s.Run("quiet", func(s *Session) { s.Fail("look") })
+	if strings.Contains(out.String(), "the application wrote") {
+		t.Errorf("an application that wrote nothing is reported to have:\n%s", out)
+	}
+
+	// What it wrote is reported after the screen, with the line ends of Windows made plain.
+	out.Reset()
+	if err := os.WriteFile(s.Log, []byte("no icon in the tray: nothing on the desktop shows tray icons\r\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_ = s.Run("short", func(s *Session) { s.Fail("look") })
+	want := "e2e: on screen:\ntext \"Versions in use\"\ne2e: the application wrote:\nno icon in the tray: nothing on the desktop shows tray icons\n"
+	if !strings.Contains(out.String(), want) {
+		t.Errorf("the log is not reported after the screen, want %q in:\n%s", want, out)
+	}
+
+	// A long log is cut to its last lines, which are the ones that say how it came to this.
+	out.Reset()
+	var log strings.Builder
+	for i := range 100 {
+		fmt.Fprintf(&log, "line %d\n", i)
+	}
+	if err := os.WriteFile(s.Log, []byte(log.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_ = s.Run("long", func(s *Session) { s.Fail("look") })
+	if !strings.Contains(out.String(), "the application wrote, the last 40 lines:\nline 60\n") ||
+		!strings.HasSuffix(out.String(), "line 99\n") || strings.Contains(out.String(), "line 59\n") {
+		t.Errorf("a long log is not cut to its last 40 lines:\n%s", out)
+	}
+
+	// A window that cannot be read is no reason to leave the log out: an application that is
+	// running without its window is the case in which it is the only account there is.
+	out.Reset()
+	app.treeFailure = &automation.Error{Code: "no_window", Message: "the app has no window"}
+	_ = s.Run("windowless", func(s *Session) { s.Fail("look") })
+	if !strings.Contains(out.String(), "the window cannot be read: tree: no_window: the app has no window\ne2e: the application wrote, the last 40 lines:\nline 60\n") {
+		t.Errorf("the log is left out when the window cannot be read:\n%s", out)
+	}
+}
+
 func TestPauseWaits(t *testing.T) {
 	s, _ := newSession(t)
 	start := time.Now()

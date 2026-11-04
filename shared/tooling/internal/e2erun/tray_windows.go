@@ -17,6 +17,10 @@
 package e2erun
 
 import (
+	"fmt"
+	"os/exec"
+	"strings"
+
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/appsession"
 )
 
@@ -36,7 +40,7 @@ func runTray(command []string) error {
 // end-to-end build, since a click on an icon of the taskbar is not for a program to make.
 func windowsTrayScenario(s *appsession.Session) {
 	s.WaitForText("Versions in use")
-	s.Step("home")
+	s.Step("home; the shell of the machine: " + taskbarState())
 	s.Check(placed(s) == 0, "an application with a window has no icon in the tray")
 
 	s.Step("close the window")
@@ -65,8 +69,24 @@ func placed(s *appsession.Session) int { return placedCount(s.LogText()) }
 func waitForIcon(s *appsession.Session, times int) {
 	s.WaitFor("the desktop to give the icon a place in the tray", trayWait, func() bool {
 		if gaveNoPlace(s.LogText()) {
-			s.Fail("the desktop gave the icon no place in the tray\n%s", s.LogText())
+			s.Fail("the desktop gave the icon no place in the tray (%s)\n%s", taskbarState(), s.LogText())
 		}
 		return placed(s) >= times
 	})
+}
+
+// taskbarState says whether the shell of Windows, explorer.exe, runs on the machine: it draws the
+// taskbar and its notification area, which give the icon its place, and a machine that has none
+// has no place to give. It is there for the one who reads the log of a failure, and of a run.
+func taskbarState() string {
+	out, err := exec.Command("tasklist", "/FI", "IMAGENAME eq explorer.exe", "/NH").CombinedOutput() //nolint:gosec // The tool of the system, with fixed arguments.
+	text := strings.Join(strings.Fields(string(out)), " ")
+	switch {
+	case err != nil:
+		return fmt.Sprintf("tasklist failed: %v: %s", err, text)
+	case strings.Contains(strings.ToLower(text), "explorer.exe") && !strings.Contains(strings.ToLower(text), "no tasks"):
+		return "explorer.exe runs: " + text
+	default:
+		return "explorer.exe does not run: " + text
+	}
 }
