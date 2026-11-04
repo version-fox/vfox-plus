@@ -282,29 +282,39 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 （应用的构建就是上面那个；要在仓库根目录运行，命令靠它找假 vfox 的夹具；`--chrome` 和 `webheap` 一样指定 Chrome。）
 
 **Android。** CI 拍一张图 `screenshot-android`：`android.yml` 的 `measure` 任务在模拟器跑 release APK，
-`vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。App 的九张图是手工拍的：
-在模拟器（API 36，1080×2400，420 dpi）上跑 release 构建（`./gradlew :app:assembleRelease`），
-按[运行 App](environment.md#运行-app)的方法配对，对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 与
-开启了网页界面和其他设备、端口为 8080 的应用，让配对屏上的地址就是实际使用的那个。它们是 `android-pairing`、
-`android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、`android-dark-pairing`、
-`android-dark-home` 与 `android-unreachable`。[安卓 App 指南](../user/android.md)引用其中四张：`android-home`、
-`android-sdk`、`android-settings` 与 `android-dark-home`，两种语言的指南都用英文版；它们显示的是 App 只是包起来的
-网页界面。另外五张显示的是应用还没有自己的设置时 App 的说法：命令 `vfox-plus serve` 和打印二维码的终端，
-重新拍过之前，指南不放它们。让图保持一致的做法：
+`vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[安卓 App 指南](../user/android.md)里的
+九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），
+用 CI 构建出来的 release APK（它的构件 `vfox-plus-android`），以及[运行 App](environment.md#运行-app)里描述的 PC 端应用：
+对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，开启网页界面和其他设备，端口为 8080，并设
+`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问这台电脑用的地址。配对屏、链接和证书就都写着实际使用的地址，
+也不必自己生成证书。这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、
+`android-settings`、`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南
+都用英文版。让图保持一致的做法，以及容易出错的地方：
 
 - 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
   再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
   `battery -e level 100 -e plugged false`、`network -e wifi show -e level 4 -e fully true`、
   `network -e mobile hide`（它的图标在浅色主题下是白的）与 `notifications -e visible false`。
+- 相机打开时，Android 会在状态栏里显示一个绿色指示，顶掉 Wi-Fi 和电池图标，扫码界面的图上就有它。用 `adb root`，再
+  `adb shell device_config put privacy camera_mic_icons_enabled false` 关掉（shell 用户不能写这个开关，root 可以）。
 - 语言与主题是 App 与系统的：`adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` 与
   `adb shell cmd uimode night yes`。每轮之间清数据（`pm clear`），并重新授予相机权限（`pm clear` 会收回它），
   否则系统对话框会盖住扫码界面。
-- 配对链接要在 App 为英文时输入。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
-  `author`；在点*连接*之前把语言改回来，输入框的文字会保留。
-- 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅，因为没有二维码可对。
+- App 里的控件用 `adb exec-out uiautomator dump /dev/tty` 里的 id 找（`scanButton`、`manualButton`、`linkField`、
+  `connectButton`、`reconnectButton`）。WebView 里的网页界面不在导出里：底部的栏按位置点，
+  `adb shell input tap X 2205`，X 依次取 125、332、540、749、956（主页、SDK、插件、任务、设置），
+  flutter 是插件列表里的第一个，在 `540 682`。
+- 配对链接要在 App 为英文时输入（`adb shell input text`）。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
+  `author`；在点*连接*之前把语言改回来，输入框的文字会保留。键盘会盖住按钮：输入后先按返回键
+  （`adb shell input keyevent 4`）收起它。
+- 指纹对话框与设置要在应用的同一次运行里拍：应用每次运行都重新生成证书，两处的指纹只在同一次运行里一致。选*信任一次*，
+  拍主页之前要等页面加载完。
+- 想拍“连不上 PC”的页面，就结束 PC 端的应用，再打开 App：它先打开带“上次的服务器”的配对界面，选*重新连接*就出现那个页面。
+- 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅
+  （`hw.camera.back=virtualscene`），因为没有二维码可对。
 
-图保持截下来的 1080×2400，另加手机屏幕的圆角（半径 96 px）与 5 px 的灰色边框（`#7A7A84`）：浅色主题的米色屏幕
-在 GitHub 的白色页面上没有边缘。
+图保持截下来的 1080×2400。`vfxtool frame-phone NAME.png OUT.png` 给它们加上手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px
+的灰色边框（`#7A7A84`）：浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。
 
 **上传。** 上传新图：
 

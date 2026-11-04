@@ -23,16 +23,27 @@ The app opens on the pairing screen, which says where to find the code on the PC
 asks for the camera once) or paste the link. A self-signed certificate shows its
 fingerprint first, to compare with the one on the PC.
 
+| The pairing screen | Scanning the QR code | The fingerprint of a self-signed certificate |
+| --- | --- | --- |
+| ![The pairing screen of the Android app, which says where to find the code on the PC](https://iili.io/nsq01AN.png) | ![The scanner of the Android app, with the viewfinder and the toolbar](https://iili.io/nsq0XPs.png) | ![The dialog that shows the fingerprint of a self-signed certificate](https://iili.io/nsq0wlf.png) |
+
 Once paired, the app shows the interface of the paired browser: the home page
 with the plugins in use, the SDKs with their versions, and the settings. The
 first card of the settings, *This phone*, pairs another link or disconnects the
-phone. The app follows the dark theme of the phone. When it cannot reach the PC
-(vfox-plus stopped, other devices not allowed, another network, a firewall in the
-way), it says so and offers to try again or to pair a new link.
+phone; the connections below it are the ones of the window of vfox-plus on the PC
+(see [Other devices](remote.md#other-devices)).
 
-| Home | An SDK | The settings, with the card of this phone | Home in the dark theme |
-| --- | --- | --- | --- |
-| ![The home page in the Android app](https://iili.io/nSx9JVf.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nSx9BR9.png) | ![The settings in the Android app, with the card of this phone](https://iili.io/nSx91WJ.png) | ![The home page in the Android app in the dark theme](https://iili.io/nSx94JS.png) |
+| Home | An SDK | The settings, with the card of this phone and the connections |
+| --- | --- | --- |
+| ![The home page in the Android app](https://iili.io/nsq0QRV.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nsq1BWX.png) | ![The settings in the Android app: the card of this phone, and the connections of the PC](https://iili.io/nsq1ofs.png) |
+
+The app follows the dark theme of the phone. When it cannot reach the PC (vfox-plus
+stopped, other devices not allowed, another network, a firewall in the way), it says
+so and offers to try again or to pair a new link.
+
+| The pairing screen in the dark theme | Home in the dark theme | A PC that cannot be reached |
+| --- | --- | --- |
+| ![The pairing screen of the Android app in the dark theme](https://iili.io/nsq17z7.png) | ![The home page in the Android app in the dark theme](https://iili.io/nsq1M5Q.png) | ![The Android app when the PC cannot be reached](https://iili.io/nsq1jX1.png) |
 
 The app needs your PC reachable from the phone (same Wi-Fi or another network
 route) and the port of the web interface (8369 by default) allowed through the PC

@@ -250,7 +250,23 @@ install cpu-checker` adds `kvm-ok`, which says it in words.
   extension. Where `/dev/kvm` is still missing although `/proc/cpuinfo` shows
   `vmx` or `svm`, `sudo modprobe kvm_intel` (or `kvm_amd`) says why.
 - `/dev/kvm` belongs to the group `kvm`: `sudo usermod -aG kvm "$USER"`, then start a
-  new session (in WSL2, `wsl --shutdown`).
+  new session (in WSL2, `wsl --shutdown`, which also ends everything that runs in it).
+  To skip the new session, give the device to everybody with the rule that CI uses. It
+  takes effect at once, programs that already run included, and it stays after a restart;
+  on a computer that one person uses there is no one to keep the device from:
+
+  ```sh
+  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger --name-match=kvm
+  ```
+
+  `ls -l /dev/kvm` shows `crw-rw-rw-` then. This asks the kernel whether KVM works, and prints
+  12 when it does (a `PermissionError` says that you may not use the device yet):
+
+  ```sh
+  python3 -I -c 'import fcntl,os; print(fcntl.ioctl(os.open("/dev/kvm", os.O_RDWR), 0xAE00))'
+  ```
 
 ### Known problem: AMD processors, since the Windows update of October 2026
 
@@ -289,6 +305,31 @@ and does not help.
   server`, and let the Windows firewall through). Its numbers belong to that
   device: they do not compare with the emulator of CI.
 
+### An emulator of your own
+
+With KVM working, the emulator needs the command-line tools of the SDK, the build that
+`android/versions.env` pins (the zip `commandlinetools-linux-<build>_latest.zip` of
+dl.google.com, checked against its checksum, unpacked to `$ANDROID_HOME/cmdline-tools/latest`), and
+three packages. The download is about 3 GB, and `sdkmanager` asks you to accept the licenses of the
+Android SDK:
+
+```sh
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+sdkmanager --licenses
+sdkmanager platform-tools emulator "system-images;android-36;google_apis;x86_64"
+avdmanager create avd -n pixel6 -k "system-images;android-36;google_apis;x86_64" -d pixel_6
+emulator -avd pixel6 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect &
+adb wait-for-device && adb shell getprop sys.boot_completed   # 1 once it has booted, about a minute
+```
+
+The profile `pixel_6` is 1080 by 2400 at 420 dpi, as the emulator of CI is. The back camera of the
+scanner shows a living room when `hw.camera.back=virtualscene` is in
+`~/.android/avd/pixel6.avd/config.ini` (`avdmanager` writes `emulated`, which shows a
+plain animation); `hw.ramSize=3072M` is a better size than its 1536M for the WebView. Leave out `-no-window` to see the
+emulator on a display (WSLg). To install the release APK that CI has built, without building it,
+download it from the run of the pull request: `gh run download RUN -n vfox-plus-android`.
+
 ### Run the app
 
 With an emulator that has booted (`adb devices` lists it), build the app, install
@@ -316,6 +357,11 @@ turn on the web interface and *Other devices*, then choose *Certificate → Brow
 files `cert.pem` and `key.pem`. (The same settings can be written to
 `~/.config/vfox-plus/settings.json` before the start: `"webInterface": true`, `"webRemote": true`,
 `"webCertificate": "/path/cert.pem"` and `"webKey": "/path/key.pem"`.)
+
+The end-to-end build (`vfxtool build --e2e`) needs neither the certificate nor the replacing of the address:
+with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, the certificate that it makes for itself names
+`10.0.2.2`, and so do the settings and the link that *Show code* gives. That is how the pictures of the guide
+are taken ([Screenshots](contributing.md#screenshots)).
 
 Choose *Show code* next to *Pair a phone*, copy the link, and type it into the app, with the
 address of your machine replaced by `10.0.2.2`. The app shows the fingerprint of the

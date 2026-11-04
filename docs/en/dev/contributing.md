@@ -345,18 +345,17 @@ command needs for the fixtures of the fake vfox; `--chrome` names the Chrome as 
 **Android.** CI takes one picture, `screenshot-android`: the `measure` job of
 `android.yml` runs the release APK on an emulator, `vfxtool measure-apk` captures the
 cold start, and the job uploads it as an artifact (`gh run download`). The nine
-pictures of the app are taken by hand, on an emulator
-(API 36, 1080 by 2400 at 420 dpi) with the release build
-(`./gradlew :app:assembleRelease`), paired as [Run the app](environment.md#run-the-app)
-describes, against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles` and the application with
-the web interface and the other devices on and the port 8080, so that the address of the pairing screen is the one that runs.
-They are `android-pairing`, `android-scan`, `android-trust`, `android-home`, `android-sdk`,
-`android-settings`, `android-dark-pairing`, `android-dark-home` and `android-unreachable`. The
-[guide to the Android app](../user/android.md) links four of them, `android-home`, `android-sdk`,
-`android-settings` and `android-dark-home`, in English for both languages; they show the pages of the web
-interface, which the app only wraps. The other five show what the app said before the application had
-settings of its own, the command `vfox-plus serve` and the terminal where it printed the code, and
-the guide does not show them until they are taken again. What makes the pictures alike:
+pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of
+your own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400
+at 420 dpi), with the release APK of the build that CI makes (its artifact `vfox-plus-android`),
+and with the application of the PC that [Run the app](environment.md#run-the-app) describes: the
+end-to-end build against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles`, with the web interface and the
+other devices on, the port 8080 and `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the emulator
+reaches the computer. The pairing screen, the links and the certificate then name the address that runs,
+and there is no certificate to make. The nine are `android-pairing`, `android-scan`, `android-trust`,
+`android-home`, `android-sdk`, `android-settings`, `android-dark-pairing`, `android-dark-home` and
+`android-unreachable`; the guide links all of them, in English for both languages. What makes the
+pictures alike, and what goes wrong:
 
 - The demo mode of the status bar fixes the clock and shows a full battery and
   wifi and no notifications: `adb shell settings put global sysui_demo_allowed 1`,
@@ -364,20 +363,35 @@ the guide does not show them until they are taken again. What makes the pictures
   `clock -e hhmm 1000`, `battery -e level 100 -e plugged false`,
   `network -e wifi show -e level 4 -e fully true`, `network -e mobile hide` (its icons
   come out white on the light theme) and `notifications -e visible false`.
+- Android shows a green indicator in the status bar while the camera is open, in place of the wifi and
+  battery icons, in the picture of the scanner. Turn it off with `adb root`, then
+  `adb shell device_config put privacy camera_mic_icons_enabled false` (the shell may not write
+  that flag, root may).
 - The language and the theme are the ones of the app and of the system:
   `adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` and
   `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
   the camera again, which `pm clear` drops, or the system dialog covers the scanner.
-- Type the pairing link with the app in English. With the app in Chinese Gboard turns
+- The views of the app are found by their ids in `adb exec-out uiautomator dump /dev/tty`
+  (`scanButton`, `manualButton`, `linkField`, `connectButton`, `reconnectButton`). The web interface in
+  the WebView is not in the dump: the bar at the bottom is tapped by its position, with
+  `adb shell input tap X 2205` for X = 125, 332, 540, 749 and 956 (Home, SDKs, Plugins, Tasks, Settings),
+  and flutter is the first of the plugins, at `540 682`.
+- Type the pairing link with the app in English (`adb shell input text`). With the app in Chinese Gboard turns
   to Pinyin and writes the link with full-width punctuation and "author" for "auth";
-  the field keeps its text when the language is changed back before *Connect*.
+  the field keeps its text when the language is changed back before *Connect*. The keyboard covers
+  the button: close it with BACK (`adb shell input keyevent 4`) before.
+- The dialog of the fingerprint and the settings are taken in one run of the application: it makes its
+  certificate again at every run, and the two show the same fingerprint only within one. Choose
+  *Trust once*, and wait for the page to load before the picture of the home page.
+- To see the page that says the PC cannot be reached, end the application of the PC and open the app
+  again: it opens on the pairing screen, with the last server, and *Reconnect* shows the page.
 - Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has
-  settled. The scanner shows the living room of the emulator, as there is no code
-  to point it at.
+  settled. The scanner shows the living room of the emulator (`hw.camera.back=virtualscene`), as there
+  is no code to point it at.
 
-The pictures are 1080 by 2400 as they come, with the rounded corners of a phone display
-(a radius of 96 px) and a grey border of 5 px (`#7A7A84`) added: the cream screens of the
-light theme have no edge against the white page of GitHub.
+The pictures are 1080 by 2400 as they come. `vfxtool frame-phone NAME.png OUT.png` gives them the
+rounded corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px
+(`#7A7A84`) over the edge: the cream screens of the light theme have no edge against the white page of GitHub.
 
 **Uploading.** Upload a new image with
 

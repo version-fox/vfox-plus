@@ -202,7 +202,21 @@ Ubuntu 里的任何操作都改变不了；非 0 的值表示提供了（能用�
   `/proc/cpuinfo` 里有 `vmx` 或 `svm` 而 `/dev/kvm` 仍然没有，运行 `sudo modprobe kvm_intel`（或
   `kvm_amd`）会告诉你原因。
 - `/dev/kvm` 属于 `kvm` 组：`sudo usermod -aG kvm "$USER"`，然后开一个新会话（在 WSL2 里是
-  `wsl --shutdown`）。
+  `wsl --shutdown`，它也会结束 WSL2 里运行的一切）。想省掉新会话，就用 CI 用的那条规则把设备开放给所有人：
+  它立刻生效，已经在运行的程序也包括在内，重启之后仍然有效；只有一个人使用的电脑上，没有谁需要被挡在外面：
+
+  ```sh
+  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger --name-match=kvm
+  ```
+
+  这时 `ls -l /dev/kvm` 显示 `crw-rw-rw-`。下面这条直接问内核 KVM 能不能用，能用就打印 12
+  （`PermissionError` 说明你还不能使用这个设备）：
+
+  ```sh
+  python3 -I -c 'import fcntl,os; print(fcntl.ioctl(os.open("/dev/kvm", os.O_RDWR), 0xAE00))'
+  ```
 
 ### 已知问题：AMD 处理器，2026 年 10 月的 Windows 更新之后
 
@@ -230,6 +244,28 @@ Windows 11 的累积更新 KB5127648（2026 年 10 月；版本 26100.9711，25H
   模拟器（在 WSL 里设置 `ANDROID_ADB_SERVER_ADDRESS` 与 `ANDROID_ADB_SERVER_PORT`，让那台服务器用
   `adb -a nodaemon server` 监听，并让 Windows 防火墙放行）。它的数字属于那台设备，不能与 CI 的模拟器比较。
 
+### 自己的模拟器
+
+KVM 能用之后，模拟器需要 SDK 的命令行工具，即 `android/versions.env` 固定的那个版本（dl.google.com 上的
+`commandlinetools-linux-<build>_latest.zip`，按它的校验和核对，解压到 `$ANDROID_HOME/cmdline-tools/latest`），以及三个包。
+下载约 3 GB，`sdkmanager` 会要求你接受 Android SDK 的许可：
+
+```sh
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+sdkmanager --licenses
+sdkmanager platform-tools emulator "system-images;android-36;google_apis;x86_64"
+avdmanager create avd -n pixel6 -k "system-images;android-36;google_apis;x86_64" -d pixel_6
+emulator -avd pixel6 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect &
+adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后是 1，约一分钟
+```
+
+`pixel_6` 是 1080×2400、420 dpi，和 CI 的模拟器一样。`~/.android/avd/pixel6.avd/config.ini` 里有
+`hw.camera.back=virtualscene` 时，扫码界面的后置摄像头显示一间客厅（`avdmanager` 写的是 `emulated`，只是一段
+普通动画）；对 WebView 来说 `hw.ramSize=3072M` 比默认的 1536M 合适。去掉 `-no-window` 就能在显示器上
+（WSLg）看到模拟器。不想自己构建、直接装 CI 构建好的 release APK，可以从该 Pull Request 的运行里下载：
+`gh run download RUN -n vfox-plus-android`。
+
 ### 运行 App
 
 模拟器启动后（`adb devices` 能列出它），构建 App、安装，并与你机器上的服务器配对：
@@ -254,6 +290,10 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
 *证书 → 浏览…* 和文件 `cert.pem`、`key.pem`。（也可以在启动前把这些设置写进
 `~/.config/vfox-plus/settings.json`：`"webInterface": true`、`"webRemote": true`、
 `"webCertificate": "/path/cert.pem"` 与 `"webKey": "/path/key.pem"`。）
+
+端到端构建（`vfxtool build --e2e`）既不需要证书，也不用替换地址：环境里有 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 时，它
+为自己生成的证书写的就是 `10.0.2.2`，设置里和*显示二维码*给出的链接也是。指南里的图就是这样拍的
+（[截图](contributing.md#截图)）。
 
 点*配对手机*旁的*显示二维码*，复制链接，输入到 App 里，并把其中你机器的地址换成 `10.0.2.2`。App 会显示证书的指纹，它必须与设置里显示的、以及
 `openssl x509 -in cert.pem -noout -fingerprint -sha256` 打印的相同。
