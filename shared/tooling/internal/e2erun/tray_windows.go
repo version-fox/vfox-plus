@@ -50,10 +50,14 @@ func windowsTrayScenario(s *appsession.Session, executable string) {
 	s.WaitForText("Versions in use")
 	s.Step("home; " + windowsVersion() + "; " + desktopState(executable))
 	s.Check(len(iconOutcomes(s.LogText())) == 0, "an application with a window has no icon in the tray")
+	// What this desktop does with the icon of a program that does what every program does, to judge the
+	// application's icon by.
+	probe := probePlainIcon()
+	s.Step("a plain icon, as a probe: " + probe.Report)
 
 	s.Step("close the window")
 	closeTheWindow(s)
-	waitForIcon(s, executable, 1)
+	waitForIcon(s, executable, 1, probe)
 
 	s.Step("choose Open vfox+")
 	s.Check(s.Tell("show") == nil, "Open vfox+ is chosen")
@@ -61,7 +65,7 @@ func windowsTrayScenario(s *appsession.Session, executable string) {
 
 	s.Step("close the window again")
 	closeTheWindow(s)
-	waitForIcon(s, executable, 2)
+	waitForIcon(s, executable, 2, probe)
 
 	s.Step("choose Quit vfox+")
 	s.Check(s.Tell("quit") == nil, "Quit vfox+ is chosen")
@@ -71,14 +75,16 @@ func windowsTrayScenario(s *appsession.Session, executable string) {
 
 // waitForIcon waits for the desktop to answer for the icon that the application makes for the times-th
 // time: the application asks the desktop where the icon is for fifteen seconds, and says what the answer
-// was. The answer is a place on the screen, which a taskbar that shows the icon gives it. Windows 11 puts a
-// new icon in the overflow of the taskbar, where it has no place to tell, and then the shell has to have a
-// record of the icon (see shellRecord): that the shell took the icon is what there is to see of it.
+// was. The answer is a place on the screen, which a taskbar that shows the icon gives it.
 //
-// A desktop with no taskbar on it has no notification area to put the icon in, whatever the application
-// does, and the scenario says so and goes on with what it can check: the window comes back and the
-// application ends as the menu of the icon asks, which the control file stands in for.
-func waitForIcon(s *appsession.Session, executable string, times int) {
+// A desktop does not always say where an icon is (see probePlainIcon). Where it gives no place to the icon of
+// the application, the shell may have a record of the icon, as Windows 11 keeps for the icons of the
+// taskbar (see shellRecord), and that is the icon taken. Where it has none, the application is judged against
+// the plain icon of the probe: a desktop that gives it no place either cannot say where any icon is, and the
+// scenario says so and goes on with what it can check (the window comes back and the application ends as the menu
+// of the icon asks, which the control file stands in for), and one that does is not given the application's icon,
+// which is a failure.
+func waitForIcon(s *appsession.Session, executable string, times int, probe probeResult) {
 	s.WaitFor("the desktop to answer for the icon in the tray", trayWait, func() bool {
 		return len(iconOutcomes(s.LogText())) >= times
 	})
@@ -93,13 +99,13 @@ func waitForIcon(s *appsession.Session, executable string, times int) {
 		s.Step("the desktop gave the icon no place, and the shell has a record of it: " + describeRecord(record))
 		return
 	}
-	if taskbarWindow() == 0 {
-		s.Step("NOTE: the desktop of the test has no taskbar, so there is no notification area to put the icon in and " +
-			"the icon is not checked (" + desktopState(executable) + ")")
+	if !probe.Placed {
+		s.Step("NOTE: the desktop gives no place to a plain icon either, so where the icon of the application is cannot be " +
+			"checked here, and it is not (" + probe.Report + ")")
 		return
 	}
-	s.Fail("the desktop gave the icon no place in the tray, and the shell has no record of the icon\n%s; %s\n%s\n%s",
-		windowsVersion(), desktopState(executable), describeRecords(records, err), probeNotifyIcon())
+	s.Fail("the desktop gave the icon no place in the tray, and the shell has no record of the icon, but it gave a place to a plain icon (%s)\n%s; %s\n%s",
+		probe.Report, windowsVersion(), desktopState(executable), describeRecords(records, err))
 }
 
 // taskbarWindow is the window of the taskbar, on the desktop that this process has and that the application, which
@@ -168,33 +174,6 @@ func processState(program string) string {
 	default:
 		return program + " runs: " + text
 	}
-}
-
-// probeNotifyIcon adds an icon to the notification area as any program does, with Windows Forms, and says
-// whether the shell recorded it: what the machine does with an icon that is not the application's. A failure
-// of the scenario reports it, to tell an application that is not let in from a machine that lets nobody in.
-func probeNotifyIcon() string {
-	const script = `$ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-$icon = New-Object System.Windows.Forms.NotifyIcon
-$icon.Icon = [System.Drawing.SystemIcons]::Information
-$icon.Text = 'vfox-plus probe'
-$icon.Visible = $true
-Start-Sleep -Seconds 4
-$recorded = @(Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' -ErrorAction SilentlyContinue |
-  ForEach-Object { (Get-ItemProperty $_.PSPath).ExecutablePath } | Where-Object { $_ -like '*powershell*' })
-$icon.Visible = $false
-$icon.Dispose()
-'records of the shell for powershell.exe: ' + $recorded.Count`
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput() //nolint:gosec // The tool of the system, with a script of the scenario.
-	text := strings.Join(strings.Fields(string(out)), " ")
-	if err != nil {
-		return fmt.Sprintf("a plain notification icon, as a probe: failed: %v: %s", err, text)
-	}
-	return "a plain notification icon, as a probe, with " + text
 }
 
 // shellRecords reads the records that the shell keeps of the icons of the notification area.
