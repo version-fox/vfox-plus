@@ -14,7 +14,7 @@
 
 # The memory of the implementation in a pull request. The workflows of mygo
 # and android measure the application and upload the results as the artifacts
-# memory-mygo, memory-serve, memory-web and memory-android. When the runs have
+# memory-mygo, memory-lightweight, memory-web and memory-android. When the runs have
 # ended for the latest commit of a pull request, this workflow writes one
 # comment on it: the memory with the difference from the latest numbers of
 # main. Later runs replace that comment instead of adding another one
