@@ -19,9 +19,9 @@
 // An instance is the application, run by a person with its web interface switched on (see
 // package pair, and docs/en/dev/remote-protocol.md). The gateway is paired with it the way
 // the Android app is: it is given a pairing link of the instance, checks the certificate of
-// the instance against the fingerprint that the person compared (or against the roots of the
-// system when the instance has a certificate of an authority), and holds the session that the
-// instance gives it. It then serves the interface of the instance to the browsers that are
+// the instance as any is checked, against the certificate that the person compared by its
+// fingerprint (or against the roots of the system when the instance has a certificate of an
+// authority), and holds the session that the instance gives it. It then serves the interface of the instance to the browsers that are
 // paired with the gateway: the page /app and the routes of /api are the instance's, forwarded
 // with the session of the gateway, and the page is the instance's own, so that it always
 // matches the routes it calls.
@@ -38,7 +38,7 @@
 // second one, so that it stays paired for as long as the instance runs; when the instance
 // has ended, or was not reachable for a day, the person pairs it again on its page.
 //
-// Like the application, the program has no flags and no switches: what it remembers is in
-// its directory (the certificate that it serves with, the instance, its session), and the
-// instance it shows is chosen on its page.
+// Like the application, the program has no flags and no switches: what it remembers is in its
+// directory (the certificate that it serves with, the instance, the certificate of the instance
+// that a person compared, its session), and the instance it shows is chosen on its page.
 package gateway

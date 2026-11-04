@@ -15,10 +15,18 @@
 package gateway
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -170,6 +178,40 @@ func startFakeInstance(t *testing.T) *fakeInstance {
 	f.server = httptest.NewServer(http.HandlerFunc(f.serve))
 	t.Cleanup(f.server.Close)
 	return f
+}
+
+// startFakeSecureInstance is the fake instance in HTTPS, with the certificate that it is given.
+func startFakeSecureInstance(t *testing.T, certificate tls.Certificate) *fakeInstance {
+	t.Helper()
+	f := &fakeInstance{t: t, tokens: map[string]bool{}, sessions: map[string]bool{}}
+	f.server = httptest.NewUnstartedServer(http.HandlerFunc(f.serve))
+	f.server.TLS = &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12}
+	// A client that does not trust the certificate hangs up on it, and the server says so.
+	f.server.Config.ErrorLog = log.New(io.Discard, "", 0)
+	f.server.StartTLS()
+	t.Cleanup(f.server.Close)
+	return f
+}
+
+// selfSigned makes a certificate that nobody signed but itself, as the application does, for the names and the
+// dates that the test wants. It is good for a server, which is what a certificate of the application is.
+func selfSigned(t *testing.T, dnsNames []string, addresses []net.IP, notBefore, notAfter time.Time) tls.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().UnixNano()), Subject: pkix.Name{CommonName: "vfox+ of a test"},
+		NotBefore: notBefore, NotAfter: notAfter,
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true, DNSNames: dnsNames, IPAddresses: addresses,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
 }
 
 func (f *fakeInstance) next(prefix string) string {

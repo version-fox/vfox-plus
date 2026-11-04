@@ -608,9 +608,9 @@ config:
 ---
 flowchart LR
     accTitle: The two pairings of the gateway
-    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, pinned by the fingerprint that a person compared, and holds the cookie vfox-plus-session. The gateway serves pages of its own and forwards the page and the API of the instance.
+    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, with the certificate that a person compared as the only root, and holds the cookie vfox-plus-session. The gateway serves pages of its own and forwards the page and the API of the instance.
     b(["<b>Browser</b>"]) -->|"HTTPS, the certificate of the gateway<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>gateway</b><br/>pages of its own,<br/>and a reverse proxy")
-    g -->|"HTTPS, pinned by the fingerprint<br/>that a person compared<br/>cookie <code>vfox-plus-session</code>"| r("<b>Remote server</b><br/>of an instance")
+    g -->|"HTTPS, the certificate that<br/>a person compared is the root<br/>cookie <code>vfox-plus-session</code>"| r("<b>Remote server</b><br/>of an instance")
 
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
     classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
@@ -627,8 +627,13 @@ flowchart LR
   on the page of the gateway, the gateway looks at the certificate (`certificateOf`), and the session
   cookie it gets is the gateway's. A certificate that the roots of the system vouch for is trusted;
   the one that the application makes for itself is shown as a fingerprint to compare with the settings
-  of the application, and trusted, and pinned (`VerifyConnection` on every connection, resumed sessions
-  included), only when the person says that they are the same. The certificate that was shown is the one
+  of the application, and trusted, and pinned, only when the person says that they are the same. No
+  connection ever skips the verification of a certificate (`InsecureSkipVerify` is not used): the one
+  that is looked at is learned from the error of a connection that is verified and fails, which has the
+  certificate that was presented, and the one that is pinned is kept (in the state of the gateway) and is
+  the only root of the connections to that instance, so that it is verified as any certificate is, its
+  dates and its use included, for a name that it has (the application names the addresses of its computer
+  in it, and the gateway may reach the computer by another). The certificate that was shown is the one
   that is trusted: it is looked at again when the person agrees, and a different one is refused. A
   certificate that changes later is not served with the session of the gateway, and is asked about again
   with a warning. Plain HTTP is for loopback addresses only, where the application serves it.
@@ -648,7 +653,8 @@ flowchart LR
   of the instance marks the session as ended (`invalidate`), and the page of the gateway asks for a new
   link. A request finishes with the instance and the session it began with, even if the gateway is paired
   again meanwhile.
-- **What it remembers.** `gateway.json` (mode `0600`: it holds the session at the instance) and the
+- **What it remembers.** `gateway.json` (mode `0600`: it holds the session at the instance, and the
+  certificate of the instance that a person compared) and the
   certificate of the gateway, `serve-cert.pem` and `serve-key.pem` made by `pair.EnsureServerCert`, or
   `cert.pem` and `key.pem` that a person puts there, in `vfox-plus-gateway` of the configuration
   directory of the user (a volume in the image). The sessions of the browsers are not remembered: a

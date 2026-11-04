@@ -64,9 +64,10 @@ const requestTimeout = 20 * time.Second
 type upstream struct {
 	// base is the address of the instance, without a path.
 	base *url.URL
-	// pin is the fingerprint of the certificate of the instance that was trusted. Empty: the certificate has
-	// to verify with the roots of the system, as it does for an authority, or there is none (HTTP).
-	pin string
+	// pinned is the certificate of the instance that a person compared and the gateway trusts, and no other.
+	// Nil: the certificate has to verify with the roots (those of the system), as it does for an authority, or
+	// there is none (HTTP).
+	pinned *x509.Certificate
 	// session is the value of the session cookie at the instance. Empty: the instance ended it.
 	session   string
 	renewedAt time.Time
@@ -77,9 +78,9 @@ type upstream struct {
 	client *http.Client
 }
 
-// newUpstream is the instance at base, whose certificate is trusted by pin or by the roots (the system's, when
-// they are nil), with no session yet.
-func newUpstream(base *url.URL, pin string, roots *x509.CertPool) *upstream {
+// newUpstream is the instance at base, whose certificate is the one that was pinned or one that the roots (the
+// system's, when they are nil) vouch for, with no session yet.
+func newUpstream(base *url.URL, pinned *x509.Certificate, roots *x509.CertPool) *upstream {
 	transport := &http.Transport{
 		// The instance is on the network of the gateway: the proxy of the environment is not for it.
 		Proxy:               nil,
@@ -89,11 +90,11 @@ func newUpstream(base *url.URL, pin string, roots *x509.CertPool) *upstream {
 		ForceAttemptHTTP2:   true,
 	}
 	if base.Scheme == "https" {
-		transport.TLSClientConfig = tlsConfig(base.Hostname(), pin, roots)
+		transport.TLSClientConfig = tlsConfig(base.Hostname(), pinned, roots)
 	}
 	return &upstream{
 		base:      base,
-		pin:       pin,
+		pinned:    pinned,
 		transport: transport,
 		client: &http.Client{
 			Transport:     transport,
@@ -113,30 +114,37 @@ func (u *upstream) withSession(session string, at time.Time) *upstream {
 // connected says whether the gateway holds a session at the instance.
 func (u *upstream) connected() bool { return u != nil && u.session != "" }
 
-// tlsConfig trusts the certificate that has the fingerprint, whoever signed it, and none other; or, with no
-// fingerprint, the certificates that verify with the roots.
-func tlsConfig(host, pin string, roots *x509.CertPool) *tls.Config {
-	if pin == "" {
+// fingerprint is the SHA-256 fingerprint of the certificate that was pinned, empty when none was.
+func (u *upstream) fingerprint() string {
+	if u == nil || u.pinned == nil {
+		return ""
+	}
+	return pair.Fingerprint(u.pinned.Raw)
+}
+
+// tlsConfig verifies the certificate of the instance as any is verified (its chain, its dates, what it may be used
+// for, its name) against the roots. When a person compared a certificate that nobody signed, which the one that
+// the application makes for itself is, that certificate is the only root: it is the one that was compared, and it
+// verifies, and no other does. The name that it is verified for is one that it has, since the application names
+// the addresses of its computer in it and the gateway may reach the computer by another (a container does).
+func tlsConfig(host string, pinned *x509.Certificate, roots *x509.CertPool) *tls.Config {
+	if pinned == nil {
 		return &tls.Config{MinVersion: tls.VersionTLS12, ServerName: host, RootCAs: roots}
 	}
-	return &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		// The chain is not verified because the certificate of an instance is its own, made by the application
-		// and signed by itself; the certificate is the one whose fingerprint the person compared, which is
-		// checked below, and which is more than a chain would say.
-		InsecureSkipVerify: true, //nolint:gosec // Verified against the pinned fingerprint just below.
-		// VerifyConnection and not VerifyPeerCertificate: it runs for every connection, a resumed session
-		// included, and the fingerprint is checked on all of them.
-		VerifyConnection: func(connection tls.ConnectionState) error {
-			if len(connection.PeerCertificates) == 0 {
-				return errors.New("vfox+ presented no certificate")
-			}
-			if got := pair.Fingerprint(connection.PeerCertificates[0].Raw); got != pin {
-				return fmt.Errorf("the certificate of vfox+ is not the one that was trusted: its fingerprint is %s and %s was trusted", got, pin)
-			}
-			return nil
-		},
+	only := x509.NewCertPool()
+	only.AddCert(pinned)
+	return &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: only, ServerName: nameOf(pinned)}
+}
+
+// nameOf is a name that the certificate is made for, a DNS name or an address, "" when it has none.
+func nameOf(certificate *x509.Certificate) string {
+	if len(certificate.DNSNames) > 0 {
+		return certificate.DNSNames[0]
 	}
+	if len(certificate.IPAddresses) > 0 {
+		return certificate.IPAddresses[0].String()
+	}
+	return ""
 }
 
 // parseLink takes a pairing link of an instance apart: the address of the instance, and the token. The
@@ -171,42 +179,51 @@ func isLoopback(host string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
-// certificateOf looks at the certificate that an HTTPS instance presents, and says what its fingerprint is
-// and whether the roots vouch for it (then it needs no one to compare anything).
-func certificateOf(ctx context.Context, base *url.URL, roots *x509.CertPool) (fingerprint string, verified bool, err error) {
+// certificateOf looks at the certificate that an HTTPS instance presents, and says whether the roots vouch for it
+// (then it needs no one to compare anything). The connection is verified as any is, and a certificate that nobody
+// vouches for fails it: the error has the certificate that was presented, which is what a person is asked to
+// compare, and no connection that verifies nothing is made.
+func certificateOf(ctx context.Context, base *url.URL, roots *x509.CertPool) (certificate *x509.Certificate, verified bool, err error) {
 	host := base.Host
 	if base.Port() == "" {
 		host = net.JoinHostPort(base.Hostname(), "443")
 	}
 	dialer := &tls.Dialer{
 		NetDialer: &net.Dialer{Timeout: 10 * time.Second},
-		// The certificate is looked at, not trusted: it is verified below, to see whether it could be.
-		Config: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true, ServerName: base.Hostname()}, //nolint:gosec // Looked at, not trusted.
+		Config:    &tls.Config{MinVersion: tls.VersionTLS12, ServerName: base.Hostname(), RootCAs: roots},
 	}
 	conn, err := dialer.DialContext(ctx, "tcp", host)
 	if err != nil {
-		return "", false, err
+		var failed *tls.CertificateVerificationError
+		if errors.As(err, &failed) && len(failed.UnverifiedCertificates) > 0 {
+			return failed.UnverifiedCertificates[0], false, nil
+		}
+		return nil, false, err
 	}
 	defer func() { _ = conn.Close() }()
 	tlsConn, ok := conn.(*tls.Conn)
 	if !ok {
-		return "", false, errors.New("no TLS connection")
+		return nil, false, errors.New("no TLS connection")
 	}
 	certificates := tlsConn.ConnectionState().PeerCertificates
 	if len(certificates) == 0 {
-		return "", false, errors.New("vfox+ presented no certificate")
+		return nil, false, errors.New("vfox+ presented no certificate")
 	}
-	intermediates := x509.NewCertPool()
-	for _, certificate := range certificates[1:] {
-		intermediates.AddCert(certificate)
-	}
-	_, verifyErr := certificates[0].Verify(x509.VerifyOptions{DNSName: base.Hostname(), Intermediates: intermediates, Roots: roots})
-	return pair.Fingerprint(certificates[0].Raw), verifyErr == nil, nil
+	return certificates[0], true, nil
 }
 
 // unreachable is the error of an instance that cannot be reached, with what a person can do about the one
 // way that goes wrong in a container.
 func (u *upstream) unreachable(err error) error {
+	// A certificate that is not the one that was trusted is said to be so, with both fingerprints: that is what a
+	// person has to decide about. The same certificate that fails (it expired, say) says why in the error.
+	var failed *tls.CertificateVerificationError
+	if u.pinned != nil && errors.As(err, &failed) && len(failed.UnverifiedCertificates) > 0 {
+		if got := pair.Fingerprint(failed.UnverifiedCertificates[0].Raw); got != u.fingerprint() {
+			return fmt.Errorf("cannot reach vfox+ at %s: the certificate of vfox+ is not the one that was trusted: its fingerprint is %s and %s was trusted",
+				u.base.Host, got, u.fingerprint())
+		}
+	}
 	message := fmt.Sprintf("cannot reach vfox+ at %s: %v", u.base.Host, err)
 	if isLoopback(u.base.Hostname()) {
 		message += " (inside a container, 127.0.0.1 is the container itself: run it with --network host, or use the pairing link for other devices)"

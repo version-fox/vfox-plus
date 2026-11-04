@@ -19,11 +19,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -78,35 +80,53 @@ func fingerprintOf(certificate []byte) string {
 	return strings.Join(pairs, ":")
 }
 
+// pinnedTLS is how a browser trusts the certificate of the gateway that has the fingerprint, and no other: a person
+// compared it with the one that the gateway printed. The certificate is looked at first, as the person does: a
+// connection that verifies nothing is not made, and the one that fails because nobody signed the certificate has it in
+// the error. It is then the only root, and verifies as any certificate does, for a name that it has.
+func pinnedTLS(address, fingerprint string) (*tls.Config, error) {
+	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 10 * time.Second}, "tcp", address, &tls.Config{MinVersion: tls.VersionTLS12})
+	if err == nil {
+		_ = conn.Close()
+		return nil, errors.New("the certificate verifies with the roots of the system, and one that nobody signed was expected")
+	}
+	var failed *tls.CertificateVerificationError
+	if !errors.As(err, &failed) || len(failed.UnverifiedCertificates) == 0 {
+		return nil, err
+	}
+	certificate := failed.UnverifiedCertificates[0]
+	if got := fingerprintOf(certificate.Raw); got != fingerprint {
+		return nil, fmt.Errorf("the certificate has the fingerprint %s, not the %s that was trusted", got, fingerprint)
+	}
+	name := ""
+	if len(certificate.DNSNames) > 0 {
+		name = certificate.DNSNames[0]
+	} else if len(certificate.IPAddresses) > 0 {
+		name = certificate.IPAddresses[0].String()
+	}
+	only := x509.NewCertPool()
+	only.AddCert(certificate)
+	return &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: only, ServerName: name}, nil
+}
+
 // newPinnedSite is a browser at the gateway (host:port) that trusts the certificate with the fingerprint, and
-// no other: a person compared it with the one that the gateway printed.
-func newPinnedSite(address, fingerprint string) *site {
+// no other.
+func newPinnedSite(address, fingerprint string) (*site, error) {
+	config, err := pinnedTLS(address, fingerprint)
+	if err != nil {
+		return nil, err
+	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		panic(err) // cookiejar.New fails only for options, which it is given none.
+		return nil, err
 	}
 	return &site{
 		base: "https://" + address,
 		client: &http.Client{
 			Jar: jar, Timeout: requestTimeout, CheckRedirect: noRedirect,
-			Transport: &http.Transport{
-				Proxy: nil,
-				TLSClientConfig: &tls.Config{
-					MinVersion:         tls.VersionTLS12,
-					InsecureSkipVerify: true, //nolint:gosec // Not verified by a chain: by the fingerprint, just below.
-					VerifyConnection: func(connection tls.ConnectionState) error {
-						if len(connection.PeerCertificates) == 0 {
-							return errors.New("the server presented no certificate")
-						}
-						if got := fingerprintOf(connection.PeerCertificates[0].Raw); got != fingerprint {
-							return fmt.Errorf("the certificate has the fingerprint %s, not the %s that was trusted", got, fingerprint)
-						}
-						return nil
-					},
-				},
-			},
+			Transport: &http.Transport{Proxy: nil, TLSClientConfig: config},
 		},
-	}
+	}, nil
 }
 
 // parseURL is url.Parse for a link that was made by the program that is checked.

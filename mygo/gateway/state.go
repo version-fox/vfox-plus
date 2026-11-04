@@ -29,10 +29,10 @@ const stateFileName = "gateway.json"
 type saved struct {
 	// Upstream is the address of the instance, without a path: https://192.168.1.20:8369.
 	Upstream string `json:"upstream"`
-	// Fingerprint is the SHA-256 fingerprint of the certificate of the instance that its owner compared
-	// and the gateway trusts, in the form that the settings of the application show. It is empty when the
-	// certificate verifies, with the roots of the system, and for the plain HTTP of a loopback address.
-	Fingerprint string `json:"fingerprint,omitempty"`
+	// Certificate is the certificate of the instance (DER) that its owner compared, by its fingerprint, and the
+	// gateway trusts. It is empty when the certificate verifies, with the roots of the system, and for the plain
+	// HTTP of a loopback address.
+	Certificate []byte `json:"certificate,omitempty"`
 	// Session is the session cookie that the instance gave the gateway: a secret, and why the file is
 	// private. It is empty after the instance has ended the session.
 	Session   string    `json:"session,omitempty"`

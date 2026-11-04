@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -111,7 +112,7 @@ func TestWhatAnInstanceAnswersToAPairingLinkThatIsNotAPairingIsSaid(t *testing.T
 	}
 	for name, c := range cases {
 		fake := httptest.NewServer(c.answer)
-		up := newUpstream(mustURL(t, fake.URL), "", nil)
+		up := newUpstream(mustURL(t, fake.URL), nil, nil)
 		session, err := up.pairWith(context.Background(), "abcdefgh12345678")
 		fake.Close()
 		switch {
@@ -137,7 +138,7 @@ func TestAPairingLinkIsNotFollowedWhereTheInstanceSendsIt(t *testing.T) {
 		http.Redirect(w, r, target.URL+"/elsewhere", http.StatusSeeOther)
 	}))
 	defer fake.Close()
-	session, err := newUpstream(mustURL(t, fake.URL), "", nil).pairWith(context.Background(), "abcdefgh12345678")
+	session, err := newUpstream(mustURL(t, fake.URL), nil, nil).pairWith(context.Background(), "abcdefgh12345678")
 	if err != nil || session != "session" {
 		t.Fatalf("pairWith = %q, %v", session, err)
 	}
@@ -156,7 +157,7 @@ func TestAnInstanceThatDoesNotAnswerInTimeIsGivenUpOn(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	if _, err := newUpstream(mustURL(t, fake.URL), "", nil).pairWith(ctx, "abcdefgh12345678"); err == nil || !strings.Contains(err.Error(), "cannot reach vfox+") {
+	if _, err := newUpstream(mustURL(t, fake.URL), nil, nil).pairWith(ctx, "abcdefgh12345678"); err == nil || !strings.Contains(err.Error(), "cannot reach vfox+") {
 		t.Errorf("pairWith = %v, want the instance to be unreachable", err)
 	}
 	if time.Since(start) > 5*time.Second {
@@ -200,14 +201,14 @@ func TestATokenIsLongAndDifferentEachTime(t *testing.T) {
 
 func TestWhatTheGatewayRemembersSurvivesAndABadDirectoryIsNoFailureOfTheGateway(t *testing.T) {
 	dir := t.TempDir()
-	want := saved{Upstream: "https://host:8369", Fingerprint: "AA:BB", Session: "secret", RenewedAt: time.Unix(1_700_000_000, 0).UTC()}
+	want := saved{Upstream: "https://host:8369", Certificate: []byte{0x30, 0x82, 0x01}, Session: "secret", RenewedAt: time.Unix(1_700_000_000, 0).UTC()}
 	if err := saveState(dir, want); err != nil {
 		t.Fatal(err)
 	}
-	if got := loadState(dir); got != want {
+	if got := loadState(dir); !reflect.DeepEqual(got, want) {
 		t.Errorf("loadState = %+v, want %+v", got, want)
 	}
-	if got := loadState(filepath.Join(dir, "none")); got != (saved{}) {
+	if got := loadState(filepath.Join(dir, "none")); !reflect.DeepEqual(got, saved{}) {
 		t.Errorf("a directory that is not there: %+v", got)
 	}
 

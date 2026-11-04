@@ -16,10 +16,13 @@ package gateway
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
 // How the gateway is paired with an instance, as the Android app is: the person pastes a pairing link that
@@ -43,14 +46,15 @@ func (g *Gateway) serveConnect(writer http.ResponseWriter, request *http.Request
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), requestTimeout)
 	defer cancel()
-	pin := ""
+	var pinned *x509.Certificate
 	if base.Scheme == "https" {
-		fingerprint, verified, err := certificateOf(ctx, base, g.roots)
+		certificate, verified, err := certificateOf(ctx, base, g.roots)
 		if err != nil {
-			g.renderHome(writer, http.StatusBadGateway, sentence(newUpstream(base, "", g.roots).unreachable(err).Error()))
+			g.renderHome(writer, http.StatusBadGateway, sentence(newUpstream(base, nil, g.roots).unreachable(err).Error()))
 			return
 		}
 		if !verified {
+			fingerprint := pair.Fingerprint(certificate.Raw)
 			// The one that the person compared already, for this address, is not asked about again: it is
 			// what a gateway that is paired again after a day does. A certificate that changed is asked about
 			// with a warning.
@@ -59,10 +63,10 @@ func (g *Gateway) serveConnect(writer http.ResponseWriter, request *http.Request
 				render(writer, http.StatusOK, view{Page: pageTrust, Address: base.Host, Fingerprint: fingerprint, Link: link, Changed: trusted != ""})
 				return
 			}
-			pin = fingerprint
+			pinned = certificate
 		}
 	}
-	g.pairAndRemember(ctx, writer, request, base, token, pin)
+	g.pairAndRemember(ctx, writer, request, base, token, pinned)
 }
 
 // serveTrust pairs the gateway with the instance whose certificate the person compared. The certificate is
@@ -80,22 +84,28 @@ func (g *Gateway) serveTrust(writer http.ResponseWriter, request *http.Request) 
 	ctx, cancel := context.WithTimeout(request.Context(), requestTimeout)
 	defer cancel()
 	shown := request.PostFormValue("fingerprint")
-	fingerprint, _, err := certificateOf(ctx, base, g.roots)
+	certificate, _, err := certificateOf(ctx, base, g.roots)
 	if err != nil {
-		g.renderHome(writer, http.StatusBadGateway, sentence(newUpstream(base, "", g.roots).unreachable(err).Error()))
+		g.renderHome(writer, http.StatusBadGateway, sentence(newUpstream(base, nil, g.roots).unreachable(err).Error()))
 		return
 	}
-	if fingerprint != shown {
+	if pair.Fingerprint(certificate.Raw) != shown {
 		g.renderHome(writer, http.StatusConflict, "The certificate at "+base.Host+" is not the one that was shown for the comparison. Nothing was trusted; try again.")
 		return
 	}
-	g.pairAndRemember(ctx, writer, request, base, token, fingerprint)
+	// The certificate is verified for a name that it has, and a certificate that names no host or address has none: it
+	// could not be told from another that is served at the address.
+	if nameOf(certificate) == "" {
+		g.renderHome(writer, http.StatusBadRequest, "The certificate at "+base.Host+" names no host and no address, so the gateway could not tell it from another: it cannot be trusted.")
+		return
+	}
+	g.pairAndRemember(ctx, writer, request, base, token, certificate)
 }
 
-// pairAndRemember uses the token of the link, with the instance whose certificate is trusted by pin or by the
-// system, and takes the browser to its interface.
-func (g *Gateway) pairAndRemember(ctx context.Context, writer http.ResponseWriter, request *http.Request, base *url.URL, token, pin string) {
-	up := newUpstream(base, pin, g.roots)
+// pairAndRemember uses the token of the link, with the instance whose certificate is the one that was pinned or one
+// that the roots of the system vouch for, and takes the browser to its interface.
+func (g *Gateway) pairAndRemember(ctx context.Context, writer http.ResponseWriter, request *http.Request, base *url.URL, token string, pinned *x509.Certificate) {
+	up := newUpstream(base, pinned, g.roots)
 	session, err := up.pairWith(ctx, token)
 	if err != nil {
 		up.transport.CloseIdleConnections()

@@ -19,14 +19,18 @@ import (
 	"encoding/pem"
 	"html"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
+	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
 // trust posts what the page that shows the fingerprint posts when the person says that it is the one.
@@ -280,4 +284,110 @@ func readAll(t *testing.T, response *http.Response) string {
 		t.Fatal(err)
 	}
 	return string(body)
+}
+
+func TestACertificateThatWasComparedIsStillTheOneThatIsTrustedWhenTheGatewayStartsAgain(t *testing.T) {
+	instance := startSecureInstance(t, t.TempDir(), 0)
+	dir := t.TempDir()
+	g, server := serveGateway(t, Options{Dir: dir})
+	b := pairedBrowser(t, g, server)
+	if response, body := b.trust(instance.link(), instance.fingerprint); response.StatusCode != http.StatusSeeOther {
+		t.Fatalf("%d %s", response.StatusCode, body)
+	}
+	if remembered := loadState(dir); len(remembered.Certificate) == 0 || pair.Fingerprint(remembered.Certificate) != instance.fingerprint {
+		t.Fatalf("what is remembered is the certificate that was compared: %x", remembered.Certificate)
+	}
+
+	again, againServer := serveGateway(t, Options{Dir: dir})
+	if status := again.Status(); !status.Connected || status.Fingerprint != instance.fingerprint {
+		t.Fatalf("a gateway that started again: %+v, want it paired with the certificate that was compared", status)
+	}
+	if status, inventory := pairedBrowser(t, again, againServer).get("/api/inventory"); status != http.StatusOK || !strings.Contains(inventory, "nodejs") {
+		t.Errorf("through the certificate that was remembered: %d %.200s", status, inventory)
+	}
+}
+
+func TestACertificateIsVerifiedForANameThatItHasWhateverTheAddressIs(t *testing.T) {
+	// The certificate of the application names the addresses of its computer, and a gateway in a container
+	// reaches the computer by another: here the address is 127.0.0.1, and the certificate has a name and no address.
+	now := time.Now()
+	instance := startFakeSecureInstance(t, selfSigned(t, []string{"vfox.example"}, nil, now.Add(-time.Hour), now.Add(time.Hour)))
+	g, server := serveGateway(t, Options{})
+	b := pairedBrowser(t, g, server)
+	link := instance.link()
+
+	response, body := b.connect(link)
+	if response.StatusCode != http.StatusOK || !strings.Contains(body, "not signed by an authority") {
+		t.Fatalf("a certificate that nobody signed is compared: %d %.300s", response.StatusCode, body)
+	}
+	match := regexp.MustCompile(`name="fingerprint" value="([0-9A-F:]+)"`).FindStringSubmatch(body)
+	if match == nil {
+		t.Fatalf("the page shows no fingerprint: %.600s", body)
+	}
+	if response, body := b.trust(link, match[1]); response.StatusCode != http.StatusSeeOther {
+		t.Fatalf("trusting it: %d %.300s", response.StatusCode, body)
+	}
+	if status, _ := b.get("/api/echo"); status != http.StatusOK {
+		t.Errorf("the interface through a certificate that is verified for its own name: %d", status)
+	}
+}
+
+func TestACertificateThatHasExpiredIsNotUsedAndIsNotSaidToHaveChanged(t *testing.T) {
+	now := time.Now()
+	instance := startFakeSecureInstance(t, selfSigned(t, []string{"vfox.example"}, []net.IP{net.IPv4(127, 0, 0, 1)}, now.Add(-48*time.Hour), now.Add(-24*time.Hour)))
+	g, server := serveGateway(t, Options{})
+	b := pairedBrowser(t, g, server)
+	link := instance.link()
+
+	response, body := b.connect(link)
+	match := regexp.MustCompile(`name="fingerprint" value="([0-9A-F:]+)"`).FindStringSubmatch(body)
+	if response.StatusCode != http.StatusOK || match == nil {
+		t.Fatalf("the certificate is shown for the comparison all the same: %d %.300s", response.StatusCode, body)
+	}
+	response, body = b.trust(link, match[1])
+	message := html.UnescapeString(body)
+	if response.StatusCode != http.StatusBadGateway || !strings.Contains(message, "expired") || strings.Contains(message, "not the one that was trusted") {
+		t.Errorf("trusting an expired certificate: %d, want 502 that says it expired: %s", response.StatusCode, message[strings.Index(message, `role="alert"`):])
+	}
+	if g.Status().Address != "" {
+		t.Errorf("the gateway is paired with an instance whose certificate has expired: %+v", g.Status())
+	}
+}
+
+func TestACertificateThatNamesNothingCannotBeTrusted(t *testing.T) {
+	now := time.Now()
+	instance := startFakeSecureInstance(t, selfSigned(t, nil, nil, now.Add(-time.Hour), now.Add(time.Hour)))
+	g, server := serveGateway(t, Options{})
+	b := pairedBrowser(t, g, server)
+	link := instance.link()
+
+	_, body := b.connect(link)
+	match := regexp.MustCompile(`name="fingerprint" value="([0-9A-F:]+)"`).FindStringSubmatch(body)
+	if match == nil {
+		t.Fatalf("the page shows no fingerprint: %.600s", body)
+	}
+	response, body := b.trust(link, match[1])
+	if response.StatusCode != http.StatusBadRequest || !strings.Contains(body, "names no host and no address") {
+		t.Errorf("trusting a certificate with no names: %d %.300s", response.StatusCode, body)
+	}
+	if g.Status().Address != "" {
+		t.Errorf("the gateway is paired: %+v", g.Status())
+	}
+}
+
+func TestACertificateIsNamedByItsFirstNameOrElseItsFirstAddress(t *testing.T) {
+	for name, c := range map[string]struct {
+		dns  []string
+		ips  []net.IP
+		want string
+	}{
+		"a name and an address": {[]string{"vfox.example", "other.example"}, []net.IP{net.IPv4(10, 0, 0, 1)}, "vfox.example"},
+		"addresses only":        {nil, []net.IP{net.IPv4(10, 0, 0, 1), net.ParseIP("fd00::1")}, "10.0.0.1"},
+		"an IPv6 address":       {nil, []net.IP{net.ParseIP("fd00::1")}, "fd00::1"},
+		"nothing":               {nil, nil, ""},
+	} {
+		if got := nameOf(&x509.Certificate{DNSNames: c.dns, IPAddresses: c.ips}); got != c.want {
+			t.Errorf("%s: nameOf = %q, want %q", name, got, c.want)
+		}
+	}
 }

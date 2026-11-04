@@ -167,6 +167,15 @@ func (c *check) cleanup() {
 	}
 }
 
+// pinned is a browser at the gateway that trusts the certificate with the fingerprint that it printed, and no other.
+func (c *check) pinned(address, fingerprint string) *site {
+	browser, err := newPinnedSite(address, fingerprint)
+	if err != nil {
+		c.Fail("a browser cannot trust the certificate of the gateway: %v", err)
+	}
+	return browser
+}
+
 // expect fails the scenario unless the request was answered with the status.
 func (c *check) expect(answer reply, err error, status int, what string) {
 	if err != nil {
@@ -220,7 +229,7 @@ func (c *check) startTheGateway() {
 	c.Check(strings.Contains(c.gateway.output(), "Not paired with a vfox+ yet"), "the gateway says that it is paired with no vfox+")
 	// A browser that trusts the certificate that has the fingerprint that was printed, and none other: the
 	// first request fails unless the certificate that the gateway serves is that one.
-	c.browser = newPinnedSite(c.gateway.address(), c.printed)
+	c.browser = c.pinned(c.gateway.address(), c.printed)
 }
 
 // showTheIntro sees what a browser that is not paired with the gateway is shown first: the page of the
@@ -238,7 +247,7 @@ func (c *check) showTheIntro() {
 // with the session that the application gave another browser.
 func (c *check) turnAwayStrangers() {
 	c.Step("turn away a browser that is not paired, now that the gateway is paired with the application")
-	stranger := newPinnedSite(c.gateway.address(), c.printed)
+	stranger := c.pinned(c.gateway.address(), c.printed)
 	page, err := stranger.get("/app")
 	c.expect(page, err, 302, "the interface")
 	c.Check(page.header.Get("Location") == "/", "the interface sends a browser that is not paired to the page of the gateway")
@@ -249,7 +258,7 @@ func (c *check) turnAwayStrangers() {
 	}
 	started, err := stranger.postJSON("/api/tasks", `{"operation":"install","sdk":"nodejs","version":"24.11.0"}`)
 	c.expect(started, err, 401, "starting a task")
-	forged := newPinnedSite(c.gateway.address(), c.printed)
+	forged := c.pinned(c.gateway.address(), c.printed)
 	forged.cookie = "vfox-plus-gateway=" + strings.TrimPrefix(c.app.cookie, sessionCookie+"=")
 	denied, err := forged.get("/api/inventory")
 	c.expect(denied, err, 401, "the inventory, with the session of the application as the cookie of the gateway")
@@ -261,7 +270,7 @@ func (c *check) pairABrowser() {
 	paired, err := c.browser.get(c.path)
 	c.expect(paired, err, 303, "the pairing link of the gateway")
 	c.Check(paired.header.Get("Location") == "/", "a gateway that is paired with nothing takes the browser to its page")
-	again, err := newPinnedSite(c.gateway.address(), c.printed).get(c.path)
+	again, err := c.pinned(c.gateway.address(), c.printed).get(c.path)
 	c.expect(again, err, 403, "the pairing link of the gateway, a second time")
 	home, err := c.browser.get("/")
 	c.expect(home, err, 200, "the page of the gateway, for a browser that is paired")
@@ -331,7 +340,7 @@ func (c *check) useTheApplication() {
 	inventory, err := c.browser.get("/api/inventory")
 	c.expect(inventory, err, 200, "the inventory")
 	c.expectText(inventory, "nodejs", "the inventory of the application")
-	manifest, err := newPinnedSite(c.gateway.address(), c.printed).get("/manifest.webmanifest")
+	manifest, err := c.pinned(c.gateway.address(), c.printed).get("/manifest.webmanifest")
 	c.expect(manifest, err, 200, "the manifest, which a browser fetches without its cookie")
 	c.expectText(manifest, "vfox+", "the manifest")
 
@@ -393,7 +402,7 @@ func (c *check) restartTheGateway() {
 	c.Check(printed == c.printed, "the gateway keeps its certificate between runs: a browser that trusted it is not asked again")
 	c.Check(strings.Contains(c.gateway.output(), "Paired with vfox+ at"), "the gateway says that it is paired with the application")
 	// The browsers are not remembered, the pairing with the application is.
-	c.browser = newPinnedSite(c.gateway.address(), printed)
+	c.browser = c.pinned(c.gateway.address(), printed)
 	paired, err := c.browser.get(path)
 	c.expect(paired, err, 303, "the pairing link of the gateway that was started again")
 	c.Check(paired.header.Get("Location") == "/app", "a gateway that is paired takes the browser straight to the interface")

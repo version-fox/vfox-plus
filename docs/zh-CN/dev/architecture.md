@@ -505,9 +505,9 @@ config:
 ---
 flowchart LR
     accTitle: 网关的两次配对
-    accDescr: 浏览器用网关的证书经 HTTPS 与网关配对，持有 cookie vfox-plus-gateway。网关经 HTTPS 与某个实例的远端服务器配对，证书由人核对过的指纹固定，持有 cookie vfox-plus-session。网关提供自己的页面，并转发实例的页面与 API。
+    accDescr: 浏览器用网关的证书经 HTTPS 与网关配对，持有 cookie vfox-plus-gateway。网关经 HTTPS 与某个实例的远端服务器配对，以人核对过的证书为唯一的根，持有 cookie vfox-plus-session。网关提供自己的页面，并转发实例的页面与 API。
     b(["<b>浏览器</b>"]) -->|"HTTPS，网关的证书<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>网关</b><br/>自己的页面，<br/>以及反向代理")
-    g -->|"HTTPS，由人核对过的指纹固定<br/>cookie <code>vfox-plus-session</code>"| r("<b>某个实例的</b><br/><b>远端服务器</b>")
+    g -->|"HTTPS，人核对过的证书就是根<br/>cookie <code>vfox-plus-session</code>"| r("<b>某个实例的</b><br/><b>远端服务器</b>")
 
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
     classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
@@ -520,10 +520,12 @@ flowchart LR
   并持有自己的会话。它的 cookie 是 `vfox-plus-gateway` 而不是 `vfox-plus-session`：cookie 属于主机而不属于
   端口，同一主机上网关与实例的 cookie 否则就成了同一个。网关与实例配对的方式和安卓 App 一样：人把实例的
   配对链接粘贴到网关的页面上，网关查看证书（`certificateOf`），拿到的会话 cookie 归网关所有。系统根证书
-  担保的证书直接信任；应用自己生成的证书则以指纹显示，与应用设置里的核对，只有人说两者一致才信任并固定
-  （每个连接都在 `VerifyConnection` 里校验，恢复的会话也一样）。被信任的就是展示过的那个证书：人同意时会
-  再看一次，不同的会被拒绝。之后证书若变了，就不会带着网关的会话去连，并带着警告再次询问。明文 HTTP 只用于
-  应用提供它的回环地址。
+  担保的证书直接信任；应用自己生成的证书则以指纹显示，与应用设置里的核对，只有人说两者一致才信任并固定。
+  任何连接都不会跳过证书校验（不使用 `InsecureSkipVerify`）：被查看的证书取自一次校验失败的连接的错误，其中
+  有对方出示的证书；被固定的证书保存在网关的状态里，并成为连到那个实例的连接的唯一根证书，所以它像任何证书
+  一样被校验，有效期和用途也在内，所用的名字是它自己有的（应用把这台电脑的各个地址写进了证书，而网关可能用
+  另一个地址到达这台电脑）。被信任的就是展示过的那个证书：人同意时会再看一次，不同的会被拒绝。之后证书若
+  变了，就不会带着网关的会话去连，并带着警告再次询问。明文 HTTP 只用于应用提供它的回环地址。
 - **网关自己提供什么，什么属于实例。** 页面 `/`、`/auth/connect/`、`/api/token` 和 `/gateway/` 下的表单属于
   网关（见[远端协议](remote-protocol.md#网关)）。`/app`、`/api/*` 和 `/manifest.webmanifest` 属于实例，由
   `httputil.ReverseProxy` 带着网关的会话转发，所以页面就是实例自己的，总与它调用的路由相符。事件随到随发。
@@ -534,7 +536,7 @@ flowchart LR
   `GET /api/token`（已配对设备可以为第二台设备生成链接），再用那个链接配对；连不上的实例五分钟后重试，会话
   保留，因为实例可能在会话结束前恢复；实例返回 `401` 就把会话标记为结束（`invalidate`），网关的页面
   请人给新链接。请求总以开始时的实例和会话结束，哪怕网关中途重新配对了。
-- **它记住什么。** `gateway.json`（权限 `0600`：里面有它在实例处的会话）和网关自己的证书——由
+- **它记住什么。** `gateway.json`（权限 `0600`：里面有它在实例处的会话，和人核对过的实例证书）和网关自己的证书——由
   `pair.EnsureServerCert` 生成的 `serve-cert.pem` 与 `serve-key.pem`，或人放进去的 `cert.pem` 与 `key.pem`——都在
   用户配置目录的 `vfox-plus-gateway` 下（镜像里是一个卷）。浏览器的会话不记：重新启动的网关会打印新链接。
 - **停止。** 页面的事件永不结束，开着界面的浏览器会让 `docker stop` 等满整个宽限期：网关让在途的请求再

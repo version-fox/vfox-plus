@@ -122,7 +122,7 @@ func TestRenewingNeedsAnInstanceThatAnswersLikeOne(t *testing.T) {
 	} {
 		fake := httptest.NewServer(answer)
 		t.Cleanup(fake.Close)
-		up := newUpstream(mustURL(t, fake.URL), "", nil).withSession("session", time.Now())
+		up := newUpstream(mustURL(t, fake.URL), nil, nil).withSession("session", time.Now())
 		if _, err := up.mint(context.Background()); err == nil {
 			t.Errorf("%s: a link was taken", name)
 		}

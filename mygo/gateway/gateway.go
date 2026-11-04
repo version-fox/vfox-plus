@@ -61,8 +61,9 @@ type Status struct {
 	Address string
 	// Connected says that the gateway holds a session at the instance, and so serves its interface.
 	Connected bool
-	// Fingerprint is the fingerprint of the certificate of the instance that was trusted, empty when
-	// the roots of the system vouch for it or the instance speaks HTTP on a loopback address.
+	// Fingerprint is the SHA-256 fingerprint of the certificate of the instance that was trusted, in the
+	// form that the settings of the application show, empty when the roots of the system vouch for it or
+	// the instance speaks HTTP on a loopback address.
 	Fingerprint string
 	// RenewedAt is when the session was made, or renewed last.
 	RenewedAt time.Time
@@ -103,7 +104,14 @@ func New(options Options) (*Gateway, error) {
 	g.proxy = g.newProxy()
 	if remembered := loadState(options.Dir); remembered.Upstream != "" {
 		if base, err := url.Parse(remembered.Upstream); err == nil && (base.Scheme == "https" || (base.Scheme == "http" && isLoopback(base.Hostname()))) && base.Host != "" {
-			g.up = newUpstream(&url.URL{Scheme: base.Scheme, Host: base.Host}, remembered.Fingerprint, g.roots).withSession(remembered.Session, remembered.RenewedAt)
+			// A certificate that cannot be read is no certificate that was compared: the gateway is paired with nothing.
+			var pinned *x509.Certificate
+			if len(remembered.Certificate) > 0 {
+				pinned, err = x509.ParseCertificate(remembered.Certificate)
+			}
+			if err == nil {
+				g.up = newUpstream(&url.URL{Scheme: base.Scheme, Host: base.Host}, pinned, g.roots).withSession(remembered.Session, remembered.RenewedAt)
+			}
 		}
 	}
 	return g, nil
@@ -119,7 +127,7 @@ func (g *Gateway) Status() Status {
 	if up == nil {
 		return Status{}
 	}
-	return Status{Address: up.base.Host, Connected: up.connected(), Fingerprint: up.pin, RenewedAt: up.renewedAt}
+	return Status{Address: up.base.Host, Connected: up.connected(), Fingerprint: up.fingerprint(), RenewedAt: up.renewedAt}
 }
 
 // Handler is the gateway: what it serves itself, and the instance's interface that it forwards.
@@ -189,7 +197,10 @@ func (g *Gateway) invalidate(up *upstream) {
 func (g *Gateway) rememberLocked() {
 	var state saved
 	if up := g.up; up != nil {
-		state = saved{Upstream: up.base.String(), Fingerprint: up.pin, Session: up.session, RenewedAt: up.renewedAt}
+		state = saved{Upstream: up.base.String(), Session: up.session, RenewedAt: up.renewedAt}
+		if up.pinned != nil {
+			state.Certificate = up.pinned.Raw
+		}
 	}
 	if err := saveState(g.options.Dir, state); err != nil {
 		log.Printf("gateway: cannot remember the instance in %s: %v", g.options.Dir, err)
@@ -200,7 +211,7 @@ func (g *Gateway) rememberLocked() {
 // one.
 func (g *Gateway) trusted(base *url.URL) string {
 	if up := g.current(); up != nil && up.base.Host == base.Host {
-		return up.pin
+		return up.fingerprint()
 	}
 	return ""
 }
@@ -265,7 +276,7 @@ func (g *Gateway) serveHome(writer http.ResponseWriter, request *http.Request) {
 func (g *Gateway) renderHome(writer http.ResponseWriter, status int, problem string) {
 	page := view{Page: pageHome, Error: problem}
 	if up := g.current(); up != nil {
-		page.Address, page.Connected, page.Trusted = up.base.String(), up.connected(), up.pin
+		page.Address, page.Connected, page.Trusted = up.base.String(), up.connected(), up.fingerprint()
 	}
 	render(writer, status, page)
 }

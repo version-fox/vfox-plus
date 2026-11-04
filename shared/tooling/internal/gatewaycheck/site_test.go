@@ -15,8 +15,16 @@
 package gatewaycheck
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"io"
 	"log"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -43,14 +51,54 @@ func TestAPinnedBrowserTrustsTheCertificateWithTheFingerprintAndNoOther(t *testi
 	address := strings.TrimPrefix(server.URL, "https://")
 	pinned := fingerprintOf(server.Certificate().Raw)
 
-	answer, err := newPinnedSite(address, pinned).get("/")
+	browser, err := newPinnedSite(address, pinned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	answer, err := browser.get("/")
 	if err != nil || answer.status != 200 || answer.body != "hello" {
 		t.Fatalf("the certificate with the fingerprint: %+v, %v", answer, err)
 	}
 	other := "00:" + pinned[3:]
-	if _, err := newPinnedSite(address, other).get("/"); err == nil || !strings.Contains(err.Error(), "not the "+other+" that was trusted") {
+	if _, err := newPinnedSite(address, other); err == nil || !strings.Contains(err.Error(), "not the "+other+" that was trusted") {
 		t.Errorf("a certificate with another fingerprint was trusted: %v", err)
 	}
+	// What is trusted is that certificate, and not any that a server presents: the browser does not take another one
+	// for it, though the other is made for the same address.
+	second := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "another") }))
+	second.TLS = &tls.Config{Certificates: []tls.Certificate{anotherCertificate(t)}, MinVersion: tls.VersionTLS12}
+	second.Config.ErrorLog = log.New(io.Discard, "", 0)
+	second.StartTLS()
+	defer second.Close()
+	if _, err := browser.client.Get(second.URL); err == nil {
+		t.Error("the browser took the certificate of another server for the one that it trusts")
+	}
+	if got, err := browser.client.Get(server.URL); err != nil {
+		t.Errorf("the certificate that it trusts is not taken any more: %v", err)
+	} else {
+		_ = got.Body.Close()
+	}
+}
+
+// anotherCertificate is a certificate that nobody signed but itself, for the loopback address, other than the one that
+// the servers of the tests have.
+func anotherCertificate(t *testing.T) tls.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(7), Subject: pkix.Name{CommonName: "another"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}, DNSNames: []string{"example.com"},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
 }
 
 func TestAPinnedBrowserKeepsTheCookiesItIsGiven(t *testing.T) {
@@ -66,7 +114,10 @@ func TestAPinnedBrowserKeepsTheCookiesItIsGiven(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	browser := newPinnedSite(strings.TrimPrefix(server.URL, "https://"), fingerprintOf(server.Certificate().Raw))
+	browser, err := newPinnedSite(strings.TrimPrefix(server.URL, "https://"), fingerprintOf(server.Certificate().Raw))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if answer, err := browser.get("/pair"); err != nil || answer.status != http.StatusSeeOther || answer.header.Get("Location") != "/" {
 		t.Fatalf("the redirect is shown, not followed: %+v, %v", answer, err)
 	}

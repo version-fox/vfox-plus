@@ -204,6 +204,7 @@ func TestAFileThatCannotBeReadIsAGatewayThatIsPairedWithNothing(t *testing.T) {
 		"an address that is not one":     `{"upstream": "ftp://x", "session": "s"}`,
 		"plain HTTP to another computer": `{"upstream": "http://192.168.1.2:8369", "session": "s"}`,
 		"no host":                        `{"upstream": "https://", "session": "s"}`,
+		"a certificate that is not one":  `{"upstream": "https://host:8369", "session": "s", "certificate": "AAEC"}`,
 	} {
 		dir := t.TempDir()
 		if err := os.WriteFile(filepath.Join(dir, stateFileName), []byte(content), 0o600); err != nil {
