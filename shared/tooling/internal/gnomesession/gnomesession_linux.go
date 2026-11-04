@@ -59,8 +59,15 @@ func runAsRoot(o options) error {
 	if err != nil {
 		return fmt.Errorf("the user of the session: %w", err)
 	}
-	uid, _ := strconv.Atoi(account.Uid)
-	gid, _ := strconv.Atoi(account.Gid)
+	// The ids are 32 bits wide, and the parsing says so, so that nothing is cut off when they are used.
+	uid, err := strconv.ParseUint(account.Uid, 10, 32)
+	if err != nil {
+		return fmt.Errorf("the id of the user of the session: %w", err)
+	}
+	gid, err := strconv.ParseUint(account.Gid, 10, 32)
+	if err != nil {
+		return fmt.Errorf("the id of the group of the user of the session: %w", err)
+	}
 	// dbus-run-session makes the session bus and ends it with the command.
 	argv := append([]string{"--", self, "gnome-session", "--in-session", "--extension", o.extension, "--user", o.user}, o.command...)
 	command := exec.Command("dbus-run-session", argv...) //nolint:gosec // The tool of the session.
