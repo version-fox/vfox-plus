@@ -174,7 +174,7 @@ func TestActivatingTheIconBringsTheWindowBack(t *testing.T) {
 	// With the window open, the application has no icon, and a window that is open is
 	// brought to the front.
 	a.showWindow()
-	if len(ta.desktop.windows) != 2 || ta.desktop.windows[1].shown != 1 {
+	if len(ta.desktop.windows) != 2 || ta.desktop.windows[1].shown.Load() != 1 {
 		t.Errorf("one window, in front: %+v", ta.desktop.windows)
 	}
 	if len(ta.desktop.trays) != 1 {

@@ -108,16 +108,31 @@ func (t *fakeTray) choose(label string) bool {
 	return false
 }
 
-// fakeWindow is a window that shows nothing, and notes what the application asks of it.
+// fakeWindow is a window that shows nothing, and notes what the application asks of it. The application
+// asks it from any goroutine, as it asks the window of the toolkit, which allows that: a change of the
+// settings asks for a frame from the goroutine that made it and from the one of the web interface that
+// follows it.
 type fakeWindow struct {
+	mu                        sync.Mutex
 	title                     string
-	invalidated, shown, focus int
+	invalidated, shown, focus atomic.Int32
 }
 
-func (w *fakeWindow) Invalidate()           { w.invalidated++ }
-func (w *fakeWindow) SetTitle(title string) { w.title = title }
-func (w *fakeWindow) Show()                 { w.shown++ }
-func (w *fakeWindow) Focus()                { w.focus++ }
+func (w *fakeWindow) Invalidate() { w.invalidated.Add(1) }
+func (w *fakeWindow) SetTitle(title string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.title = title
+}
+func (w *fakeWindow) Show()  { w.shown.Add(1) }
+func (w *fakeWindow) Focus() { w.focus.Add(1) }
+
+// windowTitle is the title that the application gave the window.
+func (w *fakeWindow) windowTitle() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.title
+}
 
 // testApp is the application against the captured output of vfox, drawn without
 // a window.

@@ -217,11 +217,11 @@ func TestClosingTheWindowQuitsUnlessTheLightweightModeKeepsTheApplicationRunning
 	}
 	// And with a window there, it is brought to the front instead of opening another.
 	a.showWindow()
-	if len(ta.desktop.windows) != 2 || ta.desktop.windows[1].shown != 1 || ta.desktop.windows[1].focus != 1 {
+	if len(ta.desktop.windows) != 2 || ta.desktop.windows[1].shown.Load() != 1 || ta.desktop.windows[1].focus.Load() != 1 {
 		t.Errorf("one window, in front: %+v", ta.desktop.windows[1])
 	}
 	a.invalidate()
-	if ta.desktop.windows[1].invalidated == 0 {
+	if ta.desktop.windows[1].invalidated.Load() == 0 {
 		t.Error("the window gets the frames that are asked for")
 	}
 	a.settleLanguage()
@@ -237,7 +237,7 @@ func TestTheTitleOfTheWindowFollowsTheLanguage(t *testing.T) {
 	ta := defaultApp(t)
 	ta.app.openWindow()
 	ta.app.settleLanguage()
-	if title := ta.desktop.windows[0].title; title != "vfox+" {
+	if title := ta.desktop.windows[0].windowTitle(); title != "vfox+" {
 		t.Errorf("got %q", title)
 	}
 }
