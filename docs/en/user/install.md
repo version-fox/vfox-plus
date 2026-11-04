@@ -52,3 +52,15 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 
 Install the `vfox-plus-android` artifact's `.apk` on your phone and pair it
 with the vfox-plus on your PC. See [The web interface, other devices and Android](remote.md).
+
+## Docker
+
+The Docker image is the [gateway](remote.md#the-gateway-docker): it shows the web interface of a
+vfox-plus that runs on a computer, in the browsers that you pair with it. It contains no vfox
+and no window, so it does not replace the installation above. Build it from the repository
+(it is not published) and run it:
+
+```sh
+docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
+docker run --rm -p 8080:8080 vfox-plus-gateway
+```

@@ -282,3 +282,31 @@ browsers send it back over plain HTTP there.
 - It programs against this document, not against the Go code: inventory for
   lists, `/api/tasks` + `/api/events` for progress, `POST` routes for
   actions.
+
+## The gateway
+
+`mygo/gateway` (the Docker image, see [the gateway](architecture.md#the-gateway)) serves the interface
+of one instance to the browsers that are paired with it, over HTTPS on port 8080. It speaks this
+protocol twice. To its browsers it is a server: the same one-time links (`/auth/connect/<token>`, five
+minutes) and sessions (24 hours), with the cookie `vfox-plus-gateway`. To the remote server of an
+instance it is a client, as the Android app is: a pairing link that a person pasted, the session cookie
+`vfox-plus-session`, and the certificate trusted by the roots or by a fingerprint.
+
+| Route | Answered by | Notes |
+| --- | --- | --- |
+| `GET /` | the gateway | The page that says how to pair, for a browser that is not paired; for one that is, the instance it is paired with and the forms below. |
+| `GET /auth/connect/<token>` | the gateway | Pairs the browser: `303` to `/app` when the gateway is paired with an instance, to `/` when it is not. `403` for a link that is not valid, was used or expired. |
+| `GET /api/token` | the gateway | A session of the gateway: `{"url": "https://<host of the request>/auth/connect/<token>"}`, a link for a second browser. |
+| `POST /gateway/connect` | the gateway | A paired browser, from the page, with the form field `link`: a pairing link of an instance. `303` to `/app` when the gateway is paired with it; `200` with the fingerprint to compare when nobody vouches for its certificate and it is not the one that was trusted; `400` when it is not a pairing link; `403` when the instance refused it; `502` when it cannot be reached. |
+| `POST /gateway/trust` | the gateway | `link` and `fingerprint`, from the page that shows it: pairs with the certificate that has that fingerprint (`409` when the certificate at the address is not the one that was shown). |
+| `POST /gateway/invite` | the gateway | A page with a link for another browser. |
+| `POST /gateway/forget` | the gateway | Forgets the instance and the session at it; `303` to `/`. |
+| `/app`, `/api/*`, `/manifest.webmanifest` | the instance | Forwarded with the session of the gateway (the manifest also to a browser that is not paired, as the instance serves it). |
+
+The forms of the gateway need a paired browser (`401`), the origin of the gateway (`403`) and at most 8 KiB
+(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401` (and `/app`
+is a redirect to `/`), and so is every route when the gateway is paired with no instance or its session
+ended: the answer says so in the form that the interface reads errors in, `{"error": "…"}`. When the
+instance cannot be reached the API answers `502` in the same form and `/app` answers `502` with a page.
+Everything of the browser that identifies it (its cookies, `Origin`, `Referer`, the `Forwarded` headers)
+stays with the gateway, and the `Set-Cookie` of the instance does not reach the browser.

@@ -32,7 +32,7 @@ config:
 ---
 flowchart TB
     accTitle: 仓库布局
-    accDescr: docs 存放文档，shared 存放应用使用的资源，mygo 与 android 是应用，.github 是 CI 工作流。
+    accDescr: docs 存放文档，shared 存放应用使用的资源，mygo 是应用和 Docker 镜像的网关，android 是安卓客户端，.github 是 CI 工作流。
     subgraph docs["<b>docs/</b> · 全部文档，先按语言、再按受众分类"]
         direction LR
         d1("<b>en/user/</b><br/>用户指南：安装、使用、<br/>远端与安卓") ~~~ d2("<b>en/dev/</b><br/>开发者规约<br/>（本文档在这里）") ~~~ d3("<b>zh-CN/user/</b><br/>简体中文用户指南") ~~~ d4("<b>zh-CN/dev/</b><br/>简体中文开发者规约")
@@ -44,7 +44,7 @@ flowchart TB
     end
     subgraph code["<b>应用</b>与<b>自动化</b>"]
         direction LR
-        m("<b>mygo/</b><br/>桌面应用及其网页界面（Go）；<br/>不接受任何参数") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（网页界面的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
+        m("<b>mygo/</b><br/>桌面应用及其网页界面（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（网页界面的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
     end
     docs ~~~ shared ~~~ code
 
@@ -473,3 +473,71 @@ Android 客户端（`android/`）连同一个服务器：它是包住 `/app` 的
 [设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），
 因为服务器只提供单个无外部请求的嵌入页面。`/manifest.webmanifest` 的 Web 应用清单
 让 Chromium 系浏览器能把该页面安装为应用，图标相同。
+
+### 网关
+
+Docker 镜像（`mygo/Dockerfile`）是远端服务器的第二种客户端，与安卓 App 并列，而不是应用的一个实例。它的程序
+是 `mygo/cmd/vfox-plus-gateway`，不接受任何参数；它的包是 `mygo/gateway`。它用 `mygo/pair` 的证书与指纹，
+不用窗口、界面库和 vfox，所以不需要 cgo 就能构建成一个约 10 MB 的静态二进制，镜像就是这个二进制放在
+`scratch` 上，再加机构证书和用户 10001 的主目录。想通过自己选定的地址（比如容器主机）使用某个 vfox-plus
+界面的人，把网关配对给它。
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart LR
+    accTitle: 网关的两次配对
+    accDescr: 浏览器用网关的证书经 HTTPS 与网关配对，持有 cookie vfox-plus-gateway。网关经 HTTPS 与某个实例的远端服务器配对，证书由人核对过的指纹固定，持有 cookie vfox-plus-session。网关提供自己的页面，并转发实例的页面与 API。
+    b(["<b>浏览器</b>"]) -->|"HTTPS，网关的证书<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>网关</b><br/>自己的页面，<br/>以及反向代理")
+    g -->|"HTTPS，由人核对过的指纹固定<br/>cookie <code>vfox-plus-session</code>"| r("<b>某个实例的</b><br/><b>远端服务器</b>")
+
+    classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class g,r own
+    class b client
+    linkStyle default stroke-width:2px
+```
+
+- **两次配对，按协议来。** 浏览器用一次性链接（`/auth/connect/<token>`，五分钟，网关启动时打印）与网关配对，
+  并持有自己的会话。它的 cookie 是 `vfox-plus-gateway` 而不是 `vfox-plus-session`：cookie 属于主机而不属于
+  端口，同一主机上网关与实例的 cookie 否则就成了同一个。网关与实例配对的方式和安卓 App 一样：人把实例的
+  配对链接粘贴到网关的页面上，网关查看证书（`certificateOf`），拿到的会话 cookie 归网关所有。系统根证书
+  担保的证书直接信任；应用自己生成的证书则以指纹显示，与应用设置里的核对，只有人说两者一致才信任并固定
+  （每个连接都在 `VerifyConnection` 里校验，恢复的会话也一样）。被信任的就是展示过的那个证书：人同意时会
+  再看一次，不同的会被拒绝。之后证书若变了，就不会带着网关的会话去连，并带着警告再次询问。明文 HTTP 只用于
+  应用提供它的回环地址。
+- **网关自己提供什么，什么属于实例。** 页面 `/`、`/auth/connect/`、`/api/token` 和 `/gateway/` 下的表单属于
+  网关（见[远端协议](remote-protocol.md#网关)）。`/app`、`/api/*` 和 `/manifest.webmanifest` 属于实例，由
+  `httputil.ReverseProxy` 带着网关的会话转发，所以页面就是实例自己的，总与它调用的路由相符。事件随到随发。
+  代理从请求里去掉属于浏览器和网关、不属于实例的东西（cookie、`Origin`、`Referer`、`Authorization`、
+  `Forwarded`、`X-Forwarded-*`、`X-Real-Ip` 和 `Sec-Fetch-*`：实例会拒绝来源指向另一台主机的修改，而网关在转发前
+  已用 `http.CrossOriginProtection` 按自己的来源检查过），并去掉应答里的 `Set-Cookie`。
+- **保持配对。** 实例的会话 24 小时，随实例结束。`keepPaired` 在网关启动时和之后每六小时续期一次：用
+  `GET /api/token`（已配对设备可以为第二台设备生成链接），再用那个链接配对；连不上的实例五分钟后重试，会话
+  保留，因为实例可能在会话结束前恢复；实例返回 `401` 就把会话标记为结束（`invalidate`），网关的页面
+  请人给新链接。请求总以开始时的实例和会话结束，哪怕网关中途重新配对了。
+- **它记住什么。** `gateway.json`（权限 `0600`：里面有它在实例处的会话）和网关自己的证书——由
+  `pair.EnsureServerCert` 生成的 `serve-cert.pem` 与 `serve-key.pem`，或人放进去的 `cert.pem` 与 `key.pem`——都在
+  用户配置目录的 `vfox-plus-gateway` 下（镜像里是一个卷）。浏览器的会话不记：重新启动的网关会打印新链接。
+- **停止。** 页面的事件永不结束，开着界面的浏览器会让 `docker stop` 等满整个宽限期：网关让在途的请求再
+  完成一秒，然后以代码 0 结束。
+- **测试。** 包测试让网关对着 `mygo/pair` 的真实服务器运行，包括明文 HTTP 和用应用生成的证书的 HTTPS。
+  `vfxtool gateway-check` 让镜像（或程序）对着应用本身运行（见[实现指南](implementation-mygo.md)）。

@@ -20,7 +20,7 @@
 
 从[用户指南](docs/zh-CN/user/index.md)（[English](docs/en/user/index.md)）开始：
 功能、[安装](docs/zh-CN/user/install.md)、[使用](docs/zh-CN/user/using.md)、
-[网页界面与安卓](docs/zh-CN/user/remote.md)。
+[网页界面、安卓与 Docker](docs/zh-CN/user/remote.md)。
 
 ## 截图
 

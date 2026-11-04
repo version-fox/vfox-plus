@@ -137,6 +137,21 @@ Go 模块与构建缓存。
     vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
   ```
 
+  Docker 镜像的网关（[网关](architecture.md#网关)）由 `vfxtool gateway-check` 对着应用检查。它启动开启了网页界面和
+  其他设备的端到端构建，把镜像作为带独立卷的容器运行（或用 `--binary` 运行程序，它监听本机 8080 端口），并做
+  人在浏览器前做的事：用网关日志里的链接配对浏览器，粘贴应用的链接，核对指纹，再通过网关使用应用（它的页面、
+  API、事件、一个任务）。它在界面打开时用 `docker stop` 停掉容器，再启动，看它是否仍然配对，最后退出应用，
+  看网关此时怎么说。`gateway` 任务运行它：
+
+  ```sh
+  docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+    vfxtool gateway-check --image vfox-plus-gateway build/vfox-plus-e2e
+  ```
+
+  Dockerfile 的构建参数默认值就是 `mygo/versions.env` 里的 Go 版本与校验和，两者不一致时任务失败。Ubuntu 软件源或
+  Go 代理较慢的地方，可以用构建参数 `UBUNTU_MIRROR` 和 `GOPROXY` 指定别处。
+
   端到端构建还会照 `VFOX_PLUS_E2E_CONTROL` 指定的文件里工具写下的话去做（`close`、`show`、`quit`：用户用关闭按钮和
   图标菜单所做的事），并在 `SIGUSR1` 时关闭窗口。Windows 上的场景由 `run-windows` 任务运行，用 `build` 任务交叉
   编译出的端到端构建。`vfxtool e2e-run` 准备

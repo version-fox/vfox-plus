@@ -167,6 +167,25 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
     vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
   ```
 
+  The Docker image of the gateway ([The gateway](architecture.md#the-gateway)) is checked against the
+  application by `vfxtool gateway-check`. It starts the end-to-end build with the web interface and other
+  devices on, runs the image as a container with a volume of its own (or the program, with `--binary`, which
+  listens on port 8080 of the machine), and does what a person does at a browser: it pairs the browser with the
+  link in the log of the gateway, pastes a link of the application, compares the fingerprint and uses the
+  application through the gateway (its page, its API, its events, a task). It stops the container with
+  `docker stop` while the interface is open, starts it again and sees that it is paired still, and quits the
+  application to see what the gateway says then. The `gateway` job runs it:
+
+  ```sh
+  docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+    vfxtool gateway-check --image vfox-plus-gateway build/vfox-plus-e2e
+  ```
+
+  The Dockerfile has the Go version and checksum of `mygo/versions.env` as the defaults of its build
+  arguments, and the job fails when they differ. Where the Ubuntu archive or the Go proxy is slow, the build
+  arguments `UBUNTU_MIRROR` and `GOPROXY` say where else to get them from.
+
   The end-to-end build also does what the tools write into the file that `VFOX_PLUS_E2E_CONTROL`
   names (`close`, `show`, `quit`: what a person does with the close button and the menu of the icon), and
   closes its window on `SIGUSR1`. Windows runs the scenarios in the `run-windows` job, with the end-to-end

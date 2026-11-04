@@ -47,3 +47,14 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 
 在手机上安装 `vfox-plus-android` 产物的 `.apk`，再与 PC 上的 vfox-plus 配对。
 见[网页界面、其他设备与安卓](remote.md)。
+
+## Docker
+
+Docker 镜像是[网关](remote.md#网关docker)：它把某台电脑上运行着的 vfox-plus 的网页界面，显示给
+与它配对的浏览器。镜像里没有 vfox，也没有窗口，所以它不能代替上面的安装。从仓库构建（暂未发布）并
+运行：
+
+```sh
+docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
+docker run --rm -p 8080:8080 vfox-plus-gateway
+```

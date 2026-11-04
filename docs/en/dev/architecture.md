@@ -34,7 +34,7 @@ config:
 ---
 flowchart TB
     accTitle: Repository layout
-    accDescr: docs holds the documentation, shared the resources used by the application, mygo and android the applications, and .github the CI workflows.
+    accDescr: docs holds the documentation, shared the resources used by the application, mygo the application and the gateway of the Docker image, android the Android client, and .github the CI workflows.
     subgraph docs["<b>docs/</b> · all documentation, by language, then by audience"]
         direction LR
         d1("<b>en/user/</b><br/>user guides: install, use,<br/>remote and Android") ~~~ d2("<b>en/dev/</b><br/>developer specification<br/>(this document lives here)") ~~~ d3("<b>zh-CN/user/</b><br/>Simplified Chinese<br/>user guides") ~~~ d4("<b>zh-CN/dev/</b><br/>Simplified Chinese<br/>developer specification")
@@ -46,7 +46,7 @@ flowchart TB
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
         direction LR
-        m("<b>mygo/</b><br/>the desktop application and its web<br/>interface (Go); it takes no arguments") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+        m("<b>mygo/</b><br/>the desktop application and its web<br/>interface (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
     end
     docs ~~~ shared ~~~ code
 
@@ -574,3 +574,88 @@ assets, the favicon among them, because the servers serve a single
 embedded page with no external requests. A web app manifest at
 `/manifest.webmanifest` lets Chromium browsers install the page as an application
 with the same icon.
+
+### The gateway
+
+The Docker image (`mygo/Dockerfile`) is a second client of the remote server, next to the Android app,
+and not an instance of the application. Its program is `mygo/cmd/vfox-plus-gateway`, which takes no
+arguments, and its package is `mygo/gateway`. It uses `mygo/pair` for the certificates and their
+fingerprints and nothing of the window, the toolkit or vfox, so it builds without cgo into one static
+binary of about 10 MB, and the image is that binary on `scratch` with the certificates of the
+authorities and a home directory for the user 10001. A person who wants to reach the interface of a
+vfox-plus through an address of their choice (a container host, say) pairs the gateway with it.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    lineColor: "#7C79A8"
+    primaryColor: "#FFE9D0"
+    primaryBorderColor: "#F28C1B"
+    primaryTextColor: "#3B2200"
+    clusterBkg: "#F4F2FF"
+    clusterBorder: "#B9B3F5"
+    titleColor: "#1E1470"
+    edgeLabelBackground: "#FFFFFF"
+  flowchart:
+    curve: basis
+    wrappingWidth: 320
+    subGraphTitleMargin:
+      top: 10
+      bottom: 8
+---
+flowchart LR
+    accTitle: The two pairings of the gateway
+    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, pinned by the fingerprint that a person compared, and holds the cookie vfox-plus-session. The gateway serves pages of its own and forwards the page and the API of the instance.
+    b(["<b>Browser</b>"]) -->|"HTTPS, the certificate of the gateway<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>gateway</b><br/>pages of its own,<br/>and a reverse proxy")
+    g -->|"HTTPS, pinned by the fingerprint<br/>that a person compared<br/>cookie <code>vfox-plus-session</code>"| r("<b>Remote server</b><br/>of an instance")
+
+    classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
+    classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
+    class g,r own
+    class b client
+    linkStyle default stroke-width:2px
+```
+
+- **Two pairings, as the protocol has them.** A browser pairs with the gateway with a one-time link
+  (`/auth/connect/<token>`, five minutes, printed when the gateway starts) and holds a session of its
+  own. Its cookie is `vfox-plus-gateway` and not `vfox-plus-session`: cookies belong to a host and
+  not to a port, so the cookie of a gateway and that of an instance on the same host would be one. The
+  gateway pairs with an instance as the Android app does: a person pastes a pairing link of the instance
+  on the page of the gateway, the gateway looks at the certificate (`certificateOf`), and the session
+  cookie it gets is the gateway's. A certificate that the roots of the system vouch for is trusted;
+  the one that the application makes for itself is shown as a fingerprint to compare with the settings
+  of the application, and trusted, and pinned (`VerifyConnection` on every connection, resumed sessions
+  included), only when the person says that they are the same. The certificate that was shown is the one
+  that is trusted: it is looked at again when the person agrees, and a different one is refused. A
+  certificate that changes later is not served with the session of the gateway, and is asked about again
+  with a warning. Plain HTTP is for loopback addresses only, where the application serves it.
+- **What the gateway serves, and what is the instance's.** The page `/`, `/auth/connect/`, `/api/token`
+  and the forms under `/gateway/` are the gateway's (see [the remote protocol](remote-protocol.md#the-gateway)).
+  `/app`, `/api/*` and `/manifest.webmanifest` are the instance's, forwarded by `httputil.ReverseProxy`
+  with the session of the gateway, so the page is the instance's own and always matches the routes it
+  calls. The events are flushed as they come. The proxy takes out of the request what is the browser's
+  and the gateway's and not the instance's (the cookies, `Origin`, `Referer`, `Authorization`,
+  `Forwarded`, `X-Forwarded-*`, `X-Real-Ip` and `Sec-Fetch-*`: the instance refuses a change whose origin
+  names another host, and the gateway has checked the origin against its own, with
+  `http.CrossOriginProtection`, before it forwards), and the `Set-Cookie` of the answers.
+- **Staying paired.** A session of an instance lasts 24 hours and ends with the instance. `keepPaired`
+  renews it when the gateway starts and every six hours, with `GET /api/token` (a paired device may mint
+  a link for a second one) and the pairing with that link; an instance that cannot be reached is tried
+  again after five minutes and the session is kept, since the instance may be back before it ends; a `401`
+  of the instance marks the session as ended (`invalidate`), and the page of the gateway asks for a new
+  link. A request finishes with the instance and the session it began with, even if the gateway is paired
+  again meanwhile.
+- **What it remembers.** `gateway.json` (mode `0600`: it holds the session at the instance) and the
+  certificate of the gateway, `serve-cert.pem` and `serve-key.pem` made by `pair.EnsureServerCert`, or
+  `cert.pem` and `key.pem` that a person puts there, in `vfox-plus-gateway` of the configuration
+  directory of the user (a volume in the image). The sessions of the browsers are not remembered: a
+  gateway that starts again prints a new link.
+- **Stopping.** The events of the page never end, so a browser with the interface open would keep
+  `docker stop` waiting for the whole grace period: the gateway lets the requests that are on their way
+  finish for one second, and ends with the code 0.
+- **Tests.** The package tests run the gateway against the real servers of `mygo/pair`, in plain HTTP and
+  in HTTPS with the certificate that the application makes. `vfxtool gateway-check` runs the image, or the
+  program, against the application itself (see [the implementation guide](implementation-mygo.md)).
