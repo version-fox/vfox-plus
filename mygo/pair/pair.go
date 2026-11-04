@@ -235,9 +235,21 @@ func (s *Server) NewToken() (token string, url string, err error) {
 }
 
 // Close stops the server and ends every connection to it, the open streams of
-// the paired browsers included.
+// the paired browsers included. The port is free when it returns.
+//
+// http.Server.Close closes the listeners that Serve has registered, and the
+// goroutine that NewServer made may not have started Serve yet: a server that
+// is closed at once has none registered, and its port stays taken until that
+// goroutine runs and finds the server closed. The host stops the server for
+// other devices and starts it again on the same port when the certificate
+// changes, and the second server would fail with "address already in use". So
+// the listener is closed here too.
 func (s *Server) Close() error {
-	return s.httpServer.Close()
+	err := s.httpServer.Close()
+	if closeErr := s.listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) && err == nil {
+		err = closeErr
+	}
+	return err
 }
 
 // takeToken consumes token. It reports whether the token was valid, unused
