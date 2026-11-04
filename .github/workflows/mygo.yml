@@ -16,8 +16,9 @@
 # coverage gates), the end-to-end scenarios that drive the built application
 # (against captured output and against the real vfox, and its icon in the tray
 # against a stand-in for the host of the tray icons on Linux, against the GNOME
-# Shell of Ubuntu in a container, and against the taskbar on Windows), the Linux
-# packages and the Windows MSIX bundle.
+# Shell of Ubuntu in a container, and against the taskbar on Windows), the Docker
+# image of the gateway (built, and run against the application as the people who use
+# it run it: it is not published), the Linux packages and the Windows MSIX bundle.
 # shared/tooling/internal/runtask runs the same steps locally; keep them in sync.
 # The tool versions are in mygo/versions.env.
 name: mygo
@@ -526,6 +527,55 @@ jobs:
             --workdir /repo \
             vfox-plus-gnome \
             vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
+
+  gateway:
+    name: Run the image of the gateway against the application
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            mygo/go.sum
+            shared/tooling/go.sum
+      - name: Install the Linux packages
+        # The application is a desktop application: it needs GTK 3 and a display, which the virtual one
+        # of xvfb gives, even to have its web interface served. The gateway is not: it is the image.
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Build vfxtool and the end-to-end build of the application
+        run: |
+          go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+          "$RUNNER_TEMP/vfxtool" prepare --root mygo
+          "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
+      - name: Build the image of the gateway
+        # With the defaults of the Dockerfile, which are what the people who build it get: they have to be
+        # the versions pinned in mygo/versions.env.
+        run: |
+          grep -Fx "ARG GO_VERSION=$GO_VERSION" mygo/Dockerfile
+          grep -Fx "ARG GO_SHA256=$GO_SHA256" mygo/Dockerfile
+          docker build --tag vfox-plus-gateway --file mygo/Dockerfile mygo
+      - name: Run the gateway against the application
+        # vfxtool gateway-check starts the application with its web interface and other devices switched on,
+        # runs the image as a container with a volume of its own, and does what a person does at a browser:
+        # pairs it with the link in the log of the container, pastes a link of the application, compares the
+        # fingerprint of the certificate and uses the application through the gateway. It stops the container
+        # with docker stop while the interface is open, starts it again, and ends the application.
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+            "$RUNNER_TEMP/vfxtool" gateway-check --image vfox-plus-gateway "$RUNNER_TEMP/vfox-plus-e2e"
 
   run-windows:
     name: Run the application on Windows (${{ matrix.os }})
