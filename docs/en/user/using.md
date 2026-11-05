@@ -69,7 +69,7 @@ made from:
 
 | Install by name | A download mirror |
 | --- | --- |
-| ![The dialog that installs a version by its name](https://iili.io/n8ex6UN.png) | ![Choosing the download mirror of Node.js](https://iili.io/n8eIKvI.png) |
+| ![The dialog that installs a version by its name](https://iili.io/niy6dOv.png) | ![Choosing the download mirror of Node.js](https://iili.io/niy6Azl.png) |
 
 The **Options** tab holds what is particular to the plugin:
 
@@ -110,6 +110,10 @@ a task finishes while you look at another page, a message reports it.
 
 - **Appearance**: light, dark or follow the system; use the desktop accent
   colour or pick one of the swatches; the language (English or 简体中文).
+- **Web interface**: whether vfox-plus also serves its interface to a browser on this
+  computer, whether it keeps running without its window (lightweight mode), and
+  whether phones and other computers on the network may connect, over HTTPS. See
+  [The web interface and other devices](remote.md).
 - **vfox**: which executable is used (detected automatically, or pick your
   own) and extra environment variables such as download mirrors.
 - **vfox configuration**: proxy, registry, storage directory, legacy version

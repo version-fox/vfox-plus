@@ -18,8 +18,8 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`ui/mcu/`](../../../mygo/ui/mcu) | 配色：Material 颜色工具的 Go 移植（HCT、CAM16、tonal spot） |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
 | [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标、翻译与许可证（构建时收集） |
-| [`pair/`](../../../mygo/pair) | `vfox-plus pair` / `vfox-plus serve`：浏览器配对到本机（一次性链接），或为容器与远端实例常驻服务；配对后的浏览器得到完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
-| [`main.go`](../../../mygo/main.go) | 组装模型与窗口；分发 `pair` 子命令 |
+| [`pair/`](../../../mygo/pair) | 网页界面：按设置运行服务器的 `Host`（给本机浏览器的回环服务器，以及允许其他设备时的第二个 HTTPS 服务器）、一次性配对链接及其二维码，以及配对后的浏览器得到的完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
+| [`main.go`](../../../mygo/main.go) | 组装模型、网页界面与窗口。应用不接受任何参数 |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | 仅在构建标签 `e2e` 下链接 mygo 的自动化插件：端到端测试、内存测量与截图经它驱动应用 |
 
 分层见[架构](architecture.md)：`core` 不知道其它层，`state` 只知道
@@ -54,7 +54,6 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | --- | --- |
 | 收集二进制嵌入的图标、翻译与许可证 | `vfxtool prepare`（`MYGO_SKIP_LICENSES=1` 跳过需 `go mod download` 的 Go 模块许可证） |
 | 构建（`build/vfox-plus`） | `vfxtool build build/vfox-plus` |
-| 构建无头服务（`build/vfox-plus-serve`） | `vfxtool build --package ./cmd/vfox-plus-serve build/vfox-plus-serve`（同样的 `pair`、`serve`、`service` 命令，无用户界面，小约三分之一） |
 | 交叉编译 Windows | `vfxtool build --goos windows --goarch amd64\|arm64 build/vfox-plus.exe` |
 | 运行 | `vfxtool build build/vfox-plus && build/vfox-plus` |
 | 格式检查（CI 有差异即失败） | `golangci-lint fmt --diff` |
@@ -86,7 +85,7 @@ Go 模块与构建缓存。
 | `vfxtool sandbox e2e` | 端到端场景，夹具与真实 vfox 各一 |
 | `vfxtool sandbox package` | 发布构建与冒烟测试、`.deb`、`.tar.gz`、`.msix`/`.msixbundle`（lintian 检查），再装入干净 Ubuntu 26.04 容器 |
 | `vfxtool sandbox measure` | Home 页与列出 Node.js 版本时的内存 |
-| `vfxtool sandbox screenshots` | 各页截图，以及 Java、Flutter 与 Node.js 选项的截图 |
+| `vfxtool sandbox screenshots` | 各页截图，Java、Flutter 与 Node.js 选项的截图，以及网页界面设置的截图 |
 | `vfxtool sandbox all` | `check`、`e2e` 与 `package` |
 | `vfxtool sandbox shell` | 沙箱内交互 shell |
 | `vfxtool sandbox clean` | 删除镜像、缓存卷与结果 |
@@ -122,9 +121,43 @@ Go 模块与构建缓存。
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run fake build/vfox-plus-e2e
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
-  `fake` 对夹具假 vfox，`real` 对带离线测试插件及其服务器的真实 vfox。`vfxtool e2e-run` 准备
+  `fake` 对夹具假 vfox，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
+  替身托盘宿主，它需要 `dbus-run-session` 给的会话总线和 `libayatana-appindicator3`（见[托盘](architecture.md#托盘)），
+  在 Windows 上对着本机的任务栏。`tray-gnome` 是同一个图标对着一个没有屏幕的真实 GNOME Shell，它在
+  `shared/sandbox/gnome.Dockerfile` 的容器里（需要 Docker；构建产物以挂载方式放进去）：
+
+  ```sh
+  docker build --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
+  docker run --rm --init --volume "$PWD:/repo:ro" --workdir /repo \
+    --volume "$(command -v vfxtool):/usr/local/bin/vfxtool:ro" \
+    --volume "$PWD/build/vfox-plus-e2e:/usr/local/bin/vfox-plus-e2e:ro" vfox-plus-gnome \
+    vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
+  ```
+
+  Docker 镜像的网关（[网关](architecture.md#网关)）由 `vfxtool gateway-check` 对着应用检查。它启动开启了网页界面和
+  其他设备的端到端构建，把镜像作为带独立卷的容器运行（或用 `--binary` 运行程序，它监听本机 8080 端口），并做
+  人在浏览器前做的事：用网关日志里的链接配对浏览器，粘贴应用的链接，核对指纹，再通过网关使用应用（它的页面、
+  API、事件、一个任务）。它在界面打开时用 `docker stop` 停掉容器，再启动，看它是否仍然配对，最后退出应用，
+  看网关此时怎么说。`gateway` 任务运行它：
+
+  ```sh
+  docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+    vfxtool gateway-check --image vfox-plus-gateway build/vfox-plus-e2e
+  ```
+
+  Dockerfile 的构建参数默认值就是 `mygo/versions.env` 里的 Go 版本与校验和，两者不一致时任务失败。Ubuntu 软件源或
+  Go 代理较慢的地方，可以用构建参数 `UBUNTU_MIRROR` 和 `GOPROXY` 指定别处。
+
+  `vfxtool gateway-shots` 照同样的路线走一遍，只是用无头 Chrome 代替人，并把每一步看到的画面留下来：用户指南里
+  网关各页的截图（怎么运行见[截图](contributing.md#截图)）。
+
+  端到端构建还会照 `VFOX_PLUS_E2E_CONTROL` 指定的文件里工具写下的话去做（`close`、`show`、`quit`：用户用关闭按钮和
+  图标菜单所做的事），并在 `SIGUSR1` 时关闭窗口。Windows 上的场景由 `run-windows` 任务运行，用 `build` 任务交叉
+  编译出的端到端构建。`vfxtool e2e-run` 准备
   全新空家目录，启动应用，等它的窗口出现，跑场景，再结束应用。等待超时即场景失败，并先打印窗口
   当时显示的元素。场景走真实组件、状态、进程 spawn、流式、带 `SIGTERM`（Windows 上 kill）的取消、
   设置文件与 vfox 本体。`vfxtool measure` 与 `vfxtool screenshots` 以同样方式启动应用
@@ -179,8 +212,8 @@ Linux 上，共享工具 `vfxtool build-deb` 打包为
   不兼容 Apache License 2.0 即失败）。
 
 包依赖 GTK 3（含 mygo 加载的 GLib、Pango、Cairo 等）、fontconfig 与字体
-（`fonts-ubuntu` 或 `fonts-noto-core`），推荐中文 `fonts-noto-cjk`、桌面门户与打开链接
-的 `xdg-utils`。列表即 `vfxtool runtask` 的 `Depends`
+（`fonts-ubuntu` 或 `fonts-noto-core`），推荐中文 `fonts-noto-cjk`、桌面门户、打开链接
+的 `xdg-utils`，以及托盘图标用的 `libayatana-appindicator3-1`。列表即 `vfxtool runtask` 的 `Depends`
 （`shared/tooling/internal/runtask`），CI 装入干净 Ubuntu 容器证明完备。
 
 Windows 11 上，`vfxtool build-msix` 把交叉编译的可执行文件
@@ -191,21 +224,6 @@ Windows 11 上，`vfxtool build-msix` 把交叉编译的可执行文件
 用户在管理员 PowerShell 用 `Add-AppxPackage -AllowUnsigned` 安装未签名 bundle；
 安装包目前尚未签名，日后会提供官方签名的安装包。
 CI 在 Linux 交叉编译打包并用 `vfxtool validate-msix` 校验，在 Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载 bundle。
-
-### Docker 镜像
-
-[`Dockerfile`](../../../mygo/Dockerfile) 从仓库根构建发布镜像：最小 Ubuntu 运行时，含 vfox 与
-无头服务（`vfox-plus-serve serve`，镜像入口），无需显示服务。工具链版本默认取
-[`versions.env`](../../../mygo/versions.env)。
-
-```sh
-docker build -f mygo/Dockerfile -t vfox-plus .
-docker run --rm -p 8080:8080 vfox-plus
-```
-
-打开它输出的配对链接，把 `0.0.0.0` 换成可达地址。链接是 `https`：容器首次启动
-生成自签名证书并打印指纹，请在浏览器核对。`-v vfox-plus-data:/home/vfoxplus`
-卷在多次运行之间保留已安装的 SDK。另一台机器的浏览器在容器可达的网络上同样配对。
 
 ## 内存
 
@@ -245,7 +263,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。
 - **`.apk` 在 `android/`，不在此。**mygo 无 Android 后端，界面不能是由本代码构建的
-  原生 Android 应用。Android 客户端是包住配对服务（`vfox-plus serve`）的
+  原生 Android 应用。Android 客户端是包住应用网页界面的
   WebView：手机经[远端协议](remote-protocol.md)驱动 PC 上的 vfox-plus 实例，
   所示 Web 界面遵循[设计系统](design-system.md)（见
   [远端前端](architecture.md#远端前端)）。

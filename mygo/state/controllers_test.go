@@ -54,9 +54,13 @@ func (l *gatedLoader) load() (string, error) {
 
 func TestAsyncResourceKeepsThePreviousValueWhileReloadingAndRecordsErrors(t *testing.T) {
 	var calls atomic.Int32
+	// The second load, the one that fails, waits to be let go: a load that settles at once may be over
+	// before the test asks whether it is loading.
+	failNow := make(chan struct{})
 	resource := state.NewAsyncResource(func() (int, error) {
 		call := int(calls.Add(1))
 		if call == 2 {
+			<-failNow
 			return 0, errBoom
 		}
 		return call, nil
@@ -72,6 +76,10 @@ func TestAsyncResourceKeepsThePreviousValueWhileReloadingAndRecordsErrors(t *tes
 	if !resource.IsLoading() {
 		t.Fatal("expected loading")
 	}
+	if value, _ := resource.Value(); value != 1 {
+		t.Errorf("a resource that reloads keeps its value on show: %v", value)
+	}
+	close(failNow)
 	<-reload
 	if !errors.Is(resource.Error(), errBoom) {
 		t.Fatalf("got %v", resource.Error())

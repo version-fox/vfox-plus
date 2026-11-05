@@ -12,15 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Command vfox-plus is a desktop application for vfox, built with mygo.
+// Command vfox-plus is the desktop application for vfox, built with mygo.
+//
+// It is an application and not a command: it takes no arguments, and everything
+// that it can do is in its settings, the web interface among it (see package
+// pair). Starting it again brings its window back.
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+
+	"github.com/egoist/mygo"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
@@ -29,28 +35,26 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui"
 )
 
-func main() {
-	// `vfox-plus pair` pairs a browser with this machine, `vfox-plus serve`
-	// keeps the pairing server up for containers and remote instances;
-	// anything else starts the desktop application.
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "pair":
-			os.Exit(pair.Main(os.Args[2:]))
-		case "serve":
-			os.Exit(pair.ServeMain(os.Args[2:]))
-		case "service":
-			os.Exit(pair.ServiceMain(os.Args[2:]))
-		case "help", "--help", "-h":
-			fmt.Println("Usage: vfox-plus [pair|serve|service]")
-			fmt.Println()
-			fmt.Println("  (no arguments)  Start the desktop application.")
-			fmt.Println("  pair            Pair a browser with this machine over loopback.")
-			fmt.Println("  serve           Keep the pairing server up for containers and remote instances.")
-			fmt.Println("  service         Manage the shared background server (start, stop, status, set).")
-			return
-		}
+// maxProcessors is the most processors that the Go scheduler of the application uses. The work of
+// the application is waiting, for vfox and for the window, and nothing that asks for more than a
+// few processors; and each processor that the scheduler uses keeps caches of memory of its own,
+// which are private memory: on a machine of 16 threads, 0.7 MB of the 15.7 MB that the
+// application holds without its window.
+const maxProcessors = 4
+
+// limitProcessors keeps the Go scheduler to maxProcessors, unless the user chose a number with
+// GOMAXPROCS.
+func limitProcessors() {
+	if os.Getenv("GOMAXPROCS") != "" {
+		return
 	}
+	if runtime.GOMAXPROCS(0) > maxProcessors {
+		runtime.GOMAXPROCS(maxProcessors)
+	}
+}
+
+func main() {
+	limitProcessors()
 	environment := make(map[string]string)
 	for _, entry := range os.Environ() {
 		if key, value, ok := strings.Cut(entry, "="); ok {
@@ -58,8 +62,8 @@ func main() {
 		}
 	}
 	home, _ := os.UserHomeDir()
-	settingsDir := filepath.Dir(settings.SettingsPath(environment, home))
 	settingsPath := settings.SettingsPath(environment, home)
+	settingsDir := filepath.Dir(settingsPath)
 	taskLogDir, _ := core.UserCacheSubdir("vfox-plus", "tasks")
 	model := state.NewAppModel(state.AppModelOptions{
 		Runner:        core.OsProcessRunner{},
@@ -68,24 +72,14 @@ func main() {
 		TaskLockPath:  filepath.Join(settingsDir, "tasks.lock"),
 		TaskLogDir:    taskLogDir,
 	})
-	application, err := ui.New(ui.Options{Model: model, Environment: environment})
+	// The web interface is off until the user turns it on in the settings, and
+	// is served from then on by the application, for as long as it runs. The
+	// settings are loaded before it starts, so that it starts as they say.
+	model.Settings.Load()
+	web := pair.NewHost(model, pair.HostOptions{SettingsDir: settingsDir, Quit: mygo.App.Quit})
+	application, err := ui.New(ui.Options{Model: model, Environment: environment, Web: web})
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Remote access is off by default: the desktop embeds its loopback server
-	// only when the user switched it on in Settings. The switch takes effect
-	// on the next start, once the stored settings are loaded here. A daemon
-	// or an earlier server that is still live keeps serving, and the desktop
-	// then only serves its own window.
-	model.Settings.Load()
-	cleanupEmbedded := func() {}
-	if model.Settings.Settings().RemoteAccess {
-		var err error
-		cleanupEmbedded, err = pair.ServeEmbedded(model, settingsDir)
-		if err != nil {
-			log.Printf("embedded server: %v", err)
-		}
-	}
-	defer cleanupEmbedded()
 	application.Run()
 }

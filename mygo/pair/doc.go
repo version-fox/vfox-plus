@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package pair connects a browser to a vfox-plus instance.
+// Package pair is the web interface of vfox-plus: the servers that connect a
+// browser, or the Android app, to the application, and the host that runs them as
+// the settings say.
 //
-// `vfox-plus pair` starts a loopback HTTP server and prints a one-time link
-// like `http://127.0.0.1:PORT/auth/connect/TOKEN`. Opening the link pairs the
-// browser: the token works once and expires after a few minutes, and the
-// server issues a session cookie for the paired browser. At most one server
-// owns the application state per user: `pair` mints its link from the shared
-// server — the desktop while it runs, a `service start` daemon or a loopback
-// `serve` — and only starts its own read-only snapshot server when none is
-// live and the service is not disabled.
+// The application is a desktop application and has no command line: the user
+// turns the web interface on in its settings, and the Host starts a server on the
+// loopback interface. Its link to the browsers of the computer is a one-time URL
+// like `http://127.0.0.1:PORT/auth/connect/TOKEN`, which the settings open in the
+// browser: the token works once and expires after a few minutes, and the server
+// issues a session cookie for the paired browser and takes it to the interface.
+// Other devices on the network, a phone for one, connect to a second server, that
+// the user allows in the settings, over HTTPS with a certificate that the application
+// makes for itself or the user brings; the pairing code of the settings is the
+// link to it. Both servers serve the same application state.
 //
 // A paired browser gets the full web interface at `/app` (a single embedded
-// page, no external requests): installed SDKs, the plugin registry, tasks
-// with live progress and logs over server-sent events, and the settings.
-// `vfox-plus serve` keeps the same server up for containers and remote
-// instances, with expiring sessions and mintable links; `vfox-plus service`
-// manages the shared background server for the user.
+// page, no external requests): installed SDKs, the plugin registry, tasks with
+// live progress and logs over server-sent events, and the settings, among them how
+// other devices connect and the lightweight mode, in which the application stays
+// running without its window.
 package pair

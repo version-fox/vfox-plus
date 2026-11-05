@@ -2,46 +2,40 @@
 
 > [English](../../en/dev/remote-protocol.md)
 
-本文规定配对服务（`mygo/pair`，`vfox-plus pair` / `vfox-plus serve`）的 HTTP
-接口：Web 界面（`mygo/pair/webapp.html`）与 Android 客户端（`android/`）都按它
-编程。实现在 `mygo/pair/pair.go`（`Server`）、`web.go` 与 `webapi.go`。
+本文规定网页界面的服务器（`mygo/pair`，应用在设置要求时运行）的 HTTP 接口：Web 界面
+（`mygo/pair/webapp.html`）与 Android 客户端（`android/`）都按它编程。实现在
+`mygo/pair/pair.go`（`Server`）、`host.go`（`Host`）、`web.go` 与 `webapi.go`。
 
 ## 概念
 
-- **配对链接**是一次性 URL `/auth/connect/<token>`。令牌一次性有效，
-  `--token-ttl` 后过期（默认 5 分钟）。打开即配对：服务返回
-  `Set-Cookie: vfox-plus-session=<session>`（`Secure`、`HttpOnly`、
-  `SameSite=Lax`）。
-- **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。`serve` 会话
-  `--session-ttl` 后过期（默认 24 小时）；过期会话返回 401，需重新配对。
+- **配对链接**是一次性 URL `/auth/connect/<token>`。令牌一次性有效，5 分钟后过期。
+  打开即配对：服务返回 `Set-Cookie: vfox-plus-session=<session>`（`Secure`、`HttpOnly`、
+  `SameSite=Lax`）和到 `/app` 的重定向（`303`）。链接由应用生成：设置里的*在浏览器中打开*与
+  *复制链接*给本机的浏览器，*配对手机*给网络中的设备。
+- **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。给其他设备的
+  服务器的会话 24 小时后过期；本机服务器的会话与应用运行同长。过期会话返回 401，需重新配对。
 - 写操作路由另外拒绝浏览器的跨源请求，用 `net/http` 的跨源保护：`Sec-Fetch-Site`
   不是 `same-origin`（或 `none`），或没有该头时 `Origin` 的主机与所请求的主机不同，
   返回 403。两个头都不带（如 curl）的请求凭会话 cookie 直接放行。
-- 每个用户一个**共享服务**拥有应用状态：桌面运行时内嵌一个，`service start`
-  的 daemon 或回环 `serve` 登记自己为共享服务，`pair` 从活着的那个增发。发现文件是设置旁的 `server.json`
-  （`{"pid", "port", "adminToken", "owner", "startedAt"}`，0600）；发现时删掉
-  过期文件。无活 server 的 `pair` 起自己的只读快照服务，除非服务已禁用
-  （`service.json`，`{"disabled": true}`）。
-- **管理 bearer** 在回环上无会话增发链接：`pair` 与回环 `serve` 从发现文件读
-  令牌，以 `Authorization: Bearer <token>` 调 `GET /api/token`。非回环连接
-  即使令牌正确也拒绝，且它永不变成 cookie。
-- `pair` 模式只提供配对流程与只读快照。下述路由需要拥有 `AppModel` 的 `serve`
-  模式。
+- 两个**服务器**共用同一份应用状态，各有各的令牌与会话（见[架构](architecture.md#远端前端)）。
+  **本机服务器**在设置 `webInterface` 开启时监听 `127.0.0.1` 的空闲端口，明文 HTTP。
+  **远端服务器**在 `webRemote` 也开启时监听 `0.0.0.0` 和设置 `webPort`（默认 8369）的端口，
+  仅 HTTPS。关闭一项设置会关掉对应服务器和它持有的所有连接；该服务器的会话随之结束。
+  重启应用后配对不保留。
+- 网页界面的页面可以读取并修改其他设备如何连接、应用在没有窗口时是否继续运行，也可以退出应用
+  （`/api/web`、`/api/quit`）；它们不能关掉网页界面本身。
 
 ## 配对
 
 | 方法与路径 | 认证 | 含义 |
 | --- | --- | --- |
-| `GET /` | 无 | 介绍页，绝口不提令牌。 |
-| `GET /auth/connect/<token>` | 令牌 | 消费令牌、种会话 cookie、渲染结果页。无效、已用或过期令牌返回 403。 |
-| `GET /api/status` | 会话 | 只读快照（`pair` 模式）：`{hasVfox, vfoxVersion?, vfoxError?, sdks[]}`，`sdks[] = {name, current, hasCurrent, versions[]}`。 |
-| `GET /api/token` | 会话，或回环管理 bearer | 为第二个浏览器（或本机 CLI）增发一次性配对链接：`{url}`，按调用方 host 渲染。 |
+| `GET /` | 无 | 介绍页，说明去哪里拿链接（应用的设置）。绝口不提令牌。 |
+| `GET /auth/connect/<token>` | 令牌 | 消费令牌、种会话 cookie、重定向到 `/app`。无效、已用或过期令牌返回 403。 |
+| `GET /api/token` | 会话 | 为第二个浏览器增发一次性配对链接：`{url}`，按调用方 host 渲染。 |
 
-终端上，非回环监听的 `vfox-plus serve` 还把配对链接打印成二维码
-（`mygo/pair.TerminalQRCode`），地址取可达局域网地址
-（`ReachablePairingURL`），供安卓 App 扫描免输入。回环监听只打文本：手机
-反正连不上。远端访问默认关闭：`serve` 无显式 `--allow-remote` 时拒绝非回环
-监听（发布 Docker 镜像经其 `CMD` opt-in）。
+设置里的配对二维码是远端服务器的配对链接，链接里带本机在某个网络上的地址（`Host.RemoteLink`），
+画成二维码（`mygo/pair.QRMatrix`；Web 界面的页面通过 `POST /api/web/pairing` 拿到 SVG 形式），
+供安卓 App 扫描免输入。其他设备默认关闭：设置在把电脑开放给网络之前先要求确认。
 
 ## Web 界面
 
@@ -59,7 +53,7 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 
 ## 总览
 
-`GET /api/inventory`（会话，仅 `serve`）一次返回已安装 SDK、插件仓库与 vfox
+`GET /api/inventory`（会话）一次返回已安装 SDK、插件仓库与 vfox
 配置。每节自带加载与错误状态，与桌面界面一致：
 
 ```json
@@ -163,7 +157,7 @@ stateDiagram-v2
 ```
 
 同一时刻只跑一条变更命令，其余排队。队列是进程内的，每条任务还在 vfox 进程
-运行时另持跨进程文件锁（设置旁 `tasks.lock`），桌面与 LAN `serve` 并存时变更
+运行时另持跨进程文件锁（设置旁 `tasks.lock`），两个用户的应用共用一个 vfox 数据目录时变更
 依然串行。
 
 | 方法与路径 | 含义 |
@@ -204,6 +198,10 @@ stateDiagram-v2
 | --- | --- |
 | `GET /api/settings` | 可编辑的 GUI 设置：`{vfoxExecutable, extraEnvironment, language}`。 |
 | `PUT /api/settings` | 更新它们（`language` 为 `system`、`english` 或 `simplifiedChinese`）。未知语言 400。 |
+| `GET /api/web` | 其他设备如何连接，以及应用没有窗口时是否继续运行：`{remote, port, lightweight, listening, addresses[], fingerprint, selfSigned, error}`。`remote`、`port` 与 `lightweight` 是设置 `webRemote`、`webPort` 与 `lightweight`；其余是远端服务器据此做成的样子：是否 `listening`、本机在各网络上的 `addresses`（IPv4 在前）、其证书的 SHA-256 `fingerprint` 以及是否由应用自己生成（`selfSigned`），以及允许其他设备却连不上时的 `error`（端口被占用、证书加载失败）。 |
+| `PUT /api/web` | 修改 `{remote, port, lightweight}` 中的任意项（同源）。`port` 不在 1024 到 65535 内返回 400。应答是新的 `GET /api/web`，它可能还显示服务器原来的样子：服务器立即跟随设置，页面通过 `web` 事件得知。 |
+| `POST /api/web/pairing` | 为网络中的设备生成配对链接（同源）：请求体可以指定 `host`，即 `addresses` 之一；应答 `{url, svg}`，链接与 SVG 形式的二维码。其他设备连不上，或该地址不属于本机，返回 409。 |
+| `POST /api/quit` | 退出应用（同源）：应答 202 `{quitting: true}`，随后很快退出。运行中的任务会被取消。 |
 | `PUT /api/config` | 设置一个 vfox 键：`{key, value}`。vfox 失败 502 并带其消息。 |
 | `DELETE /api/config?key=<key>` | 重置一个 vfox 键为默认。 |
 
@@ -211,12 +209,13 @@ stateDiagram-v2
 
 `GET /api/events`（会话）是 server-sent-events 流。消息为 `event: <kind>` 加空
 JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连接后）、`task`、
-`inventory`、`vfox`。每 25 秒 `: ping` 心跳注释，防止代理掐掉空闲连接。
+`inventory`、`vfox`、`web`（其他设备的连接变了）。每 25 秒 `: ping` 心跳注释，防止代理掐掉空闲连接。
 
 ## TLS
 
-非回环监听一律 HTTPS。未传 `--tls-cert/--tls-key` 时服务首次启动在设置旁生成
-自签名证书对（`mygo/pair/tlscert.go`）并打印 SHA-256 指纹。浏览器与安卓 App 在
+远端服务器一律 HTTPS，`NewServer` 没有证书就拒绝监听回环之外的地址。设置里没有 `webCertificate`
+与 `webKey` 时，应用在第一次允许其他设备时在设置旁生成自签名证书对
+（`mygo/pair/tlscert.go`），设置里显示它的 SHA-256 指纹。浏览器与安卓 App 在
 信任证书前必须展示该指纹供核对。自带证书可免去警告。会话 cookie 恒为
 `Secure`：回环来源可信，浏览器在纯 HTTP 回环上也会送回它。
 
@@ -239,3 +238,27 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
     提供这两项，只有 App 才显示这张卡片。
 - 它按本文档编程，不直连 Go 代码：列表用总览，进度用 `/api/tasks` +
   `/api/events`，动作用 POST 路由。
+
+## 网关
+
+`mygo/gateway`（Docker 镜像，见[网关](architecture.md#网关)）把某个实例的界面，经 HTTPS 在 8080 端口提供给与它
+配对的浏览器。它把本协议用了两次。对浏览器它是服务器：同样的一次性链接（`/auth/connect/<token>`，五分钟）
+和会话（24 小时），cookie 是 `vfox-plus-gateway`。对某个实例的远端服务器它是客户端，和安卓 App 一样：人粘贴
+的配对链接、会话 cookie `vfox-plus-session`，以及由根证书或指纹信任的证书。
+
+| 路由 | 由谁应答 | 说明 |
+| --- | --- | --- |
+| `GET /` | 网关 | 未配对的浏览器看到说明如何配对的页面；已配对的看到所配对的实例和下面的表单。 |
+| `GET /auth/connect/<token>` | 网关 | 配对浏览器：网关已与某个实例配对时 `303` 到 `/app`，否则到 `/`。链接无效、已用或过期时 `403`。 |
+| `GET /api/token` | 网关 | 网关的会话：`{"url": "https://<请求的主机>/auth/connect/<token>"}`，给第二个浏览器的链接。 |
+| `POST /gateway/connect` | 网关 | 已配对的浏览器从页面提交，表单字段 `link` 是某个实例的配对链接。网关与它配对成功时 `303` 到 `/app`；没人担保它的证书、且不是以前信任过的那个时，`200` 并显示要核对的指纹；不是配对链接时 `400`（地址不是主机名或 IP 地址、加上 1 到 65535 的端口或不带端口，也不是）；实例拒绝时 `403`；连不上时 `502`。 |
+| `POST /gateway/trust` | 网关 | `link` 和 `fingerprint`，来自显示指纹的页面：与指纹相符的证书配对（地址上的证书不是展示过的那个时 `409`）。 |
+| `POST /gateway/invite` | 网关 | 一个带有给另一个浏览器的链接的页面。 |
+| `POST /gateway/forget` | 网关 | 忘记实例及在它那里的会话；`303` 到 `/`。 |
+| `/app`、`/api/*`、`/manifest.webmanifest` | 实例 | 带着网关的会话转发（清单也转发给未配对的浏览器，因为实例就是这样提供它的）。 |
+
+网关的表单需要已配对的浏览器（`401`）、网关自己的来源（`403`），且不超过 8 KiB（`400`）。实例的路由，对没有与网关
+配对的浏览器是 `401`（`/app` 则重定向到 `/`），网关没有配对任何实例或会话已结束时，每个路由也是：应答用界面读取
+错误的形式说明，`{"error": "…"}`。连不上实例时，API 以同样的形式应答 `502`，`/app` 则应答 `502` 和一个页面。
+浏览器上能认出它的东西（cookie、`Origin`、`Referer`、`Forwarded` 头）都留在网关里，实例的 `Set-Cookie` 不会到达
+浏览器。

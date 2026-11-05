@@ -81,9 +81,25 @@ type AppSettings struct {
 	ExtraEnvironment map[string]string
 	// Whether the navigation rail shows labels next to the icons.
 	RailExpanded bool
-	// Whether this machine may be driven remotely: the desktop serves a
-	// pairing server on loopback while it runs. Off by default.
-	RemoteAccess bool
+	// Whether the application serves its web interface on this machine while it
+	// runs: browsers on this machine pair with it through a loopback server.
+	// Off by default.
+	WebInterface bool
+	// Whether closing the window keeps the application running without it, with
+	// the web interface still served, instead of quitting. It only means something
+	// while the web interface is on.
+	Lightweight bool
+	// Whether other devices on the network, such as a phone, may connect to the
+	// web interface too, over HTTPS. Off by default, and only while the web
+	// interface is on.
+	WebRemote bool
+	// The port that other devices connect to, or 0 for DefaultWebPort. A port
+	// that is not between MinWebPort and MaxWebPort is treated as 0.
+	WebPort int
+	// The PEM files of the certificate and of the private key that other devices
+	// get over HTTPS, or empty for a certificate that the application makes for
+	// itself and signs itself.
+	WebCertificate, WebKey string
 	// What the user chose to list for the plugins whose search takes an
 	// argument, such as the distribution of Java: the plugin name, then the
 	// value of the choice (`tem`). A plugin that lists its default has no entry.
@@ -91,6 +107,27 @@ type AppSettings struct {
 	// Keys of the settings file that this version does not know, kept as
 	// they are so that settings written by a newer version survive.
 	Unknown map[string]interface{}
+}
+
+// The port that other devices connect to, when the user did not choose one, and
+// the ports that they may choose: those above the ports of the system, which an
+// application without privileges cannot listen on.
+const (
+	DefaultWebPort = 8369
+	MinWebPort     = 1024
+	MaxWebPort     = 65535
+)
+
+// ValidWebPort reports whether port is one that the web interface may listen
+// on for other devices.
+func ValidWebPort(port int) bool { return port >= MinWebPort && port <= MaxWebPort }
+
+// EffectiveWebPort is the port that other devices connect to.
+func (s AppSettings) EffectiveWebPort() int {
+	if ValidWebPort(s.WebPort) {
+		return s.WebPort
+	}
+	return DefaultWebPort
 }
 
 // DefaultSettings returns the settings of a fresh installation.
@@ -106,10 +143,13 @@ func DefaultSettings() AppSettings {
 	}
 }
 
+// knownKeys are the keys that this version reads. remoteAccess is the old name
+// of webInterface: it is read when webInterface is absent, and no longer written.
 var knownKeys = map[string]bool{
 	"theme": true, "useSystemColor": true, "seedColor": true, "language": true,
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
-	"remoteAccess": true, "searches": true,
+	"webInterface": true, "lightweight": true, "webRemote": true, "webPort": true,
+	"webCertificate": true, "webKey": true, "remoteAccess": true, "searches": true,
 }
 
 // Clone returns a copy that shares no map with s, so that it can be modified.
@@ -170,8 +210,26 @@ func SettingsFromJSON(data interface{}) AppSettings {
 	if expanded, ok := object["railExpanded"].(bool); ok && expanded {
 		settings.RailExpanded = true
 	}
-	if remote, ok := object["remoteAccess"].(bool); ok {
-		settings.RemoteAccess = remote
+	if web, ok := object["webInterface"].(bool); ok {
+		settings.WebInterface = web
+	} else if legacy, ok := object["remoteAccess"].(bool); ok {
+		settings.WebInterface = legacy
+	}
+	if lightweight, ok := object["lightweight"].(bool); ok {
+		settings.Lightweight = lightweight
+	}
+	if remote, ok := object["webRemote"].(bool); ok {
+		settings.WebRemote = remote
+	}
+	// JSON numbers decode as float64.
+	if port, ok := object["webPort"].(float64); ok && port == float64(int(port)) && ValidWebPort(int(port)) {
+		settings.WebPort = int(port)
+	}
+	if certificate, ok := object["webCertificate"].(string); ok {
+		settings.WebCertificate = certificate
+	}
+	if key, ok := object["webKey"].(string); ok {
+		settings.WebKey = key
 	}
 	for key, value := range object {
 		if !knownKeys[key] {
@@ -205,7 +263,18 @@ func settingsJSON(settings AppSettings) string {
 	}
 	fmt.Fprintf(&out, ",%q:%s", "extraEnvironment", environment)
 	fmt.Fprintf(&out, ",%q:%v", "railExpanded", settings.RailExpanded)
-	fmt.Fprintf(&out, ",%q:%v", "remoteAccess", settings.RemoteAccess)
+	fmt.Fprintf(&out, ",%q:%v", "webInterface", settings.WebInterface)
+	fmt.Fprintf(&out, ",%q:%v", "lightweight", settings.Lightweight)
+	fmt.Fprintf(&out, ",%q:%v", "webRemote", settings.WebRemote)
+	if ValidWebPort(settings.WebPort) {
+		fmt.Fprintf(&out, ",%q:%d", "webPort", settings.WebPort)
+	}
+	for _, field := range []struct{ key, value string }{{"webCertificate", settings.WebCertificate}, {"webKey", settings.WebKey}} {
+		if field.value != "" {
+			quoted, _ := json.Marshal(field.value)
+			fmt.Fprintf(&out, ",%q:%s", field.key, quoted)
+		}
+	}
 	searches, err := json.Marshal(settings.Searches)
 	if err != nil || string(searches) == "null" {
 		searches = []byte("{}")
@@ -245,7 +314,9 @@ func (s AppSettings) Equal(other AppSettings) bool {
 	if s.Theme != other.Theme || s.UseSystemColor != other.UseSystemColor ||
 		s.SeedColor != other.SeedColor || s.Language != other.Language ||
 		s.VfoxExecutable != other.VfoxExecutable || s.RailExpanded != other.RailExpanded ||
-		s.RemoteAccess != other.RemoteAccess ||
+		s.WebInterface != other.WebInterface || s.Lightweight != other.Lightweight ||
+		s.WebRemote != other.WebRemote || s.EffectiveWebPort() != other.EffectiveWebPort() ||
+		s.WebCertificate != other.WebCertificate || s.WebKey != other.WebKey ||
 		len(s.ExtraEnvironment) != len(other.ExtraEnvironment) || len(s.Searches) != len(other.Searches) {
 		return false
 	}

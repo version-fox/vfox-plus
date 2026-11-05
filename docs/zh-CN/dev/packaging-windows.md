@@ -114,6 +114,10 @@ Get-ChildItem Cert:\LocalMachine\TrustedPeople |
 卸载、再运行一次，并检查恰有一张证书受信任。提权副本是 CI 走不到的唯一路径，因为 runner 是关了
 UAC 的管理员；改动之后需要在有 UAC 的机器上跑一次。
 
+`run-windows` 任务在同样两个运行器上运行应用本身，用 `build` 任务交叉编译出的 Windows 端到端构建：对假 vfox 的场景，
+以及托盘图标（见[托盘](architecture.md#托盘)；ARM 的运行器的 shell 不接受任何图标，所以图标的位置只在
+Windows Server 2025 上检查）。
+
 ## 签名说明（维护者）
 
 - 已签名包的发布者必须与证书主题完全一致、不带 OID——签名因此重建包，而非直接签

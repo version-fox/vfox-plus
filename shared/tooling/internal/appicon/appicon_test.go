@@ -70,6 +70,54 @@ func TestRender(t *testing.T) {
 	}
 }
 
+func TestRenderFox(t *testing.T) {
+	for _, size := range []int{16, 32, 64} {
+		img := RenderFox(size)
+		if b := img.Bounds(); b.Dx() != size || b.Dy() != size {
+			t.Fatalf("size = %v, want %d", b, size)
+		}
+		// The fox is centred, as big as the air around it allows, and nothing else is drawn:
+		// the plate is indigo and the fox has none of that.
+		minX, minY, maxX, maxY := size, size, -1, -1
+		var ink, orange int
+		for y := 0; y < size; y++ {
+			for x := 0; x < size; x++ {
+				c := img.NRGBAAt(x, y)
+				if c.A == 0 {
+					continue
+				}
+				minX, maxX = min(minX, x), max(maxX, x)
+				minY, maxY = min(minY, y), max(maxY, y)
+				if c.A == 255 && c.B > 0x90 && c.R < 0x60 {
+					t.Fatalf("%d px: pixel %d,%d = %v is the plate", size, x, y, c)
+				}
+				if near(c, "#17123F", 16) {
+					ink++
+				}
+				if c.A == 255 && c.R > 0xF0 && c.G > 0x70 && c.G < 0xC0 && c.B < 0x60 {
+					orange++
+				}
+			}
+		}
+		if maxX < minX {
+			t.Fatalf("%d px: nothing is drawn", size)
+		}
+		air := float64(size) * foxAir
+		if float64(minX) > air+1.5 || float64(size-1-maxX) > air+1.5 {
+			t.Errorf("%d px: the fox spans x %d to %d, want it to fill the width but the air of %.1f px", size, minX, maxX, air)
+		}
+		if d := (minX + maxX) - (size - 1); d < -1 || d > 1 {
+			t.Errorf("%d px: the fox spans x %d to %d, which is not centred", size, minX, maxX)
+		}
+		if d := (minY + maxY) - (size - 1); d < -2 || d > 2 {
+			t.Errorf("%d px: the fox spans y %d to %d, which is not centred", size, minY, maxY)
+		}
+		if size >= 32 && (ink == 0 || orange == 0) {
+			t.Errorf("%d px: %d pixels of ink and %d of orange, want both: the eyes and the fur", size, ink, orange)
+		}
+	}
+}
+
 func TestRenderWide(t *testing.T) {
 	// The wide logo has the icon of its height in the middle and nothing around it.
 	if c := pixel(t, 310, 150, 3, 75); c.A != 0 {

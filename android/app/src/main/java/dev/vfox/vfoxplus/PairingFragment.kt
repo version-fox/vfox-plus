@@ -15,11 +15,9 @@
 package dev.vfox.vfoxplus
 
 import android.Manifest
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -39,8 +37,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dev.vfox.vfoxplus.databinding.FragmentPairingBinding
 
-// The native Material 3 Expressive pairing flow: scan the terminal QR code or
-// paste the one-time link the PC printed, compare the certificate fingerprint,
+// The native Material 3 Expressive pairing flow: scan the QR code that the PC
+// shows or paste its one-time link, compare the certificate fingerprint,
 // connect.
 class PairingFragment : Fragment() {
     private var _binding: FragmentPairingBinding? = null
@@ -97,7 +95,6 @@ class PairingFragment : Fragment() {
             binding.reconnectButton.setOnClickListener { openViewer(appUrl(last)) }
         }
 
-        binding.copyButton.setOnClickListener { copyCommand() }
         binding.scanButton.setOnClickListener { scan() }
         binding.connectButton.setOnClickListener { tryConnect(binding.linkField.text?.toString().orEmpty()) }
         binding.howButton.setOnClickListener { showHowTo() }
@@ -129,7 +126,7 @@ class PairingFragment : Fragment() {
         binding.hero.springIn(0, 40f)
         binding.title.springIn(70)
         binding.body.springIn(110)
-        val steps = listOf(binding.reconnectCard, binding.commandCard, binding.scanButton, binding.linkLayout, binding.connectButton)
+        val steps = listOf(binding.reconnectCard, binding.whereCard, binding.scanButton, binding.linkLayout, binding.connectButton)
         steps.filter { it.isVisible }.forEachIndexed { index, step -> step.springIn(170L + index * 50) }
         binding.howButton.springIn(170L + steps.size * 50)
     }
@@ -154,14 +151,6 @@ class PairingFragment : Fragment() {
     private fun paste() {
         val text = clipboard().primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(requireContext())
         if (!text.isNullOrBlank()) binding.linkField.setText(text.toString().trim())
-    }
-
-    private fun copyCommand() {
-        clipboard().setPrimaryClip(ClipData.newPlainText(getString(R.string.command_label), getString(R.string.pair_command)))
-        // From Android 13 the system confirms a copy itself.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Snackbar.make(binding.root, getString(R.string.command_copied), Snackbar.LENGTH_SHORT).show()
-        }
     }
 
     private fun tryConnect(link: String) {

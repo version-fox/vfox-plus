@@ -8,6 +8,7 @@
 | 文件 | 职责 |
 | --- | --- |
 | [`base.Dockerfile`](../../../shared/sandbox/base.Dockerfile) | 基础镜像：Ubuntu 26.04、虚拟显示器、字体、默认壁纸、Debian 打包工具、锁定的 vfox 与非特权用户 `tester` |
+| [`gnome.Dockerfile`](../../../shared/sandbox/gnome.Dockerfile) | 没有屏幕的 GNOME Shell（Ubuntu 的，带它的 AppIndicator 扩展）与非特权用户 `tester` 的镜像，`vfxtool gnome-session` 在其中运行托盘图标的端到端场景（CI 的 `tray-gnome` 任务；它不是 `vfxtool sandbox` 的沙箱镜像，构建产物与 vfxtool 以挂载方式放进去） |
 | [`../tooling/internal/sandbox`](../../../shared/tooling/internal/sandbox) | 宿主侧（`vfxtool sandbox`）：构建镜像、在容器跑任务、跑安装测试 |
 | [`../tooling/internal/runtask`](../../../shared/tooling/internal/runtask) | 容器侧（`vfxtool runtask`）：复制仓库、以 `tester` 跑命令、发布结果、启动虚拟显示器、冒烟测试与安装测试包 |
 

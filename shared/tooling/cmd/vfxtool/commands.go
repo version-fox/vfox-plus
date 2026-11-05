@@ -24,12 +24,15 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/e2erun"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fakevfox"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fetch"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/gatewaycheck"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/gnomesession"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/golicenses"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/installpkgs"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measure"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureapk"
-	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureserve"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/measurelightweight"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/phoneframe"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/sandbox"
@@ -46,12 +49,16 @@ func init() {
 	commands["prepare"] = prepare.Run
 	commands["coverage"] = coverage.Run
 	commands["measure"] = measure.Run
-	commands["measure-serve"] = measureserve.Run
+	commands["measure-lightweight"] = measurelightweight.Run
 	commands["measure-apk"] = measureapk.Run
 	commands["webheap"] = webheap.Run
 	commands["screenshots"] = screenshots.Run
 	commands["smoke-test"] = smoketest.Run
 	commands["e2e-run"] = e2erun.Run
+	commands["gateway-check"] = gatewaycheck.Run
+	commands["gateway-shots"] = gatewaycheck.Shots
+	commands["frame-phone"] = phoneframe.Run
+	commands["gnome-session"] = gnomesession.Run
 	commands["capture"] = capture.Run
 	commands["fake-vfox"] = fakevfox.Run
 	commands["build-deb"] = builddeb.Run

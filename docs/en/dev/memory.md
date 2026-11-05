@@ -27,47 +27,155 @@ of the native user interface and the automation plugin of mygo, which the measur
 it through. They take up to 1 MB of PSS, which the release build does not.
 
 The Android client (`android/`) is not in this table: it is a WebView around
-the pairing server, so its memory is the system WebView's plus the page, and it
+the web interface, so its memory is the system WebView's plus the page, and it
 is measured on the device, not with this method. What its toolkit costs is in
 [Views or Compose in the Android app](#views-or-compose-in-the-android-app).
 
-## The pairing server and the background service
+## The lightweight mode
 
-`vfox-plus serve` with a model and the headless `vfox-plus-serve serve`
-idle at about the same order of magnitude, measured the same way — one
-process, smaps_rollup, a fresh home directory without vfox, settled after
-start:
+With the web interface and the lightweight mode on, closing the window leaves the
+application running without it (see [the architecture](architecture.md#the-window-and-the-lightweight-mode)).
+`vfxtool measure-lightweight` measures it the same way as the table above — one process,
+smaps_rollup, a fresh home directory with the fake vfox, settled after start — on the
+same WSL2 host, on 2026-11-04:
 
-| Server | Binary | RSS | PSS |
-| --- | --- | ---: | ---: |
-| `vfox-plus serve` | desktop binary, 18 MB | 16 MB | 16 MB |
-| `vfox-plus-serve serve` | headless binary, 12 MB | 11 MB | 11 MB |
+| State | RSS | PSS |
+| --- | ---: | ---: |
+| Window open, Home page, web interface on | 62 MB | 48 MB |
+| Window closed (`lightweight-idle`) | 46 MB | 33 MB |
+| Window closed, a browser paired and past its first inventory (`lightweight-loaded`) | 50 MB | 37 MB |
 
-The headless binary (`mygo/cmd/vfox-plus-serve`: the same `pair`, `serve`
-and `service` commands without the mygo user interface) sheds about a third
-of the binary and of the resident set; the idle model itself accounts for
-only about a megabyte either way, and the rest is the Go runtime and the
-touched code pages of the binary. There is no single stable number: a reading
-right after start comes out lower, before all code pages are faulted in, and
-garbage collection timing moves the heap by megabytes. Treat these as one
-snapshot, like the table above, and re-measure rather than compare across
-machines. The desktop embeds the same server in its own process when remote
-access is switched on, so it adds no process and only a listener with idle
-goroutines; with remote access off (the default) it adds nothing at all.
+Before the application told the system what it does not want, which is described below, the same two
+rows were 57 and 58 MB of RSS and 44 and 45 MB of PSS on the same host, as three runs of each build
+agree to the megabyte.
+
+Closing the window frees what the window held: its widgets, the shared-memory buffer
+that it drew into, the page, the lists and the listeners (about 5 MB). It does not unload
+the toolkit, and most of what stays resident is not memory that the application holds. Of the
+57 MB that the window closed left resident, 15.6 MB is private memory, the heap and the stacks.
+The rest is clean pages of files, which the system can take back whenever it needs the memory: the code
+of the executable that was touched (17 MB: a Go executable is mapped whole, and the system maps
+sixteen pages around every one that runs), the fonts that the toolkit mapped (10 MB), GTK 3 and the
+libraries it loads. A desktop application keeps them for as long as it runs, so the lightweight mode
+saved a few MB, and its point is not memory: it is that the web interface, its sessions and the tasks that
+run go on without a window, and that the window comes back from the icon in the tray or by starting the
+application again.
+
+### What the application does about the pages of files
+
+When the window has stayed closed for two seconds, the application tells the system that it does not want
+those pages for now (`App.scheduleTrim`, `pageOutFiles` of `ui/memory_linux.go`): `madvise` with
+`MADV_PAGEOUT`, from Linux 5.4, on the mappings that are the code and the read-only data of files and have
+no page that the process wrote. The system takes them back at once instead of when it needs the memory
+of another program, and then the resident set is what the application runs. The pages that other programs
+map too, as those of the libraries of the desktop, are left where they are by the system, which pages out
+only what one process maps. A window that opens in the two seconds, which needs them, cancels it; and the
+pages come back when something runs them: the first request that the web interface got after a minute of
+idleness took 14 ms in one measurement and under 1 ms in the next, where it took 1 ms before, and a window
+opened from the icon in the tray took 0.15 to 0.25 s, as it did (0.19 s). Sampled for three minutes the
+resident set does not creep back.
+
+The table above is what it comes to: 11 or 12 MB of RSS and PSS less at rest, 8 MB less after a browser has used
+the application. Private memory does not change by it beyond what runs of the same build differ by: the reading of
+`/proc/self/smaps` that finds the mappings leaves no garbage that the collection after it does not return
+(it is read line by line and taken apart where it lies), and the measurements show 0.2 MB more of private
+memory with it. Where the system does not have the call, or the program is not on Linux, nothing happens.
+
+The scheduler of Go uses at most four processors (`limitProcessors` of `main.go`), unless the user sets
+`GOMAXPROCS`: the work of the application is waiting, for vfox and for the window, and each processor
+that the scheduler uses keeps caches of memory of its own. On a machine of 16 threads this is 0.5 MB less of
+private memory, 15.2 against 15.7 MB; on a machine of four or fewer it changes nothing. Setting
+`runtime.GOMAXPROCS` when the window closes did not help (0.2 MB worse): it helps only at the start, and
+the call at the start of `main` gets most of what the variable does.
+
+### What it does not change
+
+- **The glyph atlas of the toolkit.** The text system of mygo keeps the masks of the glyphs that the window drew in
+  an atlas that doubles when it is full, up to 4096 by 4096 bytes, 16 MB, and never shrinks again. A window
+  that drew text at many scales (a spring that scales a dialog, or a first frame at an odd size) leaves it at its
+  largest, and the application without its window holds those 16 MB. It is the toolkit's, a process-wide
+  state that the application cannot reach. It happens in about one of five runs of the end-to-end scenarios,
+  which read the window far more often than a person does, and it was never seen in the forty runs that did not
+  use the automation plugin. That is why the cost of the icon in the tray is measured with
+  `vfxtool measure-lightweight --tray`, which does not.
+- **The reclaim of the system.** On this WSL2 host the resident set of an idle process falls by itself after two
+  minutes, from 64 MB to 40 and then to 36, with the private memory where it was: the system takes back the
+  clean pages that nothing runs. The numbers above are measured after ten seconds, before that, and on a
+  machine that does not reclaim, the pages paged out are what the system takes back sooner.
+
+The headless server that the application had before, a binary without the user interface that
+was started from the command line, used about 11 MB. It is gone: the application is a
+desktop application and has no command line. A process without the toolkit would be a second
+program, or the same one started again without its window, and that would drop the paired
+sessions and the tasks that run at the moment it takes over.
+
+## The tray icon
+
+The icon in the tray that stands for the application while its window is closed (see
+[the architecture](architecture.md#the-tray)) is made when the window closes and removed when
+it opens. The rows above are therefore the rows without it where nothing shows an icon, as on a CI
+runner: with a window it holds nothing.
+
+Where there is one, it costs little. Measured on the same host before the pages of files were paged
+out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifierWatcher` (package
+`trayhost` of the tooling), the same build, the window closed, as the mean of five runs. That session reads about
+6 MB above the table above for the same state, so only the differences between its rows count:
+
+| State | RSS | Private memory |
+| --- | ---: | ---: |
+| No icon, with the library that draws it loaded (mygo does when the system has it) | 64.1 MB | 15.6 MB |
+| The icon in the tray | 64.5 MB | 15.7 MB |
+| Without the library, which also means no icon | 63.8 MB | 15.5 MB |
+| An icon made where no host shows it, as `libayatana-appindicator3` falls back to `GtkStatusIcon` | 71.2 MB | 17.4 MB |
+
+- **The icon shown** adds 0.4 MB of RSS and 80 KB of private memory. The 0.4 MB are clean pages of
+  the libraries that draw it, and about what two runs of the same build differ by.
+- **The library** is loaded by mygo when it starts, whenever the system has it and whether an
+  icon is made or not, which costs about 0.3 MB of RSS and 70 KB of private memory in every
+  state. The Debian package recommends it, so a default installation has it.
+- **The fallback** is where memory would go: 7 MB of RSS, 1.8 MB of it private, for the image
+  loaders of the desktop that GTK starts to decode the picture of an icon that no panel shows
+  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why `trayHostAvailable` asks the session bus for a host before the
+  application asks for an icon, and why there is no icon without one.
+
+With the pages of files paged out and the processors limited, the icon is far inside what the application
+saved. With the icon in the tray, in the session of the stand-in host, the application holds 15.2 MB of private
+memory on this host where it held 15.6 MB without the icon before, and its resident set is 11 MB smaller.
+
+CI keeps the cost where it is. `vfxtool measure-lightweight --tray` (the last step of the `measure-remote` job)
+runs the application twice in the same way, where nothing shows an icon and against the stand-in host, and fails the job
+when the icon costs more than 5 MB of resident or 1.5 MB of private memory: room for the noise of a runner, and
+less than the fallback costs, so that an icon made the way the fallback makes it is caught. It does not use the
+automation plugin, for the glyph atlas above. The fallback itself, which costs its memory where there is no host, is
+guarded by the scenario of the icon (`vfxtool e2e-run tray`), which fails when the application makes an icon where
+there is no host. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
+two above: `malloc_trim` after the window closes changed nothing, `MALLOC_ARENA_MAX=1` saved 0.1 MB, and a
+second `debug.FreeOSMemory` a few seconds after the first saved 0.2 MB of private memory and nothing of
+RSS (the collection that follows the paging out is that call). What stays in the Go heap after the window closes
+is, among other things, the text engine of mygo (its paragraph cache, its glyph atlas and its SVG paths), which
+the application has no way to release.
+
+The runner of CI, Ubuntu 26.04 on GitHub, agrees with these numbers, as two runs of the job on the same code
+show: the lightweight mode settles at 45 MB of RSS and 31 to 32 MB of PSS, and at 47 to 48 MB and 34 to 35 MB
+with a browser paired, where the table has 46 and 33, and 50 and 37; and the icon in the tray costs 0.5 MB of RSS and
+0.06 to 0.18 MB of private memory there, where it cost 0.4 MB and 0.08 MB here.
 
 ## Beyond the desktop
 
 The pull-request comment also tracks what the desktop table does not: the
-headless server, the web client heap, and the Android APK. Each has its own
+lightweight mode, the web client heap, and the Android APK. Each has its own
 method, units and noise; compare the rows of one comment, as with the table
 above.
 
-- **Headless server.** `vfxtool measure-serve` starts `vfox-plus-serve serve`
-  on loopback with a fresh home directory and the fake vfox, and prints the
-  RSS and PSS of the server process tree at two settled points: `serve-idle`
-  with no browser, and `serve-loaded` with a paired browser past its first
-  inventory over server-sent events. A change counts only past 5 MB and 5%,
-  like the desktop.
+- **Lightweight mode.** `vfxtool measure-lightweight` starts the end-to-end build of the
+  application under a display (`xvfb-run`) with a fresh home directory, the fake vfox, and
+  settings with the web interface and the lightweight mode on. The end-to-end build writes a
+  pairing link to the file that `VFOX_PLUS_E2E_LINK` names and closes its window on `SIGUSR1`,
+  which a release build has no code for. The tool prints the RSS and PSS of the process tree
+  at two settled points: `lightweight-idle` with the window closed and no browser, and
+  `lightweight-loaded` with a paired browser past its first inventory over server-sent
+  events. A change counts only past 5 MB and 5%, like the desktop. With `--tray` it measures instead what the icon in the
+  tray costs (see [The tray icon](#the-tray-icon)).
 - **Web client heap.** `vfxtool webheap` (which needs a Chrome and nothing else)
   drives the paired `/app` page in headless Chrome through the Chrome DevTools
   Protocol and writes the JavaScript heap in bytes at two points: `app` after
@@ -79,7 +187,7 @@ above.
   settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary
   more than GitHub runners, so a change counts only past 5 MB and 10%.
 
-In CI the `measure-remote` job of `mygo.yml` uploads `memory-serve` and
+In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and
 `memory-web`, the `measure` job of `android.yml` uploads `memory-android`,
 and `memory.yml` reports when either workflow ends, waiting for a still
 running Android run like for the rest. The sections render below the desktop
@@ -187,7 +295,7 @@ commit replaces that comment instead of adding another one.
   runs `vfxtool measure` ([How it is measured](#how-it-is-measured)) and
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
-  workflow's `measure-remote` job uploads `memory-serve` and `memory-web`, and the
+  workflow's `measure-remote` job uploads `memory-lightweight` and `memory-web`, and the
   `measure` job of [`android.yml`](../../../.github/workflows/android.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.

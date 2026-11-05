@@ -15,6 +15,8 @@
 package prepare
 
 import (
+	"bytes"
+	"image/png"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -73,6 +75,33 @@ func TestCopyFiles(t *testing.T) {
 	}
 	if err := copyFiles(src, "*.arb", dst); err == nil {
 		t.Error("copyFiles of nothing = nil, want an error: an empty directory would fail the embedding later")
+	}
+}
+
+func TestWriteTrayIcon(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "tray.png")
+	if err := writeTrayIcon(output); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("the tray icon is not a PNG: %v", err)
+	}
+	if b := img.Bounds(); b.Dx() != trayIconSize || b.Dy() != trayIconSize {
+		t.Errorf("the tray icon is %v, want %d by %d", b, trayIconSize, trayIconSize)
+	}
+	if _, _, _, a := img.At(trayIconSize/2, trayIconSize/2).RGBA(); a != 0xFFFF {
+		t.Error("the middle of the tray icon is not opaque: the fox is not there")
+	}
+	if _, _, _, a := img.At(0, 0).RGBA(); a != 0 {
+		t.Error("the corner of the tray icon is not transparent: there is a plate")
+	}
+	if err := writeTrayIcon(filepath.Join(t.TempDir(), "missing", "tray.png")); err == nil {
+		t.Error("writeTrayIcon into a directory that is not there = nil, want an error")
 	}
 }
 
@@ -157,7 +186,7 @@ func TestRunCollectsTheAssets(t *testing.T) {
 	if requests.Load() != 1 {
 		t.Errorf("%d requests", requests.Load())
 	}
-	for _, name := range []string{"icons/home.svg", "icons/home-fill.svg", "icons/folder_open.svg", "icons/folder_open-fill.svg", "icons.json", "i18n/app_en.arb", "licenses.txt"} {
+	for _, name := range []string{"icons/home.svg", "icons/home-fill.svg", "icons/folder_open.svg", "icons/folder_open-fill.svg", "icons.json", "i18n/app_en.arb", "tray.png", "licenses.txt"} {
 		if _, err := os.Stat(filepath.Join(repo, "mygo", "assets", filepath.FromSlash(name))); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}

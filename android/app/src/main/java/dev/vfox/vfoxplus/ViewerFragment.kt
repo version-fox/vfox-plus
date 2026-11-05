@@ -233,7 +233,7 @@ class ViewerFragment : Fragment(), WebBridge.Host {
 
     // Follows the pairing handshake inside the WebView: after the one-time
     // link sets the session cookie, move to /app. Surfaces TLS problems with
-    // the certificate fingerprint for comparison with the PC terminal. Keeps the
+    // the certificate fingerprint for comparison with the one on the PC. Keeps the
     // window on the paired server: what the page links to elsewhere (the
     // homepage of a plugin, its documentation) opens in the browser instead.
     private inner class PairingWebClient(val startUrl: String) : WebViewClient() {
@@ -288,7 +288,7 @@ class ViewerFragment : Fragment(), WebBridge.Host {
                 .setNegativeButton(android.R.string.cancel) { _, _ -> handler.cancel() }
                 .setOnCancelListener { handler.cancel() }
             if (fingerprint != null) {
-                // The fingerprint in rows of eight bytes, so that it can be compared with the terminal at a glance.
+                // The fingerprint in rows of eight bytes, so that it can be compared with the one on the PC at a glance.
                 val content = DialogTlsBinding.inflate(layoutInflater)
                 content.fingerprint.text = fingerprint.split(":").chunked(8).joinToString("\n") { it.joinToString(":") }
                 dialog.setMessage(R.string.tls_body).setView(content.root)

@@ -14,8 +14,11 @@
 
 # The application: formatting, golangci-lint and the unit tests (with
 # coverage gates), the end-to-end scenarios that drive the built application
-# (against captured output and against the real vfox), the Linux packages and the
-# Windows MSIX bundle.
+# (against captured output and against the real vfox, and its icon in the tray
+# against a stand-in for the host of the tray icons on Linux, against the GNOME
+# Shell of Ubuntu in a container, and against the taskbar on Windows), the Docker
+# image of the gateway (built, and run against the application as the people who use
+# it run it: it is not published), the Linux packages and the Windows MSIX bundle.
 # shared/tooling/internal/runtask runs the same steps locally; keep them in sync.
 # The tool versions are in mygo/versions.env.
 name: mygo
@@ -44,10 +47,12 @@ concurrency:
 env:
   # Packages needed to build and run mygo applications on Linux: nothing to
   # build with (mygo needs no C compiler, and only the race detector of the tests
-  # needs one), GTK 3 to run, which mygo loads when it starts. Fontconfig and the
-  # fonts are what the interface looks up.
+  # needs one), GTK 3 to run, which mygo loads when it starts, and
+  # libayatana-appindicator3, which it loads for the icon in the tray (without it the
+  # application has no icon, and the scenario of the icon has nothing to test).
+  # Fontconfig and the fonts are what the interface looks up.
   LINUX_PACKAGES: >-
-    build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
+    build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk
     xvfb xauth dbus-x11 lintian desktop-file-utils
 
 jobs:
@@ -89,24 +94,6 @@ jobs:
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
       - name: Build the release
         run: '"$RUNNER_TEMP/vfxtool" build --root mygo mygo/build/vfox-plus'
-      - name: Build the headless server
-        run: |
-          "$RUNNER_TEMP/vfxtool" build --package ./cmd/vfox-plus-serve --root mygo mygo/build/vfox-plus-serve
-          mygo/build/vfox-plus-serve --help
-          mygo/build/vfox-plus-serve serve --help
-      - name: Package the headless server tarballs
-        run: |
-          version="$(tr -d '[:space:]' < mygo/VERSION)"
-          # Reproducible timestamps in the archives.
-          epoch="$(git log -1 --format=%ct)"
-          mkdir -p dist-serve/stage-amd64 dist-serve/stage-arm64
-          install -m 755 mygo/build/vfox-plus-serve dist-serve/stage-amd64/vfox-plus-serve
-          install -m 644 LICENSE mygo/assets/licenses.txt dist-serve/stage-amd64/
-          "$RUNNER_TEMP/vfxtool" build --package ./cmd/vfox-plus-serve --goos linux --goarch arm64 --root mygo dist-serve/stage-arm64/vfox-plus-serve
-          install -m 644 LICENSE mygo/assets/licenses.txt dist-serve/stage-arm64/
-          tar --mtime="@$epoch" --sort-name -cf - -C dist-serve/stage-amd64 vfox-plus-serve LICENSE licenses.txt | gzip -n > "dist-serve/vfox-plus-serve_${version}_linux_amd64.tar.gz"
-          tar --mtime="@$epoch" --sort-name -cf - -C dist-serve/stage-arm64 vfox-plus-serve LICENSE licenses.txt | gzip -n > "dist-serve/vfox-plus-serve_${version}_linux_arm64.tar.gz"
-          ls -la dist-serve
       - name: Verify the modules
         working-directory: mygo
         run: go mod verify
@@ -143,7 +130,9 @@ jobs:
           VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory/memory.txt
         run: |
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
-          for scenario in fake real; do
+          # tray: the icon in the tray, against the stand-in for the host of the tray icons that
+          # vfxtool makes: a runner has no panel.
+          for scenario in fake real tray; do
             xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
               "$RUNNER_TEMP/vfxtool" e2e-run "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
           done
@@ -184,6 +173,15 @@ jobs:
         run: |
           "$RUNNER_TEMP/vfxtool" build --goos windows --goarch amd64 --root mygo "$RUNNER_TEMP/stage-x64/vfox-plus.exe"
           "$RUNNER_TEMP/vfxtool" build --goos windows --goarch arm64 --root mygo "$RUNNER_TEMP/stage-arm64/vfox-plus.exe"
+      - name: Cross-compile the end-to-end builds for the run on Windows
+        # The scenarios drive the build with the tag e2e, which a release does not have, and
+        # vfxtool both runs them and stands in for vfox; the Windows runners below use them.
+        run: |
+          for arch in amd64 arm64; do
+            dir="$RUNNER_TEMP/windows-e2e/$arch"
+            "$RUNNER_TEMP/vfxtool" build --e2e --goos windows --goarch "$arch" --root mygo "$dir/vfox-plus-e2e.exe"
+            GOOS=windows GOARCH="$arch" CGO_ENABLED=0 go -C shared/tooling build -o "$dir/vfxtool.exe" ./cmd/vfxtool
+          done
       - name: Build the unsigned .msix and .msixbundle
         run: |
           mkdir -p dist-windows
@@ -219,17 +217,17 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: vfox-plus-serve-linux
-          path: dist-serve/*.tar.gz
-          if-no-files-found: error
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
           name: vfox-plus-windows
           path: dist-windows/*
           if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-windows-e2e
+          path: ${{ runner.temp }}/windows-e2e/*
+          if-no-files-found: error
 
   measure-remote:
-    name: Measure the server and the web client
+    name: Measure the lightweight mode and the web client
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-26.04
@@ -241,33 +239,57 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: shared/tooling/go.sum
+          cache-dependency-path: |
+            mygo/go.sum
+            shared/tooling/go.sum
       - uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
         id: setup-chrome
-      - name: Build vfxtool and the headless server
+      - name: Install the Linux packages
+        # The application is a desktop application: it needs GTK 3 and a display, which
+        # the virtual one of xvfb gives, even to have its web interface served.
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Build vfxtool and the application
         run: |
           go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
-          go -C mygo build -o "$RUNNER_TEMP/vfox-plus-serve" ./cmd/vfox-plus-serve
-      - name: Measure the headless server
+          "$RUNNER_TEMP/vfxtool" prepare --root mygo
+          "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
+      - name: Measure the lightweight mode
         env:
-          VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory-serve/memory.txt
+          VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory-lightweight/memory.txt
         run: |
-          "$RUNNER_TEMP/vfxtool" measure-serve --settle 10 \
-            "$RUNNER_TEMP/vfox-plus-serve" serve --bind 127.0.0.1 --port 0
-          cat "${{ runner.temp }}/memory-serve/memory.txt"
+          xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+            "$RUNNER_TEMP/vfxtool" measure-lightweight --settle 10 "$RUNNER_TEMP/vfox-plus-e2e"
+          cat "${{ runner.temp }}/memory-lightweight/memory.txt"
       - name: Measure the web client heap
+        # The application serves its web interface because its settings say so, and it writes a
+        # pairing link to a file, as the end-to-end build does for the tools.
         run: |
           mkdir -p "${{ runner.temp }}/memory-web"
-          "$RUNNER_TEMP/vfox-plus-serve" serve --bind 127.0.0.1 --port 0 >"$RUNNER_TEMP/serve.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/serve.pid"
-          trap 'kill "$(cat "$RUNNER_TEMP/serve.pid")" 2>/dev/null' EXIT
+          home="$RUNNER_TEMP/web-home"
+          mkdir -p "$home/bin" "$home/run" "$home/.config/vfox-plus"
+          chmod 700 "$home/run"
+          cp "$RUNNER_TEMP/vfxtool" "$home/bin/vfox"
+          echo '{"webInterface":true}' > "$home/.config/vfox-plus/settings.json"
+          env HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$home/run" \
+            PATH="$home/bin:$PATH" NO_COLOR=1 VFOX_PLUS_FIXTURES="$PWD/shared/fixtures/vfox-1.0.13" \
+            VFOX_PLUS_E2E_LINK="$home/link.txt" \
+            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- "$RUNNER_TEMP/vfox-plus-e2e" >"$RUNNER_TEMP/app.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/app.pid"
+          trap 'kill "$(cat "$RUNNER_TEMP/app.pid")" 2>/dev/null' EXIT
           LINK=""
           for _ in $(seq 1 60); do
-            LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' "$RUNNER_TEMP/serve.log" | head -1)"
+            LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' "$home/link.txt" 2>/dev/null | head -1)"
             [ -n "$LINK" ] && break
             sleep 1
           done
-          [ -n "$LINK" ] || { echo "no pairing link in serve.log:"; cat "$RUNNER_TEMP/serve.log"; exit 1; }
+          [ -n "$LINK" ] || { echo "no pairing link in $home/link.txt; the application said:"; cat "$RUNNER_TEMP/app.log"; exit 1; }
           BASE="${LINK%%/auth/connect/*}"
           "$RUNNER_TEMP/vfxtool" webheap --server "$BASE" --pairing "$LINK" \
             --output "${{ runner.temp }}/memory-web/memory.txt" --settle 10 \
@@ -275,8 +297,8 @@ jobs:
           cat "${{ runner.temp }}/memory-web/memory.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: memory-serve
-          path: ${{ runner.temp }}/memory-serve/memory.txt
+          name: memory-lightweight
+          path: ${{ runner.temp }}/memory-lightweight/memory.txt
           if-no-files-found: error
           overwrite: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -285,6 +307,16 @@ jobs:
           path: ${{ runner.temp }}/memory-web/memory.txt
           if-no-files-found: error
           overwrite: true
+      - name: Check what the icon in the tray costs
+        # After the numbers are uploaded, so that a failure here leaves the report whole. A runner has no
+        # panel, so vfxtool stands in for the host of the tray icons, as it does in the scenario of the
+        # icon; the application is run without it and with it, in the same way, and fails the job when
+        # the icon costs more than 5 MB of resident memory or 1.5 MB of private memory: it costs
+        # 0.4 MB and 0.08 MB, and 7 MB and 1.8 MB where nothing shows the icon and the library falls
+        # back to an icon of the old kind.
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+            "$RUNNER_TEMP/vfxtool" measure-lightweight --tray --settle 10 "$RUNNER_TEMP/vfox-plus-e2e"
   validate-windows:
     name: Validate and install the MSIX on Windows (${{ matrix.os }})
     # Forks do not run CI.
@@ -448,3 +480,140 @@ jobs:
             Remove-Item -Path "Cert:\LocalMachine\TrustedPeople\$($certificate.Thumbprint)"
           }
           Write-Host "signed, installed and uninstalled cleanly"
+
+  tray-gnome:
+    name: Run the icon in the tray on GNOME
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            mygo/go.sum
+            shared/tooling/go.sum
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Build vfxtool and the end-to-end build of the application
+        # No package of the runner is needed: the application is built without a C compiler, and it
+        # runs in the container below, which has what it loads.
+        run: |
+          go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+          "$RUNNER_TEMP/vfxtool" prepare --root mygo
+          "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
+      - name: Build the image of a GNOME Shell with no screen
+        # Ubuntu's GNOME Shell and its AppIndicator extension, the library of the icon, and an
+        # ordinary user (shared/sandbox/gnome.Dockerfile).
+        run: docker build --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
+      - name: Run the icon in the tray on the shell
+        # vfxtool gnome-session starts the shell and its extension inside the container, as root
+        # (it makes the system bus that the shell wants) and then as the user of the session, and runs the
+        # scenario on the display of the shell: the application closes its window, the shell puts its icon
+        # in its panel and makes the menu of it, chooses its entries as the user does, and the application
+        # does what they say. The repository is mounted for the captured output of vfox that the scenario uses.
+        run: |
+          docker run --rm --init \
+            --volume "$PWD:/repo:ro" \
+            --volume "$RUNNER_TEMP/vfxtool:/usr/local/bin/vfxtool:ro" \
+            --volume "$RUNNER_TEMP/vfox-plus-e2e:/usr/local/bin/vfox-plus-e2e:ro" \
+            --workdir /repo \
+            vfox-plus-gnome \
+            vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
+
+  gateway:
+    name: Run the image of the gateway against the application
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            mygo/go.sum
+            shared/tooling/go.sum
+      - name: Install the Linux packages
+        # The application is a desktop application: it needs GTK 3 and a display, which the virtual one
+        # of xvfb gives, even to have its web interface served. The gateway is not: it is the image.
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Build vfxtool and the end-to-end build of the application
+        run: |
+          go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+          "$RUNNER_TEMP/vfxtool" prepare --root mygo
+          "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
+      - name: Build the image of the gateway
+        # With the defaults of the Dockerfile, which are what the people who build it get: they have to be
+        # the versions pinned in mygo/versions.env.
+        run: |
+          grep -Fx "ARG GO_VERSION=$GO_VERSION" mygo/Dockerfile
+          grep -Fx "ARG GO_SHA256=$GO_SHA256" mygo/Dockerfile
+          docker build --tag vfox-plus-gateway --file mygo/Dockerfile mygo
+      - name: Run the gateway against the application
+        # vfxtool gateway-check starts the application with its web interface and other devices switched on,
+        # runs the image as a container with a volume of its own, and does what a person does at a browser:
+        # pairs it with the link in the log of the container, pastes a link of the application, compares the
+        # fingerprint of the certificate and uses the application through the gateway. It stops the container
+        # with docker stop while the interface is open, starts it again, and ends the application.
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+            "$RUNNER_TEMP/vfxtool" gateway-check --image vfox-plus-gateway "$RUNNER_TEMP/vfox-plus-e2e"
+
+  run-windows:
+    name: Run the application on Windows (${{ matrix.os }})
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            arch: amd64
+          - os: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    needs: [build]
+    steps:
+      # The scenarios find the captured output of vfox in the repository.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: vfox-plus-windows-e2e
+          path: e2e
+      - name: Run the application against the fake vfox
+        # The window of the application is drawn on the desktop of the runner and driven through
+        # the automation plugin of mygo, as on Linux: the Home page, the versions of Node.js, using
+        # one and installing another. vfxtool.exe is the fake vfox of the scenario, too.
+        shell: pwsh
+        run: |
+          $dir = Join-Path $PWD "e2e/${{ matrix.arch }}"
+          & "$dir/vfxtool.exe" e2e-run fake "$dir/vfox-plus-e2e.exe"
+          if ($LASTEXITCODE -ne 0) { throw "the fake scenario failed with exit code $LASTEXITCODE" }
+      - name: Run the icon in the tray
+        # The application closes its window in the lightweight mode and runs on; the notification
+        # area of the taskbar of the runner has to give its icon a place, the window comes back, and
+        # the application ends as the menu of the icon asks.
+        shell: pwsh
+        run: |
+          $dir = Join-Path $PWD "e2e/${{ matrix.arch }}"
+          & "$dir/vfxtool.exe" e2e-run tray "$dir/vfox-plus-e2e.exe"
+          if ($LASTEXITCODE -ne 0) { throw "the tray scenario failed with exit code $LASTEXITCODE" }

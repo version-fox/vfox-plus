@@ -33,15 +33,17 @@ import (
 	"time"
 )
 
-// certFileName and keyFileName are the self-signed server certificate of
-// `vfox-plus serve`, next to the GUI settings.
+// certFileName and keyFileName are the self-signed certificate that the
+// application makes for the server that other devices connect to, next to the
+// settings.
 const (
 	certFileName = "serve-cert.pem"
 	keyFileName  = "serve-key.pem"
 )
 
 // certValidity is how long a generated certificate lasts. Rotation is
-// manual: deleting the files mints a fresh pair on the next start.
+// manual: deleting the files mints a fresh pair the next time that other
+// devices are allowed to connect.
 const certValidity = 10 * 365 * 24 * time.Hour
 
 // EnsureServerCert returns the certificate and key in dir, generating a
@@ -103,7 +105,7 @@ func generateCert(hosts []string) (certDER, keyDER []byte, err error) {
 	now := time.Now()
 	template := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: "vfox-plus serve"},
+		Subject:      pkix.Name{CommonName: "vfox-plus"},
 		NotBefore:    now.Add(-time.Hour),
 		NotAfter:     now.Add(certValidity),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -185,8 +187,17 @@ func CertFingerprint(certFile string) (string, error) {
 }
 
 // LocalAddresses lists the machine's non-loopback IP addresses, for the
-// certificate of a server behind a port mapping.
-func LocalAddresses() []string {
+// certificate of a server behind a port mapping and for the links that pair
+// other devices.
+func LocalAddresses() []string { return localAddresses() }
+
+// localAddresses is what LocalAddresses asks for: the addresses of the interfaces, and,
+// in the end-to-end build, the ones that VFOX_PLUS_E2E_ADDRESSES names (addresses_e2e.go).
+var localAddresses = interfaceAddresses
+
+// interfaceAddresses lists the non-loopback, non-link-local addresses of the interfaces
+// that are up.
+func interfaceAddresses() []string {
 	var addresses []string
 	interfaces, err := net.Interfaces()
 	if err != nil {

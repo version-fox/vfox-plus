@@ -59,10 +59,7 @@ func testModel(t *testing.T, runner *testsupport.FakeProcessRunner) *state.AppMo
 
 func webServer(t *testing.T, model *state.AppModel) *pair.Server {
 	t.Helper()
-	server, err := pair.NewServer(pair.Options{
-		Snapshot: func() pair.Snapshot { return pair.Snapshot{} },
-		Model:    model,
-	})
+	server, err := pair.NewServer(pair.Options{Model: model})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -379,7 +376,7 @@ func TestWebTaskLog(t *testing.T) {
 	if status, _ := webGet(t, server.BaseURL()+"/api/tasks/9999/log", session); status != http.StatusNotFound {
 		t.Fatalf("got %d", status)
 	}
-	if status, _ := webGetAuth(t, server.BaseURL()+"/api/tasks/1/log", ""); status != http.StatusUnauthorized {
+	if status, _ := webGet(t, server.BaseURL()+"/api/tasks/1/log", ""); status != http.StatusUnauthorized {
 		t.Fatalf("got %d", status)
 	}
 }

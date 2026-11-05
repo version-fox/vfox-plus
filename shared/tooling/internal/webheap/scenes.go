@@ -69,6 +69,16 @@ func tab(name string) []step {
 	return []step{pick(fmt.Sprintf(`#detailTabs [data-tab="%s"]`, name))}
 }
 
+// scrollTo moves the page so that the element that the selector names is at the top of it, under the
+// bar of the page, which a page longer than the window needs for a picture of what is further down.
+func scrollTo(selector string) step {
+	return until(fmt.Sprintf("(() => { const element = document.querySelector(%q); if (!element) return false; "+
+		"element.style.scrollMarginTop = '72px'; element.scrollIntoView({block: 'start'}); return true; })()", selector))
+}
+
+// connections opens the settings and waits for the card of the connections to be drawn.
+var connections = []step{pick(`[data-tab="settings"]`), exists("#webList .item")}
+
 // versions waits for the list of the available versions to be drawn.
 var versions = []step{exists("#vList .vrow")}
 
@@ -94,6 +104,10 @@ func init() {
 	scenes["flutter-chips"] = concat(plugin("flutter"), tab("available"), versions, []step{
 		pick(`#vChips [data-v="stable"]`), exists(`#vChips [data-v="stable"][aria-pressed="true"]`),
 	})
+	// The card of the connections, and the code that it shows to pair a phone: they need the application to
+	// allow other devices (the setting webRemote) and to have an address to give.
+	scenes["connections"] = concat(connections, []step{scrollTo("#webCard")})
+	scenes["connections-pair"] = concat(connections, []step{pick("#webPair"), exists("#pairBox .qr"), scrollTo("#pairBox")})
 	scenes["options"] = options
 	scenes["options-mirror"] = concat(options, []step{
 		pick(`[data-var="VFOX_NODEJS_MIRROR"]`), pick(`#varChips [data-value="https://npmmirror.com/mirrors/node"]`),

@@ -12,6 +12,7 @@
     "back": "arrow_back",
     "cache": "cached",
     "cancel": "close",
+    "certificate": "lock",
     "check": "check",
     "chevronRight": "chevron_right",
     "close": "close",
@@ -34,17 +35,21 @@
     "legacyFiles": "history",
     "license": "gavel",
     "lightMode": "light_mode",
+    "lightweight": "eco",
     "menu": "menu",
     "menuOpen": "menu_open",
     "more": "more_vert",
     "notFound": "search_off",
     "openInNew": "open_in_new",
     "options": "tune",
+    "otherDevices": "devices",
     "palette": "palette",
     "plugins": "extension",
     "projectScope": "folder",
     "proxy": "vpn_lock",
+    "qrCode": "qr_code_2",
     "queued": "hourglass_empty",
+    "quit": "power_settings_new",
     "refresh": "refresh",
     "registry": "hub",
     "removePlugin": "extension_off",
@@ -64,6 +69,7 @@
     "verified": "verified",
     "versions": "layers",
     "vfoxConfig": "tune",
-    "warning": "warning"
+    "warning": "warning",
+    "webInterface": "language"
   }
 }

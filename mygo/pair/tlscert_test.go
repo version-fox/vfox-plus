@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
 	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
@@ -113,7 +114,7 @@ func TestTLSServerPairsOverHTTPS(t *testing.T) {
 		TLSCertFile:      certFile,
 		TLSKeyFile:       keyFile,
 		Fingerprint:      fingerprint,
-		Snapshot:         func() pair.Snapshot { return testSnapshot() },
+		Model:            testModel(t, testsupport.FixtureRunner()),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -131,12 +132,13 @@ func TestTLSServerPairsOverHTTPS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	response, err := client.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode != http.StatusOK {
+	if response.StatusCode != http.StatusSeeOther {
 		t.Fatalf("got %d", response.StatusCode)
 	}
 	secure := false
@@ -151,7 +153,7 @@ func TestTLSServerPairsOverHTTPS(t *testing.T) {
 }
 
 func TestServerCookieIsSecure(t *testing.T) {
-	server := testServer(t, testSnapshot())
+	server := testServer(t)
 	_, url, err := server.NewToken()
 	if err != nil {
 		t.Fatal(err)

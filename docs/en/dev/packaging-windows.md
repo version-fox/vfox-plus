@@ -136,6 +136,11 @@ second time and checks that exactly one certificate is trusted. The elevated cop
 is the one path that CI cannot take, because its runners are administrators with UAC
 off; it needs a run on a machine with UAC after a change.
 
+The `run-windows` job runs the application itself on the same two runners, with the end-to-end build for
+Windows that the `build` job cross-compiles: the scenario against the fake vfox, and the icon in the tray (see
+[The tray](architecture.md#the-tray); the runner for ARM has a shell that takes no icon, so the place of the icon
+is checked on Windows Server 2025 only).
+
 ## Signing notes (for maintainers)
 
 - A signed package's publisher must exactly equal the certificate subject, with

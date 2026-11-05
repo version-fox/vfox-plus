@@ -22,6 +22,8 @@
 //     the npm package that it pins (see icons.go);
 //   - icons.json: the symbols of the icons, by meaning (shared/icons.json);
 //   - i18n/*.arb: the catalogues of shared/i18n, as they are;
+//   - tray.png: the icon of the tray, the fox of the application icon on its own
+//     (package appicon), which the repository holds no picture of;
 //   - licenses.txt: the licenses of what the application is built from.
 //
 // With --fetch it only makes sure that the package of the icons is in the
@@ -31,10 +33,12 @@
 package prepare
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"image/png"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -42,6 +46,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/appicon"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/golicenses"
 )
 
@@ -105,6 +110,9 @@ func Run(args []string) error {
 		return err
 	}
 	if err := copyFiles(filepath.Join(shared, "i18n"), "*.arb", filepath.Join(assets, "i18n")); err != nil {
+		return err
+	}
+	if err := writeTrayIcon(filepath.Join(assets, "tray.png")); err != nil {
 		return err
 	}
 	// The Apache License 2.0 of the icons is the one of this repository.
@@ -180,6 +188,23 @@ func copyFiles(srcDir, pattern, dstDir string) error {
 		if err := os.WriteFile(dst, data, 0o666); err != nil {
 			return fmt.Errorf("write %s: %w", dst, err)
 		}
+	}
+	return nil
+}
+
+// trayIconSize is the side of the icon of the tray in pixels: the 16 points that a tray
+// icon takes, at twice the resolution, which is the size that mygo asks for.
+const trayIconSize = 32
+
+// writeTrayIcon draws the icon of the tray, a PNG: the fox of the application icon without
+// its plate, whose orange shows on a light panel as on a dark one.
+func writeTrayIcon(output string) error {
+	var data bytes.Buffer
+	if err := png.Encode(&data, appicon.RenderFox(trayIconSize)); err != nil {
+		return fmt.Errorf("draw the tray icon: %w", err)
+	}
+	if err := os.WriteFile(output, data.Bytes(), 0o666); err != nil {
+		return fmt.Errorf("write %s: %w", output, err)
 	}
 	return nil
 }

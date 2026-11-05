@@ -11,6 +11,7 @@ it.
 | File | Role |
 | --- | --- |
 | [`base.Dockerfile`](../../../shared/sandbox/base.Dockerfile) | The base image: Ubuntu 26.04, a virtual display, fonts, its default wallpaper, the Debian packaging tools, a pinned vfox and the unprivileged user `tester` |
+| [`gnome.Dockerfile`](../../../shared/sandbox/gnome.Dockerfile) | The image of a GNOME Shell with no screen (Ubuntu's, with its AppIndicator extension) and the unprivileged user `tester`, in which `vfxtool gnome-session` runs the end-to-end scenario of the icon in the tray (the `tray-gnome` job of CI; it is not a sandbox image of `vfxtool sandbox`, and the build and vfxtool are mounted into it) |
 | [`../tooling/internal/sandbox`](../../../shared/tooling/internal/sandbox) | Host side (`vfxtool sandbox`): builds the images, runs tasks in containers, runs the installation test |
 | [`../tooling/internal/runtask`](../../../shared/tooling/internal/runtask) | Container side (`vfxtool runtask`): copies the repository, runs commands as `tester`, publishes results, starts a virtual display, smoke-tests and installation-tests packages |
 

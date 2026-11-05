@@ -13,45 +13,61 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The published vfox-plus image: a minimal Ubuntu runtime with vfox and a
-# `vfox-plus serve` that browsers pair with. It needs no display server: the
-# pairing server is plain Go without a UI toolkit.
+# The vfox-plus-gateway image: the web interface of one vfox+, served from a
+# container. It is a client of vfox+, as the Android app is, and not vfox+ in a
+# container: it has no vfox, no window and no display, and shows the vfox+ that
+# it is paired with (package gateway, docs/en/user/remote.md#the-gateway-docker).
 #
-# Build from the repository root (the build reads mygo/ and shared/):
+# Build from the directory mygo/, which is the build context:
 #
-#   docker build -f mygo/Dockerfile -t vfox-plus .
+#   docker build -f mygo/Dockerfile -t vfox-plus-gateway mygo
 #
-# Run it with the port mapped, then open the pairing link it prints, with
-# 0.0.0.0 replaced by the reachable address. The link is https: a
-# self-signed certificate is generated in the container on first start,
-# and its fingerprint is printed for comparison in the browser.
+# Run it with the port mapped. It prints a link that pairs a browser with it,
+# over HTTPS with a certificate of its own (and the fingerprint of it, to compare
+# with what the browser shows). On its page the browser is given the pairing
+# link of a vfox+, from its settings, and the gateway is paired with that.
 #
-#   docker run --rm -p 8080:8080 vfox-plus
+#   docker run --rm -p 8080:8080 vfox-plus-gateway
 #
-# A browser on another machine pairs the same way, over the network the
-# container is reachable on. Prefer an encrypted tunnel outside trusted
-# networks. A data volume keeps the installed SDKs between runs:
+# A volume keeps what it remembers between runs: the vfox+ it is paired with,
+# its session there, and its certificate. A certificate of your own goes there
+# too, as cert.pem and key.pem.
 #
-#   docker run --rm -p 8080:8080 -v vfox-plus-data:/home/vfoxplus vfox-plus
+#   docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-plus-gateway vfox-plus-gateway
 #
-# The toolchain versions default to mygo/versions.env; keep them in sync.
-# Only linux/amd64 is built here: vfox publishes per-architecture archives,
-# and the URL below names the x86_64 one.
+# The program takes no arguments and reads no switches. To reach a vfox+ on the
+# same computer through its address on the loopback interface (the "Open in
+# browser" link, http://127.0.0.1:...), run the container with --network host;
+# the link for other devices needs nothing of the kind.
+#
+# The toolchain defaults to mygo/versions.env; keep them in sync. Go runs on
+# linux/amd64 here and builds for the platform of the image, so that one build
+# serves both linux/amd64 and linux/arm64 (docker buildx build --platform ...).
+# Where the archive of Ubuntu or the proxy of the Go modules is slow, say where
+# else to get them from:
+#
+#   docker build --build-arg UBUNTU_MIRROR=http://mirrors.aliyun.com/ubuntu/ \
+#     --build-arg GOPROXY=https://goproxy.cn,direct -f mygo/Dockerfile -t vfox-plus-gateway mygo
 
 ARG GO_VERSION=1.27.3
 ARG GO_SHA256=65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40
-ARG VFOX_VERSION=1.0.13
-ARG VFOX_SHA256=7ad0a4c82c8173f09393e09abecc3e27468253bab5fe53ffbf58f2b12b3fc768
 
-FROM ubuntu:26.04 AS build
+FROM --platform=linux/amd64 ubuntu:26.04 AS build
 ARG GO_VERSION
 ARG GO_SHA256
-ARG VFOX_VERSION
-ARG VFOX_SHA256
+ARG TARGETARCH
+# An Ubuntu archive mirror such as http://mirrors.aliyun.com/ubuntu/, and the
+# proxy of the Go modules, if the defaults are slow from where the image is built.
+ARG UBUNTU_MIRROR=
+ARG GOPROXY
 
-# Go, verified against the published checksum.
+# Go, verified against the published checksum of the archive.
 RUN <<EOF
 set -eu
+if [ -n "$UBUNTU_MIRROR" ]; then
+  sed -i "s#http://archive.ubuntu.com/ubuntu/#$UBUNTU_MIRROR#g; s#http://security.ubuntu.com/ubuntu/#$UBUNTU_MIRROR#g" \
+    /etc/apt/sources.list.d/ubuntu.sources
+fi
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl
 rm -rf /var/lib/apt/lists/*
@@ -64,47 +80,27 @@ ENV PATH=/opt/go/bin:$PATH \
     GOTOOLCHAIN=local \
     CGO_ENABLED=0
 
-# vfox, verified against the checksum published with the release.
-RUN <<EOF
-set -eu
-mkdir -p /out
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/vfox.tar.gz \
-  "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/vfox_${VFOX_VERSION}_linux_x86_64.tar.gz"
-echo "$VFOX_SHA256  /tmp/vfox.tar.gz" | sha256sum --check --strict -
-tar -xzf /tmp/vfox.tar.gz -C /tmp
-install -m 755 "/tmp/vfox_${VFOX_VERSION}_linux_x86_64/vfox" /out/vfox
-rm -rf /tmp/vfox*
-EOF
-
 WORKDIR /src
-COPY mygo/go.mod mygo/go.sum /src/mygo/
-COPY shared/tooling/go.mod shared/tooling/go.sum /src/shared/tooling/
-RUN cd /src/mygo && go mod download
-RUN cd /src/shared/tooling && go mod download
-COPY mygo /src/mygo
-COPY shared /src/shared
-RUN go -C /src/shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool \
-  && /tmp/vfxtool build --root /src/mygo --package ./cmd/vfox-plus-serve /out/vfox-plus-serve \
-  && /out/vfox-plus-serve serve --help
+COPY . /src
+# Static, with nothing of the machine in it: the image is the program and the
+# certificates of the authorities, and nothing else.
+RUN GOOS=linux GOARCH="${TARGETARCH:-amd64}" go build -trimpath -ldflags "-s -w" -o /out/vfox-plus-gateway ./cmd/vfox-plus-gateway
 
-FROM ubuntu:26.04
-RUN <<EOF
-set -eu
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates
-rm -rf /var/lib/apt/lists/*
-useradd --create-home --shell /bin/bash vfoxplus
-EOF
-COPY --from=build /out/vfox /usr/local/bin/vfox
-COPY --from=build /out/vfox-plus-serve /usr/local/bin/vfox-plus-serve
+# The directory that the gateway remembers in (HOME is /home/vfoxplus below),
+# made here because the image has no shell to make it with.
+RUN mkdir -p /out/home/vfoxplus/.config/vfox-plus-gateway
 
-USER vfoxplus
-WORKDIR /home/vfoxplus
+FROM scratch
+LABEL org.opencontainers.image.title="vfox-plus-gateway" \
+      org.opencontainers.image.description="The web interface of one vfox+, served from a container." \
+      org.opencontainers.image.source="https://github.com/version-fox/vfox-plus" \
+      org.opencontainers.image.licenses="Apache-2.0"
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /out/vfox-plus-gateway /vfox-plus-gateway
+COPY --from=build --chown=10001:10001 /out/home /home
+
+USER 10001:10001
 ENV HOME=/home/vfoxplus
-VOLUME /home/vfoxplus/.vfox
-VOLUME /home/vfoxplus/.version-fox
+VOLUME /home/vfoxplus/.config/vfox-plus-gateway
 EXPOSE 8080
-# The image exists for remote access, so it opts in explicitly: remote access
-# stays off by default and `serve` refuses non-loopback binds without it.
-ENTRYPOINT ["/usr/local/bin/vfox-plus-serve"]
-CMD ["serve", "--bind", "0.0.0.0", "--port", "8080", "--allow-remote"]
+ENTRYPOINT ["/vfox-plus-gateway"]

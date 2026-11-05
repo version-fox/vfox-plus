@@ -76,13 +76,16 @@ func (s *Session) Run(name string, scenario func(*Session)) (err error) {
 	return nil
 }
 
-// dump reports what the window shows, to find out why a scenario failed.
+// dump reports what the window shows, to find out why a scenario failed, and what the application
+// has written, which says what the window cannot: that it made no icon in the tray, or why vfox
+// did not answer.
 func (s *Session) dump() {
 	if !s.Alive() {
 		data, _ := os.ReadFile(s.Log)
 		Report("the application has ended; it wrote:\n%s", strings.TrimSpace(string(data)))
 		return
 	}
+	defer s.dumpLog()
 	tree, err := s.client.Tree()
 	if err != nil {
 		Report("the window cannot be read: %v", err)
@@ -94,6 +97,25 @@ func (s *Session) dump() {
 		lines = append(lines[:limit], fmt.Sprintf("… and %d more", len(lines)-limit))
 	}
 	Report("on screen:\n%s", strings.Join(lines, "\n"))
+}
+
+// logLines is how many of the last lines of its log are reported of an application that runs.
+const logLines = 40
+
+// dumpLog reports the end of what the application has written, when it has written anything.
+func (s *Session) dumpLog() {
+	data, _ := os.ReadFile(s.Log)
+	text := strings.TrimSpace(strings.ReplaceAll(string(data), "\r\n", "\n"))
+	if text == "" {
+		return
+	}
+	lines := strings.Split(text, "\n")
+	heading := "the application wrote:"
+	if len(lines) > logLines {
+		lines = lines[len(lines)-logLines:]
+		heading = fmt.Sprintf("the application wrote, the last %d lines:", logLines)
+	}
+	Report("%s\n%s", heading, strings.Join(lines, "\n"))
 }
 
 // Tree reads the elements of the window. A scenario fails when it cannot.

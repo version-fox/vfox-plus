@@ -42,8 +42,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-// Scans the terminal QR code that `vfox-plus serve` prints on a non-loopback
-// bind. The decoded pairing link goes back to the pairing screen, which
+// Scans the QR code that the settings of vfox+ show on the PC for a phone.
+// The decoded pairing link goes back to the pairing screen, which
 // connects immediately; without a camera the user pastes the link instead.
 class ScanFragment : Fragment() {
     private var _binding: FragmentScanBinding? = null

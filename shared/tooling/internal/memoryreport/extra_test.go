@@ -24,8 +24,8 @@ import (
 	"github.com/google/go-github/v93/github"
 )
 
-func serveText(idle, loaded [3]int) string {
-	return fmt.Sprintf("memory (serve-idle): RSS %d MB, PSS %d MB in %d processes\nmemory (serve-loaded): RSS %d MB, PSS %d MB in %d processes\n",
+func lightweightText(idle, loaded [3]int) string {
+	return fmt.Sprintf("memory (lightweight-idle): RSS %d MB, PSS %d MB in %d processes\nmemory (lightweight-loaded): RSS %d MB, PSS %d MB in %d processes\n",
 		idle[0], idle[1], idle[2], loaded[0], loaded[1], loaded[2])
 }
 
@@ -38,19 +38,19 @@ func androidText(cold [3]int) string {
 }
 
 func TestParseExtras(t *testing.T) {
-	serve := ParseServeMemory(serveText([3]int{12, 10, 1}, [3]int{13, 12, 1}))
-	if serve == nil || serve.Idle.PSS != 10 || serve.Loaded.RSS != 13 {
-		t.Fatalf("serve = %+v", serve)
+	lightweight := ParseLightweightMemory(lightweightText([3]int{12, 10, 1}, [3]int{13, 12, 1}))
+	if lightweight == nil || lightweight.Idle.PSS != 10 || lightweight.Loaded.RSS != 13 {
+		t.Fatalf("lightweight = %+v", lightweight)
 	}
 	for _, text := range []string{
 		"",
-		"memory (serve-idle): RSS 12 MB, PSS 10 MB in 1 processes\n",
-		serveText([3]int{12, 10, 1}, [3]int{13, 12, 1}) + "memory (serve-idle): RSS 12 MB, PSS 10 MB in 1 processes\n",
-		"memory (serve-idle): RSS 12 MB, PSS 10 MB in 1 processes\nmemory (home): RSS 13 MB, PSS 12 MB in 1 processes\n",
-		"memory (serve-idle): RSS 12 MB, PSS 10 MB in 1 processes\nmemory (serve-loaded): RSS 13 MB, PSS 12 MB in 1 processes\nextra\n",
+		"memory (lightweight-idle): RSS 12 MB, PSS 10 MB in 1 processes\n",
+		lightweightText([3]int{12, 10, 1}, [3]int{13, 12, 1}) + "memory (lightweight-idle): RSS 12 MB, PSS 10 MB in 1 processes\n",
+		"memory (lightweight-idle): RSS 12 MB, PSS 10 MB in 1 processes\nmemory (home): RSS 13 MB, PSS 12 MB in 1 processes\n",
+		"memory (lightweight-idle): RSS 12 MB, PSS 10 MB in 1 processes\nmemory (lightweight-loaded): RSS 13 MB, PSS 12 MB in 1 processes\nextra\n",
 	} {
-		if ParseServeMemory(text) != nil {
-			t.Fatalf("ParseServeMemory(%q) parsed", text)
+		if ParseLightweightMemory(text) != nil {
+			t.Fatalf("ParseLightweightMemory(%q) parsed", text)
 		}
 	}
 	heap := ParseWebHeap(webText(1522608, 1523028))
@@ -89,8 +89,8 @@ func extrasFixture() *FakeAPI {
 	f.addWorkflow("mygo", "mygo", "")
 	f.addWorkflow("android", "android", "")
 	f.addPullRequest(7, "", "")
-	f.addArtifact("mygo", map[string]string{"memory.txt": serveText([3]int{11, 10, 1}, [3]int{12, 11, 1})},
-		artifactOptions{name: ServeArtifact})
+	f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{11, 10, 1}, [3]int{12, 11, 1})},
+		artifactOptions{name: LightweightArtifact})
 	f.addArtifact("mygo", map[string]string{"memory.txt": webText(1536000, 1536000)},
 		artifactOptions{name: WebArtifact, created: "2026-10-20T09:00:00Z"})
 	f.addArtifact("android", map[string]string{"memory.txt": androidText([3]int{200, 180, 1})},
@@ -120,8 +120,8 @@ func TestCollectExtras(t *testing.T) {
 	t.Run("measured with baselines", func(t *testing.T) {
 		f := extrasFixture()
 		mygo := f.addRun("mygo", runOptions{})
-		f.addArtifact("mygo", map[string]string{"memory.txt": serveText([3]int{12, 10, 1}, [3]int{20, 19, 1})},
-			artifactOptions{runID: mygo, name: ServeArtifact, branch: "feature", sha: testHead})
+		f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{12, 10, 1}, [3]int{20, 19, 1})},
+			artifactOptions{runID: mygo, name: LightweightArtifact, branch: "feature", sha: testHead})
 		f.addArtifact("mygo", map[string]string{"memory.txt": webText(1843200, 1536000)},
 			artifactOptions{runID: mygo, name: WebArtifact, branch: "feature", sha: testHead})
 		android := f.addRun("android", runOptions{})
@@ -135,17 +135,17 @@ func TestCollectExtras(t *testing.T) {
 		if len(extras) != 3 {
 			t.Fatalf("extras = %d", len(extras))
 		}
-		serve := findExtra(extras, "Headless server")
-		if serve == nil || len(serve.Rows) != 4 {
-			t.Fatalf("serve = %+v", serve)
+		lightweight := findExtra(extras, "Lightweight mode")
+		if lightweight == nil || len(lightweight.Rows) != 4 {
+			t.Fatalf("lightweight = %+v", lightweight)
 		}
 		// +1 MB is the noise of CI: shown, not bold.
-		if serve.Rows[0].PR != "12 MB (+1)" {
-			t.Fatalf("idle RSS = %q", serve.Rows[0].PR)
+		if lightweight.Rows[0].PR != "12 MB (+1)" {
+			t.Fatalf("idle RSS = %q", lightweight.Rows[0].PR)
 		}
 		// +8 MB is a change: bold.
-		if serve.Rows[2].PR != "20 MB (**+8**)" {
-			t.Fatalf("loaded RSS = %q", serve.Rows[2].PR)
+		if lightweight.Rows[2].PR != "20 MB (**+8**)" {
+			t.Fatalf("loaded RSS = %q", lightweight.Rows[2].PR)
 		}
 		web := findExtra(extras, "Web client heap")
 		if web == nil || len(web.Rows) != 2 {
@@ -204,9 +204,9 @@ func TestCollectExtras(t *testing.T) {
 		if len(extras) != 2 {
 			t.Fatalf("extras = %+v", extras)
 		}
-		serve := findExtra(extras, "Headless server")
-		if serve == nil || serve.Note != "No numbers: the job did not upload them." {
-			t.Fatalf("serve = %+v", serve)
+		lightweight := findExtra(extras, "Lightweight mode")
+		if lightweight == nil || lightweight.Note != "No numbers: the job did not upload them." {
+			t.Fatalf("lightweight = %+v", lightweight)
 		}
 		// No android run and no android baseline: no section.
 		if findExtra(extras, "Android client") != nil {
@@ -222,12 +222,12 @@ func TestCollectExtras(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		serve := findExtra(extras, "Headless server")
-		if serve == nil || len(serve.Rows) != 4 || serve.Rows[0].PR != "11 MB (main)" {
-			t.Fatalf("serve = %+v", serve)
+		lightweight := findExtra(extras, "Lightweight mode")
+		if lightweight == nil || len(lightweight.Rows) != 4 || lightweight.Rows[0].PR != "11 MB (main)" {
+			t.Fatalf("lightweight = %+v", lightweight)
 		}
-		if serve.RunURL == "" || serve.BaselineURL == "" {
-			t.Fatalf("serve has no links: %+v", serve)
+		if lightweight.RunURL == "" || lightweight.BaselineURL == "" {
+			t.Fatalf("lightweight has no links: %+v", lightweight)
 		}
 	})
 
@@ -241,9 +241,9 @@ func TestCollectExtras(t *testing.T) {
 		if len(extras) != 3 {
 			t.Fatalf("extras = %d", len(extras))
 		}
-		serve := findExtra(extras, "Headless server")
-		if serve.Rows[0].PR != "11 MB (main)" {
-			t.Fatalf("idle RSS = %q", serve.Rows[0].PR)
+		lightweight := findExtra(extras, "Lightweight mode")
+		if lightweight.Rows[0].PR != "11 MB (main)" {
+			t.Fatalf("idle RSS = %q", lightweight.Rows[0].PR)
 		}
 	})
 
@@ -253,28 +253,28 @@ func TestCollectExtras(t *testing.T) {
 		f.addWorkflow("android", "android", "")
 		f.addPullRequest(7, "", "")
 		mygo := f.addRun("mygo", runOptions{})
-		f.addArtifact("mygo", map[string]string{"memory.txt": serveText([3]int{12, 10, 1}, [3]int{13, 12, 1})},
-			artifactOptions{runID: mygo, name: ServeArtifact, branch: "feature", sha: testHead})
+		f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{12, 10, 1}, [3]int{13, 12, 1})},
+			artifactOptions{runID: mygo, name: LightweightArtifact, branch: "feature", sha: testHead})
 		repo := f.repository(t)
 		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
-		serve := findExtra(extras, "Headless server")
-		if serve == nil || serve.Note != "No baseline: no run on main uploaded numbers yet." {
-			t.Fatalf("serve = %+v", serve)
+		lightweight := findExtra(extras, "Lightweight mode")
+		if lightweight == nil || lightweight.Note != "No baseline: no run on main uploaded numbers yet." {
+			t.Fatalf("lightweight = %+v", lightweight)
 		}
 	})
 }
 
 func TestRenderInsertExtras(t *testing.T) {
 	extras := []Extra{{
-		Title: "Headless server",
+		Title: "Lightweight mode",
 		Intro: "How it is measured.",
 		Rows:  []ExtraRow{{Measure: "Idle PSS", PR: "10 MB (+1)", Main: "9 MB"}},
 	}}
 	rendered := RenderExtras(extras)
-	if !strings.Contains(rendered, "#### Headless server") {
+	if !strings.Contains(rendered, "#### Lightweight mode") {
 		t.Fatalf("rendered =\n%s", rendered)
 	}
 	if !strings.Contains(rendered, "| Idle PSS | 10 MB (+1) | 9 MB |") {
@@ -282,10 +282,10 @@ func TestRenderInsertExtras(t *testing.T) {
 	}
 	body := Marker + "\ntable\n\n<details>\nrest\n"
 	merged := InsertExtras(body, rendered)
-	if !strings.Contains(merged, "#### Headless server\n\n<details>") && !strings.Contains(merged, "#### Headless server") {
+	if !strings.Contains(merged, "#### Lightweight mode\n\n<details>") && !strings.Contains(merged, "#### Lightweight mode") {
 		t.Fatalf("merged =\n%s", merged)
 	}
-	if strings.Index(merged, "#### Headless server") > strings.Index(merged, "<details>") {
+	if strings.Index(merged, "#### Lightweight mode") > strings.Index(merged, "<details>") {
 		t.Fatalf("extras are not before the details:\n%s", merged)
 	}
 	if InsertExtras(body, "") != body {

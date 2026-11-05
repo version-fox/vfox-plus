@@ -61,7 +61,7 @@ container, see [Development environment](environment.md).
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
@@ -207,7 +207,7 @@ account, and linked.
 into `dist/sandbox/mygo/screenshots/`, reproducibly: with the Greybird title bar of
 xfwm4, the way modern GNOME applications look, over the default wallpaper of
 Ubuntu instead of the black of a bare X server. It starts the end-to-end build
-five times against the fake vfox, drives it to every page through the automation plugin
+seven times against the fake vfox, drives it to every page through the automation plugin
 of mygo, and captures the screen with ImageMagick when the page has settled:
 
 | Run | What it shows |
@@ -217,67 +217,97 @@ of mygo, and captures the screen with ImageMagick when the page has settled:
 | `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
 | both of the above | the distributions of Java in the compact layout: `compact-java` |
+| the setting `webInterface`, and `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of the web interface, as a person goes through them: the switch that is on with its address, the question that asks before other devices may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
+| the same, with the language chosen first | the same four in Simplified Chinese: `zh-web-interface`, `zh-web-allow`, `zh-web-remote`, `zh-web-pair` |
+
+The end-to-end build can be told the addresses of the computer with `VFOX_PLUS_E2E_ADDRESSES`, a list
+separated by commas, instead of reading them from the network interfaces. The pictures show `192.168.1.20`,
+an address of the kind that a home network has, the same at every run and the address of no machine, and
+a sandbox that has no network, and so no address of its own, still has one to pair a phone with.
 
 To take another picture, add a `c.shot(s, "name")` to the function of the run in
 `shared/tooling/internal/screenshots/screenshots.go` (`pages`, `installing`, `profiles`,
-`compactPages` or `compactProfiles`). The steps before it click and wait the way a
+`compactPages`, `compactProfiles` or `webInterface`). The steps before it click and wait the way a
 person with a screen reader does, through the names that the user sees (the label
 of a button, the key that a component gave it), so a renamed button fails the
 scenario instead of taking a wrong picture.
 
 The README and the [user guide](../user/index.md) link `home`, `sdks`,
 `dark-available`, `installing`, `tasks`, `plugins`, `zh-settings`, `compact-home`,
-`compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`.
-The [usage guide](../user/using.md) links `java-install-name` and `options-mirror`,
+`compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`, and
+the web interface on a phone, `webapp-en` and `web-phone-java-temurin` (`webapp-zh` and
+`web-phone-zh-java-temurin` in Simplified Chinese; see below). The
+[usage guide](../user/using.md) links `java-install-name` and `options-mirror`,
 and `zh-java-available` and `zh-options` in Simplified Chinese. The
-[remote guide](../user/remote.md) links `webapp-en` and `webapp-zh`, the paired web
-interface in English and Simplified Chinese, and the scene `java-temurin` of the web
-interface on a phone, in both languages (`web-phone-java-temurin` and
-`web-phone-zh-java-temurin`, taken with `--window 412,915`), and the nine of the Android app
-in both languages (`android-pairing`, `android-scan`, `android-trust`, `android-home`,
-`android-sdk`, `android-settings`, `android-dark-pairing`, `android-dark-home` and
-`android-unreachable`, with the prefix `zh-` in Simplified Chinese). The other pictures are
-there to look at when the interface changes; nothing links them.
+[guide to the web interface](../user/remote.md) links `web-interface`, `web-allow`, `web-remote` and
+`web-pair` (with the prefix `zh-` in Simplified Chinese), and the web interface on a phone:
+`webapp-en`, `web-phone-java-temurin`, `web-connections` and `web-connections-pair` (`webapp-zh`,
+`web-phone-zh-java-temurin`, `web-zh-connections` and `web-zh-connections-pair` in Simplified Chinese).
+The [guide to the Android app](../user/android.md) links the pictures of the app, and the
+[guide to the gateway](../user/gateway.md) the pictures of the gateway (see below). The other
+pictures are there to look at when the interface changes; nothing links them.
 
-**The web interface.** Render it with the headless server and headless Chrome, in a
-language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
+**The web interface.** Render it with the end-to-end build of the application, in a virtual
+display, and headless Chrome, in a language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
-that `--scene` plays: `java-available`, `java-choose`, `java-temurin`,
-`java-install-name`, `flutter-chips`, `options` and `options-mirror` (see
+that `--scene` plays: `connections`, `connections-pair`, `flutter-chips`, `java-available`,
+`java-choose`, `java-temurin`, `java-install-name`, `options` and `options-mirror` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
-scenes click against `mygo/pair/webapp.html`). Every picture gets a server and a home
-of its own, because choosing a distribution is kept in the settings of the server, and
-a scene that chooses one would change every picture after it:
+scenes click against `mygo/pair/webapp.html`). Every picture gets an application and a home
+of its own, because choosing a distribution is kept in the settings of the application, and
+a scene that chooses one would change every picture after it. The application serves its web
+interface because its settings say so, and allows other devices, which the connections and the code
+that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is told the addresses of the
+documentation (see above); and the end-to-end build writes a pairing link to the file that
+`VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The scenes of Java need a machine
+that has Java and Flutter installed, and the home page needs one that has not, which is why
+the inventory of the fake vfox is a variable of the call:
 
 ```sh
-go -C mygo build -o /tmp/vfox-plus-serve ./cmd/vfox-plus-serve
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
+/tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
 
 # shoot NAME LANGUAGE WIDTH,HEIGHT [options of webheap]
+# INVENTORY=profiles shoot ... plays a machine that has Java and Flutter.
 shoot() {
   name=$1 lang=$2 window=$3; shift 3
-  rm -rf /tmp/shot-home && mkdir -p /tmp/shot-home/bin && cp /tmp/vfxtool /tmp/shot-home/bin/vfox
-  HOME=/tmp/shot-home PATH=/tmp/shot-home/bin:$PATH \
-    VFOX_PLUS_FIXTURES=shared/fixtures/vfox-1.0.13 VFOX_PLUS_FAKE_INVENTORY=profiles NO_COLOR=1 \
-    /tmp/vfox-plus-serve serve --bind 127.0.0.1 --port 0 >serve.log 2>&1 &
-  server=$!
+  home=/tmp/shot-home
+  rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
+  cp /tmp/vfxtool $home/bin/vfox
+  echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
+  (
+    export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
+      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.0.13 VFOX_PLUS_E2E_LINK=$home/link.txt \
+      VFOX_PLUS_E2E_ADDRESSES=192.168.1.20
+    [ -n "${INVENTORY:-}" ] && export VFOX_PLUS_FAKE_INVENTORY=$INVENTORY
+    exec setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >$home/app.log 2>&1
+  ) &
+  app=$!
   for i in $(seq 1 30); do
-    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' serve.log | head -1)"
+    LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' $home/link.txt 2>/dev/null | head -1)"
     [ -n "$LINK" ] && break
     sleep 1
   done
   /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
     --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
     --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
-  kill "$server"
+  kill -- -$app
 }
 shoot webapp-en en 412,915
-shoot web-java-temurin en 1280,800 --scene java-temurin
+shoot webapp-zh zh 412,915
+INVENTORY=profiles shoot web-phone-java-temurin en 412,915 --scene java-temurin
+INVENTORY=profiles shoot web-phone-zh-java-temurin zh 412,915 --scene java-temurin
+shoot web-connections en 412,915 --scene connections
+shoot web-connections-pair en 412,915 --scene connections-pair
+shoot web-zh-connections zh 412,915 --scene connections
+shoot web-zh-connections-pair zh 412,915 --scene connections-pair
 ```
 
 (`PATH` first carries a `vfox` executable — a copy of `vfxtool` acts as the
 fake vfox with the fixtures — so that the SDK list has content, and
-`VFOX_PLUS_FAKE_INVENTORY=profiles` makes it a machine that has Java and Flutter;
+`INVENTORY=profiles` makes it a machine that has Java and Flutter;
+`setsid` makes the application the leader of a group of processes of its own, which `kill -- -$app`
+ends together with the virtual display;
 `--lang` pins the interface language; `--window 412,915` shoots the phone portrait
 and defaults to the 1280 by 800 desktop window that CI measures; `--idle 0` skips
 the twenty seconds on the open page that the measurement of the heap needs; `--dark`
@@ -289,15 +319,43 @@ Chrome keeps a window that small. Chrome for Testing 156 answered
 the same version gives exactly 412 by 915, so pass that one with `--chrome` when
 the size is wrong.
 
+**The gateway.** `vfxtool gateway-shots` takes the pictures of its pages: it does what
+`vfxtool gateway-check` does (see [the implementation guide](implementation-mygo.md)), with a headless
+Chrome in the place of the person, and keeps what the Chrome shows at each step. It writes
+`gateway-intro` (a browser that is not paired), `gateway-home` (paired with the gateway, and the gateway
+paired with nothing), `gateway-link` (the link of the application pasted), `gateway-trust` (the
+fingerprint to compare), `gateway-app` and `gateway-zh-app` (the interface of the application through the
+gateway, in English and in Simplified Chinese) and `gateway-paired`, each as high as its page. The pages
+of the gateway are in both languages at once, so one picture serves both guides. The pictures show
+the address of the application, which the gateway really connects to, so the computer has to have it:
+`unshare -rn` runs a command in a network namespace of its own, in which you are root, that has nothing
+but a loopback interface, and the address goes to that interface, without touching your network. The
+command stops before it starts anything, and says so, when the computer lacks the address.
+
+```sh
+go -C mygo build -o /tmp/vfox-plus-gateway ./cmd/vfox-plus-gateway
+unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
+  /tmp/vfxtool gateway-shots --binary /tmp/vfox-plus-gateway --output /tmp/gateway-shots /tmp/vfox-plus-e2e'
+```
+
+(The build of the application is the one above, run from the root of the repository, which the
+command needs for the fixtures of the fake vfox; `--chrome` names the Chrome as it does for `webheap`.)
+
 **Android.** CI takes one picture, `screenshot-android`: the `measure` job of
 `android.yml` runs the release APK on an emulator, `vfxtool measure-apk` captures the
 cold start, and the job uploads it as an artifact (`gh run download`). The nine
-pictures of the [remote guide](../user/remote.md) are taken by hand, on an emulator
-(API 36, 1080 by 2400 at 420 dpi) with the release build
-(`./gradlew :app:assembleRelease`), paired as [Run the app](environment.md#run-the-app)
-describes, against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles` and a server on
-`--port 8080`, so that the command of the pairing screen is the one that runs. What
-makes the pictures alike:
+pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of
+your own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400
+at 420 dpi), with the release APK of the build that CI makes (its artifact `vfox-plus-android`),
+and with the application of the PC that [Run the app](environment.md#run-the-app) describes: the
+end-to-end build against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles`, with the web interface and the
+other devices on, the port 8080 and `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the emulator
+reaches the computer. The pairing screen, the links and the certificate then name the address that runs,
+and there is no certificate to make. The nine are `android-pairing`, `android-scan`, `android-trust`,
+`android-home`, `android-sdk`, `android-settings`, `android-dark-pairing`, `android-dark-home` and
+`android-unreachable`; the guide links all of them, in English for both languages. What makes the
+pictures alike, and what goes wrong:
 
 - The demo mode of the status bar fixes the clock and shows a full battery and
   wifi and no notifications: `adb shell settings put global sysui_demo_allowed 1`,
@@ -305,20 +363,35 @@ makes the pictures alike:
   `clock -e hhmm 1000`, `battery -e level 100 -e plugged false`,
   `network -e wifi show -e level 4 -e fully true`, `network -e mobile hide` (its icons
   come out white on the light theme) and `notifications -e visible false`.
+- Android shows a green indicator in the status bar while the camera is open, in place of the wifi and
+  battery icons, in the picture of the scanner. Turn it off with `adb root`, then
+  `adb shell device_config put privacy camera_mic_icons_enabled false` (the shell may not write
+  that flag, root may).
 - The language and the theme are the ones of the app and of the system:
   `adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` and
   `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
   the camera again, which `pm clear` drops, or the system dialog covers the scanner.
-- Type the pairing link with the app in English. With the app in Chinese Gboard turns
+- The views of the app are found by their ids in `adb exec-out uiautomator dump /dev/tty`
+  (`scanButton`, `manualButton`, `linkField`, `connectButton`, `reconnectButton`). The web interface in
+  the WebView is not in the dump: the bar at the bottom is tapped by its position, with
+  `adb shell input tap X 2205` for X = 125, 332, 540, 749 and 956 (Home, SDKs, Plugins, Tasks, Settings),
+  and flutter is the first of the plugins, at `540 682`.
+- Type the pairing link with the app in English (`adb shell input text`). With the app in Chinese Gboard turns
   to Pinyin and writes the link with full-width punctuation and "author" for "auth";
-  the field keeps its text when the language is changed back before *Connect*.
+  the field keeps its text when the language is changed back before *Connect*. The keyboard covers
+  the button: close it with BACK (`adb shell input keyevent 4`) before.
+- The dialog of the fingerprint and the settings are taken in one run of the application: it makes its
+  certificate again at every run, and the two show the same fingerprint only within one. Choose
+  *Trust once*, and wait for the page to load before the picture of the home page.
+- To see the page that says the PC cannot be reached, end the application of the PC and open the app
+  again: it opens on the pairing screen, with the last server, and *Reconnect* shows the page.
 - Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has
-  settled. The scanner shows the living room of the emulator, as there is no code
-  to point it at.
+  settled. The scanner shows the living room of the emulator (`hw.camera.back=virtualscene`), as there
+  is no code to point it at.
 
-The pictures are 1080 by 2400 as they come, with the rounded corners of a phone display
-(a radius of 96 px) and a grey border of 5 px (`#7A7A84`) added: the cream screens of the
-light theme have no edge against the white page of GitHub.
+The pictures are 1080 by 2400 as they come. `vfxtool frame-phone NAME.png OUT.png` gives them the
+rounded corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px
+(`#7A7A84`) over the edge: the cream screens of the light theme have no edge against the white page of GitHub.
 
 **Uploading.** Upload a new image with
 
@@ -330,7 +403,7 @@ curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json 
 
 which prints its URL (the key is the public one that freeimage.host gives to
 everyone on its [API page](https://freeimage.host/api)), and replace the link in
-the README. If curl stops with error 56, the connection broke: run it again.
+the documentation. If curl stops with error 56, the connection broke: run it again.
 Every upload gets a new URL, so cached copies of an old image never show. The
 uploader of an anonymous image cannot delete it; upload nothing that must not
 stay public.

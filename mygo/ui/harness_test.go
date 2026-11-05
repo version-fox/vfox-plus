@@ -21,14 +21,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo"
 	mui "github.com/egoist/mygo/ui"
 
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
+	"github.com/version-fox/vfox-plus/mygo/pair"
 	"github.com/version-fox/vfox-plus/mygo/state"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
@@ -47,6 +51,87 @@ type recorder struct {
 	opened []string
 	chosen string
 	asked  []chooseOptions
+	// quits counts the times the application was asked to end.
+	quits int
+	// windows are the windows that the application opened.
+	windows []*fakeWindow
+	// trays are the icons that the application put in the tray, and trayError is why
+	// it cannot: a desktop with no tray.
+	trays     []*fakeTray
+	trayError error
+	// pagedOut counts the times that the application told the system that it does not want the
+	// pages of its files for now.
+	pagedOut atomic.Int32
+}
+
+// fakeTray is an icon in the tray that shows nothing, and notes what the application asks of
+// it. Its menu is changed and it is destroyed from goroutines other than the test's.
+type fakeTray struct {
+	mu        sync.Mutex
+	options   trayOptions
+	toolTip   string
+	entries   []trayEntry
+	updates   int
+	destroyed bool
+}
+
+func (t *fakeTray) Update(toolTip string, entries []trayEntry) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.toolTip, t.entries = toolTip, entries
+	t.updates++
+}
+
+func (t *fakeTray) Destroy() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.destroyed = true
+}
+
+// state is what the icon shows now, and whether it is gone.
+func (t *fakeTray) state() (toolTip string, entries []trayEntry, destroyed bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.toolTip, t.entries, t.destroyed
+}
+
+// choose chooses the item of the menu with the label, as the user would, and says whether
+// there is one.
+func (t *fakeTray) choose(label string) bool {
+	_, entries, _ := t.state()
+	for _, entry := range entries {
+		if entry.label == label && entry.click != nil {
+			entry.click()
+			return true
+		}
+	}
+	return false
+}
+
+// fakeWindow is a window that shows nothing, and notes what the application asks of it. The application
+// asks it from any goroutine, as it asks the window of the toolkit, which allows that: a change of the
+// settings asks for a frame from the goroutine that made it and from the one of the web interface that
+// follows it.
+type fakeWindow struct {
+	mu                        sync.Mutex
+	title                     string
+	invalidated, shown, focus atomic.Int32
+}
+
+func (w *fakeWindow) Invalidate() { w.invalidated.Add(1) }
+func (w *fakeWindow) SetTitle(title string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.title = title
+}
+func (w *fakeWindow) Show()  { w.shown.Add(1) }
+func (w *fakeWindow) Focus() { w.focus.Add(1) }
+
+// windowTitle is the title that the application gave the window.
+func (w *fakeWindow) windowTitle() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.title
 }
 
 // testApp is the application against the captured output of vfox, drawn without
@@ -57,6 +142,9 @@ type testApp struct {
 	runner  *testsupport.FakeProcessRunner
 	tester  *mui.Tester
 	desktop *recorder
+	web     *pair.Host
+	// settingsDir holds the certificate that the web interface makes for other devices.
+	settingsDir string
 }
 
 func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, height int, store settings.SettingsStore) *testApp {
@@ -66,7 +154,9 @@ func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, heig
 		Runner: runner, SettingsStore: store, Environment: environment,
 		Locator: vfox.NewVfoxLocator(map[string]string{}, func(path string) bool { return path == "/usr/bin/vfox" }),
 	})
-	a, err := New(Options{Model: model, Environment: environment})
+	settingsDir := t.TempDir()
+	web := pair.NewHost(model, pair.HostOptions{SettingsDir: settingsDir})
+	a, err := New(Options{Model: model, Environment: environment, Web: web})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,14 +169,31 @@ func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, heig
 			recording.asked = append(recording.asked, options)
 			return recording.chosen
 		},
+		newWindow: func(mygo.WindowOptions) surface {
+			window := &fakeWindow{}
+			recording.windows = append(recording.windows, window)
+			return window
+		},
+		quit:    func() { recording.quits++ },
+		pageOut: func() { recording.pagedOut.Add(1) },
+		newTray: func(options trayOptions) (trayIcon, error) {
+			if recording.trayError != nil {
+				return nil, recording.trayError
+			}
+			tray := &fakeTray{options: options, toolTip: options.toolTip, entries: options.entries}
+			recording.trays = append(recording.trays, tray)
+			return tray, nil
+		},
 	}
 	a.listen()
 	t.Cleanup(model.Dispose)
+	web.Start()
+	t.Cleanup(web.Close)
 	tester := mui.NewTester(a.view, width, height)
 	// Springs that jump to their targets keep the tests short: a dialog that
 	// scales in is drawn on the slow path of the renderer for a second.
 	tester.SetPreferences(mui.Preferences{ReduceMotion: true, TextScale: 1})
-	return &testApp{t: t, app: a, runner: runner, desktop: recording, tester: tester}
+	return &testApp{t: t, app: a, runner: runner, desktop: recording, tester: tester, web: web, settingsDir: settingsDir}
 }
 
 func defaultApp(t *testing.T) *testApp {

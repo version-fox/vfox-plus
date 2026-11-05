@@ -42,6 +42,10 @@ var faviconURI = faviconDataURI(faviconSVG)
 // faviconLink is the link of the favicon.
 var faviconLink = `<link rel="icon" type="image/svg+xml" href="` + faviconURI + `">`
 
+// FaviconLink is the link element of the favicon, for the pages of other programs that have the
+// look of this one: the gateway has pages of its own.
+func FaviconLink() string { return faviconLink }
+
 // withFavicon puts the favicon in a page text with a faviconPlaceholder.
 func withFavicon(page string) string {
 	return strings.Replace(page, faviconPlaceholder, faviconLink, 1)

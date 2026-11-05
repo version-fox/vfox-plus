@@ -23,10 +23,12 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/egoist/mygo"
 	mui "github.com/egoist/mygo/ui"
@@ -51,10 +53,33 @@ type Options struct {
 	Model *state.AppModel
 	// Environment is the environment variables of the process.
 	Environment map[string]string
+	// Web is the web interface, which the settings switch on and off.
+	Web Web
+}
+
+// surface is the window as the application uses it.
+type surface interface {
+	// Invalidate asks for another frame.
+	Invalidate()
+	// SetTitle names the window.
+	SetTitle(title string)
+	// Show makes the window visible, and Focus gives it the keyboard.
+	Show()
+	Focus()
 }
 
 // desktop is what the application asks of the desktop, which tests replace.
 type desktop struct {
+	// newWindow opens the window, which draws the application.
+	newWindow func(options mygo.WindowOptions) surface
+	// quit ends the application.
+	quit func()
+	// newTray puts the icon of the application in the tray of the desktop, which it
+	// fails to do where there is none.
+	newTray func(options trayOptions) (trayIcon, error)
+	// pageOut tells the system that the pages of the files that the process maps are not wanted
+	// for now: it is what the application does when it runs without a window.
+	pageOut func()
 	// openURL opens a web address in the browser of the user.
 	openURL func(address string)
 	// copy puts text on the clipboard.
@@ -66,8 +91,12 @@ type desktop struct {
 
 // App is the user interface: it owns the window and builds the pages.
 type App struct {
-	win         *mygo.Window
+	// win is the window, or nil while there is none: before the application is ready,
+	// and in the lightweight mode after the window was closed. Goroutines of any kind
+	// ask it for a frame, so it is atomic.
+	win         atomic.Pointer[surface]
 	model       *state.AppModel
+	web         Web
 	env         *kit.Env
 	environment map[string]string
 	locales     []string
@@ -78,8 +107,20 @@ type App struct {
 	l10n     atomic.Pointer[i18n.Localizations]
 	english  i18n.ArbCatalogue
 
+	// tray is the icon in the tray while the application runs without its window, and
+	// nil otherwise. It is changed from the main thread, and read from goroutines of any
+	// kind, which wait for the main thread while they do: trayMu guards the pointer and
+	// is never held across a call to the icon.
+	trayMu sync.Mutex
+	tray   trayIcon
+
 	mu      sync.Mutex
 	pending []func()
+	// trim is the timer that pages the files out once the window has stayed closed.
+	trim *time.Timer
+	// released is true while the application runs without its window, when the work that
+	// is meant for the window is dropped.
+	released bool
 
 	watched map[*state.VfoxTask]func()
 	shell   shellState
@@ -97,6 +138,9 @@ type themeKey struct {
 
 // New creates the application.
 func New(options Options) (*App, error) {
+	if options.Web == nil {
+		return nil, fmt.Errorf("ui: the application needs a web interface to switch on and off")
+	}
 	table, err := assets.Files.ReadFile("icons.json")
 	if err != nil {
 		return nil, err
@@ -111,11 +155,17 @@ func New(options Options) (*App, error) {
 		return nil, err
 	}
 	a := &App{
-		model: options.Model, environment: options.Environment,
+		model: options.Model, web: options.Web, environment: options.Environment,
 		locales: i18n.SystemLocales(options.Environment), english: english,
 		watched: make(map[*state.VfoxTask]func()),
 	}
-	a.desktop = desktop{openURL: openURL, copy: copyText, choose: a.chooseFile}
+	a.desktop = desktop{
+		openURL: openURL, copy: copyText, choose: a.chooseFile,
+		newWindow: func(options mygo.WindowOptions) surface { return mygo.NewWindow(options) },
+		quit:      mygo.App.Quit,
+		newTray:   newNativeTray,
+		pageOut:   func() { pageOutFiles() },
+	}
 	a.env = kit.NewEnv(kit.NewTheme(settings.DefaultSeedColor, false, false, 1))
 	a.uiTheme = a.env.Theme.UI()
 	a.syncLanguage()
@@ -130,17 +180,30 @@ func readCatalogue(language i18n.SupportedLanguage) (i18n.ArbCatalogue, error) {
 	return i18n.ParseCatalogue(content)
 }
 
+// window is the window of the application, or nil when there is none.
+func (a *App) window() surface {
+	if win := a.win.Load(); win != nil {
+		return *win
+	}
+	return nil
+}
+
 // invalidate asks for another frame, from any goroutine.
 func (a *App) invalidate() {
-	if a.win != nil {
-		a.win.Invalidate()
+	if win := a.window(); win != nil {
+		win.Invalidate()
 	}
 }
 
 // post runs f on the main thread, before the next frame. It may be called from
-// any goroutine.
+// any goroutine. Without a window it does nothing: what f would show has no
+// place to be shown in.
 func (a *App) post(f func()) {
 	a.mu.Lock()
+	if a.released {
+		a.mu.Unlock()
+		return
+	}
 	a.pending = append(a.pending, f)
 	a.mu.Unlock()
 	a.invalidate()
@@ -156,7 +219,10 @@ func (a *App) runPending() {
 	}
 }
 
-// Run opens the window and runs the application until the window is closed.
+// Run opens the window and runs the application until it quits: when the window
+// is closed, unless the lightweight mode keeps the application running without it.
+// There is one application per user: a second one asks the first to show its
+// window, and ends without a word.
 func (a *App) Run() {
 	prepareProcess()
 	mygo.App.SetName(a.T("appTitle"))
@@ -164,13 +230,19 @@ func (a *App) Run() {
 	// The window has no menu bar: the application is the pages, and the text
 	// fields bring their own editing commands.
 	mygo.App.SetMenu(nil)
+	if !a.allowsSeveralInstances() && !mygo.App.RequestSingleInstanceLock() {
+		return
+	}
+	// Only the application that runs serves the web interface.
+	a.web.Start()
+	defer a.web.Close()
+	mygo.App.OnWindowAllClosed(a.windowsClosed)
+	mygo.App.OnSecondInstance(func([]string, string) { a.showWindow() })
+	// However the application is ended, the icon goes before it does.
+	mygo.App.OnWillQuit(func(*mygo.QuitEvent) { a.removeTray() })
 	mygo.App.WhenReady(func() {
 		a.useSystemLanguages(mygo.App.PreferredLanguages())
-		width, height := a.windowSize()
-		a.win = mygo.NewWindow(mygo.WindowOptions{
-			Title: a.T("appTitle"), Width: width, Height: height, MinWidth: 360, MinHeight: 480,
-			Content: mui.View(a.view),
-		})
+		a.openWindow()
 		a.listen()
 		go a.model.Start()
 		a.startE2E()
@@ -183,9 +255,116 @@ func (a *App) Run() {
 	}
 }
 
+// openWindow opens the window of the application.
+func (a *App) openWindow() {
+	a.mu.Lock()
+	a.released = false
+	a.mu.Unlock()
+	width, height := a.windowSize()
+	win := a.desktop.newWindow(mygo.WindowOptions{
+		Title: a.T("appTitle"), Width: width, Height: height, MinWidth: 360, MinHeight: 480,
+		Content: mui.View(a.view),
+	})
+	a.win.Store(&win)
+	a.cancelTrim()
+	a.hideTray()
+}
+
+// showWindow brings the window of the application to the front, and opens it
+// again when the application runs without one.
+func (a *App) showWindow() {
+	win := a.window()
+	if win == nil {
+		a.openWindow()
+		return
+	}
+	win.Show()
+	win.Focus()
+}
+
+// windowsClosed runs when the last window has been closed. The application
+// quits, unless the lightweight mode is on and the web interface is up, which
+// is what it would keep running for: then the application goes on without its
+// window, and the web interface and the tasks with it.
+func (a *App) windowsClosed() {
+	if !a.keepsRunning() {
+		a.desktop.quit()
+		return
+	}
+	a.releaseWindow()
+}
+
+// keepsRunning tells whether closing the window leaves the application running.
+func (a *App) keepsRunning() bool {
+	return a.model.Settings.Settings().Lightweight && a.web.Status().Running
+}
+
+// releaseWindow lets go of everything that the window held: its widgets, the
+// page the user was on, what the lists remembered, and the memory they took.
+// A window that opens later starts from a clean state, as the application does.
+func (a *App) releaseWindow() {
+	a.win.Store(nil)
+	a.mu.Lock()
+	a.released = true
+	a.pending = nil
+	a.mu.Unlock()
+	for task, stop := range a.watched {
+		stop()
+		delete(a.watched, task)
+	}
+	a.env = kit.NewEnv(kit.NewTheme(settings.DefaultSeedColor, false, false, 1))
+	a.uiTheme = a.env.Theme.UI()
+	a.themeKey = themeKey{}
+	a.shell = shellState{}
+	a.pages = pageStates{}
+	// The icon in the tray is the way back to the window.
+	a.showTray()
+	// What the window held is garbage now; the runtime would return it to the
+	// system in its own time, and the lightweight mode is about not waiting for that.
+	go debug.FreeOSMemory()
+	a.scheduleTrim()
+}
+
+// pageOutDelay is how long the window has to stay closed before the files that the process maps
+// are paged out: the window and the icon are torn down and made in that time, which runs code
+// that would only bring the pages back, and a window that opens again in it needs them.
+var pageOutDelay = 2 * time.Second
+
+// scheduleTrim pages the files that the process maps out once the window has stayed closed
+// for pageOutDelay, and returns what that took to the runtime. Most of the resident memory of the
+// application without its window is clean pages of its code, its fonts and its libraries, which
+// nothing runs while there is no window: the system takes them back when it needs the memory, and
+// being told that it may do so at once keeps the resident set at what the application uses.
+func (a *App) scheduleTrim() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.trim != nil {
+		a.trim.Stop()
+	}
+	a.trim = time.AfterFunc(pageOutDelay, func() {
+		if a.window() != nil {
+			return
+		}
+		a.desktop.pageOut()
+		debug.FreeOSMemory() // What the paging itself allocated.
+	})
+}
+
+// cancelTrim lets the files be: a window is open, and runs what they hold.
+func (a *App) cancelTrim() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.trim != nil {
+		a.trim.Stop()
+		a.trim = nil
+	}
+}
+
 // listen asks for a frame whenever the state changes.
 func (a *App) listen() {
+	a.web.AddListener(a.invalidate)
 	a.model.Settings.AddListener(a.invalidate)
+	a.model.Settings.AddListener(a.refreshTray)
 	a.model.Vfox.AddListener(a.invalidate)
 	a.model.Installed.AddListener(a.invalidate)
 	a.model.Registry.AddListener(a.invalidate)
@@ -282,8 +461,8 @@ func (a *App) syncLanguage() {
 		}
 	}
 	a.l10n.Store(i18n.NewLocalizations(language, messages, a.english))
-	if a.win != nil {
-		a.win.SetTitle(a.T("appTitle"))
+	if win := a.window(); win != nil {
+		win.SetTitle(a.T("appTitle"))
 	}
 }
 

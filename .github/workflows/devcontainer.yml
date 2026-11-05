@@ -84,7 +84,7 @@ jobs:
           devcontainer exec --workspace-folder . bash -eu <<'EOF'
           cd mygo
           vfxtool build --e2e build/vfox-plus-e2e
-          for scenario in fake real; do
+          for scenario in fake real tray; do
             xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
               vfxtool e2e-run "$scenario" build/vfox-plus-e2e
           done

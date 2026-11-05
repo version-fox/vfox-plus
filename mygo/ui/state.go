@@ -44,6 +44,13 @@ type pageStates struct {
 	environmentText  string
 	environmentError string
 
+	// portReady says that portText was filled with the port of the settings, which was portSeen.
+	portReady bool
+	portSeen  int
+	portText  string
+	// pairing is the link and the code that the dialog of the pairing shows.
+	pairing *pairingState
+
 	licenses []string
 }
 

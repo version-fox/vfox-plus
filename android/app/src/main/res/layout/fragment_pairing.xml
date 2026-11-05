@@ -141,9 +141,9 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- The command that makes the PC offer the pairing. -->
+        <!-- Where to find the pairing on the PC. -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/commandCard"
+            android:id="@+id/whereCard"
             style="?attr/materialCardViewFilledStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -158,7 +158,7 @@
                 android:orientation="horizontal"
                 android:paddingStart="20dp"
                 android:paddingTop="12dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="20dp"
                 android:paddingBottom="12dp">
 
                 <LinearLayout
@@ -170,29 +170,20 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/command_label"
+                        android:text="@string/where_label"
                         android:textAppearance="?attr/textAppearanceLabelLarge"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
                     <TextView
-                        android:id="@+id/command"
+                        android:id="@+id/wherePath"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:fontFamily="monospace"
-                        android:text="@string/pair_command"
+                        android:text="@string/where_path"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium.Emphasized"
                         android:textColor="?attr/colorPrimary"
                         android:textIsSelectable="true" />
                 </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/copyButton"
-                    style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/copy_command"
-                    app:icon="@drawable/ic_copy" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

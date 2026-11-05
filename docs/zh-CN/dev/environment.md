@@ -144,16 +144,20 @@ Ubuntu 软件包与 CI 安装的相同（[`mygo.yml`](../../../.github/workflows
 `LINUX_PACKAGES`）：
 
 ```sh
-sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
+sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11
 ```
 
 `build-essential` 只为单元测试的竞态检测器，它需要 C 编译器；应用本身构建时不需要。
 GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 给端到端测试一块虚拟显示。
-要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。构建、测试与打包的命令见
+要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。`libayatana-appindicator3-1` 画出应用没有窗口时代表它的托盘图标，端到端场景 `tray` 需要它，并且要在
+`dbus-run-session` 给的会话总线里运行，因为它用一个替身托盘宿主（见[托盘](architecture.md#托盘)）。要在自己的桌面上
+看到这个图标，桌面需要是 GNOME（带它的 AppIndicator 扩展）或 Windows。场景 `tray-gnome` 在
+`shared/sandbox/gnome.Dockerfile` 的容器里运行，所以需要 Docker。构建、测试与打包的命令见
 [mygo 指南](implementation-mygo.md#日常命令)。
 
-`vfxtool webheap` 测量 Web 界面的堆并截图（拍一个页面，或 Java 发行版之类的场景），它驱动一个讲 DevTools Protocol 的 Chrome：用
+`vfxtool webheap` 测量 Web 界面的堆并截图（拍一个页面，或 Java 发行版之类的场景），`vfxtool gateway-shots` 拍网关各页的
+截图，它们都驱动一个讲 DevTools Protocol 的 Chrome：用
 `--chrome` 指定，或让工具去找 `google-chrome`、`chromium` 之类（见[截图](contributing.md#截图)，
 那里还说明了哪种 Chrome 能给出你要的尺寸）。对真实 vfox 的端到端场景在沙箱里运行，沙箱自带固定版本的
 vfox，所以不会碰你的 `~/.vfox`。
@@ -198,7 +202,21 @@ Ubuntu 里的任何操作都改变不了；非 0 的值表示提供了（能用�
   `/proc/cpuinfo` 里有 `vmx` 或 `svm` 而 `/dev/kvm` 仍然没有，运行 `sudo modprobe kvm_intel`（或
   `kvm_amd`）会告诉你原因。
 - `/dev/kvm` 属于 `kvm` 组：`sudo usermod -aG kvm "$USER"`，然后开一个新会话（在 WSL2 里是
-  `wsl --shutdown`）。
+  `wsl --shutdown`，它也会结束 WSL2 里运行的一切）。想省掉新会话，就用 CI 用的那条规则把设备开放给所有人：
+  它立刻生效，已经在运行的程序也包括在内，重启之后仍然有效；只有一个人使用的电脑上，没有谁需要被挡在外面：
+
+  ```sh
+  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger --name-match=kvm
+  ```
+
+  这时 `ls -l /dev/kvm` 显示 `crw-rw-rw-`。下面这条直接问内核 KVM 能不能用，能用就打印 12
+  （`PermissionError` 说明你还不能使用这个设备）：
+
+  ```sh
+  python3 -I -c 'import fcntl,os; print(fcntl.ioctl(os.open("/dev/kvm", os.O_RDWR), 0xAE00))'
+  ```
 
 ### 已知问题：AMD 处理器，2026 年 10 月的 Windows 更新之后
 
@@ -226,6 +244,28 @@ Windows 11 的累积更新 KB5127648（2026 年 10 月；版本 26100.9711，25H
   模拟器（在 WSL 里设置 `ANDROID_ADB_SERVER_ADDRESS` 与 `ANDROID_ADB_SERVER_PORT`，让那台服务器用
   `adb -a nodaemon server` 监听，并让 Windows 防火墙放行）。它的数字属于那台设备，不能与 CI 的模拟器比较。
 
+### 自己的模拟器
+
+KVM 能用之后，模拟器需要 SDK 的命令行工具，即 `android/versions.env` 固定的那个版本（dl.google.com 上的
+`commandlinetools-linux-<build>_latest.zip`，按它的校验和核对，解压到 `$ANDROID_HOME/cmdline-tools/latest`），以及三个包。
+下载约 3 GB，`sdkmanager` 会要求你接受 Android SDK 的许可：
+
+```sh
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+sdkmanager --licenses
+sdkmanager platform-tools emulator "system-images;android-36;google_apis;x86_64"
+avdmanager create avd -n pixel6 -k "system-images;android-36;google_apis;x86_64" -d pixel_6
+emulator -avd pixel6 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect &
+adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后是 1，约一分钟
+```
+
+`pixel_6` 是 1080×2400、420 dpi，和 CI 的模拟器一样。`~/.android/avd/pixel6.avd/config.ini` 里有
+`hw.camera.back=virtualscene` 时，扫码界面的后置摄像头显示一间客厅（`avdmanager` 写的是 `emulated`，只是一段
+普通动画）；对 WebView 来说 `hw.ramSize=3072M` 比默认的 1536M 合适。去掉 `-no-window` 就能在显示器上
+（WSLg）看到模拟器。不想自己构建、直接装 CI 构建好的 release APK，可以从该 Pull Request 的运行里下载：
+`gh run download RUN -n vfox-plus-android`。
+
 ### 运行 App
 
 模拟器启动后（`adb devices` 能列出它），构建 App、安装，并与你机器上的服务器配对：
@@ -236,18 +276,26 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # 供扫码页使用
 ```
 
-模拟器把你机器的回环地址当作 `10.0.2.2`。配对服务的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
-用 `http://10.0.2.2:PORT` 配对行不通。改用 HTTPS：一份写有 `10.0.2.2` 的自签名证书，以及在回环地址上使用它的服务器
-（`go -C mygo build ./cmd/vfox-plus-serve`）：
+模拟器把你的机器当作 `10.0.2.2`。服务器的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
+用 `http://10.0.2.2:PORT` 配对行不通；给其他设备的服务器本来也只讲 HTTPS。做一份写有 `10.0.2.2` 的自签名证书，
+交给应用：
 
 ```sh
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
   -subj /CN=vfox-plus-emulator -addext subjectAltName=IP:10.0.2.2,IP:127.0.0.1 \
   -keyout key.pem -out cert.pem
-vfox-plus-serve serve -bind 127.0.0.1 -port 0 -tls-cert cert.pem -tls-key key.pem
 ```
 
-把它打印的链接里的 `127.0.0.1` 换成 `10.0.2.2`，输入到 App 里。App 会显示证书的指纹，它必须与
+启动应用（`vfxtool build build/vfox-plus && build/vfox-plus`），在它的设置里开启网页界面和*其他设备*，再选择
+*证书 → 浏览…* 和文件 `cert.pem`、`key.pem`。（也可以在启动前把这些设置写进
+`~/.config/vfox-plus/settings.json`：`"webInterface": true`、`"webRemote": true`、
+`"webCertificate": "/path/cert.pem"` 与 `"webKey": "/path/key.pem"`。）
+
+端到端构建（`vfxtool build --e2e`）既不需要证书，也不用替换地址：环境里有 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 时，它
+为自己生成的证书写的就是 `10.0.2.2`，设置里和*显示二维码*给出的链接也是。指南里的图就是这样拍的
+（[截图](contributing.md#截图)）。
+
+点*配对手机*旁的*显示二维码*，复制链接，输入到 App 里，并把其中你机器的地址换成 `10.0.2.2`。App 会显示证书的指纹，它必须与设置里显示的、以及
 `openssl x509 -in cert.pem -noout -fingerprint -sha256` 打印的相同。
 
 `vfxtool measure-apk` 在同一个模拟器上运行。它安装时不带 `-r`，所以要先卸载 App（`adb uninstall dev.vfox.vfoxplus`）。

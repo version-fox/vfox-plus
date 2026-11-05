@@ -22,31 +22,23 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
 	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
-func testSnapshot() pair.Snapshot {
-	return pair.Snapshot{
-		HasVfox:     true,
-		VfoxVersion: "1.0.13",
-		SDKs: []pair.SdkSummary{
-			{Name: "nodejs", Current: "24.11.1", HasCurrent: true, Versions: []string{"24.11.1", "22.21.0"}},
-		},
-	}
-}
-
-func testServer(t *testing.T, snapshot pair.Snapshot) *pair.Server {
+// testServer is a server on loopback with the application state of the captured
+// output of vfox.
+func testServer(t *testing.T) *pair.Server {
 	t.Helper()
-	server, err := pair.NewServer(pair.Options{Snapshot: func() pair.Snapshot { return snapshot }})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = server.Close() })
-	return server
+	return webServer(t, testModel(t, testsupport.FixtureRunner()))
 }
 
-func get(t *testing.T, url, cookie string) (int, string, []*http.Cookie) {
+// noRedirect is a client that shows the answer of the server and does not follow
+// where it sends the browser: pairing answers with the cookie and a redirect.
+var noRedirect = &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+
+// request sends a GET without following redirects.
+func request(t *testing.T, url, cookie string) *http.Response {
 	t.Helper()
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -55,11 +47,17 @@ func get(t *testing.T, url, cookie string) (int, string, []*http.Cookie) {
 	if cookie != "" {
 		request.AddCookie(&http.Cookie{Name: "vfox-plus-session", Value: cookie, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	}
-	response, err := http.DefaultClient.Do(request)
+	response, err := noRedirect.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	t.Cleanup(func() { _ = response.Body.Close() })
+	return response
+}
+
+func get(t *testing.T, url, cookie string) (int, string, []*http.Cookie) {
+	t.Helper()
+	response := request(t, url, cookie)
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -67,8 +65,17 @@ func get(t *testing.T, url, cookie string) (int, string, []*http.Cookie) {
 	return response.StatusCode, string(body), response.Cookies()
 }
 
-func TestPairLinkWorksOnce(t *testing.T) {
-	server := testServer(t, testSnapshot())
+func sessionOf(cookies []*http.Cookie) string {
+	for _, cookie := range cookies {
+		if cookie.Name == "vfox-plus-session" {
+			return cookie.Value
+		}
+	}
+	return ""
+}
+
+func TestPairLinkWorksOnceAndTakesTheBrowserToTheInterface(t *testing.T) {
+	server := testServer(t)
 	_, url, err := server.NewToken()
 	if err != nil {
 		t.Fatal(err)
@@ -76,36 +83,34 @@ func TestPairLinkWorksOnce(t *testing.T) {
 	if !strings.HasPrefix(url, server.BaseURL()+"/auth/connect/") {
 		t.Fatalf("got %q", url)
 	}
-	status, body, cookies := get(t, url, "")
-	if status != http.StatusOK {
-		t.Fatalf("got %d", status)
+	response := request(t, url, "")
+	if response.StatusCode != http.StatusSeeOther || response.Header.Get("Location") != "/app" {
+		t.Fatalf("pairing takes the browser to the interface, got %d to %q", response.StatusCode, response.Header.Get("Location"))
 	}
-	if !strings.Contains(body, "1.0.13") || !strings.Contains(body, "nodejs") {
-		t.Errorf("the page must show the instance: %q", body)
-	}
-	var session string
-	for _, cookie := range cookies {
-		if cookie.Name == "vfox-plus-session" {
-			session = cookie.Value
-		}
-	}
+	session := sessionOf(response.Cookies())
 	if session == "" {
 		t.Fatal("pairing must issue a session")
 	}
 	// The link is single-use.
-	if status, _, _ := get(t, url, ""); status != http.StatusForbidden {
-		t.Errorf("a used link must be rejected, got %d", status)
+	if status, body, _ := get(t, url, ""); status != http.StatusForbidden || strings.Contains(body, "vfox-plus pair") {
+		t.Errorf("a used link must be rejected, and not by sending the user to a command, got %d: %s", status, body)
 	}
-	// The session unlocks the read-only API.
-	status, body, _ = get(t, server.BaseURL()+"/api/status", session)
-	if status != http.StatusOK {
-		t.Fatalf("got %d", status)
+	// The session unlocks the interface and its API.
+	if status, _, _ := get(t, server.BaseURL()+"/app", session); status != http.StatusOK {
+		t.Errorf("the paired browser gets the interface, got %d", status)
 	}
-	if !strings.Contains(body, "24.11.1") {
-		t.Errorf("got %q", body)
+	if status, body, _ := get(t, server.BaseURL()+"/api/inventory", session); status != http.StatusOK || !strings.Contains(body, "24.11.1") {
+		t.Errorf("got %d: %q", status, body)
 	}
-	// Without the session the API refuses.
-	if status, _, _ := get(t, server.BaseURL()+"/api/status", ""); status != http.StatusUnauthorized {
+	// Without the session the API refuses, and the interface sends the browser to the intro.
+	if status, _, _ := get(t, server.BaseURL()+"/api/inventory", ""); status != http.StatusUnauthorized {
+		t.Errorf("got %d", status)
+	}
+	if response := request(t, server.BaseURL()+"/app", ""); response.StatusCode != http.StatusFound || response.Header.Get("Location") != "/" {
+		t.Errorf("an unpaired browser goes to the intro, got %d to %q", response.StatusCode, response.Header.Get("Location"))
+	}
+	// A link that was never made does not pair.
+	if status, _, cookies := get(t, server.BaseURL()+"/auth/connect/0123", ""); status != http.StatusForbidden || sessionOf(cookies) != "" {
 		t.Errorf("got %d", status)
 	}
 }
@@ -113,7 +118,7 @@ func TestPairLinkWorksOnce(t *testing.T) {
 func TestPairLinkExpires(t *testing.T) {
 	server, err := pair.NewServer(pair.Options{
 		TokenTTL: 10 * time.Millisecond,
-		Snapshot: func() pair.Snapshot { return testSnapshot() },
+		Model:    testModel(t, testsupport.FixtureRunner()),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -129,103 +134,54 @@ func TestPairLinkExpires(t *testing.T) {
 	}
 }
 
-func TestPairListensOnLoopbackOnly(t *testing.T) {
-	server := testServer(t, testSnapshot())
-	if _, err := pair.NewServer(pair.Options{Bind: "0.0.0.0"}); err == nil {
-		t.Error("a non-loopback bind must be refused")
-	}
-	if open, err := pair.NewServer(pair.Options{Bind: "0.0.0.0", AllowNonLoopback: true}); err != nil {
-		t.Skipf("no non-loopback interface in this sandbox: %v", err)
-	} else {
-		_ = open.Close()
-	}
-	addr := server.Addr().String()
-	if !strings.HasPrefix(addr, "127.0.0.1:") {
-		t.Errorf("got %q", addr)
-	}
-	if got := server.DisplayBaseURL(); got != server.BaseURL() {
-		t.Errorf("a loopback server shows its own address, got %q", got)
-	}
-}
-
-func TestDisplayBaseURLMasksWildcards(t *testing.T) {
-	server, err := pair.NewServer(pair.Options{
-		Bind:             "0.0.0.0",
-		AllowNonLoopback: true,
-		Snapshot:         func() pair.Snapshot { return testSnapshot() },
-	})
-	if err != nil {
-		t.Skipf("no non-loopback interface in this sandbox: %v", err)
-	}
-	defer func() { _ = server.Close() }()
-	got := server.DisplayBaseURL()
-	if !strings.HasPrefix(got, "http://0.0.0.0:") {
-		t.Errorf("a wildcard server must show a replaceable placeholder, got %q", got)
-	}
-}
-
-func TestPairPageExplainsAMissingVfox(t *testing.T) {
-	server := testServer(t, pair.Snapshot{VfoxError: "executable file not found"})
-	_, url, err := server.NewToken()
-	if err != nil {
-		t.Fatal(err)
-	}
-	status, body, _ := get(t, url, "")
-	if status != http.StatusOK {
-		t.Fatalf("got %d", status)
-	}
-	if !strings.Contains(body, "vfox.dev") {
-		t.Errorf("the page must point at the vfox installation guide: %q", body)
-	}
-}
-
-func TestSummarizeKeepsInstalledVersions(t *testing.T) {
-	got := pair.Summarize([]core.InstalledSdk{
-		{Name: "nodejs", Current: "24.11.1", HasCurrent: true, Versions: []string{"24.11.1"}},
-	})
-	if len(got) != 1 || got[0].Name != "nodejs" || !got[0].HasCurrent || len(got[0].Versions) != 1 {
-		t.Errorf("got %#v", got)
-	}
-}
-
-func pairSession(t *testing.T, server *pair.Server) string {
-	t.Helper()
-	_, url, err := server.NewToken()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, cookies := get(t, url, "")
-	for _, cookie := range cookies {
-		if cookie.Name == "vfox-plus-session" {
-			return cookie.Value
+func TestServerRefusesToServeUnsafely(t *testing.T) {
+	model := testModel(t, testsupport.FixtureRunner())
+	for name, options := range map[string]pair.Options{
+		"without the application state":              {},
+		"on an address of the network":               {Model: model, Bind: "0.0.0.0"},
+		"on an address of the network, in the clear": {Model: model, Bind: "0.0.0.0", AllowNonLoopback: true},
+		"with a certificate and no key":              {Model: model, TLSCertFile: "cert.pem"},
+		"with a key and no certificate":              {Model: model, TLSKeyFile: "key.pem"},
+		"with a certificate that is not there":       {Model: model, TLSCertFile: "cert.pem", TLSKeyFile: "key.pem"},
+		"on a name instead of an address":            {Model: model, Bind: "localhost"},
+	} {
+		server, err := pair.NewServer(options)
+		if err == nil {
+			_ = server.Close()
+			t.Errorf("a server %s must be refused", name)
 		}
 	}
-	t.Fatal("pairing must issue a session")
-	return ""
+	server := testServer(t)
+	if addr := server.Addr().String(); !strings.HasPrefix(addr, "127.0.0.1:") {
+		t.Errorf("a server listens on the loopback interface, got %q", addr)
+	}
+	if !strings.HasPrefix(server.BaseURL(), "http://127.0.0.1:") {
+		t.Errorf("got %q", server.BaseURL())
+	}
 }
 
 func TestSessionExpires(t *testing.T) {
 	server, err := pair.NewServer(pair.Options{
 		SessionTTL: 20 * time.Millisecond,
-		Snapshot:   func() pair.Snapshot { return testSnapshot() },
+		Model:      testModel(t, testsupport.FixtureRunner()),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = server.Close() }()
-	session := pairSession(t, server)
-	if status, _, _ := get(t, server.BaseURL()+"/api/status", session); status != http.StatusOK {
+	session := webSession(t, server)
+	if status, _, _ := get(t, server.BaseURL()+"/api/token", session); status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
 	time.Sleep(50 * time.Millisecond)
-	if status, _, _ := get(t, server.BaseURL()+"/api/status", session); status != http.StatusUnauthorized {
+	if status, _, _ := get(t, server.BaseURL()+"/api/token", session); status != http.StatusUnauthorized {
 		t.Errorf("an expired session must be rejected, got %d", status)
 	}
 }
 
 func TestPairedBrowserMintsLinks(t *testing.T) {
-	server := testServer(t, testSnapshot())
-	session := pairSession(t, server)
+	server := testServer(t)
+	session := webSession(t, server)
 	// Minting needs the session.
 	if status, _, _ := get(t, server.BaseURL()+"/api/token", ""); status != http.StatusUnauthorized {
 		t.Fatalf("got %d", status)
@@ -244,10 +200,30 @@ func TestPairedBrowserMintsLinks(t *testing.T) {
 		t.Errorf("got %q", minted.URL)
 	}
 	// The minted link pairs once.
-	if status, _, _ := get(t, minted.URL, ""); status != http.StatusOK {
+	if status, _, _ := get(t, minted.URL, ""); status != http.StatusSeeOther {
 		t.Errorf("got %d", status)
 	}
 	if status, _, _ := get(t, minted.URL, ""); status != http.StatusForbidden {
+		t.Errorf("got %d", status)
+	}
+}
+
+func TestTheIntroPageSaysWhereToGetALink(t *testing.T) {
+	server := testServer(t)
+	status, body, _ := get(t, server.BaseURL()+"/", "")
+	if status != http.StatusOK {
+		t.Fatalf("got %d", status)
+	}
+	for _, want := range []string{"Settings", "Open in browser", "设置", "在浏览器中打开"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the intro page names %q, so that people find the link: %s", want, body)
+		}
+	}
+	// The application has no command line, and the page must not send anyone to one.
+	if strings.Contains(body, "vfox-plus pair") || strings.Contains(body, "terminal") || strings.Contains(body, "auth/connect") {
+		t.Errorf("the intro page names a command or a token: %s", body)
+	}
+	if status, _, _ := get(t, server.BaseURL()+"/nothing", ""); status != http.StatusNotFound {
 		t.Errorf("got %d", status)
 	}
 }

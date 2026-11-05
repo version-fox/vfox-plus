@@ -31,10 +31,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/chrome"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
 )
 
-// The tests that run the tool drive a real Chrome (the one that findChrome
+// The tests that run the tool drive a real Chrome (the one that chrome.Find
 // finds: -chrome, $CHROME_BIN, or a name in PATH) against a small page that
 // does what the web interface does for the tool: it sets the session cookie at
 // the pairing link, lists SDKs after a moment, and reports to the server what
@@ -112,7 +113,7 @@ func newServer(t *testing.T, mode serverMode) *server {
 	mux.HandleFunc("/auth/connect/abc", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "paired", Path: "/"})
-		_, _ = fmt.Fprint(w, "<!doctype html><title>paired</title>paired")
+		http.Redirect(w, r, "/app", http.StatusSeeOther)
 	})
 	mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
@@ -180,10 +181,10 @@ func unescape(note string) (string, error) {
 	return strings.NewReplacer("%3D", "=", "%3A", ":", "%2F", "/").Replace(note), nil
 }
 
-// chrome is the browser of the tests, or the end of the test.
-func chrome(t *testing.T) string {
+// needChrome is the browser of the tests, or the end of the test.
+func needChrome(t *testing.T) string {
 	t.Helper()
-	binary, err := findChrome("")
+	binary, err := chrome.Find("")
 	if err != nil {
 		t.Skip("no Chrome to drive: set CHROME_BIN")
 	}
@@ -203,7 +204,7 @@ func runTool(t *testing.T, s *server, extra ...string) trial {
 	args := append([]string{
 		"-server", s.URL, "-pairing", s.URL + "/auth/connect/abc",
 		"-output", filepath.Join(directory, "out", "memory.txt"),
-		"-chrome", chrome(t),
+		"-chrome", needChrome(t),
 		"-settle", "0", "-idle", "0.5", "-timeout", "60",
 	}, extra...)
 	var stdout bytes.Buffer
@@ -237,7 +238,7 @@ func TestRunMeasures(t *testing.T) {
 	if !strings.Contains(string(got.stdout), `"heapUsedBytes":`) {
 		t.Errorf("the keys of the summary changed: %s", got.stdout)
 	}
-	// It pairs first and opens the app after: the pairing page sets the cookie.
+	// It pairs first and opens the app after: the pairing link sets the cookie.
 	// (The browser asks for the icon of each page, too.)
 	pairing, app := indexOf(s.requests, "GET /auth/connect/abc"), indexOf(s.requests, "GET /app")
 	if pairing < 0 || app < pairing {
@@ -341,7 +342,7 @@ func TestRunFailures(t *testing.T) {
 		args  []string
 		want  string
 	}{
-		{"the app sends an unpaired browser away", redirects, nil, "the app did not open: the browser ended up on " + "http://127.0.0.1:"},
+		{"the app sends an unpaired browser away", redirects, nil, "the pairing page did not open: the browser ended up on " + "http://127.0.0.1:"},
 		{"the SDK list never comes", neverList, []string{"-timeout", "4"}, "timed out waiting for the SDK list"},
 	} {
 		t.Run(tc.label, func(t *testing.T) {
@@ -478,30 +479,6 @@ func TestParseOptions(t *testing.T) {
 				t.Errorf("got %v, want an error with %q", err, tc.want)
 			}
 		})
-	}
-}
-
-func TestFindChrome(t *testing.T) {
-	t.Setenv("CHROME_BIN", "/from/env")
-	if got, err := findChrome("/named"); err != nil || got != "/named" {
-		t.Errorf("a named browser: %q, %v", got, err)
-	}
-	if got, err := findChrome(""); err != nil || got != "/from/env" {
-		t.Errorf("$CHROME_BIN: %q, %v", got, err)
-	}
-	t.Setenv("CHROME_BIN", "")
-	bin := t.TempDir()
-	t.Setenv("PATH", bin)
-	if _, err := findChrome(""); err == nil && runtime.GOOS != "darwin" {
-		t.Error("found a Chrome in an empty PATH")
-	}
-	if err := os.WriteFile(filepath.Join(bin, "chromium"), []byte("#!/bin/sh\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if runtime.GOOS != "windows" {
-		if got, err := findChrome(""); err != nil || got != filepath.Join(bin, "chromium") {
-			t.Errorf("chromium in PATH: %q, %v", got, err)
-		}
 	}
 }
 

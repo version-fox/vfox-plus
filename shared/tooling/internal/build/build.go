@@ -36,21 +36,19 @@ type config struct {
 	root   string
 	goos   string
 	goarch string
-	pkg    string
 }
 
 // Run builds the mygo application.
 //
-// Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] [--package PKG] <output>
+// Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>
 //
 // With --e2e the build links the automation plugin of mygo, which vfxtool drives
 // the application through for the end-to-end scenarios, the memory measurement and
 // the screenshots (MYGO_AUTOMATION names its socket); release builds must not have
 // it. With --goos/--goarch the build cross-compiles, for example
-// --goos windows --goarch amd64 for the MSIX packaging. --package selects the
-// main package: the desktop application (".", the default) or the headless
-// server without the user interface ("./cmd/vfox-plus-serve"), which makes
-// the smaller binary that containers and remote instances run.
+// --goos windows --goarch amd64 for the MSIX packaging. The application is the
+// only main package: it takes no arguments, and the web interface is one of its
+// settings.
 func Run(args []string) error {
 	cfg, err := parseArgs(args)
 	if err != nil {
@@ -74,7 +72,7 @@ func Run(args []string) error {
 		"-tags", cfg.tags(),
 		"-ldflags", "-s -w -X github.com/egoist/mygo.production=1",
 		"-o", output,
-		cfg.pkg,
+		".",
 	)
 	cmd := exec.Command("go", buildArgs...)
 	cmd.Dir = root
@@ -94,9 +92,8 @@ func Run(args []string) error {
 	return nil
 }
 
-// parseArgs parses [--e2e] [--root DIR] [--goos OS] [--goarch ARCH]
-// [--package PKG] <output>, keeping positional compatibility with build.sh
-// [--e2e] <output>.
+// parseArgs parses [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>,
+// keeping positional compatibility with build.sh [--e2e] <output>.
 func parseArgs(args []string) (config, error) {
 	var cfg config
 	fs := flag.NewFlagSet("vfxtool build", flag.ContinueOnError)
@@ -104,17 +101,16 @@ func parseArgs(args []string) (config, error) {
 	fs.StringVar(&cfg.root, "root", "", "mygo module directory (default: located from the current directory)")
 	fs.StringVar(&cfg.goos, "goos", "", "target operating system for cross-compilation (default: host)")
 	fs.StringVar(&cfg.goarch, "goarch", "", "target architecture for cross-compilation (default: host)")
-	fs.StringVar(&cfg.pkg, "package", ".", "main package to build (default: the desktop application; ./cmd/vfox-plus-serve builds the headless server)")
 	// Keep the usage compatible with build.sh.
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] [--package PKG] <output>\n")
+		fmt.Fprintf(fs.Output(), "Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>\n")
 	}
 	if err := fs.Parse(args); err != nil {
 		return config{}, err
 	}
 	rest := fs.Args()
 	if len(rest) != 1 || rest[0] == "" {
-		return config{}, errors.New("Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] [--package PKG] <output>")
+		return config{}, errors.New("Usage: build [--e2e] [--root DIR] [--goos OS] [--goarch ARCH] <output>")
 	}
 	cfg.output = rest[0]
 	return cfg, nil

@@ -37,11 +37,28 @@ import (
 // memory_of in measure.sh. Sizes are read from
 // /proc/<pid>/task/*/children (process tree) and /proc/<pid>/smaps_rollup.
 func MemoryOf(pid int) string {
-	rss, pss, count := memoryOf(pid)
-	return fmt.Sprintf("RSS %d MB, PSS %d MB in %d processes", rss/1024, pss/1024, count)
+	usage := UsageOf(pid)
+	return fmt.Sprintf("RSS %d MB, PSS %d MB in %d processes", usage.RSS/1024, usage.PSS/1024, usage.Processes)
 }
 
-func memoryOf(pid int) (rss, pss int64, count int) {
+// Usage is the memory that a process and its descendants occupy, in KB.
+type Usage struct {
+	// RSS is the resident set: every page of the processes that is in memory, the pages of the
+	// files that they map included, which the system can take back whenever it needs the memory.
+	RSS int64
+	// PSS is the proportional set: the pages that several processes share are shared out
+	// between them.
+	PSS int64
+	// Private is the anonymous memory, the heap and the stacks: what the processes hold that
+	// the system cannot take back without writing it somewhere. It is the memory that a change
+	// of the program adds or saves, where RSS also moves with how much of its code was touched.
+	Private int64
+	// Processes is how many processes there are, the first included.
+	Processes int
+}
+
+// UsageOf reads the memory of pid and all of its descendants.
+func UsageOf(pid int) Usage {
 	pids := []int{pid}
 	for i := 0; i < len(pids); i++ {
 		pattern := fmt.Sprintf("/proc/%d/task/*/children", pids[i])
@@ -60,27 +77,32 @@ func memoryOf(pid int) (rss, pss int64, count int) {
 			}
 		}
 	}
+	usage := Usage{Processes: len(pids)}
 	for _, p := range pids {
 		data, err := os.ReadFile(fmt.Sprintf("/proc/%d/smaps_rollup", p))
 		if err != nil {
 			continue
 		}
 		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "Rss:") || strings.HasPrefix(line, "Pss:") {
-				fields := strings.Fields(line)
-				if len(fields) >= 2 {
-					if v, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
-						if strings.HasPrefix(line, "Rss:") {
-							rss += v
-						} else {
-							pss += v
-						}
-					}
-				}
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				continue
+			}
+			v, err := strconv.ParseInt(fields[1], 10, 64)
+			if err != nil {
+				continue
+			}
+			switch fields[0] {
+			case "Rss:":
+				usage.RSS += v
+			case "Pss:":
+				usage.PSS += v
+			case "Anonymous:":
+				usage.Private += v
 			}
 		}
 	}
-	return rss, pss, len(pids)
+	return usage
 }
 
 // fixturesDirFromRoot resolves a --fixtures-root value to the directory with

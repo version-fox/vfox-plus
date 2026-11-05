@@ -120,6 +120,23 @@ func TestMemoryOfThisProcess(t *testing.T) {
 	}
 }
 
+func TestUsageOfThisProcess(t *testing.T) {
+	if _, err := os.Stat("/proc/self/smaps_rollup"); err != nil {
+		t.Skip("no /proc/<pid>/smaps_rollup on this platform")
+	}
+	usage := UsageOf(os.Getpid())
+	if usage.Processes < 1 || usage.RSS <= 0 || usage.PSS <= 0 || usage.Private <= 0 {
+		t.Fatalf("UsageOf = %+v: a running process occupies memory", usage)
+	}
+	// The anonymous memory is a part of what is resident, and the shared pages are shared out.
+	if usage.Private > usage.RSS || usage.PSS > usage.RSS {
+		t.Errorf("UsageOf = %+v: the private and the proportional memory are parts of the resident one", usage)
+	}
+	if usage := UsageOf(1 << 30); usage.RSS != 0 || usage.Private != 0 {
+		t.Errorf("UsageOf a process that is not there = %+v, want nothing", usage)
+	}
+}
+
 func TestFixturesDirFromRoot(t *testing.T) {
 	cases := map[string]string{
 		"shared/fixtures":             "shared/fixtures/vfox-1.0.13",

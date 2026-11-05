@@ -50,6 +50,8 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/chrome"
 )
 
 const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
@@ -102,7 +104,7 @@ func parseOptions(args []string) (options, error) {
 	flags.StringVar(&o.screenshot, "screenshot", "", "also write a PNG screenshot of the settled page to this `file`")
 	flags.StringVar(&o.lang, "lang", "", "pin the interface language to `en|zh`")
 	flags.StringVar(&o.tab, "tab", "", "open this page before the screenshot: home, sdks, plugins, tasks or settings")
-	flags.StringVar(&o.scene, "scene", "", "play this scene before the screenshot, which opens a dialog or a tab of a plugin: "+strings.Join(sceneNames(), ", "))
+	flags.StringVar(&o.scene, "scene", "", "play this scene before the screenshot, which opens a dialog, a tab of a plugin or the connections of the settings: "+strings.Join(sceneNames(), ", "))
 	flags.StringVar(&o.chrome, "chrome", "", "Chrome `executable` (default: $CHROME_BIN, then google-chrome, chromium, chromium-browser)")
 	window := flags.String("window", "1280,800", "browser window `WIDTH,HEIGHT`")
 	settle := flags.Float64("settle", 5, "`seconds` to settle after the SDK list loads, before the first measurement")
@@ -249,10 +251,10 @@ func evaluate[T any](s *session, expression string) (T, error) {
 }
 
 // open navigates to address and waits for the page to load. It then checks
-// where the browser ended up: a server that redirects /app to its intro page
-// (the pairing link did not work) would otherwise show as a long wait for an
-// SDK list that never comes.
-func (s *session) open(address, label string) error {
+// where the browser ended up, which is landing, or address when that is empty: a
+// server that redirects /app to its intro page (the pairing link did not work)
+// would otherwise show as a long wait for an SDK list that never comes.
+func (s *session) open(address, label, landing string) error {
 	if err := chromedp.Do(s.page, chromedp.Navigate(address)); err != nil {
 		return fmt.Errorf("cannot open %s: %w", label, err)
 	}
@@ -260,7 +262,10 @@ func (s *session) open(address, label string) error {
 	if err != nil {
 		return fmt.Errorf("reading the address of %s: %w", label, err)
 	}
-	if !strings.HasPrefix(href, address) {
+	if landing == "" {
+		landing = address
+	}
+	if !strings.HasPrefix(href, landing) {
 		return fmt.Errorf("%s did not open: the browser ended up on %s (was the pairing link used before?)", label, href)
 	}
 	return nil
@@ -332,23 +337,23 @@ func (s *session) capture(ctx context.Context, o options) error {
 // measure runs the whole measurement in one browser.
 func measure(ctx context.Context, o options) (measurement, error) {
 	var found measurement
-	binary, err := findChrome(o.chrome)
+	binary, err := chrome.Find(o.chrome)
 	if err != nil {
 		return found, err
 	}
-	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, chromeOptions(binary, o.width, o.height)...)
+	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, chrome.Options(binary, o.width, o.height)...)
 	defer stopAllocator()
 	tab, closeTab := chromedp.NewContext(allocator)
 	defer closeTab()
 	s := &session{page: tab}
 
-	// Pair first, exactly like a browser: the pairing page sets the session
-	// cookie, and /app opens paired.
-	if err := s.open(o.pairing, "the pairing page"); err != nil {
+	// Pair first, exactly like a browser: the pairing link sets the session
+	// cookie and takes the browser to the app, which then opens paired.
+	app := strings.TrimSuffix(o.server, "/") + "/app"
+	if err := s.open(o.pairing, "the pairing page", app); err != nil {
 		return found, err
 	}
-	app := strings.TrimSuffix(o.server, "/") + "/app"
-	if err := s.open(app, "the app"); err != nil {
+	if err := s.open(app, "the app", ""); err != nil {
 		return found, err
 	}
 	if o.lang != "" {

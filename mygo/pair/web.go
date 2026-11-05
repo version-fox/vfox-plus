@@ -51,7 +51,10 @@ var (
 //	/api/tasks/<id>/retry    run a task again (POST)
 //	/api/plugins          add a plugin from a URL or an upload (POST)
 //	/api/settings         the GUI settings (GET and PUT)
-//	/api/events           server-sent events: task, inventory and vfox
+//	/api/web              how other devices connect, and the lightweight mode (GET and PUT)
+//	/api/web/pairing      a pairing link and code for another device (POST)
+//	/api/quit             end the application (POST)
+//	/api/events           server-sent events: task, inventory, vfox and web
 //
 // Every route except the intro and the pairing links needs a paired session.
 // State-changing routes additionally refuse the cross-origin requests of
@@ -70,14 +73,6 @@ func (s *Server) serveApp(writer http.ResponseWriter, request *http.Request) {
 	_, _ = writer.Write(webappMiddle)
 	_, _ = io.WriteString(writer, faviconURI)
 	_, _ = writer.Write(webappTail)
-}
-
-func (s *Server) requireModel(writer http.ResponseWriter) *state.AppModel {
-	if s.model == nil {
-		http.Error(writer, "This server runs without an application model.", http.StatusServiceUnavailable)
-		return nil
-	}
-	return s.model
 }
 
 // requireSession rejects unpaired browsers.
@@ -115,7 +110,7 @@ func writeVfoxError(writer http.ResponseWriter, err error) {
 	_ = json.NewEncoder(writer).Encode(map[string]string{"error": err.Error()})
 }
 
-// serveEvents streams task, inventory and vfox changes to the web interface.
+// serveEvents streams task, inventory, vfox and web changes to the web interface.
 // Each message is `event: <kind>\ndata: {}\n\n`; the payload is empty and
 // the browser refetches what changed. A heartbeat comment keeps proxies
 // from closing idle connections.
@@ -123,10 +118,7 @@ func (s *Server) serveEvents(writer http.ResponseWriter, request *http.Request) 
 	if !s.requireSession(writer, request) {
 		return
 	}
-	model := s.requireModel(writer)
-	if model == nil {
-		return
-	}
+	model := s.model
 	flusher, ok := writer.(http.Flusher)
 	if !ok {
 		http.Error(writer, "Streaming is not supported.", http.StatusInternalServerError)
@@ -157,6 +149,9 @@ func (s *Server) serveEvents(writer http.ResponseWriter, request *http.Request) 
 		model.VfoxConfig.AddListener(func() { emit("inventory") }),
 		model.Vfox.AddListener(func() { emit("vfox") }),
 	)
+	if s.control != nil {
+		stops = append(stops, s.control.AddListener(func() { emit("web") }))
+	}
 	var taskStops []state.Unsubscribe
 	cleanupTasks := func() {
 		for _, stop := range taskStops {

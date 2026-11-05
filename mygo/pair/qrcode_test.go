@@ -15,113 +15,152 @@
 package pair
 
 import (
+	"encoding/xml"
+	"fmt"
 	"net"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/version-fox/vfox-plus/mygo/core/settings"
+	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
+	"github.com/version-fox/vfox-plus/mygo/state"
 )
 
-func TestReachablePairingURL(t *testing.T) {
-	const token = "abc123"
-	cases := []struct {
-		name   string
-		scheme string
-		port   string
-		hosts  []string
-		want   string
-	}{
-		{"ipv4", "https", "8080", []string{"192.168.1.5"}, "https://192.168.1.5:8080/auth/connect/" + token},
-		{"ipv4 first", "https", "8080", []string{"2001:db8::1", "192.168.1.5"}, "https://192.168.1.5:8080/auth/connect/" + token},
-		{"ipv6 bracketed", "https", "8080", []string{"2001:db8::1"}, "https://[2001:db8::1]:8080/auth/connect/" + token},
-		{"loopback skipped", "https", "8080", []string{"127.0.0.1", "10.0.0.2"}, "https://10.0.0.2:8080/auth/connect/" + token},
-		{"link local skipped", "https", "8080", []string{"fe80::1", "10.0.0.2"}, "https://10.0.0.2:8080/auth/connect/" + token},
-		{"brackets trimmed", "https", "8080", []string{"[192.168.1.5]"}, "https://192.168.1.5:8080/auth/connect/" + token},
-		{"no port", "http", "", []string{"192.168.1.5"}, "http://192.168.1.5/auth/connect/" + token},
-		{"none", "https", "8080", nil, ""},
-		{"loopback only", "https", "8080", []string{"127.0.0.1", "::1"}, ""},
-		{"garbage", "https", "8080", []string{"not a host"}, ""},
+// internalServer starts a server in the package, with the application state of
+// the captured output of vfox.
+func internalServer(t *testing.T, options Options) *Server {
+	t.Helper()
+	model := state.NewAppModel(state.AppModelOptions{
+		Runner:        testsupport.FixtureRunner(),
+		SettingsStore: settings.NewMemorySettingsStore(settings.DefaultSettings()),
+		Environment:   map[string]string{"HOME": "/home/u"},
+	})
+	t.Cleanup(model.Dispose)
+	options.Model = model
+	server, err := NewServer(options)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := ReachablePairingURL(tc.scheme, tc.port, token, tc.hosts); got != tc.want {
-				t.Errorf("got %q, want %q", got, tc.want)
+	t.Cleanup(func() { _ = server.Close() })
+	return server
+}
+
+func TestQRMatrixIsASquareCodeInsideItsQuietZone(t *testing.T) {
+	const link = "https://192.168.1.5:8369/auth/connect/0123456789abcdef0123456789abcdef"
+	first, err := QRMatrix(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := QRMatrix(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(first) != fmt.Sprint(second) {
+		t.Fatal("encoding must be deterministic")
+	}
+	size := len(first)
+	// A QR code is 17+4v modules wide, and the quiet zone adds four on each side.
+	if size < 21+8 || (size-8-17)%4 != 0 {
+		t.Fatalf("%d modules is no QR code with a quiet zone", size)
+	}
+	dark := 0
+	for y, row := range first {
+		if len(row) != size {
+			t.Fatalf("the code is not square: row %d has %d modules of %d", y, len(row), size)
+		}
+		for x, module := range row {
+			inside := x >= 4 && x < size-4 && y >= 4 && y < size-4
+			if module && !inside {
+				t.Fatalf("module %d,%d is dark in the quiet zone", x, y)
 			}
-		})
+			if module {
+				dark++
+			}
+		}
+	}
+	if dark == 0 {
+		t.Fatal("the code is blank")
+	}
+	// The finder patterns, a 7x7 square of dark, light and dark rings, mark three corners.
+	finder := func(left, top int) bool {
+		for dy := 0; dy < 7; dy++ {
+			for dx := 0; dx < 7; dx++ {
+				ring := min(dx, 6-dx, dy, 6-dy)
+				if first[top+dy][left+dx] != (ring != 1) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	if !finder(4, 4) || !finder(size-4-7, 4) || !finder(4, size-4-7) {
+		t.Error("a corner has no finder pattern")
+	}
+	if finder(size-4-7, size-4-7) {
+		t.Error("the fourth corner has no finder pattern")
+	}
+	if _, err := QRMatrix(strings.Repeat("x", 4000)); err == nil {
+		t.Error("a text that is too long for a code must fail")
 	}
 }
 
-func TestTerminalQRCode(t *testing.T) {
-	first, err := TerminalQRCode("https://192.168.1.5:8080/auth/connect/abc123")
+func TestQRSVGDrawsTheModulesOfTheMatrix(t *testing.T) {
+	const link = "https://192.168.1.5:8369/auth/connect/abc123"
+	matrix, err := QRMatrix(link)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := TerminalQRCode("https://192.168.1.5:8080/auth/connect/abc123")
+	svg, err := QRSVG(link)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first != second {
-		t.Fatal("rendering must be deterministic")
+	var document struct {
+		XMLName xml.Name `xml:"svg"`
+		ViewBox string   `xml:"viewBox,attr"`
+		Rect    struct {
+			Fill string `xml:"fill,attr"`
+		} `xml:"rect"`
+		Path struct {
+			Fill string `xml:"fill,attr"`
+			D    string `xml:"d,attr"`
+		} `xml:"path"`
 	}
-	lines := strings.Split(strings.TrimSuffix(first, "\n"), "\n")
-	if len(lines) < 10 {
-		t.Fatalf("too few lines: %d", len(lines))
+	if err := xml.Unmarshal([]byte(svg), &document); err != nil {
+		t.Fatalf("not an SVG: %v\n%s", err, svg)
 	}
-	width := -1
-	for _, line := range lines {
-		if !strings.HasSuffix(line, "\x1b[0m") {
-			t.Fatalf("line must end with a reset: %q", line)
+	size := len(matrix)
+	if want := fmt.Sprintf("0 0 %d %d", size, size); document.ViewBox != want {
+		t.Errorf("viewBox %q, want %q", document.ViewBox, want)
+	}
+	// Black on white, whatever the theme around it: a scanner needs the contrast.
+	if document.Rect.Fill != "#fff" || document.Path.Fill != "#000" {
+		t.Errorf("ground %q, modules %q", document.Rect.Fill, document.Path.Fill)
+	}
+	// Every bar of the path is a run of dark modules; together they are the dark modules.
+	drawn := make([][]bool, size)
+	for y := range drawn {
+		drawn[y] = make([]bool, size)
+	}
+	for _, bar := range strings.Split(strings.TrimSuffix(document.Path.D, "z"), "z") {
+		var x, y, w int
+		if _, err := fmt.Sscanf(bar, "M%d %dh%dv1h-%d", &x, &y, &w, new(int)); err != nil {
+			t.Fatalf("bar %q: %v", bar, err)
 		}
-		cells := strings.Count(line, "█") + strings.Count(line, "▀") +
-			strings.Count(line, "▄") + strings.Count(line, " ")
-		// Each cell is one module column plus escape sequences; the quiet
-		// zone keeps the first and last visual cells blank.
-		if width < 0 {
-			width = cells
-		} else if cells != width {
-			t.Fatalf("ragged code: %d vs %d", cells, width)
-		}
-	}
-	// The code starts with quiet lines, then the dark finder pattern.
-	// (The encoder already pads the required quiet zone; QRQuietZone adds a
-	// little more for terminals with tight line spacing.)
-	plain := func(line string) string {
-		out := line
-		for _, esc := range []string{"\x1b[47m", "\x1b[30m", "\x1b[0m"} {
-			out = strings.ReplaceAll(out, esc, "")
-		}
-		return out
-	}
-	if strings.TrimSpace(plain(lines[0])) != "" || strings.TrimSpace(plain(lines[1])) != "" {
-		t.Fatal("expected quiet lines first")
-	}
-	dark := -1
-	for i, line := range lines {
-		if strings.Contains(line, "█") {
-			dark = i
-			break
+		for i := 0; i < w; i++ {
+			drawn[y][x+i] = true
 		}
 	}
-	if dark < 2 {
-		t.Fatalf("expected quiet zone before the finder, first dark line %d", dark)
+	if fmt.Sprint(drawn) != fmt.Sprint(matrix) {
+		t.Error("the SVG does not draw the modules of the matrix")
 	}
-	lead := len(plain(lines[dark])) - len(strings.TrimLeft(plain(lines[dark]), " "))
-	trail := len(plain(lines[dark])) - len(strings.TrimRight(plain(lines[dark]), " "))
-	if lead != trail || lead < 2 {
-		t.Fatalf("quiet zone must be symmetric, lead %d trail %d", lead, trail)
-	}
-	for _, bad := range []string{"\r", "\t"} {
-		if strings.Contains(first, bad) {
-			t.Fatalf("code contains %q", bad)
-		}
+	if _, err := QRSVG(strings.Repeat("x", 4000)); err == nil {
+		t.Error("a text that is too long for a code must fail")
 	}
 }
 
-func TestPairingURL(t *testing.T) {
-	server, err := NewServer(Options{AllowNonLoopback: true, Bind: "127.0.0.1"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = server.Close() }()
+func TestPairingURLNamesTheAddressAndThePortOfTheServer(t *testing.T) {
+	server := internalServer(t, Options{})
 	_, port, _ := net.SplitHostPort(server.Addr().String())
 	got := server.PairingURL("192.168.1.5", "tok")
 	want := "http://192.168.1.5:" + port + "/auth/connect/tok"
@@ -131,14 +170,13 @@ func TestPairingURL(t *testing.T) {
 	if got := server.PairingURL("2001:db8::1", "tok"); !strings.Contains(got, "[2001:db8::1]") {
 		t.Errorf("IPv6 must be bracketed: %q", got)
 	}
+	if got := server.PairingURL("[2001:db8::1]", "tok"); strings.Contains(got, "[[") {
+		t.Errorf("a bracketed address stays as it is: %q", got)
+	}
 }
 
 func TestNewTokenSweepsExpired(t *testing.T) {
-	server, err := NewServer(Options{TokenTTL: time.Nanosecond})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = server.Close() }()
+	server := internalServer(t, Options{TokenTTL: time.Nanosecond})
 	if _, _, err := server.NewToken(); err != nil {
 		t.Fatal(err)
 	}

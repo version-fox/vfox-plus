@@ -179,7 +179,7 @@ The Ubuntu packages are the ones that CI installs (`LINUX_PACKAGES` in
 [`mygo.yml`](../../../.github/workflows/mygo.yml)):
 
 ```sh
-sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
+sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11
 ```
 
@@ -187,11 +187,17 @@ sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-not
 compiler; the application is built without one. GTK 3 and the fonts are what the
 application loads when it starts. `xvfb`, `xauth` and `dbus-x11` give the
 end-to-end tests a virtual display. Add `lintian desktop-file-utils` to check a
-`.deb` the way CI does. The commands to build, test and package are in
+`.deb` the way CI does. `libayatana-appindicator3-1` draws the icon that stands in the tray for the application
+while its window is closed, which the end-to-end scenario `tray` needs; it runs with the session bus of
+`dbus-run-session`, for it uses a stand-in for the host of the tray icons (see
+[The tray](architecture.md#the-tray)). To see the icon on your own desktop, the desktop has to be GNOME
+(with its AppIndicator extension) or Windows. The scenario `tray-gnome` runs in the container of
+`shared/sandbox/gnome.Dockerfile`, so it needs Docker. The commands to build, test and package are in
 [the mygo guide](implementation-mygo.md#everyday-commands).
 
 `vfxtool webheap`, which measures the heap of the web interface and takes its
-screenshots (of a page, or of a scene such as the distribution of Java), drives a Chrome that speaks the DevTools Protocol: name it with
+screenshots (of a page, or of a scene such as the distribution of Java), and `vfxtool gateway-shots`, which takes the
+pictures of the pages of the gateway, drive a Chrome that speaks the DevTools Protocol: name it with
 `--chrome`, or let the tool look for `google-chrome`, `chromium` and the like (see
 [Screenshots](contributing.md#screenshots), which also says which Chrome gives the
 size you ask for). The end-to-end scenarios against the real vfox run in the
@@ -244,7 +250,23 @@ install cpu-checker` adds `kvm-ok`, which says it in words.
   extension. Where `/dev/kvm` is still missing although `/proc/cpuinfo` shows
   `vmx` or `svm`, `sudo modprobe kvm_intel` (or `kvm_amd`) says why.
 - `/dev/kvm` belongs to the group `kvm`: `sudo usermod -aG kvm "$USER"`, then start a
-  new session (in WSL2, `wsl --shutdown`).
+  new session (in WSL2, `wsl --shutdown`, which also ends everything that runs in it).
+  To skip the new session, give the device to everybody with the rule that CI uses. It
+  takes effect at once, programs that already run included, and it stays after a restart;
+  on a computer that one person uses there is no one to keep the device from:
+
+  ```sh
+  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger --name-match=kvm
+  ```
+
+  `ls -l /dev/kvm` shows `crw-rw-rw-` then. This asks the kernel whether KVM works, and prints
+  12 when it does (a `PermissionError` says that you may not use the device yet):
+
+  ```sh
+  python3 -I -c 'import fcntl,os; print(fcntl.ioctl(os.open("/dev/kvm", os.O_RDWR), 0xAE00))'
+  ```
 
 ### Known problem: AMD processors, since the Windows update of October 2026
 
@@ -283,10 +305,35 @@ and does not help.
   server`, and let the Windows firewall through). Its numbers belong to that
   device: they do not compare with the emulator of CI.
 
+### An emulator of your own
+
+With KVM working, the emulator needs the command-line tools of the SDK, the build that
+`android/versions.env` pins (the zip `commandlinetools-linux-<build>_latest.zip` of
+dl.google.com, checked against its checksum, unpacked to `$ANDROID_HOME/cmdline-tools/latest`), and
+three packages. The download is about 3 GB, and `sdkmanager` asks you to accept the licenses of the
+Android SDK:
+
+```sh
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+sdkmanager --licenses
+sdkmanager platform-tools emulator "system-images;android-36;google_apis;x86_64"
+avdmanager create avd -n pixel6 -k "system-images;android-36;google_apis;x86_64" -d pixel_6
+emulator -avd pixel6 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect &
+adb wait-for-device && adb shell getprop sys.boot_completed   # 1 once it has booted, about a minute
+```
+
+The profile `pixel_6` is 1080 by 2400 at 420 dpi, as the emulator of CI is. The back camera of the
+scanner shows a living room when `hw.camera.back=virtualscene` is in
+`~/.android/avd/pixel6.avd/config.ini` (`avdmanager` writes `emulated`, which shows a
+plain animation); `hw.ramSize=3072M` is a better size than its 1536M for the WebView. Leave out `-no-window` to see the
+emulator on a display (WSLg). To install the release APK that CI has built, without building it,
+download it from the run of the pull request: `gh run download RUN -n vfox-plus-android`.
+
 ### Run the app
 
 With an emulator that has booted (`adb devices` lists it), build the app, install
-it and pair it with a server on your machine:
+it and pair it with the application on your machine:
 
 ```sh
 cd android && ./gradlew :app:assembleDebug
@@ -294,22 +341,32 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # for the scanner
 ```
 
-The emulator reaches the loopback of your machine as `10.0.2.2`. The session
-cookie of the pairing server is `Secure`, and a WebView keeps it for `https://`
-and for loopback only, so pairing over `http://10.0.2.2:PORT` does not work. Pair
-over HTTPS instead: a self-signed certificate that names `10.0.2.2`, and a server
-on loopback that uses it (`go -C mygo build ./cmd/vfox-plus-serve`):
+The emulator reaches your machine as `10.0.2.2`. The session cookie of the servers is
+`Secure`, and a WebView keeps it for `https://` and for loopback only, so pairing over
+`http://10.0.2.2:PORT` does not work; the server for other devices speaks HTTPS anyway. Make a
+self-signed certificate that names `10.0.2.2`, and give it to the application:
 
 ```sh
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
   -subj /CN=vfox-plus-emulator -addext subjectAltName=IP:10.0.2.2,IP:127.0.0.1 \
   -keyout key.pem -out cert.pem
-vfox-plus-serve serve -bind 127.0.0.1 -port 0 -tls-cert cert.pem -tls-key key.pem
 ```
 
-Type the link that it prints into the app, with `127.0.0.1` replaced by
-`10.0.2.2`. The app shows the fingerprint of the certificate; it has to be the one
-that `openssl x509 -in cert.pem -noout -fingerprint -sha256` prints.
+Start the application (`vfxtool build build/vfox-plus && build/vfox-plus`) and, in its settings,
+turn on the web interface and *Other devices*, then choose *Certificate → Browse…* and the
+files `cert.pem` and `key.pem`. (The same settings can be written to
+`~/.config/vfox-plus/settings.json` before the start: `"webInterface": true`, `"webRemote": true`,
+`"webCertificate": "/path/cert.pem"` and `"webKey": "/path/key.pem"`.)
+
+The end-to-end build (`vfxtool build --e2e`) needs neither the certificate nor the replacing of the address:
+with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, the certificate that it makes for itself names
+`10.0.2.2`, and so do the settings and the link that *Show code* gives. That is how the pictures of the guide
+are taken ([Screenshots](contributing.md#screenshots)).
+
+Choose *Show code* next to *Pair a phone*, copy the link, and type it into the app, with the
+address of your machine replaced by `10.0.2.2`. The app shows the fingerprint of the
+certificate; it has to be the one that the settings show and that
+`openssl x509 -in cert.pem -noout -fingerprint -sha256` prints.
 
 `vfxtool measure-apk` runs on the same emulator. It installs without `-r`, so
 uninstall the app first (`adb uninstall dev.vfox.vfoxplus`).
