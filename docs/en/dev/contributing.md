@@ -65,6 +65,7 @@ container, see [Development environment](environment.md).
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
+| [`release.yml`](../../../.github/workflows/release.yml) | by hand or a `v*` tag | Tags `v<version>`, packages and publishes the GitHub release that the self-update check reads |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
 pinned to commit SHAs.
@@ -84,6 +85,23 @@ the difference from `main`, which the next commit replaces instead of adding
 another one. A change that is more than the noise between CI runs is in bold; read
 [Memory in pull requests](memory.md#memory-in-pull-requests) before you trust a small
 one.
+
+## Release
+
+Like the releases of
+[version-fox/vfox-java](https://github.com/version-fox/vfox-java), a release
+is started by hand:
+
+1. Set the version in a pull request: `mygo/VERSION` and the `Version`
+   constant in `mygo/ui/app.go` (a unit test keeps them in sync).
+2. Actions, Release, Run workflow, and type the version without the `v`
+   (`0.2.0`). Pushing a `v*` tag runs the same job.
+3. The job refuses anything but `major.minor.patch`, anything `mygo/VERSION`
+   does not say, and an existing tag. It tags `v<version>`, packages what
+   [`mygo.yml`](#continuous-integration) packages plus the classic snap from
+   `snap/snapcraft.yaml`, and publishes the GitHub release with
+   `--generate-notes`, whose assets are what
+   [the self-update check](architecture.md#self-updates) reads.
 
 ## Documentation languages
 

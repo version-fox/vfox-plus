@@ -1,493 +1,955 @@
 {
   "@@locale": "en",
   "appTitle": "vfox+",
-  "@appTitle": { "description": "Name of the application." },
-
+  "@appTitle": {
+    "description": "Name of the application."
+  },
   "actionRefresh": "Refresh",
-  "@actionRefresh": { "description": "Reloads data from vfox." },
+  "@actionRefresh": {
+    "description": "Reloads data from vfox."
+  },
   "actionCancel": "Cancel",
-  "@actionCancel": { "description": "Dismisses a dialog or stops a task." },
+  "@actionCancel": {
+    "description": "Dismisses a dialog or stops a task."
+  },
   "actionRetry": "Retry",
-  "@actionRetry": { "description": "Runs a failed operation again." },
+  "@actionRetry": {
+    "description": "Runs a failed operation again."
+  },
   "actionClose": "Close",
-  "@actionClose": { "description": "Closes a dialog or panel." },
+  "@actionClose": {
+    "description": "Closes a dialog or panel."
+  },
   "actionSave": "Save",
-  "@actionSave": { "description": "Stores an edited value." },
+  "@actionSave": {
+    "description": "Stores an edited value."
+  },
   "actionReset": "Reset to default",
-  "@actionReset": { "description": "Restores the default value of a setting." },
+  "@actionReset": {
+    "description": "Restores the default value of a setting."
+  },
   "actionBrowse": "Browse…",
-  "@actionBrowse": { "description": "Opens a file or folder chooser." },
+  "@actionBrowse": {
+    "description": "Opens a file or folder chooser."
+  },
   "actionCopy": "Copy",
-  "@actionCopy": { "description": "Copies text to the clipboard." },
+  "@actionCopy": {
+    "description": "Copies text to the clipboard."
+  },
   "actionCopied": "Copied to the clipboard",
-  "@actionCopied": { "description": "Confirmation after copying text." },
+  "@actionCopied": {
+    "description": "Confirmation after copying text."
+  },
   "actionOpenHomepage": "Open homepage",
-  "@actionOpenHomepage": { "description": "Opens the homepage of a plugin in the web browser." },
+  "@actionOpenHomepage": {
+    "description": "Opens the homepage of a plugin in the web browser."
+  },
   "actionShowDetails": "Details",
-  "@actionShowDetails": { "description": "Shows more information about an error." },
+  "@actionShowDetails": {
+    "description": "Shows more information about an error."
+  },
   "loading": "Loading…",
-  "@loading": { "description": "Accessibility label of loading indicators." },
+  "@loading": {
+    "description": "Accessibility label of loading indicators."
+  },
   "errorTitle": "Something went wrong",
-  "@errorTitle": { "description": "Title of an error message without more specific information." },
-
+  "@errorTitle": {
+    "description": "Title of an error message without more specific information."
+  },
   "navHome": "Home",
-  "@navHome": { "description": "Navigation destination: overview page." },
+  "@navHome": {
+    "description": "Navigation destination: overview page."
+  },
   "navSdks": "SDKs",
-  "@navSdks": { "description": "Navigation destination: installed SDKs and their versions." },
+  "@navSdks": {
+    "description": "Navigation destination: installed SDKs and their versions."
+  },
   "navPlugins": "Plugins",
-  "@navPlugins": { "description": "Navigation destination: the plugin registry." },
+  "@navPlugins": {
+    "description": "Navigation destination: the plugin registry."
+  },
   "navTasks": "Tasks",
-  "@navTasks": { "description": "Navigation destination: running and finished operations." },
+  "@navTasks": {
+    "description": "Navigation destination: running and finished operations."
+  },
   "navSettings": "Settings",
-  "@navSettings": { "description": "Navigation destination: settings." },
+  "@navSettings": {
+    "description": "Navigation destination: settings."
+  },
   "navExpand": "Show labels",
-  "@navExpand": { "description": "Tooltip of the button that expands the navigation rail." },
+  "@navExpand": {
+    "description": "Tooltip of the button that expands the navigation rail."
+  },
   "navCollapse": "Hide labels",
-  "@navCollapse": { "description": "Tooltip of the button that collapses the navigation rail." },
+  "@navCollapse": {
+    "description": "Tooltip of the button that collapses the navigation rail."
+  },
   "navAddPlugin": "Add plugin",
-  "@navAddPlugin": { "description": "Floating action button that opens the plugin registry." },
-
+  "@navAddPlugin": {
+    "description": "Floating action button that opens the plugin registry."
+  },
   "vfoxCheckingTitle": "Looking for vfox…",
-  "@vfoxCheckingTitle": { "description": "Shown while the application checks the vfox executable." },
+  "@vfoxCheckingTitle": {
+    "description": "Shown while the application checks the vfox executable."
+  },
   "vfoxMissingTitle": "vfox is not installed",
-  "@vfoxMissingTitle": { "description": "Title shown when no vfox executable was found." },
+  "@vfoxMissingTitle": {
+    "description": "Title shown when no vfox executable was found."
+  },
   "vfoxMissingBody": "vfox+ manages your SDKs through the vfox command line tool. Install vfox, or show vfox+ where it is.",
-  "@vfoxMissingBody": { "description": "Explanation shown when no vfox executable was found." },
+  "@vfoxMissingBody": {
+    "description": "Explanation shown when no vfox executable was found."
+  },
   "vfoxBrokenTitle": "vfox does not respond",
-  "@vfoxBrokenTitle": { "description": "Title shown when the vfox executable does not work." },
+  "@vfoxBrokenTitle": {
+    "description": "Title shown when the vfox executable does not work."
+  },
   "vfoxBrokenBody": "The executable {path} did not report a vfox version.",
   "@vfoxBrokenBody": {
     "description": "Explanation shown when the vfox executable does not work.",
-    "placeholders": { "path": { "type": "String", "example": "/usr/local/bin/vfox" } }
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/usr/local/bin/vfox"
+      }
+    }
   },
   "vfoxInstallGuide": "Installation guide",
-  "@vfoxInstallGuide": { "description": "Opens the vfox installation documentation." },
+  "@vfoxInstallGuide": {
+    "description": "Opens the vfox installation documentation."
+  },
   "vfoxLocate": "Locate vfox…",
-  "@vfoxLocate": { "description": "Lets the user choose the vfox executable." },
-
+  "@vfoxLocate": {
+    "description": "Lets the user choose the vfox executable."
+  },
   "homeSubtitle": "vfox {version}",
   "@homeSubtitle": {
     "description": "Subtitle of the home page.",
-    "placeholders": { "version": { "type": "String", "example": "1.0.12" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.0.12"
+      }
+    }
   },
   "homeStatPlugins": "{count, plural, =1{Plugin} other{Plugins}}",
   "@homeStatPlugins": {
     "description": "Label below the number of installed plugins.",
-    "placeholders": { "count": { "type": "int", "example": "5" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
   },
   "homeStatVersions": "{count, plural, =1{Installed version} other{Installed versions}}",
   "@homeStatVersions": {
     "description": "Label below the number of installed SDK versions.",
-    "placeholders": { "count": { "type": "int", "example": "7" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
   },
   "homeStatActive": "In use",
-  "@homeStatActive": { "description": "Label below the number of SDKs that have a current version." },
+  "@homeStatActive": {
+    "description": "Label below the number of SDKs that have a current version."
+  },
   "homeActiveTitle": "Versions in use",
-  "@homeActiveTitle": { "description": "Heading of the list of current SDK versions." },
+  "@homeActiveTitle": {
+    "description": "Heading of the list of current SDK versions."
+  },
   "homeActiveEmpty": "No SDK version is in use yet. Pick one on the SDKs page.",
-  "@homeActiveEmpty": { "description": "Shown when no SDK has a current version." },
+  "@homeActiveEmpty": {
+    "description": "Shown when no SDK has a current version."
+  },
   "homeShellTitle": "Use the versions in a terminal",
-  "@homeShellTitle": { "description": "Heading of the tip about shell integration." },
+  "@homeShellTitle": {
+    "description": "Heading of the tip about shell integration."
+  },
   "homeShellBody": "Add this line to ~/.bashrc so that new shells pick up the versions chosen here. Other shells are covered in the vfox documentation.",
-  "@homeShellBody": { "description": "Explains how to activate vfox in a shell." },
+  "@homeShellBody": {
+    "description": "Explains how to activate vfox in a shell."
+  },
   "homeExploreTitle": "Add more SDKs",
-  "@homeExploreTitle": { "description": "Heading of the shortcut to the plugin registry." },
+  "@homeExploreTitle": {
+    "description": "Heading of the shortcut to the plugin registry."
+  },
   "homeExploreBody": "Plugins add Node.js, Java, Python, Go and many more to vfox.",
-  "@homeExploreBody": { "description": "Text of the shortcut to the plugin registry." },
+  "@homeExploreBody": {
+    "description": "Text of the shortcut to the plugin registry."
+  },
   "homeDocsTitle": "vfox documentation",
-  "@homeDocsTitle": { "description": "Heading of the shortcut to the vfox documentation." },
+  "@homeDocsTitle": {
+    "description": "Heading of the shortcut to the vfox documentation."
+  },
   "homeDocsBody": "Learn about scopes, plugins and configuration files.",
-  "@homeDocsBody": { "description": "Text of the shortcut to the vfox documentation." },
-
+  "@homeDocsBody": {
+    "description": "Text of the shortcut to the vfox documentation."
+  },
   "sdksSearchHint": "Search installed plugins",
-  "@sdksSearchHint": { "description": "Hint of the search field on the SDKs page." },
+  "@sdksSearchHint": {
+    "description": "Hint of the search field on the SDKs page."
+  },
   "sdksEmptyTitle": "No plugins yet",
-  "@sdksEmptyTitle": { "description": "Shown when no plugin is installed." },
+  "@sdksEmptyTitle": {
+    "description": "Shown when no plugin is installed."
+  },
   "sdksEmptyBody": "A plugin teaches vfox how to install an SDK. Add one to get started.",
-  "@sdksEmptyBody": { "description": "Shown when no plugin is installed." },
+  "@sdksEmptyBody": {
+    "description": "Shown when no plugin is installed."
+  },
   "sdksNoMatch": "No plugin matches “{query}”.",
   "@sdksNoMatch": {
     "description": "Shown when the search on the SDKs page has no result.",
-    "placeholders": { "query": { "type": "String", "example": "java" } }
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "java"
+      }
+    }
   },
   "sdksCurrent": "In use: {version}",
   "@sdksCurrent": {
     "description": "The current version of an SDK.",
-    "placeholders": { "version": { "type": "String", "example": "24.11.1" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "24.11.1"
+      }
+    }
   },
   "sdksNoCurrent": "No version in use",
-  "@sdksNoCurrent": { "description": "Shown when an SDK has no current version." },
+  "@sdksNoCurrent": {
+    "description": "Shown when an SDK has no current version."
+  },
   "sdksVersionCount": "{count, plural, =0{No version installed} =1{1 version installed} other{{count} versions installed}}",
   "@sdksVersionCount": {
     "description": "Number of installed versions of an SDK.",
-    "placeholders": { "count": { "type": "int", "example": "3" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "sdksSelectPrompt": "Select an SDK to manage its versions.",
-  "@sdksSelectPrompt": { "description": "Placeholder of the detail pane when no SDK is selected." },
+  "@sdksSelectPrompt": {
+    "description": "Placeholder of the detail pane when no SDK is selected."
+  },
   "sdksLoadError": "Could not list the installed SDKs.",
-  "@sdksLoadError": { "description": "Shown when vfox list or vfox current fails." },
-
+  "@sdksLoadError": {
+    "description": "Shown when vfox list or vfox current fails."
+  },
   "sdkPluginVersion": "Plugin {version}",
   "@sdkPluginVersion": {
     "description": "Version of the plugin itself, not of the SDK.",
-    "placeholders": { "version": { "type": "String", "example": "0.5.0" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.5.0"
+      }
+    }
   },
   "sdkTabInstalled": "Installed",
-  "@sdkTabInstalled": { "description": "Tab with the installed versions of an SDK." },
+  "@sdkTabInstalled": {
+    "description": "Tab with the installed versions of an SDK."
+  },
   "sdkTabAvailable": "Available",
-  "@sdkTabAvailable": { "description": "Tab with the versions that can be installed." },
+  "@sdkTabAvailable": {
+    "description": "Tab with the versions that can be installed."
+  },
   "sdkUpdatePlugin": "Update plugin",
-  "@sdkUpdatePlugin": { "description": "Updates the plugin of an SDK." },
+  "@sdkUpdatePlugin": {
+    "description": "Updates the plugin of an SDK."
+  },
   "sdkRemovePlugin": "Remove plugin",
-  "@sdkRemovePlugin": { "description": "Removes the plugin of an SDK and all its versions." },
+  "@sdkRemovePlugin": {
+    "description": "Removes the plugin of an SDK and all its versions."
+  },
   "sdkMoreActions": "More actions",
-  "@sdkMoreActions": { "description": "Tooltip of the overflow menu of an SDK." },
+  "@sdkMoreActions": {
+    "description": "Tooltip of the overflow menu of an SDK."
+  },
   "sdkRemoveTitle": "Remove {name}?",
   "@sdkRemoveTitle": {
     "description": "Title of the confirmation before removing a plugin.",
-    "placeholders": { "name": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "sdkRemoveBody": "{count, plural, =0{The plugin will be deleted.} =1{The plugin and its installed version will be deleted.} other{The plugin and its {count} installed versions will be deleted.}}",
   "@sdkRemoveBody": {
     "description": "Explanation in the confirmation before removing a plugin.",
-    "placeholders": { "count": { "type": "int", "example": "2" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   },
   "sdkRemoveConfirm": "Remove",
-  "@sdkRemoveConfirm": { "description": "Confirms removing a plugin." },
+  "@sdkRemoveConfirm": {
+    "description": "Confirms removing a plugin."
+  },
   "sdkInstalledEmpty": "No version of {name} is installed yet.",
   "@sdkInstalledEmpty": {
     "description": "Shown when an SDK has no installed version.",
-    "placeholders": { "name": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "sdkBrowseVersions": "Browse versions",
-  "@sdkBrowseVersions": { "description": "Switches to the available versions." },
+  "@sdkBrowseVersions": {
+    "description": "Switches to the available versions."
+  },
   "sdkInfoError": "Could not read the plugin information.",
-  "@sdkInfoError": { "description": "Shown when vfox info fails." },
-
+  "@sdkInfoError": {
+    "description": "Shown when vfox info fails."
+  },
   "versionInUse": "In use",
-  "@versionInUse": { "description": "Badge of the current version." },
+  "@versionInUse": {
+    "description": "Badge of the current version."
+  },
   "versionUse": "Use",
-  "@versionUse": { "description": "Makes a version the global default." },
+  "@versionUse": {
+    "description": "Makes a version the global default."
+  },
   "versionUseOptions": "More ways to use this version",
-  "@versionUseOptions": { "description": "Tooltip of the menu button of the use split button." },
+  "@versionUseOptions": {
+    "description": "Tooltip of the menu button of the use split button."
+  },
   "versionUseGlobally": "Use as global default",
-  "@versionUseGlobally": { "description": "Makes a version the global default." },
+  "@versionUseGlobally": {
+    "description": "Makes a version the global default."
+  },
   "versionUseInProject": "Use in a project…",
-  "@versionUseInProject": { "description": "Pins a version in a project directory." },
+  "@versionUseInProject": {
+    "description": "Pins a version in a project directory."
+  },
   "versionUnuse": "Stop using",
-  "@versionUnuse": { "description": "Removes the global default version." },
+  "@versionUnuse": {
+    "description": "Removes the global default version."
+  },
   "versionCopyPath": "Copy installation path",
-  "@versionCopyPath": { "description": "Copies the directory of a version." },
+  "@versionCopyPath": {
+    "description": "Copies the directory of a version."
+  },
   "versionUninstall": "Uninstall",
-  "@versionUninstall": { "description": "Uninstalls a version." },
+  "@versionUninstall": {
+    "description": "Uninstalls a version."
+  },
   "versionUninstallTitle": "Uninstall {name} {version}?",
   "@versionUninstallTitle": {
     "description": "Title of the confirmation before uninstalling a version.",
     "placeholders": {
-      "name": { "type": "String", "example": "nodejs" },
-      "version": { "type": "String", "example": "24.11.1" }
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      },
+      "version": {
+        "type": "String",
+        "example": "24.11.1"
+      }
     }
   },
   "versionUninstallBody": "The files of this version will be deleted.",
-  "@versionUninstallBody": { "description": "Explanation in the confirmation before uninstalling a version." },
+  "@versionUninstallBody": {
+    "description": "Explanation in the confirmation before uninstalling a version."
+  },
   "versionUninstallCurrentBody": "This version is in use. After it is deleted, vfox switches to another installed version, if there is one.",
-  "@versionUninstallCurrentBody": { "description": "Explanation in the confirmation before uninstalling the current version." },
+  "@versionUninstallCurrentBody": {
+    "description": "Explanation in the confirmation before uninstalling the current version."
+  },
   "versionInstall": "Install",
-  "@versionInstall": { "description": "Installs a version." },
+  "@versionInstall": {
+    "description": "Installs a version."
+  },
   "versionInstalled": "Installed",
-  "@versionInstalled": { "description": "Shown instead of the install button for installed versions." },
+  "@versionInstalled": {
+    "description": "Shown instead of the install button for installed versions."
+  },
   "versionMoreActions": "More actions for {version}",
   "@versionMoreActions": {
     "description": "Tooltip of the overflow menu of a version.",
-    "placeholders": { "version": { "type": "String", "example": "24.11.1" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "24.11.1"
+      }
+    }
   },
-
   "availableSearchHint": "Filter versions",
-  "@availableSearchHint": { "description": "Hint of the filter field of the available versions." },
+  "@availableSearchHint": {
+    "description": "Hint of the filter field of the available versions."
+  },
   "availableFilterAll": "All",
-  "@availableFilterAll": { "description": "Shows every available version." },
+  "@availableFilterAll": {
+    "description": "Shows every available version."
+  },
   "availableFilterTagged": "Tagged",
-  "@availableFilterTagged": { "description": "Shows only versions with a remark such as LTS." },
+  "@availableFilterTagged": {
+    "description": "Shows only versions with a remark such as LTS."
+  },
   "availableFilterInstalled": "Installed",
-  "@availableFilterInstalled": { "description": "Shows only installed versions." },
+  "@availableFilterInstalled": {
+    "description": "Shows only installed versions."
+  },
   "availableLoading": "Fetching the available versions…",
-  "@availableLoading": { "description": "Shown while vfox search runs." },
+  "@availableLoading": {
+    "description": "Shown while vfox search runs."
+  },
   "availableLoadingEverything": "Listing every distribution takes a while: the plugin asks for each of them in turn.",
-  "@availableLoadingEverything": { "description": "Shown while vfox search lists the versions of every distribution at once." },
+  "@availableLoadingEverything": {
+    "description": "Shown while vfox search lists the versions of every distribution at once."
+  },
   "availableEmpty": "No version matches.",
-  "@availableEmpty": { "description": "Shown when the version filter has no result." },
+  "@availableEmpty": {
+    "description": "Shown when the version filter has no result."
+  },
   "availableError": "Could not list the versions of {name}.",
   "@availableError": {
     "description": "Shown when vfox search fails.",
-    "placeholders": { "name": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "availableCount": "{count, plural, =1{1 version} other{{count} versions}}",
   "@availableCount": {
     "description": "Number of listed versions.",
-    "placeholders": { "count": { "type": "int", "example": "872" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "872"
+      }
+    }
   },
-
   "availableInstallByName": "Install by name…",
-  "@availableInstallByName": { "description": "Opens a dialog that installs a version by typing its name, such as 24 or latest." },
+  "@availableInstallByName": {
+    "description": "Opens a dialog that installs a version by typing its name, such as 24 or latest."
+  },
   "availableClearFilters": "Clear filters",
-  "@availableClearFilters": { "description": "Takes back the choices of the filter chips of the available versions." },
+  "@availableClearFilters": {
+    "description": "Takes back the choices of the filter chips of the available versions."
+  },
   "availableChoiceButton": "{what}: {choice}",
   "@availableChoiceButton": {
     "description": "Button that opens the choices of a search, such as the distributions of Java: what is chosen, then the current choice.",
     "placeholders": {
-      "what": { "type": "String", "example": "Distribution" },
-      "choice": { "type": "String", "example": "Temurin" }
+      "what": {
+        "type": "String",
+        "example": "Distribution"
+      },
+      "choice": {
+        "type": "String",
+        "example": "Temurin"
+      }
     }
   },
   "searchChooseHint": "Search by name or short name",
-  "@searchChooseHint": { "description": "Hint of the field that filters the choices of a search." },
+  "@searchChooseHint": {
+    "description": "Hint of the field that filters the choices of a search."
+  },
   "searchChooseEmpty": "Nothing matches.",
-  "@searchChooseEmpty": { "description": "Shown when no choice of a search matches the filter." },
+  "@searchChooseEmpty": {
+    "description": "Shown when no choice of a search matches the filter."
+  },
   "searchChoiceDefault": "Default",
-  "@searchChoiceDefault": { "description": "Tag of the choice that the plugin uses when it gets no argument." },
+  "@searchChoiceDefault": {
+    "description": "Tag of the choice that the plugin uses when it gets no argument."
+  },
   "installNameTitle": "Install {name} by name",
   "@installNameTitle": {
     "description": "Title of the dialog that installs a version by its name.",
-    "placeholders": {"name": {"type": "String", "example": "nodejs"}}
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "installNameField": "Version name",
-  "@installNameField": { "description": "Label of the field that takes the name of a version to install." },
+  "@installNameField": {
+    "description": "Label of the field that takes the name of a version to install."
+  },
   "installNameHelp": "What follows {name}@ in vfox install",
   "@installNameHelp": {
     "description": "Helper text of the field that takes the name of a version to install.",
-    "placeholders": {"name": {"type": "String", "example": "nodejs"}}
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "installNameExamples": "Names to try",
-  "@installNameExamples": { "description": "Heading of the names that the profile of a plugin suggests." },
+  "@installNameExamples": {
+    "description": "Heading of the names that the profile of a plugin suggests."
+  },
   "installNameRequired": "Type a version name.",
-  "@installNameRequired": { "description": "Shown when the name of the version is empty." },
+  "@installNameRequired": {
+    "description": "Shown when the name of the version is empty."
+  },
   "installNameInvalid": "A version name has no spaces and does not start with a dash.",
-  "@installNameInvalid": { "description": "Shown when the name of the version cannot be passed to vfox." },
+  "@installNameInvalid": {
+    "description": "Shown when the name of the version cannot be passed to vfox."
+  },
   "installNameNote": "vfox looks the name up while it installs. A name that matches nothing fails, and the task shows why.",
-  "@installNameNote": { "description": "Explains what happens to a name that no version has." },
+  "@installNameNote": {
+    "description": "Explains what happens to a name that no version has."
+  },
   "sdkTabOptions": "Options",
-  "@sdkTabOptions": { "description": "Tab with what is particular to a plugin: its downloads, version files and names." },
+  "@sdkTabOptions": {
+    "description": "Tab with what is particular to a plugin: its downloads, version files and names."
+  },
   "optionsGuideTitle": "Version names",
-  "@optionsGuideTitle": { "description": "Title of the card that explains how the version names of a plugin work." },
+  "@optionsGuideTitle": {
+    "description": "Title of the card that explains how the version names of a plugin work."
+  },
   "optionsVariables": "Downloads",
-  "@optionsVariables": { "description": "Heading of the environment variables that a plugin reads, such as its download mirror." },
+  "@optionsVariables": {
+    "description": "Heading of the environment variables that a plugin reads, such as its download mirror."
+  },
   "optionsVariablesHelp": "Environment variables that the plugin reads. They are added to every vfox command that this application runs.",
-  "@optionsVariablesHelp": { "description": "Explains the variables of a plugin." },
+  "@optionsVariablesHelp": {
+    "description": "Explains the variables of a plugin."
+  },
   "optionsVariableUnset": "Not set. The plugin uses its own default.",
-  "@optionsVariableUnset": { "description": "Shown for an environment variable that has no value." },
+  "@optionsVariableUnset": {
+    "description": "Shown for an environment variable that has no value."
+  },
   "optionsVariableChange": "Change",
-  "@optionsVariableChange": { "description": "Opens the dialog that sets an environment variable of a plugin." },
+  "@optionsVariableChange": {
+    "description": "Opens the dialog that sets an environment variable of a plugin."
+  },
   "optionsVariableAdvanced": "Advanced",
-  "@optionsVariableAdvanced": { "description": "Tag of an environment variable that is for unusual systems only." },
+  "@optionsVariableAdvanced": {
+    "description": "Tag of an environment variable that is for unusual systems only."
+  },
   "variableAddress": "Address",
-  "@variableAddress": { "description": "Label of the field that takes the address of a mirror." },
+  "@variableAddress": {
+    "description": "Label of the field that takes the address of a mirror."
+  },
   "variablePresets": "Quick picks",
-  "@variablePresets": { "description": "Heading of the values that were checked and can be chosen with one click." },
+  "@variablePresets": {
+    "description": "Heading of the values that were checked and can be chosen with one click."
+  },
   "variableDefaultOption": "Default (not set)",
-  "@variableDefaultOption": { "description": "Entry that takes an environment variable away, so that the plugin uses its default." },
+  "@variableDefaultOption": {
+    "description": "Entry that takes an environment variable away, so that the plugin uses its default."
+  },
   "variableInvalidAddress": "Use an address that starts with http:// or https://.",
-  "@variableInvalidAddress": { "description": "Shown when the address of a mirror has no http or https scheme." },
+  "@variableInvalidAddress": {
+    "description": "Shown when the address of a mirror has no http or https scheme."
+  },
   "variableInvalidChoice": "Choose one of the listed values.",
-  "@variableInvalidChoice": { "description": "Shown when a value is none of those a variable takes." },
+  "@variableInvalidChoice": {
+    "description": "Shown when a value is none of those a variable takes."
+  },
   "optionsLegacy": "Version files",
-  "@optionsLegacy": { "description": "Heading of the files that vfox reads through a plugin to find the version of a project." },
+  "@optionsLegacy": {
+    "description": "Heading of the files that vfox reads through a plugin to find the version of a project."
+  },
   "optionsLegacyFiles": "Files read through this plugin",
-  "@optionsLegacyFiles": { "description": "Title of the list of version files of a plugin, such as .nvmrc." },
+  "@optionsLegacyFiles": {
+    "description": "Title of the list of version files of a plugin, such as .nvmrc."
+  },
   "optionsLegacyFilesHelp": "vfox reads them when a shell enters a project directory and selects the version they name, if it is installed.",
-  "@optionsLegacyFilesHelp": { "description": "Explains what vfox does with the version files of a plugin." },
+  "@optionsLegacyFilesHelp": {
+    "description": "Explains what vfox does with the version files of a plugin."
+  },
   "optionsLegacyNone": "This plugin reads no version files of its own.",
-  "@optionsLegacyNone": { "description": "Shown for a plugin that lists no legacy file names." },
+  "@optionsLegacyNone": {
+    "description": "Shown for a plugin that lists no legacy file names."
+  },
   "optionsLegacyStrategyIgnored": "{setting} has no effect on this plugin: the version in the file is what counts.",
   "@optionsLegacyStrategyIgnored": {
     "description": "Says that the strategy of the legacy version files does not matter for a plugin.",
-    "placeholders": {"setting": {"type": "String", "example": "Version used from legacy files"}}
+    "placeholders": {
+      "setting": {
+        "type": "String",
+        "example": "Version used from legacy files"
+      }
+    }
   },
   "optionsShorthands": "Names you can type",
-  "@optionsShorthands": { "description": "Heading of the version names that a plugin takes besides the listed versions." },
+  "@optionsShorthands": {
+    "description": "Heading of the version names that a plugin takes besides the listed versions."
+  },
   "optionsShorthandsHelp": "Besides the versions in the list, vfox install accepts these names for {name}.",
   "@optionsShorthandsHelp": {
     "description": "Explains the shorthands of a plugin.",
-    "placeholders": {"name": {"type": "String", "example": "nodejs"}}
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "optionsShorthandTry": "Install…",
-  "@optionsShorthandTry": { "description": "Opens the dialog that installs a version by name, filled with a shorthand." },
+  "@optionsShorthandTry": {
+    "description": "Opens the dialog that installs a version by name, filled with a shorthand."
+  },
   "optionsTips": "Good to know",
-  "@optionsTips": { "description": "Heading of the notes that a profile has for a plugin." },
+  "@optionsTips": {
+    "description": "Heading of the notes that a profile has for a plugin."
+  },
   "optionsDocs": "Documentation",
-  "@optionsDocs": { "description": "Heading of the links to the documentation of a plugin." },
-
+  "@optionsDocs": {
+    "description": "Heading of the links to the documentation of a plugin."
+  },
   "useProjectTitle": "Use {name} {version} in a project",
   "@useProjectTitle": {
     "description": "Title of the dialog that pins a version in a project.",
     "placeholders": {
-      "name": { "type": "String", "example": "nodejs" },
-      "version": { "type": "String", "example": "24.11.1" }
+      "name": {
+        "type": "String",
+        "example": "nodejs"
+      },
+      "version": {
+        "type": "String",
+        "example": "24.11.1"
+      }
     }
   },
   "useProjectBody": "vfox records the version in .vfox.toml in the project directory and links the SDK into .vfox/sdks.",
-  "@useProjectBody": { "description": "Explains what pinning a version in a project does." },
+  "@useProjectBody": {
+    "description": "Explains what pinning a version in a project does."
+  },
   "useProjectDirectory": "Project directory",
-  "@useProjectDirectory": { "description": "Label of the project directory field." },
+  "@useProjectDirectory": {
+    "description": "Label of the project directory field."
+  },
   "useProjectInvalid": "Choose an existing directory.",
-  "@useProjectInvalid": { "description": "Validation error of the project directory field." },
+  "@useProjectInvalid": {
+    "description": "Validation error of the project directory field."
+  },
   "useProjectConfirm": "Use in project",
-  "@useProjectConfirm": { "description": "Confirms pinning a version in a project." },
-
+  "@useProjectConfirm": {
+    "description": "Confirms pinning a version in a project."
+  },
   "pluginsTitle": "Plugins",
-  "@pluginsTitle": { "description": "Title of the plugin registry page." },
+  "@pluginsTitle": {
+    "description": "Title of the plugin registry page."
+  },
   "pluginsSubtitle": "Every plugin adds a language or tool to vfox.",
-  "@pluginsSubtitle": { "description": "Subtitle of the plugin registry page." },
+  "@pluginsSubtitle": {
+    "description": "Subtitle of the plugin registry page."
+  },
   "pluginsSearchHint": "Search plugins",
-  "@pluginsSearchHint": { "description": "Hint of the search field of the plugin registry." },
+  "@pluginsSearchHint": {
+    "description": "Hint of the search field of the plugin registry."
+  },
   "pluginsFilterAll": "All",
-  "@pluginsFilterAll": { "description": "Shows all plugins." },
+  "@pluginsFilterAll": {
+    "description": "Shows all plugins."
+  },
   "pluginsFilterOfficial": "Official",
-  "@pluginsFilterOfficial": { "description": "Shows plugins maintained by the vfox team." },
+  "@pluginsFilterOfficial": {
+    "description": "Shows plugins maintained by the vfox team."
+  },
   "pluginsFilterCommunity": "Community",
-  "@pluginsFilterCommunity": { "description": "Shows plugins maintained by the community." },
+  "@pluginsFilterCommunity": {
+    "description": "Shows plugins maintained by the community."
+  },
   "pluginsOfficial": "Official plugin",
-  "@pluginsOfficial": { "description": "Tooltip of the badge of official plugins." },
+  "@pluginsOfficial": {
+    "description": "Tooltip of the badge of official plugins."
+  },
   "pluginsAdd": "Add",
-  "@pluginsAdd": { "description": "Adds a plugin." },
+  "@pluginsAdd": {
+    "description": "Adds a plugin."
+  },
   "pluginsAdded": "Added",
-  "@pluginsAdded": { "description": "Shown for plugins that are already added." },
+  "@pluginsAdded": {
+    "description": "Shown for plugins that are already added."
+  },
   "pluginsAddCustom": "Add from source…",
-  "@pluginsAddCustom": { "description": "Adds a plugin from a URL or a local archive." },
+  "@pluginsAddCustom": {
+    "description": "Adds a plugin from a URL or a local archive."
+  },
   "pluginsUpdateAll": "Update all plugins",
-  "@pluginsUpdateAll": { "description": "Updates every installed plugin." },
+  "@pluginsUpdateAll": {
+    "description": "Updates every installed plugin."
+  },
   "pluginsLoadError": "Could not load the plugin registry.",
-  "@pluginsLoadError": { "description": "Shown when vfox available fails." },
+  "@pluginsLoadError": {
+    "description": "Shown when vfox available fails."
+  },
   "pluginsNoMatch": "No plugin matches your search.",
-  "@pluginsNoMatch": { "description": "Shown when the plugin search has no result." },
+  "@pluginsNoMatch": {
+    "description": "Shown when the plugin search has no result."
+  },
   "pluginsCustomTitle": "Add a plugin from source",
-  "@pluginsCustomTitle": { "description": "Title of the dialog that adds a plugin from a source." },
+  "@pluginsCustomTitle": {
+    "description": "Title of the dialog that adds a plugin from a source."
+  },
   "pluginsCustomSource": "Source",
-  "@pluginsCustomSource": { "description": "Label of the source field." },
+  "@pluginsCustomSource": {
+    "description": "Label of the source field."
+  },
   "pluginsCustomSourceHelp": "URL or path of a plugin archive (.zip) or script (.lua).",
-  "@pluginsCustomSourceHelp": { "description": "Help text of the source field." },
+  "@pluginsCustomSourceHelp": {
+    "description": "Help text of the source field."
+  },
   "pluginsCustomFileType": "vfox plugins",
-  "@pluginsCustomFileType": { "description": "Name of the file type in the file chooser for plugin sources." },
+  "@pluginsCustomFileType": {
+    "description": "Name of the file type in the file chooser for plugin sources."
+  },
   "pluginsCustomAlias": "Name (optional)",
-  "@pluginsCustomAlias": { "description": "Label of the alias field." },
+  "@pluginsCustomAlias": {
+    "description": "Label of the alias field."
+  },
   "pluginsCustomAliasHelp": "Install the plugin under this name instead of its own.",
-  "@pluginsCustomAliasHelp": { "description": "Help text of the alias field." },
+  "@pluginsCustomAliasHelp": {
+    "description": "Help text of the alias field."
+  },
   "pluginsCustomInvalidName": "Use letters, digits, dots, dashes and underscores only.",
-  "@pluginsCustomInvalidName": { "description": "Validation error of the alias field." },
+  "@pluginsCustomInvalidName": {
+    "description": "Validation error of the alias field."
+  },
   "pluginsCustomConfirm": "Add plugin",
-  "@pluginsCustomConfirm": { "description": "Confirms adding a plugin from a source." },
+  "@pluginsCustomConfirm": {
+    "description": "Confirms adding a plugin from a source."
+  },
   "pluginsCustomRequired": "Enter a URL or a path.",
-  "@pluginsCustomRequired": { "description": "Validation error of the source field." },
-
+  "@pluginsCustomRequired": {
+    "description": "Validation error of the source field."
+  },
   "tasksEmptyTitle": "Nothing is running",
-  "@tasksEmptyTitle": { "description": "Shown when there is no task." },
+  "@tasksEmptyTitle": {
+    "description": "Shown when there is no task."
+  },
   "tasksEmptyBody": "Installations and other changes appear here while vfox works on them.",
-  "@tasksEmptyBody": { "description": "Shown when there is no task." },
+  "@tasksEmptyBody": {
+    "description": "Shown when there is no task."
+  },
   "tasksClearFinished": "Clear finished",
-  "@tasksClearFinished": { "description": "Removes finished tasks from the list." },
+  "@tasksClearFinished": {
+    "description": "Removes finished tasks from the list."
+  },
   "taskStatusQueued": "Waiting",
-  "@taskStatusQueued": { "description": "Status of a task that waits for other tasks." },
+  "@taskStatusQueued": {
+    "description": "Status of a task that waits for other tasks."
+  },
   "taskStatusRunning": "Running",
-  "@taskStatusRunning": { "description": "Status of a running task." },
+  "@taskStatusRunning": {
+    "description": "Status of a running task."
+  },
   "taskStatusSucceeded": "Done",
-  "@taskStatusSucceeded": { "description": "Status of a successful task." },
+  "@taskStatusSucceeded": {
+    "description": "Status of a successful task."
+  },
   "taskStatusFailed": "Failed",
-  "@taskStatusFailed": { "description": "Status of a failed task." },
+  "@taskStatusFailed": {
+    "description": "Status of a failed task."
+  },
   "taskStatusCancelled": "Cancelled",
-  "@taskStatusCancelled": { "description": "Status of a cancelled task." },
+  "@taskStatusCancelled": {
+    "description": "Status of a cancelled task."
+  },
   "taskDownloading": "Downloading… {percent}%",
   "@taskDownloading": {
     "description": "Download progress of a task.",
-    "placeholders": { "percent": { "type": "int", "example": "42" } }
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "42"
+      }
+    }
   },
   "taskShowOutput": "Show output",
-  "@taskShowOutput": { "description": "Expands the output of a task." },
+  "@taskShowOutput": {
+    "description": "Expands the output of a task."
+  },
   "taskHideOutput": "Hide output",
-  "@taskHideOutput": { "description": "Collapses the output of a task." },
+  "@taskHideOutput": {
+    "description": "Collapses the output of a task."
+  },
   "taskCopyOutput": "Copy output",
-  "@taskCopyOutput": { "description": "Copies the output of a task." },
+  "@taskCopyOutput": {
+    "description": "Copies the output of a task."
+  },
   "taskDroppedLines": "{count, plural, =1{1 earlier line dropped} other{{count} earlier lines dropped}}",
-  "@taskDroppedLines": { "description": "Shown above a task log that no longer holds its oldest lines.", "placeholders": { "count": { "type": "int", "example": "42" } } },
+  "@taskDroppedLines": {
+    "description": "Shown above a task log that no longer holds its oldest lines.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "42"
+      }
+    }
+  },
   "taskFullLog": "Full log",
-  "@taskFullLog": { "description": "Labels the retained complete log file of a failed task." },
+  "@taskFullLog": {
+    "description": "Labels the retained complete log file of a failed task."
+  },
   "taskNoOutput": "No output yet.",
-  "@taskNoOutput": { "description": "Shown when a task has not printed anything." },
+  "@taskNoOutput": {
+    "description": "Shown when a task has not printed anything."
+  },
   "taskInstall": "Install {subject}",
   "@taskInstall": {
     "description": "Title of an install task.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs@24.11.1" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs@24.11.1"
+      }
+    }
   },
   "taskUninstall": "Uninstall {subject}",
   "@taskUninstall": {
     "description": "Title of an uninstall task.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs@24.11.1" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs@24.11.1"
+      }
+    }
   },
   "taskUse": "Use {subject}",
   "@taskUse": {
     "description": "Title of a task that selects a version.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs@24.11.1" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs@24.11.1"
+      }
+    }
   },
   "taskUnuse": "Stop using {subject}",
   "@taskUnuse": {
     "description": "Title of a task that clears the current version.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "taskAddPlugin": "Add plugin {subject}",
   "@taskAddPlugin": {
     "description": "Title of a task that adds a plugin.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "taskAddPluginFromSource": "Add plugin from source",
-  "@taskAddPluginFromSource": { "description": "Title of a task that adds a plugin from a URL without a name." },
+  "@taskAddPluginFromSource": {
+    "description": "Title of a task that adds a plugin from a URL without a name."
+  },
   "taskRemovePlugin": "Remove plugin {subject}",
   "@taskRemovePlugin": {
     "description": "Title of a task that removes a plugin.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "taskUpdatePlugin": "Update plugin {subject}",
   "@taskUpdatePlugin": {
     "description": "Title of a task that updates a plugin.",
-    "placeholders": { "subject": { "type": "String", "example": "nodejs" } }
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs"
+      }
+    }
   },
   "taskUpdateAllPlugins": "Update all plugins",
-  "@taskUpdateAllPlugins": { "description": "Title of a task that updates every plugin." },
+  "@taskUpdateAllPlugins": {
+    "description": "Title of a task that updates every plugin."
+  },
   "taskSucceeded": "{title}: done",
   "@taskSucceeded": {
     "description": "Message after a task finished.",
-    "placeholders": { "title": { "type": "String", "example": "Install nodejs@24.11.1" } }
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Install nodejs@24.11.1"
+      }
+    }
   },
   "taskFailed": "{title}: failed",
   "@taskFailed": {
     "description": "Message after a task failed.",
-    "placeholders": { "title": { "type": "String", "example": "Install nodejs@24.11.1" } }
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Install nodejs@24.11.1"
+      }
+    }
   },
   "taskView": "View",
-  "@taskView": { "description": "Opens the task list from a message." },
-
+  "@taskView": {
+    "description": "Opens the task list from a message."
+  },
   "settingsAppearance": "Appearance",
-  "@settingsAppearance": { "description": "Heading of the appearance settings." },
+  "@settingsAppearance": {
+    "description": "Heading of the appearance settings."
+  },
   "settingsTheme": "Theme",
-  "@settingsTheme": { "description": "Light or dark appearance." },
+  "@settingsTheme": {
+    "description": "Light or dark appearance."
+  },
   "themeSystem": "System",
-  "@themeSystem": { "description": "Follow the desktop appearance." },
+  "@themeSystem": {
+    "description": "Follow the desktop appearance."
+  },
   "themeLight": "Light",
-  "@themeLight": { "description": "Light appearance." },
+  "@themeLight": {
+    "description": "Light appearance."
+  },
   "themeDark": "Dark",
-  "@themeDark": { "description": "Dark appearance." },
+  "@themeDark": {
+    "description": "Dark appearance."
+  },
   "settingsColor": "Color",
-  "@settingsColor": { "description": "Accent color setting." },
+  "@settingsColor": {
+    "description": "Accent color setting."
+  },
   "settingsSystemColor": "Use the desktop accent color",
-  "@settingsSystemColor": { "description": "Derive the colors from the accent color of the desktop." },
+  "@settingsSystemColor": {
+    "description": "Derive the colors from the accent color of the desktop."
+  },
   "settingsSystemColorUnavailable": "The desktop does not share an accent color, so the color below is used.",
-  "@settingsSystemColorUnavailable": { "description": "Shown when no desktop accent color is available." },
+  "@settingsSystemColorUnavailable": {
+    "description": "Shown when no desktop accent color is available."
+  },
   "settingsColorOption": "Accent color {index}",
   "@settingsColorOption": {
     "description": "Accessibility label of a color swatch.",
-    "placeholders": { "index": { "type": "int", "example": "1" } }
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      }
+    }
   },
   "settingsLanguage": "Language",
-  "@settingsLanguage": { "description": "User interface language setting." },
+  "@settingsLanguage": {
+    "description": "User interface language setting."
+  },
   "languageSystem": "System",
-  "@languageSystem": { "description": "Follow the desktop language." },
+  "@languageSystem": {
+    "description": "Follow the desktop language."
+  },
   "settingsVfox": "vfox",
   "@settingsVfox": { "description": "Heading of the settings about the vfox executable." },
   "settingsWeb": "Web interface",
@@ -608,93 +1070,251 @@
   "trayOpenWeb": "Open the web interface",
   "@trayOpenWeb": { "description": "Item of the menu of the tray icon that opens the web interface in the browser." },
   "settingsExecutable": "Executable",
-  "@settingsExecutable": { "description": "Path of the vfox executable." },
+  "@settingsExecutable": {
+    "description": "Path of the vfox executable."
+  },
   "settingsExecutableDetected": "Detected automatically",
-  "@settingsExecutableDetected": { "description": "The executable was found in PATH." },
+  "@settingsExecutableDetected": {
+    "description": "The executable was found in PATH."
+  },
   "settingsExecutableCustom": "Chosen manually",
-  "@settingsExecutableCustom": { "description": "The executable was chosen by the user." },
+  "@settingsExecutableCustom": {
+    "description": "The executable was chosen by the user."
+  },
   "settingsExecutableMissing": "Not found",
-  "@settingsExecutableMissing": { "description": "No executable was found." },
+  "@settingsExecutableMissing": {
+    "description": "No executable was found."
+  },
   "settingsExecutableDetect": "Detect automatically",
-  "@settingsExecutableDetect": { "description": "Forgets the manually chosen executable." },
+  "@settingsExecutableDetect": {
+    "description": "Forgets the manually chosen executable."
+  },
   "settingsVfoxVersion": "Version {version}",
   "@settingsVfoxVersion": {
     "description": "Version of vfox.",
-    "placeholders": { "version": { "type": "String", "example": "1.0.12" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.0.12"
+      }
+    }
   },
   "settingsEnvironment": "Environment variables",
-  "@settingsEnvironment": { "description": "Extra environment variables for vfox." },
+  "@settingsEnvironment": {
+    "description": "Extra environment variables for vfox."
+  },
   "settingsEnvironmentHelp": "Passed to vfox and its plugins, one KEY=VALUE per line. Useful for download mirrors such as VFOX_NODEJS_MIRROR, which a desktop launcher does not read from your shell profile.",
-  "@settingsEnvironmentHelp": { "description": "Help text of the environment variables field." },
+  "@settingsEnvironmentHelp": {
+    "description": "Help text of the environment variables field."
+  },
   "settingsEnvironmentInvalid": "{count, plural, =1{Line {lines} is not KEY=VALUE.} other{Lines {lines} are not KEY=VALUE.}}",
   "@settingsEnvironmentInvalid": {
     "description": "Validation error of the environment variables field.",
     "placeholders": {
-      "count": { "type": "int", "example": "2" },
-      "lines": { "type": "String", "example": "3, 5" }
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "lines": {
+        "type": "String",
+        "example": "3, 5"
+      }
     }
   },
   "settingsSaved": "Saved",
-  "@settingsSaved": { "description": "Confirmation after saving a setting." },
+  "@settingsSaved": {
+    "description": "Confirmation after saving a setting."
+  },
   "settingsVfoxConfig": "vfox configuration",
-  "@settingsVfoxConfig": { "description": "Heading of the settings stored by vfox." },
+  "@settingsVfoxConfig": {
+    "description": "Heading of the settings stored by vfox."
+  },
   "settingsVfoxConfigHelp": "Stored by vfox in ~/.vfox/config.yaml and shared with the command line.",
-  "@settingsVfoxConfigHelp": { "description": "Explains where the vfox configuration lives." },
+  "@settingsVfoxConfigHelp": {
+    "description": "Explains where the vfox configuration lives."
+  },
   "settingsVfoxConfigError": "Could not read the vfox configuration.",
-  "@settingsVfoxConfigError": { "description": "Shown when vfox config --list fails." },
+  "@settingsVfoxConfigError": {
+    "description": "Shown when vfox config --list fails."
+  },
   "configProxyEnable": "Download through a proxy",
-  "@configProxyEnable": { "description": "vfox setting proxy.enable." },
+  "@configProxyEnable": {
+    "description": "vfox setting proxy.enable."
+  },
   "configProxyUrl": "Proxy URL",
-  "@configProxyUrl": { "description": "vfox setting proxy.url." },
+  "@configProxyUrl": {
+    "description": "vfox setting proxy.url."
+  },
   "configRegistry": "Plugin registry",
-  "@configRegistry": { "description": "vfox setting registry.address." },
+  "@configRegistry": {
+    "description": "vfox setting registry.address."
+  },
   "configRegistryHint": "Official registry",
-  "@configRegistryHint": { "description": "Placeholder when registry.address is empty." },
+  "@configRegistryHint": {
+    "description": "Placeholder when registry.address is empty."
+  },
   "configStorage": "SDK storage directory",
-  "@configStorage": { "description": "vfox setting storage.sdkPath." },
+  "@configStorage": {
+    "description": "vfox setting storage.sdkPath."
+  },
   "configStorageHint": "Inside ~/.vfox",
-  "@configStorageHint": { "description": "Placeholder when storage.sdkPath is empty." },
+  "@configStorageHint": {
+    "description": "Placeholder when storage.sdkPath is empty."
+  },
   "configLegacyEnable": "Read legacy version files",
-  "@configLegacyEnable": { "description": "vfox setting legacyVersionFile.enable." },
+  "@configLegacyEnable": {
+    "description": "vfox setting legacyVersionFile.enable."
+  },
   "configLegacyEnableHelp": "Such as .nvmrc, .node-version, .python-version and .sdkmanrc.",
-  "@configLegacyEnableHelp": { "description": "Help text of legacyVersionFile.enable." },
+  "@configLegacyEnableHelp": {
+    "description": "Help text of legacyVersionFile.enable."
+  },
   "configLegacyStrategy": "Version used from legacy files",
-  "@configLegacyStrategy": { "description": "vfox setting legacyVersionFile.strategy." },
+  "@configLegacyStrategy": {
+    "description": "vfox setting legacyVersionFile.strategy."
+  },
   "strategySpecified": "As written",
-  "@strategySpecified": { "description": "legacyVersionFile.strategy = specified." },
+  "@strategySpecified": {
+    "description": "legacyVersionFile.strategy = specified."
+  },
   "strategyLatestInstalled": "Latest installed",
-  "@strategyLatestInstalled": { "description": "legacyVersionFile.strategy = latest_installed." },
+  "@strategyLatestInstalled": {
+    "description": "legacyVersionFile.strategy = latest_installed."
+  },
   "strategyLatestAvailable": "Latest available",
-  "@strategyLatestAvailable": { "description": "legacyVersionFile.strategy = latest_available." },
+  "@strategyLatestAvailable": {
+    "description": "legacyVersionFile.strategy = latest_available."
+  },
   "configCache": "Cache version lists for",
-  "@configCache": { "description": "vfox setting cache.availableHookDuration." },
+  "@configCache": {
+    "description": "vfox setting cache.availableHookDuration."
+  },
   "configCacheHelp": "A duration such as 12h. -1 keeps the lists forever, 0 disables the cache.",
-  "@configCacheHelp": { "description": "Help text of cache.availableHookDuration." },
+  "@configCacheHelp": {
+    "description": "Help text of cache.availableHookDuration."
+  },
   "configHttpTimeout": "Request timeout",
-  "@configHttpTimeout": { "description": "vfox setting plugin.http.timeout." },
+  "@configHttpTimeout": {
+    "description": "vfox setting plugin.http.timeout."
+  },
   "configDownloadTimeout": "Download timeout",
-  "@configDownloadTimeout": { "description": "vfox setting plugin.http.downloadTimeout." },
+  "@configDownloadTimeout": {
+    "description": "vfox setting plugin.http.downloadTimeout."
+  },
   "configTimeoutHelp": "A duration such as 30s or 10m. 0s uses the default.",
-  "@configTimeoutHelp": { "description": "Help text of the timeout settings." },
+  "@configTimeoutHelp": {
+    "description": "Help text of the timeout settings."
+  },
   "configGitignore": "Add .vfox/ to .gitignore",
-  "@configGitignore": { "description": "vfox setting gitignore.enable." },
+  "@configGitignore": {
+    "description": "vfox setting gitignore.enable."
+  },
   "configGitignoreHelp": "When a version is pinned in a project.",
-  "@configGitignoreHelp": { "description": "Help text of gitignore.enable." },
+  "@configGitignoreHelp": {
+    "description": "Help text of gitignore.enable."
+  },
   "configOther": "Other settings",
-  "@configOther": { "description": "Heading of vfox settings without a dedicated editor." },
+  "@configOther": {
+    "description": "Heading of vfox settings without a dedicated editor."
+  },
   "settingsAbout": "About",
-  "@settingsAbout": { "description": "Heading of the about section." },
+  "@settingsAbout": {
+    "description": "Heading of the about section."
+  },
   "aboutVersion": "Version {version}",
   "@aboutVersion": {
     "description": "Version of the application.",
-    "placeholders": { "version": { "type": "String", "example": "0.1.0" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.1.0"
+      }
+    }
   },
   "aboutLicense": "Licensed under the Apache License 2.0.",
-  "@aboutLicense": { "description": "License of the application." },
+  "@aboutLicense": {
+    "description": "License of the application."
+  },
   "aboutSource": "Source code",
-  "@aboutSource": { "description": "Opens the source code repository." },
+  "@aboutSource": {
+    "description": "Opens the source code repository."
+  },
   "aboutLicenses": "Open-source licenses",
-  "@aboutLicenses": { "description": "Shows the licenses of the dependencies." },
+  "@aboutLicenses": {
+    "description": "Shows the licenses of the dependencies."
+  },
   "aboutDocs": "vfox documentation",
-  "@aboutDocs": { "description": "Opens the vfox documentation." }
+  "@aboutDocs": {
+    "description": "Opens the vfox documentation."
+  },
+  "updateTitle": "Application updates",
+  "updateCurrent": "Current version {version}",
+  "updateCheck": "Check for updates",
+  "updateChecking": "Checking…",
+  "updateUpToDate": "Up to date",
+  "updateAvailable": "Update {version} available",
+  "updateDownload": "Download",
+  "updateDownloading": "Downloading…",
+  "updateDownloaded": "Downloaded to {path}",
+  "updateOpenReleases": "Open releases",
+  "updateNoAsset": "No package for this system",
+  "updateMirror": "Update mirror",
+  "updateMirrorHelp": "Prefix for GitHub downloads, e.g. https://gh-proxy.org/. Empty means direct.",
+  "@updateCurrent": {
+    "description": "Current version of vfox-plus.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.1.0"
+      }
+    }
+  },
+  "@updateAvailable": {
+    "description": "A newer release exists.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.2.0"
+      }
+    }
+  },
+  "@updateDownloaded": {
+    "description": "Update package downloaded.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/tmp/vfox-plus_0.2.0_amd64.deb"
+      }
+    }
+  },
+  "@updateTitle": {
+    "description": "The application update section of the settings page."
+  },
+  "@updateCheck": {
+    "description": "Button that checks for a new release."
+  },
+  "@updateChecking": {
+    "description": "The update check is running."
+  },
+  "@updateUpToDate": {
+    "description": "No release is newer than the installed one."
+  },
+  "@updateDownload": {
+    "description": "Button that downloads the update package."
+  },
+  "@updateDownloading": {
+    "description": "The update package is downloading."
+  },
+  "@updateOpenReleases": {
+    "description": "Button that opens the releases page."
+  },
+  "@updateNoAsset": {
+    "description": "No package of the release fits this system."
+  },
+  "@updateMirror": {
+    "description": "Mirror prefix for GitHub downloads."
+  },
+  "@updateMirrorHelp": {
+    "description": "Help for the update mirror field."
+  }
 }

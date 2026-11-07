@@ -4,14 +4,13 @@
 
 This document specifies how vfox-plus drives the vfox command
 line tool: which commands it runs, in which environment, how it reads their
-output and how it reports errors. It describes **vfox 1.0.13** and notes where
-1.0.12 behaves differently; the captured outputs of both versions are in
-[`shared/fixtures`](../../../shared/fixtures), together with the expected parser
-results in `cases.json`.
+output and how it reports errors. It describes **vfox 1.0.13**; the captured
+outputs are in [`shared/fixtures`](../../../shared/fixtures), together with the
+expected parser results in `cases.json`.
 
-The minimum supported vfox version is **1.0.0** (the `.vfox.toml` layout and the
-non-interactive behaviour used below exist since then; `info --format` since
-0.8.0).
+The minimum supported vfox version is **1.0.13**: command errors go to standard
+error since then (see [Output conventions](#output-conventions)), and earlier
+versions are not supported.
 
 ## Running vfox
 
@@ -63,9 +62,8 @@ invocations share one directory per day; vfox removes stale ones itself.
 
 ## Output conventions
 
-- Errors returned by a command are printed with exit code 1: to **standard
-  error** since vfox 1.0.13, to **standard output** (`fmt.Println`) up to
-  1.0.12. What a command prints before it fails, such as the reason why an
+- Errors returned by a command are printed with exit code 1 to **standard
+  error**. What a command prints before it fails, such as the reason why an
   installation failed, stays on standard output.
 - Usage errors (`cli.Exit`) are printed to **standard error**, with exit code 1.
 - The download progress bar is printed to **standard error**. It ignores
@@ -245,7 +243,7 @@ proxy.enable = false
 
 Each line is `<key> = <value>`; the value may be empty. Unknown keys must be
 shown and editable as text, so that the GUI keeps working when vfox adds
-settings. The keys of vfox 1.0.13, the same as in 1.0.12:
+settings. The keys of vfox 1.0.13:
 
 | Key                           | Type                                  | Notes                                             |
 | ----------------------------- | ------------------------------------- | ------------------------------------------------- |
@@ -353,19 +351,17 @@ A running command is cancelled by terminating vfox (`SIGTERM` on Unix, kill on
 Windows); the task then counts as cancelled whatever the exit code. What an
 interrupted `vfox install` leaves behind depends on the version:
 
-- up to 1.0.12, vfox catches the signal, deletes the partial version directory
-  and exits with code 0;
-- since 1.0.13, the signal ends vfox. The partial directory stays, next to a
+- the signal ends vfox. The partial directory stays, next to a
   `.v-<version>.installing` marker; `vfox list` does not show that version, and
   the next `vfox install` of it removes the leftovers first.
 
-Since 1.0.13, vfox also refuses to install a version while another vfox
+vfox also refuses to install a version while another vfox
 process, for example in a terminal, installs it:
 `cannot install <name>@<version>: installation is in progress or cannot be locked: …`.
 
 ## Known quirks
 
-These hold for vfox 1.0.12 and 1.0.13.
+These hold for vfox 1.0.13.
 
 - `vfox add a b` reports per-plugin failures but exits with 0. The GUI adds one
   plugin per command.
@@ -383,8 +379,7 @@ These hold for vfox 1.0.12 and 1.0.13.
   and passes the copy; vfox never cleans up directories there whose names do not
   start with a date.
 - Output is split over both streams: `vfox --version` goes to standard output,
-  progress and usage errors to standard error, and the errors that commands
-  return to standard output up to 1.0.12 but to standard error since 1.0.13
+  progress, usage errors and the errors that commands return to standard error
   (see [Output conventions](#output-conventions)).
 
 ## Testing against the real vfox

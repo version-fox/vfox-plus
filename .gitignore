@@ -14,6 +14,10 @@ Thumbs.db
 # Packaging output (see `vfxtool build-deb`).
 /dist/
 
+# Snapcraft inputs and outputs (see snap/snapcraft.yaml).
+snap/*.snap
+snap/vfox-plus.deb
+
 # Android build outputs (see docs/en/dev/packaging-android.md).
 /android/.gradle/
 /android/.kotlin/

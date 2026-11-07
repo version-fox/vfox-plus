@@ -54,7 +54,7 @@ var (
 	tracebackEntryPattern = regexp.MustCompile(`^(?:\[[^\]]*\]|\S.*?:\d+): (?:in .+|\?)$|^\.\.\.`)
 )
 
-// ParseVfoxVersion parses `vfox --version`, for example `vfox version 1.0.12.
+// ParseVfoxVersion parses `vfox --version`, for example `vfox version 1.0.13.
 // It returns empty if no version number is found.
 func ParseVfoxVersion(output string) string {
 	match := versionPattern.FindStringSubmatch(core.StripANSI(output))
@@ -371,8 +371,7 @@ func ParseDownloadProgress(line string) float64 {
 // command.
 //
 // Usage errors (`cli.Exit`) go to standard error. The error a command returns
-// goes to standard output up to vfox 1.0.12 (`fmt.Println(err)`) and to
-// standard error from 1.0.13, while what a command prints before failing,
+// goes to standard error, while what a command prints before failing,
 // such as the reason of a failed installation, stays on standard output. So
 // the lines of standard output are read first and those of standard error
 // last. Progress bar redraws and blank lines are ignored, and the last

@@ -104,6 +104,10 @@ type AppSettings struct {
 	// argument, such as the distribution of Java: the plugin name, then the
 	// value of the choice (`tem`). A plugin that lists its default has no entry.
 	Searches map[string]string
+	// Mirror prefix for GitHub downloads, for example https://gh-proxy.org/.
+	// Empty means direct github.com. It prefixes the download URL of
+	// releases of vfox-plus itself and the profile files of plugins.
+	UpdateMirror string
 	// Keys of the settings file that this version does not know, kept as
 	// they are so that settings written by a newer version survive.
 	Unknown map[string]interface{}
@@ -150,6 +154,7 @@ var knownKeys = map[string]bool{
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
 	"webInterface": true, "lightweight": true, "webRemote": true, "webPort": true,
 	"webCertificate": true, "webKey": true, "remoteAccess": true, "searches": true,
+	"updateMirror": true,
 }
 
 // Clone returns a copy that shares no map with s, so that it can be modified.
@@ -206,6 +211,9 @@ func SettingsFromJSON(data interface{}) AppSettings {
 				settings.Searches[plugin] = text
 			}
 		}
+	}
+	if mirror, ok := object["updateMirror"].(string); ok {
+		settings.UpdateMirror = mirror
 	}
 	if expanded, ok := object["railExpanded"].(bool); ok && expanded {
 		settings.RailExpanded = true
@@ -280,6 +288,10 @@ func settingsJSON(settings AppSettings) string {
 		searches = []byte("{}")
 	}
 	fmt.Fprintf(&out, ",%q:%s", "searches", searches)
+	if settings.UpdateMirror != "" {
+		quoted, _ := json.Marshal(settings.UpdateMirror)
+		fmt.Fprintf(&out, ",%q:%s", "updateMirror", quoted)
+	}
 	for _, key := range sortedKeys(settings.Unknown) {
 		quoted, err := json.Marshal(settings.Unknown[key])
 		if err != nil {
@@ -317,6 +329,7 @@ func (s AppSettings) Equal(other AppSettings) bool {
 		s.WebInterface != other.WebInterface || s.Lightweight != other.Lightweight ||
 		s.WebRemote != other.WebRemote || s.EffectiveWebPort() != other.EffectiveWebPort() ||
 		s.WebCertificate != other.WebCertificate || s.WebKey != other.WebKey ||
+		s.UpdateMirror != other.UpdateMirror ||
 		len(s.ExtraEnvironment) != len(other.ExtraEnvironment) || len(s.Searches) != len(other.Searches) {
 		return false
 	}

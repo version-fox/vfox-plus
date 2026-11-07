@@ -25,6 +25,15 @@ vfox-plus
 
 或把 `.tar.gz` 解到任意位置，运行 `./vfox-plus`。
 
+GitHub release 的 classic snap 则手动安装（strict 限制会挡住 vfox-plus 所驱动的工具链，
+所以不上架商店）：
+
+```sh
+sudo snap install --dangerous --classic vfox-plus_*.snap
+```
+
+旁加载的 snap 不会自动更新：新版本下载新的 `.snap`，同样命令再装一次。
+
 vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示窗口。想同时在浏览器或手机上用，
 在它的设置里开启网页界面（见[网页界面与其他设备](remote.md)）。
 

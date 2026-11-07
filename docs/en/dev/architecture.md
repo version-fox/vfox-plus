@@ -173,7 +173,7 @@ has in common, which is how the web interface of the first version came to show
 the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
 
 A *profile* (`core/profile`) writes it down, as plain data that the three
-interfaces share, for `java`, `nodejs` and `flutter`:
+interfaces share, for `java`, `nodejs`, `flutter` and `gradle`:
 
 | Part | What it is |
 | --- | --- |
@@ -187,7 +187,15 @@ interfaces share, for `java`, `nodejs` and `flutter`:
 
 The texts of a profile are written in both languages next to the data, not in
 the catalogues, because the web interface gets them over HTTP and the page does not
-carry the catalogues. A plugin without a profile behaves as before.
+carry the catalogues. A plugin without a curated profile still
+gets filters and mirrors without a code change: facets are inferred from the
+listed versions (notes become a note filter, shared `-suffix` tails a variant
+filter), environment variables from scanning the installed plugin for
+`os.getenv("VFOX_*")`, and legacy files from `PLUGIN.legacyFilenames` in its
+`metadata.lua`. A `vfox-plus.json` at the root of the plugin repository (see
+`core/profile/external.go`) overlays these inferences with curated texts, and
+`profiles/<plugin>.json` next to the settings overlays everything; the built-in
+registry only holds what is curated in the repository.
 A profile belongs to the plugin, whatever name vfox knows it by. vfox calls a plugin
 that was added with `vfox add --alias` by the alias, and `vfox info` still says which
 plugin it is, so the controller of the details looks the profile up by the name of the
@@ -239,6 +247,7 @@ Settings of the GUI itself are stored as JSON:
 | `webPort`          | integer         | absent       | The port that other devices connect to, from 1024 to 65535; absent means 8369. |
 | `webCertificate`, `webKey` | string  | absent       | The PEM files of the certificate and the private key that other devices get; absent means a certificate that the application makes for itself. |
 | `searches`         | object          | `{}`         | What was chosen to list for a plugin, by its name: `{"java": "tem"}`. The default has no entry. |
+| `updateMirror`     | string          | `""`         | Mirror prefix for GitHub, e.g. `https://gh-proxy.org/`. Empty means direct. Used for self-updates and plugin profiles. |
 
 Unknown keys must be preserved or ignored, never rejected.
 
@@ -259,6 +268,33 @@ locations that a desktop launcher's `PATH` often lacks:
 
 The user can also pick the executable. If vfox is missing or broken, the GUI explains how to install it
 and keeps the settings reachable.
+
+## Self updates
+
+`core/update` checks the GitHub releases of `version-fox/vfox-plus` and
+downloads the asset for the platform: `GET
+https://api.github.com/repos/version-fox/vfox-plus/releases/latest` gives the
+newest tag and its assets, and the download goes to
+`https://github.com/.../releases/download/...`, optionally prefixed with the
+`updateMirror` setting such as `https://gh-proxy.org/` where github.com is
+slow. The check itself is direct; the mirror applies to the download, which
+falls back to direct when the mirror fails. Nothing installs itself: the
+`.deb` is left for `dpkg` and the `.msixbundle` for the installer. No release
+exists yet, so the asset names below are the convention the packaging uses,
+locked by `TestPlatformAssetPrefersDebAndFallsBackToTarball`:
+
+| Platform | Preferred | Fallback |
+| --- | --- | --- |
+| Linux amd64 | `vfox-plus_<version>_amd64.deb` | `vfox-plus-<version>-linux-x64.tar.gz` |
+| Linux arm64 | `vfox-plus_<version>_arm64.deb` | `vfox-plus-<version>-linux-arm64.tar.gz` |
+| Windows x64/arm64 | `vfox-plus_<version>_x64.msix` / `vfox-plus_<version>_arm64.msix` | `vfox-plus_<version>.msixbundle` |
+
+The desktop checks once silently on startup and fills the settings page; the
+update section there (`updateSection`) has the check button, the mirror field,
+and the download button with the releases page next to it. An update that is
+newer than `ui.Version` shows the download; otherwise the page says up to
+date. The remote web interface only carries the `updateMirror` setting, and
+has no check button: the update belongs to the machine the server runs on.
 
 ## Dependencies
 

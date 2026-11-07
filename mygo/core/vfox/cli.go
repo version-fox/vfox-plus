@@ -133,7 +133,7 @@ func cloneLaunchConfig(config VfoxLaunchConfig) VfoxLaunchConfig {
 	return config
 }
 
-// Version returns the version of vfox, for example `1.0.12`.
+// Version returns the version of vfox, for example `1.0.13`.
 func (c *Client) Version() (string, error) {
 	args := []string{"--version"}
 	output, err := c.query(args, false)

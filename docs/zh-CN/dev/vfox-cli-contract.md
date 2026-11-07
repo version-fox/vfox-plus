@@ -3,11 +3,10 @@
 > [English](../../en/dev/vfox-cli-contract.md)
 
 本文规定 vfox-plus 如何驱动 vfox 命令行工具：跑哪些命令、什么环境、如何读取输出、
-如何报告错误。描述 **vfox 1.0.13**，并注明 1.0.12 的不同；两版捕获输出都在
+如何报告错误。描述 **vfox 1.0.13**；捕获输出在
 [`shared/fixtures`](../../../shared/fixtures)，期望解析结果在 `cases.json`。
 
-最低支持 vfox **1.0.0**（`.vfox.toml` 布局与下文非交互行为自此存在；`info --format`
-自 0.8.0）。
+最低支持 vfox **1.0.13**：命令错误自此走标准错误（见[输出约定](#输出约定）），更早版本不支持。
 
 ## 运行 vfox
 
@@ -49,8 +48,7 @@ Windows `%USERPROFILE%/.vfox/tmp`），`<pid>` 为父进程 PID。GUI 直接 spa
 
 ## 输出约定
 
-- 命令返回的错误 exit code 1：vfox 1.0.13 起打印到**标准错误**，1.0.12 及以前打印到
-  **标准输出**（`fmt.Println`）。失败前打印的内容（如安装失败原因）留在标准输出。
+- 命令返回的错误 exit code 1 打印到**标准错误**。失败前打印的内容（如安装失败原因）留在标准输出。
 - 用法错误（`cli.Exit`）打印到**标准错误**，exit code 1。
 - 下载进度条打印到**标准错误**。忽略 `NO_COLOR`，含 ANSI 颜色码，用回车重绘：
   `\rDownloading...  42% [====>     ] (1.2 MB/s) [3s:4s]\r      \r`。
@@ -206,7 +204,7 @@ proxy.enable = false
 ```
 
 每行 `<键> = <值>`；值可空。未知键按文本展示编辑，GUI 跨 vfox 版本可用。
-vfox 1.0.13 的键（1.0.12 同）：
+vfox 1.0.13 的键：
 
 | 键 | 类型 | 说明 |
 | --- | --- | --- |
@@ -297,16 +295,14 @@ vfox 只检查 `__VFOX_SHELL` 非空。`--global` 或 `--project` 下 `use` 只�
 运行中命令靠终止 vfox 取消（Unix `SIGTERM`，Windows kill）；任务按取消计，不论
 exit code。中断的 `vfox install` 残留取决于版本：
 
-- 至 1.0.12，vfox 捕获信号，删除部分版本目录，exit code 0；
-- 1.0.13 起，信号结束 vfox。部分目录保留，旁有 `.v-<版本>.installing` 标记；
+- 信号结束 vfox。部分目录保留，旁有 `.v-<版本>.installing` 标记；
   `vfox list` 不显示该版本，下次安装同版本先清理。
 
-1.0.13 起，另一 vfox 进程（如终端）正安装同版本时拒绝安装：
+另一 vfox 进程（如终端）正安装同版本时拒绝安装：
 `cannot install <名称>@<版本>: installation is in progress or cannot be locked: …`。
 
 ## 已知问题
 
-1.0.12 与 1.0.13 皆然。
 
 - `vfox add a b` 按插件报告失败但 exit 0。GUI 一次只加一个插件。
 - 插件 pre-install hook 连不上网（如坏代理），`vfox install` 可能报
@@ -317,7 +313,7 @@ exit code。中断的 `vfox install` 残留取决于版本：
   重命名失败。本地 `.zip` 与 URL 只读。GUI 把本地 `.lua` 拷贝到 vfox 临时目录下新目录
   再传拷贝；vfox 从不清理其名不以日期开头的目录。
 - 输出分两流：`vfox --version` 走标准输出，进度与用法错误走标准错误，命令返回的错误
-  1.0.12 及以前走标准输出，1.0.13 起走标准错误（见[输出约定](#输出约定)）。
+  走标准错误（见[输出约定](#输出约定)）。
 
 ## 对真实 vfox 测试
 

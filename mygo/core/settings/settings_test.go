@@ -49,6 +49,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		WebCertificate:   "/etc/vfox/cert.pem",
 		WebKey:           "/etc/vfox/key.pem",
 		Searches:         map[string]string{"java": "tem"},
+		UpdateMirror:     "https://gh-proxy.org/",
 		Unknown:          map[string]interface{}{"future": true},
 	}
 	raw, err := json.Marshal(original)
@@ -61,12 +62,14 @@ func TestSettingsRoundTrip(t *testing.T) {
 }
 
 func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
-	raw, err := json.Marshal(settings.DefaultSettings())
+	withMirror := settings.DefaultSettings()
+	withMirror.UpdateMirror = "https://gh-proxy.org/"
+	raw, err := json.Marshal(withMirror)
 	if err != nil {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"webInterface"`, `"lightweight"`, `"webRemote"`, `"searches"`}
+	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"webInterface"`, `"lightweight"`, `"webRemote"`, `"searches"`, `"updateMirror"`}
 	previous := -1
 	for _, key := range keys {
 		index := strings.Index(text, key)

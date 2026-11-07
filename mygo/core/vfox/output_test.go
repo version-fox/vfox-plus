@@ -23,7 +23,7 @@ import (
 )
 
 func TestParseVfoxVersion(t *testing.T) {
-	if got := vfox.ParseVfoxVersion("vfox version 1.0.12\n"); got != "1.0.12" {
+	if got := vfox.ParseVfoxVersion("vfox version 1.0.13\n"); got != "1.0.13" {
 		t.Errorf("got %q", got)
 	}
 	if got := vfox.ParseVfoxVersion("vfox version 2.0.0-beta.1"); got != "2.0.0-beta.1" {
@@ -158,7 +158,7 @@ func TestSummarizeError(t *testing.T) {
 	if got != "failed to download x@1 file, err:EOF" {
 		t.Errorf("got %q", got)
 	}
-	// vfox 1.0.13 prints the error a command returns to standard error.
+	// vfox prints the error a command returns to standard error.
 	got = vfox.SummarizeError(
 		"Preinstalling x@1...\nfailed to download x@1 file, err:EOF\n",
 		"\rDownloading...  3% [>   ]\r      \rfailed to install x\n")
@@ -174,7 +174,7 @@ func TestSummarizeError(t *testing.T) {
 }
 
 func TestSummarizeErrorOfAPluginLeavesOutTheTraceback(t *testing.T) {
-	// What vfox 1.0.13 prints for `vfox install java@99-tem`: the error of the hook of
+	// What vfox prints for `vfox install java@99-tem`: the error of the hook of
 	// the plugin and a Lua traceback on standard output, the trailer on standard error.
 	stdout := "plugin [PreInstall] method error: /home/u/.vfox/plugin/java/hooks/pre_install.lua:42: " +
 		"No JDK found for 99-tem on linux/amd64. Please check available versions with 'vfox search java'\n" +
@@ -183,7 +183,7 @@ func TestSummarizeErrorOfAPluginLeavesOutTheTraceback(t *testing.T) {
 	if got := vfox.SummarizeError(stdout, "failed to install java\n"); got != want {
 		t.Errorf("got %q", got)
 	}
-	// Without the trailer (vfox up to 1.0.12 printed everything on standard output).
+	// Without the trailer (older vfox printed everything on standard output).
 	if got := vfox.SummarizeError(stdout+"failed to install java\n", ""); got != want {
 		t.Errorf("got %q", got)
 	}

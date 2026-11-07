@@ -337,6 +337,7 @@ type SdkDetailController struct {
 	// of SetSearch empties them and loads the next list.
 	Versions *AsyncResource[[]core.AvailableVersion]
 
+	cli      *vfox.Client
 	profiles *profile.Registry
 	memory   SearchMemory
 
@@ -362,7 +363,7 @@ type SdkDetailController struct {
 // added under an alias has none until its metadata says which plugin it is (see
 // Profile). The search starts at the choice that the memory holds.
 func NewSdkDetailController(cli *vfox.Client, name string, profiles *profile.Registry, memory SearchMemory) *SdkDetailController {
-	c := &SdkDetailController{Name: name, filter: VersionFilterAll, profiles: profiles, memory: memory}
+	c := &SdkDetailController{Name: name, filter: VersionFilterAll, cli: cli, profiles: profiles, memory: memory}
 	c.known, c.hasKnown = profiles.Lookup(name)
 	c.search = c.rememberedSearch()
 	c.Info = NewAsyncResource(func() (core.PluginInfo, error) { return cli.PluginInfo(name) })
@@ -383,6 +384,56 @@ func (c *SdkDetailController) Profile() (profile.Profile, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.known, c.hasKnown
+}
+
+// EffectiveProfile returns the curated profile when there is one, and an
+// inferred one otherwise: the description and homepage become the guide and
+// the documentation, the listed versions the facets, and the installed
+// plugin directory the legacy files and the environment variables. It lets
+// interfaces offer filters and mirrors for plugins without a built-in or
+// external profile, without a code change.
+func (c *SdkDetailController) EffectiveProfile() (profile.Profile, bool) {
+	c.mu.Lock()
+	known, hasKnown := c.known, c.hasKnown
+	c.mu.Unlock()
+	if hasKnown {
+		return known, true
+	}
+	info, hasInfo := c.Info.Value()
+	versions, _ := c.Versions.Value()
+	inferred := profile.InferredProfile(c.Name, info, versions)
+	if !hasInfo {
+		// Without metadata there is no homepage for docs; still return the
+		// inferred facets so that filtering works while info loads.
+		if len(inferred.Facets) == 0 && len(versions) == 0 {
+			return profile.Profile{Plugin: c.Name}, false
+		}
+		return inferred, len(inferred.Facets) > 0 || inferred.Guide.EN != ""
+	}
+	if c.cli != nil {
+		environment := c.cli.LaunchConfig().BaseEnvironment
+		// The plugin is installed under the name vfox knows it by (the
+		// alias when there is one); fall back to the name the plugin
+		// declares.
+		names := []string{c.Name}
+		if info.Name != "" && info.Name != c.Name {
+			names = append(names, info.Name)
+		}
+		for _, name := range names {
+			if directory := profile.PluginDir(environment, name); directory != "" {
+				if legacy, envKeys := profile.ScanPluginDir(directory); len(legacy) > 0 || len(envKeys) > 0 {
+					if len(inferred.LegacyFiles) == 0 {
+						inferred.LegacyFiles = append([]string(nil), legacy...)
+					}
+					if len(inferred.Variables) == 0 {
+						inferred.Variables = profile.InferredVariables(envKeys)
+					}
+					break
+				}
+			}
+		}
+	}
+	return inferred, true
 }
 
 // onInfo finds the profile of a plugin that its name does not give away.
@@ -514,15 +565,24 @@ func (c *SdkDetailController) setSearch(value string) (string, error) {
 // they only change with the list, so they are worked out once per list.
 func (c *SdkDetailController) Groups() []profile.Group {
 	versions, _ := c.Versions.Value()
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if !c.hasKnown || len(versions) == 0 {
+	if len(versions) == 0 {
 		return nil
 	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// The cached groups belong to the curated facets when there are any, and
+	// to the inferred ones otherwise. hasKnown only goes from false to true
+	// (see onInfo), so the cache stays valid.
 	if c.groupsOf == &versions[0] && c.groupsLen == len(versions) {
 		return c.groups
 	}
-	c.groups = c.known.Groups(versions)
+	var facets []profile.Facet
+	if c.hasKnown && len(c.known.Facets) > 0 {
+		c.groups = c.known.Groups(versions)
+	} else {
+		facets = profile.InferFacets(versions)
+		c.groups = profile.Profile{Facets: facets}.Groups(versions)
+	}
 	c.groupsOf, c.groupsLen = &versions[0], len(versions)
 	return c.groups
 }
@@ -602,12 +662,22 @@ func (c *SdkDetailController) VisibleVersions(installed map[string]bool) []core.
 	c.mu.Unlock()
 	versions, _ := c.Versions.Value()
 	needle := strings.ToLower(strings.TrimSpace(query))
+	var inferred profile.Profile
+	var useInferred bool
+	if !hasKnown && !selection.Empty() {
+		inferred = profile.Profile{Facets: profile.InferFacets(versions)}
+		useInferred = len(inferred.Facets) > 0
+	}
 	var result []core.AvailableVersion
 	for _, version := range versions {
 		if !matchesFilter(version, filter, installed) || !matchesQuery(version, needle) {
 			continue
 		}
-		if hasKnown && !known.Matches(selection, version) {
+		if hasKnown {
+			if !known.Matches(selection, version) {
+				continue
+			}
+		} else if useInferred && !inferred.Matches(selection, version) {
 			continue
 		}
 		result = append(result, version)

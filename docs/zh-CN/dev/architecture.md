@@ -157,7 +157,7 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
 第一版的 Web 界面就是这样只显示了 Java 的 OpenJDK 列表（[#43](https://github.com/version-fox/vfox-plus/issues/43)）。
 
-*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs` 与 `flutter`：
+*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter` 与 `gradle`：
 
 | 部分 | 内容 |
 | --- | --- |
@@ -170,7 +170,7 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 | 说明、须知、文档 | 几句关于名称的说明、容易让人意外的地方，以及该插件文档的链接 |
 
 档案里的文字用两种语言写在数据旁边，而不放进翻译目录，因为 Web 界面通过 HTTP 获取它们，页面本身也不带
-翻译目录。没有档案的插件行为与从前相同。档案属于插件本身，而不是 vfox 称呼它的名字：用 `vfox add --alias` 添加的插件，
+翻译目录。没有内置档案的插件也能免改代码获得筛选与镜像：从已列出的版本推断筛选维度（备注成为备注筛选，共享的 `-后缀` 成为变体筛选），从已安装插件的 Lua 源码扫描 `os.getenv("VFOX_*")` 得到环境变量，从 `metadata.lua` 的 `PLUGIN.legacyFilenames` 得到版本文件。插件仓库根目录的 `vfox-plus.json`（见 `core/profile/external.go`）可以用精心编写的文字覆盖这些推断，设置旁的 `profiles/<插件>.json` 则覆盖一切；内置注册表只保留仓库里精心维护的内容。档案属于插件本身，而不是 vfox 称呼它的名字：用 `vfox add --alias` 添加的插件，
 vfox 以别名称呼它，但 `vfox info` 仍会说出它是哪个插件，所以详情的控制器先按插件名查找档案，该名字没有档案时，
 再按插件信息加载后报告的名字查找（详情页此时才出现“选项”标签，Web API 会等待插件信息）。注册表是
 `state.AppModel.Profiles`；端到端测试为它们的离线测试插件注册了一份档案。
@@ -212,6 +212,7 @@ GUI 自身设置存为 JSON：
 | `webPort` | integer | 无 | 其他设备连接的端口，1024 到 65535；无表示 8369。 |
 | `webCertificate`、`webKey` | string | 无 | 其他设备得到的证书与私钥的 PEM 文件；无表示由应用自己生成证书。 |
 | `searches` | object | `{}` | 为某个插件选择的搜索列表，以插件名为键：`{"java": "tem"}`。默认值没有条目。 |
+| `updateMirror`     | string          | `""`         | GitHub 镜像前缀，如 `https://gh-proxy.org/`。空为直连。用于自身更新与插件配置档案。 |
 
 未知键必须保留或忽略，不得拒绝。
 
@@ -229,6 +230,25 @@ vfox 配置（代理、仓库、存储目录等）**不是**这些设置的一�
   `vfox.exe`（`PATH` 按 `;` 分隔）。
 
 用户也可自选可执行文件。vfox 缺失或损坏时，GUI 说明如何安装，并保持设置可达。
+
+## 自身更新
+
+`core/update` 检查 `version-fox/vfox-plus` 的 GitHub releases 并下载对应平台的包：`GET
+https://api.github.com/repos/version-fox/vfox-plus/releases/latest` 给出最新标签与附件，下载走
+`https://github.com/.../releases/download/...`，可按 `updateMirror` 设置（如 `https://gh-proxy.org/`）加前缀，
+github.com 慢的地方走镜像。检查本身直连，镜像只用于下载，镜像失败回退直连。下载不自行安装：`.deb` 留给 `dpkg`，
+`.msixbundle` 留给安装器。尚未发布第一个版本，以下为打包约定的附件名，由
+`TestPlatformAssetPrefersDebAndFallsBackToTarball` 锁定：
+
+| 平台 | 首选 | 回退 |
+| --- | --- | --- |
+| Linux amd64 | `vfox-plus_<版本>_amd64.deb` | `vfox-plus-<版本>-linux-x64.tar.gz` |
+| Linux arm64 | `vfox-plus_<版本>_arm64.deb` | `vfox-plus-<版本>-linux-arm64.tar.gz` |
+| Windows x64/arm64 | `vfox-plus_<版本>_x64.msix` / `vfox-plus_<版本>_arm64.msix` | `vfox-plus_<版本>.msixbundle` |
+
+桌面启动时静默检查一次，结果填入设置页；设置页的更新区（`updateSection`）有检查按钮、镜像输入框、
+下载按钮和旁边的发布页链接。只有比 `ui.Version` 新的版本才显示下载，否则显示已是最新。远端 Web 界面只透传
+`updateMirror` 设置，没有检查按钮：更新属于服务器所在机器。
 
 ## 依赖
 

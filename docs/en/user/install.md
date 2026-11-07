@@ -28,6 +28,17 @@ vfox-plus
 
 or extract the `.tar.gz` anywhere and run `./vfox-plus`.
 
+A classic snap of the GitHub release installs by hand instead (strict
+confinement would fence off the toolchains that vfox-plus drives, so the
+snap is not in the store):
+
+```sh
+sudo snap install --dangerous --classic vfox-plus_*.snap
+```
+
+A sideloaded snap does not refresh itself: download the `.snap` of the new
+release and install it again the same way.
+
 vfox-plus is a desktop application: it takes no arguments, and needs a desktop session
 to show its window. To use it from a browser or a phone as well, turn on its web
 interface in its settings (see [The web interface and other devices](remote.md)).

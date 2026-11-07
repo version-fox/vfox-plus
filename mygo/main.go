@@ -29,6 +29,7 @@ import (
 	"github.com/egoist/mygo"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/pair"
 	"github.com/version-fox/vfox-plus/mygo/state"
@@ -71,6 +72,7 @@ func main() {
 		Environment:   environment,
 		TaskLockPath:  filepath.Join(settingsDir, "tasks.lock"),
 		TaskLogDir:    taskLogDir,
+		ProfilesDir:   profile.ProfilesDir(settingsPath),
 	})
 	// The web interface is off until the user turns it on in the settings, and
 	// is served from then on by the application, for as long as it runs. The

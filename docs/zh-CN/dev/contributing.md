@@ -55,6 +55,7 @@
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中跑 `vfxtool sandbox all` |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（debug 密钥签名）并作为 `vfox-plus-android` 上传 |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`android/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、Android 构建，以及用到 Docker 的检查 |
+| [`release.yml`](../../../.github/workflows/release.yml) | 手动或 `v*` 标签 | 打 `v<版本>` 标签，打包并发布 GitHub release，自更新检查读取的就是它 |
 
 Dependabot 负责 Go 模块和 GitHub Actions 的更新；action 按提交 SHA 锁定。
 
@@ -68,6 +69,19 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 重建应用的 Pull Request 会收到一条内存评论及与 `main` 的差异，新提交会替换它
 而不是追加。超过 CI 噪声的变化会加粗；小数字先读
 [Pull Request 中的内存](memory.md#pull-request-中的内存)再下结论。
+
+## 发布
+
+与 [version-fox/vfox-java](https://github.com/version-fox/vfox-java) 的发布一样，
+发布手动启动：
+
+1. 先在 Pull Request 里定版本：`mygo/VERSION` 与 `mygo/ui/app.go` 的 `Version`
+   常量（有单元测试保证两者一致）。
+2. Actions、Release、Run workflow，输入不带 `v` 的版本号（`0.2.0`）。推送
+   `v*` 标签跑同一个任务。
+3. 任务只接受 `major.minor.patch`、只接受 `mygo/VERSION` 写明的版本，已存在的标签会被拒绝。任务打
+   `v<版本>` 标签，按[持续集成](#持续集成)打包外加 `snap/snapcraft.yaml` 的 classic
+   snap，以 `--generate-notes` 发布 GitHub release，其附件就是[自更新检查](architecture.md#自身更新)读取的那些。
 
 ## 文档语言
 

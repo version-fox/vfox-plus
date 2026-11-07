@@ -251,6 +251,8 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 			writeVfoxError(writer, err)
 			return
 		}
+		// Recompute after the load: inferred facets come from the versions.
+		known, hasKnown = detail.EffectiveProfile()
 		writeJSON(writer, annotate(known, hasKnown, versions))
 	case "profile":
 		s.serveProfile(writer, model, detail)
@@ -619,6 +621,7 @@ func (s *Server) serveSettings(writer http.ResponseWriter, request *http.Request
 			VfoxExecutable   *string           `json:"vfoxExecutable"`
 			ExtraEnvironment map[string]string `json:"extraEnvironment"`
 			Language         *string           `json:"language"`
+			UpdateMirror     *string           `json:"updateMirror"`
 		}
 		if err := json.NewDecoder(request.Body).Decode(&req); err != nil {
 			http.Error(writer, "Invalid request.", http.StatusBadRequest)
@@ -642,6 +645,9 @@ func (s *Server) serveSettings(writer http.ResponseWriter, request *http.Request
 			if req.Language != nil {
 				current.Language = settings.LanguagePreference(*req.Language)
 			}
+			if req.UpdateMirror != nil {
+				current.UpdateMirror = strings.TrimSpace(*req.UpdateMirror)
+			}
 			return current
 		})
 		writeJSON(writer, settingsDTO(model.Settings.Settings()))
@@ -656,6 +662,7 @@ func settingsDTO(current settings.AppSettings) map[string]interface{} {
 		"vfoxExecutable":   current.VfoxExecutable,
 		"extraEnvironment": current.ExtraEnvironment,
 		"language":         string(current.Language),
+		"updateMirror":     current.UpdateMirror,
 	}
 }
 

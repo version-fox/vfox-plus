@@ -48,6 +48,11 @@ type AppModelOptions struct {
 	// takes the profiles of the plugins of the version-fox organisation, for
 	// the platform the application runs on.
 	Profiles *profile.Registry
+	// ProfilesDir, when set, holds external profiles as
+	// profiles/<plugin>.json (see profile.LoadExternalProfiles). They overlay
+	// the built-in ones, so new plugins are adapted by shipping data, not by
+	// changing the application.
+	ProfilesDir string
 }
 
 // AppModel is the application state: every controller, wired together.
@@ -90,6 +95,9 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	profiles := options.Profiles
 	if profiles == nil {
 		profiles = profile.NewRegistry(profile.CurrentPlatform())
+	}
+	if options.ProfilesDir != "" {
+		profile.LoadExternalProfiles(profiles, options.ProfilesDir)
 	}
 	model := &AppModel{
 		Cli:              vfox.NewClient(options.Runner, config),
@@ -176,10 +184,34 @@ func (m *AppModel) PluginVariable(key string) string {
 // belongs to the plugin whatever name vfox knows the plugin by. It refuses a
 // variable the plugin does not read, and a value the variable does not take (a
 // *profile.ValueError).
+//
+// Variables that look like plugin settings (VFOX_*, FLUTTER_*, mirrors) are
+// also accepted without a curated profile when they name the plugin, as
+// generic URL settings, so that third-party plugins need no code change for
+// their mirrors.
 func (m *AppModel) SetPluginVariable(p profile.Profile, key, value string) error {
 	variable, ok := p.Variable(key)
 	if !ok {
-		return fmt.Errorf("%s does not read %s", p.Plugin, key)
+		generic, isGeneric := profile.GenericVariableForPlugin(p.Plugin, key)
+		if !isGeneric {
+			return fmt.Errorf("%s does not read %s", p.Plugin, key)
+		}
+		if err := generic.Validate(value); err != nil {
+			return err
+		}
+		value = strings.TrimSpace(value)
+		m.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
+			if value == "" {
+				delete(current.ExtraEnvironment, key)
+				return current
+			}
+			if current.ExtraEnvironment == nil {
+				current.ExtraEnvironment = map[string]string{}
+			}
+			current.ExtraEnvironment[key] = value
+			return current
+		})
+		return nil
 	}
 	if err := variable.Validate(value); err != nil {
 		return err

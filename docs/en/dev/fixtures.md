@@ -132,8 +132,7 @@ searches and the plugin information it always serves.
 2. Copy `cases.json` from the previous version, then compare the new output
    with the old output (`diff -r`) and adjust the expected values. Keep the
    directory of the previous version when its output differs, so that the
-   parsers stay tested against both (vfox 1.0.13 moved errors from standard
-   output to standard error).
+   parsers stay tested against the previous version when its output differs.
 3. Run the parser tests, for example `cd mygo && go test ./core/...`.
 4. Document any change of the output format in
    [the CLI contract](vfox-cli-contract.md).
