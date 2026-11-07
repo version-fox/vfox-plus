@@ -356,12 +356,35 @@ func pluginUserHome(environment map[string]string) string {
 }
 
 // PluginDir returns the directory of the installed plugin name.
+//
+// The name comes from the user (an alias they typed, a segment of a URL), so
+// it is checked before it joins a path: anything but a single directory name
+// gives "", so that `..` or a separator can never escape the plugin directory
+// (see the CodeQL finding on ScanPluginDir: the walk below must stay inside
+// the installed plugin). What vfox itself accepts as a name
+// (`core/vfox`.IsValidPluginName) always passes here.
 func PluginDir(environment map[string]string, plugin string) string {
 	home := PluginHome(environment)
-	if home == "" || plugin == "" {
+	if home == "" || !isPluginDirName(plugin) {
 		return ""
 	}
-	return filepath.Join(home, "plugin", plugin)
+	root := filepath.Join(home, "plugin")
+	directory := filepath.Join(root, plugin)
+	// Belt and braces: the joined directory stays inside the plugin root.
+	rel, err := filepath.Rel(root, directory)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return ""
+	}
+	return directory
+}
+
+// isPluginDirName reports whether name is a single directory name: not empty
+// and holding no separator and no dot-only segment.
+func isPluginDirName(name string) bool {
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
+	return !strings.ContainsAny(name, `/\`)
 }
 
 // ScanPluginDir reads the installed plugin for generic adaptation: its

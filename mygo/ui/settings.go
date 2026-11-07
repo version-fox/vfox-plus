@@ -269,7 +269,7 @@ func (a *App) updateSection(k kit.Ctx) {
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "update-mirror-field", Hint: "https://gh-proxy.org/", Text: &a.pages.updateMirrorText,
 				Monospace: true, OnSubmit: func(text string) { a.saveUpdateMirror(text) },
-				OnBlur:    func(text string) { a.pages.updateMirrorText = text },
+				OnBlur: func(text string) { a.pages.updateMirrorText = text },
 			}).Width(300)
 		},
 	})

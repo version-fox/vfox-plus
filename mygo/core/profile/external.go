@@ -46,17 +46,17 @@ const ProfileFileName = "vfox-plus.json"
 // JSONProfile is the serialised form of a Profile. Texts are objects with
 // "en" and optional "zh". Naming is "plain", "java" or "flutter".
 type JSONProfile struct {
-	Plugin         string           `json:"plugin"`
-	Naming         string           `json:"naming,omitempty"`
-	Search         *JSONSearch      `json:"search,omitempty"`
-	Shorthands     []JSONShorthand  `json:"shorthands,omitempty"`
-	Variables      []JSONVariable   `json:"variables,omitempty"`
-	LegacyFiles    []string         `json:"legacyFiles,omitempty"`
-	LegacyStrategy bool             `json:"legacyStrategy,omitempty"`
-	Facets         []JSONFacet      `json:"facets,omitempty"`
-	Guide          JSONText         `json:"guide,omitempty"`
-	Tips           []JSONText       `json:"tips,omitempty"`
-	Docs           []JSONLink       `json:"docs,omitempty"`
+	Plugin         string          `json:"plugin"`
+	Naming         string          `json:"naming,omitempty"`
+	Search         *JSONSearch     `json:"search,omitempty"`
+	Shorthands     []JSONShorthand `json:"shorthands,omitempty"`
+	Variables      []JSONVariable  `json:"variables,omitempty"`
+	LegacyFiles    []string        `json:"legacyFiles,omitempty"`
+	LegacyStrategy bool            `json:"legacyStrategy,omitempty"`
+	Facets         []JSONFacet     `json:"facets,omitempty"`
+	Guide          JSONText        `json:"guide,omitempty"`
+	Tips           []JSONText      `json:"tips,omitempty"`
+	Docs           []JSONLink      `json:"docs,omitempty"`
 }
 
 // JSONText is a bilingual text.

@@ -25,7 +25,10 @@ import (
 )
 
 func TestCompareVersions(t *testing.T) {
-	for _, c := range []struct{ a, b string; want int }{
+	for _, c := range []struct {
+		a, b string
+		want int
+	}{
 		{"0.2.0", "0.1.0", 1},
 		{"v0.2.0", "0.2.0", 0},
 		{"0.10.0", "0.2.0", 1},

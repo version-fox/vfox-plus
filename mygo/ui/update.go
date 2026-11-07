@@ -39,6 +39,7 @@ var checkRelease = func(ctx context.Context) (update.Release, error) {
 var downloadRelease = func(ctx context.Context, url, mirror string, progress func(float64)) (string, error) {
 	return update.Download(ctx, nil, url, mirror, "", progress)
 }
+
 func (a *App) updateMirrorInitial() {
 	if !a.pages.updateMirrorReady {
 		a.pages.updateMirrorReady = true

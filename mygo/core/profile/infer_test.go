@@ -96,6 +96,24 @@ func TestPluginHomeRespectsVfoxHome(t *testing.T) {
 	}
 }
 
+func TestPluginDirKeepsTheNameInsideThePluginRoot(t *testing.T) {
+	environment := map[string]string{"VFOX_HOME": "/data/vfox"}
+	if got := PluginDir(environment, "java"); got != filepath.Join("/data/vfox", "plugin", "java") {
+		t.Errorf("got %q", got)
+	}
+	// A name from the user (an alias they typed, a segment of a URL) must
+	// never escape the plugin directory: no separators, no dot-only names.
+	for _, name := range []string{"", ".", "..", "a/b", `a\b`, "a/../b"} {
+		if got := PluginDir(environment, name); got != "" {
+			t.Errorf("PluginDir(%q) = %q, want empty", name, got)
+		}
+	}
+	// Dots inside a name are fine: they stay a single directory.
+	if got := PluginDir(environment, "a..b"); got == "" {
+		t.Error("a dotted name is a single directory")
+	}
+}
+
 func TestInferredProfileHasGuideAndDocs(t *testing.T) {
 	info := core.PluginInfo{Description: "Gradle runtime.", Homepage: "https://github.com/version-fox/vfox-gradle"}
 	versions := []core.AvailableVersion{{Version: "8.7"}, {Version: "9.0.0"}}
