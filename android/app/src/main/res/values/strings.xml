@@ -55,4 +55,9 @@
     <string name="tls_body">The server uses a self-signed certificate. Only continue if this fingerprint matches the one that vfox+ shows in its settings on the PC:</string>
     <string name="tls_body_unknown">The server certificate cannot be verified. Only continue on a network you trust.</string>
     <string name="trust_once">Trust once</string>
+
+    <!-- The native stub of the no-WebView experiment flavor -->
+    <string name="native_session_title">Paired session (no-WebView experiment)</string>
+    <string name="native_session_body">This experimental build never loads the system WebView. Compare its memory with the webview flavor to see what the WebView costs.</string>
+    <string name="disconnect">Disconnect</string>
 </resources>

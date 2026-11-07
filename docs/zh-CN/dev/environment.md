@@ -156,8 +156,8 @@ GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 
 `shared/sandbox/gnome.Dockerfile` 的容器里运行，所以需要 Docker。构建、测试与打包的命令见
 [mygo 指南](implementation-mygo.md#日常命令)。
 
-`vfxtool webheap` 测量 Web 界面的堆并截图（拍一个页面，或 Java 发行版之类的场景），`vfxtool gateway-shots` 拍网关各页的
-截图，它们都驱动一个讲 DevTools Protocol 的 Chrome：用
+`vfxtool webheap` 给 Web 界面截图（拍一个页面，或 Java 发行版之类的场景），附带看一眼它的 JavaScript 堆做本地诊断，
+`vfxtool gateway-shots` 拍网关各页的截图，它们都驱动一个讲 DevTools Protocol 的 Chrome：用
 `--chrome` 指定，或让工具去找 `google-chrome`、`chromium` 之类（见[截图](contributing.md#截图)，
 那里还说明了哪种 Chrome 能给出你要的尺寸）。对真实 vfox 的端到端场景在沙箱里运行，沙箱自带固定版本的
 vfox，所以不会碰你的 `~/.vfox`。
@@ -271,8 +271,8 @@ adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后�
 模拟器启动后（`adb devices` 能列出它），构建 App、安装，并与你机器上的服务器配对：
 
 ```sh
-cd android && ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+cd android && ./gradlew :app:assembleWebviewDebug
+adb install -r app/build/outputs/apk/webview/debug/app-webview-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # 供扫码页使用
 ```
 

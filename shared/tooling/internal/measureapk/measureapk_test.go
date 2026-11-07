@@ -57,6 +57,9 @@ func TestLine(t *testing.T) {
 	if got := Line(81920, 130048); got != "memory (apk-cold): RSS 127 MB, PSS 80 MB in 1 processes" {
 		t.Fatalf("got %q", got)
 	}
+	if got := PairedLine(81920, 130048); got != "memory (apk-paired): RSS 127 MB, PSS 80 MB in 1 processes" {
+		t.Fatalf("got %q", got)
+	}
 }
 
 func TestRunUsage(t *testing.T) {

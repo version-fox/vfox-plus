@@ -147,7 +147,7 @@ container](environment.md#the-dev-container), with `ANDROID_HOME` set; locally p
 
 ```sh
 cd android
-./gradlew :app:assembleRelease
+./gradlew :app:assembleWebviewRelease
 ```
 
 The build needs no KVM; running the APK on an emulator does (see [The emulator
@@ -157,17 +157,29 @@ which takes minutes. Where `services.gradle.org`
 is slow, configure a download mirror for your user, not for the project; see
 "Configure download mirrors" in the Neo README.
 
-The release APK lands at `app/build/outputs/apk/release/app-release.apk`
+The release APK lands at
+`app/build/outputs/apk/webview/release/app-webview-release.apk`
 (about 3.2 MB), signed with the debug key (see [Signing
 status](#signing-status)). Rename it with the version for distribution:
 
 ```sh
-cp app/build/outputs/apk/release/app-release.apk \
+cp app/build/outputs/apk/webview/release/app-webview-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
 Install it on the phone (allow installing unknown apps when asked) and pair
 it as described in [The Android app](../user/android.md).
+
+## Build variants
+
+`webview` is what users install: the paired session is the system WebView.
+`nowebview` is the memory control: it never constructs a WebView and shows a
+native stub on the session screen instead (`ViewerFragment` branches on
+`BuildConfig.HAS_WEBVIEW`); the other screens are unchanged. The package and
+the entry stay the same, so uninstall between measured runs. CI only builds
+and measures `webview`; run the local control as [the memory
+page](memory.md#the-paired-session-and-the-no-webview-control) describes, with
+`vfxtool measure-apk --pair-url`.
 
 ## Signing status
 

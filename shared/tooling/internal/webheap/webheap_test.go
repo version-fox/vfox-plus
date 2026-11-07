@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/chrome"
-	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
 )
 
 // The tests that run the tool drive a real Chrome (the one that chrome.Find
@@ -223,17 +222,33 @@ func TestRunMeasures(t *testing.T) {
 	if got.err != nil {
 		t.Fatal(got.err)
 	}
-	// What the memory report reads.
-	heap := memoryreport.ParseWebHeap(got.output)
-	if heap == nil || heap.App <= 0 || heap.Settled <= 0 {
-		t.Errorf("the memory report reads %+v from %q", heap, got.output)
+	// The output file holds the two heap lines the tool writes.
+	heapLine := regexp.MustCompile(`^webheap \((app|app-settled)\): ([0-9]{1,12}) bytes$`)
+	heaps := map[string]int64{}
+	for _, raw := range strings.Split(got.output, "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		match := heapLine.FindStringSubmatch(line)
+		if match == nil {
+			t.Fatalf("cannot parse heap line %q from %q", line, got.output)
+		}
+		var value int64
+		if _, err := fmt.Sscanf(match[2], "%d", &value); err != nil || value <= 0 {
+			t.Fatalf("bad heap value %q", match[2])
+		}
+		heaps[match[1]] = value
+	}
+	if len(heaps) != 2 {
+		t.Fatalf("want the app and app-settled heap lines, got %q", got.output)
 	}
 	var summary measurement
 	if err := json.Unmarshal(got.stdout, &summary); err != nil {
 		t.Fatalf("stdout %q: %v", got.stdout, err)
 	}
-	if !strings.Contains(summary.Browser, "hrome") || summary.DOMNodes < 10 || summary.Heap != heap.App || summary.Settled != heap.Settled {
-		t.Errorf("summary %+v, heap %+v", summary, heap)
+	if !strings.Contains(summary.Browser, "hrome") || summary.DOMNodes < 10 || summary.Heap != heaps["app"] || summary.Settled != heaps["app-settled"] {
+		t.Errorf("summary %+v, heaps %+v", summary, heaps)
 	}
 	if !strings.Contains(string(got.stdout), `"heapUsedBytes":`) {
 		t.Errorf("the keys of the summary changed: %s", got.stdout)

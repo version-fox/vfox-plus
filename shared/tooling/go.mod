@@ -3,7 +3,8 @@ module github.com/version-fox/vfox-plus/shared/tooling
 go 1.27.1
 
 require (
-	// Starts Chrome and speaks the DevTools Protocol for `vfxtool webheap` (MIT;
+	// Starts Chrome and speaks the DevTools Protocol for the screenshots of
+	// `vfxtool webheap` (MIT;
 	// see docs/en/dev/architecture.md#dependencies).
 	github.com/chromedp/cdproto v0.158.6
 	github.com/chromedp/chromedp v0.21.0

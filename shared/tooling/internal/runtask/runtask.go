@@ -346,27 +346,26 @@ func Run(args []string) error {
 			return err
 		}
 		// Taller than the window, so that the captures show the whole
-		// window with its title bar. The window manager draws it with the
-		// Greybird theme: a dark bar over the light content, the way modern
-		// GNOME applications look (this window has no custom title bar, so
-		// GTK leaves the decorations to the window manager). The default
-		// wallpaper of Ubuntu fills the root window behind it, instead of
-		// the black of a bare X server.
+		// window with its title bar. Metacity draws it with the Yaru theme:
+		// the server-side decorations of an Ubuntu 26.04 GNOME session on
+		// X11 (this window has no custom title bar, so GTK leaves the
+		// decorations to the window manager). The default wallpaper of
+		// Ubuntu fills the root window behind it, instead of the black of
+		// a bare X server.
 		d, err := startDisplay("1280x860x24")
 		if err != nil {
 			return err
 		}
 		defer d.Stop()
-		// The settings daemon the window manager reads its theme from; it
-		// lives outside PATH.
-		if err := inDisplayStart("/usr/lib/x86_64-linux-gnu/xfce4/xfconfd"); err != nil {
+		// The GNOME themes the window manager draws; gsettings keeps them in
+		// dconf, so no settings daemon has to be started first.
+		if err := inDisplay("gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "Yaru"); err != nil {
 			return err
 		}
-		time.Sleep(time.Second)
-		if err := inDisplay("xfconf-query", "-c", "xfwm4", "-p", "/general/theme", "-n", "-t", "string", "-s", "Greybird"); err != nil {
+		if err := inDisplay("gsettings", "set", "org.gnome.desktop.wm.preferences", "theme", "Yaru"); err != nil {
 			return err
 		}
-		if err := inDisplayStart("xfwm4"); err != nil {
+		if err := inDisplayStart("metacity", "--replace"); err != nil {
 			return err
 		}
 		// Wait until the window manager has taken over and settled, so
@@ -376,6 +375,9 @@ func Run(args []string) error {
 				break
 			}
 			time.Sleep(500 * time.Millisecond)
+		}
+		if err := inDisplay("xprop", "-root", "_NET_SUPPORTING_WM_CHECK"); err != nil {
+			return fmt.Errorf("the window manager never took over the display: %w", err)
 		}
 		time.Sleep(3 * time.Second)
 		if err := setWallpaper(); err != nil {

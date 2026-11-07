@@ -89,22 +89,30 @@ Gradle 才会安装。wrapper 会下载 `gradle/wrapper/gradle-wrapper.propertie
 
 ```sh
 cd android
-./gradlew :app:assembleRelease
+./gradlew :app:assembleWebviewRelease
 ```
 
 构建不需要 KVM；在模拟器上运行 APK 才需要（见[模拟器与 KVM](environment.md#模拟器与-kvm)）。首次运行要用 JDK 编译 `GradleWrapperNeo.java`，并下载 Gradle 与依赖，需要几分钟。
 `services.gradle.org` 慢的地方，请给你的用户而不是给项目配置下载镜像；见 Neo
 README 的 “Configure download mirrors”。
 
-release APK 落在 `app/build/outputs/apk/release/app-release.apk`（约 3.2 MB），
+release APK 落在 `app/build/outputs/apk/webview/release/app-webview-release.apk`（约 3.2 MB），
 用 debug 密钥签名（见[签名状态](#签名状态)）。发布时按版本改名：
 
 ```sh
-cp app/build/outputs/apk/release/app-release.apk \
+cp app/build/outputs/apk/webview/release/app-webview-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
 装到手机（提示时允许安装未知应用），按[安卓 App](../user/android.md)配对。
+
+## 构建变体
+
+`webview` 是用户装的：配对会话在系统 WebView 里。`nowebview` 是内存对照组：
+从不构造 WebView，会话屏是原生占位（`ViewerFragment` 按 `BuildConfig.HAS_WEBVIEW`
+分支），其它屏不变；包名与入口相同，所以两轮实测之间先卸载。CI 只构建与测量
+`webview`；本地对照按[内存页](memory.md#配对后的会话与无-webview-对照组)跑
+`vfxtool measure-apk --pair-url`。
 
 ## 签名状态
 

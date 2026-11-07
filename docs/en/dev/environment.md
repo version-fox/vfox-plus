@@ -195,8 +195,9 @@ while its window is closed, which the end-to-end scenario `tray` needs; it runs 
 `shared/sandbox/gnome.Dockerfile`, so it needs Docker. The commands to build, test and package are in
 [the mygo guide](implementation-mygo.md#everyday-commands).
 
-`vfxtool webheap`, which measures the heap of the web interface and takes its
-screenshots (of a page, or of a scene such as the distribution of Java), and `vfxtool gateway-shots`, which takes the
+`vfxtool webheap`, which screenshots the web interface
+(of a page, or of a scene such as the distribution of Java) with a look at its
+JavaScript heap for local diagnosis, and `vfxtool gateway-shots`, which takes the
 pictures of the pages of the gateway, drive a Chrome that speaks the DevTools Protocol: name it with
 `--chrome`, or let the tool look for `google-chrome`, `chromium` and the like (see
 [Screenshots](contributing.md#screenshots), which also says which Chrome gives the
@@ -336,8 +337,8 @@ With an emulator that has booted (`adb devices` lists it), build the app, instal
 it and pair it with the application on your machine:
 
 ```sh
-cd android && ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+cd android && ./gradlew :app:assembleWebviewDebug
+adb install -r app/build/outputs/apk/webview/debug/app-webview-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # for the scanner
 ```
 

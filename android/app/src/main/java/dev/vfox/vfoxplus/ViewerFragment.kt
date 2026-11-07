@@ -31,6 +31,9 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
@@ -89,8 +92,46 @@ class ViewerFragment : Fragment(), WebBridge.Host {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
+        // The no-WebView experiment flavor never touches android.webkit: a
+        // native stub with the same entry and the same two things only the
+        // app can do, so that measure-apk --pair-url on both flavors shows
+        // what the system WebView costs.
+        if (!BuildConfig.HAS_WEBVIEW) {
+            return nativeView()
+        }
         _binding = FragmentViewerBinding.inflate(inflater, container, false)
         return binding.root
+    }
+
+    // The stub of the experiment: the paired server and the two actions of
+    // the phone card, in plain native views.
+    private fun nativeView(): View {
+        val context = requireContext()
+        val density = context.resources.displayMetrics.density
+        val pad = (24 * density).toInt()
+        val gap = (12 * density).toInt()
+        val server = PairingFragment.pairingBase(requireArguments().getString(ARG_URL).orEmpty()).orEmpty()
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, pad)
+            addView(TextView(context).apply {
+                setText(R.string.native_session_title)
+                textSize = 22f
+            })
+            addView(TextView(context).apply { text = server })
+            addView(TextView(context).apply { setText(R.string.native_session_body) })
+            addView(Button(context).apply {
+                setText(R.string.pair_new)
+                setOnClickListener { pairNew() }
+            })
+            addView(Button(context).apply {
+                setText(R.string.disconnect)
+                setOnClickListener { disconnect() }
+            })
+            for (i in 1 until childCount) {
+                (getChildAt(i).layoutParams as? LinearLayout.LayoutParams)?.topMargin = gap
+            }
+        }.also { it.padToSafeArea() }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -100,6 +141,10 @@ class ViewerFragment : Fragment(), WebBridge.Host {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        // The stub built its own view in onCreateView; there is no binding.
+        if (!BuildConfig.HAS_WEBVIEW) {
+            return
+        }
         val startUrl = requireArguments().getString(ARG_URL)!!
         val web = binding.web
         web.settings.javaScriptEnabled = true

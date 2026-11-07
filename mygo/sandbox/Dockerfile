@@ -16,10 +16,12 @@
 
 # The sandbox of the mygo implementation: the shared base image (see
 # shared/sandbox) with GTK 3, which mygo loads at run time (the application needs
-# no development files and no C compiler), a pinned Go and golangci-lint, and a
-# window manager with the Greybird theme, so that the screenshots show a title
-# bar the way modern GNOME applications look (a dark bar over light content),
-# over the default wallpaper of Ubuntu instead of the black of a bare X server.
+# no development files and no C compiler), a pinned Go and golangci-lint, and
+# Metacity with the Yaru theme, so that the screenshots show the title bar of
+# an Ubuntu 26.04 GNOME session on X11 (Yaru server-side decorations; Mutter no
+# longer does X11 window management, and this window has no custom title bar,
+# so GTK leaves the decorations to the window manager), over the default
+# wallpaper of Ubuntu instead of the black of a bare X server.
 # The C compiler is only there for the race detector of the unit tests. Build
 # and use it through `vfxtool sandbox`, which passes the versions from ../versions.env.
 #
@@ -43,7 +45,7 @@ fi
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libgtk-3-0t64 fontconfig libgl1-mesa-dri libegl1 libgles2 \
-  gcc libc6-dev xfwm4 xfconf greybird-gtk-theme \
+  gcc libc6-dev metacity yaru-theme-gtk gnome-themes-extra \
   feh ubuntu-wallpapers
 rm -rf /var/lib/apt/lists/*
 EOF

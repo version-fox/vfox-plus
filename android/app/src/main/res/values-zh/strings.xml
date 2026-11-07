@@ -55,4 +55,9 @@
     <string name="tls_body">服务器使用自签名证书。仅当该指纹与 PC 上 vfox+ 设置里显示的一致时继续：</string>
     <string name="tls_body_unknown">无法验证服务器证书。仅在信任的网络下继续。</string>
     <string name="trust_once">信任一次</string>
+
+    <!-- 无 WebView 对照构建的原生占位 -->
+    <string name="native_session_title">已配对会话（无 WebView 对照组）</string>
+    <string name="native_session_body">这个对照构建从不加载系统 WebView。把它和 webview 构建的内存对比，就知道 WebView 占多少。</string>
+    <string name="disconnect">断开连接</string>
 </resources>

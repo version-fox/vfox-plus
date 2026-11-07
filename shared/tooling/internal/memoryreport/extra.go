@@ -26,11 +26,10 @@ import (
 )
 
 // The artifacts of the measurements beyond the desktop table, by upload name:
-// the application in the lightweight mode and the web client from the mygo
+// the application in the lightweight mode from the mygo
 // workflow, the APK from the android workflow.
 const (
 	LightweightArtifact = "memory-lightweight"
-	WebArtifact         = "memory-web"
 	AndroidArtifact     = "memory-android"
 )
 
@@ -40,11 +39,6 @@ const (
 // (lightweight-loaded).
 var lightweightLine = regexp.MustCompile(`^memory \((lightweight-idle|lightweight-loaded)\): RSS ([0-9]{1,6}) MB, PSS ([0-9]{1,6}) MB in ([0-9]{1,4}) processes$`)
 
-// webLine matches one line of the memory-web artifact: the JavaScript heap in
-// bytes of the paired page, after the SDK list settles (app) and after twenty
-// seconds idle on the open page (app-settled).
-var webLine = regexp.MustCompile(`^webheap \((app|app-settled)\): ([0-9]{1,12}) bytes$`)
-
 // androidLine matches the memory-android artifact: the release APK,
 // cold-started on an emulator, from dumpsys meminfo after settling.
 var androidLine = regexp.MustCompile(`^memory \((apk-cold)\): RSS ([0-9]{1,6}) MB, PSS ([0-9]{1,6}) MB in ([0-9]{1,4}) processes$`)
@@ -53,12 +47,6 @@ var androidLine = regexp.MustCompile(`^memory \((apk-cold)\): RSS ([0-9]{1,6}) M
 type LightweightMemory struct {
 	Idle   Point
 	Loaded Point
-}
-
-// WebHeap is what vfxtool webheap writes, in bytes.
-type WebHeap struct {
-	App     int64
-	Settled int64
 }
 
 // AndroidMemory is what the measure job of android.yml writes.
@@ -96,36 +84,6 @@ func ParseLightweightMemory(text string) *LightweightMemory {
 		return nil
 	}
 	return &LightweightMemory{Idle: idle, Loaded: loaded}
-}
-
-// ParseWebHeap parses the memory-web artifact. It returns nil when the file
-// is not exactly the two heap numbers.
-func ParseWebHeap(text string) *WebHeap {
-	numbers := map[string]int64{}
-	for _, raw := range strings.Split(text, "\n") {
-		line := strings.TrimSpace(raw)
-		if line == "" {
-			continue
-		}
-		match := webLine.FindStringSubmatch(line)
-		if match == nil {
-			return nil
-		}
-		if _, dup := numbers[match[1]]; dup {
-			return nil
-		}
-		value, _ := strconv.ParseInt(match[2], 10, 64)
-		numbers[match[1]] = value
-	}
-	if len(numbers) != 2 {
-		return nil
-	}
-	app, okApp := numbers["app"]
-	settled, okSettled := numbers["app-settled"]
-	if !okApp || !okSettled {
-		return nil
-	}
-	return &WebHeap{App: app, Settled: settled}
 }
 
 // ParseAndroidMemory parses the memory-android artifact. It returns nil when
@@ -176,13 +134,6 @@ type Extra struct {
 // lightweight mode: the same code varies as much as the desktop between runs.
 func lightweightNoise(baseline int) float64 {
 	return math.Max(MinChangeMB, DefaultTolerance*float64(baseline))
-}
-
-// webNoiseKB is the difference from main that counts as a change for the web
-// heap in KB: the page is deterministic, but Chrome is not the same build
-// forever.
-func webNoiseKB(baseline int) float64 {
-	return math.Max(100, DefaultTolerance*float64(baseline))
 }
 
 // androidNoise is the difference from main that counts as a change for the
@@ -290,69 +241,6 @@ func collectLightweight(ctx context.Context, repo *Repository, run *github.Workf
 	return extra, nil
 }
 
-// collectWeb collects the web-client-heap section from the mygo run.
-func collectWeb(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
-	extra := Extra{
-		Title: "Web client heap",
-		Intro: "What the paired `/app` page uses in headless Chrome through the Chrome DevTools Protocol, " +
-			"in KB: `app` after the SDK list settles, `app-settled` after twenty seconds idle on the open " +
-			"page with live events (`vfxtool webheap`).",
-	}
-	if run != nil {
-		extra.RunURL = run.GetHTMLURL()
-	}
-	var heap *WebHeap
-	inherited := run == nil
-	if run != nil && run.GetStatus() != "completed" {
-		extra.Note = "Still running; the report is written again when it ends."
-		return extra, nil
-	}
-	if run != nil {
-		if text, ok, err := runArtifactText(ctx, repo, run, WebArtifact); err != nil {
-			return extra, err
-		} else if ok {
-			heap = ParseWebHeap(text)
-		}
-	}
-	var baseline *WebHeap
-	if text, artifact, err := BaselineArtifact(ctx, repo, WebArtifact, defaultBranch); err != nil {
-		return extra, err
-	} else if text != "" {
-		baseline = ParseWebHeap(text)
-		if baseline != nil {
-			baselineLink(&extra, repo, artifact)
-		}
-	}
-	if heap == nil {
-		if baseline != nil {
-			inherited = true
-			heap = baseline
-		} else if run != nil {
-			extra.Note = "No numbers: the job did not upload them."
-			return extra, nil
-		} else {
-			return Extra{}, nil
-		}
-	}
-	if baseline == nil {
-		extra.Note = "No baseline: no run on main uploaded numbers yet."
-		return extra, nil
-	}
-	toKB := func(bytes int64) int { return int((bytes + 512) / 1024) }
-	for _, point := range []struct {
-		label string
-		pr    int
-		base  int
-	}{
-		{"App heap", toKB(heap.App), toKB(baseline.App)},
-		{"App heap settled", toKB(heap.Settled), toKB(baseline.Settled)},
-	} {
-		prCell, mainCell := extraCell(point.pr, point.base, "KB", webNoiseKB(point.base), inherited)
-		extra.Rows = append(extra.Rows, ExtraRow{Measure: point.label, PR: prCell, Main: mainCell})
-	}
-	return extra, nil
-}
-
 // collectAndroid collects the APK section from the android run.
 func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
@@ -416,7 +304,7 @@ func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowR
 }
 
 // CollectExtras returns the sections of the report beyond the desktop table:
-// the lightweight mode and the web client from the mygo run, the APK from the
+// the lightweight mode from the mygo run, the APK from the
 // android run. A section with neither numbers nor baseline is left out.
 func CollectExtras(ctx context.Context, repo *Repository, runs map[string]*github.WorkflowRun, defaultBranch string) ([]Extra, error) {
 	var extras []Extra
@@ -424,15 +312,11 @@ func CollectExtras(ctx context.Context, repo *Repository, runs map[string]*githu
 	if err != nil {
 		return nil, err
 	}
-	web, err := collectWeb(ctx, repo, runs[workflowPath("mygo")], defaultBranch)
-	if err != nil {
-		return nil, err
-	}
 	android, err := collectAndroid(ctx, repo, runs[workflowPath("android")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}
-	for _, extra := range []Extra{lightweight, web, android} {
+	for _, extra := range []Extra{lightweight, android} {
 		if extra.Title == "" {
 			continue
 		}

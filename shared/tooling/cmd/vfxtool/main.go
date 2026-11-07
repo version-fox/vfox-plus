@@ -77,8 +77,8 @@ Commands:
   coverage            gate unit-test coverage (replaces mygo/tools/coverage.sh)
   measure             measure memory use (replaces shared/tools/measure.sh)
   measure-lightweight measure the memory use of the application in the lightweight mode
-  measure-apk         measure the memory use of the Android app on an emulator
-  webheap             measure the JavaScript heap of the web interface, and screenshot it (replaces shared/tooling/webheap/check.cjs)
+  measure-apk         measure the memory use of the Android app on an emulator (with --pair-url, also the paired session)
+  webheap             screenshot the web interface, with its JavaScript heap for local diagnosis (replaces shared/tooling/webheap/check.cjs)
   screenshots         capture page screenshots (replaces shared/tools/screenshots.sh)
   smoke-test          start a graphical application and check that it stays up
   e2e-run             run an end-to-end scenario (replaces shared/e2e/run.sh)

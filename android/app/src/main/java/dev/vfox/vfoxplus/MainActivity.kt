@@ -14,6 +14,7 @@
 
 package dev.vfox.vfoxplus
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -36,8 +37,38 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
                 .setReorderingAllowed(true)
-                .add(R.id.container, PairingFragment())
+                .add(R.id.container, firstScreen(intent))
                 .commit()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // A fresh pairing link while the app runs opens its session on top,
+        // like pasting the link and tapping connect.
+        if (firstScreen(intent) is ViewerFragment) {
+            supportFragmentManager.beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.container, firstScreen(intent))
+                .addToBackStack(null)
+                .commit()
+        }
+    }
+
+    companion object {
+        // The measurement entry point of `vfxtool measure-apk --pair-url` (and
+        // of anyone holding a pairing link): an explicit VIEW intent whose
+        // data is a one-time pairing link or a bare server address opens the
+        // session directly, exactly as if the link had been pasted and
+        // connected. It grants nothing that the link itself does not grant.
+        fun firstScreen(intent: Intent?) =
+            if (intent?.action == Intent.ACTION_VIEW &&
+                PairingFragment.pairingBase(intent.dataString.orEmpty()) != null
+            ) {
+                ViewerFragment.newInstance(intent.dataString!!.trim())
+            } else {
+                PairingFragment()
+            }
     }
 }

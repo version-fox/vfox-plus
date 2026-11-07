@@ -163,7 +163,7 @@ with a browser paired, where the table has 46 and 33, and 50 and 37; and the ico
 ## Beyond the desktop
 
 The pull-request comment also tracks what the desktop table does not: the
-lightweight mode, the web client heap, and the Android APK. Each has its own
+lightweight mode and the Android APK. Each has its own
 method, units and noise; compare the rows of one comment, as with the table
 above.
 
@@ -176,27 +176,52 @@ above.
   `lightweight-loaded` with a paired browser past its first inventory over server-sent
   events. A change counts only past 5 MB and 5%, like the desktop. With `--tray` it measures instead what the icon in the
   tray costs (see [The tray icon](#the-tray-icon)).
-- **Web client heap.** `vfxtool webheap` (which needs a Chrome and nothing else)
-  drives the paired `/app` page in headless Chrome through the Chrome DevTools
-  Protocol and writes the JavaScript heap in bytes at two points: `app` after
-  the SDK list settles, and `app-settled` after twenty seconds idle on the open
-  page with live events, which catches leaks in the event stream. The report
-  shows KB; a change counts only past 100 KB and 5%.
 - **Android client.** The `measure` job of `android.yml` installs the release
   APK on an emulator (API 36, x86_64), cold-starts it through the launcher,
   settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary
   more than GitHub runners, so a change counts only past 5 MB and 10%.
 
-In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and
-`memory-web`, the `measure` job of `android.yml` uploads `memory-android`,
+In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight`,
+the `measure` job of `android.yml` uploads `memory-android`,
 and `memory.yml` reports when either workflow ends, waiting for a still
 running Android run like for the rest. The sections render below the desktop
 table with the numbers of the pull request next to `main`.
 
-Coverage gaps: there is no paired-WebView APK state (the emulator has no
-server to pair with, so `apk-cold` is the unpaired first screen), and the heap
-is measured in desktop Chrome, not in the system WebView that the APK embeds,
-whose collector may behave differently.
+Coverage gaps: `apk-cold` never loads the system WebView (it is the unpaired
+first screen). `vfxtool webheap` can still read the JavaScript heap of the paired `/app`
+page locally (next to a screenshot), for diagnosis only, not for the CI
+report: it never measures the browser process around the page, so the heap
+numbers do not stand for the browser or the Android client.
+
+#### The paired session and the no-WebView control
+
+To see what the system WebView costs, measure the same APK paired, on both
+flavors. The `webview` flavor is what users install; the `nowebview` flavor
+never constructs a WebView and shows a native stub instead — same package and
+entry, so uninstall between the two runs. `vfxtool measure-apk --pair-url`
+opens the paired session through an explicit `VIEW` intent (the measurement
+entry point of `MainActivity`, the same session as pasting the link and
+tapping connect), settles again, and appends the `memory (apk-paired)` line.
+Pair against a loopback server with `adb reverse` carrying the port, and mint
+a fresh link per run (`vfox-plus-serve pair`). The paired line is local
+diagnosis only: never upload a two-line file, and CI keeps measuring the cold
+start of the webview flavor.
+
+Measured 2026-11-07 on one emulator (API 36, x86_64, no GPU) against the fake
+vfox with the Java and Flutter profiles, release builds with R8, `dumpsys
+meminfo` after 20 seconds of settling:
+
+| Flavor | `apk-cold` PSS | `apk-paired` PSS |
+| --- | ---: | ---: |
+| `webview` | 38 MB | 86 MB |
+| `nowebview` | 38 MB | 33 MB |
+
+The cold start never loads the WebView, so both flavors agree there. The
+paired session costs the system WebView about 50 MB PSS; a fully native client
+would land near the stub, roughly halving the paired memory. Memory is still
+no reason to rewrite on its own: the native part stays small either way, and a
+rewrite reimplements the whole `/app` page (see [Android
+packaging](packaging-android.md#build-variants)).
 
 ### Views or Compose in the Android app
 
@@ -295,7 +320,7 @@ commit replaces that comment instead of adding another one.
   runs `vfxtool measure` ([How it is measured](#how-it-is-measured)) and
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
-  workflow's `measure-remote` job uploads `memory-lightweight` and `memory-web`, and the
+  workflow's `measure-remote` job uploads `memory-lightweight`, and the
   `measure` job of [`android.yml`](../../../.github/workflows/android.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.

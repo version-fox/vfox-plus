@@ -28,6 +28,8 @@ android {
         // Same version as the desktop application.
         versionCode = 1
         versionName = rootDir.resolve("../mygo/VERSION").readText().trim()
+        // The `webview` flavor keeps this; `nowebview` overrides it to false.
+        buildConfigField("boolean", "HAS_WEBVIEW", "true")
     }
 
     buildTypes {
@@ -43,6 +45,22 @@ android {
             )
         }
     }
+    // Two clients, one codebase: `webview` is what users install, with the
+    // paired session in the system WebView; `nowebview` never constructs a
+    // WebView and shows a native stub instead, so that `vfxtool measure-apk
+    // --pair-url` on both answers how much memory the WebView costs
+    // (see docs/en/dev/memory.md). The applicationId stays the same, so
+    // uninstall between the two runs.
+    flavorDimensions += "client"
+    productFlavors {
+        create("webview") {
+            dimension = "client"
+        }
+        create("nowebview") {
+            dimension = "client"
+            buildConfigField("boolean", "HAS_WEBVIEW", "false")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -54,6 +72,8 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        // The `nowebview` flavor reads HAS_WEBVIEW to show its native stub.
+        buildConfig = true
     }
 }
 
