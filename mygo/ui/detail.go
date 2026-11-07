@@ -133,7 +133,7 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: "versions"},
 			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: "install"},
 		}
-		if _, known := d.controller.Profile(); known {
+		if _, known := d.controller.EffectiveProfile(); known {
 			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: "options"})
 		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{

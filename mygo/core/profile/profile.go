@@ -20,7 +20,8 @@
 // that: vfox-java lists the JDKs of one of 31 distributions when
 // `vfox search java <distribution>` names it, vfox-nodejs installs the newest
 // release of a line for `nodejs@24`, vfox-flutter installs the release a
-// channel points to for `flutter@stable`, and each of them reads environment
+// channel points to for `flutter@stable`, vfox-gradle installs `latest`, and
+// each of them reads environment
 // variables that move its downloads to a mirror, and legacy version files
 // such as `.nvmrc`. None of this is visible in the output of vfox, so a
 // profile writes it down: the arguments of a search, the shorthands of an
@@ -32,7 +33,9 @@
 // same profiles; the texts that a profile carries are written in both
 // languages of the application next to the data they describe, because the
 // web interface gets them over HTTP. Plugins without a profile are listed,
-// installed and selected as before.
+// installed and selected as before, with facets and variables inferred from
+// what the plugin reports (see infer.go) and with optional profile files
+// (see external.go) overlaying the built-in ones without a code change.
 package profile
 
 import (
@@ -210,12 +213,12 @@ type Registry struct {
 }
 
 // NewRegistry creates a registry with the profiles of the plugins of the
-// version-fox organisation: java, nodejs and flutter. The platform decides
-// what a search of java offers: the Loongnix JDKs on Linux for loong64, the
-// distributions of Foojay everywhere else.
+// version-fox organisation: java, nodejs, flutter and gradle. The platform
+// decides what a search of java offers: the Loongnix JDKs on Linux for
+// loong64, the distributions of Foojay everywhere else.
 func NewRegistry(platform Platform) *Registry {
 	registry := &Registry{profiles: make(map[string]Profile)}
-	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile()} {
+	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile(), gradleProfile()} {
 		registry.profiles[profile.Plugin] = profile
 	}
 	return registry

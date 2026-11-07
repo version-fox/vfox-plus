@@ -245,6 +245,7 @@ func (a *App) Run() {
 		a.openWindow()
 		a.listen()
 		go a.model.Start()
+		a.autoCheckUpdate()
 		a.startE2E()
 	})
 	err := mygo.App.Run()

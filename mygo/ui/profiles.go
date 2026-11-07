@@ -246,7 +246,7 @@ func (a *App) askInstallName(name string, p profile.Profile, hasProfile bool, in
 // through it, the names that it takes besides the listed versions, notes and
 // documentation.
 func (a *App) optionsBody(k kit.Ctx, d *detailState) detailBody {
-	p, _ := d.controller.Profile()
+	p, _ := d.controller.EffectiveProfile()
 	return single("options", func() {
 		mui.Column(k.Context).Padding(0, gapXL, gapXXL, gapXL).Children(func() {
 			a.guideSection(k, p)

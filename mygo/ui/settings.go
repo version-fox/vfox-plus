@@ -68,6 +68,7 @@ func (a *App) settingsPage(k kit.Ctx) {
 					a.appearanceSection(k)
 					a.webSection(k)
 					a.vfoxSection(k)
+					a.updateSection(k)
 					a.configSection(k)
 					a.aboutSection(k)
 				})
@@ -234,6 +235,100 @@ func (a *App) vfoxSection(k kit.Ctx) {
 	}
 	kit.GroupHeader(k, a.T("settingsVfox"), nil)
 	kit.ListGroup(k, items...)
+}
+
+// updateSection checks for new releases of vfox-plus and downloads the
+// package for this platform, from GitHub or through the mirror prefix.
+func (a *App) updateSection(k kit.Ctx) {
+	a.updateMirrorInitial()
+	status, action := a.updateStatus(k)
+	items := []kit.ListItemSpec{
+		{
+			ID: "update-status", Title: a.T("updateCurrent", "version", Version), Subtitle: status,
+			Leading: icon(k, "update"), Wrap: a.wideSettingsWrap(k),
+			Trailing: action,
+		},
+	}
+	if a.pages.updatePath != "" {
+		path := a.pages.updatePath
+		items = append(items, kit.ListItemSpec{
+			ID: "update-path", Title: a.T("updateDownloaded", "path", path),
+			Leading: blank(k), Wrap: a.wideSettingsWrap(k),
+			Trailing: func() {
+				kit.Button(k, kit.ButtonSpec{
+					ID: "copy-path", Kind: kit.TextButton, Label: a.T("actionCopy"),
+					OnClick: func() { a.copy(path); a.notify(a.T("actionCopied")) },
+				})
+			},
+		})
+	}
+	items = append(items, kit.ListItemSpec{
+		ID: "update-mirror", Title: a.T("updateMirror"), Subtitle: a.T("updateMirrorHelp"),
+		Leading: blank(k), Wrap: a.wideSettingsWrap(k),
+		Trailing: func() {
+			kit.TextField(k, kit.TextFieldSpec{
+				ID: "update-mirror-field", Hint: "https://gh-proxy.org/", Text: &a.pages.updateMirrorText,
+				Monospace: true, OnSubmit: func(text string) { a.saveUpdateMirror(text) },
+				OnBlur: func(text string) { a.pages.updateMirrorText = text },
+			}).Width(300)
+		},
+	})
+	kit.GroupHeader(k, a.T("updateTitle"), nil)
+	kit.ListGroup(k, items...)
+}
+
+// updateStatus is the subtitle of the update row and its trailing action:
+// check, download, open releases, or progress.
+func (a *App) updateStatus(k kit.Ctx) (string, func()) {
+	switch {
+	case a.pages.updateChecking:
+		return a.T("updateChecking"), func() {
+			kit.LoadingIndicator(k, kit.LoadingSpec{ID: "update-checking", Size: 36})
+		}
+	case a.pages.updateDownloading:
+		return a.T("updateDownloading"), func() {
+			kit.LoadingIndicator(k, kit.LoadingSpec{ID: "update-downloading", Size: 36})
+		}
+	case a.pages.updateError != "":
+		err := a.pages.updateError
+		return err, func() {
+			kit.Button(k, kit.ButtonSpec{
+				ID: "update-check", Kind: kit.TonalButton, Label: a.T("updateCheck"),
+				OnClick: func() { a.checkUpdate(false) },
+			})
+		}
+	case a.pages.updateHasRelease && a.pages.updateRelease.NewerThan(Version):
+		release := a.pages.updateRelease
+		subtitle := a.T("updateAvailable", "version", release.Version())
+		return subtitle, func() {
+			mui.Row(k.Context).Gap(gapXS).Children(func() {
+				if _, ok := platformAsset(release); ok {
+					kit.Button(k, kit.ButtonSpec{
+						ID: "update-download", Kind: kit.FilledButton, Label: a.T("updateDownload"),
+						OnClick: func() { a.downloadUpdate() },
+					})
+				}
+				kit.Button(k, kit.ButtonSpec{
+					ID: "update-releases", Kind: kit.TextButton, Label: a.T("updateOpenReleases"),
+					OnClick: func() { a.openURL(release.Page) },
+				})
+			})
+		}
+	case a.pages.updateChecked:
+		return a.T("updateUpToDate"), func() {
+			kit.Button(k, kit.ButtonSpec{
+				ID: "update-check", Kind: kit.TextButton, Label: a.T("updateCheck"),
+				OnClick: func() { a.checkUpdate(false) },
+			})
+		}
+	default:
+		return "", func() {
+			kit.Button(k, kit.ButtonSpec{
+				ID: "update-check", Kind: kit.TonalButton, Label: a.T("updateCheck"),
+				OnClick: func() { a.checkUpdate(false) },
+			})
+		}
+	}
 }
 
 // saveEnvironment stores the environment variables that vfox runs with.

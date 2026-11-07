@@ -227,7 +227,7 @@ private directory with mode `0600` and deleted by the task finalizer. Answers
 
 | Method and path | Meaning |
 | --- | --- |
-| `GET /api/settings` | The editable GUI settings: `{vfoxExecutable, extraEnvironment, language}`. |
+| `GET /api/settings` | The editable GUI settings: `{vfoxExecutable, extraEnvironment, language, updateMirror}`. The mirror prefixes GitHub downloads of releases and plugin profiles, e.g. `https://gh-proxy.org/`. |
 | `PUT /api/settings` | Update them (`language` is `system`, `english` or `simplifiedChinese`). Unknown languages answer 400. |
 | `GET /api/web` | How other devices connect, and whether the application stays up without its window: `{remote, port, lightweight, listening, addresses[], fingerprint, selfSigned, error}`. `remote`, `port` and `lightweight` are the settings `webRemote`, `webPort` and `lightweight`; the rest says what the remote server made of them: whether it `listening`, the `addresses` of the computer on its networks (IPv4 first), the SHA-256 `fingerprint` of its certificate and whether the application made it (`selfSigned`), and `error` when other devices are allowed and cannot connect (the port is taken, the certificate does not load). |
 | `PUT /api/web` | Change any of `{remote, port, lightweight}` (same-origin). A `port` outside 1024 to 65535 answers 400. The answer is the new `GET /api/web`, which may still show the servers as they were: they follow the settings at once, and the page learns of it by the `web` event. |

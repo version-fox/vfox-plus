@@ -16,7 +16,6 @@ package pair
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strings"
 
@@ -141,14 +140,16 @@ func namingName(n profile.Naming) string {
 	}
 }
 
-// profileOf returns the profile of the plugin that the details are of. vfox names a
-// plugin that was added under an alias by the alias, so a plugin without a profile
-// under its own name is asked which plugin it is.
+// profileOf returns the effective profile of the plugin that the details
+// are of: the curated one when there is one, the inferred one otherwise (see
+// SdkDetailController.EffectiveProfile). vfox names a plugin that was added
+// under an alias by the alias, so a plugin without a profile under its own
+// name is asked which plugin it is.
 func profileOf(detail *state.SdkDetailController) (profile.Profile, bool) {
 	if _, known := detail.Profile(); !known {
 		awaitLoad(detail.Info.EnsureLoaded())
 	}
-	return detail.Profile()
+	return detail.EffectiveProfile()
 }
 
 // newProfileDTO describes the profile for the web interface, with the values of
@@ -300,17 +301,8 @@ func (s *Server) serveVariables(writer http.ResponseWriter, request *http.Reques
 		http.Error(writer, "No profile for this plugin.", http.StatusNotFound)
 		return
 	}
-	if _, ok := known.Variable(req.Key); !ok {
-		http.Error(writer, detail.Name+" does not read "+req.Key+".", http.StatusBadRequest)
-		return
-	}
 	if err := model.SetPluginVariable(known, req.Key, req.Value); err != nil {
-		var invalid *profile.ValueError
-		if errors.As(err, &invalid) {
-			http.Error(writer, invalid.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 	writeJSON(writer, map[string]string{"key": req.Key, "value": model.PluginVariable(req.Key)})

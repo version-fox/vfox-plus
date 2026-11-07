@@ -414,6 +414,9 @@ func TestWebSettings(t *testing.T) {
 	if status, _ := put(`{"language":"klingon"}`); status != http.StatusBadRequest {
 		t.Errorf("got %d", status)
 	}
+	if status, body := put(`{"updateMirror":"https://gh-proxy.org/"}`); status != http.StatusOK || !strings.Contains(body, "gh-proxy") {
+		t.Errorf("got %d: %s", status, body)
+	}
 }
 
 func TestWebConfig(t *testing.T) {

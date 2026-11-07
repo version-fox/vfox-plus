@@ -1,0 +1,193 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# A release of vfox-plus, started by hand like the releases of
+# https://github.com/version-fox/vfox-java: Actions, Release, Run workflow,
+# and type the version (0.2.0, without the v). The version is set in a pull
+# request first (mygo/VERSION, and the Version constant of mygo/ui/app.go,
+# which a unit test keeps in sync); the job refuses anything else.
+#
+# The job tags v<version>, builds what mygo.yml builds (the .deb and the
+# .tar.gz for Linux, the unsigned .msix and .msixbundle for Windows with the
+# self-sign inputs) plus the classic snap from snap/snapcraft.yaml, and
+# publishes them on the GitHub release, which is what the self-update check
+# (mygo/core/update) reads. Pushing a tag v* runs the same job without
+# asking for the version.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, for example 0.2.0 (without v)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  LINUX_PACKAGES: >-
+    build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
+    xvfb xauth dbus-x11 lintian desktop-file-utils
+
+jobs:
+  release:
+    name: Tag, package and publish
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    permissions:
+      contents: write
+    runs-on: ubuntu-26.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Tags are checked and created below.
+          fetch-depth: 0
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: mygo/go.sum
+      - name: Find the version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          version="$(printf '%s' "$version" | tr -d '[:space:]')"
+          case "$version" in
+            ''|*[!0-9.]*|*..*|.*|*.)
+              echo "::error::Not a version (major.minor.patch, without v): $version"
+              exit 1
+              ;;
+          esac
+          if [ "$(tr -d '[:space:]' < mygo/VERSION)" != "$version" ]; then
+            echo "::error::mygo/VERSION says $(tr -d '[:space:]' < mygo/VERSION), not $version; set the version in a pull request first"
+            exit 1
+          fi
+          if ! grep -q "const Version = \"$version\"" mygo/ui/app.go; then
+            echo "::error::mygo/ui/app.go does not say const Version = \"$version\""
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Tag the release
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION exists already"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+      - name: Install the Linux packages
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }}
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - name: Prepare the embedded assets
+        # The icons, the translations and the licenses of the Go modules.
+        run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
+      - name: Check the tree
+        run: |
+          go -C mygo vet ./...
+          go -C shared/tooling vet ./...
+      - name: Build the release
+        run: '"$RUNNER_TEMP/vfxtool" build --root mygo mygo/build/vfox-plus'
+      - name: Smoke test the release
+        run: '"$RUNNER_TEMP/vfxtool" smoke-test --log app.log mygo/build/vfox-plus'
+      - name: Build the .deb and the tarball
+        run: |
+          install -D -m 755 mygo/build/vfox-plus "$RUNNER_TEMP/stage/vfox-plus"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-deb \
+            --package vfox-plus --version "$VERSION" \
+            --stage "$RUNNER_TEMP/stage" --executable vfox-plus --technology mygo \
+            --depends "$("$RUNNER_TEMP/vfxtool" runtask print-depends)" \
+            --recommends "$("$RUNNER_TEMP/vfxtool" runtask print-recommends)" \
+            --notice mygo/assets/licenses.txt dist
+      - name: Validate the packages
+        env:
+          DEB_MAINTAINER: Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>
+        run: |
+          desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb
+      - name: Cross-compile the Windows executables
+        # mygo needs no C compiler, so the Windows builds run on Linux.
+        run: |
+          "$RUNNER_TEMP/vfxtool" build --goos windows --goarch amd64 --root mygo "$RUNNER_TEMP/stage-x64/vfox-plus.exe"
+          "$RUNNER_TEMP/vfxtool" build --goos windows --goarch arm64 --root mygo "$RUNNER_TEMP/stage-arm64/vfox-plus.exe"
+      - name: Build the unsigned .msix and .msixbundle
+        run: |
+          mkdir -p dist-windows
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-msix \
+            --package vfox-plus --version "$VERSION" \
+            --stage-x64 "$RUNNER_TEMP/stage-x64" --stage-arm64 "$RUNNER_TEMP/stage-arm64" \
+            --executable vfox-plus.exe dist-windows
+      - name: Stage the Windows self-sign inputs
+        # `vfxtool sign-msix` rebuilds the packages with the self-signed
+        # publisher and signs them on the user's machine, so the release
+        # carries the loose executables and a Windows vfxtool next to the
+        # unsigned packages.
+        run: |
+          mkdir -p dist-windows/stage-x64 dist-windows/stage-arm64
+          install -m 644 "$RUNNER_TEMP/stage-x64/vfox-plus.exe" dist-windows/stage-x64/vfox-plus.exe
+          install -m 644 "$RUNNER_TEMP/stage-arm64/vfox-plus.exe" dist-windows/stage-arm64/vfox-plus.exe
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go -C shared/tooling build -o "$PWD/dist-windows/vfxtool.exe" ./cmd/vfxtool
+      - name: Validate the MSIX packages
+        # Pure-Go validation without the Windows SDK (vfxtool validate-msix):
+        # ZIP layout, manifests, block maps, bundle offsets, version
+        # consistency and the self-sign inputs.
+        run: |
+          "$RUNNER_TEMP/vfxtool" validate-msix dist-windows
+      - name: Build the snap package
+        # Classic confinement (see snap/snapcraft.yaml): vfox-plus drives the
+        # vfox executable and arbitrary SDK toolchains anywhere on the file
+        # system. The snap packs the .deb above and is installed by hand, not
+        # from the store.
+        run: cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
+      - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+      - name: Collect the snap package
+        run: |
+          mkdir -p dist-snap
+          find . -maxdepth 2 -name 'vfox-plus_*.snap' -exec mv {} dist-snap/ \;
+          ls dist-snap
+      - name: Publish the GitHub release
+        # The self-update check (mygo/core/update) reads the assets of the
+        # newest release: the .deb (preferred) or the .tar.gz on Linux, the
+        # per-architecture .msix (preferred) or the .msixbundle on Windows.
+        # The .snap is for manual installation and is not offered for download
+        # in the application: reinstall it by hand for a new release.
+        run: |
+          gh release create "v$VERSION" --title "v$VERSION" --generate-notes \
+            dist/*.deb dist/*.tar.gz \
+            dist-snap/*.snap \
+            dist-windows/*.msix dist-windows/*.msixbundle \
+            dist-windows/stage-x64/vfox-plus.exe dist-windows/stage-arm64/vfox-plus.exe \
+            dist-windows/vfxtool.exe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

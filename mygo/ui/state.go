@@ -20,6 +20,7 @@ import (
 	mui "github.com/egoist/mygo/ui"
 
 	"github.com/version-fox/vfox-plus/mygo/assets"
+	"github.com/version-fox/vfox-plus/mygo/core/update"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
@@ -50,6 +51,17 @@ type pageStates struct {
 	portText  string
 	// pairing is the link and the code that the dialog of the pairing shows.
 	pairing *pairingState
+
+	updateMirrorReady bool
+	updateMirrorText  string
+	updateChecking    bool
+	updateChecked     bool
+	updateError       string
+	updateRelease     update.Release
+	updateHasRelease  bool
+	updateDownloading bool
+	updateProgress    float64
+	updatePath        string
 
 	licenses []string
 }

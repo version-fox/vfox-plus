@@ -1,3 +1,0 @@
-Preinstalling maven@3.9.16...
-failed to create directory, err:mkdir /tmp/vfox-sb/home/.vfox/cache/maven/v-3.9.16: permission denied
-failed to install maven

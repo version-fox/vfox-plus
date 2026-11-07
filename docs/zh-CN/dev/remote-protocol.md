@@ -196,7 +196,7 @@ stateDiagram-v2
 
 | 方法与路径 | 含义 |
 | --- | --- |
-| `GET /api/settings` | 可编辑的 GUI 设置：`{vfoxExecutable, extraEnvironment, language}`。 |
+| `GET /api/settings` | 可编辑的 GUI 设置：`{vfoxExecutable, extraEnvironment, language, updateMirror}`。镜像给 GitHub 下载加前缀，如 `https://gh-proxy.org/`，用于自身更新与插件配置档案。 |
 | `PUT /api/settings` | 更新它们（`language` 为 `system`、`english` 或 `simplifiedChinese`）。未知语言 400。 |
 | `GET /api/web` | 其他设备如何连接，以及应用没有窗口时是否继续运行：`{remote, port, lightweight, listening, addresses[], fingerprint, selfSigned, error}`。`remote`、`port` 与 `lightweight` 是设置 `webRemote`、`webPort` 与 `lightweight`；其余是远端服务器据此做成的样子：是否 `listening`、本机在各网络上的 `addresses`（IPv4 在前）、其证书的 SHA-256 `fingerprint` 以及是否由应用自己生成（`selfSigned`），以及允许其他设备却连不上时的 `error`（端口被占用、证书加载失败）。 |
 | `PUT /api/web` | 修改 `{remote, port, lightweight}` 中的任意项（同源）。`port` 不在 1024 到 65535 内返回 400。应答是新的 `GET /api/web`，它可能还显示服务器原来的样子：服务器立即跟随设置，页面通过 `web` 事件得知。 |

@@ -1,0 +1,50 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Classic snap of vfox-plus, built from the .deb of the release job and
+# installed by hand (see docs/en/user/install.md#linux):
+#
+#   cp vfox-plus_<version>_amd64.deb snap/vfox-plus.deb
+#   snapcraft pack
+#   sudo snap install --dangerous --classic vfox-plus_*.snap
+#
+# Classic confinement is deliberate: vfox-plus drives the vfox executable and
+# arbitrary SDK toolchains anywhere on the file system, and serves its web
+# interface on ports of the settings, which strict confinement would fence
+# off. A crowded store review is avoided altogether: the .snap ships on the
+# GitHub release next to the .deb, for manual installation.
+name: vfox-plus
+adopt-info: vfox-plus
+summary: Graphical front end for the vfox version manager
+description: |
+  vfox-plus is a graphical front end for vfox, the cross-platform version
+  manager, built with the Material 3 Expressive design language.
+  Install vfox first: vfox-plus drives it and cannot work without it.
+base: core24
+grade: stable
+confinement: classic
+architectures:
+  - build-on: [amd64]
+    run-on: [amd64]
+parts:
+  vfox-plus:
+    # The release job copies the .deb it just built here; the snap packs the
+    # tested artifact instead of building the application a second time. The
+    # desktop entry, the metainfo and the icon travel inside the .deb.
+    plugin: dump
+    source: vfox-plus.deb
+    source-type: deb
+    override-pull: |
+      craftctl default
+      craftctl set-version "$(tr -d '[:space:]' < "$CRAFT_PROJECT_DIR/mygo/VERSION")"
