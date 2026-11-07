@@ -69,7 +69,7 @@ made from:
 
 | Install by name | A download mirror |
 | --- | --- |
-| ![The dialog that installs a version by its name](https://iili.io/niy6dOv.png) | ![Choosing the download mirror of Node.js](https://iili.io/niy6Azl.png) |
+| ![The dialog that installs a version by its name](https://iili.io/nD3gE3x.png) | ![Choosing the download mirror of Node.js](https://iili.io/nD3gjZF.png) |
 
 The **Options** tab holds what is particular to the plugin:
 

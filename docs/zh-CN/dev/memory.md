@@ -153,8 +153,9 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
 是用户装的；`nowebview` 从不构造 WebView，只显示原生占位——包名与入口相同，
 两轮之间先卸载。`vfxtool measure-apk --pair-url` 经显式 `VIEW` intent 打开配对
 会话（`MainActivity` 的测量入口，与粘贴链接后点连接是同一个会话），再沉降一次，
-追加 `memory (apk-paired)` 行。用 `adb reverse` 把回环服务的端口送进模拟器配对，
-每轮用 `vfox-plus-serve pair` 领一条新链接。配对行只做本地诊断：两行的文件不要上传，
+追加 `memory (apk-paired)` 行。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
+它生成的证书与配对链接用的就是模拟器访问本机的地址；从 `VFOX_PLUS_E2E_LINK`
+指定的文件里读链接，每轮重启应用领一条新链接。配对行只做本地诊断：两行的文件不要上传，
 CI 只测 webview 构建的冷启动。
 
 2026-11-07 在一台模拟器（API 36、x86_64、无 GPU）上实测，对着带 Java 与 Flutter

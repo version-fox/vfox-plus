@@ -29,35 +29,35 @@ the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/andr
 
 ## Screenshots
 
-![vfox+ home page](https://iili.io/niyUq8v.png)
+![vfox+ home page](https://iili.io/nD3UB0x.png)
 
 | Installed versions of an SDK | Available versions, dark theme |
 | --- | --- |
-| ![Installed versions of nodejs](https://iili.io/niyU4UJ.png) | ![Available versions of nodejs, dark theme](https://iili.io/niygBfe.png) |
+| ![Installed versions of nodejs](https://iili.io/nD3UCUQ.png) | ![Available versions of nodejs, dark theme](https://iili.io/nD3UoJV.png) |
 
 | An installation in progress | Tasks, which can be followed and cancelled |
 | --- | --- |
-| ![Installing a version of nodejs](https://iili.io/niygYqF.png) | ![Tasks](https://iili.io/niygUI2.png) |
+| ![Installing a version of nodejs](https://iili.io/nD3UzOP.png) | ![Tasks](https://iili.io/nD3UuzF.png) |
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/niygQ7j.png) | ![Settings](https://iili.io/niyr22a.png) |
+| ![Plugins](https://iili.io/nD3UAWg.png) | ![Settings](https://iili.io/nD3URsa.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |
-| ![Home in a compact window](https://iili.io/niyrxEX.png) | ![An SDK in a compact window](https://iili.io/niyr6jp.png) |
+| ![Home in a compact window](https://iili.io/nD3UY0v.png) | ![An SDK in a compact window](https://iili.io/nD3UEbt.png) |
 
 | The distribution of Java to list | Temurin, with the chip for long-term support |
 | --- | --- |
-| ![The distributions of Java](https://iili.io/niy4Ht2.png) | ![Temurin releases with long-term support](https://iili.io/niy45cg.png) |
+| ![The distributions of Java](https://iili.io/nD3Uj1f.png) | ![Temurin releases with long-term support](https://iili.io/nD3UOdl.png) |
 
 | Flutter, with its channels and architectures | The options of Node.js |
 | --- | --- |
-| ![Flutter versions of the stable channel](https://iili.io/niy4cAv.png) | ![The options of Node.js](https://iili.io/niy44Uu.png) |
+| ![Flutter versions of the stable channel](https://iili.io/nD3UsdQ.png) | ![The options of Node.js](https://iili.io/nD3gFpI.png) |
 
 | The web interface, on a phone | Java in the web interface |
 | --- | --- |
-| ![The home page of the web interface on a phone](https://iili.io/niyieDv.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/niyi4UX.png) |
+| ![The home page of the web interface on a phone](https://iili.io/nD3rdMu.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nD3rnwP.png) |
 
 ## License
 

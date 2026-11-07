@@ -202,10 +202,13 @@ entry, so uninstall between the two runs. `vfxtool measure-apk --pair-url`
 opens the paired session through an explicit `VIEW` intent (the measurement
 entry point of `MainActivity`, the same session as pasting the link and
 tapping connect), settles again, and appends the `memory (apk-paired)` line.
-Pair against a loopback server with `adb reverse` carrying the port, and mint
-a fresh link per run (`vfox-plus-serve pair`). The paired line is local
-diagnosis only: never upload a two-line file, and CI keeps measuring the cold
-start of the webview flavor.
+Pair against the end-to-end build of the application with
+`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, which makes its
+certificate and its pairing link name the address where the emulator reaches
+the computer; read the link from the file that `VFOX_PLUS_E2E_LINK` names and
+mint a fresh one per run by restarting the application. The paired line is
+local diagnosis only: never upload a two-line file, and CI keeps measuring
+the cold start of the webview flavor.
 
 Measured 2026-11-07 on one emulator (API 36, x86_64, no GPU) against the fake
 vfox with the Java and Flutter profiles, release builds with R8, `dumpsys
