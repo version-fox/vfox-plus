@@ -25,7 +25,7 @@
 # off. A crowded store review is avoided altogether: the .snap ships on the
 # GitHub release next to the .deb, for manual installation.
 name: vfox-plus
-version-script: tr -d '[:space:]' < mygo/VERSION
+adopt-info: vfox-plus
 summary: Graphical front end for the vfox version manager
 description: |
   vfox-plus is a graphical front end for vfox, the cross-platform version
@@ -41,7 +41,10 @@ parts:
   vfox-plus:
     # The release job copies the .deb it just built here; the snap packs the
     # tested artifact instead of building the application a second time. The
-    # desktop entry, the metainfo and the icon travel inside the .deb already.
+    # desktop entry, the metainfo and the icon travel inside the .deb.
     plugin: dump
     source: vfox-plus.deb
     source-type: deb
+    override-pull: |
+      craftctl default
+      craftctl set-version "$(tr -d '[:space:]' < "$CRAFT_PROJECT_DIR/mygo/VERSION")"
