@@ -9,6 +9,8 @@
 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化前端，遵循
 [Material 3 Expressive](https://m3.material.io/) 设计语言。
 
+[![Listed on Awesome MyGo](https://awesomemygo.dev/badge.svg)](https://awesomemygo.dev/apps/vfox-plus)
+
 </div>
 
 文档在 [`docs/`](docs/zh-CN/user/index.md)，先按语言、再按受众分类：

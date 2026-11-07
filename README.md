@@ -10,6 +10,8 @@ A graphical front end for [vfox](https://vfox.dev), the cross-platform version
 manager, built with the [Material 3 Expressive](https://m3.material.io/) design
 language.
 
+[![Listed on Awesome MyGo](https://awesomemygo.dev/badge.svg)](https://awesomemygo.dev/apps/vfox-plus)
+
 </div>
 
 Documentation lives in [`docs/`](docs/en/user/index.md), by language and by
