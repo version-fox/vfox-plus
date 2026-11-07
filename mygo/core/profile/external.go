@@ -119,7 +119,7 @@ type JSONLink struct {
 	URL   JSONText `json:"url"`
 }
 
-func toText(t JSONText) Text { return Text{EN: t.EN, ZH: t.ZH} }
+func toText(t JSONText) Text { return Text(t) }
 
 // ToProfile converts the JSON form into a Profile. Unknown naming, variable
 // and facet kinds fall back to the plain defaults instead of failing, so
@@ -161,14 +161,9 @@ func (p JSONProfile) ToProfile() Profile {
 		if variable.Key == "" {
 			continue
 		}
-		kind := VariableURL
-		switch strings.ToLower(strings.TrimSpace(variable.Kind)) {
-		case "choice":
+		var kind = VariableURL
+		if strings.ToLower(strings.TrimSpace(variable.Kind)) == "choice" {
 			kind = VariableChoice
-		case "url", "":
-			kind = VariableURL
-		default:
-			kind = VariableURL
 		}
 		entry := Variable{Key: variable.Key, Label: toText(variable.Label), Help: toText(variable.Help), Kind: kind, Example: variable.Example, Advanced: variable.Advanced}
 		for _, preset := range variable.Presets {

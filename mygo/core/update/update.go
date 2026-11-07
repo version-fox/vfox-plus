@@ -177,7 +177,7 @@ func Check(ctx context.Context, client *http.Client, apiURL string) (Release, er
 	if err != nil {
 		return Release{}, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return Release{}, fmt.Errorf("github api: %s", response.Status)
 	}
@@ -308,7 +308,7 @@ func downloadOne(ctx context.Context, client *http.Client, url, directory string
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return "", fmt.Errorf("download: %s", response.Status)
 	}
@@ -325,7 +325,7 @@ func downloadOne(ctx context.Context, client *http.Client, url, directory string
 	var done int64
 	buffer := make([]byte, 128*1024)
 	_, err = func() (int64, error) {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		for {
 			n, readErr := response.Body.Read(buffer)
 			if n > 0 {

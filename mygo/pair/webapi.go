@@ -231,7 +231,9 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		}
 		writeJSON(writer, info)
 	case "versions":
-		known, hasKnown := profileOf(detail)
+		// The plugin of an alias says what it is once its metadata is in;
+		// the profile below is effective after the versions are listed.
+		awaitLoad(detail.Info.EnsureLoaded())
 		// Without a `search` the plugin lists the choice that the user made, the default
 		// of the plugin if they made none. `search` names another one, by the value of a
 		// choice of the profile (the short name of a distribution for java), for this
@@ -251,8 +253,8 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 			writeVfoxError(writer, err)
 			return
 		}
-		// Recompute after the load: inferred facets come from the versions.
-		known, hasKnown = detail.EffectiveProfile()
+		// Effective after the load: inferred facets come from the versions.
+		known, hasKnown := detail.EffectiveProfile()
 		writeJSON(writer, annotate(known, hasKnown, versions))
 	case "profile":
 		s.serveProfile(writer, model, detail)

@@ -62,9 +62,12 @@ func InferFacets(versions []core.AvailableVersion) []Facet {
 		}
 	}
 	suffixSeen := make(map[string]string)
-	suffixCounts := make(map[string]int)
 	for _, version := range versions {
-		if _, suffix, found := cutLast(version.Version, "-"); found {
+		// The tail after the last "-", if any: a shared tail such as x64 is
+		// a variant worth filtering by. (Written out instead of cutLast so
+		// that the shared helper keeps its separator parameter.)
+		if i := strings.LastIndex(version.Version, "-"); i >= 0 {
+			suffix := version.Version[i+1:]
 			if !isVariantSuffix(suffix) {
 				continue
 			}
@@ -72,7 +75,6 @@ func InferFacets(versions []core.AvailableVersion) []Facet {
 			if _, ok := suffixSeen[key]; !ok {
 				suffixSeen[key] = suffix
 			}
-			suffixCounts[key]++
 		}
 	}
 	var facets []Facet
@@ -120,7 +122,7 @@ func isVariantSuffix(suffix string) bool {
 	for _, r := range suffix {
 		if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' {
 			letter = true
-		} else if !(r >= '0' && r <= '9' || r == '+' || r == '.') {
+		} else if (r < '0' || r > '9') && r != '+' && r != '.' {
 			return false
 		}
 	}
@@ -379,12 +381,15 @@ func PluginDir(environment map[string]string, plugin string) string {
 }
 
 // isPluginDirName reports whether name is a single directory name: not empty
-// and holding no separator and no dot-only segment.
+// and holding no separator and no ".." anywhere (so "a/../b" and "a..b" are
+// both out), as the CodeQL help for go/path-injection recommends. Anything
+// that vfox itself accepts as a name is either a single clean segment, which
+// passes, or contains ".." or a separator, which does not need inference.
 func isPluginDirName(name string) bool {
-	if name == "" || name == "." || name == ".." {
+	if name == "" || name == "." {
 		return false
 	}
-	return !strings.ContainsAny(name, `/\`)
+	return !strings.Contains(name, "/") && !strings.Contains(name, "\\") && !strings.Contains(name, "..")
 }
 
 // ScanPluginDir reads the installed plugin for generic adaptation: its

@@ -303,7 +303,6 @@ exit code。中断的 `vfox install` 残留取决于版本：
 
 ## 已知问题
 
-
 - `vfox add a b` 按插件报告失败但 exit 0。GUI 一次只加一个插件。
 - 插件 pre-install hook 连不上网（如坏代理），`vfox install` 可能报
   `Install maven@ success!` 而版本为空。任务输出与 exit code 一起作为用户所见。

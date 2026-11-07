@@ -102,15 +102,11 @@ func TestPluginDirKeepsTheNameInsideThePluginRoot(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 	// A name from the user (an alias they typed, a segment of a URL) must
-	// never escape the plugin directory: no separators, no dot-only names.
-	for _, name := range []string{"", ".", "..", "a/b", `a\b`, "a/../b"} {
+	// never escape the plugin directory: no separators, no ".." anywhere.
+	for _, name := range []string{"", ".", "..", "a/b", `a\b`, "a/../b", "a..b"} {
 		if got := PluginDir(environment, name); got != "" {
 			t.Errorf("PluginDir(%q) = %q, want empty", name, got)
 		}
-	}
-	// Dots inside a name are fine: they stay a single directory.
-	if got := PluginDir(environment, "a..b"); got == "" {
-		t.Error("a dotted name is a single directory")
 	}
 }
 
