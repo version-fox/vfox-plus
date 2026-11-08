@@ -100,6 +100,21 @@ class NativeSessionFragment : Fragment(), SessionHost {
         api = SessionApi(requireContext())
         startUrl = requireArguments().getString(ARG_URL).orEmpty()
         base = PairingFragment.pairingBase(startUrl).orEmpty()
+        // A rotation or night-mode change recreates the fragment: keep the tab
+        // the user was on, the paired flag, and the fingerprint they trusted,
+        // so pair() probes the session instead of burning the one-time link.
+        if (savedInstanceState != null) {
+            tabId = savedInstanceState.getInt(KEY_TAB, 0)
+            paired = savedInstanceState.getBoolean(KEY_PAIRED, false)
+            savedInstanceState.getString(KEY_TRUST)?.let { api.trustedFingerprint = it }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_TAB, tabId)
+        outState.putBoolean(KEY_PAIRED, paired)
+        api.trustedFingerprint?.let { outState.putString(KEY_TRUST, it) }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -108,7 +123,9 @@ class NativeSessionFragment : Fragment(), SessionHost {
             setBackgroundColor(MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface, 0))
         }
         content = FrameLayout(requireContext()).apply {
-            id = View.generateViewId()
+            // A stable id: the child fragment manager restores the tab into
+            // this container after a rotation or night-mode change.
+            id = dev.vfox.vfoxplus.R.id.session_content
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             )
@@ -177,6 +194,7 @@ class NativeSessionFragment : Fragment(), SessionHost {
         content.addView(loading)
         tabs = com.google.android.material.bottomnavigation.BottomNavigationView(requireContext()).apply {
             inflateMenu(dev.vfox.vfoxplus.R.menu.session_nav)
+            labelVisibilityMode = com.google.android.material.bottomnavigation.BottomNavigationView.LABEL_VISIBILITY_LABELED
             setOnItemSelectedListener { item ->
                 showTab(
                     when (item.itemId) {
@@ -247,6 +265,10 @@ class NativeSessionFragment : Fragment(), SessionHost {
             4 -> SettingsFragment()
             else -> HomeFragment()
         }
+        tab?.let {
+            it.enterTransition = dev.vfox.vfoxplus.Motion.fadeThrough(requireContext(), true)
+            it.exitTransition = dev.vfox.vfoxplus.Motion.fadeThrough(requireContext(), false)
+        }
         childFragmentManager.popBackStackImmediate(
             null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE,
         )
@@ -303,7 +325,9 @@ class NativeSessionFragment : Fragment(), SessionHost {
         errorBox.visibility = View.GONE
         runApi(
             task = {
-                val bare = !("/auth/connect/" in startUrl)
+                // Already paired (e.g. after a rotation): the one-time link is
+                // spent, so only probe the live session like a remembered server.
+                val bare = paired || !("/auth/connect/" in startUrl)
                 if (bare) {
                     // A remembered server: only a live session opens it.
                     val probe = api.get("$base/app")
@@ -387,6 +411,9 @@ class NativeSessionFragment : Fragment(), SessionHost {
     // then leaves the session.
     companion object {
         private const val ARG_URL = "url"
+        private const val KEY_TAB = "tab"
+        private const val KEY_PAIRED = "paired"
+        private const val KEY_TRUST = "trust"
 
         fun newInstance(startUrl: String) = NativeSessionFragment().apply {
             arguments = android.os.Bundle().apply { putString(ARG_URL, startUrl) }

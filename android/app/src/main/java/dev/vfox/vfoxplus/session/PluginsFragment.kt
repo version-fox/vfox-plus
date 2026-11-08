@@ -44,11 +44,17 @@ class PluginsFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
+        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(SessionUi.bar(requireContext(), getString(R.string.tab_plugins)))
         val scroll = ScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
-        return scroll
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+        )
+        return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

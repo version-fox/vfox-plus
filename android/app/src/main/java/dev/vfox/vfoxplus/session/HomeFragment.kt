@@ -14,30 +14,40 @@
 
 package dev.vfox.vfoxplus.session
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.TextView
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
+import dev.vfox.vfoxplus.Motion
 import dev.vfox.vfoxplus.R
+import dev.vfox.vfoxplus.springIn
 import org.json.JSONObject
 
 // The home tab of the native session: the version, the stat tiles, the
-// plugins in use, the terminal card and the registry/docs cards.
+// plugins in use, the terminal card and the registry card.
 class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
     private lateinit var host: SessionHost
     private lateinit var swipe: SwipeRefreshLayout
     private lateinit var body: LinearLayout
-    private lateinit var version: TextView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enterTransition = Motion.fadeThrough(requireContext(), true)
+        exitTransition = Motion.fadeThrough(requireContext(), false)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        host = (parentFragment as NativeSessionFragment) as SessionHost
+        host = parentFragment as SessionHost
+        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(SessionUi.bar(requireContext(), "vfox-plus"))
         swipe = SwipeRefreshLayout(requireContext())
         val scroll = ScrollView(requireContext())
         body = LinearLayout(requireContext())
@@ -45,7 +55,11 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
         scroll.addView(body)
         swipe.addView(scroll)
         swipe.setOnRefreshListener { refresh() }
-        return swipe
+        root.addView(
+            swipe,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+        )
+        return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -78,62 +92,76 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw(inventory: SessionModels.Inventory) {
         body.removeAllViews()
         val context = requireContext()
-        version = TextView(context).apply { text = "vfox ${inventory.vfox.version.orEmpty()}" }
+        val version = SessionUi.body(context)
+        version.text = getString(R.string.session_version, inventory.vfox.version.orEmpty())
         body.addView(version)
         // The three stat tiles: plugins, versions, in use.
         val stats = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val installed = inventory.installed
         val inUse = installed.count { it.hasCurrent }
         val versions = installed.sumOf { it.versions.size }
-        for ((count, label) in listOf(
-            installed.size to getString(R.string.session_plugins),
-            versions to getString(R.string.session_versions),
-            inUse to getString(R.string.session_in_use),
+        val tiles = listOf(
+            Triple(installed.size.toString(), getString(R.string.session_plugins), dev.vfox.vfoxplus.R.drawable.ic_nav_plugins),
+            Triple(versions.toString(), getString(R.string.session_versions), dev.vfox.vfoxplus.R.drawable.ic_nav_sdks),
+            Triple(inUse.toString(), getString(R.string.session_in_use), dev.vfox.vfoxplus.R.drawable.ic_nav_home),
         )
-        ) {
-            val tile = SessionUi.card(context)
-            val inner = LinearLayout(context)
-            SessionUi.pad(inner)
-            inner.addView(SessionUi.headline(context, count.toString(), 28f))
-            inner.addView(SessionUi.body(context, label))
-            tile.addView(inner)
-            tile.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        tiles.forEachIndexed { index, (count, label, icon) ->
+            val tile = SessionUi.stat(context, count, label, icon)
+            tile.springIn((index * 50).toLong())
             stats.addView(tile)
         }
         body.addView(stats)
         body.addView(SessionUi.section(context, getString(R.string.session_active)))
-        for (sdk in installed.filter { it.hasCurrent }) {
-            val card = SessionUi.card(context)
-            val inner = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-            SessionUi.pad(inner)
-            val avatar = TextView(context).apply {
-                text = sdk.name.firstOrNull()?.uppercase().orEmpty()
-                textSize = 24f
-            }
-            val names = LinearLayout(context)
-            SessionUi.pad(names, 12, 0)
-            names.addView(SessionUi.headline(context, sdk.name, 17f))
-            names.addView(SessionUi.body(context, sdk.current.orEmpty()))
-            inner.addView(avatar)
-            inner.addView(names)
-            card.addView(inner)
-            card.setOnClickListener { host.openSdkDetail(sdk.name) }
-            body.addView(card)
+        installed.filter { it.hasCurrent }.forEachIndexed { index, sdk ->
+            body.addView(
+                SessionUi.row(
+                    context,
+                    title = sdk.name,
+                    subtitle = sdk.current,
+                    avatarName = sdk.name,
+                    onClick = { host.openSdkDetail(sdk.name) },
+                ).apply { springIn((150 + index * 50).toLong()) },
+            )
+            body.addView(SessionUi.divider(context))
         }
         val terminal = SessionUi.card(context)
         val terminalInner = LinearLayout(context)
         SessionUi.pad(terminalInner)
         terminalInner.addView(SessionUi.headline(context, getString(R.string.session_terminal), 16f))
         terminalInner.addView(SessionUi.body(context, getString(R.string.session_terminal_body)))
-        terminalInner.addView(SessionUi.body(context, "eval \"\$(vfox activate bash)\""))
+        val shellRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val command = SessionUi.body(context, "eval \"\$(vfox activate bash)\"").apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val copy = MaterialButton(context, null, com.google.android.material.R.attr.materialIconButtonStyle).apply {
+            setIconResource(dev.vfox.vfoxplus.R.drawable.ic_paste)
+            contentDescription = getString(R.string.session_copy)
+            setOnClickListener {
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("shell", "eval \"\$(vfox activate bash)\""))
+                host.notify(getString(R.string.session_copied))
+            }
+        }
+        shellRow.addView(command)
+        shellRow.addView(copy)
+        terminalInner.addView(shellRow)
         terminal.addView(terminalInner)
+        terminal.springIn(250)
         body.addView(terminal)
         val explore = SessionUi.card(context)
-        val exploreInner = LinearLayout(context)
-        SessionUi.pad(exploreInner)
-        exploreInner.addView(SessionUi.headline(context, getString(R.string.session_explore), 16f))
-        explore.addView(exploreInner)
-        explore.setOnClickListener { host.openTab(2) }
+        explore.addView(
+            SessionUi.row(
+                context,
+                title = getString(R.string.session_explore),
+                subtitle = getString(R.string.session_explore_body),
+                chevron = true,
+                onClick = { host.openTab(2) },
+            ),
+        )
+        explore.springIn(300)
         body.addView(explore)
         val add = com.google.android.material.floatingactionbutton.FloatingActionButton(context).apply {
             setImageResource(dev.vfox.vfoxplus.R.drawable.ic_add)
@@ -142,9 +170,10 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
         }
         val addRow = LinearLayout(context).apply {
             gravity = android.view.Gravity.END
+            val margin = (16 * resources.displayMetrics.density).toInt()
+            setPadding(0, margin, margin, margin)
         }
         addRow.addView(add)
         body.addView(addRow)
-        version.isVisible = true
     }
 }

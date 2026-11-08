@@ -14,6 +14,7 @@
 
 package dev.vfox.vfoxplus.session
 
+import android.annotation.SuppressLint
 import android.content.Context
 import dev.vfox.vfoxplus.Fingerprint
 import java.io.ByteArrayOutputStream
@@ -188,6 +189,10 @@ class SessionApi(context: Context) {
             factory.trustManagers.filterIsInstance<X509TrustManager>().first()
         }
 
+        // A pinning trust manager is delicate in general; this one only ever
+        // accepts what the default manager accepts, or the exact certificate
+        // fingerprint the user compared on both sides and trusted for the run.
+        @SuppressLint("CustomX509TrustManager")
         private val pinning = object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) =
                 default.checkClientTrusted(chain, authType)

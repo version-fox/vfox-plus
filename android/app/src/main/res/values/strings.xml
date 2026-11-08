@@ -64,19 +64,17 @@
     <string name="tab_plugins">Plugins</string>
     <string name="tab_tasks">Tasks</string>
     <string name="tab_settings">Settings</string>
-    <string name="refresh">Refresh</string>
     <string name="retry">Retry</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
-    <string name="loading">Loading…</string>
     <string name="request_failed">Request failed.</string>
-    <string name="not_paired">Not paired. Open a pairing link first.</string>
     <string name="session_plugins">Plugins</string>
     <string name="session_versions">Versions</string>
     <string name="session_in_use">In use</string>
     <string name="session_active">Plugins in use</string>
     <string name="session_terminal">Use in a terminal</string>
     <string name="session_terminal_body">Add this line to your shell startup file so terminals pick up the global versions:</string>
+    <string name="session_explore_body">Browse and install plugins.</string>
     <string name="session_explore">Plugin registry</string>
     <string name="session_search_sdks">Search SDKs…</string>
     <string name="session_installed">Installed</string>
@@ -104,7 +102,6 @@
     <string name="session_port_body">Other devices connect to this port. Allow it in the firewall of this computer.</string>
     <string name="session_pair_phone">Pair a phone</string>
     <string name="session_reachable">Reachable at</string>
-    <string name="session_fingerprint">Certificate fingerprint. Compare it on the other device.</string>
     <string name="session_lightweight">Lightweight mode</string>
     <string name="session_lightweight_body">When the window of vfox+ on the computer is closed, keep running in the background without it, so that this page and the tasks go on. Start vfox+ again to bring the window back.</string>
     <string name="session_quit">Quit vfox+</string>
@@ -112,7 +109,11 @@
     <string name="session_application">Application</string>
     <string name="session_vfox_config">vfox config</string>
     <string name="session_copy_link">Copy link</string>
+    <string name="session_copy">Copy</string>
+    <string name="session_homepage">Homepage</string>
+    <string name="session_version">vfox %1$s</string>
     <string name="session_edit">Edit</string>
+    <string name="session_copied">Copied</string>
     <string name="session_close">Close</string>
     <string name="session_pair_help">Scan the code with the Android app, or open the link on the other device. It works once and expires in a few minutes.</string>
 </resources>

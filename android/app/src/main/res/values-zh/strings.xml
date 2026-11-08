@@ -64,19 +64,17 @@
     <string name="tab_plugins">插件</string>
     <string name="tab_tasks">任务</string>
     <string name="tab_settings">设置</string>
-    <string name="refresh">刷新</string>
     <string name="retry">重试</string>
     <string name="save">保存</string>
     <string name="cancel">取消</string>
-    <string name="loading">加载中…</string>
     <string name="request_failed">请求失败。</string>
-    <string name="not_paired">未配对请先打开配对链接。</string>
     <string name="session_plugins">插件</string>
     <string name="session_versions">版本</string>
     <string name="session_in_use">使用中</string>
     <string name="session_active">在用的插件</string>
     <string name="session_terminal">在终端中使用</string>
     <string name="session_terminal_body">把这一行加入 Shell 启动文件终端即可用全局版本：</string>
+    <string name="session_explore_body">浏览并安装插件。</string>
     <string name="session_explore">插件仓库</string>
     <string name="session_search_sdks">搜索 SDK…</string>
     <string name="session_installed">已安装</string>
@@ -104,7 +102,6 @@
     <string name="session_port_body">其他设备通过此端口连接，需要在这台电脑的防火墙中放行。</string>
     <string name="session_pair_phone">配对手机</string>
     <string name="session_reachable">可通过以下地址访问</string>
-    <string name="session_fingerprint">证书指纹请在另一台设备上核对。</string>
     <string name="session_lightweight">轻量模式</string>
     <string name="session_lightweight_body">电脑上 vfox+ 的窗口关闭后不退出而在后台继续运行本页面和任务都会继续。再次启动 vfox+ 即可恢复窗口。</string>
     <string name="session_quit">退出 vfox+</string>
@@ -112,7 +109,11 @@
     <string name="session_application">应用</string>
     <string name="session_vfox_config">vfox 配置</string>
     <string name="session_copy_link">复制链接</string>
+    <string name="session_copy">复制</string>
+    <string name="session_homepage">主页</string>
+    <string name="session_version">vfox %1$s</string>
     <string name="session_edit">修改</string>
+    <string name="session_copied">已复制</string>
     <string name="session_close">关闭</string>
     <string name="session_pair_help">用安卓应用扫描二维码或在另一台设备上打开链接。链接一次性有效几分钟后过期。</string>
 </resources>

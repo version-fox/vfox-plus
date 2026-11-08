@@ -27,6 +27,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import androidx.fragment.app.Fragment
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.set
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -47,11 +49,17 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
+        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(SessionUi.bar(requireContext(), getString(R.string.tab_settings)))
         val scroll = ScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
-        return scroll
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+        )
+        return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -118,7 +126,13 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         val phone = SessionUi.card(context)
         val phoneInner = LinearLayout(context)
         SessionUi.pad(phoneInner)
-        phoneInner.addView(SessionUi.body(context, "${getString(R.string.session_connected_to)} ${host.base.substringAfter("://")}"))
+        phoneInner.addView(
+            SessionUi.row(
+                context,
+                title = getString(R.string.session_connected_to),
+                subtitle = host.base.substringAfter("://"),
+            ),
+        )
         val phoneRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val pairNew = MaterialButton(context).apply {
             text = getString(R.string.session_pair_new)
@@ -138,22 +152,25 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         val connections = SessionUi.card(context)
         val connectionsInner = LinearLayout(context)
         SessionUi.pad(connectionsInner)
-        connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_other_devices), 16f))
-        val remote = SwitchMaterial(context).apply {
-            isChecked = webState.remote
-            setOnCheckedChangeListener { _, checked ->
-                if (checked && !webState.remote) {
-                    putWeb(
-                        JSONObject().put("remote", true),
-                        R.string.session_other_devices, getString(R.string.session_other_devices_body),
-                    )
-                } else if (!checked) {
-                    putWeb(JSONObject().put("remote", false))
-                }
+        val remote = SwitchMaterial(context).apply { isChecked = webState.remote }
+        connectionsInner.addView(
+            SessionUi.row(
+                context,
+                title = getString(R.string.session_other_devices),
+                trailing = remote,
+            ),
+        )
+        remote.setOnCheckedChangeListener { _, checked ->
+            if (checked && !webState.remote) {
+                putWeb(
+                    JSONObject().put("remote", true),
+                    R.string.session_other_devices, getString(R.string.session_other_devices_body),
+                )
+            } else if (!checked) {
+                putWeb(JSONObject().put("remote", false))
             }
         }
-        connectionsInner.addView(remote)
-        connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_port), 16f))
+        connectionsInner.addView(SessionUi.divider(context))
         connectionsInner.addView(SessionUi.body(context, getString(R.string.session_port_body)))
         val portRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val portBox = SessionUi.textField(context, getString(R.string.session_port), webState.port.toString())
@@ -170,27 +187,38 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         portRow.addView(portSave)
         connectionsInner.addView(portRow)
         if (webState.error.isNotEmpty()) connectionsInner.addView(SessionUi.body(context, webState.error))
+        connectionsInner.addView(SessionUi.divider(context))
         connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_pair_phone), 16f))
         if (webState.listening && webState.addresses.isNotEmpty()) {
             val address = "https://${webState.addresses.first()}:${webState.port}"
             connectionsInner.addView(SessionUi.body(context, "${getString(R.string.session_reachable)} $address"))
-            connectionsInner.addView(SessionUi.body(context, "${getString(R.string.session_fingerprint)} ${webState.fingerprint}"))
+            connectionsInner.addView(
+                fingerprintBlock(context, webState.fingerprint) {
+                    val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("fingerprint", webState.fingerprint))
+                    host.notify(getString(R.string.session_copied))
+                },
+            )
             val pairButton = MaterialButton(context).apply {
                 text = getString(R.string.session_pair_phone)
                 setOnClickListener { showPairing() }
             }
             connectionsInner.addView(pairButton)
         }
-        connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_lightweight), 16f))
-        connectionsInner.addView(SessionUi.body(context, getString(R.string.session_lightweight_body)))
-        val lightweight = SwitchMaterial(context).apply {
-            isChecked = webState.lightweight
-            setOnCheckedChangeListener { _, checked ->
-                putWeb(JSONObject().put("lightweight", checked))
-            }
+        connectionsInner.addView(SessionUi.divider(context))
+        val lightweight = SwitchMaterial(context).apply { isChecked = webState.lightweight }
+        connectionsInner.addView(
+            SessionUi.row(
+                context,
+                title = getString(R.string.session_lightweight),
+                subtitle = getString(R.string.session_lightweight_body),
+                trailing = lightweight,
+            ),
+        )
+        lightweight.setOnCheckedChangeListener { _, checked ->
+            putWeb(JSONObject().put("lightweight", checked))
         }
-        connectionsInner.addView(lightweight)
-        connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_quit), 16f))
+        connectionsInner.addView(SessionUi.divider(context))
         val quit = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             text = getString(R.string.session_quit)
             setOnClickListener {
@@ -202,7 +230,13 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
                     .show()
             }
         }
-        connectionsInner.addView(quit)
+        connectionsInner.addView(
+            SessionUi.row(
+                context,
+                title = getString(R.string.session_quit),
+                trailing = quit,
+            ),
+        )
         connections.addView(connectionsInner)
         body.addView(connections)
         // Application: the settings of the desktop app.
@@ -329,13 +363,20 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         )
     }
 
+    // The fingerprint in rows of eight groups, like the trust dialog, so a
+    // group never wraps in the middle.
+    private fun fingerprintBlock(context: Context, value: String, onCopy: () -> Unit): LinearLayout {
+        val pretty = value.split(":").chunked(8).joinToString("\n") { it.joinToString(":") }
+        return SessionUi.fingerprint(context, pretty, onCopy)
+    }
+
     private fun qrBitmap(url: String, size: Int): Bitmap? {
         return try {
             val matrix = QRCodeWriter().encode(url, BarcodeFormat.QR_CODE, size, size)
-            Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565).apply {
+            createBitmap(size, size, Bitmap.Config.RGB_565).apply {
                 for (x in 0 until size) {
                     for (y in 0 until size) {
-                        setPixel(x, y, if (matrix[x, y]) 0xFF000000.toInt() else 0xFFFFFFFF.toInt())
+                        this[x, y] = if (matrix[x, y]) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
                     }
                 }
             }

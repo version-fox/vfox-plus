@@ -23,9 +23,11 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.core.net.toUri
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
+import dev.vfox.vfoxplus.Motion
 import dev.vfox.vfoxplus.R
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,15 +51,30 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         name = requireArguments().getString(ARG_NAME).orEmpty()
+        val context = requireContext()
+        enterTransition = Motion.sharedAxisX(context, true)
+        exitTransition = Motion.sharedAxisX(context, false)
+        reenterTransition = Motion.sharedAxisX(context, false)
+        returnTransition = Motion.sharedAxisX(context, true)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
+        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        val bar = SessionUi.bar(requireContext(), name).apply {
+            setNavigationIcon(dev.vfox.vfoxplus.R.drawable.ic_back)
+            setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+        }
+        root.addView(bar)
         val scroll = ScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
-        return scroll
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+        )
+        return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -146,15 +163,26 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw() {
         body.removeAllViews()
         val context = requireContext()
-        val back = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialIconButtonStyle).apply {
-            setIconResource(dev.vfox.vfoxplus.R.drawable.ic_back)
-            setOnClickListener { parentFragmentManager.popBackStack() }
-        }
-        body.addView(back)
-        body.addView(SessionUi.headline(context, name, 26f))
         info?.let {
-            body.addView(SessionUi.body(context, it.description))
-            body.addView(SessionUi.body(context, it.homepage))
+            if (it.description.isNotEmpty()) body.addView(SessionUi.body(context, it.description))
+            if (it.homepage.isNotEmpty()) {
+                val home = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                    text = getString(R.string.session_homepage)
+                    setOnClickListener { _ ->
+                        try {
+                            startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    it.homepage.toUri(),
+                                ),
+                            )
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            host.notify(getString(R.string.open_link_failed))
+                        }
+                    }
+                }
+                body.addView(home)
+            }
         }
         val tabs = com.google.android.material.button.MaterialButtonToggleGroup(context).apply {
             isSingleSelection = true

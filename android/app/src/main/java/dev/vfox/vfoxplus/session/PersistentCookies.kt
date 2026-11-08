@@ -15,6 +15,7 @@
 package dev.vfox.vfoxplus.session
 
 import android.content.Context
+import androidx.core.content.edit
 
 // The session cookies, kept in SharedPreferences so a restart reconnects
 // without pairing again. The server
@@ -41,11 +42,13 @@ internal class PersistentCookies(context: Context) {
             val name = pair.substringBefore("=")
             if (name.isNotEmpty()) jar[name] = pair
         }
-        prefs.edit().putStringSet(host, jar.values.toSet()).apply()
+        prefs.edit {
+            putStringSet(host, jar.values.toSet())
+        }
     }
 
     @Synchronized
     fun clear() {
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
     }
 }
