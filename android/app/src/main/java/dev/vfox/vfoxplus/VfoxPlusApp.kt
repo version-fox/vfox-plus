@@ -17,4 +17,12 @@ package dev.vfox.vfoxplus
 import android.app.Application
 
 // Application setup for the vfox-plus remote client.
-class VfoxPlusApp : Application()
+class VfoxPlusApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // The phone interface takes the system's expressive palette on
+        // Android 12 and later, independent of the beige of the web page;
+        // older releases keep the seed scheme built into the theme.
+        com.google.android.material.color.DynamicColors.applyToActivitiesIfAvailable(this)
+    }
+}

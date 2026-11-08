@@ -49,17 +49,11 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
-        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(SessionUi.bar(requireContext(), getString(R.string.tab_settings)))
         val scroll = ScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
-        )
-        return root
+        return scroll
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -121,16 +115,19 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         body.removeAllViews()
         val context = requireContext()
         val webState = web ?: return
+        body.addView(SessionUi.header(context, getString(R.string.tab_settings)))
         // This phone: the card that pairs another link or disconnects.
         body.addView(SessionUi.section(context, getString(R.string.session_this_phone)))
         val phone = SessionUi.card(context)
         val phoneInner = LinearLayout(context)
         SessionUi.pad(phoneInner)
         phoneInner.addView(
-            SessionUi.row(
+            SessionUi.settingRow(
                 context,
                 title = getString(R.string.session_connected_to),
                 subtitle = host.base.substringAfter("://"),
+                icon = dev.vfox.vfoxplus.R.drawable.ic_phone,
+                hue = SessionUi.PRIMARY,
             ),
         )
         val phoneRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
@@ -154,9 +151,11 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         SessionUi.pad(connectionsInner)
         val remote = SwitchMaterial(context).apply { isChecked = webState.remote }
         connectionsInner.addView(
-            SessionUi.row(
+            SessionUi.settingRow(
                 context,
                 title = getString(R.string.session_other_devices),
+                icon = dev.vfox.vfoxplus.R.drawable.ic_devices,
+                hue = SessionUi.SECONDARY,
                 trailing = remote,
             ),
         )
@@ -188,10 +187,20 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         connectionsInner.addView(portRow)
         if (webState.error.isNotEmpty()) connectionsInner.addView(SessionUi.body(context, webState.error))
         connectionsInner.addView(SessionUi.divider(context))
-        connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_pair_phone), 16f))
+        connectionsInner.addView(
+            SessionUi.settingRow(
+                context,
+                title = getString(R.string.session_pair_phone),
+                subtitle = if (webState.listening && webState.addresses.isNotEmpty()) {
+                    "${getString(R.string.session_reachable)} https://${webState.addresses.first()}:${webState.port}"
+                } else {
+                    null
+                },
+                icon = dev.vfox.vfoxplus.R.drawable.ic_qr,
+                hue = SessionUi.TERTIARY,
+            ),
+        )
         if (webState.listening && webState.addresses.isNotEmpty()) {
-            val address = "https://${webState.addresses.first()}:${webState.port}"
-            connectionsInner.addView(SessionUi.body(context, "${getString(R.string.session_reachable)} $address"))
             connectionsInner.addView(
                 fingerprintBlock(context, webState.fingerprint) {
                     val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -208,10 +217,12 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         connectionsInner.addView(SessionUi.divider(context))
         val lightweight = SwitchMaterial(context).apply { isChecked = webState.lightweight }
         connectionsInner.addView(
-            SessionUi.row(
+            SessionUi.settingRow(
                 context,
                 title = getString(R.string.session_lightweight),
                 subtitle = getString(R.string.session_lightweight_body),
+                icon = dev.vfox.vfoxplus.R.drawable.ic_leaf,
+                hue = SessionUi.PRIMARY,
                 trailing = lightweight,
             ),
         )
@@ -231,9 +242,12 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
             }
         }
         connectionsInner.addView(
-            SessionUi.row(
+            SessionUi.settingRow(
                 context,
                 title = getString(R.string.session_quit),
+                subtitle = getString(R.string.session_quit_body),
+                icon = dev.vfox.vfoxplus.R.drawable.ic_logout,
+                hue = SessionUi.SECONDARY,
                 trailing = quit,
             ),
         )

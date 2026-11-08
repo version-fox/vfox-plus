@@ -86,6 +86,15 @@ val materialSymbols = listOf(
     Triple("ic_nav_settings_fill", "settings", "fill1"),
     Triple("ic_add", "add", null),
     Triple("ic_back", "arrow_back", null),
+    // The leading tiles of the native session: one hue per group.
+    Triple("ic_phone", "smartphone", null),
+    Triple("ic_devices", "devices", null),
+    Triple("ic_qr", "qr_code_2", null),
+    Triple("ic_leaf", "energy_savings_leaf", null),
+    Triple("ic_logout", "logout", null),
+    Triple("ic_terminal", "terminal", null),
+    Triple("ic_store", "store", null),
+    Triple("ic_open", "open_in_new", null),
 )
 val symbolFiles by configurations.creating {
     isCanBeConsumed = false

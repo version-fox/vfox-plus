@@ -20,6 +20,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -31,7 +32,28 @@ import com.google.android.material.divider.MaterialDivider
 // The small Material kit of the native session: an app bar, list rows with
 // avatars and chevrons, tonal stat tiles, section labels and body text in
 // the roles of the theme, so the five tabs look and move like one app.
+//
+// The hues come from the theme roles (primary, secondary, tertiary), never
+// from fixed colours: on Android 12 and later the app takes the system's
+// dynamic palette and every tile, avatar and icon block follows it.
 object SessionUi {
+    // One expressive hue: the container role and its on-colour.
+    data class Hue(val container: Int, val onContainer: Int)
+
+    val PRIMARY = Hue(
+        com.google.android.material.R.attr.colorPrimaryContainer,
+        com.google.android.material.R.attr.colorOnPrimaryContainer,
+    )
+    val SECONDARY = Hue(
+        com.google.android.material.R.attr.colorSecondaryContainer,
+        com.google.android.material.R.attr.colorOnSecondaryContainer,
+    )
+    val TERTIARY = Hue(
+        com.google.android.material.R.attr.colorTertiaryContainer,
+        com.google.android.material.R.attr.colorOnTertiaryContainer,
+    )
+    val HUES = listOf(PRIMARY, SECONDARY, TERTIARY)
+
     fun card(context: Context): MaterialCardView = MaterialCardView(context).apply {
         radius = 28f * context.resources.displayMetrics.density
         layoutParams = LinearLayout.LayoutParams(
@@ -43,11 +65,10 @@ object SessionUi {
     }
 
     // A tonal stat tile: the number large, the label under it, an icon after.
-    fun stat(context: Context, count: String, label: String, icon: Int): MaterialCardView {
+    // Each tile takes its own hue so the three read as one expressive group.
+    fun stat(context: Context, count: String, label: String, icon: Int, hue: Hue = SECONDARY): MaterialCardView {
         val card = card(context).apply {
-            setCardBackgroundColor(
-                MaterialColors.getColor(context, com.google.android.material.R.attr.colorSecondaryContainer, 0),
-            )
+            setCardBackgroundColor(MaterialColors.getColor(context, hue.container, 0))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         val inner = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
@@ -59,12 +80,13 @@ object SessionUi {
         val number = TextView(context).apply {
             text = count
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_DisplaySmall)
+            setTextColor(MaterialColors.getColor(context, hue.onContainer, 0))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         val dot = ImageView(context).apply {
             setImageResource(icon)
             imageTintList = android.content.res.ColorStateList.valueOf(
-                MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSecondaryContainer, 0),
+                MaterialColors.getColor(context, hue.onContainer, 0),
             )
             val size = (28 * context.resources.displayMetrics.density).toInt()
             layoutParams = LinearLayout.LayoutParams(size, size)
@@ -72,20 +94,42 @@ object SessionUi {
         row.addView(number)
         row.addView(dot)
         inner.addView(row)
-        inner.addView(labelView(context, label))
+        inner.addView(TextView(context).apply {
+            text = label
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
+            setTextColor(MaterialColors.getColor(context, hue.onContainer, 0))
+        })
         card.addView(inner)
         return card
-    }
-
-    private fun labelView(context: Context, text: String): TextView = TextView(context).apply {
-        this.text = text
-        setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
     }
 
     fun section(context: Context, text: String): TextView = TextView(context).apply {
         this.text = text
         setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
         setTextColor(MaterialColors.getColor(context, androidx.appcompat.R.attr.colorPrimary, 0))
+    }
+
+    // The expressive page header: the title large, the version under it.
+    fun header(context: Context, title: String, subtitle: String? = null): LinearLayout {
+        val box = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val density = resources.displayMetrics.density
+            setPadding((16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt(), (4 * density).toInt())
+        }
+        box.addView(TextView(context).apply {
+            text = title
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_DisplaySmall)
+        })
+        if (!subtitle.isNullOrEmpty()) {
+            box.addView(TextView(context).apply {
+                text = subtitle
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+                setTextColor(
+                    MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0),
+                )
+            })
+        }
+        return box
     }
 
     fun headline(context: Context, text: String, size: Float = 20f): TextView = TextView(context).apply {
@@ -111,10 +155,36 @@ object SessionUi {
             if (subtitle != null) this.subtitle = subtitle
         }
 
-    // A 40 dp circle with the first letter, coloured by the name like the web avatars.
+    // A 48 dp rounded block in the hue with the icon on it: the leading mark
+    // of a settings row.
+    fun iconTile(context: Context, icon: Int, hue: Hue): FrameLayout {
+        val density = context.resources.displayMetrics.density
+        val size = (48 * density).toInt()
+        return FrameLayout(context).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16 * density
+                setColor(MaterialColors.getColor(context, hue.container, 0))
+            }
+            addView(ImageView(context).apply {
+                setImageResource(icon)
+                imageTintList = android.content.res.ColorStateList.valueOf(
+                    MaterialColors.getColor(context, hue.onContainer, 0),
+                )
+                val iconSize = (24 * density).toInt()
+                layoutParams = FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER)
+            })
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                marginEnd = (16 * density).toInt()
+            }
+        }
+    }
+
+    // A 40 dp circle with the first letter, coloured by the name in the hues
+    // of the theme like the web avatars.
     fun avatar(context: Context, name: String): TextView {
         val density = context.resources.displayMetrics.density
-        val (bg, fg) = AVATARS[(name.hashCode() and Int.MAX_VALUE) % AVATARS.size]
+        val hue = HUES[(name.hashCode() and Int.MAX_VALUE) % HUES.size]
         return TextView(context).apply {
             text = name.firstOrNull()?.uppercase().orEmpty()
             gravity = Gravity.CENTER
@@ -122,9 +192,9 @@ object SessionUi {
             setTypeface(typeface, Typeface.BOLD)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(bg)
+                setColor(MaterialColors.getColor(context, hue.container, 0))
             }
-            setTextColor(fg)
+            setTextColor(MaterialColors.getColor(context, hue.onContainer, 0))
             val size = (40 * density).toInt()
             layoutParams = LinearLayout.LayoutParams(size, size).apply {
                 marginEnd = (16 * density).toInt()
@@ -203,6 +273,51 @@ object SessionUi {
         return row
     }
 
+    // A settings row with its leading icon in an expressive hue block.
+    fun settingRow(
+        context: Context,
+        title: String,
+        subtitle: String? = null,
+        icon: Int,
+        hue: Hue,
+        trailing: View? = null,
+        onClick: (() -> Unit)? = null,
+    ): LinearLayout {
+        val density = context.resources.displayMetrics.density
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = (72 * density).toInt()
+            setPadding((16 * density).toInt(), (8 * density).toInt(), (16 * density).toInt(), (8 * density).toInt())
+            if (onClick != null) {
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { onClick() }
+            }
+        }
+        row.addView(iconTile(context, icon, hue))
+        val texts = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        texts.addView(TextView(context).apply {
+            text = title
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+        })
+        if (!subtitle.isNullOrEmpty()) {
+            texts.addView(TextView(context).apply {
+                text = subtitle
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+                setTextColor(
+                    MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0),
+                )
+            })
+        }
+        row.addView(texts)
+        if (trailing != null) row.addView(trailing)
+        return row
+    }
+
     fun divider(context: Context): MaterialDivider = MaterialDivider(
         context, null, com.google.android.material.R.attr.materialDividerStyle,
     ).apply {
@@ -259,14 +374,4 @@ object SessionUi {
         )
         view.orientation = LinearLayout.VERTICAL
     }
-
-    // Tonal pairs the avatar letter sits in, hashed by name like the web avatars.
-    private val AVATARS = listOf(
-        0xFFFFDBCB.toInt() to 0xFF6B3A12.toInt(),
-        0xFFC9F2C7.toInt() to 0xFF0E4D1F.toInt(),
-        0xFFD4E3FF.toInt() to 0xFF0A305F.toInt(),
-        0xFFE8DEF8.toInt() to 0xFF4A4458.toInt(),
-        0xFFB8E8E0.toInt() to 0xFF06302B.toInt(),
-        0xFFF8E287.toInt() to 0xFF4C4400.toInt(),
-    )
 }

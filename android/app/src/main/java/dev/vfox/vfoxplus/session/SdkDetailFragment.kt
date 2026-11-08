@@ -163,11 +163,14 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw() {
         body.removeAllViews()
         val context = requireContext()
+        // The expressive header: the SDK name large, the description under it,
+        // the homepage as a tonal button with an icon.
+        body.addView(SessionUi.header(context, name, info?.description?.takeIf { it.isNotEmpty() }))
         info?.let {
-            if (it.description.isNotEmpty()) body.addView(SessionUi.body(context, it.description))
             if (it.homepage.isNotEmpty()) {
-                val home = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                val home = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonTonalStyle).apply {
                     text = getString(R.string.session_homepage)
+                    setIconResource(dev.vfox.vfoxplus.R.drawable.ic_open)
                     setOnClickListener { _ ->
                         try {
                             startActivity(
@@ -229,16 +232,27 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
             val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
             row.addView(SessionUi.headline(context, version, 16f))
             if (version == current) {
-                val tag = MaterialButton(context).apply {
+                val tag = com.google.android.material.chip.Chip(context).apply {
                     text = getString(R.string.session_current)
-                    isEnabled = false
+                    isCheckable = false
+                    isClickable = false
+                    chipBackgroundColor = android.content.res.ColorStateList.valueOf(
+                        com.google.android.material.color.MaterialColors.getColor(
+                            context, com.google.android.material.R.attr.colorPrimaryContainer, 0,
+                        ),
+                    )
+                    setTextColor(
+                        com.google.android.material.color.MaterialColors.getColor(
+                            context, com.google.android.material.R.attr.colorOnPrimaryContainer, 0,
+                        ),
+                    )
                 }
                 row.addView(tag)
             }
             inner.addView(row)
             val actions = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
             if (version != current) {
-                val use = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                val use = MaterialButton(context).apply {
                     text = getString(R.string.session_use_globally)
                     setOnClickListener { task("use", version) }
                 }

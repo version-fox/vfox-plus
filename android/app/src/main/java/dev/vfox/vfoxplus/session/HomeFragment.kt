@@ -46,8 +46,9 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
-        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(SessionUi.bar(requireContext(), "vfox-plus"))
+        // A frame: the scrolling session under a floating action button
+        // anchored to the corner, so it is never cut by the scroll.
+        val root = android.widget.FrameLayout(requireContext())
         swipe = SwipeRefreshLayout(requireContext())
         val scroll = ScrollView(requireContext())
         body = LinearLayout(requireContext())
@@ -57,7 +58,25 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
         swipe.setOnRefreshListener { refresh() }
         root.addView(
             swipe,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+            android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        val density = resources.displayMetrics.density
+        root.addView(
+            com.google.android.material.floatingactionbutton.FloatingActionButton(requireContext()).apply {
+                setImageResource(dev.vfox.vfoxplus.R.drawable.ic_add)
+                contentDescription = getString(R.string.session_explore)
+                setOnClickListener { host.openTab(2) }
+            }.also { fab ->
+                fab.layoutParams = android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.Gravity.BOTTOM or android.view.Gravity.END,
+                ).apply {
+                    val margin = (16 * density).toInt()
+                    setMargins(margin, margin, margin, margin)
+                }
+            },
         )
         return root
     }
@@ -92,10 +111,13 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw(inventory: SessionModels.Inventory) {
         body.removeAllViews()
         val context = requireContext()
-        val version = SessionUi.body(context)
-        version.text = getString(R.string.session_version, inventory.vfox.version.orEmpty())
-        body.addView(version)
-        // The three stat tiles: plugins, versions, in use.
+        body.addView(
+            SessionUi.header(
+                context, "vfox-plus",
+                getString(R.string.session_version, inventory.vfox.version.orEmpty()),
+            ),
+        )
+        // The three stat tiles: plugins, versions, in use, one hue each.
         val stats = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val installed = inventory.installed
         val inUse = installed.count { it.hasCurrent }
@@ -106,7 +128,7 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
             Triple(inUse.toString(), getString(R.string.session_in_use), dev.vfox.vfoxplus.R.drawable.ic_nav_home),
         )
         tiles.forEachIndexed { index, (count, label, icon) ->
-            val tile = SessionUi.stat(context, count, label, icon)
+            val tile = SessionUi.stat(context, count, label, icon, SessionUi.HUES[index % SessionUi.HUES.size])
             tile.springIn((index * 50).toLong())
             stats.addView(tile)
         }
@@ -127,7 +149,14 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
         val terminal = SessionUi.card(context)
         val terminalInner = LinearLayout(context)
         SessionUi.pad(terminalInner)
-        terminalInner.addView(SessionUi.headline(context, getString(R.string.session_terminal), 16f))
+        terminalInner.addView(
+            SessionUi.settingRow(
+                context,
+                title = getString(R.string.session_terminal),
+                icon = dev.vfox.vfoxplus.R.drawable.ic_terminal,
+                hue = SessionUi.TERTIARY,
+            ),
+        )
         terminalInner.addView(SessionUi.body(context, getString(R.string.session_terminal_body)))
         val shellRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -153,27 +182,26 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
         body.addView(terminal)
         val explore = SessionUi.card(context)
         explore.addView(
-            SessionUi.row(
+            SessionUi.settingRow(
                 context,
                 title = getString(R.string.session_explore),
                 subtitle = getString(R.string.session_explore_body),
-                chevron = true,
+                icon = dev.vfox.vfoxplus.R.drawable.ic_store,
+                hue = SessionUi.PRIMARY,
+                trailing = android.widget.ImageView(context).apply {
+                    setImageResource(dev.vfox.vfoxplus.R.drawable.ic_forward)
+                    imageTintList = android.content.res.ColorStateList.valueOf(
+                        com.google.android.material.color.MaterialColors.getColor(
+                            context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0,
+                        ),
+                    )
+                    val size = (24 * context.resources.displayMetrics.density).toInt()
+                    layoutParams = LinearLayout.LayoutParams(size, size)
+                },
                 onClick = { host.openTab(2) },
             ),
         )
         explore.springIn(300)
         body.addView(explore)
-        val add = com.google.android.material.floatingactionbutton.FloatingActionButton(context).apply {
-            setImageResource(dev.vfox.vfoxplus.R.drawable.ic_add)
-            contentDescription = getString(R.string.session_explore)
-            setOnClickListener { host.openTab(2) }
-        }
-        val addRow = LinearLayout(context).apply {
-            gravity = android.view.Gravity.END
-            val margin = (16 * resources.displayMetrics.density).toInt()
-            setPadding(0, margin, margin, margin)
-        }
-        addRow.addView(add)
-        body.addView(addRow)
     }
 }
