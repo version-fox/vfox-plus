@@ -147,7 +147,7 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
 仍可本地看配对后 `/app` 页的 JavaScript 堆（截图附带），只做诊断，不进 CI 报告：
 浏览器进程本身的内存不在测量范围内，堆数字不能代表浏览器或 Android 客户端的占用。
 
-#### 配对后的会话与无 WebView 对照组
+### 配对后的会话与无 WebView 对照组
 
 客户端曾经是包住 `/app` 的 WebView。为看清系统 WebView 占多少曾把同一个 APK
 配对后在 `webview` 构建与从不构造 WebView 的 `nowebview` 对照构建上各测一遍，

@@ -191,7 +191,7 @@ page locally (next to a screenshot), for diagnosis only, not for the CI
 report: it never measures the browser process around the page, so the heap
 numbers do not stand for the browser or the Android client.
 
-#### The paired session and the no-WebView control
+### The paired session and the no-WebView control
 
 The client used to be a WebView around `/app`. To see what the system WebView
 cost, the same APK was measured paired, on a `webview` flavor and a
