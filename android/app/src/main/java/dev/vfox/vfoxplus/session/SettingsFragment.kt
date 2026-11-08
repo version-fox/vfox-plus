@@ -25,7 +25,6 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import androidx.fragment.app.Fragment
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
@@ -49,11 +48,37 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
-        val scroll = ScrollView(requireContext())
+        val root = androidx.coordinatorlayout.widget.CoordinatorLayout(requireContext())
+        val appBar = com.google.android.material.appbar.AppBarLayout(requireContext())
+        appBar.addView(
+            SessionUi.largeBar(requireContext(), getString(R.string.tab_settings)).apply {
+                layoutParams = com.google.android.material.appbar.AppBarLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    scrollFlags =
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
+                }
+            },
+        )
+        root.addView(
+            appBar,
+            androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        val scroll = androidx.core.widget.NestedScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
-        return scroll
+        scroll.layoutParams = androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+        ).apply {
+            behavior = com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior()
+        }
+        root.addView(scroll)
+        return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -115,7 +140,6 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         body.removeAllViews()
         val context = requireContext()
         val webState = web ?: return
-        body.addView(SessionUi.header(context, getString(R.string.tab_settings)))
         // This phone: the card that pairs another link or disconnects.
         body.addView(SessionUi.section(context, getString(R.string.session_this_phone)))
         val phone = SessionUi.card(context)
@@ -230,8 +254,29 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
             putWeb(JSONObject().put("lightweight", checked))
         }
         connectionsInner.addView(SessionUi.divider(context))
-        val quit = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+        // Quitting is destructive: one full-width button in the error hue,
+        // the dialog behind it explains what happens.
+        connectionsInner.addView(MaterialButton(context).apply {
             text = getString(R.string.session_quit)
+            setIconResource(dev.vfox.vfoxplus.R.drawable.ic_logout)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorErrorContainer, 0,
+                ),
+            )
+            setTextColor(
+                com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnErrorContainer, 0,
+                ),
+            )
+            iconTint = android.content.res.ColorStateList.valueOf(
+                com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnErrorContainer, 0,
+                ),
+            )
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
             setOnClickListener {
                 MaterialAlertDialogBuilder(context)
                     .setTitle(R.string.session_quit)
@@ -240,17 +285,7 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
                     .setNegativeButton(R.string.cancel, null)
                     .show()
             }
-        }
-        connectionsInner.addView(
-            SessionUi.settingRow(
-                context,
-                title = getString(R.string.session_quit),
-                subtitle = getString(R.string.session_quit_body),
-                icon = dev.vfox.vfoxplus.R.drawable.ic_logout,
-                hue = SessionUi.SECONDARY,
-                trailing = quit,
-            ),
-        )
+        })
         connections.addView(connectionsInner)
         body.addView(connections)
         // Application: the settings of the desktop app.

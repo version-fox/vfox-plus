@@ -20,7 +20,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.core.net.toUri
@@ -60,20 +59,38 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
-        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        val bar = SessionUi.bar(requireContext(), name).apply {
-            setNavigationIcon(dev.vfox.vfoxplus.R.drawable.ic_back)
-            setNavigationOnClickListener { parentFragmentManager.popBackStack() }
-        }
-        root.addView(bar)
-        val scroll = ScrollView(requireContext())
+        val root = androidx.coordinatorlayout.widget.CoordinatorLayout(requireContext())
+        val appBar = com.google.android.material.appbar.AppBarLayout(requireContext())
+        appBar.addView(
+            SessionUi.largeBar(requireContext(), name).apply {
+                setNavigationIcon(dev.vfox.vfoxplus.R.drawable.ic_back)
+                setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+                layoutParams = com.google.android.material.appbar.AppBarLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    scrollFlags =
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
+                }
+            },
+        )
+        root.addView(
+            appBar,
+            androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        val scroll = androidx.core.widget.NestedScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
-        )
+        scroll.layoutParams = androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+        ).apply {
+            behavior = com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior()
+        }
+        root.addView(scroll)
         return root
     }
 
@@ -163,48 +180,56 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw() {
         body.removeAllViews()
         val context = requireContext()
-        // The expressive header: the SDK name large, the description under it,
-        // the homepage as a tonal button with an icon.
-        body.addView(SessionUi.header(context, name, info?.description?.takeIf { it.isNotEmpty() }))
-        info?.let {
-            if (it.homepage.isNotEmpty()) {
-                val home = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonTonalStyle).apply {
-                    text = getString(R.string.session_homepage)
-                    setIconResource(dev.vfox.vfoxplus.R.drawable.ic_open)
-                    setOnClickListener { _ ->
-                        try {
-                            startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    it.homepage.toUri(),
-                                ),
-                            )
-                        } catch (_: android.content.ActivityNotFoundException) {
-                            host.notify(getString(R.string.open_link_failed))
-                        }
+        // The description and the homepage live in a tonal band; the name
+        // stays in the bar so it is there after scrolling too.
+        val band = SessionUi.band(context, SessionUi.SECONDARY)
+        val onBand = com.google.android.material.color.MaterialColors.getColor(
+            context, SessionUi.SECONDARY.onContainer, 0,
+        )
+        info?.description?.takeIf { it.isNotEmpty() }?.let {
+            band.addView(SessionUi.body(context, it).apply { setTextColor(onBand) })
+        }
+        info?.homepage?.takeIf { it.isNotEmpty() }?.let { page ->
+            band.addView(MaterialButton(context, null, com.google.android.material.R.attr.materialButtonTonalStyle).apply {
+                text = getString(R.string.session_homepage)
+                setIconResource(dev.vfox.vfoxplus.R.drawable.ic_open)
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    val density = context.resources.displayMetrics.density
+                    topMargin = (12 * density).toInt()
+                }
+                setOnClickListener { _ ->
+                    try {
+                        startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                page.toUri(),
+                            ),
+                        )
+                    } catch (_: android.content.ActivityNotFoundException) {
+                        host.notify(getString(R.string.open_link_failed))
                     }
                 }
-                body.addView(home)
-            }
+            })
         }
-        val tabs = com.google.android.material.button.MaterialButtonToggleGroup(context).apply {
-            isSingleSelection = true
-            isSelectionRequired = true
-        }
+        body.addView(band)
+        // The three sections as explicit buttons: the open one filled, the
+        // others outlined, so the state never depends on a default style.
+        val tabs = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val labels = listOf(R.string.session_installed, R.string.session_available, R.string.session_options)
         labels.forEachIndexed { index, label ->
-            val button = MaterialButton(
-                context, null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle,
-            ).apply {
+            val button = if (index == tab) {
+                MaterialButton(context)
+            } else {
+                MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
+            }.apply {
                 setText(label)
-                id = View.generateViewId()
             }
             tabs.addView(
                 button,
                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
             )
-            if (index == tab) tabs.check(button.id)
             button.setOnClickListener {
                 tab = index
                 draw()

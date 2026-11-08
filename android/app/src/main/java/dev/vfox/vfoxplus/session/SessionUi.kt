@@ -107,7 +107,45 @@ object SessionUi {
         this.text = text
         setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
         setTextColor(MaterialColors.getColor(context, androidx.appcompat.R.attr.colorPrimary, 0))
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply {
+            val density = context.resources.displayMetrics.density
+            setMargins(0, (16 * density).toInt(), 0, (4 * density).toInt())
+        }
     }
+
+    // A bold tonal header band: the container colour with large bottom
+    // corners, edge to edge in a padded column, for the page title and
+    // whatever lives with it.
+    fun band(context: Context, hue: Hue = PRIMARY): LinearLayout {
+        val density = context.resources.displayMetrics.density
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                val round = 32 * density
+                cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, round, round, round, round)
+                setColor(MaterialColors.getColor(context, hue.container, 0))
+            }
+            setPadding((24 * density).toInt(), (24 * density).toInt(), (24 * density).toInt(), (24 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                setMargins((-16 * density).toInt(), (-12 * density).toInt(), (-16 * density).toInt(), 0)
+            }
+        }
+    }
+
+    // A top app bar whose title reads like a headline.
+    fun largeBar(context: Context, title: String): MaterialToolbar =
+        MaterialToolbar(context).apply {
+            this.title = title
+            setTitleTextAppearance(
+                context,
+                com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall,
+            )
+        }
 
     // The expressive page header: the title large, the version under it.
     fun header(context: Context, title: String, subtitle: String? = null): LinearLayout {

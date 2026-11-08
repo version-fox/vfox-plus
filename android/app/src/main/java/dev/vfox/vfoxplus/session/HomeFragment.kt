@@ -22,10 +22,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.ScrollView
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.color.MaterialColors
 import dev.vfox.vfoxplus.Motion
 import dev.vfox.vfoxplus.R
 import dev.vfox.vfoxplus.springIn
@@ -46,22 +47,41 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
-        // A frame: the scrolling session under a floating action button
-        // anchored to the corner, so it is never cut by the scroll.
-        val root = android.widget.FrameLayout(requireContext())
+        // A coordinator: the bar folds away on scroll, the action button
+        // anchors to the corner, never cut by the content.
+        val root = androidx.coordinatorlayout.widget.CoordinatorLayout(requireContext())
+        val appBar = com.google.android.material.appbar.AppBarLayout(requireContext())
+        appBar.addView(
+            SessionUi.largeBar(requireContext(), "").apply {
+                layoutParams = com.google.android.material.appbar.AppBarLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    scrollFlags =
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or
+                        com.google.android.material.appbar.AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
+                }
+            },
+        )
+        root.addView(
+            appBar,
+            androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
         swipe = SwipeRefreshLayout(requireContext())
-        val scroll = ScrollView(requireContext())
+        val scroll = androidx.core.widget.NestedScrollView(requireContext())
         body = LinearLayout(requireContext())
         SessionUi.pad(body)
         scroll.addView(body)
         swipe.addView(scroll)
         swipe.setOnRefreshListener { refresh() }
-        root.addView(
-            swipe,
-            android.widget.FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
-        )
+        swipe.layoutParams = androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+        ).apply {
+            behavior = com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior()
+        }
+        root.addView(swipe)
         val density = resources.displayMetrics.density
         root.addView(
             com.google.android.material.floatingactionbutton.FloatingActionButton(requireContext()).apply {
@@ -69,12 +89,13 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
                 contentDescription = getString(R.string.session_explore)
                 setOnClickListener { host.openTab(2) }
             }.also { fab ->
-                fab.layoutParams = android.widget.FrameLayout.LayoutParams(
+                fab.layoutParams = androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                    android.view.Gravity.BOTTOM or android.view.Gravity.END,
                 ).apply {
+                    gravity = android.view.Gravity.BOTTOM or android.view.Gravity.END
                     val margin = (16 * density).toInt()
                     setMargins(margin, margin, margin, margin)
+                    behavior = com.google.android.material.floatingactionbutton.FloatingActionButton.Behavior()
                 }
             },
         )
@@ -111,28 +132,50 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw(inventory: SessionModels.Inventory) {
         body.removeAllViews()
         val context = requireContext()
-        body.addView(
-            SessionUi.header(
-                context, "vfox-plus",
-                getString(R.string.session_version, inventory.vfox.version.orEmpty()),
-            ),
-        )
-        // The three stat tiles: plugins, versions, in use, one hue each.
-        val stats = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        val installed = inventory.installed
-        val inUse = installed.count { it.hasCurrent }
-        val versions = installed.sumOf { it.versions.size }
-        val tiles = listOf(
-            Triple(installed.size.toString(), getString(R.string.session_plugins), dev.vfox.vfoxplus.R.drawable.ic_nav_plugins),
-            Triple(versions.toString(), getString(R.string.session_versions), dev.vfox.vfoxplus.R.drawable.ic_nav_sdks),
-            Triple(inUse.toString(), getString(R.string.session_in_use), dev.vfox.vfoxplus.R.drawable.ic_nav_home),
-        )
-        tiles.forEachIndexed { index, (count, label, icon) ->
-            val tile = SessionUi.stat(context, count, label, icon, SessionUi.HUES[index % SessionUi.HUES.size])
-            tile.springIn((index * 50).toLong())
-            stats.addView(tile)
+        // The header band: the title, the version, and the three numbers as
+        // text columns in one colour field, instead of three squeezed pills.
+        val density = context.resources.displayMetrics.density
+        val band = SessionUi.band(context, SessionUi.PRIMARY)
+        val onBand = MaterialColors.getColor(context, SessionUi.PRIMARY.onContainer, 0)
+        band.addView(TextView(context).apply {
+            text = "vfox-plus"
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_DisplaySmall)
+            setTextColor(onBand)
+        })
+        band.addView(TextView(context).apply {
+            text = getString(R.string.session_version, inventory.vfox.version.orEmpty())
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+            setTextColor(onBand)
+        })
+        val stats = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, (16 * density).toInt(), 0, 0)
         }
-        body.addView(stats)
+        val installed = inventory.installed
+        val counts = listOf(
+            installed.size.toString() to getString(R.string.session_plugins),
+            installed.sumOf { it.versions.size }.toString() to getString(R.string.session_versions),
+            installed.count { it.hasCurrent }.toString() to getString(R.string.session_in_use),
+        )
+        counts.forEach { (count, label) ->
+            stats.addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                addView(TextView(context).apply {
+                    text = count
+                    setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineMedium)
+                    setTextColor(onBand)
+                })
+                addView(TextView(context).apply {
+                    text = label
+                    setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
+                    setTextColor(onBand)
+                })
+            })
+        }
+        band.addView(stats)
+        band.springIn(0)
+        body.addView(band)
         body.addView(SessionUi.section(context, getString(R.string.session_active)))
         installed.filter { it.hasCurrent }.forEachIndexed { index, sdk ->
             body.addView(
