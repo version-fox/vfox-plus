@@ -89,6 +89,23 @@ jobs:
           key: icons-${{ hashFiles('shared/icons.json') }}
       - name: Build vfxtool
         run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mygo/web/package-lock.json
+      - name: Build and test the web interface
+        # TypeScript and Vite, bundled into the single page that the Go server
+        # embeds as mygo/pair/webapp.html (no other requests, desktop and web
+        # stay on one design). The built page is committed: the check below
+        # fails when the sources and the checked-in page disagree.
+        working-directory: mygo/web
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: The built page is committed
+        run: git diff --exit-code -- mygo/pair/webapp.html
       - name: Prepare the embedded assets
         # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'

@@ -188,6 +188,19 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
   grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
 ```
 
+### Web interface
+
+The web interface is TypeScript built with Vite, in [`mygo/web`](../../../mygo/web).
+Its build bundles the page into the single `mygo/pair/webapp.html` that the Go
+server embeds: edit the sources, run `npm run build` there, and commit the page
+with them. `npm test` runs the unit tests of the page; `npm run dev` serves it
+with hot reload against a running application (see
+[Node and the web interface](environment.md#node-and-the-web-interface)).
+The Go tests in `mygo/pair` still guard the contract of the built page: the
+design tokens and the springs, which fail when the theme moves without them,
+and the favicon placeholders. Copy of the page lives in its i18n catalogs
+(`mygo/web/src/i18n-*`), typed per language, not in `shared/i18n`.
+
 ### vfox output
 
 When vfox changes, recapture the fixtures with

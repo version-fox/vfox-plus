@@ -204,6 +204,28 @@ pictures of the pages of the gateway, drive a Chrome that speaks the DevTools Pr
 size you ask for). The end-to-end scenarios against the real vfox run in the
 sandbox, which brings its own pinned vfox, so that nothing touches your `~/.vfox`.
 
+## Node and the web interface
+
+The web interface is TypeScript built with Vite, in `mygo/web` (Node 20 or
+later; the dev container and CI install Node 24). Its build bundles the page
+into the single `mygo/pair/webapp.html` that the Go server embeds, so the
+checked-in page is generated: edit the sources, not the page.
+
+```sh
+cd mygo/web
+npm ci                  # once, or when package-lock.json changes
+npm run dev             # develop against a running application, see below
+npm test                # the unit tests of the page (esc, i18n helpers)
+npm run build           # type-check, bundle, and write ../pair/webapp.html
+```
+
+`npm run dev` serves the page with hot reload and proxies `/api` to a running
+application: start one (for example the end-to-end build with fixtures, the
+way the screenshots do), then `VFOX_WEB_PROXY=http://127.0.0.1:PORT npm run
+dev`, and open the printed address. CI builds the page, runs its tests, and
+fails when the built page differs from the committed one, so build and commit
+it together with its sources.
+
 ## Android
 
 The build needs a JDK 17 (CI uses Temurin) and the Android SDK with platform 36 and

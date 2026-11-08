@@ -154,6 +154,16 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
   grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
 ```
 
+### Web 界面
+
+Web 界面是 TypeScript 加 Vite，源码在 [`mygo/web`](../../../mygo/web)。
+构建把它打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入：改源码，在那里跑
+`npm run build`，页面与源码一起提交。`npm test` 跑页面的单元测试；`npm run dev`
+对着运行中的应用以热重载供页面（见[Node 与 Web 界面](environment.md#node-与-web-界面)）。
+`mygo/pair` 的 Go 测试继续守构建产物的契约：设计 token 与弹簧（主题动了它们会失败），
+以及 favicon 占位符。页面的文案放在它自己的 i18n catalog（`mygo/web/src/i18n-*`），按语言做类型检查，
+不在 `shared/i18n` 里。
+
 ### vfox 输出
 
 vfox 变化时用 `vfxtool capture` 重抓夹具，按

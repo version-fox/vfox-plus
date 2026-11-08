@@ -162,6 +162,25 @@ GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 
 那里还说明了哪种 Chrome 能给出你要的尺寸）。对真实 vfox 的端到端场景在沙箱里运行，沙箱自带固定版本的
 vfox，所以不会碰你的 `~/.vfox`。
 
+## Node 与 Web 界面
+
+Web 界面是 TypeScript 加 Vite，源码在 `mygo/web`（Node 20 起；开发容器与 CI 装 Node 24）。
+它的构建把页面打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入，所以仓库里的页面是生成物：
+改源码，别改页面。
+
+```sh
+cd mygo/web
+npm ci                  # 装一次，或 package-lock.json 变化时再装
+npm run dev             # 对着运行中的应用开发，见下
+npm test                # 页面的单元测试（esc、i18n helper）
+npm run build           # 类型检查、打包，写回 ../pair/webapp.html
+```
+
+`npm run dev` 以热重载供页面，并把 `/api` 代理到一个运行中的应用：先起一个
+（比如带 fixture 的端到端构建，截图就是这么做的），再
+`VFOX_WEB_PROXY=http://127.0.0.1:PORT npm run dev`，打开它打印的地址。
+CI 构建页面、跑它的测试，构建产物与提交的不一致就失败所以改完源码要一起构建提交。
+
 ## Android
 
 构建需要 JDK 17（CI 用 Temurin）与带 platform 36 和 build-tools 35.0.0 的 Android SDK，经提交

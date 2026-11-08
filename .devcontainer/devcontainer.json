@@ -12,6 +12,9 @@
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {
       "moby": false
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
     }
   },
   "init": true,
