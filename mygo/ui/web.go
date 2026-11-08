@@ -149,10 +149,10 @@ func (a *App) lightweightItem(k kit.Ctx, current settings.AppSettings) kit.ListI
 }
 
 func (a *App) remoteItem(k kit.Ctx, current settings.AppSettings, status pair.Status) kit.ListItemSpec {
-	subtitle := a.T("settingsRemoteHelp")
+	subtitle := ""
 	switch {
 	case !current.WebInterface:
-		subtitle += " " + a.T("settingsNeedsWebInterface")
+		subtitle = a.T("settingsNeedsWebInterface")
 	case status.RemoteError != "":
 		subtitle = a.T("webRemoteFailed", "reason", status.RemoteError)
 	case status.Remote:
@@ -284,9 +284,10 @@ func (a *App) chooseCertificate() {
 }
 
 // quitItem ends the application, which closing the window no longer does.
+// The confirm dialog explains what quitting ends, so the row needs no help.
 func (a *App) quitItem(k kit.Ctx) kit.ListItemSpec {
 	return kit.ListItemSpec{
-		ID: "web-quit", Title: a.T("webQuit"), Subtitle: a.T("webQuitHelp"), Leading: icon(k, "quit"), Wrap: a.wideSettingsWrap(k),
+		ID: "web-quit", Title: a.T("webQuit"), Leading: icon(k, "quit"), Wrap: a.wideSettingsWrap(k),
 		Trailing: func() {
 			kit.Button(k, kit.ButtonSpec{ID: "web-quit-button", Kind: kit.TonalButton, Label: a.T("webQuitAction"), OnClick: func() {
 				a.confirm("web-quit", confirmation{

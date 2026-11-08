@@ -263,7 +263,6 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。
 - **`.apk` 在 `android/`，不在此。**mygo 无 Android 后端，界面不能是由本代码构建的
-  原生 Android 应用。Android 客户端是包住应用网页界面的
-  WebView：手机经[远端协议](remote-protocol.md)驱动 PC 上的 vfox-plus 实例，
+  原生 Android 应用。Android 客户端在 JSON API 上原生渲染应用的会话：手机经[远端协议](remote-protocol.md)驱动 PC 上的 vfox-plus 实例，
   所示 Web 界面遵循[设计系统](design-system.md)（见
   [远端前端](architecture.md#远端前端)）。

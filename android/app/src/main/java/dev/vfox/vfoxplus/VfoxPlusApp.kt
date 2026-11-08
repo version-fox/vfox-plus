@@ -15,16 +15,6 @@
 package dev.vfox.vfoxplus
 
 import android.app.Application
-import android.webkit.CookieManager
 
 // Application setup for the vfox-plus remote client.
-class VfoxPlusApp : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        // The pairing session lives in a cookie; keep it across launches so a
-        // paired phone reconnects without pasting another link.
-        CookieManager.getInstance().apply {
-            setAcceptCookie(true)
-        }
-    }
-}
+class VfoxPlusApp : Application()

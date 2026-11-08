@@ -139,7 +139,6 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         val connectionsInner = LinearLayout(context)
         SessionUi.pad(connectionsInner)
         connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_other_devices), 16f))
-        connectionsInner.addView(SessionUi.body(context, getString(R.string.session_other_devices_body)))
         val remote = SwitchMaterial(context).apply {
             isChecked = webState.remote
             setOnCheckedChangeListener { _, checked ->
@@ -157,18 +156,17 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_port), 16f))
         connectionsInner.addView(SessionUi.body(context, getString(R.string.session_port_body)))
         val portRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        val port = EditText(context).apply {
-            setText(webState.port.toString())
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }
+        val portBox = SessionUi.textField(context, getString(R.string.session_port), webState.port.toString())
+        portBox.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val port = portBox.editText!!
+        port.inputType = android.text.InputType.TYPE_CLASS_NUMBER
         val portSave = MaterialButton(context).apply {
             text = getString(R.string.save)
             setOnClickListener {
                 putWeb(JSONObject().put("port", port.text.toString().toIntOrNull() ?: webState.port))
             }
         }
-        portRow.addView(port)
+        portRow.addView(portBox)
         portRow.addView(portSave)
         connectionsInner.addView(portRow)
         if (webState.error.isNotEmpty()) connectionsInner.addView(SessionUi.body(context, webState.error))
@@ -193,18 +191,13 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         }
         connectionsInner.addView(lightweight)
         connectionsInner.addView(SessionUi.headline(context, getString(R.string.session_quit), 16f))
-        connectionsInner.addView(SessionUi.body(context, getString(R.string.session_quit_body)))
         val quit = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             text = getString(R.string.session_quit)
             setOnClickListener {
                 MaterialAlertDialogBuilder(context)
                     .setTitle(R.string.session_quit)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        host.runApi(
-                            task = { host.api.postJson("${host.base}/api/quit", "{}") },
-                            done = { host.pairNew() },
-                        )
-                    }
+                    .setMessage(R.string.session_quit_body)
+                    .setPositiveButton(android.R.string.ok) { _, _ -> quitApp() }
                     .setNegativeButton(R.string.cancel, null)
                     .show()
             }
@@ -219,10 +212,12 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         appInner.addView(SessionUi.section(context, getString(R.string.session_application)))
         val current = settings
         if (current != null) {
-            val executable = EditText(context).apply { setText(current.vfoxExecutable) }
-            appInner.addView(executable)
-            val env = EditText(context).apply { setText(current.extraEnvironment) }
-            appInner.addView(env)
+            val executableBox = SessionUi.textField(context, "vfox", current.vfoxExecutable)
+            appInner.addView(executableBox)
+            val envBox = SessionUi.textField(context, "KEY=value", current.extraEnvironment)
+            appInner.addView(envBox)
+            val executable = executableBox.editText!!
+            val env = envBox.editText!!
             val saveApp = MaterialButton(context).apply {
                 text = getString(R.string.save)
                 setOnClickListener {
@@ -252,7 +247,7 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
             tableInner.addView(SessionUi.headline(context, entry.key, 15f))
             tableInner.addView(SessionUi.body(context, entry.value.ifBlank { "—" }))
             val edit = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                text = getString(R.string.save)
+                text = getString(R.string.session_edit)
                 setOnClickListener { editConfig(entry) }
             }
             tableInner.addView(edit)
@@ -261,11 +256,20 @@ class SettingsFragment : Fragment(), NativeSessionFragment.Refreshable {
         body.addView(table)
     }
 
+    private fun quitApp() {
+        host.runApi(
+            task = { host.api.postJson("${host.base}/api/quit", "{}") },
+            done = { host.pairNew() },
+        )
+    }
+
     private fun editConfig(entry: SessionModels.ConfigEntry) {
-        val field = EditText(requireContext()).apply { setText(entry.value) }
+        val box = SessionUi.textField(requireContext(), entry.key, entry.value)
+        box.setPadding(48, 16, 48, 0)
+        val field = box.editText!!
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(entry.key)
-            .setView(field)
+            .setView(box)
             .setPositiveButton(R.string.save) { _, _ ->
                 host.runApi(
                     task = {

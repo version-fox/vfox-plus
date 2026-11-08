@@ -92,8 +92,8 @@ func adb(args ...string) ([]byte, error) {
 // then opens the paired session through an explicit VIEW intent (the
 // measurement entry point of MainActivity: the same session as pasting the
 // link and tapping connect), settles again, and appends the
-// memory(apk-paired) line: the cost of the system WebView with the /app page
-// loaded, next to the unpaired screen. The paired line is for local
+// memory(apk-paired) line: the native session with its tabs loaded, next to
+// the unpaired screen. The paired line is for local
 // diagnosis only: pair it against a loopback `vfox-plus-serve serve` with
 // `adb reverse` carrying the port, and never upload a two-line file, which
 // the memory report would refuse to parse.
@@ -155,7 +155,7 @@ func Run(args []string) error {
 	if *pairURL == "" {
 		return nil
 	}
-	// The paired session: the same WebView a user gets after connecting,
+	// The paired session: the same native session a user gets after connecting,
 	// with the inventory loaded and live events streaming.
 	if _, err := adb("shell", "am", "start", "-a", "android.intent.action.VIEW",
 		"-d", *pairURL, pkg+"/.MainActivity"); err != nil {

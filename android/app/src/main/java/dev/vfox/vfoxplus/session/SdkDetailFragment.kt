@@ -146,8 +146,8 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun draw() {
         body.removeAllViews()
         val context = requireContext()
-        val back = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-            text = "←"
+        val back = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialIconButtonStyle).apply {
+            setIconResource(dev.vfox.vfoxplus.R.drawable.ic_back)
             setOnClickListener { parentFragmentManager.popBackStack() }
         }
         body.addView(back)
@@ -156,7 +156,10 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
             body.addView(SessionUi.body(context, it.description))
             body.addView(SessionUi.body(context, it.homepage))
         }
-        val tabs = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+        val tabs = com.google.android.material.button.MaterialButtonToggleGroup(context).apply {
+            isSingleSelection = true
+            isSelectionRequired = true
+        }
         val labels = listOf(R.string.session_installed, R.string.session_available, R.string.session_options)
         labels.forEachIndexed { index, label ->
             val button = MaterialButton(
@@ -164,16 +167,18 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
                 com.google.android.material.R.attr.materialButtonOutlinedStyle,
             ).apply {
                 setText(label)
-                isCheckable = true
-                isChecked = index == tab
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener {
-                    tab = index
-                    draw()
-                    if (index == 1 && versions.isEmpty()) loadVersions()
-                }
+                id = View.generateViewId()
             }
-            tabs.addView(button)
+            tabs.addView(
+                button,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            if (index == tab) tabs.check(button.id)
+            button.setOnClickListener {
+                tab = index
+                draw()
+                if (index == 1 && versions.isEmpty()) loadVersions()
+            }
         }
         body.addView(tabs)
         when (tab) {
@@ -225,11 +230,9 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     private fun drawAvailable() {
         val context = requireContext()
         val searchRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        val field = EditText(context).apply {
-            hint = versionQuery.ifBlank { "search" }
-            setText(versionQuery)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }
+        val searchBox = SessionUi.textField(context, "search", versionQuery)
+        searchBox.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val field = searchBox.editText!!
         val go = MaterialButton(context).apply {
             text = "→"
             setOnClickListener {
@@ -328,10 +331,12 @@ class SdkDetailFragment : Fragment(), NativeSessionFragment.Refreshable {
     }
 
     private fun editVariable(variable: SessionModels.Variable) {
-        val field = EditText(requireContext()).apply { setText(variable.value) }
+        val box = SessionUi.textField(requireContext(), variable.key, variable.value)
+        box.setPadding(48, 16, 48, 0)
+        val field = box.editText!!
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(variable.label.ifBlank { variable.key })
-            .setView(field)
+            .setView(box)
             .setPositiveButton(R.string.save) { _, _ ->
                 host.runApi(
                     task = {

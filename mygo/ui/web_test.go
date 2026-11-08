@@ -248,7 +248,7 @@ func TestOtherDevicesAreAllowedOnlyAfterAConfirmation(t *testing.T) {
 	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface, s.WebPort = true, port })
 	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
 	ta.openSettings()
-	ta.mustText("Let phones and other computers on your network connect with a pairing link, over HTTPS. Only turn this on in a network you trust.")
+	ta.mustText("Other devices")
 	if _, ok := ta.listItem("Port"); ok {
 		t.Fatal("the port is the business of whoever allows other devices")
 	}
@@ -479,7 +479,7 @@ func TestTheApplicationIsQuitFromTheSettingsWhenTheWindowDoesNotQuitIt(t *testin
 	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface, s.Lightweight = true, true })
 	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
 	ta.openSettings()
-	ta.mustText("Closing the window keeps vfox+ running. Quit to end it, and the web interface with it.")
+	ta.mustText("Quit vfox+")
 	ta.buttonNear("Quit vfox+", "Quit")
 	ta.mustText("Quit vfox+?")
 	ta.button("Cancel")

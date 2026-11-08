@@ -318,14 +318,13 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
   `adb shell cmd uimode night yes`。每轮之间清数据（`pm clear`），并重新授予相机权限（`pm clear` 会收回它），
   否则系统对话框会盖住扫码界面。
 - App 里的控件用 `adb exec-out uiautomator dump /dev/tty` 里的 id 找（`scanButton`、`manualButton`、`linkField`、
-  `connectButton`、`reconnectButton`）。WebView 里的网页界面不在导出里：底部的栏按位置点，
-  `adb shell input tap X 2205`，X 依次取 125、332、540、749、956（主页、SDK、插件、任务、设置），
-  flutter 是插件列表里的第一个，在 `540 682`。
+  `connectButton`、`reconnectButton`）。配对会话也是原生 View，它的页签、行与按钮
+  都在导出里按文字找：按导出里写的位置点，不用再记坐标。flutter 是 SDK 页签的第一行。
 - 配对链接要在 App 为英文时输入（`adb shell input text`）。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
   `author`；在点*连接*之前把语言改回来，输入框的文字会保留。键盘会盖住按钮：输入后先按返回键
   （`adb shell input keyevent 4`）收起它。
 - 指纹对话框与设置要在应用的同一次运行里拍：应用每次运行都重新生成证书，两处的指纹只在同一次运行里一致。选*信任一次*，
-  拍主页之前要等页面加载完。
+  拍主页之前要等主页页签加载完。
 - 想拍“连不上 PC”的页面，就结束 PC 端的应用，再打开 App：它先打开带“上次的服务器”的配对界面，选*重新连接*就出现那个页面。
 - 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅
   （`hw.camera.back=virtualscene`），因为没有二维码可对。

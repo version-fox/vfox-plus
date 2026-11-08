@@ -138,7 +138,7 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 - mygo：工具包按显示器的刷新率出帧。窗口由 CPU 绘制时（没有 GPU，如虚拟机和 WSL），
   带缩放的转场每帧要重绘整页的每个像素，耗时 10 到 40 ms，所以页面、对话框和菜单
   在那里只做淡入淡出（`kit.Env.Software`，由 `Painter.Accelerated` 设置）。
-- Web 界面与用 WebView 显示它的 Android 应用：动画用 `transform` 和 `opacity`，由合成器
+- Web 界面与原生渲染它的 Android 应用：动画用 `transform` 和 `opacity`，由合成器
   执行、不占页面主线程；不要动画 `left`、`top`、`height`。长列表设置
   `content-visibility: auto`，打开页面时只布局屏幕上的部分（插件卡片在比桌面慢六倍的
   手机上布局要 58 ms，设置后 16 ms）。

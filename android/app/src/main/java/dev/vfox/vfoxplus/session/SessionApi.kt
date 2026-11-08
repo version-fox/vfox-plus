@@ -40,7 +40,7 @@ class SessionApi(context: Context) {
     private val appContext = context.applicationContext
 
     // The fingerprint the user trusted, for this process run: trusting once
-    // is what the WebView dialog does. A restart asks again.
+    // matches the trust-once dialog. A restart asks again.
     @Volatile
     var trustedFingerprint: String? = null
 
@@ -85,7 +85,7 @@ class SessionApi(context: Context) {
     }
 
     // The session cookie is the credential: forgetting it disconnects the
-    // phone, like clearing the cookies of the WebView does.
+    // phone.
     fun forgetSession() {
         cookieJar.clear()
         trustedFingerprint = null
@@ -160,7 +160,7 @@ class SessionApi(context: Context) {
         val conn = URL(url).openConnection() as HttpURLConnection
         if (conn is HttpsURLConnection) {
             // Only the trust changes (the fingerprint the user compares);
-            // the default hostname check stays, like in the WebView.
+            // the default hostname check stays.
             conn.sslSocketFactory = ssl.factory()
         }
         return conn

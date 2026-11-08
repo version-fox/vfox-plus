@@ -36,28 +36,38 @@ object SessionUi {
 
     fun section(context: Context, text: String): TextView = TextView(context).apply {
         this.text = text
-        textSize = 15f
+        setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
         setTextColor(MaterialColors.getColor(context, androidx.appcompat.R.attr.colorPrimary, 0))
     }
 
     fun headline(context: Context, text: String, size: Float = 20f): TextView = TextView(context).apply {
         this.text = text
-        textSize = size
-        setTextColor(MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface, 0))
+        setTextAppearance(
+            when {
+                size >= 24 -> com.google.android.material.R.style.TextAppearance_Material3_TitleLarge
+                size >= 17 -> com.google.android.material.R.style.TextAppearance_Material3_TitleMedium
+                else -> com.google.android.material.R.style.TextAppearance_Material3_TitleSmall
+            },
+        )
     }
 
     fun body(context: Context, text: String): TextView = TextView(context).apply {
         this.text = text
-        textSize = 14f
-        setTextColor(
-            MaterialColors.getColor(
-                context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0,
-            ),
-        )
+        setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
     }
 
-    fun pad(view: LinearLayout, horizontalDp: Int = 16, verticalDp: Int = 12) {
-        val density = view.resources.displayMetrics.density
+    // A Material outlined text field with its hint on the outline.
+    fun textField(context: Context, hint: String, text: String = ""): com.google.android.material.textfield.TextInputLayout {
+        val layout = com.google.android.material.textfield.TextInputLayout(
+            context, null,
+            com.google.android.material.R.attr.textInputOutlinedStyle,
+        )
+        layout.hint = hint
+        layout.addView(android.widget.EditText(context).apply { setText(text) })
+        return layout
+    }
+
+    fun pad(view: LinearLayout, horizontalDp: Int = 16, verticalDp: Int = 12) {        val density = view.resources.displayMetrics.density
         view.setPadding(
             (horizontalDp * density).toInt(), (verticalDp * density).toInt(),
             (horizontalDp * density).toInt(), (verticalDp * density).toInt(),

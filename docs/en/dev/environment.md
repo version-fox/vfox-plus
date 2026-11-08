@@ -327,7 +327,7 @@ adb wait-for-device && adb shell getprop sys.boot_completed   # 1 once it has bo
 The profile `pixel_6` is 1080 by 2400 at 420 dpi, as the emulator of CI is. The back camera of the
 scanner shows a living room when `hw.camera.back=virtualscene` is in
 `~/.android/avd/pixel6.avd/config.ini` (`avdmanager` writes `emulated`, which shows a
-plain animation); `hw.ramSize=3072M` is a better size than its 1536M for the WebView. Leave out `-no-window` to see the
+plain animation); `hw.ramSize=3072M` is a better size than its 1536M; the paired session holds the whole inventory in memory. Leave out `-no-window` to see the
 emulator on a display (WSLg). To install the release APK that CI has built, without building it,
 download it from the run of the pull request: `gh run download RUN -n vfox-plus-android`.
 
@@ -337,13 +337,13 @@ With an emulator that has booted (`adb devices` lists it), build the app, instal
 it and pair it with the application on your machine:
 
 ```sh
-cd android && ./gradlew :app:assembleWebviewDebug
-adb install -r app/build/outputs/apk/webview/debug/app-webview-debug.apk
+cd android && ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # for the scanner
 ```
 
 The emulator reaches your machine as `10.0.2.2`. The session cookie of the servers is
-`Secure`, and a WebView keeps it for `https://` and for loopback only, so pairing over
+`Secure`, and the app keeps it for `https://` and for loopback only, so pairing over
 `http://10.0.2.2:PORT` does not work; the server for other devices speaks HTTPS anyway. Make a
 self-signed certificate that names `10.0.2.2`, and give it to the application:
 

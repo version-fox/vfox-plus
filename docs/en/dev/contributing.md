@@ -391,17 +391,17 @@ pictures alike, and what goes wrong:
   `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
   the camera again, which `pm clear` drops, or the system dialog covers the scanner.
 - The views of the app are found by their ids in `adb exec-out uiautomator dump /dev/tty`
-  (`scanButton`, `manualButton`, `linkField`, `connectButton`, `reconnectButton`). The web interface in
-  the WebView is not in the dump: the bar at the bottom is tapped by its position, with
-  `adb shell input tap X 2205` for X = 125, 332, 540, 749 and 956 (Home, SDKs, Plugins, Tasks, Settings),
-  and flutter is the first of the plugins, at `540 682`.
+  (`scanButton`, `manualButton`, `linkField`, `connectButton`, `reconnectButton`), and the
+  paired session is native Views too, so its tabs, rows and buttons are all in the dump by
+  their labels: tap the coordinates the dump reports instead of guessing positions. Flutter is the first
+  row of the SDKs tab.
 - Type the pairing link with the app in English (`adb shell input text`). With the app in Chinese Gboard turns
   to Pinyin and writes the link with full-width punctuation and "author" for "auth";
   the field keeps its text when the language is changed back before *Connect*. The keyboard covers
   the button: close it with BACK (`adb shell input keyevent 4`) before.
 - The dialog of the fingerprint and the settings are taken in one run of the application: it makes its
   certificate again at every run, and the two show the same fingerprint only within one. Choose
-  *Trust once*, and wait for the page to load before the picture of the home page.
+  *Trust once*, and wait for the home tab to load before its picture.
 - To see the page that says the PC cannot be reached, end the application of the PC and open the app
   again: it opens on the pairing screen, with the last server, and *Reconnect* shows the page.
 - Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has

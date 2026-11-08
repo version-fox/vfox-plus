@@ -989,8 +989,6 @@
   "@settingsNeedsWebInterface": { "description": "Says why a switch cannot be flipped: it depends on the web interface." },
   "settingsRemote": "Other devices",
   "@settingsRemote": { "description": "Title of the switch that lets phones and other computers connect to the web interface." },
-  "settingsRemoteHelp": "Let phones and other computers on your network connect with a pairing link, over HTTPS. Only turn this on in a network you trust.",
-  "@settingsRemoteHelp": { "description": "Explains what letting other devices connect does." },
   "webRemoteListening": "Listening on port {port}",
   "@webRemoteListening": {
     "description": "Says that other devices can connect, and on which port.",
@@ -1055,8 +1053,6 @@
   "@webCertificateFilter": { "description": "Name of the files that the chooser of the certificate offers." },
   "webQuit": "Quit vfox+",
   "@webQuit": { "description": "Title of the item that ends the application." },
-  "webQuitHelp": "Closing the window keeps vfox+ running. Quit to end it, and the web interface with it.",
-  "@webQuitHelp": { "description": "Explains why the application has to be quit by hand." },
   "webQuitAction": "Quit",
   "@webQuitAction": { "description": "Button that ends the application." },
   "webQuitConfirmTitle": "Quit vfox+?",

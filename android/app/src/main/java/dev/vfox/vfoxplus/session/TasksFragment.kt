@@ -61,6 +61,7 @@ class TasksFragment : Fragment(), NativeSessionFragment.Refreshable {
                         } else {
                             emptyList()
                         }
+                        host.setTaskBadge(tasks.count { it.status == "running" || it.status == "queued" })
                         draw()
                     },
                     onFailure = { host.notify(getString(R.string.request_failed)) },

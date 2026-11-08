@@ -23,7 +23,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -47,6 +46,8 @@ interface SessionHost {
     fun <T> runApi(task: () -> T, done: (Result<T>) -> Unit)
     fun notify(message: String)
     fun openSdkDetail(name: String)
+    fun openTab(id: Int)
+    fun setTaskBadge(count: Int)
     fun pairNew()
     fun disconnect()
     fun refreshAll()
@@ -54,21 +55,20 @@ interface SessionHost {
 
 // The whole /app page in Views: the five tabs over the paired JSON API, the
 // trust dialog for a self-signed certificate, and the unreachable page when
-// the PC cannot be reached. Only the nowebview flavor shows it; the webview
-// flavor keeps the system WebView on the same entry.
+// the PC cannot be reached.
 class NativeSessionFragment : Fragment(), SessionHost {
     override lateinit var api: SessionApi
     override lateinit var base: String
     private var startUrl: String = ""
     private lateinit var content: FrameLayout
-    private lateinit var loading: ProgressBar
+    private lateinit var loading: View
     private lateinit var errorTitle: TextView
     private lateinit var errorBody: TextView
     private lateinit var errorServer: TextView
     private lateinit var errorBox: LinearLayout
     private lateinit var retryButton: MaterialButton
     private lateinit var pairNewButton: MaterialButton
-    private lateinit var tabs: LinearLayout
+    private lateinit var tabs: com.google.android.material.bottomnavigation.BottomNavigationView
     private val main = Handler(Looper.getMainLooper())
     private val workers = Executors.newSingleThreadExecutor()
     private var events: Closeable? = null
@@ -113,7 +113,8 @@ class NativeSessionFragment : Fragment(), SessionHost {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
             )
         }
-        loading = ProgressBar(requireContext()).apply {
+        loading = com.google.android.material.progressindicator.CircularProgressIndicator(requireContext()).apply {
+            isIndeterminate = true
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER,
             )
@@ -124,8 +125,37 @@ class NativeSessionFragment : Fragment(), SessionHost {
             visibility = View.GONE
             setPadding(48, 48, 48, 48)
         }
+        val density = resources.displayMetrics.density
+        val errorArt = FrameLayout(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams((200 * density).toInt(), (200 * density).toInt()).apply {
+                gravity = Gravity.CENTER
+            }
+        }
+        errorArt.addView(
+            android.widget.ImageView(requireContext()).apply {
+                setImageDrawable(
+                    dev.vfox.vfoxplus.PolygonDrawable(
+                        dev.vfox.vfoxplus.ExpressiveShapes.softBurst,
+                        MaterialColors.getColor(context, com.google.android.material.R.attr.colorErrorContainer, 0),
+                    ),
+                )
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+            },
+        )
+        errorArt.addView(
+            android.widget.ImageView(requireContext()).apply {
+                setImageResource(dev.vfox.vfoxplus.R.drawable.ic_unreachable)
+                imageTintList = android.content.res.ColorStateList.valueOf(
+                    MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnErrorContainer, 0),
+                )
+                layoutParams = FrameLayout.LayoutParams((72 * density).toInt(), (72 * density).toInt(), Gravity.CENTER)
+            },
+        )
+        errorBox.addView(errorArt)
         errorTitle = TextView(requireContext()).apply {
-            textSize = 22f
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
             gravity = Gravity.CENTER
         }
         errorBody = TextView(requireContext()).apply {
@@ -145,8 +175,20 @@ class NativeSessionFragment : Fragment(), SessionHost {
         errorBox.addView(pairNewButton)
         content.addView(errorBox)
         content.addView(loading)
-        tabs = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.HORIZONTAL
+        tabs = com.google.android.material.bottomnavigation.BottomNavigationView(requireContext()).apply {
+            inflateMenu(dev.vfox.vfoxplus.R.menu.session_nav)
+            setOnItemSelectedListener { item ->
+                showTab(
+                    when (item.itemId) {
+                        dev.vfox.vfoxplus.R.id.nav_sdks -> 1
+                        dev.vfox.vfoxplus.R.id.nav_plugins -> 2
+                        dev.vfox.vfoxplus.R.id.nav_tasks -> 3
+                        dev.vfox.vfoxplus.R.id.nav_settings -> 4
+                        else -> 0
+                    },
+                )
+                true
+            }
             visibility = View.GONE
         }
         root.addView(content)
@@ -184,33 +226,20 @@ class NativeSessionFragment : Fragment(), SessionHost {
     }
 
     private fun buildTabs() {
-        tabs.removeAllViews()
-        val labels = listOf(
-            R.string.tab_home to 0, R.string.tab_sdks to 1, R.string.tab_plugins to 2,
-            R.string.tab_tasks to 3, R.string.tab_settings to 4,
-        )
-        for ((label, id) in labels) {
-            val button = MaterialButton(
-                requireContext(), null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle,
-            ).apply {
-                setText(label)
-                textSize = 12f
-                isCheckable = true
-                isSingleLine = true
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { showTab(id) }
-            }
-            button.tag = id
-            tabs.addView(button)
-        }
+        // The bar keeps its own checked state; showing a tab only swaps the content.
     }
 
     private fun showTab(id: Int) {
         tabId = id
-        for (i in 0 until tabs.childCount) {
-            (tabs.getChildAt(i) as MaterialButton).isChecked = (tabs.getChildAt(i).tag as Int) == id
-        }
+        tabs.menu.findItem(
+            when (id) {
+                1 -> dev.vfox.vfoxplus.R.id.nav_sdks
+                2 -> dev.vfox.vfoxplus.R.id.nav_plugins
+                3 -> dev.vfox.vfoxplus.R.id.nav_tasks
+                4 -> dev.vfox.vfoxplus.R.id.nav_settings
+                else -> dev.vfox.vfoxplus.R.id.nav_home
+            },
+        )?.isChecked = true
         tab = when (id) {
             1 -> SdksFragment()
             2 -> PluginsFragment()
@@ -230,6 +259,16 @@ class NativeSessionFragment : Fragment(), SessionHost {
 
     override fun refreshAll() {
         (childFragmentManager.findFragmentByTag("tab") as? Refreshable)?.refresh()
+    }
+
+    override fun openTab(id: Int) {
+        showTab(id)
+    }
+
+    override fun setTaskBadge(count: Int) {
+        val badge = tabs.getOrCreateBadge(dev.vfox.vfoxplus.R.id.nav_tasks)
+        badge.isVisible = count > 0
+        badge.number = count
     }
 
     override fun openSdkDetail(name: String) {

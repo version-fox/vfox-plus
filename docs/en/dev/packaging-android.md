@@ -2,9 +2,9 @@
 
 > [简体中文](../../zh-CN/dev/packaging-android.md)
 
-This directory holds the Android remote client: a WebView around the web
-interface of the application on the PC, with a native Material 3 Expressive
-pairing flow. It programs against [the remote protocol](remote-protocol.md), not
+This directory holds the Android remote client: the whole paired session in
+Views over the JSON API, with a native Material 3 Expressive pairing flow. It
+programs against [the remote protocol](remote-protocol.md), not
 against the Go code. Users install the `.apk` and pair it with the PC; see
 [The Android app](../user/android.md).
 
@@ -35,33 +35,27 @@ against the Go code. Users install the `.apk` and pair it with the PC; see
   floating toolbar offers the torch, where the phone has one, and "Enter
   manually". `CAMERA` is requested as not required — without a camera, or when
   permission is denied, paste the link instead.
-- **Session** (`ViewerFragment`) is a WebView of `/app` with the session
-  cookie persisted across launches, file upload enabled (for plugin `.zip`
-  and `.lua` files), pull-to-refresh, and a wavy progress indicator while a
-  page loads. After a one-time link sets the cookie, the client moves to
-  `/app` itself and starts the history of the page there, so that back does
-  not load the used link again. The two things that only the app can do,
-  pairing another link and disconnecting, are on the **This phone** card of
-  the page's Settings: the app gives the page the object `window.vfoxAndroid`
-  ([the bridge](remote-protocol.md#android-client)), and the page shows the
-  card when it is there. A server that cannot be reached shows a native state
-  (the error shape, "Try again", "Pair a new link") in place of the error page
-  of the WebView. The web download of a failed task's full log is
-  hidden inside the WebView, which cannot download files; read it in a
-  browser instead. The window stays on the paired server: the address of
-  another site that the page links to (the homepage of a plugin, its
-  documentation) opens in the browser of the phone (`shouldOverrideUrlLoading`;
-  the page clicks a link for them instead of calling `window.open`, which the
-  WebView does not report).
-- **TLS** (`onReceivedSslError`) shows the SHA-256 fingerprint dialog before
-  trusting a self-signed certificate — the same fingerprint that the settings of
-  vfox-plus on the PC show, in rows of eight bytes so that the two can be compared at a glance.
-  Bringing your own certificate on the PC avoids the warning.
-- **Back** walks the WebView history before leaving the session, and the app
-  opts in to the predictive back animation (`enableOnBackInvokedCallback`).
+- **Session** (`session/`) is the whole `/app` page in Views: the five tabs
+  over the paired JSON API — home, SDKs with their versions and options,
+  plugins, tasks and settings — with the session cookie persisted across
+  launches, file upload (for plugin `.zip` files), pull-to-refresh, and an
+  Expressive progress indicator while a tab loads. After a one-time link sets
+  the cookie, the client opens the session itself. The two things that only
+  the app can do, pairing another link and disconnecting, are on the
+  **This phone** card of its own settings. A server that cannot be reached
+  shows a native state (the error shape, "Try again", "Pair a new link"). The
+  window stays on the paired server: the address of another site that the
+  session links to (the homepage of a plugin, its documentation) opens in the
+  browser of the phone.
+- **TLS** shows the SHA-256 fingerprint dialog before trusting a self-signed
+  certificate — the same fingerprint that the settings of vfox-plus on the PC
+  show, in rows of eight bytes so that the two can be compared at a glance.
+  Bringing your own certificate on the PC avoids the warning. The check is a
+  native `X509TrustManager` that pins the trusted fingerprint for the run.
+- **Back** leaves the detail for the tab, then the session, and the app opts
+  in to the predictive back animation (`enableOnBackInvokedCallback`).
 - **A new Activity** (the dark theme, another language, the phone turned) gets
-  the page and its history back: the session screen saves the state of the
-  WebView.
+  the session back: the screens refetch over the persisted session.
 
 ## The design system in the app
 
@@ -72,9 +66,7 @@ do. This is where it lives in `android/`.
   under the system bars. A screen keeps clear of them with `padToSafeArea`
   (`Insets.kt`: the bars, the display cutout and the keyboard become padding); a
   scroll view also brings the field that has the focus above the keyboard,
-  because the system does not resize an edge-to-edge window. The page in the
-  WebView gets the same insets as the CSS variables `--sai-*` ([the
-  bridge](remote-protocol.md#android-client)).
+  because the system does not resize an edge-to-edge window.
 - **Theme.** `Theme.VfoxPlus` extends `Theme.Material3Expressive.DayNight.NoActionBar`.
   `values/colors.xml` and `values-night/colors.xml` hold the 48 roles of the
   colour scheme of the seed `#F28C1B` (the theme maps 46 of them to attributes;
@@ -127,8 +119,9 @@ app](memory.md#views-or-compose-in-the-android-app)). These did:
   AGP and compileSdk. Compose would mean a pre-release dependency and a new
   toolchain.
 - **The APK is smaller.** Adding Compose makes it 1.2 MB (37 %) larger.
-- **The native part is small.** The app is three screens around a WebView: what the
-  user works in is the web interface, which no toolkit changes.
+- **The session UI is data, not chrome.** The five tabs render the JSON API
+  with RecyclerViews and Material cards; no toolkit changes what the user
+  works with.
 
 When Material 3 for Compose offers Expressive in a stable release that builds with
 the pinned toolchain, measure again as [the memory
@@ -147,7 +140,7 @@ container](environment.md#the-dev-container), with `ANDROID_HOME` set; locally p
 
 ```sh
 cd android
-./gradlew :app:assembleWebviewRelease
+./gradlew :app:assembleRelease
 ```
 
 The build needs no KVM; running the APK on an emulator does (see [The emulator
@@ -158,12 +151,12 @@ is slow, configure a download mirror for your user, not for the project; see
 "Configure download mirrors" in the Neo README.
 
 The release APK lands at
-`app/build/outputs/apk/webview/release/app-webview-release.apk`
+`app/build/outputs/apk/release/app-release.apk`
 (about 3.2 MB), signed with the debug key (see [Signing
 status](#signing-status)). Rename it with the version for distribution:
 
 ```sh
-cp app/build/outputs/apk/webview/release/app-webview-release.apk \
+cp app/build/outputs/apk/release/app-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
@@ -172,12 +165,9 @@ it as described in [The Android app](../user/android.md).
 
 ## Build variants
 
-`webview` is what users install: the paired session is the system WebView.
-`nowebview` is the memory control: it never constructs a WebView and shows
-the whole session natively instead (the five tabs over the JSON API, in
-`dev.vfox.vfoxplus.session`); the other screens are unchanged. The package and
-the entry stay the same, so uninstall between measured runs. CI only builds
-and measures `webview`; run the local control as [the memory
+There is one client: the whole paired session is native (the five tabs over
+the JSON API, in `dev.vfox.vfoxplus.session`). CI builds and measures it;
+measure a paired session locally as [the memory
 page](memory.md#the-paired-session-and-the-no-webview-control) describes, with
 `vfxtool measure-apk --pair-url`.
 

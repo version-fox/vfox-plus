@@ -82,10 +82,12 @@ class PluginsFragment : Fragment(), NativeSessionFragment.Refreshable {
         val addInner = LinearLayout(context)
         SessionUi.pad(addInner)
         addInner.addView(SessionUi.headline(context, getString(R.string.session_add_plugin), 16f))
-        val source = EditText(context).apply { hint = getString(R.string.session_source) }
-        val alias = EditText(context).apply { hint = getString(R.string.session_alias) }
-        addInner.addView(source)
-        addInner.addView(alias)
+        val sourceBox = SessionUi.textField(context, getString(R.string.session_source))
+        val aliasBox = SessionUi.textField(context, getString(R.string.session_alias))
+        val source = sourceBox.editText!!
+        val alias = aliasBox.editText!!
+        addInner.addView(sourceBox)
+        addInner.addView(aliasBox)
         val addRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val addButton = MaterialButton(context).apply {
             text = getString(R.string.session_add)

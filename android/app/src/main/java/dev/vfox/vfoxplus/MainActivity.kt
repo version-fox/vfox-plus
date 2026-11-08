@@ -21,11 +21,12 @@ import androidx.appcompat.app.AppCompatActivity
 import dev.vfox.vfoxplus.databinding.ActivityMainBinding
 import dev.vfox.vfoxplus.session.NativeSessionFragment
 
-// Single-activity host: pairing first, the WebView after. The app draws edge to edge,
-// and every screen keeps clear of the system bars itself (Insets.kt). The system back
-// gesture walks the back stack of the screens, and the session screen takes it first
-// while its page has a history; the app does not handle it here, so that the system
-// can show the predictive back animation.
+// Single-activity host: pairing first, the native session after. The app
+// draws edge to edge, and every screen keeps clear of the system bars itself
+// (Insets.kt). The system back gesture walks the back stack of the screens,
+// and the session screen takes it first while its detail has somewhere to go
+// back to; the app does not handle it here, so that the system can show the
+// predictive back animation.
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
@@ -48,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         // A fresh pairing link while the app runs opens its session on top,
         // like pasting the link and tapping connect.
-        if (firstScreen(intent) is ViewerFragment) {
+        if (firstScreen(intent) is NativeSessionFragment) {
             supportFragmentManager.beginTransaction()
                 .setReorderingAllowed(true)
                 .replace(R.id.container, firstScreen(intent))
@@ -63,7 +64,6 @@ class MainActivity : AppCompatActivity() {
         // data is a one-time pairing link or a bare server address opens the
         // session directly, exactly as if the link had been pasted and
         // connected. It grants nothing that the link itself does not grant.
-        // Without the WebView the session is native instead.
         fun firstScreen(intent: Intent?) =
             if (intent?.action == Intent.ACTION_VIEW &&
                 PairingFragment.pairingBase(intent.dataString.orEmpty()) != null

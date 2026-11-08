@@ -349,7 +349,7 @@ adds 8 MB because only the rows in view are built.
   platform.
 - **`.apk` lives in `android/`, not here.** mygo has no Android backend, so the
   interface cannot be a native Android app built from this code. The Android
-  client is a WebView around the web interface of the application: the phone
+  client renders the session of the application natively over the JSON API: the phone
   drives the vfox-plus instance on the PC over the
   [remote protocol](remote-protocol.md), and the web interface it shows follows
   the [design system](design-system.md) (see

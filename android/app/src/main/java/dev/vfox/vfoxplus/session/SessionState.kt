@@ -20,7 +20,7 @@ import java.security.cert.X509Certificate
 
 // What a natively paired session is: the server it talks to, the session
 // cookie it sends, and the certificate fingerprint it trusted, if any.
-// The cookies persist across restarts, like the cookies of the WebView:
+// The cookies persist across restarts:
 // reconnecting after the application was killed does not pair again.
 data class SessionState(
     val base: String,

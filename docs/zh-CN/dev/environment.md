@@ -262,7 +262,7 @@ adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后�
 
 `pixel_6` 是 1080×2400、420 dpi，和 CI 的模拟器一样。`~/.android/avd/pixel6.avd/config.ini` 里有
 `hw.camera.back=virtualscene` 时，扫码界面的后置摄像头显示一间客厅（`avdmanager` 写的是 `emulated`，只是一段
-普通动画）；对 WebView 来说 `hw.ramSize=3072M` 比默认的 1536M 合适。去掉 `-no-window` 就能在显示器上
+普通动画）；配对会话把整个库存拿在内存里所以 `hw.ramSize=3072M` 比默认的 1536M 合适。去掉 `-no-window` 就能在显示器上
 （WSLg）看到模拟器。不想自己构建、直接装 CI 构建好的 release APK，可以从该 Pull Request 的运行里下载：
 `gh run download RUN -n vfox-plus-android`。
 
@@ -271,12 +271,12 @@ adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后�
 模拟器启动后（`adb devices` 能列出它），构建 App、安装，并与你机器上的服务器配对：
 
 ```sh
-cd android && ./gradlew :app:assembleWebviewDebug
-adb install -r app/build/outputs/apk/webview/debug/app-webview-debug.apk
+cd android && ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # 供扫码页使用
 ```
 
-模拟器把你的机器当作 `10.0.2.2`。服务器的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
+模拟器把你的机器当作 `10.0.2.2`。服务器的会话 cookie 带 `Secure`，App 只为 `https://` 与回环地址保留它，所以
 用 `http://10.0.2.2:PORT` 配对行不通；给其他设备的服务器本来也只讲 HTTPS。做一份写有 `10.0.2.2` 的自签名证书，
 交给应用：
 

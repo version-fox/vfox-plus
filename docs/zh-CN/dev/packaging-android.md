@@ -2,8 +2,7 @@
 
 > [English](../../en/dev/packaging-android.md)
 
-本目录是安卓远端客户端：包住 PC 上应用网页界面的 WebView，原生
-Material 3 Expressive 配对流程。它按[远端协议](remote-protocol.md)编程，不直连
+本目录是安卓远端客户端：配对会话是完整原生实现（JSON API 上的五个页签）；配对流程是原生 Material 3 Expressive。它按[远端协议](remote-protocol.md)编程，不直连
 Go 代码。用户装 `.apk` 后与 PC 配对；见[安卓 App](../user/android.md)。
 
 ## 布局
@@ -25,17 +24,15 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[安卓 App](../user/android.
 - **扫码**（`ScanFragment`）是 CameraX 预览加 zxing 解码：解出的链接填入配对框并立即连接。画面在一个 32 dp 圆角的
   方框之外变暗，方框带四个角标（`ViewfinderView`），启动时按 default spatial 弹簧落定；浮动工具栏提供手电筒（手机有
   闪光灯时）与“手动输入”。`CAMERA` 按非必需申请——无相机或拒绝权限时粘贴链接即可。
-- **会话**（`ViewerFragment`）是 `/app` 的 WebView，会话 cookie 跨启动持久化，打开文件上传（供插件 `.zip`/`.lua` 文件）、
-  下拉刷新，页面加载时顶部有波浪进度条。一次性链接种下 cookie 后客户端自行进入 `/app`，并让页面的历史从那里开始，所以
-  返回不会再次加载已用掉的链接。只有 App 能做的两件事——配对新链接与断开——在页面设置的**这台手机**卡片上：App 给页面
-  一个对象 `window.vfoxAndroid`（[桥](remote-protocol.md#android-客户端)），页面看到它才显示这张卡片。连不上服务器时显示
-  原生状态（错误形状、“重试”“配对新链接”），而不是 WebView 的错误页。WebView 内无法下载文件，失败任务完整日志的网页下载
-  按钮只在浏览器里出现。窗口始终停在已配对的服务器上：页面链到其它站点的地址（插件主页、文档）在手机的浏览器里打开
-  （`shouldOverrideUrlLoading`；页面为它们点击一个链接，而不调用 `window.open`，后者 WebView 不会上报）。
-- **TLS**（`onReceivedSslError`）在信任自签名证书前弹出 SHA-256 指纹对话框——与 PC 上 vfox-plus 设置里显示的是同一个，每行八个字节，
+- **会话**（`session/`）是 `/app` 页的完整原生实现：JSON API 上的五个页签——主页、带版本与选项的 SDK、插件、任务、
+  设置——会话 cookie 跨启动持久化，支持文件上传（插件 `.zip` 文件）、下拉刷新，页签加载时有 Expressive 进度指示。
+  一次性链接种下 cookie 后客户端自行打开会话。只有 App 能做的两件事——配对新链接与断开——在它自己设置的**这台手机**
+  卡片上。连不上服务器时显示原生状态（错误形状、“重试”“配对新链接”）。窗口始终停在已配对的服务器上：会话链到其它
+  站点的地址（插件主页、文档）在手机的浏览器里打开。
+- **TLS** 用原生 `X509TrustManager` 校验在信任自签名证书前弹出 SHA-256 指纹对话框——与 PC 上 vfox-plus 设置里显示的是同一个，每行八个字节，
   方便一眼对照。PC 端自带证书可免去警告。
-- **返回键**先走 WebView 历史，再退出会话；App 启用预测性返回动画（`enableOnBackInvokedCallback`）。
-- **新的 Activity**（深色主题、换语言、转屏）会拿回页面与它的历史：会话页保存 WebView 的状态。
+- **返回键**先退回详情再退出会话；App 启用预测性返回动画（`enableOnBackInvokedCallback`）。
+- **新的 Activity**（深色主题、换语言、转屏）会拿回会话：各屏按持久化的会话重拉数据。
 
 ## 应用里的设计系统
 
@@ -43,7 +40,7 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
 
 - **边到边。** `MainActivity` 调用 `enableEdgeToEdge()`，App 画到系统栏下面。屏幕用 `padToSafeArea`（`Insets.kt`：
   系统栏、刘海与键盘变成内边距）避开它们；滚动视图还会把有焦点的输入框滚到键盘之上，因为系统不会为边到边的窗口
-  调整大小。WebView 里的页面以 CSS 变量 `--sai-*` 得到同样的边距（[桥](remote-protocol.md#android-客户端)）。
+  调整大小。
 - **主题。** `Theme.VfoxPlus` 继承 `Theme.Material3Expressive.DayNight.NoActionBar`。`values/colors.xml` 与
   `values-night/colors.xml` 存放种子 `#F28C1B` 的配色方案的 48 个角色（主题把其中 46 个映射到属性，shadow 与 scrim 没有
   对应属性），字面值与 Web 界面的 `--m3-*` 变量相同。`mygo/pair` 的一个测试（`webapp_design_test.go`）用 `mygo/ui/mcu`
@@ -74,7 +71,7 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
   Material 3 1.5.0-beta02 是 beta，需要 AGP 9.1.0、compileSdk 37 与 Compose 1.12.0，最新的 Compose 1.12.1 对 AGP 与
   compileSdk 的要求相同。用 Compose 就要引入预发布依赖并换一套工具链。
 - **APK 更小。**加上 Compose 会让 APK 多 1.2 MB（37%）。
-- **原生部分小。**App 是包住 WebView 的三个屏：用户操作的是 Web 界面，任何工具包都不会改变它。
+- **会话 UI 是数据不是装饰。**五个页签用 RecyclerView 与 Material 卡片渲染 JSON API；用户操作的任何工具包都不会改变它。
 
 等 Compose 的 Material 3 在能用锁定工具链构建的稳定版里提供 Expressive 时，按[内存页](memory.md#android-应用用-view-还是-compose)
 所述再测一次。那时要比较的是 APK 体积与迁移成本，而不是内存。
@@ -89,18 +86,18 @@ Gradle 才会安装。wrapper 会下载 `gradle/wrapper/gradle-wrapper.propertie
 
 ```sh
 cd android
-./gradlew :app:assembleWebviewRelease
+./gradlew :app:assembleRelease
 ```
 
 构建不需要 KVM；在模拟器上运行 APK 才需要（见[模拟器与 KVM](environment.md#模拟器与-kvm)）。首次运行要用 JDK 编译 `GradleWrapperNeo.java`，并下载 Gradle 与依赖，需要几分钟。
 `services.gradle.org` 慢的地方，请给你的用户而不是给项目配置下载镜像；见 Neo
 README 的 “Configure download mirrors”。
 
-release APK 落在 `app/build/outputs/apk/webview/release/app-webview-release.apk`（约 3.2 MB），
+release APK 落在 `app/build/outputs/apk/release/app-release.apk`（约 3.2 MB），
 用 debug 密钥签名（见[签名状态](#签名状态)）。发布时按版本改名：
 
 ```sh
-cp app/build/outputs/apk/webview/release/app-webview-release.apk \
+cp app/build/outputs/apk/release/app-release.apk \
   vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
 ```
 
@@ -108,11 +105,9 @@ cp app/build/outputs/apk/webview/release/app-webview-release.apk \
 
 ## 构建变体
 
-`webview` 是用户装的：配对会话在系统 WebView 里。`nowebview` 是内存对照组：
-从不构造 WebView，会话是完整原生实现（JSON API 上的五个页签，代码在
-`dev.vfox.vfoxplus.session`），其它屏不变；包名与入口相同所以两轮实测之间先卸载。CI 只构建与测量
-`webview`；本地对照按[内存页](memory.md#配对后的会话与无-webview-对照组)跑
-`vfxtool measure-apk --pair-url`。
+只有一个客户端：配对会话是完整原生实现（JSON API 上的五个页签，代码在
+`dev.vfox.vfoxplus.session`）。CI 构建并测量它；本地按[内存页](memory.md#配对后的会话与无-webview-对照组)用
+`vfxtool measure-apk --pair-url` 测配对会话。
 
 ## 签名状态
 

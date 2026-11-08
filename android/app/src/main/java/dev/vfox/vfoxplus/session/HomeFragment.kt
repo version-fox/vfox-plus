@@ -132,12 +132,19 @@ class HomeFragment : Fragment(), NativeSessionFragment.Refreshable {
         val exploreInner = LinearLayout(context)
         SessionUi.pad(exploreInner)
         exploreInner.addView(SessionUi.headline(context, getString(R.string.session_explore), 16f))
-        exploreInner.addView(SessionUi.body(context, getString(R.string.session_explore_body)))
         explore.addView(exploreInner)
+        explore.setOnClickListener { host.openTab(2) }
         body.addView(explore)
-        val more = MaterialButton(requireContext()).apply { text = "+" }
-        more.setOnClickListener { host.notify(getString(R.string.session_explore)) }
-        body.addView(more)
+        val add = com.google.android.material.floatingactionbutton.FloatingActionButton(context).apply {
+            setImageResource(dev.vfox.vfoxplus.R.drawable.ic_add)
+            contentDescription = getString(R.string.session_explore)
+            setOnClickListener { host.openTab(2) }
+        }
+        val addRow = LinearLayout(context).apply {
+            gravity = android.view.Gravity.END
+        }
+        addRow.addView(add)
+        body.addView(addRow)
         version.isVisible = true
     }
 }

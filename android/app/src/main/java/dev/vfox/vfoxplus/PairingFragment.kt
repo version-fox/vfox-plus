@@ -219,15 +219,10 @@ class PairingFragment : Fragment() {
     }
 
     companion object {
-        // The session screen: the system WebView on the webview flavor, the
-        // native session on nowebview. Both take the one-time link or a bare
-        // server address, and both remember the server for reconnecting.
-        fun viewerFor(startUrl: String): Fragment =
-            if (BuildConfig.HAS_WEBVIEW) {
-                ViewerFragment.newInstance(startUrl)
-            } else {
-                NativeSessionFragment.newInstance(startUrl)
-            }
+        // The session screen: the whole session natively over the JSON API.
+        // It takes the one-time link or a bare server address, and remembers
+        // the server for reconnecting.
+        fun viewerFor(startUrl: String): Fragment = NativeSessionFragment.newInstance(startUrl)
 
         // Accepts a full one-time pairing link or a bare server address.
         // Returns the server base (scheme + host + port), or null.

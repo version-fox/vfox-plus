@@ -28,8 +28,6 @@ android {
         // Same version as the desktop application.
         versionCode = 1
         versionName = rootDir.resolve("../mygo/VERSION").readText().trim()
-        // The `webview` flavor keeps this; `nowebview` overrides it to false.
-        buildConfigField("boolean", "HAS_WEBVIEW", "true")
     }
 
     buildTypes {
@@ -45,23 +43,8 @@ android {
             )
         }
     }
-    // Two clients, one codebase: `webview` is what users install, with the
-    // paired session in the system WebView; `nowebview` never constructs a
-    // WebView and shows the whole session natively instead (the five tabs
-    // over the JSON API), so that `vfxtool measure-apk --pair-url` on both
-    // answers how much memory the WebView costs
-    // (see docs/en/dev/memory.md). The applicationId stays the same, so
-    // uninstall between the two runs.
-    flavorDimensions += "client"
-    productFlavors {
-        create("webview") {
-            dimension = "client"
-        }
-        create("nowebview") {
-            dimension = "client"
-            buildConfigField("boolean", "HAS_WEBVIEW", "false")
-        }
-    }
+    // One client: the whole paired session is native (the five tabs over the
+    // JSON API, in `dev.vfox.vfoxplus.session`).
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -73,8 +56,6 @@ android {
     }
     buildFeatures {
         viewBinding = true
-        // The `nowebview` flavor reads HAS_WEBVIEW to show the native session.
-        buildConfig = true
     }
 }
 
@@ -96,6 +77,15 @@ val materialSymbols = listOf(
     Triple("ic_torch_off", "flashlight_off", null),
     Triple("ic_torch_on_fill", "flashlight_on", "fill1"),
     Triple("ic_unreachable", "cloud_off", null),
+    // The destinations of the native session.
+    Triple("ic_nav_home", "home", null),
+    Triple("ic_nav_sdks", "package_2", null),
+    Triple("ic_nav_plugins", "extension", null),
+    Triple("ic_nav_tasks", "task", null),
+    Triple("ic_nav_settings", "settings", null),
+    Triple("ic_nav_settings_fill", "settings", "fill1"),
+    Triple("ic_add", "add", null),
+    Triple("ic_back", "arrow_back", null),
 )
 val symbolFiles by configurations.creating {
     isCanBeConsumed = false

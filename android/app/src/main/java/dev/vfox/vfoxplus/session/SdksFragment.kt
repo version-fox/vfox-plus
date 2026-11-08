@@ -41,7 +41,8 @@ class SdksFragment : Fragment(), NativeSessionFragment.Refreshable {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         host = parentFragment as SessionHost
         val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        search = EditText(requireContext()).apply { hint = getString(R.string.session_search_sdks) }
+        val searchBox = SessionUi.textField(requireContext(), getString(R.string.session_search_sdks))
+        search = searchBox.editText!!
         search.doAfterTextChanged {
             query = it?.toString().orEmpty()
             draw()
@@ -51,7 +52,7 @@ class SdksFragment : Fragment(), NativeSessionFragment.Refreshable {
         swipe.addView(list)
         swipe.setOnRefreshListener { refresh() }
         root.addView(SessionUi.section(requireContext(), getString(R.string.session_installed)))
-        root.addView(search)
+        root.addView(searchBox)
         root.addView(swipe, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         root.let { SessionUi.pad(it, 0, 0) }
         return root

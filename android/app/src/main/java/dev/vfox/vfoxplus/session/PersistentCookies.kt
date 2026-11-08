@@ -17,7 +17,7 @@ package dev.vfox.vfoxplus.session
 import android.content.Context
 
 // The session cookies, kept in SharedPreferences so a restart reconnects
-// without pairing again, like the cookies that the WebView keeps. The server
+// without pairing again. The server
 // sets a single session cookie; entries are stored per host as name=value
 // pairs and sent back on every request to that host.
 internal class PersistentCookies(context: Context) {
