@@ -18,21 +18,21 @@ App 打开时是配对界面，上面写明在 PC 的哪里找二维码（*设�
 
 | 配对界面 | 扫描二维码 | 自签名证书的指纹 |
 | --- | --- | --- |
-| ![安卓 App 的配对界面，上面写明在 PC 的哪里找二维码](https://iili.io/nD343xt.png) | ![安卓 App 的扫描器，带取景框与工具栏](https://iili.io/nD34Ksn.png) | ![显示自签名证书指纹的对话框](https://iili.io/nD6jTzu.png) |
+| ![安卓 App 的配对界面，上面写明在 PC 的哪里找二维码](https://iili.io/nDQhyZP.png) | ![安卓 App 的扫描器，带取景框与工具栏](https://iili.io/nDQjIPn.png) | ![显示自签名证书指纹的对话框](https://iili.io/nDQjwNV.png) |
 
 配对后，App 显示配对浏览器的界面：带在用插件的主页、SDK 与其版本、以及设置。设置的第一张卡片
 “这部手机”可以配对另一个链接或断开手机；它下面的连接与 PC 上 vfox-plus 窗口里的相同（见[其他设备](remote.md#其他设备)）。
 
 | 主页 | 一个 SDK | 设置，含这部手机的卡片与连接 |
 | --- | --- | --- |
-| ![安卓 App 的主页](https://iili.io/nD6jl5P.png) | ![安卓 App 里的一个 SDK：flutter 及其已装版本](https://iili.io/nD6jjgp.png) | ![安卓 App 的设置：这部手机的卡片与 PC 的连接](https://iili.io/nD6jDhu.png) |
+| ![安卓 App 的主页](https://iili.io/nD34IbS.png) | ![安卓 App 里的一个 SDK：flutter 及其已装版本](https://iili.io/nD34AX9.png) | ![安卓 App 的设置：这部手机的卡片与 PC 的连接](https://iili.io/nDQwffe.png) |
 
 App 跟随手机的深色主题。连不上 PC 时（vfox-plus 已停止、没有允许其他设备、换了网络、被防火墙挡住），
 它会说明，并提供重试或配对新链接。
 
 | 深色主题的配对界面 | 深色主题的主页 | 连不上的 PC |
 | --- | --- | --- |
-| ![深色主题的安卓 App 配对界面](https://iili.io/nD34hqg.png) | ![深色主题的安卓 App 主页](https://iili.io/nD6wo4R.png) | ![PC 连不上时的安卓 App](https://iili.io/nD85mOu.png) |
+| ![深色主题的安卓 App 配对界面](https://iili.io/nDQwo5x.png) | ![深色主题的安卓 App 主页](https://iili.io/nDQwjgs.png) | ![PC 连不上时的安卓 App](https://iili.io/nDQwkml.png) |
 
 App 需要手机能到达你的 PC（同一 Wi-Fi 或其他网络路由），并且网页界面的端口（默认 8369）在 PC
 防火墙中放行。浏览器只能设置全局版本；把版本固定到项目仍只能在桌面应用里做。

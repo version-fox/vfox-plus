@@ -175,7 +175,7 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
   redraws every pixel of the page in each frame and takes 10 to 40 ms, so pages,
   dialogs and menus only fade there (`kit.Env.Software`, set from
   `Painter.Accelerated`).
-- Web interface and the Android app, which renders it natively: animate
+- Web interface and the Android app, which shows it in a WebView: animate
   `transform` and `opacity`, which the compositor runs without the main thread
   of the page, and not `left`, `top` or `height`. A long list sets
   `content-visibility: auto`, so that opening its page lays out only what is on

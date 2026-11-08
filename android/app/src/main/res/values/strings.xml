@@ -56,6 +56,7 @@
     <string name="tls_body_unknown">The server certificate cannot be verified. Only continue on a network you trust.</string>
     <string name="trust_once">Trust once</string>
 
+    <!-- The native session of the no-WebView experiment flavor -->
     <string name="disconnect">Disconnect</string>
 
     <!-- The native session: the whole /app page in Views -->
@@ -74,8 +75,8 @@
     <string name="session_active">Plugins in use</string>
     <string name="session_terminal">Use in a terminal</string>
     <string name="session_terminal_body">Add this line to your shell startup file so terminals pick up the global versions:</string>
-    <string name="session_explore_body">Browse and install plugins.</string>
     <string name="session_explore">Plugin registry</string>
+    <string name="session_explore_body">Browse and install plugins.</string>
     <string name="session_search_sdks">Search SDKs…</string>
     <string name="session_installed">Installed</string>
     <string name="session_available">Available</string>
@@ -109,11 +110,6 @@
     <string name="session_application">Application</string>
     <string name="session_vfox_config">vfox config</string>
     <string name="session_copy_link">Copy link</string>
-    <string name="session_copy">Copy</string>
-    <string name="session_homepage">Homepage</string>
-    <string name="session_version">vfox %1$s</string>
-    <string name="session_edit">Edit</string>
-    <string name="session_copied">Copied</string>
     <string name="session_close">Close</string>
     <string name="session_pair_help">Scan the code with the Android app, or open the link on the other device. It works once and expires in a few minutes.</string>
 </resources>

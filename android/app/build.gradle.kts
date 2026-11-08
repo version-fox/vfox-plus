@@ -43,8 +43,8 @@ android {
             )
         }
     }
-    // One client: the whole paired session is native (the five tabs over the
-    // JSON API, in `dev.vfox.vfoxplus.session`).
+    // One client: the paired session is the server's web interface in the
+    // system WebView (ViewerFragment over window.vfoxAndroid).
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -77,24 +77,6 @@ val materialSymbols = listOf(
     Triple("ic_torch_off", "flashlight_off", null),
     Triple("ic_torch_on_fill", "flashlight_on", "fill1"),
     Triple("ic_unreachable", "cloud_off", null),
-    // The destinations of the native session.
-    Triple("ic_nav_home", "home", null),
-    Triple("ic_nav_sdks", "package_2", null),
-    Triple("ic_nav_plugins", "extension", null),
-    Triple("ic_nav_tasks", "task", null),
-    Triple("ic_nav_settings", "settings", null),
-    Triple("ic_nav_settings_fill", "settings", "fill1"),
-    Triple("ic_add", "add", null),
-    Triple("ic_back", "arrow_back", null),
-    // The leading tiles of the native session: one hue per group.
-    Triple("ic_phone", "smartphone", null),
-    Triple("ic_devices", "devices", null),
-    Triple("ic_qr", "qr_code_2", null),
-    Triple("ic_leaf", "energy_savings_leaf", null),
-    Triple("ic_logout", "logout", null),
-    Triple("ic_terminal", "terminal", null),
-    Triple("ic_store", "store", null),
-    Triple("ic_open", "open_in_new", null),
 )
 val symbolFiles by configurations.creating {
     isCanBeConsumed = false
@@ -147,9 +129,6 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.google.android.material:material:1.14.0")
-    // The native session lists versions, plugins and tasks: the only
-    // dependency it needs beyond the Material widgets.
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
     // What Material 1.14.0 builds on, which the app uses itself: springs and the shape library.
     implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
     implementation("androidx.graphics:graphics-shapes:1.0.1")

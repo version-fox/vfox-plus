@@ -143,32 +143,36 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
 在任一工作流结束时报告，Android 仍在跑时与其余一样等待。章节渲染在桌面表格
 下方，Pull Request 数字与 `main` 并列。
 
-覆盖缺口：`apk-cold` 是未配对首屏不加载任何会话。`vfxtool webheap`
+覆盖缺口：`apk-cold` 从不加载系统 WebView（它是未配对首屏）。`vfxtool webheap`
 仍可本地看配对后 `/app` 页的 JavaScript 堆（截图附带），只做诊断，不进 CI 报告：
 浏览器进程本身的内存不在测量范围内，堆数字不能代表浏览器或 Android 客户端的占用。
 
-### 配对后的会话与无 WebView 对照组
+### 配对后的会话
 
-客户端曾经是包住 `/app` 的 WebView。为看清系统 WebView 占多少曾把同一个 APK
-配对后在 `webview` 构建与从不构造 WebView 的 `nowebview` 对照构建上各测一遍，
-包名与入口相同（两轮之间先卸载）。`vfxtool measure-apk --pair-url`
-经显式 `VIEW` intent 打开配对会话（`MainActivity` 的测量入口，
-与粘贴链接后点连接是同一个会话），再沉降一次，追加 `memory (apk-paired)` 行。
-配对行只做本地诊断：两行的文件不要上传，CI 只测冷启动。
-复现配对数字时，用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`
-的应用端到端构建配对，从 `VFOX_PLUS_E2E_LINK`
-指定的文件里读链接，每轮重启应用领一条新链接。
+客户端就是套在 `/app` 外面的 WebView：整个会话是共用的 Web 前端，只有一个
+实现可测。`vfxtool measure-apk --pair-url` 经显式 `VIEW` intent 打开配对
+会话（`MainActivity` 的测量入口，与粘贴链接后点连接是同一个会话），再沉降一次，
+追加 `memory (apk-paired)` 行。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
+它生成的证书与配对链接用的就是模拟器访问本机的地址；从 `VFOX_PLUS_E2E_LINK`
+指定的文件里读链接，每轮重启应用领一条新链接。配对行只做本地诊断：两行的文件不要上传，
+CI 只测冷启动。
+
+2026-11-08 在一台模拟器（API 36、x86_64、无 GPU）上实测，对着带 Java 与 Flutter
+档案的假 vfox，R8 的 release 构建，沉降 20 秒后读 `dumpsys meminfo`，
+经 `adb reverse` 走明文 HTTP 配对以便不需要点信任：
 
 | 构建 | `apk-cold` PSS | `apk-paired` PSS |
 | --- | ---: | ---: |
-| `webview` | 37 MB | 84 MB |
-| `nowebview` | 38 MB | 39 MB |
+| WebView 客户端 | 38 MB | 87 MB |
 
-冷启动从不加载 WebView，所以两构建在那里一致。配对会话里系统 WebView 在这里约占
-47 MB PSS；原生会话只比自己的冷启动多约 1 MB。全原生客户端把配对内存砍到一半
-以下，是带着整个会话实测的，不是占位：主页、带版本与选项的 SDK、插件、任务、设置，
-连着实时事件流。结论既出：整个会话用原生重写了一遍（代码在
-`dev.vfox.vfoxplus.session`），`webview` 构建已删除，发出的是原生客户端。
+冷启动从不加载 WebView。配对会话里系统 WebView 在这里约占 49 MB PSS，
+是带着整个会话实测的：主页、带版本与选项的 SDK、插件、任务、设置，
+连着实时事件流。之前和原生对照构建的 A/B 测过 37/84 MB 对 38/39 MB（冷启动/配对），
+所以配对成本几乎全在 WebView，原生会话只比自己的冷启动多约 1 MB。
+那个对照构建还是删掉了：手搓第二套 UI、还要和 Web 前端在像素与文案上
+一直对齐，花的钱比这几十 MB 多；而设计语言与文案现在只住在一个地方。
+（当天稍早一轮测过 32/68 MB 与 31/32 MB；对比要看同一轮
+背靠背测的行。）
 
 ### Android 应用用 View 还是 Compose
 

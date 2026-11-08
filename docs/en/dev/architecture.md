@@ -46,7 +46,7 @@ flowchart TB
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
         direction LR
-        m("<b>mygo/</b><br/>the desktop application and its web<br/>interface (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(native session over the JSON API)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+        m("<b>mygo/</b><br/>the desktop application and its web<br/>interface (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
     end
     docs ~~~ shared ~~~ code
 
@@ -601,8 +601,8 @@ add/update/remove, tasks with live progress and logs over server-sent events,
 and the settings. The HTTP surface the web interface uses is specified in
 [the remote protocol](remote-protocol.md).
 
-The Android client (`android/`) connects to the same server: it renders the session natively
-over the JSON API, with a native Material 3 Expressive pairing flow (paste or scan the
+The Android client (`android/`) connects to the same server: it is a WebView
+around `/app`, with a native Material 3 Expressive pairing flow (paste or scan the
 pairing link of the settings, compare the certificate fingerprint), so a phone drives the
 vfox-plus instance on a PC. The web interface itself follows the
 [design system](design-system.md) (seed colour, shapes, motion) with inlined

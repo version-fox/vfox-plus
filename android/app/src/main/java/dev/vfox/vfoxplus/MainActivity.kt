@@ -19,14 +19,12 @@ import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import dev.vfox.vfoxplus.databinding.ActivityMainBinding
-import dev.vfox.vfoxplus.session.NativeSessionFragment
 
-// Single-activity host: pairing first, the native session after. The app
-// draws edge to edge, and every screen keeps clear of the system bars itself
-// (Insets.kt). The system back gesture walks the back stack of the screens,
-// and the session screen takes it first while its detail has somewhere to go
-// back to; the app does not handle it here, so that the system can show the
-// predictive back animation.
+// Single-activity host: pairing first, the WebView after. The app draws edge to edge,
+// and every screen keeps clear of the system bars itself (Insets.kt). The system back
+// gesture walks the back stack of the screens, and the session screen takes it first
+// while its page has a history; the app does not handle it here, so that the system
+// can show the predictive back animation.
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
@@ -37,9 +35,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         if (savedInstanceState == null) {
+            val first = firstScreen(intent)
+            if (first is ViewerFragment) {
+                // Like a pasted link, a link that opens the app remembers
+                // the server for reconnecting.
+                PairingFragment.pairingBase(intent?.dataString.orEmpty())?.let {
+                    ServerStore(this).lastPairingUrl = it
+                }
+            }
             supportFragmentManager.beginTransaction()
                 .setReorderingAllowed(true)
-                .add(R.id.container, firstScreen(intent))
+                .add(R.id.container, first)
                 .commit()
         }
     }
@@ -49,7 +55,11 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         // A fresh pairing link while the app runs opens its session on top,
         // like pasting the link and tapping connect.
-        if (firstScreen(intent) is NativeSessionFragment) {
+        val data = intent.dataString.orEmpty()
+        if (firstScreen(intent) is ViewerFragment) {
+            // Pasted links remember the server for reconnecting; a link that
+            // opens the app does the same.
+            PairingFragment.pairingBase(data)?.let { ServerStore(this).lastPairingUrl = it }
             supportFragmentManager.beginTransaction()
                 .setReorderingAllowed(true)
                 .replace(R.id.container, firstScreen(intent))

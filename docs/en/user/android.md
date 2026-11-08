@@ -25,7 +25,7 @@ fingerprint first, to compare with the one on the PC.
 
 | The pairing screen | Scanning the QR code | The fingerprint of a self-signed certificate |
 | --- | --- | --- |
-| ![The pairing screen of the Android app, which says where to find the code on the PC](https://iili.io/nD343xt.png) | ![The scanner of the Android app, with the viewfinder and the toolbar](https://iili.io/nD34Ksn.png) | ![The dialog that shows the fingerprint of a self-signed certificate](https://iili.io/nD6jTzu.png) |
+| ![The pairing screen of the Android app, which says where to find the code on the PC](https://iili.io/nDQhyZP.png) | ![The scanner of the Android app, with the viewfinder and the toolbar](https://iili.io/nDQjIPn.png) | ![The dialog that shows the fingerprint of a self-signed certificate](https://iili.io/nDQjwNV.png) |
 
 Once paired, the app shows the interface of the paired browser: the home page
 with the plugins in use, the SDKs with their versions, and the settings. The
@@ -35,7 +35,7 @@ phone; the connections below it are the ones of the window of vfox-plus on the P
 
 | Home | An SDK | The settings, with the card of this phone and the connections |
 | --- | --- | --- |
-| ![The home page in the Android app](https://iili.io/nD6jl5P.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nD6jjgp.png) | ![The settings in the Android app: the card of this phone, and the connections of the PC](https://iili.io/nD6jDhu.png) |
+| ![The home page in the Android app](https://iili.io/nD34IbS.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nD34AX9.png) | ![The settings in the Android app: the card of this phone, and the connections of the PC](https://iili.io/nDQwffe.png) |
 
 The app follows the dark theme of the phone. When it cannot reach the PC (vfox-plus
 stopped, other devices not allowed, another network, a firewall in the way), it says
@@ -43,7 +43,7 @@ so and offers to try again or to pair a new link.
 
 | The pairing screen in the dark theme | Home in the dark theme | A PC that cannot be reached |
 | --- | --- | --- |
-| ![The pairing screen of the Android app in the dark theme](https://iili.io/nD34hqg.png) | ![The home page in the Android app in the dark theme](https://iili.io/nD6wo4R.png) | ![The Android app when the PC cannot be reached](https://iili.io/nD85mOu.png) |
+| ![The pairing screen of the Android app in the dark theme](https://iili.io/nDQwo5x.png) | ![The home page in the Android app in the dark theme](https://iili.io/nDQwjgs.png) | ![The Android app when the PC cannot be reached](https://iili.io/nDQwkml.png) |
 
 The app needs your PC reachable from the phone (same Wi-Fi or another network
 route) and the port of the web interface (8369 by default) allowed through the PC

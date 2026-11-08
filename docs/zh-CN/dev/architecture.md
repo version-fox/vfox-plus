@@ -44,7 +44,7 @@ flowchart TB
     end
     subgraph code["<b>应用</b>与<b>自动化</b>"]
         direction LR
-        m("<b>mygo/</b><br/>桌面应用及其网页界面（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（JSON API 上的原生会话）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
+        m("<b>mygo/</b><br/>桌面应用及其网页界面（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（网页界面的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
     end
     docs ~~~ shared ~~~ code
 
@@ -487,7 +487,7 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 删除、带 server-sent events 实时进度与日志的任务、以及设置。Web 界面使用的 HTTP 接口见
 [远端协议](remote-protocol.md)。
 
-Android 客户端（`android/`）连同一个服务器：它在 JSON API 上原生渲染会话，
+Android 客户端（`android/`）连同一个服务器：它是包住 `/app` 的 WebView，
 配对流程是原生 Material 3 Expressive（粘贴或扫描设置里的配对链接、核对证书指纹），
 手机以此驱动 PC 上的 vfox-plus 实例。Web 界面本身遵循
 [设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），

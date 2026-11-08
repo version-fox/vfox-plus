@@ -26,8 +26,9 @@ The build that is measured is the end-to-end build: the release build with the i
 of the native user interface and the automation plugin of mygo, which the measuring drives
 it through. They take up to 1 MB of PSS, which the release build does not.
 
-The Android client (`android/`) is not in this table: it renders its session
-natively, so it is measured on the device, not with this method. What its toolkit costs is in
+The Android client (`android/`) is not in this table: it is a WebView around
+the web interface, so its memory is the system WebView's plus the page, and it
+is measured on the device, not with this method. What its toolkit costs is in
 [Views or Compose in the Android app](#views-or-compose-in-the-android-app).
 
 ## The lightweight mode
@@ -186,45 +187,47 @@ and `memory.yml` reports when either workflow ends, waiting for a still
 running Android run like for the rest. The sections render below the desktop
 table with the numbers of the pull request next to `main`.
 
-Coverage gaps: `apk-cold` is the unpaired first screen and loads no session. `vfxtool webheap` can still read the JavaScript heap of the paired `/app`
+Coverage gaps: `apk-cold` never loads the system WebView (it is the unpaired
+first screen). `vfxtool webheap` can still read the JavaScript heap of the paired `/app`
 page locally (next to a screenshot), for diagnosis only, not for the CI
 report: it never measures the browser process around the page, so the heap
 numbers do not stand for the browser or the Android client.
 
-### The paired session and the no-WebView control
+### The paired session
 
-The client used to be a WebView around `/app`. To see what the system WebView
-cost, the same APK was measured paired, on a `webview` flavor and a
-`nowebview` control flavor that never constructed a WebView, with the same
-package and entry (uninstall between the two runs). `vfxtool measure-apk
---pair-url` opens the paired session through an explicit `VIEW` intent (the
-measurement entry point of `MainActivity`, the same session as pasting the
-link and tapping connect), settles again, and appends the `memory
-(apk-paired)` line. The paired line is local diagnosis only: never upload a
-two-line file, and CI keeps measuring the cold start.
+The client is a WebView around `/app`: the whole session is the shared web
+frontend, so there is exactly one implementation to measure. `vfxtool
+measure-apk --pair-url` opens the paired session through an explicit `VIEW`
+intent (the measurement entry point of `MainActivity`, the same session as
+pasting the link and tapping connect), settles again, and appends the
+`memory (apk-paired)` line. Pair against the end-to-end build of the
+application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, which
+makes its certificate and its pairing link name the address where the emulator
+reaches the computer; read the link from the file that `VFOX_PLUS_E2E_LINK`
+names and mint a fresh one per run by restarting the application. The paired
+line is local diagnosis only: never upload a two-line file, and CI keeps
+measuring the cold start.
 
 Measured 2026-11-08 on one emulator (API 36, x86_64, no GPU) against the fake
-vfox with the Java and Flutter profiles, release builds with R8, `dumpsys
+vfox with the Java and Flutter profiles, release build with R8, `dumpsys
 meminfo` after 20 seconds of settling, paired over plain HTTP through `adb
-reverse` so that no trust tap is needed on either flavor:
+reverse` so that no trust tap is needed:
 
-| Flavor | `apk-cold` PSS | `apk-paired` PSS |
+| Build | `apk-cold` PSS | `apk-paired` PSS |
 | --- | ---: | ---: |
-| `webview` | 37 MB | 84 MB |
-| `nowebview` | 38 MB | 39 MB |
+| WebView client | 38 MB | 87 MB |
 
-The cold start never loads the WebView, so both flavors agree there. The
-paired session costs the system WebView about 47 MB PSS here; the native
-session adds about 1 MB over its own cold start. A fully native client more
-than halves the paired memory, measured with the whole session, not a stub:
-home, SDKs with their versions and options, plugins, tasks and settings, with
-live events streaming. The experiment concluded there: the whole session was
-reimplemented natively (in `dev.vfox.vfoxplus.session`), the `webview` flavor
-is deleted, and what ships is the native client. To reproduce a paired number, pair
-against the end-to-end build of the application with
-`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, read the link from the
-file that `VFOX_PLUS_E2E_LINK` names, and mint a fresh one per run by
-restarting the application.
+The cold start never loads the WebView. The paired session costs the system
+WebView about 49 MB PSS here, with the whole session loaded: home, SDKs with
+their versions and options, plugins, tasks and settings, with live events
+streaming. An earlier A/B against a native control build measured 37/84 MB
+against 38/39 MB cold/paired, so the WebView accounts for nearly all of the
+paired cost and a native session would add only about 1 MB over its own cold
+start. That build was dropped anyway: a second, hand-duplicated UI that has
+to stay pixel- and copy-identical with the web frontend costs more than the
+megabytes, and the design language and the copy now live in exactly one
+place. (An earlier run the same day read 32/68 MB and 31/32 MB; compare rows
+measured back to back.)
 
 ### Views or Compose in the Android app
 
@@ -263,7 +266,8 @@ interpreted and compiled just in time; "compiled" is after
   for the Views apps. Compare the rows of the table.
 - **Not measured:** Compose with the Expressive components, which the pinned
   toolchain cannot build (see [Why Views and not
-  Compose](packaging-android.md#why-views-and-not-compose)), and a phone.
+  Compose](packaging-android.md#why-views-and-not-compose)), the session screen with
+  its WebView, and a phone.
 
 ## How it is measured
 

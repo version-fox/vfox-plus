@@ -20,9 +20,14 @@ import android.app.Application
 class VfoxPlusApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        // The phone interface takes the system's expressive palette on
-        // Android 12 and later, independent of the beige of the web page;
-        // older releases keep the seed scheme built into the theme.
+        // The pairing session lives in a cookie; keep it across launches so a
+        // paired phone reconnects without pasting another link.
+        android.webkit.CookieManager.getInstance().apply {
+            setAcceptCookie(true)
+        }
+        // The native chrome takes the system's expressive palette on
+        // Android 12 and later; older releases keep the seed scheme built
+        // into the theme.
         com.google.android.material.color.DynamicColors.applyToActivitiesIfAvailable(this)
     }
 }
