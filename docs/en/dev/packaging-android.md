@@ -173,9 +173,9 @@ it as described in [The Android app](../user/android.md).
 ## Build variants
 
 `webview` is what users install: the paired session is the system WebView.
-`nowebview` is the memory control: it never constructs a WebView and shows a
-native stub on the session screen instead (`ViewerFragment` branches on
-`BuildConfig.HAS_WEBVIEW`); the other screens are unchanged. The package and
+`nowebview` is the memory control: it never constructs a WebView and shows
+the whole session natively instead (the five tabs over the JSON API, in
+`dev.vfox.vfoxplus.session`); the other screens are unchanged. The package and
 the entry stay the same, so uninstall between measured runs. CI only builds
 and measures `webview`; run the local control as [the memory
 page](memory.md#the-paired-session-and-the-no-webview-control) describes, with

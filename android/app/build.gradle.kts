@@ -47,8 +47,9 @@ android {
     }
     // Two clients, one codebase: `webview` is what users install, with the
     // paired session in the system WebView; `nowebview` never constructs a
-    // WebView and shows a native stub instead, so that `vfxtool measure-apk
-    // --pair-url` on both answers how much memory the WebView costs
+    // WebView and shows the whole session natively instead (the five tabs
+    // over the JSON API), so that `vfxtool measure-apk --pair-url` on both
+    // answers how much memory the WebView costs
     // (see docs/en/dev/memory.md). The applicationId stays the same, so
     // uninstall between the two runs.
     flavorDimensions += "client"
@@ -72,7 +73,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
-        // The `nowebview` flavor reads HAS_WEBVIEW to show its native stub.
+        // The `nowebview` flavor reads HAS_WEBVIEW to show the native session.
         buildConfig = true
     }
 }
@@ -147,6 +148,9 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.google.android.material:material:1.14.0")
+    // The native session lists versions, plugins and tasks: the only
+    // dependency it needs beyond the Material widgets.
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
     // What Material 1.14.0 builds on, which the app uses itself: springs and the shape library.
     implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
     implementation("androidx.graphics:graphics-shapes:1.0.1")

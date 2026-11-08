@@ -22,10 +22,31 @@ import java.security.MessageDigest
 // before trusting a self-signed certificate.
 object Fingerprint {
     fun sha256HexColon(certificate: SslCertificate): String? {
+        // SslCertificate.getX509Certificate needs API 29; below that there is
+        // no fingerprint to compare, and the dialog says so.
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) return null
         return try {
             val x509 = certificate.x509Certificate ?: return null
-            val digest = MessageDigest.getInstance("SHA-256").digest(x509.encoded)
+            sha256HexColon(x509.encoded)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    // The same fingerprint for a natively checked certificate: the SHA-256
+    // of its DER encoding, as uppercase hex pairs joined by colons.
+    fun sha256HexColon(encoded: ByteArray): String? {
+        return try {
+            val digest = MessageDigest.getInstance("SHA-256").digest(encoded)
             digest.joinToString(":") { "%02X".format(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun sha256HexColon(certificate: java.security.cert.X509Certificate): String? {
+        return try {
+            sha256HexColon(certificate.encoded)
         } catch (_: Exception) {
             null
         }

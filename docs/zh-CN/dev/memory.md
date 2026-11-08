@@ -150,7 +150,9 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
 #### 配对后的会话与无 WebView 对照组
 
 要看清系统 WebView 占多少，就在两个 flavor 上测配对后的同一个 APK。`webview`
-是用户装的；`nowebview` 从不构造 WebView，只显示原生占位——包名与入口相同，
+是用户装的；`nowebview` 从不构造 WebView，会话是完整原生实现（JSON API
+上的五个页签，代码在 `dev.vfox.vfoxplus.session`），所以比的是 WebView
+本身而不是缺功能——包名与入口相同两轮之间先卸载。
 两轮之间先卸载。`vfxtool measure-apk --pair-url` 经显式 `VIEW` intent 打开配对
 会话（`MainActivity` 的测量入口，与粘贴链接后点连接是同一个会话），再沉降一次，
 追加 `memory (apk-paired)` 行。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
@@ -158,18 +160,21 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
 指定的文件里读链接，每轮重启应用领一条新链接。配对行只做本地诊断：两行的文件不要上传，
 CI 只测 webview 构建的冷启动。
 
-2026-11-07 在一台模拟器（API 36、x86_64、无 GPU）上实测，对着带 Java 与 Flutter
-档案的假 vfox，R8 的 release 构建，沉降 20 秒后读 `dumpsys meminfo`：
+2026-11-08 在一台模拟器（API 36、x86_64、无 GPU）上实测，对着带 Java 与 Flutter
+档案的假 vfox，R8 的 release 构建，沉降 20 秒后读 `dumpsys meminfo`，
+经 `adb reverse` 走明文 HTTP 配对以便两构建都不需要点信任：
 
 | 构建 | `apk-cold` PSS | `apk-paired` PSS |
 | --- | ---: | ---: |
-| `webview` | 38 MB | 86 MB |
-| `nowebview` | 38 MB | 33 MB |
+| `webview` | 37 MB | 84 MB |
+| `nowebview` | 38 MB | 39 MB |
 
-冷启动从不加载 WebView，所以两构建在那里一致。配对会话里系统 WebView 约占
-50 MB PSS；全原生客户端会落在占位附近，配对内存大致减半。但内存仍不是重写的
-理由：原生部分本来就小，而重写要把整个 `/app` 页再实现一遍（见 [Android
-打包](packaging-android.md#构建变体)）。
+冷启动从不加载 WebView，所以两构建在那里一致。配对会话里系统 WebView 在这里约占
+47 MB PSS；原生会话只比自己的冷启动多约 1 MB。全原生客户端把配对内存砍到一半
+以下，是带着整个会话实测的，不是占位：主页、带版本与选项的 SDK、插件、任务、设置，
+连着实时事件流。发不发版是产品决策——每个屏现在有两份实现得一直对齐——但内存
+不再是反对的理由。（当天稍早一轮测过 32/68 MB 与 31/32 MB；对比要看同一轮
+背靠背测的行。）
 
 ### Android 应用用 View 还是 Compose
 

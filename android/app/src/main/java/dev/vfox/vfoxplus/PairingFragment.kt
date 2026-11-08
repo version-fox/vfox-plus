@@ -36,6 +36,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dev.vfox.vfoxplus.databinding.FragmentPairingBinding
+import dev.vfox.vfoxplus.session.NativeSessionFragment
 
 // The native Material 3 Expressive pairing flow: scan the QR code that the PC
 // shows or paste its one-time link, compare the certificate fingerprint,
@@ -198,7 +199,7 @@ class PairingFragment : Fragment() {
     private fun openViewer(pairingUrl: String) {
         parentFragmentManager.beginTransaction()
             .setReorderingAllowed(true)
-            .replace(R.id.container, ViewerFragment.newInstance(pairingUrl))
+            .replace(R.id.container, viewerFor(pairingUrl))
             .addToBackStack(null)
             .commit()
     }
@@ -218,6 +219,16 @@ class PairingFragment : Fragment() {
     }
 
     companion object {
+        // The session screen: the system WebView on the webview flavor, the
+        // native session on nowebview. Both take the one-time link or a bare
+        // server address, and both remember the server for reconnecting.
+        fun viewerFor(startUrl: String): Fragment =
+            if (BuildConfig.HAS_WEBVIEW) {
+                ViewerFragment.newInstance(startUrl)
+            } else {
+                NativeSessionFragment.newInstance(startUrl)
+            }
+
         // Accepts a full one-time pairing link or a bare server address.
         // Returns the server base (scheme + host + port), or null.
         fun pairingBase(link: String): String? {

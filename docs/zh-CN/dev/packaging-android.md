@@ -109,8 +109,8 @@ cp app/build/outputs/apk/webview/release/app-webview-release.apk \
 ## 构建变体
 
 `webview` 是用户装的：配对会话在系统 WebView 里。`nowebview` 是内存对照组：
-从不构造 WebView，会话屏是原生占位（`ViewerFragment` 按 `BuildConfig.HAS_WEBVIEW`
-分支），其它屏不变；包名与入口相同，所以两轮实测之间先卸载。CI 只构建与测量
+从不构造 WebView，会话是完整原生实现（JSON API 上的五个页签，代码在
+`dev.vfox.vfoxplus.session`），其它屏不变；包名与入口相同所以两轮实测之间先卸载。CI 只构建与测量
 `webview`；本地对照按[内存页](memory.md#配对后的会话与无-webview-对照组)跑
 `vfxtool measure-apk --pair-url`。
 

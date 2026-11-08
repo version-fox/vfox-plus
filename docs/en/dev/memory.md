@@ -197,7 +197,9 @@ numbers do not stand for the browser or the Android client.
 
 To see what the system WebView costs, measure the same APK paired, on both
 flavors. The `webview` flavor is what users install; the `nowebview` flavor
-never constructs a WebView and shows a native stub instead — same package and
+never constructs a WebView and shows the whole session natively instead —
+the same five tabs over the JSON API (in `dev.vfox.vfoxplus.session`), so the
+comparison measures the WebView, not missing features. Same package and
 entry, so uninstall between the two runs. `vfxtool measure-apk --pair-url`
 opens the paired session through an explicit `VIEW` intent (the measurement
 entry point of `MainActivity`, the same session as pasting the link and
@@ -210,21 +212,24 @@ mint a fresh one per run by restarting the application. The paired line is
 local diagnosis only: never upload a two-line file, and CI keeps measuring
 the cold start of the webview flavor.
 
-Measured 2026-11-07 on one emulator (API 36, x86_64, no GPU) against the fake
+Measured 2026-11-08 on one emulator (API 36, x86_64, no GPU) against the fake
 vfox with the Java and Flutter profiles, release builds with R8, `dumpsys
-meminfo` after 20 seconds of settling:
+meminfo` after 20 seconds of settling, paired over plain HTTP through `adb
+reverse` so that no trust tap is needed on either flavor:
 
 | Flavor | `apk-cold` PSS | `apk-paired` PSS |
 | --- | ---: | ---: |
-| `webview` | 38 MB | 86 MB |
-| `nowebview` | 38 MB | 33 MB |
+| `webview` | 37 MB | 84 MB |
+| `nowebview` | 38 MB | 39 MB |
 
 The cold start never loads the WebView, so both flavors agree there. The
-paired session costs the system WebView about 50 MB PSS; a fully native client
-would land near the stub, roughly halving the paired memory. Memory is still
-no reason to rewrite on its own: the native part stays small either way, and a
-rewrite reimplements the whole `/app` page (see [Android
-packaging](packaging-android.md#build-variants)).
+paired session costs the system WebView about 47 MB PSS here; the native
+session adds about 1 MB over its own cold start. A fully native client more
+than halves the paired memory, measured with the whole session, not a stub:
+home, SDKs with their versions and options, plugins, tasks and settings, with
+live events streaming. Whether that ships is a product call — every screen now
+exists twice, and the two have to stay alike — but memory no longer argues
+against it. (An earlier run the same day read 32/68 MB and 31/32 MB; compare rows measured back to back.)
 
 ### Views or Compose in the Android app
 

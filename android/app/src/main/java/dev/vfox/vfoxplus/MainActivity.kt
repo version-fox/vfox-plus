@@ -19,6 +19,7 @@ import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import dev.vfox.vfoxplus.databinding.ActivityMainBinding
+import dev.vfox.vfoxplus.session.NativeSessionFragment
 
 // Single-activity host: pairing first, the WebView after. The app draws edge to edge,
 // and every screen keeps clear of the system bars itself (Insets.kt). The system back
@@ -62,11 +63,12 @@ class MainActivity : AppCompatActivity() {
         // data is a one-time pairing link or a bare server address opens the
         // session directly, exactly as if the link had been pasted and
         // connected. It grants nothing that the link itself does not grant.
+        // Without the WebView the session is native instead.
         fun firstScreen(intent: Intent?) =
             if (intent?.action == Intent.ACTION_VIEW &&
                 PairingFragment.pairingBase(intent.dataString.orEmpty()) != null
             ) {
-                ViewerFragment.newInstance(intent.dataString!!.trim())
+                PairingFragment.viewerFor(intent.dataString!!.trim())
             } else {
                 PairingFragment()
             }
