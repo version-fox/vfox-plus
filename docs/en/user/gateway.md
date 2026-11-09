@@ -57,7 +57,7 @@ from nothing each time the container is made.
 
    | The interface of vfox-plus, through the gateway | The page of a gateway that is paired |
    | --- | --- |
-   | ![The interface of vfox-plus in a browser, served through the gateway](https://iili.io/nbNjqDG.png) | ![The page of the gateway once it is paired: the address of vfox-plus and the certificate that it trusts](https://iili.io/niyZIee.png) |
+   | ![The interface of vfox-plus in a browser, served through the gateway](https://iili.io/nbUaB2t.png) | ![The page of the gateway once it is paired: the address of vfox-plus and the certificate that it trusts](https://iili.io/niyZIee.png) |
 
 The session of the gateway at vfox-plus lasts a day, like that of a phone, and the gateway
 renews it every few hours for as long as it runs. When vfox-plus quits or starts again its

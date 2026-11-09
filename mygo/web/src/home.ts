@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { copyText, openExternal } from "./api";
+import { copyText } from "./api";
 import type { Inventory } from "./api";
 import { avatar, el, esc, icon } from "./dom";
 import { t } from "./i18n";
@@ -84,11 +84,19 @@ export function renderHome(inv: Inventory): void {
 }
 
 export function initHome(): void {
-  el("homeRefresh").onclick = () => refresh(true);
+  el("homeRefresh").onclick = () => {
+    const spin = el("homeRefresh").querySelector(".ic");
+    spin?.classList.add("spin");
+    setTimeout(() => spin?.classList.remove("spin"), 650);
+    refresh(true);
+  };
   el("shellCopy").onclick = async () => {
+    const button = el("shellCopy");
     const cmd = (document.getElementById("shellCmd") as HTMLElement).textContent || "";
     await copyText(cmd);
+    const use = button.querySelector("use");
+    const was = use?.getAttribute("href") || "";
+    use?.setAttribute("href", "#i-check");
+    setTimeout(() => use?.setAttribute("href", was), 1200);
   };
-  el("exploreBtn").onclick = () => (location.hash = "#/plugins");
-  el("docsBtn").onclick = () => openExternal("https://vfox.dev/");
 }

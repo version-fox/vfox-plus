@@ -56,7 +56,6 @@ export function renderChrome(): void {
   setText("h-installed", t("sdks"));
   setText("pickSdk", t("pick"));
   setText("h-add", t("plugins"));
-  setText("pluginsLead", t("pluginsLead"));
   setText("addPluginLabel", t("addFromSource"));
   setText("h-tasks", t("tasksH"));
   setText("h-settings", t("settings"));
@@ -68,12 +67,6 @@ export function renderChrome(): void {
   setText("l-pageLang", t("pageLang"));
   setText("l-env", t("extraEnv"));
   setText("h-active", t("active"));
-  setText("h-shell", t("shell"));
-  setText("shellBody", t("shellBody"));
-  setText("h-explore", t("registry"));
-  setText("exploreBody", t("exploreBody"));
-  setText("h-docs", t("docsCard"));
-  setText("docsBody", t("docsBody"));
   setText("h-phone", t("phone"));
   setText("phoneLead", t("phoneLead"));
   const langSystem = t("langSystem");

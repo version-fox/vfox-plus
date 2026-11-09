@@ -34,7 +34,7 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 
 | 手机上的网页界面 | 网页界面里的 Java |
 | --- | --- |
-| ![手机上的网页界面主页](https://iili.io/nbG8Fef.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nbVn53x.png) |
+| ![手机上的网页界面主页](https://iili.io/nbUYSr7.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nbUYDrP.png) |
 
 ## 它能做什么
 

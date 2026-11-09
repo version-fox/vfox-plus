@@ -112,7 +112,6 @@ export async function showDetail(name: string, keep?: boolean): Promise<void> {
     error: null,
     search: "",
     facets: {},
-    filter: "all",
     query: "",
     limit: 200,
     loading: false,
@@ -166,7 +165,6 @@ function renderDetail(): void {
     '<button class="iconbtn sm" id="detailMenu" title="…">' +
     icon("more-vert", "sm") +
     "</button></div>";
-  if (info && info.Description) h += "<p class='muted t-body'>" + esc(info.Description) + "</p>";
   h += '<div class="seg" id="detailTabs" role="tablist"></div><div id="detailBody"></div>';
   box.innerHTML = h;
   el("detailBack").onclick = () => showList(true);
@@ -345,11 +343,7 @@ function renderAvailable(body: HTMLElement): void {
     ? '<button class="btn tonal" id="chooseBtn">' +
       icon("hub", "sm") +
       "<span>" +
-      esc(
-        t("choiceButton")
-          .replace("{what}", txt(s.label, getLang()))
-          .replace("{choice}", c ? txt(c.name, getLang()) : d.search),
-      ) +
+      esc(c ? txt(c.name, getLang()) : d.search) +
       "</span>" +
       icon("keyboard-arrow-down", "sm") +
       "</button>"
@@ -384,7 +378,7 @@ function drawAvailable(): void {
     host.innerHTML =
       spinner() +
       '<p class="muted t-body" style="text-align:center">' +
-      esc(t(searchChoice() && searchChoice()?.everything ? "fetchingEverything" : "fetching")) +
+      esc(t("fetching")) +
       "</p>";
     return;
   }
@@ -394,15 +388,8 @@ function drawAvailable(): void {
       icon("search", "sm muted") +
       "<input id='vSearch' placeholder='" +
       esc(t("search")) +
-      "'></div>" +
-      "<div class='seg' id='vFilter'><button data-vf='all' aria-pressed='true'>" +
-      esc(t("allVersions")) +
-      "</button><button data-vf='note' aria-pressed='false'>" +
-      esc(t("withNote")) +
-      "</button><button data-vf='installed' aria-pressed='false'>" +
-      esc(t("installedOnly")) +
-      "</button></div>" +
-      "</div><div class='row chips' id='vChips'></div><div class='muted t-label' id='vCount' style='margin:4px 4px 8px'></div><div id='vList' class='list'></div>";
+      "'></div></div>" +
+      "<div class='row chips' id='vChips'></div><div class='muted t-label' id='vCount' style='margin:4px 4px 8px'></div><div id='vList' class='list'></div>";
     const input = document.getElementById("vSearch") as HTMLInputElement;
     input.value = d.query;
     input.oninput = () => {
@@ -411,18 +398,7 @@ function drawAvailable(): void {
       state.detail.limit = 200;
       drawVersions();
     };
-    host.querySelectorAll("#vFilter button").forEach(
-      (b) =>
-        ((b as HTMLButtonElement).onclick = () => {
-          if (!state.detail) return;
-          state.detail.filter = (b as HTMLButtonElement).dataset.vf || "all";
-          state.detail.limit = 200;
-          host.querySelectorAll("#vFilter button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-          drawVersions();
-        }),
-    );
   }
-  host.querySelectorAll("#vFilter button").forEach((x) => x.setAttribute("aria-pressed", String(x.getAttribute("data-vf") === d.filter)));
   drawChips();
   drawVersions();
 }
@@ -457,17 +433,13 @@ function drawChips(): void {
   const box = document.getElementById("vChips");
   if (!box || !d) return;
   const groups = facetGroups();
-  let any = false,
-    h = "";
+  let h = "";
   groups.forEach((g) => {
-    h += '<span class="muted t-label chiplabel">' + esc(txt(g.label, getLang())) + "</span>";
     g.values.forEach((v) => {
       const on = !!(d.facets[g.id] && d.facets[g.id][v]);
-      any = any || on;
       h += chip(g.id + ":" + v, v, on, 'data-g="' + esc(g.id) + '" data-v="' + esc(v) + '"');
     });
   });
-  if (any) h += '<button class="btn text" id="clearChips">' + esc(t("clearFilters")) + "</button>";
   box.innerHTML = h;
   box.querySelectorAll(".chip").forEach(
     (b) =>
@@ -482,29 +454,8 @@ function drawChips(): void {
         dd.limit = 200;
         b.setAttribute("aria-pressed", String(!!dd.facets[g][v]));
         drawVersions();
-        // the clear button comes and goes, and the chips keep their place, so that the check mark can slide
-        const has = Object.values(dd.facets).some((o) => Object.keys(o).length);
-        const clear = document.getElementById("clearChips");
-        if (has && !clear) {
-          const x = document.createElement("button");
-          x.className = "btn text";
-          x.id = "clearChips";
-          x.textContent = t("clearFilters");
-          x.onclick = clearChips;
-          box.appendChild(x);
-        } else if (!has && clear) clear.remove();
       }),
   );
-  const clear = document.getElementById("clearChips");
-  if (clear) (clear as HTMLButtonElement).onclick = clearChips;
-}
-
-function clearChips(): void {
-  if (!state.detail) return;
-  state.detail.facets = {};
-  state.detail.limit = 200;
-  drawChips();
-  drawVersions();
 }
 
 function drawVersions(): void {
@@ -513,12 +464,10 @@ function drawVersions(): void {
   const count = document.getElementById("vCount");
   if (!list || !d) return;
   const q = (d.query || "").toLowerCase();
-  const inst = new Set(((installedOf(d.name) || {}).Versions) || []);
   const c = searchChoice();
   const showSource = !!(c && c.everything);
+  const inst = new Set(((installedOf(d.name) || {}).Versions) || []);
   const rows = (d.versions || []).filter((v) => {
-    if (d.filter === "note" && !v.HasNote) return false;
-    if (d.filter === "installed" && !inst.has(v.Version)) return false;
     for (const g of Object.keys(d.facets)) {
       const chosen = Object.keys(d.facets[g]);
       if (chosen.length && !chosen.some((x) => ((v.facets && v.facets[g]) || []).includes(x))) return false;

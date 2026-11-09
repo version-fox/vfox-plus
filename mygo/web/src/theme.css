@@ -416,7 +416,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .stat .n{font-size:28px}
   .stat .l,.stat .lbl,.stat div:last-child{font-size:12px}
   /* terminal hint and cards: tonal containers where there is content to group */
-  #tab-home .card:has(#shellCmd){background:var(--m3-surface-container-low);padding:16px;border-radius:20px}
   /* sdks: master/detail as two screens */
   .sdk-grid{grid-template-columns:1fr}
   .pane-detail{display:none}
@@ -466,15 +465,15 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .taskrow+.tasklog:last-child{border-radius:0 0 20px 20px}
 .icon-tile{width:40px;height:40px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
 .icon-tile .ic{width:22px;height:22px}
-.codefield{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:12px;padding:6px 6px 6px 14px;margin-top:10px}
-.codefield code{flex:1;min-width:0;overflow-wrap:anywhere}
 .pane>.row:first-child{margin-bottom:6px}
-.linkcard{flex:1;min-width:240px;display:flex;align-items:center;gap:14px;text-align:left;color:inherit;transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects),border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
-.linkcard:hover{background:var(--m3-surface-container)}
-.linkcard:active{border-radius:20px}
-.linkcard .grow{display:flex;flex-direction:column;gap:2px}
-.linkcard .muted{font-size:13px}
-.cards2{gap:12px;align-items:stretch;margin-top:12px}
+.shell{display:flex;align-items:center;gap:12px;background:var(--m3-surface-container-low);border-radius:20px;padding:10px 10px 10px 12px;margin-top:12px}
+.shell code{flex:1;min-width:0;overflow-wrap:anywhere}
+.shell .iconbtn{flex:none}
+.shell .iconbtn:active{background:var(--m3-surface-container-high)}
+.list .item:active{background:var(--m3-surface-container-high)}
+.stats .stat{transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.stats .stat:active{transform:scale(.97)}
+.spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
 .searchrow{align-items:center;gap:12px}
 .searchrow .search{margin:0}
 .rowitem{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--m3-outline-variant)}
@@ -517,7 +516,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .pagehead .grow .t-body{display:none}
   .sectionlabel{margin:12px 4px 4px}
   .stats .stat .n{font-size:26px}
-  .linkcard{min-width:0}
   .rowitem{flex-wrap:wrap}
 }
 /* ---------- phones: one column, the page title lives in the top bar ---------- */
@@ -528,8 +526,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
   .hero .t-title-l{display:none}
   .hero .iconbtn{margin-left:auto}
-  .cards2{flex-direction:column;gap:8px!important}
-  .linkcard{width:100%;min-width:0;background:var(--m3-surface-container-low);padding:12px 14px;border-radius:20px}
   .stats{margin-bottom:8px}
   .stats .stat .shape{display:none}
   .stats .stat .ic-row{margin-bottom:4px}
@@ -543,7 +539,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .searchrow .seg{align-self:flex-start}
   .rowitem{padding:12px 0}
   .rowitem .seg{flex-wrap:wrap}
-  .codefield{margin-top:8px}
 }
 @media (max-width:700px){
   /* the bar already has the plugins destination; the floating button only ate the corner */

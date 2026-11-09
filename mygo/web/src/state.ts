@@ -29,7 +29,6 @@ export interface DetailState {
   error: string | null;
   search: string;
   facets: Record<string, Record<string, boolean>>;
-  filter: string;
   query: string;
   limit: number;
   loading: boolean;

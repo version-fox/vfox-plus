@@ -79,22 +79,10 @@
     <div class="stats" id="homeStats"></div>
     <div class="sectionlabel" id="h-active">In use</div>
     <div class="list grouped" id="homeActive"></div>
-    <div class="pane">
-      <div class="row"><span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span><div class="t-title-m" id="h-shell">Use in a terminal</div></div>
-      <p class="muted t-body" id="shellBody"></p>
-      <div class="codefield"><code id="shellCmd">eval "$(vfox activate bash)"</code><button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button></div>
-    </div>
-    <div class="row cards2">
-      <button class="pane linkcard" id="exploreBtn">
-        <span class="icon-tile"><svg class="ic"><use href="#i-explore"/></svg></span>
-        <span class="grow"><span class="t-title-m" id="h-explore">Plugins</span><span class="muted t-body" id="exploreBody"></span></span>
-        <svg class="ic muted"><use href="#i-chevron-right"/></svg>
-      </button>
-      <button class="pane linkcard" id="docsBtn">
-        <span class="icon-tile"><svg class="ic"><use href="#i-menu-book"/></svg></span>
-        <span class="grow"><span class="t-title-m" id="h-docs">Documentation</span><span class="muted t-body" id="docsBody"></span></span>
-        <svg class="ic muted"><use href="#i-open-in-new"/></svg>
-      </button>
+    <div class="shell" role="group">
+      <span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span>
+      <code id="shellCmd">eval "$(vfox activate bash)"</code>
+      <button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button>
     </div>
   </section>
   <section class="page" id="tab-sdks">
@@ -113,7 +101,7 @@
   </section>
   <section class="page" id="tab-plugins">
     <div class="pagehead">
-      <div class="grow"><h1 class="pagetitle" id="h-add">Plugins</h1><div class="muted t-body" id="pluginsLead"></div></div>
+      <div class="grow"><h1 class="pagetitle" id="h-add">Plugins</h1></div>
       <button class="btn text" id="updateAllBtn"><svg class="ic sm"><use href="#i-update"/></svg><span>Update all</span></button>
       <button class="iconbtn" id="regRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
       <button class="btn tonal" id="addPluginBtn"><svg class="ic sm"><use href="#i-add"/></svg><span id="addPluginLabel">Add from source</span></button>

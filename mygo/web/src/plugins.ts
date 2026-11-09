@@ -57,7 +57,7 @@ export function renderPlugins(): void {
     return !q || p.Name.toLowerCase().includes(q) || (p.Homepage || "").toLowerCase().includes(q);
   });
   if (!list.length) {
-    box.innerHTML = stateBlock("empty", "search-off", t("registry"), "", null);
+    box.innerHTML = stateBlock("empty", "search-off", t("noPlugins"), "", null);
     return;
   }
   box.innerHTML = list

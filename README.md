@@ -57,7 +57,7 @@ the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/andr
 
 | The web interface, on a phone | Java in the web interface |
 | --- | --- |
-| ![The home page of the web interface on a phone](https://iili.io/nbGvpsI.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nbVnBv2.png) |
+| ![The home page of the web interface on a phone](https://iili.io/nbUYG1I.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nbUYhes.png) |
 
 ## License
 

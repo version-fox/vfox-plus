@@ -25,14 +25,14 @@ App 打开时是配对界面，上面写明在 PC 的哪里找二维码（*设�
 
 | 主页 | 一个 SDK | 设置，含这部手机的卡片与连接 |
 | --- | --- | --- |
-| ![安卓 App 的主页](https://iili.io/nbVCV72.png) | ![安卓 App 里的一个 SDK：flutter 及其已装版本](https://iili.io/nbVCeqb.png) | ![安卓 App 的设置：这部手机的卡片与 PC 的连接](https://iili.io/nbXbk8u.png) |
+| ![安卓 App 的主页](https://iili.io/nbUUeHX.png) | ![安卓 App 里的一个 SDK：flutter 及其已装版本](https://iili.io/nbUUiU7.png) | ![安卓 App 的设置：这部手机的卡片与 PC 的连接](https://iili.io/nbXbk8u.png) |
 
 App 跟随手机的深色主题。连不上 PC 时（vfox-plus 已停止、没有允许其他设备、换了网络、被防火墙挡住），
 它会说明，并提供重试或配对新链接。
 
 | 深色主题的配对界面 | 深色主题的主页 | 连不上的 PC |
 | --- | --- | --- |
-| ![深色主题的安卓 App 配对界面](https://iili.io/nDQwo5x.png) | ![深色主题的安卓 App 主页](https://iili.io/nbVCD2R.png) | ![PC 连不上时的安卓 App](https://iili.io/nDQwkml.png) |
+| ![深色主题的安卓 App 配对界面](https://iili.io/nDQwo5x.png) | ![深色主题的安卓 App 主页](https://iili.io/nbUg2J1.png) | ![PC 连不上时的安卓 App](https://iili.io/nDQwkml.png) |
 
 App 需要手机能到达你的 PC（同一 Wi-Fi 或其他网络路由），并且网页界面的端口（默认 8369）在 PC
 防火墙中放行。浏览器只能设置全局版本；把版本固定到项目仍只能在桌面应用里做。
