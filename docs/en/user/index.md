@@ -20,7 +20,7 @@ colour.
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nD3UAWg.png) | ![Settings](https://iili.io/nD3URsa.png) |
+| ![Plugins](https://iili.io/nD3UAWg.png) | ![Settings](https://iili.io/nbhBdXt.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |

@@ -25,7 +25,7 @@ App 打开时是配对界面，上面写明在 PC 的哪里找二维码（*设�
 
 | 主页 | 一个 SDK | 设置，含这部手机的卡片与连接 |
 | --- | --- | --- |
-| ![安卓 App 的主页](https://iili.io/nbVCV72.png) | ![安卓 App 里的一个 SDK：flutter 及其已装版本](https://iili.io/nbVCeqb.png) | ![安卓 App 的设置：这部手机的卡片与 PC 的连接](https://iili.io/nbVCgkB.png) |
+| ![安卓 App 的主页](https://iili.io/nbVCV72.png) | ![安卓 App 里的一个 SDK：flutter 及其已装版本](https://iili.io/nbVCeqb.png) | ![安卓 App 的设置：这部手机的卡片与 PC 的连接](https://iili.io/nbXbk8u.png) |
 
 App 跟随手机的深色主题。连不上 PC 时（vfox-plus 已停止、没有允许其他设备、换了网络、被防火墙挡住），
 它会说明，并提供重试或配对新链接。

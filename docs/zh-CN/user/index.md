@@ -18,7 +18,7 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![插件](https://iili.io/nD3UAWg.png) | ![设置](https://iili.io/nD3URsa.png) |
+| ![插件](https://iili.io/nD3UAWg.png) | ![设置](https://iili.io/nbhBVCF.png) |
 
 | 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |
