@@ -40,7 +40,6 @@ type Tunnel struct {
 
 	mu  sync.Mutex
 	url string
-	err error
 }
 
 // PublishTunnel starts cloudflared for the port that other devices connect to,
