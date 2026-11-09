@@ -41,7 +41,7 @@ the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/andr
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nD3UAWg.png) | ![Settings](https://iili.io/nD3URsa.png) |
+| ![Plugins](https://iili.io/nD3UAWg.png) | ![Settings](https://iili.io/nbhBdXt.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |
@@ -57,7 +57,7 @@ the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/andr
 
 | The web interface, on a phone | Java in the web interface |
 | --- | --- |
-| ![The home page of the web interface on a phone](https://iili.io/nD3rdMu.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nD3rnwP.png) |
+| ![The home page of the web interface on a phone](https://iili.io/nbGvpsI.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nbVnBv2.png) |
 
 ## License
 

@@ -39,7 +39,7 @@
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![插件](https://iili.io/nD3UAWg.png) | ![设置](https://iili.io/nD3URsa.png) |
+| ![插件](https://iili.io/nD3UAWg.png) | ![设置](https://iili.io/nbhBVCF.png) |
 
 | 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |
@@ -55,7 +55,7 @@
 
 | 手机上的网页界面 | 网页界面里的 Java |
 | --- | --- |
-| ![手机上的网页界面主页](https://iili.io/nD3rB9V.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nD3rcNI.png) |
+| ![手机上的网页界面主页](https://iili.io/nbG8Fef.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nbVn53x.png) |
 
 ## 许可证
 
