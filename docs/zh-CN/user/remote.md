@@ -30,6 +30,23 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
 
 网页界面只能在窗口里开关。已配对的浏览器或手机不能，因为那会断开它正在用的连接。
 
+## 发布到互联网
+
+在家里，界面可以通过这台电脑在网络上的地址访问，同一 Wi-Fi 下的手机足够用。出了这个网络，
+它需要一个互联网上的地址，而 vfox-plus 自己不运行中继：地址来自某个把界面发布出去的东西。
+
+- **自己的隧道。** 把反向代理、隧道或[网关](gateway.md)发布出来的地址填进**公网地址**，
+  配对链接与二维码就会用它。
+- **自带的开关。***公网隧道*用免费的
+  [Cloudflare 快速隧道](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
+  发布界面：无需账号、无需配置，一个开关。它需要这台电脑上有 `cloudflared` 程序
+  （[下载](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)），
+  没装时设置里会说明。地址是随机的，例如 `https://one-two-three.trycloudflare.com`，
+  每次启动都会变。关闭开关或退出 vfox+ 就结束。
+
+隧道会让连进来的手机与浏览器经过 Cloudflare；快速隧道面向短时使用，不承诺可用性。
+保护界面的是配对：设备仍需要一次性链接，会话保持 24 小时。
+
 ## 轻量模式
 
 关闭窗口会退出 vfox-plus，网页界面也随之结束。开启*轻量模式*（需要先开启网页界面）后，关闭
@@ -68,7 +85,7 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
 
 | 先弹出的询问 | 允许之后设置里显示的内容 |
 | --- | --- |
-| ![询问是否允许其他设备连接](https://iili.io/nbhBvjI.png) | ![允许其他设备之后的网页界面设置：端口、给手机配对的二维码与证书](https://iili.io/nbhB8Qt.png) |
+| ![询问是否允许其他设备连接](https://iili.io/nbhBvjI.png) | ![允许其他设备之后的网页界面设置：端口、给手机配对的二维码与证书](https://iili.io/nbhmzrP.png) |
 
 - vfox-plus 监听设置里显示的**端口**，默认 8369，可以修改。这台电脑的防火墙需要放行它。
 - 出了自己的网络，界面只有在别处发布时才可达：反向代理、隧道，或者[网关](gateway.md)。

@@ -42,6 +42,28 @@ choose *Open in browser* in the settings again.
 Only the window can turn the web interface on or off. A paired browser or phone
 cannot, because that would end the connection it is using.
 
+## Publishing to the internet
+
+At home the interface is reachable at the address of this computer on the network, which
+is enough for a phone on the same Wi-Fi. From anywhere else it needs an address on the
+internet, and vfox-plus does not run a relay of its own: the address comes from something
+that publishes the interface.
+
+- **A tunnel of your own.** Put the address that a reverse proxy, a tunnel or the
+  [gateway](gateway.md) publishes in **Public address**; pairing links and the code use it.
+- **The built-in switch.** *Public tunnel* publishes the interface through a free
+  [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/):
+  no account, no configuration, one switch. It needs the `cloudflared` program on this
+  computer ([download](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)),
+  and the settings say so when it is missing. The address is random, such as
+  `https://one-two-three.trycloudflare.com`, and changes at every start. It ends when you
+  turn the switch off or quit vfox+.
+
+The tunnel carries the traffic of the phones and browsers that connect through it past
+Cloudflare; quick tunnels are meant for short-lived use, without a promise of uptime. What
+protects the interface is the pairing: a device still needs a one-time link, and the
+session lasts 24 hours.
+
 ## Lightweight mode
 
 Closing the window quits vfox-plus, and the web interface with it. Turn on *Lightweight
@@ -91,7 +113,7 @@ network, so allow it only in a network that you trust.
 
 | The question that comes first | What the settings show once it is allowed |
 | --- | --- |
-| ![The question that asks whether other devices may connect](https://iili.io/nbhBop2.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/nbhBIh7.png) |
+| ![The question that asks whether other devices may connect](https://iili.io/nbhBop2.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/nbhmxEB.png) |
 
 - vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
   firewall of this computer has to allow it.

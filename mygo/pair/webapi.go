@@ -685,6 +685,9 @@ type WebDTO struct {
 	// PublicAddress is where something else publishes the interface, such as
 	// https://vfox.example.com, or empty when it is only reachable here.
 	PublicAddress string `json:"publicAddress"`
+	// Tunnel reports whether the application itself publishes the interface
+	// through Cloudflare, in which case PublicAddress is its address.
+	Tunnel bool `json:"tunnel"`
 	// Fingerprint is the SHA-256 fingerprint of the certificate they get.
 	Fingerprint string `json:"fingerprint"`
 	// SelfSigned reports whether the application made that certificate itself.
@@ -704,6 +707,9 @@ func (s *Server) webDTO() WebDTO {
 		status := s.control.Status()
 		dto.Listening, dto.Fingerprint, dto.SelfSigned, dto.Error = status.Remote, status.Fingerprint, status.SelfSigned, status.RemoteError
 		dto.Addresses = orEmpty(status.Addresses)
+		if status.TunnelURL != "" {
+			dto.PublicAddress, dto.Tunnel = status.TunnelURL, true
+		}
 	}
 	return dto
 }

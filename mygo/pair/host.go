@@ -15,6 +15,7 @@
 package pair
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -61,6 +62,9 @@ type Status struct {
 	// RemoteError says why other devices cannot connect, when they are allowed to
 	// and cannot: the port is in use, the certificate does not load.
 	RemoteError string
+	// TunnelURL is the public address of the tunnel while it runs, and empty
+	// otherwise: pairing links then name it instead of this computer.
+	TunnelURL string
 }
 
 // HostOptions are what a Host needs besides the application state.
@@ -114,6 +118,9 @@ type Host struct {
 	status  Status
 	stop    state.Unsubscribe
 	closed  bool
+	// tunnel publishes the server for other devices through Cloudflare, while
+	// the user keeps the switch on.
+	tunnel *Tunnel
 }
 
 // NewHost creates the host of the web interface. Nothing is served until Start.
@@ -148,6 +155,9 @@ func (h *Host) Apply() {
 	h.mu.Unlock()
 
 	status := Status{Port: config.port}
+	// The tunnel publishes the server for other devices, so it ends when that
+	// server does or when it is replaced: a tunnel reaches one port.
+	endTunnel := !config.on
 	if !config.on {
 		closeServer(local)
 		closeServer(remote)
@@ -166,12 +176,20 @@ func (h *Host) Apply() {
 			closeServer(remote)
 			remote = nil
 		}
+		endTunnel = endTunnel || !config.remote || changed
 		if config.remote && remote == nil && local != nil {
 			var err error
 			if remote, status.Fingerprint, status.SelfSigned, err = h.startRemote(config); err != nil {
 				status.RemoteError = err.Error()
 			}
 		}
+	}
+	if endTunnel {
+		h.mu.Lock()
+		tunnel := h.tunnel
+		h.tunnel = nil
+		h.mu.Unlock()
+		tunnel.Stop()
 	}
 
 	h.mu.Lock()
@@ -189,6 +207,9 @@ func (h *Host) Apply() {
 		status.Remote = true
 	} else {
 		status.Fingerprint, status.SelfSigned = "", false
+	}
+	if h.tunnel != nil {
+		status.TunnelURL = h.tunnel.URL()
 	}
 	h.status = status
 	h.mu.Unlock()
@@ -240,15 +261,59 @@ func closeServer(server *Server) {
 func (h *Host) Close() {
 	h.mu.Lock()
 	h.closed = true
-	local, remote, stop := h.local, h.remote, h.stop
-	h.local, h.remote, h.stop = nil, nil, nil
+	local, remote, stop, tunnel := h.local, h.remote, h.stop, h.tunnel
+	h.local, h.remote, h.stop, h.tunnel = nil, nil, nil, nil
 	h.status = Status{}
 	h.mu.Unlock()
 	if stop != nil {
 		stop()
 	}
+	tunnel.Stop()
 	closeServer(local)
 	closeServer(remote)
+}
+
+// Publish starts the public tunnel of a server for other devices, and returns
+// the address where it serves it. A tunnel that already runs is kept.
+func (h *Host) Publish() (string, error) {
+	h.mu.Lock()
+	if h.tunnel != nil {
+		address := h.tunnel.URL()
+		h.mu.Unlock()
+		return address, nil
+	}
+	remote, port := h.remote, h.status.Port
+	h.mu.Unlock()
+	if remote == nil {
+		return "", ErrNoRemote
+	}
+	tunnel, err := PublishTunnel(context.Background(), port)
+	if err != nil {
+		return "", err
+	}
+	h.mu.Lock()
+	// The server may have been replaced while the tunnel started.
+	if h.closed || h.remote != remote {
+		h.mu.Unlock()
+		tunnel.Stop()
+		return "", ErrNoRemote
+	}
+	h.tunnel = tunnel
+	h.status.TunnelURL = tunnel.URL()
+	h.mu.Unlock()
+	h.NotifyListeners()
+	return tunnel.URL(), nil
+}
+
+// Unpublish ends the public tunnel, and its address with it.
+func (h *Host) Unpublish() {
+	h.mu.Lock()
+	tunnel := h.tunnel
+	h.tunnel = nil
+	h.status.TunnelURL = ""
+	h.mu.Unlock()
+	tunnel.Stop()
+	h.NotifyListeners()
 }
 
 // Status implements Control: it describes the servers now.
@@ -284,9 +349,15 @@ func (h *Host) RemoteLink(host string) (string, error) {
 	if remote == nil {
 		return "", ErrNoRemote
 	}
+	h.mu.Lock()
+	tunnelURL := h.status.TunnelURL
+	h.mu.Unlock()
 	addresses := NetworkAddresses()
 	host = strings.TrimSpace(host)
 	public := h.model.Settings.Settings().EffectiveWebAddress()
+	if tunnelURL != "" {
+		public = tunnelURL
+	}
 	switch {
 	case host == "":
 		// The address that a phone reaches first: the public one when the user
