@@ -55,7 +55,7 @@
 
 | 手机上的网页界面 | 网页界面里的 Java |
 | --- | --- |
-| ![手机上的网页界面主页](https://iili.io/nbUYSr7.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nbgPBO7.png) |
+| ![手机上的网页界面主页](https://iili.io/nbrIyiP.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nbrT3Ja.png) |
 
 ## 许可证
 

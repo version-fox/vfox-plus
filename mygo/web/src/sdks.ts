@@ -390,7 +390,7 @@ function drawAvailable(): void {
       "<input id='vSearch' placeholder='" +
       esc(t("search")) +
       "'></div></div>" +
-      "<div class='row chips' id='vChips'></div><div class='muted t-label' id='vCount' style='margin:4px 4px 8px'></div><div id='vList' class='list'></div>";
+      "<div class='filterline'><div class='row chips' id='vChips'></div><span class='muted t-label' id='vCount'></span></div><div id='vList' class='list'></div>";
     const input = document.getElementById("vSearch") as HTMLInputElement;
     input.value = d.query;
     input.oninput = () => {

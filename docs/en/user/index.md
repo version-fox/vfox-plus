@@ -36,7 +36,7 @@ colour.
 
 | The web interface, on a phone | Java in the web interface |
 | --- | --- |
-| ![The home page of the web interface on a phone](https://iili.io/nbUYG1I.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nbg6mNt.png) |
+| ![The home page of the web interface on a phone](https://iili.io/nbrIOSs.png) | ![Temurin releases with long-term support in the web interface](https://iili.io/nbrIgx2.png) |
 
 ## What it does
 

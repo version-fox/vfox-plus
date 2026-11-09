@@ -381,7 +381,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   /* app bar: flat, large title, status as a dot only */
   .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left));border-bottom:0;background:var(--m3-surface)}
   .topbar h1{font-size:28px;line-height:36px;font-weight:500}
-  .live span:last-child,.ver{display:none}
+  .live,.ver{display:none}
   .live .dot{width:10px;height:10px}
   main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
   /* navigation bar: 80dp, pill indicator, labels always shown */
@@ -474,6 +474,9 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .stats .stat{transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
 .stats .stat:active{transform:scale(.97)}
 .spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
+.filterline{display:flex;align-items:center;gap:12px;margin:8px 4px 8px;min-height:32px}
+.filterline #vChips{flex:1;min-width:0;margin:0}
+.filterline #vCount{margin-left:auto;white-space:nowrap}
 .searchrow{align-items:center;gap:12px}
 .searchrow .search{margin:0}
 .rowitem{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--m3-outline-variant)}

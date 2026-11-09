@@ -30,7 +30,7 @@ interface.
 
 | The paired web interface | Java in it: Temurin, long-term support |
 | --- | --- |
-| ![The paired web interface](https://iili.io/nbUYG1I.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nbg6mNt.png) |
+| ![The paired web interface](https://iili.io/nbrIOSs.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nbrIgx2.png) |
 
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*
@@ -140,11 +140,11 @@ network, so allow it only in a network that you trust.
 
 | The code and the link of *Pair a phone*, on the computer | The same, in a browser that is paired |
 | --- | --- |
-| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nbhBaYx.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nbXhe6X.png) |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nbhBaYx.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nbrItOx.png) |
 
 The settings of the web interface show the same switches: from a paired browser or phone
 you can allow other devices, change the port and turn the lightweight mode on or off, and
 *Pair a phone* shows the code there, too, which is how a computer without a window
 (lightweight mode) pairs a phone.
 
-![The connections in the settings of a paired web interface, on a phone](https://iili.io/nbXbMuf.png)
+![The connections in the settings of a paired web interface, on a phone](https://iili.io/nbrIPf9.png)
