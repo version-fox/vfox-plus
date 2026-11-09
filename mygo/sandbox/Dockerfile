@@ -55,7 +55,12 @@ RUN <<EOF
 set -eu
 test -n "$GO_VERSION"
 test -n "$GO_SHA256"
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz"
+# Go publishes the same archive on go.dev and dl.google.com; take the other
+# when one of them is slow, and let the checksum below judge the bytes.
+curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
+    "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz" ||
+  curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
+    "https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz"
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /opt
 rm /tmp/go.tar.gz
@@ -67,9 +72,9 @@ RUN <<EOF
 set -eu
 test -n "$GOLANGCI_LINT_VERSION"
 test -n "$GOLANGCI_LINT_SHA256"
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/golangci-lint.tar.gz \
-  "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz"
-echo "$GOLANGCI_LINT_SHA256  /tmp/golangci-lint.tar.gz" | sha256sum --check --strict -
+download-release-asset golangci/golangci-lint "v$GOLANGCI_LINT_VERSION" \
+  "golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz" \
+  /tmp/golangci-lint.tar.gz "$GOLANGCI_LINT_SHA256"
 tar -xzf /tmp/golangci-lint.tar.gz -C /tmp
 install -m 755 "/tmp/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64/golangci-lint" /usr/local/bin/golangci-lint
 rm -rf /tmp/golangci-lint*
