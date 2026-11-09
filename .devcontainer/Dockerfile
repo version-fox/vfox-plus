@@ -113,9 +113,10 @@ test -n "$GO_VERSION"
 test -n "$GO_SHA256"
 # Go publishes the same archive on go.dev and dl.google.com; take the other
 # when one of them is slow, and let the checksum below judge the bytes.
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
+# IPv4: a container with a broken IPv6 route must not fail the build.
+curl -4 -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
     "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz" ||
-  curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
+  curl -4 -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
     "https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz"
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /usr/local
