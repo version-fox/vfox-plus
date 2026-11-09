@@ -37,6 +37,9 @@ const (
 	toolVersion = "2.14"
 	toolSHA256  = "9a1722aaf62a27852c4eb9c35749a0248065052d0ae0a93d4ed6bb49def027f2"
 	toolURL     = "https://github.com/mtrojnar/osslsigncode/releases/download/" + toolVersion + "/osslsigncode-" + toolVersion + "-windows-x64-mingw.zip"
+	// toolFallbackURL is the same asset through the GitHub API, which answered
+	// when the release download returned 504.
+	toolFallbackURL = "https://api.github.com/repos/mtrojnar/osslsigncode/releases/assets/483937392"
 
 	toolExecutable = "osslsigncode.exe"
 	// maxDownload and maxUnpacked bound what a download may be, and what a file
@@ -45,9 +48,10 @@ const (
 	maxUnpacked = 64 << 20
 )
 
-// source is where the tool is downloaded from, and the checksum that the
-// download must have. The tests point it at a server of their own.
-var source = struct{ url, sha256 string }{toolURL, toolSHA256}
+// source is where the tool is downloaded from, the checksum that the download
+// must have, and the API endpoint to try when the release URL fails. The tests
+// point it at a server of their own.
+var source = struct{ url, sha256, fallback string }{toolURL, toolSHA256, toolFallbackURL}
 
 // retryDelay is the time between the attempts of a download.
 var retryDelay = 2 * time.Second
@@ -70,7 +74,7 @@ func ensureTool(directory, named string, force bool) (string, error) {
 		}
 	}
 	fmt.Printf("Downloading osslsigncode %s...\n", toolVersion)
-	archive, err := download(source.url, source.sha256)
+	archive, err := download(source.url, source.sha256, source.fallback)
 	if err != nil {
 		return "", err
 	}
@@ -103,8 +107,9 @@ func findTool(dir string) string {
 }
 
 // download fetches url, tries again after a failed connection (the network may
-// drop a TLS handshake) and checks the SHA-256 of what came.
-func download(url, wantSum string) ([]byte, error) {
+// drop a TLS handshake), falls back to the GitHub API asset when the release
+// URL keeps failing, and checks the SHA-256 of what came.
+func download(url, wantSum, fallback string) ([]byte, error) {
 	client := &http.Client{Timeout: 5 * time.Minute}
 	var data []byte
 	var err error
@@ -117,6 +122,10 @@ func download(url, wantSum string) ([]byte, error) {
 			time.Sleep(retryDelay)
 		}
 	}
+	if err != nil && fallback != "" {
+		fmt.Println("The release download failed; asking the GitHub API for the asset.")
+		data, err = fetchAsset(client, fallback)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -128,20 +137,48 @@ func download(url, wantSum string) ([]byte, error) {
 }
 
 func fetch(client *http.Client, url string) ([]byte, error) {
-	response, err := client.Get(url) //nolint:noctx // A download with a timeout of its own.
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return fetchRequest(client, request)
+}
+
+// fetchAsset asks the GitHub API for the bytes of an asset instead of its
+// metadata.
+func fetchAsset(client *http.Client, url string) ([]byte, error) {
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Accept", "application/octet-stream")
+	// A token in the environment raises the API rate limit; a public asset
+	// needs none.
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		token = os.Getenv("GH_TOKEN")
+	}
+	if token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+	return fetchRequest(client, request)
+}
+
+func fetchRequest(client *http.Client, request *http.Request) ([]byte, error) {
+	response, err := client.Do(request) //nolint:gosec,noctx // The URL is a constant or a test server, with a timeout of its own.
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET %s: %s", url, response.Status)
+		return nil, fmt.Errorf("GET %s: %s", request.URL, response.Status)
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxDownload+1))
 	if err != nil {
 		return nil, err
 	}
 	if len(data) > maxDownload {
-		return nil, fmt.Errorf("GET %s: more than %d bytes", url, maxDownload)
+		return nil, fmt.Errorf("GET %s: more than %d bytes", request.URL, maxDownload)
 	}
 	return data, nil
 }

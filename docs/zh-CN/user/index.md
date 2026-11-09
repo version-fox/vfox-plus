@@ -6,35 +6,35 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 [Material 3 Expressive](https://m3.material.io/) 设计语言，支持英文与简体中文，
 跟随桌面主题与强调色。
 
-![vfox+ 主页](https://iili.io/niyUq8v.png)
+![vfox+ 主页](https://iili.io/nD3UB0x.png)
 
 | 某 SDK 的已安装版本 | 可安装版本（深色主题） |
 | --- | --- |
-| ![已安装的 nodejs 版本](https://iili.io/niyU4UJ.png) | ![可安装的 nodejs 版本，深色主题](https://iili.io/niygBfe.png) |
+| ![已安装的 nodejs 版本](https://iili.io/nD3UCUQ.png) | ![可安装的 nodejs 版本，深色主题](https://iili.io/nD3UoJV.png) |
 
 | 正在安装 | 可跟随、可取消的任务 |
 | --- | --- |
-| ![正在安装 nodejs 版本](https://iili.io/niygYqF.png) | ![任务](https://iili.io/niygUI2.png) |
+| ![正在安装 nodejs 版本](https://iili.io/nD3UzOP.png) | ![任务](https://iili.io/nD3UuzF.png) |
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![插件](https://iili.io/niygQ7j.png) | ![设置](https://iili.io/niyr22a.png) |
+| ![插件](https://iili.io/nD3UAWg.png) | ![设置](https://iili.io/nbhBVCF.png) |
 
 | 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |
-| ![窄窗口主页](https://iili.io/niyrxEX.png) | ![窄窗口 SDK 页](https://iili.io/niyr6jp.png) |
+| ![窄窗口主页](https://iili.io/nD3UY0v.png) | ![窄窗口 SDK 页](https://iili.io/nD3UEbt.png) |
 
 | 选择要列出的 Java 发行版 | Temurin，用 Chip 筛选长期支持版 |
 | --- | --- |
-| ![Java 的发行版](https://iili.io/niy4Ht2.png) | ![Temurin 的长期支持版](https://iili.io/niy45cg.png) |
+| ![Java 的发行版](https://iili.io/nD3Uj1f.png) | ![Temurin 的长期支持版](https://iili.io/nD3UOdl.png) |
 
 | Flutter 的通道与架构 | Node.js 的选项 |
 | --- | --- |
-| ![稳定通道的 Flutter 版本](https://iili.io/niy4cAv.png) | ![Node.js 的选项](https://iili.io/niy44Uu.png) |
+| ![稳定通道的 Flutter 版本](https://iili.io/nD3UsdQ.png) | ![Node.js 的选项](https://iili.io/nD3gFpI.png) |
 
 | 手机上的网页界面 | 网页界面里的 Java |
 | --- | --- |
-| ![手机上的网页界面主页](https://iili.io/niyiSiN.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/niyiLbf.png) |
+| ![手机上的网页界面主页](https://iili.io/nbrIyiP.png) | ![网页界面里的 Temurin 长期支持版](https://iili.io/nbrT3Ja.png) |
 
 ## 它能做什么
 

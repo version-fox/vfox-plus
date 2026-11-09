@@ -43,6 +43,8 @@ android {
             )
         }
     }
+    // One client: the paired session is the server's web interface in the
+    // system WebView (ViewerFragment over window.vfoxAndroid).
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

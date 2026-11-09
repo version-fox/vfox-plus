@@ -29,10 +29,6 @@ func lightweightText(idle, loaded [3]int) string {
 		idle[0], idle[1], idle[2], loaded[0], loaded[1], loaded[2])
 }
 
-func webText(app, settled int64) string {
-	return fmt.Sprintf("webheap (app): %d bytes\nwebheap (app-settled): %d bytes\n", app, settled)
-}
-
 func androidText(cold [3]int) string {
 	return fmt.Sprintf("memory (apk-cold): RSS %d MB, PSS %d MB in %d processes\n", cold[0], cold[1], cold[2])
 }
@@ -53,20 +49,6 @@ func TestParseExtras(t *testing.T) {
 			t.Fatalf("ParseLightweightMemory(%q) parsed", text)
 		}
 	}
-	heap := ParseWebHeap(webText(1522608, 1523028))
-	if heap == nil || heap.App != 1522608 || heap.Settled != 1523028 {
-		t.Fatalf("heap = %+v", heap)
-	}
-	for _, text := range []string{
-		"",
-		"webheap (app): 1522608 bytes\n",
-		"webheap (app): 1522608 bytes\nwebheap (app): 1522608 bytes\nwebheap (app-settled): 1523028 bytes\n",
-		"webheap (app): many bytes\nwebheap (app-settled): 1523028 bytes\n",
-	} {
-		if ParseWebHeap(text) != nil {
-			t.Fatalf("ParseWebHeap(%q) parsed", text)
-		}
-	}
 	apk := ParseAndroidMemory(androidText([3]int{210, 190, 1}))
 	if apk == nil || apk.Cold.PSS != 190 {
 		t.Fatalf("apk = %+v", apk)
@@ -83,7 +65,7 @@ func TestParseExtras(t *testing.T) {
 }
 
 // extrasFixture builds the API with the mygo and android workflows, one pull
-// request, and baselines on main for the three extra artifacts.
+// request, and baselines on main for the two extra artifacts.
 func extrasFixture() *FakeAPI {
 	f := newFakeAPI()
 	f.addWorkflow("mygo", "mygo", "")
@@ -91,8 +73,6 @@ func extrasFixture() *FakeAPI {
 	f.addPullRequest(7, "", "")
 	f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{11, 10, 1}, [3]int{12, 11, 1})},
 		artifactOptions{name: LightweightArtifact})
-	f.addArtifact("mygo", map[string]string{"memory.txt": webText(1536000, 1536000)},
-		artifactOptions{name: WebArtifact, created: "2026-10-20T09:00:00Z"})
 	f.addArtifact("android", map[string]string{"memory.txt": androidText([3]int{200, 180, 1})},
 		artifactOptions{name: AndroidArtifact})
 	return f
@@ -122,8 +102,6 @@ func TestCollectExtras(t *testing.T) {
 		mygo := f.addRun("mygo", runOptions{})
 		f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{12, 10, 1}, [3]int{20, 19, 1})},
 			artifactOptions{runID: mygo, name: LightweightArtifact, branch: "feature", sha: testHead})
-		f.addArtifact("mygo", map[string]string{"memory.txt": webText(1843200, 1536000)},
-			artifactOptions{runID: mygo, name: WebArtifact, branch: "feature", sha: testHead})
 		android := f.addRun("android", runOptions{})
 		f.addArtifact("android", map[string]string{"memory.txt": androidText([3]int{205, 182, 1})},
 			artifactOptions{runID: android, name: AndroidArtifact, branch: "feature", sha: testHead})
@@ -132,7 +110,7 @@ func TestCollectExtras(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(extras) != 3 {
+		if len(extras) != 2 {
 			t.Fatalf("extras = %d", len(extras))
 		}
 		lightweight := findExtra(extras, "Lightweight mode")
@@ -146,17 +124,6 @@ func TestCollectExtras(t *testing.T) {
 		// +8 MB is a change: bold.
 		if lightweight.Rows[2].PR != "20 MB (**+8**)" {
 			t.Fatalf("loaded RSS = %q", lightweight.Rows[2].PR)
-		}
-		web := findExtra(extras, "Web client heap")
-		if web == nil || len(web.Rows) != 2 {
-			t.Fatalf("web = %+v", web)
-		}
-		// 1536000 bytes is 1500 KB, 1843200 bytes is 1800 KB: +300 KB is bold.
-		if web.Rows[0].PR != "1800 KB (**+300**)" || web.Rows[0].Main != "1500 KB" {
-			t.Fatalf("app heap = %+v", web.Rows[0])
-		}
-		if web.Rows[1].PR != "1500 KB" {
-			t.Fatalf("settled heap = %q", web.Rows[1].PR)
 		}
 		apk := findExtra(extras, "Android client")
 		if apk == nil || len(apk.Rows) != 2 {
@@ -201,7 +168,7 @@ func TestCollectExtras(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(extras) != 2 {
+		if len(extras) != 1 {
 			t.Fatalf("extras = %+v", extras)
 		}
 		lightweight := findExtra(extras, "Lightweight mode")
@@ -238,7 +205,7 @@ func TestCollectExtras(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(extras) != 3 {
+		if len(extras) != 2 {
 			t.Fatalf("extras = %d", len(extras))
 		}
 		lightweight := findExtra(extras, "Lightweight mode")

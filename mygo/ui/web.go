@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"strings"
@@ -44,6 +45,17 @@ type Web interface {
 	// RemoteLink makes a pairing link for a device on the network, with host as
 	// the address of this computer, or the likeliest one when it is empty.
 	RemoteLink(host string) (string, error)
+	// Publish starts the public tunnel, and returns the address it serves.
+	Publish() (string, error)
+	// Unpublish ends the public tunnel.
+	Unpublish()
+}
+
+// pairChoice is an address that a pairing link may name: what the dialog offers
+// and the pairing row lists, with the value that goes into the link.
+type pairChoice struct {
+	value string
+	label string
 }
 
 // pairingState is the link that the dialog shows, and the code of it.
@@ -65,7 +77,7 @@ func (a *App) webSection(k kit.Ctx) {
 	}
 	items = append(items, a.lightweightItem(k, current), a.remoteItem(k, current, status))
 	if current.WebInterface && current.WebRemote {
-		items = append(items, a.portItem(k, current))
+		items = append(items, a.portItem(k, current), a.publicAddressItem(k, current), a.publishItem(k, status))
 		if status.Remote {
 			items = append(items, a.pairItem(k, status), a.certificateItem(k, current, status))
 		}
@@ -149,10 +161,10 @@ func (a *App) lightweightItem(k kit.Ctx, current settings.AppSettings) kit.ListI
 }
 
 func (a *App) remoteItem(k kit.Ctx, current settings.AppSettings, status pair.Status) kit.ListItemSpec {
-	subtitle := a.T("settingsRemoteHelp")
+	subtitle := ""
 	switch {
 	case !current.WebInterface:
-		subtitle += " " + a.T("settingsNeedsWebInterface")
+		subtitle = a.T("settingsNeedsWebInterface")
 	case status.RemoteError != "":
 		subtitle = a.T("webRemoteFailed", "reason", status.RemoteError)
 	case status.Remote:
@@ -202,6 +214,91 @@ func (a *App) portItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec
 	}
 }
 
+// publicAddressItem is the address at which something else publishes the
+// interface: pairing links and the code a phone scans carry it instead of the
+// address of this computer on the network.
+func (a *App) publicAddressItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec {
+	if address := current.EffectiveWebAddress(); !a.pages.publicAddressReady || address != a.pages.publicAddressSeen {
+		a.pages.publicAddressReady, a.pages.publicAddressSeen, a.pages.publicAddressText = true, address, address
+	}
+	save := func(text string) {
+		address := strings.TrimRight(strings.TrimSpace(text), "/")
+		if address != "" && !settings.ValidWebAddress(address) {
+			a.pages.publicAddressText = a.model.Settings.Settings().EffectiveWebAddress()
+			a.notify(a.T("settingsWebPublicAddressInvalid"))
+			return
+		}
+		a.pages.publicAddressSeen = address
+		a.updateSettings(func(s *settings.AppSettings) { s.WebPublicAddress = address })
+	}
+	return kit.ListItemSpec{
+		ID: "web-public-address", Title: a.T("settingsWebPublicAddress"), Subtitle: a.T("settingsWebPublicAddressHelp"),
+		Leading: icon(k, "proxy"), Wrap: a.wideSettingsWrap(k),
+		Trailing: func() {
+			kit.TextField(k, kit.TextFieldSpec{
+				ID: "web-public-address.field", Hint: "https://vfox.example.com", Text: &a.pages.publicAddressText,
+				Dense: true, OnSubmit: save, OnBlur: save,
+			}).Width(260)
+		},
+	}
+}
+
+// publishItem publishes the interface for other devices through a quick tunnel
+// of Cloudflare: a random public address, no account, while the switch is on.
+func (a *App) publishItem(k kit.Ctx, status pair.Status) kit.ListItemSpec {
+	on := status.TunnelURL != ""
+	subtitle := a.T("settingsPublishHelp")
+	switch {
+	case on:
+		subtitle = status.TunnelURL
+	case a.pages.publishing:
+		subtitle = a.T("settingsPublishBusy")
+	}
+	return a.switchItem(k, "web-publish", a.T("settingsPublish"), subtitle, "otherDevices", on, status.Remote && !a.pages.publishing, func(want bool) {
+		if !want {
+			a.web.Unpublish()
+			return
+		}
+		body := a.T("settingsPublishConfirmBody")
+		if pair.CloudflaredPath() == "" {
+			body = a.T("settingsPublishDownloadBody")
+		}
+		a.confirm("web-publish", confirmation{
+			Title: a.T("settingsPublishConfirmTitle"), Body: body,
+			ConfirmLabel: a.T("settingsPublishConfirmAction"), Icon: "otherDevices",
+			OnConfirm: func() { a.publish() },
+		})
+	})
+}
+
+// publish downloads the tunnel program when it is not there yet, then starts
+// the tunnel off the main thread, and tells what became of it.
+func (a *App) publish() {
+	a.pages.publishing = true
+	a.invalidate()
+	go func() {
+		if pair.CloudflaredPath() == "" {
+			a.post(func() { a.notify(a.T("settingsPublishDownloading")) })
+			if _, err := pair.DownloadCloudflared(context.Background()); err != nil {
+				a.post(func() {
+					a.pages.publishing = false
+					a.notify(a.T("settingsPublishDownloadFailed", "reason", describeError(err)))
+					a.invalidate()
+				})
+				return
+			}
+		}
+		_, err := a.web.Publish()
+		a.post(func() {
+			a.pages.publishing = false
+			if err != nil {
+				a.notify(a.T("settingsPublishFailed", "reason", describeError(err)))
+			}
+			a.invalidate()
+		})
+	}()
+}
+
 // reachable lists the addresses that other devices connect to.
 func reachable(status pair.Status) []string {
 	addresses := make([]string, 0, len(status.Addresses))
@@ -213,19 +310,53 @@ func reachable(status pair.Status) []string {
 
 // pairItem shows the code that a phone scans.
 func (a *App) pairItem(k kit.Ctx, status pair.Status) kit.ListItemSpec {
+	addresses := a.pairAddresses(status)
 	subtitle := a.T("webPairNone")
-	if addresses := reachable(status); len(addresses) > 0 {
+	if len(addresses) > 0 {
 		subtitle = a.T("webReachable", "addresses", strings.Join(addresses, " · "))
 	}
 	return kit.ListItemSpec{
 		ID: "web-pair", Title: a.T("webPair"), Subtitle: subtitle, Leading: icon(k, "qrCode"), Wrap: a.wideSettingsWrap(k),
 		Trailing: func() {
 			kit.Button(k, kit.ButtonSpec{
-				ID: "web-pair-button", Kind: kit.TonalButton, Label: a.T("webPairShow"), Disabled: len(status.Addresses) == 0,
+				ID: "web-pair-button", Kind: kit.TonalButton, Label: a.T("webPairShow"), Disabled: len(addresses) == 0,
 				OnClick: func() { a.showPairing("") },
 			})
 		},
 	}
+}
+
+// pairPublic is the address at which something else publishes the interface —
+// the tunnel of the application, or the proxy or gateway of the settings — or
+// empty when a pairing link names this computer instead.
+func (a *App) pairPublic(status pair.Status) string {
+	if status.TunnelURL != "" {
+		return status.TunnelURL
+	}
+	return a.model.Settings.Settings().EffectiveWebAddress()
+}
+
+// pairAddresses are the addresses that the pairing row shows: the public one
+// first, then the ones of this computer on the networks it is on.
+func (a *App) pairAddresses(status pair.Status) []string {
+	addresses := reachable(status)
+	if public := a.pairPublic(status); public != "" {
+		addresses = append([]string{public}, addresses...)
+	}
+	return addresses
+}
+
+// pairChoices are the addresses that the pairing dialog offers: what goes into
+// the link, and the short label of it.
+func (a *App) pairChoices(status pair.Status) []pairChoice {
+	choices := make([]pairChoice, 0, len(status.Addresses)+1)
+	if public := a.pairPublic(status); public != "" {
+		choices = append(choices, pairChoice{public, strings.TrimPrefix(strings.TrimPrefix(public, "https://"), "http://")})
+	}
+	for _, address := range status.Addresses {
+		choices = append(choices, pairChoice{address, address})
+	}
+	return choices
 }
 
 // certificateItem says which certificate other devices get, and lets the user bring their own.
@@ -284,9 +415,10 @@ func (a *App) chooseCertificate() {
 }
 
 // quitItem ends the application, which closing the window no longer does.
+// The confirm dialog explains what quitting ends, so the row needs no help.
 func (a *App) quitItem(k kit.Ctx) kit.ListItemSpec {
 	return kit.ListItemSpec{
-		ID: "web-quit", Title: a.T("webQuit"), Subtitle: a.T("webQuitHelp"), Leading: icon(k, "quit"), Wrap: a.wideSettingsWrap(k),
+		ID: "web-quit", Title: a.T("webQuit"), Leading: icon(k, "quit"), Wrap: a.wideSettingsWrap(k),
 		Trailing: func() {
 			kit.Button(k, kit.ButtonSpec{ID: "web-quit-button", Kind: kit.TonalButton, Label: a.T("webQuitAction"), OnClick: func() {
 				a.confirm("web-quit", confirmation{
@@ -357,14 +489,14 @@ func (a *App) pairingContent(k kit.Ctx, pairing *pairingState) {
 	}
 	qrCode(k, pairing.matrix, 240)
 	kit.Label(k, a.T("webPairHelp", "minutes", itoa(int(pair.DefaultTokenTTL.Minutes()))), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
-	if status := a.web.Status(); len(status.Addresses) > 1 {
-		segments := make([]kit.Segment, 0, len(status.Addresses))
+	if choices := a.pairChoices(a.web.Status()); len(choices) > 1 {
+		segments := make([]kit.Segment, 0, len(choices))
 		selected := pairing.host
-		for _, address := range status.Addresses {
-			segments = append(segments, kit.Segment{Value: address, Label: address})
-			if selected == "" {
-				selected = address
-			}
+		if selected == "" {
+			selected = choices[0].value
+		}
+		for _, choice := range choices {
+			segments = append(segments, kit.Segment{Value: choice.value, Label: choice.label})
 		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
 			ID: "pair-hosts", Selected: selected, Segments: segments,

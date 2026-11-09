@@ -126,31 +126,53 @@ RSS 45 MB、PSS 31 到 32 MB，配对浏览器之后是 47 到 48 MB 与 34 到 
 
 ## 桌面之外
 
-Pull Request 评论还跟踪桌面表格没有的三处：轻量模式、Web 客户端堆、Android APK。各有自己的方法、单位与噪声；与上表一样，只比较同评论各行之间。
+Pull Request 评论还跟踪桌面表格没有的两处：轻量模式、Web 客户端堆、Android APK。各有自己的方法、单位与噪声；与上表一样，只比较同评论各行之间。
 
 - **轻量模式。**`vfxtool measure-lightweight` 在显示环境（`xvfb-run`）下启动应用的端到端构建，
   用全新家目录、假 vfox，以及开启网页界面与轻量模式的设置。端到端构建把配对链接写进
   `VFOX_PLUS_E2E_LINK` 指定的文件，并在 `SIGUSR1` 时关闭窗口，release 构建没有这些代码。工具在两个静置点
   打印进程树的 RSS 与 PSS：`lightweight-idle` 窗口已关、无浏览器，`lightweight-loaded` 配对浏览器走完首次
   清单（SSE）。与桌面一样，超过 5 MB 且 5% 才算变化。加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
-- **Web 客户端堆。**`vfxtool webheap`（只需要一个 Chrome）用
-  Chrome DevTools Protocol 在 headless Chrome 中打开配对后的 `/app` 页，
-  写两处 JavaScript 堆字节数：清单列表静置后 `app`，打开页面带实时事件空闲
-  20 秒后 `app-settled`（可发现事件流泄漏）。报告按 KB 展示；超过 100 KB 且
-  5% 才算变化。
 - **Android 客户端。**`android.yml` 的 `measure` 任务把 release APK 装到模拟器
   （API 36，x86_64），经 launcher 冷启动、静置后读 `dumpsys meminfo`：
   `apk-cold`，单位 MB。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
   才算变化。
 
-CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `memory-web`，
+CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
 `android.yml` 的 `measure` 任务上传 `memory-android`，`memory.yml`
 在任一工作流结束时报告，Android 仍在跑时与其余一样等待。章节渲染在桌面表格
 下方，Pull Request 数字与 `main` 并列。
 
-覆盖缺口：没有配对后 WebView APK 状态（模拟器无可配对服务，`apk-cold` 是未配对
-首屏），堆在桌面 Chrome 中测量，而非 APK 内嵌的系统 WebView，其回收器行为
-可能不同。
+覆盖缺口：`apk-cold` 从不加载系统 WebView（它是未配对首屏）。`vfxtool webheap`
+仍可本地看配对后 `/app` 页的 JavaScript 堆（截图附带），只做诊断，不进 CI 报告：
+浏览器进程本身的内存不在测量范围内，堆数字不能代表浏览器或 Android 客户端的占用。
+
+### 配对后的会话
+
+客户端就是套在 `/app` 外面的 WebView：整个会话是共用的 Web 前端，只有一个
+实现可测。`vfxtool measure-apk --pair-url` 经显式 `VIEW` intent 打开配对
+会话（`MainActivity` 的测量入口，与粘贴链接后点连接是同一个会话），再沉降一次，
+追加 `memory (apk-paired)` 行。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
+它生成的证书与配对链接用的就是模拟器访问本机的地址；从 `VFOX_PLUS_E2E_LINK`
+指定的文件里读链接，每轮重启应用领一条新链接。配对行只做本地诊断：两行的文件不要上传，
+CI 只测冷启动。
+
+2026-11-08 在一台模拟器（API 36、x86_64、无 GPU）上实测，对着带 Java 与 Flutter
+档案的假 vfox，R8 的 release 构建，沉降 20 秒后读 `dumpsys meminfo`，
+经 `adb reverse` 走明文 HTTP 配对以便不需要点信任：
+
+| 构建 | `apk-cold` PSS | `apk-paired` PSS |
+| --- | ---: | ---: |
+| WebView 客户端 | 38 MB | 87 MB |
+
+冷启动从不加载 WebView。配对会话里系统 WebView 在这里约占 49 MB PSS，
+是带着整个会话实测的：主页、带版本与选项的 SDK、插件、任务、设置，
+连着实时事件流。之前和原生对照构建的 A/B 测过 37/84 MB 对 38/39 MB（冷启动/配对），
+所以配对成本几乎全在 WebView，原生会话只比自己的冷启动多约 1 MB。
+那个对照构建还是删掉了：手搓第二套 UI、还要和 Web 前端在像素与文案上
+一直对齐，花的钱比这几十 MB 多；而设计语言与文案现在只住在一个地方。
+（当天稍早一轮测过 32/68 MB 与 31/32 MB；对比要看同一轮
+背靠背测的行。）
 
 ### Android 应用用 View 还是 Compose
 
@@ -216,7 +238,7 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
 - 实现的工作流（[`mygo.yml`](../../../.github/workflows/mygo.yml)）
   跑 `vfxtool measure`（[如何测量](#如何测量)），把打印的行作为构件 `memory-mygo` 上传。
   `vfxtool measure` 也把它们写入 `VFOX_PLUS_MEASURE_OUTPUT` 指定文件。同一工作流的
-  `measure-remote` 任务上传 `memory-lightweight` 与 `memory-web`，
+  `measure-remote` 任务上传 `memory-lightweight`，
   [`android.yml`](../../../.github/workflows/android.yml) 的 `measure` 任务上传
   `memory-android`；评论把它们渲染为表格下方的[桌面之外](#桌面之外)章节。
 - [`memory.yml`](../../../.github/workflows/memory.yml) 在该工作流结束时启动，跑

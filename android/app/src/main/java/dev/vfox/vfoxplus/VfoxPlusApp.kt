@@ -15,7 +15,6 @@
 package dev.vfox.vfoxplus
 
 import android.app.Application
-import android.webkit.CookieManager
 
 // Application setup for the vfox-plus remote client.
 class VfoxPlusApp : Application() {
@@ -23,8 +22,12 @@ class VfoxPlusApp : Application() {
         super.onCreate()
         // The pairing session lives in a cookie; keep it across launches so a
         // paired phone reconnects without pasting another link.
-        CookieManager.getInstance().apply {
+        android.webkit.CookieManager.getInstance().apply {
             setAcceptCookie(true)
         }
+        // The native chrome takes the system's expressive palette on
+        // Android 12 and later; older releases keep the seed scheme built
+        // into the theme.
+        com.google.android.material.color.DynamicColors.applyToActivitiesIfAvailable(this)
     }
 }

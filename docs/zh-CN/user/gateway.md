@@ -45,7 +45,7 @@ docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-pl
 
    | 通过网关看到的 vfox-plus 界面 | 配对之后的网关页面 |
    | --- | --- |
-   | ![浏览器里通过网关提供的 vfox-plus 界面](https://iili.io/niyQp0N.png) | ![配对之后的网关页面：vfox-plus 的地址与它信任的证书](https://iili.io/niyZIee.png) |
+   | ![浏览器里通过网关提供的 vfox-plus 界面](https://iili.io/nbUaRG2.png) | ![配对之后的网关页面：vfox-plus 的地址与它信任的证书](https://iili.io/niyZIee.png) |
 
 网关在 vfox-plus 那里的会话和手机的一样最长一天，网关运行期间每隔几小时就续期一次。vfox-plus 退出
 或重新启动时，它的会话都会结束：网关页面会这样告诉你，你再粘贴一个新链接。vfox-plus 没有运行时，

@@ -89,6 +89,8 @@ class ViewerFragment : Fragment(), WebBridge.Host {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
+        // The nowebview flavor never reaches this fragment: the entries route
+        // it to the native session instead (see PairingFragment.viewerFor).
         _binding = FragmentViewerBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -98,6 +100,7 @@ class ViewerFragment : Fragment(), WebBridge.Host {
         _binding?.web?.saveState(outState)
     }
 
+    // WebView only: the nowebview flavor shows the native session.
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val startUrl = requireArguments().getString(ARG_URL)!!

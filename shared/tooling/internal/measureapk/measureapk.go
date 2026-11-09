@@ -69,6 +69,12 @@ func Line(pssKB, rssKB int) string {
 	return fmt.Sprintf("memory (apk-cold): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
 }
 
+// PairedLine formats the paired-session point: the same process with the
+// system WebView and the /app page loaded.
+func PairedLine(pssKB, rssKB int) string {
+	return fmt.Sprintf("memory (apk-paired): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
+}
+
 func adb(args ...string) ([]byte, error) {
 	command := exec.Command("adb", args...)
 	var stderr bytes.Buffer
@@ -80,7 +86,17 @@ func adb(args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// Run implements `measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS]`.
+// Run implements `measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS] [--pair-url URL]`.
+// Without --pair-url it does what CI does: install, cold-start through the
+// launcher, settle, and write the memory(apk-cold) line. With --pair-url it
+// then opens the paired session through an explicit VIEW intent (the
+// measurement entry point of MainActivity: the same session as pasting the
+// link and tapping connect), settles again, and appends the
+// memory(apk-paired) line: the native session with its tabs loaded, next to
+// the unpaired screen. The paired line is for local
+// diagnosis only: pair it against a loopback `vfox-plus-serve serve` with
+// `adb reverse` carrying the port, and never upload a two-line file, which
+// the memory report would refuse to parse.
 func Run(args []string) error {
 	flags := flag.NewFlagSet("measure-apk", flag.ContinueOnError)
 	apk := flags.String("apk", "", "the APK to install")
@@ -88,11 +104,12 @@ func Run(args []string) error {
 	gradle := flags.String("gradle", "android/app/build.gradle.kts", "build file holding the applicationId")
 	screenshot := flags.String("screenshot", "", "PNG file for a screenshot of the cold start")
 	settle := flags.Int("settle", 20, "seconds to settle after the start")
+	pairURL := flags.String("pair-url", "", "one-time pairing link of a reachable server, to also measure the paired session")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *apk == "" || *outputDir == "" || *settle < 0 {
-		return errors.New("Usage: measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS]")
+		return errors.New("Usage: measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS] [--pair-url URL]")
 	}
 	build, err := os.ReadFile(*gradle)
 	if err != nil {
@@ -131,7 +148,34 @@ func Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(*screenshot, png, 0o644)
+		if err := os.WriteFile(*screenshot, png, 0o644); err != nil {
+			return err
+		}
 	}
-	return nil
+	if *pairURL == "" {
+		return nil
+	}
+	// The paired session: the same native session a user gets after connecting,
+	// with the inventory loaded and live events streaming.
+	if _, err := adb("shell", "am", "start", "-a", "android.intent.action.VIEW",
+		"-d", *pairURL, pkg+"/.MainActivity"); err != nil {
+		return err
+	}
+	time.Sleep(time.Duration(*settle) * time.Second)
+	paired, err := adb("shell", "dumpsys", "meminfo", pkg)
+	if err != nil {
+		return err
+	}
+	pairedPSS, pairedRSS, ok := ParseMeminfo(string(paired))
+	if !ok {
+		return fmt.Errorf("no PSS or RSS in the paired meminfo report:\n%s", paired)
+	}
+	pairedLine := PairedLine(pairedPSS, pairedRSS)
+	fmt.Println(pairedLine)
+	file, err := os.OpenFile(filepath.Join(*outputDir, "memory.txt"), os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(file, pairedLine)
+	return errors.Join(err, file.Close())
 }

@@ -17,7 +17,7 @@ like `http://127.0.0.1:41233`, which no other computer can reach. Choose *Open i
 and your browser opens it, paired by a one-time link. The link works once and expires after
 five minutes, and *Copy link* makes another one for the clipboard.
 
-![The settings of the web interface: the switch and the address that serves, the button that opens it in the browser, the lightweight mode and the other devices](https://iili.io/niyPoCB.png)
+![The settings of the web interface: the switch and the address that serves, the button that opens it in the browser, the lightweight mode and the other devices](https://iili.io/nbhBK1s.png)
 
 The paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
@@ -30,7 +30,7 @@ interface.
 
 | The paired web interface | Java in it: Temurin, long-term support |
 | --- | --- |
-| ![The paired web interface](https://iili.io/niyieDv.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/niyi4UX.png) |
+| ![The paired web interface](https://iili.io/nbrIOSs.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nbrIgx2.png) |
 
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*
@@ -41,6 +41,28 @@ choose *Open in browser* in the settings again.
 
 Only the window can turn the web interface on or off. A paired browser or phone
 cannot, because that would end the connection it is using.
+
+## Publishing to the internet
+
+At home the interface is reachable at the address of this computer on the network, which
+is enough for a phone on the same Wi-Fi. From anywhere else it needs an address on the
+internet, and vfox-plus does not run a relay of its own: the address comes from something
+that publishes the interface.
+
+- **A tunnel of your own.** Put the address that a reverse proxy, a tunnel or the
+  [gateway](gateway.md) publishes in **Public address**; pairing links and the code use it.
+- **The built-in switch.** *Public tunnel* publishes the interface through a free
+  [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/):
+  no account, no configuration, one switch. When the program is not installed yet, turning
+  it on downloads it (about 50 MB) from Cloudflare's GitHub release and checks its SHA-256.
+  The address is random, such as
+  `https://one-two-three.trycloudflare.com`, and changes at every start. It ends when you
+  turn the switch off or quit vfox+.
+
+The tunnel carries the traffic of the phones and browsers that connect through it past
+Cloudflare; quick tunnels are meant for short-lived use, without a promise of uptime. What
+protects the interface is the pairing: a device still needs a one-time link, and the
+session lasts 24 hours.
 
 ## Lightweight mode
 
@@ -91,30 +113,38 @@ network, so allow it only in a network that you trust.
 
 | The question that comes first | What the settings show once it is allowed |
 | --- | --- |
-| ![The question that asks whether other devices may connect](https://iili.io/niyP7Tv.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/niyP14t.png) |
+| ![The question that asks whether other devices may connect](https://iili.io/nbhBop2.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/nbhmxEB.png) |
 
 - vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
   firewall of this computer has to allow it.
+- Beyond your own network, the interface is only reachable where something else publishes
+  it: a reverse proxy, a tunnel, or the [gateway](gateway.md). Put that address — such as
+  `https://vfox.example.com` — in **Public address** and the pairing links and the code use
+  it instead of the address of this computer, so a phone that is not at home can pair.
+  Without it the links name the address of this computer on the network, which only a phone
+  on the same network reaches.
 - Other devices connect over **HTTPS**. Without a certificate of your own, vfox-plus makes
   one for itself and signs it itself, and the settings show its SHA-256 fingerprint: compare
   it with the one that the browser or the Android app shows before you trust it. To use
   your own, choose *Certificate → Browse…*, then the certificate and its private key
   (PEM files).
-- *Pair a phone* shows the **QR code** of a pairing link, and the link. A computer that is
-  on more than one network has more than one address; choose the one that the phone
-  reaches. Scan the code with the [Android app](android.md), or open the link in a
-  browser of another computer. It works once and expires after five minutes.
+- *Pair a phone* shows the **QR code** of a pairing link; nothing else is needed to pair.
+  Scan it with the [Android app](android.md), or open the link in the browser of another
+  computer. The link is under *Link and certificate*, with the fingerprint of the
+  certificate for whoever wants to check them. A computer that is on more than one network,
+  or that has a public address, offers each address above the code: choose the one that the
+  phone reaches. The link works once and expires after five minutes.
 - A paired device keeps its session for 24 hours. Turning *Other devices* off, or
   closing vfox-plus, ends the connections of all of them at once, and they have to pair
   again.
 
 | The code and the link of *Pair a phone*, on the computer | The same, in a browser that is paired |
 | --- | --- |
-| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/niyPwZl.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/niysVIf.png) |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nbhBaYx.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nbrItOx.png) |
 
 The settings of the web interface show the same switches: from a paired browser or phone
 you can allow other devices, change the port and turn the lightweight mode on or off, and
 *Pair a phone* shows the code there, too, which is how a computer without a window
 (lightweight mode) pairs a phone.
 
-![The connections in the settings of a paired web interface, on a phone](https://iili.io/niysfsV.png)
+![The connections in the settings of a paired web interface, on a phone](https://iili.io/nbrIPf9.png)

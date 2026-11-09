@@ -18,3 +18,4 @@
 *
 !mygo/versions.env
 !android/versions.env
+!shared/scripts/download-release-asset.sh

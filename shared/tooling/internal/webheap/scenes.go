@@ -77,7 +77,7 @@ func scrollTo(selector string) step {
 }
 
 // connections opens the settings and waits for the card of the connections to be drawn.
-var connections = []step{pick(`[data-tab="settings"]`), exists("#webList .item")}
+var connections = []step{pick(`[data-tab="settings"]`), exists("#webList .rowitem")}
 
 // versions waits for the list of the available versions to be drawn.
 var versions = []step{exists("#vList .vrow")}

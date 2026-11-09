@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package webheap implements `vfxtool webheap`: it measures the JavaScript
-// heap of the paired web interface (/app) with the Chrome DevTools Protocol
-// and writes the lines of the memory report: `webheap (app)` after the SDK
-// list settles, and `webheap (app-settled)` after idling on the open page,
-// which catches leaks in the live event stream. It also takes the screenshots
-// of the web interface for the documentation.
+// Package webheap implements `vfxtool webheap`: it drives the paired web
+// interface (/app) with the Chrome DevTools Protocol and writes the
+// JavaScript heap at two points: `webheap (app)` after the SDK list settles,
+// and `webheap (app-settled)` after idling on the open page, which catches
+// leaks in the live event stream. It also takes the screenshots
+// of the web interface for the documentation. CI does not track the heap
+// numbers; they are for local diagnosis while the screenshots are for the
+// docs.
 //
 // The caller starts the server and passes its pairing link; the tool only
-// drives one throw-away browser profile. Desktop and server memory are not
-// measured here, only the web client in front of a human. The tool needs
-// nothing but a Chrome that speaks the DevTools Protocol, which it starts and
-// drives with chromedp.
+// drives one throw-away browser profile. The heap numbers describe only the
+// web client in front of a human, never the browser process around it. The
+// tool needs nothing but a Chrome that speaks the DevTools Protocol, which it
+// starts and drives with chromedp.
 package webheap
 
 import (
@@ -170,8 +172,8 @@ type measurement struct {
 	Settled  int64  `json:"heapSettledBytes"`
 }
 
-// formatLines is the content of the output file, which
-// memoryreport.ParseWebHeap reads.
+// formatLines is the content of the output file: the two heap lines, for
+// local diagnosis next to a screenshot. CI does not track them.
 func formatLines(heap, settled int64) string {
 	return fmt.Sprintf("webheap (app): %d bytes\nwebheap (app-settled): %d bytes\n", heap, settled)
 }

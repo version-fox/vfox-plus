@@ -49,7 +49,7 @@
 
 | 中文界面里的 Java | 中文界面里的选项 |
 | --- | --- |
-| ![中文界面里 Java 的可安装版本](https://iili.io/niy6jqP.png) | ![中文界面里 Node.js 的选项](https://iili.io/niy6pQ2.png) |
+| ![中文界面里 Java 的可安装版本](https://iili.io/nD3ge6J.png) | ![中文界面里 Node.js 的选项](https://iili.io/nD3gSvp.png) |
 
 **选项**页签放的是这个插件特有的内容：
 

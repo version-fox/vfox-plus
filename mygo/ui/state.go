@@ -49,6 +49,13 @@ type pageStates struct {
 	portReady bool
 	portSeen  int
 	portText  string
+	// publicAddressReady says that publicAddressText was filled with the address of the settings.
+	publicAddressReady bool
+	publicAddressSeen  string
+	publicAddressText  string
+	// publishing says that the tunnel program is being downloaded or the
+	// tunnel started.
+	publishing bool
 	// pairing is the link and the code that the dialog of the pairing shows.
 	pairing *pairingState
 

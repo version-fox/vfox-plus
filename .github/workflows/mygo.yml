@@ -75,11 +75,14 @@ jobs:
         with:
           packages: ${{ env.LINUX_PACKAGES }}
       - name: Install golangci-lint
+        env:
+          # Raises the API rate limit of the fallback in the script.
+          GH_TOKEN: ${{ github.token }}
         run: |
           archive="golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64"
-          curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/$archive.tar.gz" \
-            "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/$archive.tar.gz"
-          echo "$GOLANGCI_LINT_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          shared/scripts/download-release-asset.sh \
+            golangci/golangci-lint "v$GOLANGCI_LINT_VERSION" "$archive.tar.gz" \
+            "$RUNNER_TEMP/$archive.tar.gz" "$GOLANGCI_LINT_SHA256"
           tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/$archive" >> "$GITHUB_PATH"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -89,6 +92,23 @@ jobs:
           key: icons-${{ hashFiles('shared/icons.json') }}
       - name: Build vfxtool
         run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mygo/web/package-lock.json
+      - name: Build and test the web interface
+        # TypeScript and Vite, bundled into the single page that the Go server
+        # embeds as mygo/pair/webapp.html (no other requests, desktop and web
+        # stay on one design). The built page is committed: the check below
+        # fails when the sources and the checked-in page disagree.
+        working-directory: mygo/web
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: The built page is committed
+        run: git diff --exit-code -- mygo/pair/webapp.html
       - name: Prepare the embedded assets
         # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
@@ -117,11 +137,13 @@ jobs:
           go -C shared/tooling vet ./...
           go -C shared/tooling test ./...
       - name: Install vfox
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           archive="vfox_${VFOX_VERSION}_linux_x86_64"
-          curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/$archive.tar.gz" \
-            "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/$archive.tar.gz"
-          echo "$VFOX_SHA256  $RUNNER_TEMP/$archive.tar.gz" | sha256sum --check --strict -
+          shared/scripts/download-release-asset.sh \
+            version-fox/vfox "v$VFOX_VERSION" "$archive.tar.gz" \
+            "$RUNNER_TEMP/$archive.tar.gz" "$VFOX_SHA256"
           tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
           echo "VFOX_PLUS_E2E_VFOX=$RUNNER_TEMP/$archive/vfox" >> "$GITHUB_ENV"
       - name: Run the end-to-end scenarios in a virtual display
@@ -227,7 +249,7 @@ jobs:
           if-no-files-found: error
 
   measure-remote:
-    name: Measure the lightweight mode and the web client
+    name: Measure the lightweight mode
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-26.04
@@ -242,8 +264,6 @@ jobs:
           cache-dependency-path: |
             mygo/go.sum
             shared/tooling/go.sum
-      - uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
-        id: setup-chrome
       - name: Install the Linux packages
         # The application is a desktop application: it needs GTK 3 and a display, which
         # the virtual one of xvfb gives, even to have its web interface served.
@@ -267,44 +287,10 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
             "$RUNNER_TEMP/vfxtool" measure-lightweight --settle 10 "$RUNNER_TEMP/vfox-plus-e2e"
           cat "${{ runner.temp }}/memory-lightweight/memory.txt"
-      - name: Measure the web client heap
-        # The application serves its web interface because its settings say so, and it writes a
-        # pairing link to a file, as the end-to-end build does for the tools.
-        run: |
-          mkdir -p "${{ runner.temp }}/memory-web"
-          home="$RUNNER_TEMP/web-home"
-          mkdir -p "$home/bin" "$home/run" "$home/.config/vfox-plus"
-          chmod 700 "$home/run"
-          cp "$RUNNER_TEMP/vfxtool" "$home/bin/vfox"
-          echo '{"webInterface":true}' > "$home/.config/vfox-plus/settings.json"
-          env HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$home/run" \
-            PATH="$home/bin:$PATH" NO_COLOR=1 VFOX_PLUS_FIXTURES="$PWD/shared/fixtures/vfox-1.0.13" \
-            VFOX_PLUS_E2E_LINK="$home/link.txt" \
-            xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- "$RUNNER_TEMP/vfox-plus-e2e" >"$RUNNER_TEMP/app.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/app.pid"
-          trap 'kill "$(cat "$RUNNER_TEMP/app.pid")" 2>/dev/null' EXIT
-          LINK=""
-          for _ in $(seq 1 60); do
-            LINK="$(grep -o 'http://127\.0\.0\.1:[0-9]*/auth/connect/[0-9a-f]*' "$home/link.txt" 2>/dev/null | head -1)"
-            [ -n "$LINK" ] && break
-            sleep 1
-          done
-          [ -n "$LINK" ] || { echo "no pairing link in $home/link.txt; the application said:"; cat "$RUNNER_TEMP/app.log"; exit 1; }
-          BASE="${LINK%%/auth/connect/*}"
-          "$RUNNER_TEMP/vfxtool" webheap --server "$BASE" --pairing "$LINK" \
-            --output "${{ runner.temp }}/memory-web/memory.txt" --settle 10 \
-            --chrome "${{ steps.setup-chrome.outputs.chrome-path }}" --timeout 180
-          cat "${{ runner.temp }}/memory-web/memory.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memory-lightweight
           path: ${{ runner.temp }}/memory-lightweight/memory.txt
-          if-no-files-found: error
-          overwrite: true
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: memory-web
-          path: ${{ runner.temp }}/memory-web/memory.txt
           if-no-files-found: error
           overwrite: true
       - name: Check what the icon in the tray costs

@@ -28,7 +28,45 @@
 <title>vfox-plus</title>
 <!--favicon-->
 <link rel="manifest" href="/manifest.webmanifest">
-<style>
+<script>
+/* In the Android app (WebBridge.kt) the page keeps clear of the system bars by the insets that the app reports: top, right, bottom,
+   left and the height of the keyboard, in CSS pixels. The app calls window.vfoxInsets again whenever they change. */
+(function () {
+  var bridge = window.vfoxAndroid;
+  if (!bridge) return;
+  window.vfoxInsets = function () {
+    var v = String(bridge.insets()).split(","), root = document.documentElement;
+    ["top", "right", "bottom", "left"].forEach(function (side, i) { root.style.setProperty("--sai-" + side, (parseFloat(v[i]) || 0) + "px"); });
+    root.classList.toggle("kb", (parseFloat(v[4]) || 0) > 0);
+  };
+  window.vfoxInsets();
+})();
+</script>
+  <script type="module" crossorigin>(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const l of document.querySelectorAll('link[rel="modulepreload"]'))s(l);new MutationObserver(l=>{for(const a of l)if(a.type==="childList")for(const r of a.addedNodes)r.tagName==="LINK"&&r.rel==="modulepreload"&&s(r)}).observe(document,{childList:!0,subtree:!0});function n(l){const a={};return l.integrity&&(a.integrity=l.integrity),l.referrerPolicy&&(a.referrerPolicy=l.referrerPolicy),l.crossOrigin==="use-credentials"?a.credentials="include":l.crossOrigin==="anonymous"?a.credentials="omit":a.credentials="same-origin",a}function s(l){if(l.ep)return;l.ep=!0;const a=n(l);fetch(l.href,a)}})();function i(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function f(e,t){return'<svg class="ic'+(t?" "+t:"")+'" aria-hidden="true"><use href="#i-'+e+'"/></svg>'}function Ee(e){let t=0;for(const n of e)t=t*31+n.codePointAt(0)>>>0;return t}function R(e,t){const n=Ee(e);return'<span class="avatar '+["av-p","av-s","av-t"][n%3]+" av-"+n%12+(t?" lg":"")+'" aria-hidden="true">'+i((e||"?")[0].toUpperCase())+"</span>"}function S(e,t){return e?typeof e=="string"?e:(t==="zh"&&e.zh?e.zh:e.en)||"":""}function h(e){const t=document.getElementById(e);if(!t)throw new Error("missing element #"+e);return t}const oe={webH:"Connections",webRemote:"Other devices",webRemoteHelp:"Let phones and other computers on your network connect with a pairing link, over HTTPS. Only turn this on in a network you trust.",webRemoteTitle:"Allow other devices?",webRemoteBody:"Phones and other computers on your network will be able to connect to vfox+ with a pairing link. Links work once, and the connection uses HTTPS. Only allow this in a network you trust.",webRemoteOk:"Allow",webPort:"Port",webPortHelp:"Other devices connect to this port. Allow it in the firewall of this computer.",webReach:"Reachable at",webFingerprint:"Certificate fingerprint. Compare it on the other device.",webNoAddress:"This computer has no address on a network.",webError:"Other devices cannot connect:",webPairBtn:"Pair a phone",webPairHelp:"Scan the code with the Android app, or open the link on the other device. It works once and expires in a few minutes.",webCopyLink:"Copy link",webLight:"Lightweight mode",webLightHelp:"When the window of vfox+ on the computer is closed, keep running in the background without it, so that this page and the tasks go on. Start vfox+ again to bring the window back.",webQuit:"Quit vfox+",webQuitHelp:"Ends vfox+ on the computer, and this page with it. Start it there to use it again.",webQuitBtn:"Quit",webQuitTitle:"Quit vfox+?",webQuitBody:"vfox+ ends on the computer, and this connection with it. Tasks that are running are cancelled.",webQuitting:"vfox+ is quitting…",phone:"This phone",phoneLead:"Connected to",phonePair:"Pair a new link",phoneOut:"Disconnect",phoneOutTitle:"Disconnect from this PC?",phoneOutBody:"This phone forgets the server and its session. Pair again with a new link to come back.",home:"Home",sdks:"SDKs",plugins:"Plugins",tasks:"Tasks",settings:"Settings",installed:"Installed",pick:"Pick an SDK.",add:"Add a plugin",tasksH:"Tasks",clear:"Clear finished",app:"Application",config:"vfox config",install:"Install",installing:"Install…",use:"Use globally",unuse:"Unuse",uninstall:"Uninstall",update:"Update",remove:"Remove",cancel:"Cancel",retry:"Retry",save:"Save",versions:"Available versions",search:"Search versions…",searchSdks:"Search SDKs…",searchPlugins:"Search plugins…",noSdks:"No SDKs installed yet.",noPlugins:"No plugins match.",noTasks:"No tasks yet.",current:"current",setGlobal:"Set global",confirmUninstall:"Uninstall this version?",confirmRemove:"Remove this plugin?",updateAll:"Update all",updated:"Started.",uploadAdd:"Upload & add",needSession:"Not paired. Open a pairing link first.",failed:"Request failed.",vfoxMissing:"vfox is missing or broken.",installGuide:"Install vfox first.",versionsOf:"Versions of",info:"Plugin info",homepage:"Homepage",installPath:"Install path",description:"Description",log:"Log",state:"State",command:"Command",close:"Close",loading:"Loading…",key:"Key",value:"Value",actions:"Actions",edit:"Edit",reset:"Reset",apply:"Apply",empty:"—",projectOnly:"Only the global scope is offered in the browser.",langName:"EN",official:"official",inUse:"In use",pluginsN:"Plugins",versionsN:"Versions",active:"In use",activeEmpty:"No version in use yet.",added:"Open",homepageOpen:"Homepage",copyPath:"Copy install path",copied:"Copied.",openPlugin:"Open plugin",refresh:"Refresh",pickFirst:"Pick an SDK on the left.",taskSucceeded:"Task succeeded.",taskFailed:"Task failed.",view:"View",all:"All",community:"Community",droppedHead:"",droppedTail:" earlier lines dropped",downloadLog:"Download full log",availableTab:"Available",optionsTab:"Options",noVersions:"No versions installed yet.",browse:"Browse versions",fetching:"Fetching the available versions…",installByName:"Install by name…",nVersions:"{n} versions",noMatch:"No version matches.",showMore:"Show {n} more",chooseHint:"Search by name or short name",chooseEmpty:"Nothing matches.",default:"Default",installNameTitle:"Install {name} by name",versionName:"Version name",installNameHelp:"What follows {name}@ in vfox install",namesToTry:"Names to try",installNameNote:"vfox looks the name up while it installs. A name that matches nothing fails, and the task shows why.",nameRequired:"Type a version name.",nameInvalid:"A version name has no spaces and does not start with a dash.",guideTitle:"Version names",downloads:"Downloads",downloadsHelp:"Environment variables that the plugin reads. They are added to every vfox command that this application runs.",unset:"Not set. The plugin uses its own default.",advanced:"Advanced",change:"Change",legacyTitle:"Version files",legacyNone:"This plugin reads no version files of its own.",legacyFiles:"Files read through this plugin",legacyFilesHelp:"vfox reads them when a shell enters a project directory and selects the version they name, if it is installed.",legacyEnable:"Read legacy version files",legacyEnableHelp:"Such as .nvmrc, .node-version, .python-version and .sdkmanrc.",legacyStrategy:"Version used from legacy files",strategySpecified:"As written",strategyInstalled:"Latest installed",strategyAvailable:"Latest available",legacyIgnored:"{setting} has no effect on this plugin: the version in the file is what counts.",shorthands:"Names you can type",shorthandsHelp:"Besides the versions in the list, vfox install accepts these names for {name}.",installDots:"Install…",tips:"Good to know",docs:"Documentation",address:"Address",quickPicks:"Quick picks",defaultOption:"Default (not set)",saved:"Saved",pageLang:"Page language",language:"Language",extraEnv:"Extra environment (KEY=value, one per line)",langSystem:"system",addFromSource:"Add from source",addPluginTitle:"Add a plugin",sourceUrl:"Source URL",aliasLabel:"Alias (optional)",vfoxExecutable:"vfox executable",applicationLanguage:"Application language",statusQueued:"Queued",statusRunning:"Running",statusDone:"Done",statusFailed:"Failed",statusCancelled:"Cancelled",pairDetails:"Link and certificate",pairScan:"Scan this code with the Android app.",pairShowCode:"Show code"},Se={webH:"连接",webRemote:"其他设备",webRemoteHelp:"允许同一网络中的手机和其他电脑用配对链接连接，使用 HTTPS。请只在可信网络中开启。",webRemoteTitle:"允许其他设备？",webRemoteBody:"同一网络中的手机和其他电脑将能用配对链接连接 vfox+。链接一次性有效，连接使用 HTTPS。请只在可信网络中允许。",webRemoteOk:"允许",webPort:"端口",webPortHelp:"其他设备通过此端口连接，需要在这台电脑的防火墙中放行。",webReach:"可通过以下地址访问",webFingerprint:"证书指纹，请在另一台设备上核对。",webNoAddress:"这台电脑没有网络地址。",webError:"其他设备无法连接：",webPairBtn:"配对手机",webPairHelp:"用安卓应用扫描二维码，或在另一台设备上打开链接。链接一次性有效，几分钟后过期。",webCopyLink:"复制链接",webLight:"轻量模式",webLightHelp:"电脑上 vfox+ 的窗口关闭后，不退出而在后台继续运行（不保留窗口），本页面和任务都会继续。再次启动 vfox+ 即可恢复窗口。",webQuit:"退出 vfox+",webQuitHelp:"结束电脑上的 vfox+，本页面也随之断开。要再用，请在电脑上启动它。",webQuitBtn:"退出",webQuitTitle:"退出 vfox+？",webQuitBody:"电脑上的 vfox+ 会结束，这个连接也会断开。正在运行的任务会被取消。",webQuitting:"vfox+ 正在退出…",phone:"这台手机",phoneLead:"已连接到",phonePair:"配对新链接",phoneOut:"断开连接",phoneOutTitle:"断开与这台电脑的连接？",phoneOutBody:"手机会忘记这台服务器和它的会话。之后要重新用新链接配对。",home:"主页",sdks:"SDK",plugins:"插件",tasks:"任务",settings:"设置",installed:"已安装",pick:"选择一个 SDK。",add:"添加插件",tasksH:"任务",clear:"清除已完成",app:"应用",config:"vfox 配置",install:"安装",installing:"安装中…",use:"设为全局",unuse:"取消使用",uninstall:"卸载",update:"更新",remove:"移除",cancel:"取消",retry:"重试",save:"保存",versions:"可安装版本",search:"搜索版本…",searchSdks:"搜索 SDK…",searchPlugins:"搜索插件…",noSdks:"暂无已安装的 SDK。",noPlugins:"没有匹配的插件。",noTasks:"暂无任务。",current:"当前",setGlobal:"设为全局",confirmUninstall:"卸载该版本？",confirmRemove:"移除该插件？",updateAll:"全部更新",updated:"已开始。",uploadAdd:"上传并添加",needSession:"未配对，请先打开配对链接。",failed:"请求失败。",vfoxMissing:"vfox 缺失或损坏。",installGuide:"请先安装 vfox。",versionsOf:"的版本",info:"插件信息",homepage:"主页",installPath:"安装路径",description:"描述",log:"日志",state:"状态",command:"命令",close:"关闭",loading:"加载中…",key:"键",value:"值",actions:"操作",edit:"修改",reset:"重置",apply:"应用",empty:"—",projectOnly:"浏览器只提供全局作用域。",langName:"中文",official:"官方",inUse:"使用中",pluginsN:"插件",versionsN:"版本",active:"在用",activeEmpty:"暂无在用版本。",added:"打开",homepageOpen:"主页",copyPath:"复制安装路径",copied:"已复制。",openPlugin:"打开插件",refresh:"刷新",pickFirst:"在左侧选择一个 SDK。",taskSucceeded:"任务成功。",taskFailed:"任务失败。",view:"查看",all:"全部",community:"社区",droppedHead:"更早的 ",droppedTail:" 行日志已丢弃",downloadLog:"下载完整日志",availableTab:"可安装",optionsTab:"选项",noVersions:"还没有安装任何版本。",browse:"浏览版本",fetching:"正在获取可安装的版本…",installByName:"按名称安装…",nVersions:"{n} 个版本",noMatch:"没有匹配的版本。",showMore:"再显示 {n} 个",chooseHint:"按名称或简称搜索",chooseEmpty:"没有匹配项。",default:"默认",installNameTitle:"按名称安装 {name}",versionName:"版本名称",installNameHelp:"即 vfox install 中 {name}@ 后面的部分",namesToTry:"可以试试这些名称",installNameNote:"vfox 会在安装时解析这个名称。没有匹配项的名称会失败，任务里会显示原因。",nameRequired:"请输入版本名称。",nameInvalid:"版本名称不能含空格，也不能以短横线开头。",guideTitle:"版本名称",downloads:"下载",downloadsHelp:"插件会读取的环境变量。它们会加到本应用运行的每条 vfox 命令里。",unset:"未设置，插件使用自己的默认来源。",advanced:"高级",change:"更改",legacyTitle:"版本文件",legacyNone:"此插件没有自己的版本文件。",legacyFiles:"通过此插件读取的文件",legacyFilesHelp:"当 Shell 进入项目目录时，vfox 会读取它们，并选中其中写明且已安装的版本。",legacyEnable:"读取旧版版本文件",legacyEnableHelp:"例如 .nvmrc、.node-version、.python-version 和 .sdkmanrc。",legacyStrategy:"旧版版本文件中的版本",strategySpecified:"按文件所写",strategyInstalled:"最新已安装",strategyAvailable:"最新可用",legacyIgnored:"“{setting}”对此插件没有影响：以文件里写的版本为准。",shorthands:"可以直接输入的名称",shorthandsHelp:"除了列表里的版本，vfox install 还接受 {name} 的这些名称。",installDots:"安装…",tips:"须知",docs:"文档",address:"地址",quickPicks:"快速选择",defaultOption:"默认（不设置）",saved:"已保存",pageLang:"页面语言",language:"语言",extraEnv:"额外环境变量（KEY=value，每行一个）",langSystem:"跟随系统",addFromSource:"从来源添加",addPluginTitle:"添加插件",sourceUrl:"来源地址",aliasLabel:"别名（可选）",vfoxExecutable:"vfox 可执行文件",applicationLanguage:"应用语言",statusQueued:"排队中",statusRunning:"进行中",statusDone:"完成",statusFailed:"失败",statusCancelled:"已取消",pairDetails:"链接与证书",pairScan:"用安卓应用扫描这个二维码。",pairShowCode:"显示二维码"},Te=Se,xe={en:oe,zh:Te};let z="en";function ie(e){z=e}function E(){return z}function le(){try{return(navigator.language||"en").toLowerCase().startsWith("zh")?"zh":"en"}catch{return"en"}}function o(e){return xe[z][e]??oe[e]??e}async function y(e,t){const n={...t||{},headers:{"Content-Type":"application/json",...t&&t.headers||{}},credentials:"same-origin"},s=await fetch(e,n);if(s.status===401)throw location.href="/",new Error(o("needSession"));if(!s.ok){const l=await s.text();throw new Error(l||o("failed"))}return s.status===204?null:s.json()}function w(e){const t=document.getElementById("error");t&&(t.textContent=e,t.style.display="block",window.clearTimeout(w.t),w.t=window.setTimeout(()=>{t.style.display="none"},4e3))}function q(e){const t=document.createElement("a");t.href=e,t.target="_blank",t.rel="noopener noreferrer",document.body.appendChild(t),t.click(),t.remove()}async function J(e){try{await navigator.clipboard.writeText(e),I(o("copied"))}catch{w(o("failed"))}}function I(e,t,n){const s=document.getElementById("snacks");if(!s)return;const l=document.createElement("div");if(l.className="snack",l.innerHTML="<span>"+i(e)+"</span>"+(t?"<button>"+i(t)+"</button>":""),t){const c=l.querySelector("button");c&&(c.onclick=()=>{r(),n&&n()})}s.appendChild(l);let a=!1;const r=()=>{a||(a=!0,l.remove())};window.setTimeout(r,t?8e3:4e3)}function H(e,t,n,s){return new Promise(l=>{const a=document.getElementById("scrim");if(!a)return l(!1);document.getElementById("dlgTitle").textContent=e,document.getElementById("dlgBody").textContent=t;const r=document.getElementById("dlgOk");r.textContent=n,r.className="btn "+(s?"danger":"primary"),a.classList.add("open");const c=u=>{a.classList.remove("open"),r.onclick=null,document.getElementById("dlgCancel").onclick=null,a.onclick=null,l(u)};r.onclick=()=>c(!0),document.getElementById("dlgCancel").textContent=o("cancel"),document.getElementById("dlgCancel").onclick=()=>c(!1),a.onclick=u=>{u.target===a&&c(!1)}})}const d={tab:null,inventory:null,tasks:[],prevTasks:{},detail:null,detailName:null,web:null,pairing:null,live:!1,langMode:"system"};function D(e){d.live=e;const t=document.getElementById("live");t&&(t.className="live"+(e?" on":""));const n=document.getElementById("liveText");n&&(n.textContent=e?"live":"…")}const Le=window.matchMedia("(prefers-reduced-motion: reduce)").matches,Ce=["home","sdks","plugins","tasks","settings"];function X(e,t,n){if(d.tab===e)return;d.tab=e,document.body.dataset.tab=e,document.querySelectorAll(".dest").forEach(a=>{a instanceof HTMLElement&&a.setAttribute("aria-current",String(a.dataset.tab===e))}),document.querySelectorAll(".page").forEach(a=>a.classList.remove("active","enter"));const s=document.getElementById("tab-"+e);s&&(s.classList.add("active"),Le||s.classList.add("enter"));const l=document.getElementById("pageTitle");l&&(l.textContent=o(e==="sdks"?"sdks":e))}function Be(){const t=(location.hash||"#/home").slice(2).split("/");return t[0]==="sdk"&&t[1]?{tab:"sdks",sdk:t[1]}:Ce.includes(t[0])?{tab:t[0]}:{tab:"home"}}function Ie(e){const t=e.installed&&e.installed.value||[];let n=0,s=0;t.forEach(c=>{n+=(c.Versions||[]).length,c.HasCurrent&&s++});const l=[[t.length,o("pluginsN"),"s1","extension"],[n,o("versionsN"),"s2","deployed-code"],[s,o("inUse"),"s3","check-circle"]];h("homeStats").innerHTML=l.map(c=>'<button class="stat '+c[2]+'" data-go="sdks"><span class="ic-row">'+f(c[3])+'</span><span class="n">'+c[0]+'</span><span class="l">'+i(c[1])+'</span><span class="shape"></span></button>').join(""),h("homeStats").querySelectorAll("[data-go]").forEach(c=>c.onclick=()=>location.hash="#/sdks");const a=t.filter(c=>c.HasCurrent),r=h("homeActive");a.length?r.innerHTML=a.map(c=>'<button class="item" data-sdk="'+i(c.Name)+'">'+R(c.Name)+'<span class="grow"><b>'+i(c.Name)+'</b><br><span class="muted t-label">'+i(c.Current)+"</span></span>"+f("chevron-right","sm muted")+"</button>").join(""):r.innerHTML='<p class="muted">'+i(o("activeEmpty"))+"</p>",r.querySelectorAll("[data-sdk]").forEach(c=>c.onclick=()=>location.hash="#/sdk/"+encodeURIComponent(c.dataset.sdk||""))}function He(){h("homeRefresh").onclick=()=>{const e=h("homeRefresh").querySelector(".ic");e?.classList.add("spin"),setTimeout(()=>e?.classList.remove("spin"),650),b(!0)},h("shellCopy").onclick=async()=>{const e=h("shellCopy"),t=document.getElementById("shellCmd").textContent||"";await J(t);const n=e.querySelector("use"),s=n?.getAttribute("href")||"";n?.setAttribute("href","#i-check"),setTimeout(()=>n?.setAttribute("href",s),1200)}}function Z(e,t){const n='<svg width="120" height="8" viewBox="0 0 120 8" preserveAspectRatio="none"><path d="M0 4 Q 10 0 20 4 T 40 4 T 60 4 T 80 4 T 100 4 T 120 4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>';if(t)return'<div class="wavy ind" role="progressbar"><div class="fill" style="color:var(--m3-primary)">'+n+"</div></div>";const s=Math.max(0,Math.min(1,e??0));return'<div class="wavy" role="progressbar" aria-valuenow="'+Math.round(s*100)+'"><div class="fill" style="--p:1;width:'+s*100+'%;color:var(--m3-primary)">'+n+"</div>"+(s>.02&&s<.999?'<span class="stop"></span>':"")+"</div>"}function W(){return'<div class="loader" role="progressbar" aria-label="'+i(o("loading"))+'"><div class="blob"></div></div>'}function L(e,t,n,s,l){return'<div class="state'+(e==="err"?" err":"")+'"><div class="shape">'+f(t)+"</div><h3>"+i(n)+'</h3><div class="t-body">'+s+"</div>"+(l?'<button class="btn" data-act="1">'+i(l)+"</button>":"")+"</div>"}function re(e){return e?e.loading&&(!e.value||!e.value.length)?W():e.error&&(!e.value||!e.value.length)?L("err","error",o("failed"),i(e.error),o("refresh")):"":'<p class="muted">'+i(o("loading"))+"</p>"}function ce(e,t){const n=e.querySelector("[data-act]");n&&(n.onclick=t)}function M(e,t,n){return'<div class="t-title-m" style="margin-top:20px">'+i(e)+"</div>"+(t?'<p class="muted t-label" style="margin:0 4px 8px">'+i(t)+"</p>":"")+'<div class="list">'+n+"</div>"}function O(e,t,n,s){return'<button class="chip" '+(s||"")+' data-id="'+i(e)+'" aria-pressed="'+(n?"true":"false")+'"><span class="ck">'+f("check","sm")+"</span><span>"+i(t)+"</span></button>"}function j(e){return e.filter(Boolean).map(t=>'<span class="tag">'+i(t)+"</span>").join(" ")}function Ae(e,t){if(!e)return"";const n=[];if(e.source){const s=e.source.name;n.push(t==="zh"&&s.zh?s.zh:s.en)}for(const s of e.flavors||[])n.push(s);return n.filter(Boolean).join(" · ")}function G(e,t){const n=document.getElementById("menu");if(!n)return;n.innerHTML="",t.forEach(u=>{const g=document.createElement("button");u.danger&&(g.className="danger"),g.innerHTML=f(u.icon)+"<span>"+i(u.label)+"</span>",g.onclick=()=>{ee(),u.onclick&&u.onclick()},n.appendChild(g)});const s=e.getBoundingClientRect();n.classList.add("open");const l=220,a=t.length*48+16;n.style.minWidth=l+"px";let r=Math.min(s.left,window.innerWidth-l-8),c=s.bottom+6;c+a>window.innerHeight-8&&(c=Math.max(8,s.top-a-6)),n.style.left=Math.max(8,r)+"px",n.style.top=c+"px",window.setTimeout(()=>document.addEventListener("click",ee,{once:!0}),0)}function ee(){document.getElementById("menu")?.classList.remove("open")}function V(e,t,n){const s=document.getElementById("sheet"),l=document.getElementById("sheetBody");if(!s||!l)return()=>{};document.getElementById("sheetIcon").innerHTML=t?f(t):"",document.getElementById("sheetTitle").textContent=e,l.innerHTML="";const a=()=>{s.classList.remove("open"),s.onclick=null,document.removeEventListener("keydown",r)},r=c=>{c.key==="Escape"&&a()};return document.addEventListener("keydown",r),s.onclick=c=>{c.target===s&&a()},s.classList.add("open"),n(l,a),a}function Ne(e){return{queued:"hourglass-empty",running:"schedule",succeeded:"task-alt",failed:"error",cancelled:"close"}[e]||"info"}function Pe(e){const t={queued:"statusQueued",running:"statusRunning",succeeded:"statusDone",failed:"statusFailed",cancelled:"statusCancelled"};return t[e]?o(t[e]):e}function Me(e){const t=e.operation||"",s=["install","uninstall","update","remove","use","add"].includes(t)?o(t):t,l=e.sdk+(e.version?"@"+e.version:"");return(s.charAt(0).toUpperCase()+s.slice(1)+(l?" "+l:"")).trim()}function qe(){const e=h("taskList");if(["taskCount","taskCountM"].forEach(t=>{const n=document.getElementById(t);if(n){const s=d.tasks.filter(l=>["queued","running"].includes(l.status)).length;n.hidden=s===0,n.textContent=String(s)}}),!d.tasks.length){e.innerHTML=L("empty","pending-actions",o("noTasks"),"",null);return}e.innerHTML=d.tasks.map(t=>{const n=t.progress!=null?Math.round(t.progress*100)+"%":"",s=["queued","running"].includes(t.status);return'<button class="taskrow" data-open="'+t.id+'" aria-expanded="false">'+f(Ne(t.status))+'<span class="grow"><b>'+i(Me(t))+'</b><span class="muted">'+i(Pe(t.status)+(n?" · "+n:""))+"</span>"+(s&&t.progress!=null?Z(t.progress,!1):"")+(s&&t.progress==null?Z(0,!0):"")+"</span>"+f("keyboard-arrow-down","sm muted")+'</button><div class="tasklog" data-log="'+t.id+'" hidden></div>'}).join(""),e.querySelectorAll("[data-open]").forEach(t=>t.onclick=()=>{Oe(parseInt(t.dataset.open||"0",10))})}async function Oe(e){const t=document.querySelector("[data-log='"+e+"']"),n=document.querySelector("[data-open='"+e+"']");if(t){if(!t.hidden){t.hidden=!0,t.innerHTML="",n&&n.setAttribute("aria-expanded","false");return}try{const s=await y("/api/tasks/"+e);n&&n.setAttribute("aria-expanded","true"),t.hidden=!1;const l=(()=>{try{return/;\s*wv\)/.test(navigator.userAgent)}catch{return!1}})();t.innerHTML="<p class='muted'><code>"+i(s.commandLine)+"</code></p>"+(s.droppedLines?"<p class='muted'>"+i(o("droppedHead")+s.droppedLines+o("droppedTail"))+"</p>":"")+(s.hasFullLog&&!l?"<div class='row'><a class='btn text' download href='/api/tasks/"+s.id+"/log'>"+i(o("downloadLog"))+"</a></div>":"")+"<pre class='log'>"+i(s.log.join(`
+`))+"</pre><div class='row'>"+(["queued","running"].includes(s.status)?"<button class='btn danger' data-cancel='"+s.id+"'>"+i(o("cancel"))+"</button>":"")+(["failed","cancelled"].includes(s.status)?"<button class='btn' data-retry='"+s.id+"'>"+i(o("retry"))+"</button>":"")+'<span class="grow"></span><button class="iconbtn sm" data-copy="1" title="'+i(o("log"))+'">'+f("content-copy","sm")+"</button></div>";const a=t.querySelector("[data-copy]");a&&(a.onclick=()=>J(s.log.join(`
+`)));const r=t.querySelector("[data-cancel]");r&&(r.onclick=async()=>{await y("/api/tasks/"+e+"/cancel",{method:"POST"}),b(!1)});const c=t.querySelector("[data-retry]");c&&(c.onclick=async()=>{await y("/api/tasks/"+e+"/retry",{method:"POST"}),b(!1)})}catch(s){w(s instanceof Error?s.message:String(s))}}}async function T(e){try{await y("/api/tasks",{method:"POST",body:JSON.stringify(e)}),location.hash="#/tasks",await b(!1)}catch(t){w(t instanceof Error?t.message:String(t))}}function Re(e){e.forEach(t=>{const n=d.prevTasks[t.id];n&&["queued","running"].includes(n)&&["succeeded"].includes(t.status)&&I(o("taskSucceeded"),o("view"),()=>location.hash="#/tasks"),n&&["queued","running"].includes(n)&&["failed","cancelled"].includes(t.status)&&I(t.errorMessage||o("taskFailed"),o("view"),()=>location.hash="#/tasks")}),d.prevTasks={},e.forEach(t=>d.prevTasks[t.id]=t.status)}function Ve(){h("clearBtn").onclick=async()=>{try{await y("/api/tasks/finished",{method:"DELETE"}),b(!1)}catch(e){w(e instanceof Error?e.message:String(e))}}}function Ue(){return document.querySelector("#pluginFilter [aria-pressed=true]")?.dataset?.f||"all"}function De(e){const t=/^https?:\/\/github\.com\/([^/?#]+)\/([^/?#]+)/i.exec(e||"");return t?t[1]+"/"+t[2].replace(/\.git$/i,""):(e||"").replace(/^https?:\/\//i,"").replace(/\/$/,"")}function Q(){const e=d.inventory;if(!e)return;const t=h("pluginList"),n=e.registry,s=re(n);if(s){t.innerHTML="";const u=document.createElement("div");u.innerHTML=s,t.appendChild(u),ce(u,()=>b(!0));return}const l=(document.getElementById("pluginSearch").value||"").toLowerCase(),a=Ue(),r=new Set((n.value&&e.installed.value||[]).map(u=>u.Name)),c=(n.value||[]).filter(u=>a==="official"&&!u.Official||a==="community"&&u.Official?!1:!l||u.Name.toLowerCase().includes(l)||(u.Homepage||"").toLowerCase().includes(l));if(!c.length){t.innerHTML=L("empty","search-off",o("noPlugins"),"",null);return}t.innerHTML=c.map(u=>{const g=De(u.Homepage),p=u.Homepage?'<button class="iconbtn sm" data-home="'+i(u.Homepage)+'" title="'+i(o("homepage"))+'">'+f("open-in-new","sm")+"</button>":"",m=r.has(u.Name)?'<button class="btn tonal" data-open="'+i(u.Name)+'">'+i(o("added"))+"</button>":'<button class="btn tonal" data-addname="'+i(u.Name)+'">'+f("add","sm")+"<span>"+i(o("install"))+"</span></button>";return'<div class="pcard"><div class="lead">'+R(u.Name)+'<span class="names"><b class="nameline"><code>'+i(u.Name)+"</code>"+(u.Official?'<span class="seal" title="'+i(o("official"))+'">'+f("verified","sm")+"</span>":"")+"</b>"+(g?'<span class="muted">'+i(g)+"</span>":"")+'</span></div><div class="actions">'+p+'<span class="grow"></span>'+m+"</div></div>"}).join(""),t.querySelectorAll("[data-home]").forEach(u=>u.onclick=()=>q(u.dataset.home||"")),t.querySelectorAll("[data-open]").forEach(u=>u.onclick=()=>location.hash="#/sdk/"+encodeURIComponent(u.dataset.open||"")),t.querySelectorAll("[data-addname]").forEach(u=>u.onclick=()=>T({operation:"add",source:u.dataset.addname||""})),t.querySelectorAll("[data-update]").forEach(u=>u.onclick=()=>T({operation:"update",sdk:u.dataset.update||""})),t.querySelectorAll("[data-remove]").forEach(u=>u.onclick=()=>de(u.dataset.remove||""))}async function de(e){await H(o("remove"),e,o("remove"),!0)&&T({operation:"remove",sdk:e})}function Fe(){V(o("addPluginTitle"),"add",(e,t)=>{e.innerHTML='<div class="field"><label for="addSource">'+i(o("sourceUrl"))+'</label><input id="addSource" placeholder="https://…" autocomplete="off" spellcheck="false"></div><div class="field"><label for="addAlias">'+i(o("aliasLabel"))+'</label><input id="addAlias" autocomplete="off" spellcheck="false"></div><div class="actions"><button class="btn text" id="addCancel">'+i(o("cancel"))+'</button><button class="btn primary" id="addBtn">'+i(o("add"))+'</button></div><div class="muted t-label" style="margin:16px 0 8px">'+i(o("uploadAdd"))+'</div><div class="row"><input type="file" id="addFile" accept=".zip,.lua"></div>',document.getElementById("addCancel").onclick=t,document.getElementById("addBtn").onclick=()=>{const s=(document.getElementById("addSource").value||"").trim(),l=(document.getElementById("addAlias").value||"").trim();s&&(t(),y("/api/plugins",{method:"POST",body:JSON.stringify({source:s,alias:l})}).then(()=>{location.hash="#/tasks",b(!1)}).catch(a=>w(a instanceof Error?a.message:String(a))))};const n=document.getElementById("addFile");n.onchange=()=>{const s=n.files&&n.files[0];if(!s)return;const l=new FormData;l.append("file",s),l.append("alias",(document.getElementById("addAlias").value||"").trim()),t(),fetch("/api/plugins",{method:"POST",body:l,credentials:"same-origin"}).then(async a=>{if(!a.ok)throw new Error(await a.text());return a.json()}).then(()=>{location.hash="#/tasks",b(!1)}).catch(a=>w(a instanceof Error?a.message:String(a)))},window.setTimeout(()=>document.getElementById("addSource").focus(),50)})}function je(){document.getElementById("pluginSearch").oninput=()=>Q(),document.querySelectorAll("#pluginFilter button").forEach(e=>e.onclick=()=>{document.querySelectorAll("#pluginFilter button").forEach(t=>t.setAttribute("aria-pressed",String(t===e))),Q()}),h("regRefresh").onclick=()=>b(!0),h("addPluginBtn").onclick=()=>Fe(),h("updateAllBtn").onclick=()=>T({operation:"update"})}function A(){const e=d.inventory;if(!e)return;const t=h("sdkList"),n=e.installed,s=re(n.value?{value:n.value,loading:n.loading,error:n.error}:n);if(s){t.innerHTML=s,ce(t,()=>b(!0));return}const l=(document.getElementById("sdkSearch").value||"").toLowerCase(),a=(n.value||[]).filter(r=>!l||r.Name.toLowerCase().includes(l));if(!a.length){t.innerHTML=L("empty","inventory-2",o("noSdks"),"",null);return}t.innerHTML=a.map(r=>'<button class="item" data-sdk="'+i(r.Name)+'" aria-current="'+(d.detailName===r.Name)+'">'+R(r.Name)+"<span style='flex:1;min-width:0'><b><code>"+i(r.Name)+"</code></b><br><span class='muted t-label'>"+(r.HasCurrent?"":i(o("empty"))+" · ")+(r.Versions||[]).length+" "+i(o("versionsN"))+"</span>"+(r.HasCurrent?'<br><span class="tag cur">'+i(r.Current)+"</span>":"")+"</span>"+f("chevron-right","sm muted")+"</button>").join(""),t.querySelectorAll("[data-sdk]").forEach(r=>r.onclick=()=>location.hash="#/sdk/"+encodeURIComponent(r.dataset.sdk||""))}function ue(e){document.querySelector("#tab-sdks")?.classList.remove("detail-open"),d.detail=null,d.detailName=null,A(),e!==!1&&location.hash!=="#/sdks"&&history.pushState({tab:"sdks"},"","#/sdks")}function P(e){const t=d.inventory;return(t&&t.installed.value||[]).find(n=>n.Name===e)}function te(e){const t=d.inventory,n=t&&t.config,s=(n&&n.value||[]).find(l=>l.Key===e);return s?s.Value:""}async function ne(e,t){return t==null?y("/api/config?key="+encodeURIComponent(e),{method:"DELETE"}):y("/api/config",{method:"PUT",body:JSON.stringify({key:e,value:t})})}async function pe(e,t){const n=t&&d.detail&&d.detail.name===e?d.detail.tab:"installed";d.detail={name:e,tab:n,info:null,profile:null,versions:null,error:null,search:"",facets:{},query:"",limit:200,loading:!1,token:0},d.detailName=e,document.querySelector("#tab-sdks")?.classList.add("detail-open"),A();const s=h("sdkDetail");s.innerHTML=W();const[l,a]=await Promise.all([y("/api/sdks/"+encodeURIComponent(e)+"/info").catch(()=>null),y("/api/sdks/"+encodeURIComponent(e)+"/profile").catch(()=>null)]),r=d.detail;if(!r||r.name!==e)return;r.info=l,r.profile=a;const c=a&&a.search;r.search=c&&c.current!==c.default?c.current:"",Qe(),A()}function Qe(){const e=d.detail;if(!e)return;const t=h("sdkDetail"),n=P(e.name),s=e.info;let l='<div class="row"><button class="iconbtn sm" id="detailBack" title="'+i(o("close"))+'">'+f("arrow-back","sm")+"</button>"+R(e.name,!0)+"<span style='flex:1;min-width:0'><span class='t-title-l'><code>"+i(e.name)+"</code></span>"+(n&&n.HasCurrent?' <span class="tag cur">'+i(n.Current)+"</span>":"")+"</span>"+(s&&s.Homepage?'<button class="iconbtn sm" id="detailHome" title="'+i(o("homepage"))+'">'+f("open-in-new","sm")+"</button>":"")+'<button class="iconbtn sm" id="detailMenu" title="…">'+f("more-vert","sm")+"</button></div>";l+='<div class="seg" id="detailTabs" role="tablist"></div><div id="detailBody"></div>',t.innerHTML=l,h("detailBack").onclick=()=>ue(!0);const a=document.getElementById("detailHome");a&&s&&s.Homepage&&(a.onclick=()=>q(s.Homepage)),h("detailMenu").onclick=r=>{const c=[];s&&s.Homepage&&c.push({icon:"open-in-new",label:o("homepageOpen"),onclick:()=>q(s.Homepage)}),c.push({icon:"delete",label:o("remove"),danger:!0,onclick:()=>de(e.name)}),G(r.currentTarget,c)},U(),x(!1)}function U(){const e=d.detail;if(!e)return;const t=P(e.name),n=[["installed",o("installed")+" ("+(t&&t.Versions||[]).length+")","deployed-code"],["available",o("availableTab"),"download"]];e.profile&&n.push(["options",o("optionsTab"),"tune"]);const s=document.getElementById("detailTabs");s&&(s.innerHTML=n.map(l=>'<button role="tab" data-tab="'+l[0]+'" aria-pressed="'+(e.tab===l[0])+'">'+f(l[2],"sm")+"<span>"+i(l[1])+"</span></button>").join(""),s.querySelectorAll("button").forEach(l=>l.onclick=()=>{const a=l.dataset.tab;e.tab===a||!d.detail||(d.detail.tab=a,U(),x(!0))}))}function x(e){const t=document.getElementById("detailBody");if(!t)return;t.className="tabpane"+(e?" enter":"");const n=d.detail;n&&(n.tab==="available"?Ke(t):n.tab==="options"?$e(t):me(t))}function me(e){const t=d.detail;if(!t)return;const n=P(t.name),s=n&&n.Versions||[];if(!s.length){e.innerHTML=L("empty","download",o("noVersions"),"",o("browse"));const a=e.querySelector("[data-act]");a&&(a.onclick=()=>{d.detail&&(d.detail.tab="available",U(),x(!0))});return}let l="<div class='list'>";s.forEach(a=>{const r=!!n&&n.HasCurrent&&n.Current===a,c=t.profile&&t.profile.installed&&t.profile.installed[a],u=c?Ae(c,E()):"";l+="<div class='item'><span style='flex:1;min-width:0'><code>"+i(a)+"</code>"+(r?' <span class="tag cur">'+i(o("current"))+"</span>":"")+(u?"<br><span class='muted t-label'>"+i(u)+"</span>":"")+"</span>"+(r?"":"<button class='btn tonal' data-use='"+i(a)+"'>"+f("check","sm")+"<span>"+i(o("use"))+"</span></button>")+'<button class="iconbtn sm" data-more-version="'+i(a)+'" title="'+i(o("actions"))+'">'+f("more-vert","sm")+"</button></div>"}),e.innerHTML=l+"</div>",e.querySelectorAll("[data-use]").forEach(a=>a.onclick=()=>T({operation:"use",sdk:t.name,version:a.dataset.use||"",scope:"global"})),e.querySelectorAll("[data-more-version]").forEach(a=>a.onclick=r=>{const c=a.dataset.moreVersion||"";G(r.currentTarget,[{icon:"delete",label:o("uninstall"),danger:!0,onclick:async()=>{await H(o("uninstall"),c,o("uninstall"),!0)&&T({operation:"uninstall",sdk:t.name,version:c})}}])})}function fe(){const e=d.detail,t=e&&e.profile&&e.profile.search;if(!t)return null;const n=e&&e.search||t.default;return t.choices.find(s=>s.value===n)||null}async function $(){const e=d.detail;if(!e)return;e.token=(e.token||0)+1;const t=e.token,n=e.name,s=e.search;e.versions=null,e.error=null,e.facets={},e.limit=200,e.loading=!0,K();const l=e.profile&&e.profile.search,a=l?"?search="+encodeURIComponent(s||l.default):"";try{const r=await y("/api/sdks/"+encodeURIComponent(n)+"/versions"+a);if(d.detail!==e||e.token!==t)return;e.versions=r||[]}catch(r){if(d.detail!==e||e.token!==t)return;e.error=r instanceof Error?r.message:String(r)}e.loading=!1,K()}function Ke(e){const t=d.detail;if(!t)return;const n=fe(),l=t.profile&&t.profile.search?'<button class="btn tonal" id="chooseBtn">'+f("hub","sm")+"<span>"+i(n?S(n.name,E()):t.search)+"</span>"+f("keyboard-arrow-down","sm")+"</button>":"";e.innerHTML='<div class="row actions">'+l+'<button class="btn outline" id="byNameBtn">'+f("terminal","sm")+"<span>"+i(o("installByName"))+'</span></button></div><div id="availBody"></div>';const a=document.getElementById("chooseBtn");a&&(a.onclick=()=>We()),h("byNameBtn").onclick=()=>he(""),t.versions===null&&!t.error&&!t.loading?$():K()}function K(){const e=d.detail,t=document.getElementById("availBody");if(!(!t||!e||e.tab!=="available")){if(e.error){t.innerHTML=L("err","error",o("failed"),i(e.error),o("retry"));const n=t.querySelector("[data-act]");n&&(n.onclick=()=>$());return}if(e.versions===null){t.innerHTML=W()+'<p class="muted t-body" style="text-align:center">'+i(o("fetching"))+"</p>";return}if(!document.getElementById("vSearch")){t.innerHTML="<div class='row'><div class='search' style='flex:1;margin:0;min-width:200px'>"+f("search","sm muted")+"<input id='vSearch' placeholder='"+i(o("search"))+"'></div></div><div class='filterline'><div class='row chips' id='vChips'></div><span class='muted t-label' id='vCount'></span></div><div id='vList' class='list'></div>";const n=document.getElementById("vSearch");n.value=e.query,n.oninput=()=>{d.detail&&(d.detail.query=n.value,d.detail.limit=200,N())}}Je(),N()}}function ze(){const e=d.detail,t=[];return e&&(e.profile&&e.profile.facets||[]).forEach(n=>{const s={};(e.versions||[]).forEach(a=>(a.facets&&a.facets[n.id]||[]).forEach(r=>{s[r]=(s[r]||0)+1}));const l=n.values.filter(a=>s[a]);l.length&&t.push({id:n.id,label:n.label,values:l})}),t}function Je(){const e=d.detail,t=document.getElementById("vChips");if(!t||!e)return;const n=ze();let s="";n.forEach(l=>{l.values.forEach(a=>{const r=!!(e.facets[l.id]&&e.facets[l.id][a]);s+=O(l.id+":"+a,a,r,'data-g="'+i(l.id)+'" data-v="'+i(a)+'"')})}),t.innerHTML=s,t.querySelectorAll(".chip").forEach(l=>l.onclick=()=>{if(!d.detail)return;const a=d.detail,r=l.dataset.g||"",c=l.dataset.v||"";a.facets[r]=a.facets[r]||{},a.facets[r][c]?delete a.facets[r][c]:a.facets[r][c]=!0,a.limit=200,l.setAttribute("aria-pressed",String(!!a.facets[r][c])),N()})}function N(){const e=d.detail,t=document.getElementById("vList"),n=document.getElementById("vCount");if(!t||!e)return;const s=(e.query||"").toLowerCase(),l=fe(),a=!!(l&&l.everything),r=new Set((P(e.name)||{}).Versions||[]),c=(e.versions||[]).filter(p=>{for(const m of Object.keys(e.facets)){const v=Object.keys(e.facets[m]);if(v.length&&!v.some(C=>(p.facets&&p.facets[m]||[]).includes(C)))return!1}return!s||p.Version.toLowerCase().includes(s)||(p.Note||"").toLowerCase().includes(s)});if(n&&(n.textContent=o("nVersions").replace("{n}",String(c.length))),!c.length){t.innerHTML=L("empty","search-off",o("noMatch"),"",null);return}const u=c.slice(0,e.limit);t.innerHTML=u.map(p=>{const m=a&&p.parts&&p.parts.source?S(p.parts.source.name,E()):"";return"<div class='item vrow'><span style='flex:1;min-width:0'><code>"+i(p.Version)+"</code>"+(m?" "+j([m]):"")+(p.HasNote?' <span class="tag">'+i(p.Note)+"</span>":"")+((p.Additions||[]).length?' <span class="muted t-label">'+i(p.Additions.map(v=>v.Version?v.Name+" "+v.Version:v.Name).join(", "))+"</span>":"")+(r.has(p.Version)?' <span class="tag">✓</span>':"")+"</span>"+(r.has(p.Version)?"":"<button class='btn text' data-install='"+i(p.Version)+"'>"+i(o("install"))+"</button>")+"</div>"}).join("")+(c.length>u.length?"<button class='btn' id='showMore' style='margin-top:8px'>"+i(o("showMore").replace("{n}",String(c.length-u.length)))+"</button>":""),t.querySelectorAll("[data-install]").forEach(p=>p.onclick=()=>T({operation:"install",sdk:e.name,version:p.dataset.install||""}));const g=document.getElementById("showMore");g&&(g.onclick=()=>{d.detail&&(d.detail.limit+=400,N())})}function We(){const e=d.detail;if(!e||!e.profile||!e.profile.search)return;const t=e.profile.search;V(S(t.label,E()),"hub",(n,s)=>{n.innerHTML='<div class="search">'+f("search","sm muted")+'<input id="chQuery" placeholder="'+i(o("chooseHint"))+'"></div><div class="list choices" id="chList"></div><div class="actions"><button class="btn text" id="chClose">'+i(o("close"))+"</button></div>",document.getElementById("chClose").onclick=s;const l=document.getElementById("chQuery"),a=document.getElementById("chList"),r=e.search||t.default,c=(g,p)=>!p||[g.value,...g.aliases||[],g.name.en,g.name.zh,g.maker.en,g.maker.zh].some(m=>(m||"").toLowerCase().includes(p)),u=()=>{const g=l.value.trim().toLowerCase(),p=t.choices.filter(m=>c(m,g));a.innerHTML=p.length?p.map(m=>"<button class='item' data-v='"+i(m.value)+"' aria-current='"+(m.value===r)+"'><span class='lead'>"+(m.value===r?f("check"):"")+"</span><span style='flex:1;min-width:0'><b>"+i(S(m.name,E()))+"</b><br><span class='muted t-label'>"+i([S(m.maker,E()),m.value].filter(Boolean).join(" · "))+"</span></span>"+(m.value===t.default?'<span class="tag">'+i(o("default"))+"</span>":"")+"</button>").join(""):L("empty","search-off",o("chooseEmpty"),"",null),a.querySelectorAll("[data-v]").forEach(m=>m.onclick=async()=>{s();try{const v=await y("/api/sdks/"+encodeURIComponent(e.name)+"/search",{method:"PUT",body:JSON.stringify({value:m.dataset.v})});t.current=v.value}catch(v){w(v instanceof Error?v.message:String(v));return}d.detail===e&&(e.search=t.current===t.default?"":t.current,x(!1),$())})};l.oninput=u,u(),window.setTimeout(()=>l.focus(),50)})}function Ge(e){return!!e&&!/^[-\s@]/.test(e)}function he(e){const t=d.detail;if(!t)return;const n=t.profile;V(o("installNameTitle").replace("{name}",t.name),"terminal",(s,l)=>{s.innerHTML='<div class="field"><label for="nameIn">'+i(o("versionName"))+'</label><input id="nameIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label" id="nameHelp"></div></div>'+(n&&n.shorthands.length?'<div class="muted t-label chiplabel">'+i(o("namesToTry"))+'</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>':"")+'<p class="muted t-label" style="margin:12px 0 0">'+i(o("installNameNote"))+'</p><div class="actions"><button class="btn text" id="nameCancel">'+i(o("cancel"))+'</button><button class="btn primary" id="nameOk">'+f("download","sm")+"<span>"+i(o("install"))+"</span></button></div>";const a=document.getElementById("nameIn"),r=document.getElementById("nameHelp");r.textContent=o("installNameHelp").replace("{name}",t.name),a.value=e||"";const c=()=>{const g=a.value.trim();if(n){const p=document.getElementById("nameChips");p&&(p.innerHTML=n.shorthands.map(v=>O(v.name,v.name,v.name===g,'data-name="'+i(v.name)+'"')).join(""),p.querySelectorAll(".chip").forEach(v=>v.onclick=()=>{a.value=v.dataset.name||"",r.textContent=o("installNameHelp").replace("{name}",t.name),r.classList.remove("bad"),c()}));const m=n.shorthands.find(v=>v.name===g);document.getElementById("nameMeaning").textContent=m?S(m.meaning,E()):""}},u=()=>{const g=a.value.trim();if(!g){r.textContent=o("nameRequired"),r.classList.add("bad");return}if(!Ge(g)){r.textContent=o("nameInvalid"),r.classList.add("bad");return}l(),T({operation:"install",sdk:t.name,version:g})};a.oninput=()=>{r.textContent=o("installNameHelp").replace("{name}",t.name),r.classList.remove("bad"),c()},a.onkeydown=g=>{g.key==="Enter"&&u()},document.getElementById("nameOk").onclick=u,document.getElementById("nameCancel").onclick=l,c(),window.setTimeout(()=>a.focus(),50)})}function $e(e){const t=d.detail;if(!t)return;const n=t.profile;if(!n){e.innerHTML="";return}let s="";if(n.guide&&(n.guide.en||n.guide.zh)&&(s+='<div class="list"><div class="item guide">'+f("info")+"<span style='flex:1'><b>"+i(o("guideTitle"))+"</b><br><span class='muted'>"+i(S(n.guide,E()))+"</span></span></div>"),n.variables.length&&(s+=M(o("downloads"),o("downloadsHelp"),n.variables.map(a=>{const r=(a.presets||[]).find(u=>u.value===a.value),c=a.value?(r?S(r.name,E())+" · ":"")+a.value:o("unset");return"<div class='item'>"+f("download")+"<span style='flex:1;min-width:0'><b>"+i(S(a.label,E()))+"</b>"+(a.advanced?" "+j([o("advanced")]):"")+'<br><span class="muted t-label"><code>'+i(a.key)+"</code><br>"+i(c)+"</span></span><button class='btn tonal' data-var='"+i(a.key)+"'>"+i(o("change"))+"</button></div>"}).join(""))),s+='<div class="t-title-m" style="margin-top:20px">'+i(o("legacyTitle"))+'</div><div class="list">',!n.legacyFiles.length)s+="<div class='item'>"+f("history")+"<span class='muted'>"+i(o("legacyNone"))+"</span></div>";else{s+="<div class='item'>"+f("history")+"<span style='flex:1'><b>"+i(o("legacyFiles"))+"</b><br><span class='muted t-label'>"+i(o("legacyFilesHelp"))+"</span><br>"+j(n.legacyFiles)+"</span></div>";const a=te("legacyVersionFile.enable")==="true";if(s+='<div class="item"><span class="lead"></span><span style="flex:1"><b>'+i(o("legacyEnable"))+'</b><br><span class="muted t-label">'+i(o("legacyEnableHelp"))+'</span></span><button class="switch" role="switch" id="legacySwitch" aria-checked="'+a+'" aria-label="'+i(o("legacyEnable"))+'"></button></div>',n.legacyStrategy){const r=te("legacyVersionFile.strategy");s+='<div class="item"><span class="lead"></span><span style="flex:1;min-width:0"><b>'+i(o("legacyStrategy"))+'</b></span><div class="seg" id="legacyStrategy">'+[["specified",o("strategySpecified")],["installed",o("strategyInstalled")],["available",o("strategyAvailable")]].map(c=>"<button data-s='"+c[0]+"' aria-pressed='"+(r===c[0])+"'>"+i(c[1])+"</button>").join("")+"</div></div>"}else s+='<div class="item"><span class="lead"></span><span class="muted">'+i(o("legacyIgnored").replace("{setting}",o("legacyStrategy")))+"</span></div>"}s+="</div>",n.shorthands.length&&(s+=M(o("shorthands"),o("shorthandsHelp").replace("{name}",t.name),n.shorthands.map(a=>"<div class='item'>"+f("terminal")+"<span style='flex:1;min-width:0'><code>"+i(a.name)+'</code><br><span class="muted t-label">'+i(S(a.meaning,E()))+"</span></span><button class='btn tonal' data-try='"+i(a.name)+"'>"+f("download","sm")+"<span>"+i(o("installDots"))+"</span></button></div>").join(""))),n.tips.length&&(s+=M(o("tips"),"",n.tips.map(a=>"<div class='item'>"+f("info")+"<span style='flex:1'>"+i(S(a,E()))+"</span></div>").join(""))),n.docs.length&&(s+=M(o("docs"),"",n.docs.map(a=>"<button class='item' data-doc='"+i(S(a.url,E()))+"'>"+f("menu-book")+"<span style='flex:1'>"+i(S(a.title,E()))+"</span>"+f("open-in-new","sm muted")+"</button>").join(""))),e.innerHTML=s,e.querySelectorAll("[data-var]").forEach(a=>a.onclick=()=>{const r=n.variables.find(c=>c.key===a.dataset.var);r&&Ye(r)}),e.querySelectorAll("[data-try]").forEach(a=>a.onclick=()=>he(a.dataset.try||"")),e.querySelectorAll("[data-doc]").forEach(a=>a.onclick=()=>q(a.dataset.doc||""));const l=document.getElementById("legacySwitch");l&&(l.onclick=async()=>{try{await ne("legacyVersionFile.enable",l.getAttribute("aria-checked")==="true"?"false":"true"),await b(!1),x(!1)}catch(a){w(a instanceof Error?a.message:String(a))}}),e.querySelectorAll("#legacyStrategy button").forEach(a=>a.onclick=async()=>{try{await ne("legacyVersionFile.strategy",a.dataset.s||""),await b(!1),x(!1)}catch(r){w(r instanceof Error?r.message:String(r))}})}function Ye(e){const t=d.detail;t&&V(S(e.label,E()),"download",(n,s)=>{n.innerHTML='<p class="muted t-body" style="margin:0">'+i(S(e.help,E()))+'</p><p class="muted t-label"><code>'+i(e.key)+"</code></p>"+(e.kind==="url"?'<div class="field"><label for="varIn">'+i(o("address"))+'</label><input id="varIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="'+i(e.example||"")+'"><div class="muted t-label" id="varHelp"></div></div>':'<div class="muted t-label" id="varHelp"></div>')+'<div class="muted t-label chiplabel">'+i(o("quickPicks"))+'</div><div class="row chips" id="varChips"></div><div class="actions"><button class="btn text" id="varCancel">'+i(o("cancel"))+'</button><button class="btn primary" id="varOk">'+i(o("save"))+"</button></div>";let l=e.value||"";const a=document.getElementById("varIn"),r=document.getElementById("varHelp"),c=()=>{a&&(a.value=l);const p=document.getElementById("varChips");if(!p)return;const m=l.trim();p.innerHTML=O("",o("defaultOption"),m==="",'data-value=""')+e.presets.map(v=>O(v.value,S(v.name,E()),m===v.value,'data-value="'+i(v.value)+'"')).join(""),p.querySelectorAll(".chip").forEach(v=>v.onclick=()=>{l=v.dataset.value||"",r.textContent="",r.classList.remove("bad"),c()})};a&&(a.oninput=()=>{l=a.value,r.textContent="",r.classList.remove("bad"),u()});const u=()=>{const p=l.trim();document.querySelectorAll("#varChips .chip").forEach(m=>m.setAttribute("aria-pressed",String(m.dataset.value===p)))},g=async()=>{try{const p=await y("/api/sdks/"+encodeURIComponent(t.name)+"/variables",{method:"PUT",body:JSON.stringify({key:e.key,value:l.trim()})});e.value=p.value||"",s(),I(o("saved")),d.detail===t&&t.tab==="options"&&x(!1)}catch(p){r.textContent=p instanceof Error?p.message:String(p),r.classList.add("bad")}};document.getElementById("varOk").onclick=g,document.getElementById("varCancel").onclick=s,a&&(a.onkeydown=p=>{p.key==="Enter"&&g()}),c(),a&&window.setTimeout(()=>a.focus(),50)})}function _e(){const e=d.detail;if(!e||!e.profile&&!e.info&&!document.getElementById("detailTabs"))return;U();const t=P(e.name),n=(t&&t.Versions||[]).join(`
+`);if(e.installedKey!==void 0&&e.installedKey!==n&&e.profile&&y("/api/sdks/"+encodeURIComponent(e.name)+"/profile").then(s=>{d.detail===e&&(e.profile=s,e.installedKey=n,e.tab!=="available"&&x(!1))}).catch(()=>{}),e.installedKey=n,e.tab==="installed"){const s=document.getElementById("detailBody");s&&me(s)}else e.tab==="available"&&N()}function Xe(){document.getElementById("sdkSearch").oninput=()=>A(),h("sdkRefresh").onclick=()=>b(!0)}function Ze(){ge(),y("/api/settings").then(s=>{document.activeElement!==document.getElementById("setVfox")&&(document.getElementById("setVfox").value=s.vfoxExecutable||""),document.querySelectorAll("#langSeg button").forEach(l=>l.setAttribute("aria-pressed",String(l.dataset.l===(s.language||"system")))),document.activeElement!==document.getElementById("setEnv")&&(document.getElementById("setEnv").value=Object.entries(s.extraEnvironment||{}).map(([l,a])=>l+"="+a).join(`
+`))}).catch(()=>{});const e=d.inventory,t=h("configList");if(!e)return;const n=e.config;if(!n||n.loading&&!n.value&&!n.error){t.innerHTML='<p class="muted">'+i(o("loading"))+"</p>";return}if(n.error&&(!n.value||!n.value.length)){t.innerHTML='<p class="bad">'+i(n.error)+"</p>";return}t.innerHTML=(n.value||[]).map(s=>'<div class="confrow"><span class="grow"><code>'+i(s.Key)+'</code><span class="muted">'+i(s.Value||o("empty"))+'</span></span><button class="iconbtn sm" data-more="'+i(s.Key)+'" title="'+i(o("actions"))+'">'+f("more-vert","sm")+"</button></div>").join(""),t.querySelectorAll("[data-more]").forEach(s=>s.onclick=l=>{const a=s.dataset.more||"",r=((n.value||[]).find(c=>c.Key===a)||{}).Value||"";G(l.currentTarget,[{icon:"tune",label:o("edit"),onclick:async()=>{const c=prompt(a,r);if(c!=null)try{await ae(a,c),b(!1)}catch(u){w(u instanceof Error?u.message:String(u))}}},{icon:"history",label:o("reset"),danger:!0,onclick:async()=>{try{await ae(a,null),b(!1)}catch(c){w(c instanceof Error?c.message:String(c))}}}])})}async function ae(e,t){return t==null?y("/api/config?key="+encodeURIComponent(e),{method:"DELETE"}):y("/api/config",{method:"PUT",body:JSON.stringify({key:e,value:t})})}function B(e,t,n,s,l){return'<div class="rowitem"><span class="icon-tile">'+f(e)+'</span><span class="grow"><span class="t-title-m">'+i(t)+"</span>"+(l?'<span class="muted t-body">'+i(l)+"</span>":"")+(s||"")+"</span>"+n+"</div>"}function se(e,t,n){return"<button class='switch' role='switch' id='"+e+"' aria-checked='"+(t?"true":"false")+"' aria-label='"+i(n)+"'></button>"}function ge(){y("/api/web").then(e=>{d.web=e,ve()}).catch(()=>{})}async function F(e){try{d.web=await y("/api/web",{method:"PUT",body:JSON.stringify(e)})}catch(t){w(t instanceof Error?t.message:String(t))}ve()}function ve(){const e=d.web;if(!e)return;let t=B("devices",o("webRemote"),se("webRemote",e.remote,o("webRemote")));e.remote&&(t+=B("tune",o("webPort"),"<input id='webPort' type='number' min='1024' max='65535' value='"+i(e.port)+"' aria-label='"+i(o("webPort"))+"'>","",o("webPortHelp")),e.error?t+='<div class="rowitem"><span class="bad t-label">'+i(o("webError"))+" "+i(e.error)+"</span></div>":e.listening&&(t+=B("hub",o("webPairBtn"),"<button class='btn tonal' id='webPair'>"+i(o("pairShowCode"))+"</button>"))),t+=B("eco",o("webLight"),se("webLight",e.lightweight,o("webLight")),"",o("webLightHelp")),t+=B("power",o("webQuit"),"<button class='btn danger' id='webQuit'>"+i(o("webQuitBtn"))+"</button>"),h("webList").innerHTML=t,h("webRemote").onclick=async()=>{!e.remote&&!await H(o("webRemoteTitle"),o("webRemoteBody"),o("webRemoteOk"),!1)||(d.pairing=null,F({remote:!e.remote}))},h("webLight").onclick=()=>F({lightweight:!e.lightweight}),h("webQuit").onclick=async()=>{if(await H(o("webQuitTitle"),o("webQuitBody"),o("webQuitBtn"),!0))try{await y("/api/quit",{method:"POST"}),I(o("webQuitting"))}catch(l){w(l instanceof Error?l.message:String(l))}};const n=document.getElementById("webPort");n&&(n.onchange=()=>F({port:parseInt(n.value,10)||0}));const s=document.getElementById("webPair");s&&(s.onclick=()=>ye("")),Y()}async function ye(e){try{const t=d.web,n=await y("/api/web/pairing",{method:"POST",body:JSON.stringify({host:e})});n.host=e||t&&(t.publicAddress||t.addresses[0])||"",d.pairing=n}catch(t){d.pairing=null,w(t instanceof Error?t.message:String(t))}Y()}function Y(){const e=h("pairBox"),t=d.pairing,n=d.web;if(!t||!n||!n.listening){e.hidden=!0,e.innerHTML="";return}const s=[];n.publicAddress&&s.push({value:n.publicAddress,label:n.publicAddress.replace(/^https?:\/\//,"")}),n.addresses.forEach(a=>s.push({value:a,label:a}));const l=s.length>1?"<div class='seg' id='pairHosts'>"+s.map(a=>"<button data-host='"+i(a.value)+"' aria-pressed='"+(a.value===t.host)+"'>"+i(a.label)+"</button>").join("")+"</div>":"";e.innerHTML="<div class='qr'>"+t.svg+'</div><div class="muted t-label">'+i(o("pairScan"))+"</div>"+l+'<div class="row"><button class="btn text" id="pairCopy">'+i(o("webCopyLink"))+'</button><button class="btn text" id="pairClose">'+i(o("close"))+'</button></div><details class="tech"><summary>'+i(o("pairDetails"))+"</summary><code>"+i(t.url)+'</code><p class="muted t-label">'+i(o("webFingerprint"))+"</p><code>"+i(n.fingerprint)+"</code></details>",e.hidden=!1,h("pairCopy").onclick=()=>J(t.url),h("pairClose").onclick=()=>{d.pairing=null,Y()},e.querySelectorAll("[data-host]").forEach(a=>a.onclick=()=>ye(a.dataset.host||""))}function et(e){d.langMode=e,ie(e==="system"?le():e);try{localStorage.setItem("vfox-plus-lang",e)}catch{}}function tt(e,t){document.querySelectorAll("#pageLangSeg button").forEach(n=>n.onclick=async()=>{et(n.dataset.l||"system"),e(),t(!0)}),document.querySelectorAll("#langSeg button").forEach(n=>n.onclick=async()=>{try{await y("/api/settings",{method:"PUT",body:JSON.stringify({language:n.dataset.l})})}catch(s){w(s instanceof Error?s.message:String(s))}})}function nt(){h("saveVfox").onclick=async()=>{try{await y("/api/settings",{method:"PUT",body:JSON.stringify({vfoxExecutable:h("setVfox").value.trim()})}),b(!1)}catch(e){w(e instanceof Error?e.message:String(e))}},h("saveEnv").onclick=async()=>{const e={};(h("setEnv").value||"").split(`
+`).forEach(t=>{const n=t.indexOf("=");n>0&&(e[t.slice(0,n).trim()]=t.slice(n+1))});try{await y("/api/settings",{method:"PUT",body:JSON.stringify({extraEnvironment:e})}),b(!1)}catch(t){w(t instanceof Error?t.message:String(t))}}}function at(){if(!window.vfoxAndroid)return;const e=window.vfoxAndroid;document.getElementById("phoneCard").hidden=!1,document.getElementById("phoneServer").textContent=String(e.server()).replace(/^[a-z]+:\/\//i,""),h("phonePair").onclick=()=>e.pairNew(),h("phoneOut").onclick=async()=>{await H(o("phoneOutTitle"),o("phoneOutBody"),o("phoneOut"),!0)&&e.disconnect()}}function k(e,t){const n=document.getElementById(e);n&&(n.textContent=t)}function be(){const e={home:o("home"),sdks:o("sdks"),plugins:o("plugins"),tasks:o("tasks"),settings:o("settings")};document.querySelectorAll(".dest").forEach(m=>{const v=m.querySelector(".lbl"),C=m.dataset.tab;v&&C&&e[C]&&(v.textContent=e[C])}),k("homeTitle","vfox+"),k("h-installed",o("sdks")),k("pickSdk",o("pick")),k("h-add",o("plugins")),k("addPluginLabel",o("addFromSource")),k("h-tasks",o("tasksH")),k("h-settings",o("settings")),k("h-web",o("webH")),k("h-gui",o("app")),k("h-config",o("config")),k("l-vfox",o("vfoxExecutable")),k("l-lang",o("applicationLanguage")),k("l-pageLang",o("pageLang")),k("l-env",o("extraEnv")),k("h-active",o("active")),k("h-phone",o("phone")),k("phoneLead",o("phoneLead"));const t=o("langSystem"),n=document.querySelector('#langSeg [data-l="system"]');n&&(n.textContent=t);const s=document.querySelector('#pageLangSeg [data-l="system"]');s&&(s.textContent=t),document.querySelectorAll("#pageLangSeg button").forEach(m=>m.setAttribute("aria-pressed",String(m.dataset.l===d.langMode)));const l=document.querySelector("#phonePair span");l&&(l.textContent=o("phonePair"));const a=document.querySelector("#phoneOut span");a&&(a.textContent=o("phoneOut"));const r=document.querySelector("#updateAllBtn span");r&&(r.textContent=o("updateAll"));const c=document.getElementById("saveVfox");c&&(c.textContent=o("save"));const u=document.getElementById("saveEnv");u&&(u.textContent=o("save"));const g=document.querySelector("#clearBtn span");g&&(g.textContent=o("clear")),document.querySelectorAll("#fabAdd span:last-child, #fabAddM span:last-child").forEach(m=>{m.textContent=o("add")}),document.getElementById("sdkSearch").placeholder=o("searchSdks"),document.getElementById("pluginSearch").placeholder=o("searchPlugins"),h("liveText").textContent=d.live?"live":"…";const p=document.getElementById("pageTitle");p&&(p.textContent=o(d.tab==="sdks"?"sdks":d.tab||"home"))}async function b(e){try{const t=await y("/api/inventory");d.inventory=t;const n=document.getElementById("vfoxVer");n&&(n.textContent=t.vfox.version?"vfox "+t.vfox.version:t.vfox.availability||""),Ie(t),A(),Q(),Ze();const s=document.getElementById("homeSub");s&&(s.textContent=t.vfox.version?"vfox "+t.vfox.version:o("vfoxMissing"))}catch(t){w(t instanceof Error?t.message:String(t))}try{const t=await y("/api/tasks");Re(t),d.tasks=t,qe()}catch(t){w(t instanceof Error?t.message:String(t))}e&&d.detail?pe(d.detail.name,!0):d.detail&&_e()}function we(){let e;try{e=new EventSource("/api/events")}catch{D(!1);return}e.onopen=()=>D(!0),e.onerror=()=>{D(!1),e.close(),window.setTimeout(we,3e3)},e.addEventListener("task",()=>b(!1)),e.addEventListener("inventory",()=>b(!1)),e.addEventListener("vfox",()=>b(!1)),e.addEventListener("web",()=>ge()),e.addEventListener("hello",()=>b(!0))}function _(){const e=Be();if(e.sdk){pe(decodeURIComponent(e.sdk),!1),X("sdks");return}e.tab==="sdks"&&ue(!1),X(e.tab)}function ke(){const e=window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=e?"dark":"light"}ke();try{window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",ke)}catch{}{let e=null;try{e=localStorage.getItem("vfox-plus-lang")}catch{}const t=e||"system";d.langMode=t,ie(t==="system"?le():t)}be();tt(be,b);He();Xe();je();Ve();nt();at();document.querySelectorAll(".dest").forEach(e=>{e.onclick=()=>{const t=e.dataset.tab;t==="sdks"?location.hash="#/sdks":location.hash="#/"+t}});["fabAdd","fabAddM"].forEach(e=>{const t=document.getElementById(e);t&&(t.onclick=()=>{location.hash="#/plugins",window.setTimeout(()=>document.getElementById("addSource").focus(),60)})});document.getElementById("railToggle").onclick=()=>document.getElementById("rail")?.classList.toggle("expanded");addEventListener("hashchange",_);addEventListener("popstate",_);_();b(!0);we();</script>
+  <style rel="stylesheet" crossorigin>/*
+ * Copyright 2026 Han Li and contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* The page styles, moved verbatim from the single file so that
+   webapp_design_test.go keeps checking the exact tokens and springs. */
+
 :root[data-theme=light] {
   --m3-background: #fff8f5;
   --m3-on-background: #221a14;
@@ -130,8 +168,7 @@
   --m3-scrim: #000000;
 }
 
-/* The safe area: what the system bars and a display cutout cover. A browser reports it as env(); the Android app reports it itself
-   (window.vfoxAndroid, the script in the head), because a WebView does not give it in every version. */
+/* The safe area: what the system bars and a display cutout cover, reported by the browser as env(). In the Android app the page keeps clear of the bars by the insets that the app reports (window.vfoxAndroid, the script in the head), because a WebView does not give it in every version. */
 :root{color-scheme:light dark;--sai-top:env(safe-area-inset-top,0px);--sai-right:env(safe-area-inset-right,0px);--sai-bottom:env(safe-area-inset-bottom,0px);--sai-left:env(safe-area-inset-left,0px)}
 /* ---------- motion: the springs of Material 3 Expressive ---------- */
 /* docs/en/dev/design-system.md#motion. CSS has no spring, so each one is its step response, sampled into linear() over the time
@@ -394,7 +431,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   /* app bar: flat, large title, status as a dot only */
   .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left));border-bottom:0;background:var(--m3-surface)}
   .topbar h1{font-size:28px;line-height:36px;font-weight:500}
-  .live span:last-child,.ver{display:none}
+  .live,.ver{display:none}
   .live .dot{width:10px;height:10px}
   main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
   /* navigation bar: 80dp, pill indicator, labels always shown */
@@ -429,7 +466,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .stat .n{font-size:28px}
   .stat .l,.stat .lbl,.stat div:last-child{font-size:12px}
   /* terminal hint and cards: tonal containers where there is content to group */
-  #tab-home .card:has(#shellCmd){background:var(--m3-surface-container-low);padding:16px;border-radius:20px}
   /* sdks: master/detail as two screens */
   .sdk-grid{grid-template-columns:1fr}
   .pane-detail{display:none}
@@ -448,21 +484,127 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 
-</style>
-<script>
-/* In the Android app (WebBridge.kt) the page keeps clear of the system bars by the insets that the app reports: top, right, bottom,
-   left and the height of the keyboard, in CSS pixels. The app calls window.vfoxInsets again whenever they change. */
-(function () {
-  var bridge = window.vfoxAndroid;
-  if (!bridge) return;
-  window.vfoxInsets = function () {
-    var v = String(bridge.insets()).split(","), root = document.documentElement;
-    ["top", "right", "bottom", "left"].forEach(function (side, i) { root.style.setProperty("--sai-" + side, (parseFloat(v[i]) || 0) + "px"); });
-    root.classList.toggle("kb", (parseFloat(v[4]) || 0) > 0);
-  };
-  window.vfoxInsets();
-})();
-</script>
+
+/* ---------- the desktop's layout, at web widths ---------- */
+/* A page names itself once. The top bar keeps the page name on phones only,
+   where the content's own title is hidden to save the row. */
+@media (min-width:701px){
+  .topbar h1{display:none}
+  .topbar{justify-content:flex-end}
+}
+.pagetitle{font-size:28px;line-height:36px;font-weight:500;margin:0 0 12px}
+.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.pagehead .sp{flex:1}
+.pagehead .pagetitle{margin:0}
+.pagehead .grow{min-width:0}
+.pagehead .muted{margin-top:2px}
+.sectionlabel{font-size:12px;font-weight:500;color:var(--m3-primary);margin:16px 4px 6px}
+.grow{flex:1;min-width:0}
+.hero .t-title-l{line-height:1.2}
+.hero .row{align-items:flex-start}
+.stats .stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;position:relative}
+.stats .stat .ic-row{display:flex;margin-bottom:10px}
+.stats .stat .ic{width:24px;height:24px}
+.stats .stat .n{font-size:34px;line-height:1.05}
+.stats .stat .l{font-size:13px;font-weight:500}
+.stats .stat .shape{position:absolute;right:-26px;bottom:-26px;width:100px;height:100px;border-radius:52% 48% 60% 40%/45% 55% 42% 58%;background:color-mix(in srgb,currentColor 12%,transparent);opacity:1}
+.seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
+.taskrow:first-child{border-radius:20px 20px 4px 4px}
+.taskrow:last-child{border-radius:4px 4px 20px 20px}
+.taskrow:only-of-type{border-radius:20px}
+.taskrow+.tasklog:last-child{border-radius:0 0 20px 20px}
+.icon-tile{width:40px;height:40px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+.icon-tile .ic{width:22px;height:22px}
+.pane>.row:first-child{margin-bottom:6px}
+.shell{display:flex;align-items:center;gap:12px;background:var(--m3-surface-container-low);border-radius:20px;padding:10px 10px 10px 12px;margin-top:12px}
+.shell code{flex:1;min-width:0;overflow-wrap:anywhere}
+.shell .iconbtn{flex:none}
+.shell .iconbtn:active{background:var(--m3-surface-container-high)}
+.list .item:active{background:var(--m3-surface-container-high)}
+.stats .stat{transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.stats .stat:active{transform:scale(.97)}
+.spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
+.filterline{display:flex;align-items:center;gap:12px;margin:8px 4px 8px;min-height:32px}
+.filterline #vChips{flex:1;min-width:0;margin:0}
+.filterline #vCount{margin-left:auto;white-space:nowrap}
+.searchrow{align-items:center;gap:12px}
+.searchrow .search{margin:0}
+.rowitem{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--m3-outline-variant)}
+.rowitem:last-child{border-bottom:0}
+.rowitem .grow{display:flex;flex-direction:column;gap:6px}
+.rowitem.col{flex-direction:column;align-items:stretch}
+.rowitem.col .row{gap:14px;align-items:center}
+.rowitem textarea{width:100%}
+.rowitem code,.pane code{overflow-wrap:anywhere}
+.rowitem input.mono{width:100%}
+/* segmented buttons: the choice is the filled one, as in the desktop */
+.seg button[aria-pressed="true"]{background:var(--m3-primary);color:var(--m3-on-primary)}
+.pcard{justify-content:space-between}
+.pcard .lead{display:flex;align-items:center;gap:12px;min-width:0}
+.pcard .lead .avatar{width:40px;height:40px;font-size:18px}
+.pcard .lead .names{min-width:0;display:flex;flex-direction:column}
+.pcard .lead .names b{font-weight:500}
+.pcard .lead .names .nameline{display:flex;align-items:center;gap:6px}
+.pcard .lead .names .muted{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.pcard .actions .grow{flex:1}
+.btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:999px;min-height:40px}
+.btn.tonal:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
+/* task rows */
+.taskrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;background:var(--m3-surface-container)}
+.taskrow .grow{display:flex;flex-direction:column;gap:2px}
+.taskrow .muted{font-size:12px}
+.taskrow[aria-expanded="true"]{border-radius:20px}
+.tasklog{padding:0 16px 14px;background:var(--m3-surface-container);border-radius:0 0 20px 20px}
+/* config rows */
+.confrow{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--m3-surface-container)}
+.confrow .grow{min-width:0;display:flex;flex-direction:column;gap:2px}
+.confrow .muted{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* page switch: shared axis, as the desktop between destinations */
+@keyframes sharedAxisPage{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.page.enter{animation:sharedAxisPage var(--sp-default-spatial-t) var(--sp-default-spatial)}
+@media (max-width:700px){
+  .pagetitle{display:none}
+  .pagehead{margin-bottom:8px}
+  .pagehead .grow .t-body{display:none}
+  .sectionlabel{margin:12px 4px 4px}
+  .stats .stat .n{font-size:26px}
+  .rowitem{flex-wrap:wrap}
+}
+/* ---------- phones: one column, the page title lives in the top bar ---------- */
+@media (max-width:700px){
+  #tab-home>.pane{display:block}
+  #tab-home>.pane .row{margin:0!important}
+  .hero{padding:0 0 6px!important}
+  .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
+  .hero .t-title-l{display:none}
+  .hero .iconbtn{margin-left:auto}
+  .stats{margin-bottom:8px}
+  .stats .stat .shape{display:none}
+  .stats .stat .ic-row{margin-bottom:4px}
+  .stats .stat .n{font-size:26px}
+  .list .item{padding:14px 14px}
+  .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
+  .pagehead .grow{display:none}
+  .pagehead .iconbtn{width:36px;height:36px}
+  .pagehead .btn{min-height:36px;padding:0 12px}
+  .searchrow{flex-direction:column;align-items:stretch;gap:8px}
+  .searchrow .seg{align-self:flex-start}
+  .rowitem{padding:12px 0}
+  .rowitem .seg{flex-wrap:wrap}
+}
+@media (max-width:700px){
+  /* the bar already has the plugins destination; the floating button only ate the corner */
+  .mfab{display:none!important}
+  main{padding-bottom:calc(104px + var(--sai-bottom))}
+}
+
+/* The pairing box: the code first, the link and the fingerprint folded away */
+.pairbox .qr{max-width:240px}
+.pairbox .tech{margin-top:4px;font-size:12px;color:var(--m3-on-surface-variant);max-width:100%}
+.pairbox .tech summary{cursor:pointer;font-weight:500;color:var(--m3-primary);padding:4px 0}
+.pairbox .tech code{display:block;overflow-wrap:anywhere;margin:4px 0 8px}
+.pairbox .tech p{margin:0}</style>
 </head>
 <body>
 <div class="app">
@@ -474,7 +616,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
     <button class="dest" data-tab="sdks"><span class="pill"><svg class="ic line"><use href="#i-deployed-code"/></svg><svg class="ic fill"><use href="#i-deployed-code-fill"/></svg></span><span class="lbl">SDKs</span></button>
     <button class="dest" data-tab="plugins"><span class="pill"><svg class="ic line"><use href="#i-extension"/></svg><svg class="ic fill"><use href="#i-extension-fill"/></svg></span><span class="lbl">Plugins</span></button>
     <button class="dest" data-tab="tasks"><span class="pill"><svg class="ic line"><use href="#i-pending-actions"/></svg><svg class="ic fill"><use href="#i-pending-actions-fill"/></svg></span><span class="lbl">Tasks</span><span class="bdg" id="taskCount" hidden></span></button>
-    <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings"/></svg></span><span class="lbl">Settings</span></button>
+    <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings-fill"/></svg></span><span class="lbl">Settings</span></button>
   </nav>
   <button class="fab" id="fabAdd"><svg class="ic"><use href="#i-add"/></svg><span>Add</span></button>
 </aside>
@@ -487,58 +629,76 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 </header>
 <main>
   <section class="page" id="tab-home">
-    <div class="pane">
-      <div class="t-title-l" id="homeTitle">vfox-plus</div>
-      <div class="muted t-body" id="homeSub"></div>
-      <div class="row" style="margin-top:8px"><button class="btn text" id="homeRefresh"><svg class="ic sm"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
+    <div class="pane hero">
+      <div class="row">
+        <div class="grow">
+          <div class="t-title-l" id="homeTitle">vfox+</div>
+          <div class="muted t-body" id="homeSub"></div>
+        </div>
+        <button class="iconbtn" id="homeRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+      </div>
     </div>
     <div class="stats" id="homeStats"></div>
-    <div class="card"><div class="t-title-m" id="h-active">In use</div><div class="list" id="homeActive"></div></div>
-    <div class="card"><div class="t-title-m" id="h-shell">Use in a terminal</div><p class="muted t-body" id="shellBody"></p><div class="row"><code id="shellCmd">eval "$(vfox activate bash)"</code><button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button></div></div>
-    <div class="row" style="gap:12px">
-      <div class="card" style="flex:1;min-width:220px"><div class="t-title-m" id="h-explore">Explore</div><p class="muted t-body" id="exploreBody"></p><button class="btn" id="exploreBtn"><svg class="ic sm"><use href="#i-explore"/></svg><span>Plugins</span></button></div>
-      <div class="card" style="flex:1;min-width:220px"><div class="t-title-m" id="h-docs">Docs</div><p class="muted t-body">vfox.dev</p><button class="btn" id="docsBtn"><svg class="ic sm"><use href="#i-menu-book"/></svg><span>vfox docs</span></button></div>
+    <div class="sectionlabel" id="h-active">In use</div>
+    <div class="list grouped" id="homeActive"></div>
+    <div class="shell" role="group">
+      <span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span>
+      <code id="shellCmd">eval "$(vfox activate bash)"</code>
+      <button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button>
     </div>
   </section>
   <section class="page" id="tab-sdks">
+    <div class="pagehead">
+      <h1 class="pagetitle" id="h-installed">SDKs</h1>
+      <span class="sp"></span>
+      <button class="iconbtn" id="sdkRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+    </div>
     <div class="sdk-grid" id="sdkGrid">
-      <div class="card pane-list"><div class="row"><div class="t-title-m" id="h-installed" style="flex:1">Installed</div><button class="iconbtn sm" id="sdkRefresh" title="Refresh"><svg class="ic sm"><use href="#i-refresh"/></svg></button></div>
+      <div class="pane pane-list">
         <div class="search"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="sdkSearch" placeholder="Search…"></div>
         <div class="list" id="sdkList"></div>
       </div>
-      <div class="card pane-detail"><div id="sdkDetail"><p class="muted" id="pickSdk">Pick an SDK.</p></div></div>
+      <div class="pane pane-detail"><div id="sdkDetail"><p class="muted" id="pickSdk">Pick an SDK.</p></div></div>
     </div>
   </section>
   <section class="page" id="tab-plugins">
-    <div class="card"><div class="t-title-m" id="h-add">Add a plugin</div>
-      <div class="row"><input id="addSource" size="30" placeholder="https://…"><input id="addAlias" size="10" placeholder="alias"><button id="addBtn" class="btn primary">Add</button></div>
-      <div class="row" style="margin-top:8px"><input type="file" id="addFile" accept=".zip,.lua"><button id="uploadBtn" class="btn">Upload &amp; add</button></div>
+    <div class="pagehead">
+      <div class="grow"><h1 class="pagetitle" id="h-add">Plugins</h1></div>
+      <button class="btn text" id="updateAllBtn"><svg class="ic sm"><use href="#i-update"/></svg><span>Update all</span></button>
+      <button class="iconbtn" id="regRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+      <button class="btn tonal" id="addPluginBtn"><svg class="ic sm"><use href="#i-add"/></svg><span id="addPluginLabel">Add from source</span></button>
     </div>
-    <div class="card"><div class="row"><div class="t-title-m" id="h-registry" style="margin:0;flex:1">Registry</div><button class="btn text" id="updateAllBtn">Update all</button><button class="iconbtn sm" id="regRefresh" title="Refresh"><svg class="ic sm"><use href="#i-refresh"/></svg></button></div>
-      <div class="search"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="pluginSearch" placeholder="Search…"></div>
+    <div class="row searchrow">
+      <div class="search grow"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="pluginSearch" placeholder="Search…"></div>
       <div class="seg" id="pluginFilter"><button data-f="all" aria-pressed="true">All</button><button data-f="official" aria-pressed="false">Official</button><button data-f="community" aria-pressed="false">Community</button></div>
-      <div class="grid-cards" id="pluginList" style="margin-top:12px"></div>
     </div>
+    <div class="grid-cards" id="pluginList"></div>
   </section>
   <section class="page" id="tab-tasks">
-    <div class="card"><div class="row"><div class="t-title-m" id="h-tasks" style="margin:0;flex:1">Tasks</div><button class="btn text" id="clearBtn">Clear finished</button></div><div id="taskList"></div></div>
+    <div class="pagehead">
+      <h1 class="pagetitle" id="h-tasks">Tasks</h1>
+      <span class="sp"></span>
+      <button class="btn text" id="clearBtn"><svg class="ic sm"><use href="#i-check-circle"/></svg><span>Clear finished</span></button>
+    </div>
+    <div class="list grouped" id="taskList"></div>
   </section>
   <section class="page" id="tab-settings">
+    <h1 class="pagetitle" id="h-settings">Settings</h1>
     <div class="card" id="phoneCard" hidden><div class="t-title-m" id="h-phone">This phone</div>
-      <div class="phone"><span class="avatar av-p av-3" aria-hidden="true"><svg class="ic"><use href="#i-link"/></svg></span><div><div class="t-label muted" id="phoneLead">Connected to</div><div class="phone-server" id="phoneServer"></div></div></div>
+      <div class="phone"><span class="avatar av-p av-3" aria-hidden="true"><svg class="ic"><use href="#i-devices"/></svg></span><div><div class="t-label muted" id="phoneLead">Connected to</div><div class="phone-server" id="phoneServer"></div></div></div>
       <div class="row"><button class="btn" id="phonePair"><svg class="ic sm"><use href="#i-link"/></svg><span>Pair a new link</span></button><button class="btn danger" id="phoneOut"><svg class="ic sm"><use href="#i-link-off"/></svg><span>Disconnect</span></button></div>
     </div>
-    <div class="card" id="webCard"><div class="t-title-m" id="h-web">Connections</div>
-      <div class="list" id="webList"></div>
-      <div class="pairbox" id="pairBox" hidden></div>
+    <div class="sectionlabel" id="h-web">Connections</div>
+    <div class="pane" id="webCard"><div class="list" id="webList"></div><div class="pairbox" id="pairBox" hidden></div></div>
+    <div class="sectionlabel" id="h-gui">Application</div>
+    <div class="pane">
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span><span class="grow"><span class="t-title-m" id="l-vfox">vfox executable</span><input id="setVfox" class="mono" size="30"></span><button id="saveVfox" class="btn tonal">Save</button></div>
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-translate"/></svg></span><span class="grow"><span class="t-title-m" id="l-lang">Application language</span></span><div class="seg" id="langSeg"><button data-l="system">system</button><button data-l="english">english</button><button data-l="simplifiedChinese">简体中文</button></div></div>
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-language"/></svg></span><span class="grow"><span class="t-title-m" id="l-pageLang">Page language</span></span><div class="seg" id="pageLangSeg"><button data-l="system">system</button><button data-l="en">English</button><button data-l="zh">简体中文</button></div></div>
+      <div class="rowitem col"><span class="row"><span class="icon-tile"><svg class="ic"><use href="#i-data-object"/></svg></span><span class="t-title-m" id="l-env">Extra environment (KEY=value, one per line)</span></span><textarea id="setEnv" rows="3"></textarea><div><button id="saveEnv" class="btn tonal">Save</button></div></div>
     </div>
-    <div class="card"><div class="t-title-m" id="h-gui">Application</div>
-      <div class="field"><label>vfox</label><div class="row"><input id="setVfox" size="30"><button id="saveVfox" class="btn">Save</button></div></div>
-      <div class="field"><label id="l-lang">Language</label><div class="row"><div class="seg" id="langSeg"><button data-l="system">system</button><button data-l="english">english</button><button data-l="simplifiedChinese">简体中文</button></div></div></div>
-      <div class="field"><label id="l-pageLang">Page language</label><div class="row"><div class="seg" id="pageLangSeg"><button data-l="system">system</button><button data-l="en">English</button><button data-l="zh">简体中文</button></div></div></div>
-      <div class="field"><label id="l-env">Extra environment (KEY=value, one per line)</label><textarea id="setEnv" rows="4" cols="50"></textarea><div><button id="saveEnv" class="btn" style="margin-top:6px">Save</button></div></div>
-    </div>
-    <div class="card"><div class="t-title-m" id="h-config">vfox config</div><div id="configList"></div></div>
+    <div class="sectionlabel" id="h-config">vfox config</div>
+    <div class="pane"><div class="list" id="configList"></div></div>
   </section>
 </main>
 </div>
@@ -549,7 +709,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   <button class="dest" data-tab="sdks"><span class="pill"><svg class="ic line"><use href="#i-deployed-code"/></svg><svg class="ic fill"><use href="#i-deployed-code-fill"/></svg></span><span class="lbl">SDKs</span></button>
   <button class="dest" data-tab="plugins"><span class="pill"><svg class="ic line"><use href="#i-extension"/></svg><svg class="ic fill"><use href="#i-extension-fill"/></svg></span><span class="lbl">Plugins</span></button>
   <button class="dest" data-tab="tasks"><span class="pill"><svg class="ic line"><use href="#i-pending-actions"/></svg><svg class="ic fill"><use href="#i-pending-actions-fill"/></svg></span><span class="lbl">Tasks</span><span class="bdg" id="taskCountM" hidden></span></button>
-  <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings"/></svg></span><span class="lbl">Settings</span></button>
+  <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings-fill"/></svg></span><span class="lbl">Settings</span></button>
 </nav>
 <div class="scrim" id="scrim"><div class="dialog" role="alertdialog" aria-modal="true"><h3 id="dlgTitle"></h3><div class="t-body" id="dlgBody"></div><div class="actions"><button class="btn text" id="dlgCancel">Cancel</button><button class="btn primary" id="dlgOk">OK</button></div></div></div>
 <div class="scrim" id="sheet"><div class="dialog sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><h3><span id="sheetIcon"></span><span id="sheetTitle"></span></h3><div id="sheetBody"></div></div></div>
@@ -600,895 +760,14 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 <symbol id="i-hub" viewBox="0 -960 960 960"><path d="M240-40q-50 0-85-35t-35-85q0-50 35-85t85-35q14 0 26 3t23 8l57-71q-28-31-39-70t-5-78l-81-27q-17 25-43 40t-58 15q-50 0-85-35T0-580q0-50 35-85t85-35q50 0 85 35t35 85v8l81 28q20-36 53.5-61t75.5-32v-87q-39-11-64.5-42.5T360-840q0-50 35-85t85-35q50 0 85 35t35 85q0 42-26 73.5T510-724v87q42 7 75.5 32t53.5 61l81-28v-8q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35q-32 0-58.5-15T739-515l-81 27q6 39-5 77.5T614-340l57 70q11-5 23-7.5t26-2.5q50 0 85 35t35 85q0 50-35 85t-85 35q-50 0-85-35t-35-85q0-20 6.5-38.5T624-232l-57-71q-41 23-87.5 23T392-303l-56 71q11 15 17.5 33.5T360-160q0 50-35 85t-85 35ZM120-540q17 0 28.5-11.5T160-580q0-17-11.5-28.5T120-620q-17 0-28.5 11.5T80-580q0 17 11.5 28.5T120-540Zm120 420q17 0 28.5-11.5T280-160q0-17-11.5-28.5T240-200q-17 0-28.5 11.5T200-160q0 17 11.5 28.5T240-120Zm240-680q17 0 28.5-11.5T520-840q0-17-11.5-28.5T480-880q-17 0-28.5 11.5T440-840q0 17 11.5 28.5T480-800Zm0 440q42 0 71-29t29-71q0-42-29-71t-71-29q-42 0-71 29t-29 71q0 42 29 71t71 29Zm240 240q17 0 28.5-11.5T760-160q0-17-11.5-28.5T720-200q-17 0-28.5 11.5T680-160q0 17 11.5 28.5T720-120Zm120-420q17 0 28.5-11.5T880-580q0-17-11.5-28.5T840-620q-17 0-28.5 11.5T800-580q0 17 11.5 28.5T840-540ZM480-840ZM120-580Zm360 120Zm360-120ZM240-160Zm480 0Z"/></symbol>
 <symbol id="i-keyboard-arrow-down" viewBox="0 -960 960 960"><path d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></symbol>
 <symbol id="i-history" viewBox="0 -960 960 960"><path d="M480-120q-126 0-223-76.5T131-392q-4-15 6-27.5t27-14.5q16-2 29 6t18 24q24 90 99 147t170 57q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h70q17 0 28.5 11.5T360-600q0 17-11.5 28.5T320-560H160q-17 0-28.5-11.5T120-600v-160q0-17 11.5-28.5T160-800q17 0 28.5 11.5T200-760v54q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm40-376 100 100q11 11 11 28t-11 28q-11 11-28 11t-28-11L452-452q-6-6-9-13.5t-3-15.5v-159q0-17 11.5-28.5T480-680q17 0 28.5 11.5T520-640v144Z"/></symbol>
-<symbol id="i-link" viewBox="0 0 24 24"><path d="M7 17q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h3q.425 0 .713.288T11 8t-.288.713T10 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h3q.425 0 .713.288T11 16t-.288.713T10 17zm2-4q-.425 0-.712-.288T8 12t.288-.712T9 11h6q.425 0 .713.288T16 12t-.288.713T15 13zm5 4q-.425 0-.712-.288T13 16t.288-.712T14 15h3q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-3q-.425 0-.712-.288T13 8t.288-.712T14 7h3q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol>
-<symbol id="i-link-off" viewBox="0 0 24 24"><path d="M15.625 12.775L13.85 11H15q.425 0 .713.288T16 12q0 .25-.1.45t-.275.325M20.5 21.9q-.275.275-.7.275t-.7-.275l-17-17q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l17 17q.275.275.275.7t-.275.7M7 17q-2.075 0-3.537-1.463T2 12q0-1.725 1.05-3.075t2.7-1.775L7.6 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h3q.425 0 .713.288T11 16t-.288.713T10 17zm2-4q-.425 0-.712-.288T8 12t.288-.712T9 11h.625l1.975 2zm9.5 2.8q-.225-.35-.162-.75t.412-.625q.575-.425.913-1.05T20 12q0-1.25-.875-2.125T17 9h-3q-.425 0-.712-.288T13 8t.288-.712T14 7h3q2.075 0 3.538 1.463T22 12q0 1.225-.562 2.288t-1.563 1.762q-.35.225-.75.163T18.5 15.8"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol>
+<symbol id="i-link-off" viewBox="0 0 24 24"><path d="m19.25 16.45l-1.5-1.55q1-.275 1.625-1.063T20 12q0-1.25-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12q0 1.425-.737 2.625T19.25 16.45M15.85 13l-2-2H16v2zm3.95 9.6L1.4 4.2l1.4-1.4l18.4 18.4zM11 17H7q-2.075 0-3.537-1.463T2 12q0-1.725 1.05-3.075t2.7-1.775L7.6 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h1.625l1.975 2z"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h6l2 2h8q.825 0 1.413.588T22 8v10q0 .825-.587 1.413T20 20z"/></symbol>
+<symbol id="i-eco" viewBox="0 0 24 24"><path d="m10.825 16.325l4.6-4.1q.225-.2.125-.475t-.4-.325l-3.6-.35L13.7 8.1q.075-.125.088-.238T13.7 7.65q-.1-.125-.25-.112t-.275.112L8.6 11.75q-.225.2-.125.475t.4.325l3.6.35l-2.175 2.975q-.075.125-.075.237t.1.213t.238.1t.262-.1M12 20q-1.4 0-2.637-.438T7.1 18.325L5.725 19.7q-.15.15-.337.225T5 20q-.425 0-.712-.288T4 19q0-.2.075-.387t.225-.338L5.675 16.9q-.8-1.025-1.237-2.262T4 12q0-3.35 2.325-5.675T12 4h8v8q0 3.35-2.325 5.675T12 20"/></symbol>
+<symbol id="i-power" viewBox="0 0 24 24"><path d="M12 22q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12q0-2.1.788-3.912t2.137-3.163l1.4 1.4q-1.1 1.1-1.712 2.55T4 12q0 3.35 2.325 5.675T12 20t5.675-2.325T20 12q0-1.675-.612-3.125t-1.713-2.55l1.4-1.4q1.35 1.35 2.138 3.163T22 12q0 2.075-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m-1-9V2h2v11z"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h7v2H5v14h7v2zm11-4l-1.375-1.45l2.55-2.55H9v-2h8.175l-2.55-2.55L16 7l5 5z"/></symbol>
+<symbol id="i-devices" viewBox="0 0 24 24"><path d="M5 17q-.825 0-1.412-.587T3 15V6q0-.825.588-1.412T5 4h14q.825 0 1.413.588T21 6h-5.5q-1.45 0-2.475 1.025T12 9.5V17zm10.5 3q-.625 0-1.062-.437T14 18.5v-9q0-.625.438-1.062T15.5 8h5q.625 0 1.063.438T22 9.5v9q0 .625-.437 1.063T20.5 20zM2 20v-2h10v2zm16-7.5q.325 0 .538-.225t.212-.525q0-.325-.213-.537T18 11q-.3 0-.525.213t-.225.537q0 .3.225.525T18 12.5"/></symbol>
+<symbol id="i-language" viewBox="0 0 24 24"><path d="M8.125 21.213q-1.825-.788-3.187-2.15t-2.15-3.188T2 11.988t.788-3.875t2.15-3.175t3.187-2.15T12.013 2t3.875.788t3.175 2.15t2.15 3.175t.787 3.875t-.787 3.887t-2.15 3.188t-3.175 2.15t-3.875.787t-3.888-.787M12 19.95q.65-.9 1.125-1.875T13.9 16h-3.8q.3 1.1.775 2.075T12 19.95m-2.6-.4q-.45-.825-.787-1.713T8.05 16H5.1q.725 1.25 1.813 2.175T9.4 19.55m5.2 0q1.4-.45 2.488-1.375T18.9 16h-2.95q-.225.95-.562 1.838T14.6 19.55M4.25 14h3.4q-.075-.5-.112-.987T7.5 12t.038-1.012T7.65 10h-3.4q-.125.5-.187.988T4 12t.063 1.013t.187.987m5.4 0h4.7q.075-.5.113-.987T14.5 12t-.038-1.012T14.35 10h-4.7q-.075.5-.112.988T9.5 12t.038 1.013t.112.987m6.7 0h3.4q.125-.5.188-.987T20 12t-.062-1.012T19.75 10h-3.4q.075.5.113.988T16.5 12t-.038 1.013t-.112.987m-.4-6h2.95q-.725-1.25-1.812-2.175T14.6 4.45q.45.825.788 1.713T15.95 8M10.1 8h3.8q-.3-1.1-.775-2.075T12 4.05q-.65.9-1.125 1.875T10.1 8m-5 0h2.95q.225-.95.563-1.838T9.4 4.45Q8 4.9 6.912 5.825T5.1 8"/></symbol>
 </defs></svg>
-<script>
-"use strict";
-const STR = {
-en: { webH:"Connections", webRemote:"Other devices", webRemoteHelp:"Let phones and other computers on your network connect with a pairing link, over HTTPS. Only turn this on in a network you trust.", webRemoteTitle:"Allow other devices?", webRemoteBody:"Phones and other computers on your network will be able to connect to vfox+ with a pairing link. Links work once, and the connection uses HTTPS. Only allow this in a network you trust.", webRemoteOk:"Allow", webPort:"Port", webPortHelp:"Other devices connect to this port. Allow it in the firewall of this computer.", webReach:"Reachable at", webFingerprint:"Certificate fingerprint. Compare it on the other device.", webNoAddress:"This computer has no address on a network.", webError:"Other devices cannot connect:", webPairBtn:"Pair a phone", webPairHelp:"Scan the code with the Android app, or open the link on the other device. It works once and expires in a few minutes.", webCopyLink:"Copy link", webLight:"Lightweight mode", webLightHelp:"When the window of vfox+ on the computer is closed, keep running in the background without it, so that this page and the tasks go on. Start vfox+ again to bring the window back.", webQuit:"Quit vfox+", webQuitHelp:"Ends vfox+ on the computer, and this page with it. Start it there to use it again.", webQuitBtn:"Quit", webQuitTitle:"Quit vfox+?", webQuitBody:"vfox+ ends on the computer, and this connection with it. Tasks that are running are cancelled.", webQuitting:"vfox+ is quitting…", phone:"This phone", phoneLead:"Connected to", phonePair:"Pair a new link", phoneOut:"Disconnect", phoneOutTitle:"Disconnect from this PC?", phoneOutBody:"This phone forgets the server and its session. Pair again with a new link to come back.", home:"Home", sdks:"SDKs", plugins:"Plugins", tasks:"Tasks", settings:"Settings", installed:"Installed", pick:"Pick an SDK.", add:"Add a plugin", registry:"Registry", tasksH:"Tasks", clear:"Clear finished", app:"Application", config:"vfox config", install:"Install", installing:"Install…", use:"Use globally", unuse:"Unuse", uninstall:"Uninstall", update:"Update", remove:"Remove", cancel:"Cancel", retry:"Retry", save:"Save", versions:"Available versions", search:"Search versions…", searchSdks:"Search SDKs…", searchPlugins:"Search plugins…", noSdks:"No SDKs installed yet.", noTasks:"No tasks yet.", current:"current", setGlobal:"Set global", confirmUninstall:"Uninstall this version?", confirmRemove:"Remove this plugin?", updateAll:"Update all", updated:"Started.", uploadAdd:"Upload & add", needSession:"Not paired. Open a pairing link first.", failed:"Request failed.", vfoxMissing:"vfox is missing or broken.", installGuide:"Install vfox first.", versionsOf:"Versions of", info:"Plugin info", homepage:"Homepage", installPath:"Install path", description:"Description", log:"Log", state:"State", command:"Command", close:"Close", allVersions:"All", withNote:"With note", installedOnly:"Installed", loading:"Loading…", key:"Key", value:"Value", actions:"Actions", edit:"Edit", reset:"Reset", apply:"Apply", empty:"—", projectOnly:"Only the global scope is offered in the browser.", langName:"EN", official:"official", inUse:"In use", pluginsN:"Plugins", versionsN:"Versions", shell:"Use in a terminal", shellBody:"Add this line to your shell startup file so terminals pick up the global versions:", explore:"Plugin registry", exploreBody:"Browse and install plugins.", docsCard:"Documentation", active:"Plugins in use", activeEmpty:"No version in use yet.", added:"Open", homepageOpen:"Homepage", copyPath:"Copy install path", copied:"Copied.", openPlugin:"Open plugin", refresh:"Refresh", pickFirst:"Pick an SDK on the left.", taskSucceeded:"Task succeeded.", taskFailed:"Task failed.", view:"View", all:"All", community:"Community", droppedHead:"", droppedTail:" earlier lines dropped", downloadLog:"Download full log", availableTab:"Available", optionsTab:"Options", noVersions:"No versions installed yet.", browse:"Browse versions", fetching:"Fetching the available versions…", fetchingEverything:"Listing every distribution takes a while: the plugin asks for each of them in turn.", choiceButton:"{what}: {choice}", installByName:"Install by name…", clearFilters:"Clear filters", nVersions:"{n} versions", noMatch:"No version matches.", showMore:"Show {n} more", chooseHint:"Search by name or short name", chooseEmpty:"Nothing matches.", default:"Default", installNameTitle:"Install {name} by name", versionName:"Version name", installNameHelp:"What follows {name}@ in vfox install", namesToTry:"Names to try", installNameNote:"vfox looks the name up while it installs. A name that matches nothing fails, and the task shows why.", nameRequired:"Type a version name.", nameInvalid:"A version name has no spaces and does not start with a dash.", guideTitle:"Version names", downloads:"Downloads", downloadsHelp:"Environment variables that the plugin reads. They are added to every vfox command that this application runs.", unset:"Not set. The plugin uses its own default.", advanced:"Advanced", change:"Change", legacyTitle:"Version files", legacyNone:"This plugin reads no version files of its own.", legacyFiles:"Files read through this plugin", legacyFilesHelp:"vfox reads them when a shell enters a project directory and selects the version they name, if it is installed.", legacyEnable:"Read legacy version files", legacyEnableHelp:"Such as .nvmrc, .node-version, .python-version and .sdkmanrc.", legacyStrategy:"Version used from legacy files", strategySpecified:"As written", strategyInstalled:"Latest installed", strategyAvailable:"Latest available", legacyIgnored:"{setting} has no effect on this plugin: the version in the file is what counts.", shorthands:"Names you can type", shorthandsHelp:"Besides the versions in the list, vfox install accepts these names for {name}.", installDots:"Install…", tips:"Good to know", docs:"Documentation", address:"Address", quickPicks:"Quick picks", defaultOption:"Default (not set)", saved:"Saved", pageLang:"Page language", language:"Language", extraEnv:"Extra environment (KEY=value, one per line)", langSystem:"system" },
-zh: { webH:"连接", webRemote:"其他设备", webRemoteHelp:"允许同一网络中的手机和其他电脑用配对链接连接，使用 HTTPS。请只在可信网络中开启。", webRemoteTitle:"允许其他设备？", webRemoteBody:"同一网络中的手机和其他电脑将能用配对链接连接 vfox+。链接一次性有效，连接使用 HTTPS。请只在可信网络中允许。", webRemoteOk:"允许", webPort:"端口", webPortHelp:"其他设备通过此端口连接，需要在这台电脑的防火墙中放行。", webReach:"可通过以下地址访问", webFingerprint:"证书指纹，请在另一台设备上核对。", webNoAddress:"这台电脑没有网络地址。", webError:"其他设备无法连接：", webPairBtn:"配对手机", webPairHelp:"用安卓应用扫描二维码，或在另一台设备上打开链接。链接一次性有效，几分钟后过期。", webCopyLink:"复制链接", webLight:"轻量模式", webLightHelp:"电脑上 vfox+ 的窗口关闭后，不退出而在后台继续运行（不保留窗口），本页面和任务都会继续。再次启动 vfox+ 即可恢复窗口。", webQuit:"退出 vfox+", webQuitHelp:"结束电脑上的 vfox+，本页面也随之断开。要再用，请在电脑上启动它。", webQuitBtn:"退出", webQuitTitle:"退出 vfox+？", webQuitBody:"电脑上的 vfox+ 会结束，这个连接也会断开。正在运行的任务会被取消。", webQuitting:"vfox+ 正在退出…", phone:"这台手机", phoneLead:"已连接到", phonePair:"配对新链接", phoneOut:"断开连接", phoneOutTitle:"断开与这台电脑的连接？", phoneOutBody:"手机会忘记这台服务器和它的会话。之后要重新用新链接配对。", home:"主页", sdks:"SDK", plugins:"插件", tasks:"任务", settings:"设置", installed:"已安装", pick:"选择一个 SDK。", add:"添加插件", registry:"插件仓库", tasksH:"任务", clear:"清除已完成", app:"应用", config:"vfox 配置", install:"安装", installing:"安装中…", use:"设为全局", unuse:"取消使用", uninstall:"卸载", update:"更新", remove:"移除", cancel:"取消", retry:"重试", save:"保存", versions:"可安装版本", search:"搜索版本…", searchSdks:"搜索 SDK…", searchPlugins:"搜索插件…", noSdks:"暂无已安装的 SDK。", noTasks:"暂无任务。", current:"当前", setGlobal:"设为全局", confirmUninstall:"卸载该版本？", confirmRemove:"移除该插件？", updateAll:"全部更新", updated:"已开始。", uploadAdd:"上传并添加", needSession:"未配对，请先打开配对链接。", failed:"请求失败。", vfoxMissing:"vfox 缺失或损坏。", installGuide:"请先安装 vfox。", versionsOf:"的版本", info:"插件信息", homepage:"主页", installPath:"安装路径", description:"描述", log:"日志", state:"状态", command:"命令", close:"关闭", allVersions:"全部", withNote:"有备注", installedOnly:"已安装", loading:"加载中…", key:"键", value:"值", actions:"操作", edit:"修改", reset:"重置", apply:"应用", empty:"—", projectOnly:"浏览器只提供全局作用域。", langName:"中文", official:"官方", inUse:"使用中", pluginsN:"插件", versionsN:"版本", shell:"在终端中使用", shellBody:"把这一行加入 Shell 启动文件，终端即可用全局版本：", explore:"插件仓库", exploreBody:"浏览并安装插件。", docsCard:"文档", active:"在用的插件", activeEmpty:"暂无在用版本。", added:"打开", homepageOpen:"主页", copyPath:"复制安装路径", copied:"已复制。", openPlugin:"打开插件", refresh:"刷新", pickFirst:"在左侧选择一个 SDK。", taskSucceeded:"任务成功。", taskFailed:"任务失败。", view:"查看", all:"全部", community:"社区", droppedHead:"更早的 ", droppedTail:" 行日志已丢弃", downloadLog:"下载完整日志", availableTab:"可安装", optionsTab:"选项", noVersions:"还没有安装任何版本。", browse:"浏览版本", fetching:"正在获取可安装的版本…", fetchingEverything:"列出全部发行版需要一些时间：插件要逐个去查询它们。", choiceButton:"{what}：{choice}", installByName:"按名称安装…", clearFilters:"清除筛选", nVersions:"{n} 个版本", noMatch:"没有匹配的版本。", showMore:"再显示 {n} 个", chooseHint:"按名称或简称搜索", chooseEmpty:"没有匹配项。", default:"默认", installNameTitle:"按名称安装 {name}", versionName:"版本名称", installNameHelp:"即 vfox install 中 {name}@ 后面的部分", namesToTry:"可以试试这些名称", installNameNote:"vfox 会在安装时解析这个名称。没有匹配项的名称会失败，任务里会显示原因。", nameRequired:"请输入版本名称。", nameInvalid:"版本名称不能含空格，也不能以短横线开头。", guideTitle:"版本名称", downloads:"下载", downloadsHelp:"插件会读取的环境变量。它们会加到本应用运行的每条 vfox 命令里。", unset:"未设置，插件使用自己的默认来源。", advanced:"高级", change:"更改", legacyTitle:"版本文件", legacyNone:"此插件没有自己的版本文件。", legacyFiles:"通过此插件读取的文件", legacyFilesHelp:"当 Shell 进入项目目录时，vfox 会读取它们，并选中其中写明且已安装的版本。", legacyEnable:"读取旧版版本文件", legacyEnableHelp:"例如 .nvmrc、.node-version、.python-version 和 .sdkmanrc。", legacyStrategy:"旧版版本文件中的版本", strategySpecified:"按文件所写", strategyInstalled:"最新已安装", strategyAvailable:"最新可用", legacyIgnored:"“{setting}”对此插件没有影响：以文件里写的版本为准。", shorthands:"可以直接输入的名称", shorthandsHelp:"除了列表里的版本，vfox install 还接受 {name} 的这些名称。", installDots:"安装…", tips:"须知", docs:"文档", address:"地址", quickPicks:"快速选择", defaultOption:"默认（不设置）", saved:"已保存", pageLang:"页面语言", language:"语言", extraEnv:"额外环境变量（KEY=value，每行一个）", langSystem:"跟随系统" }
-};
-let langMode = localStorage.getItem("vfox-plus-lang") || "system";
-function systemLang() { return ((navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en"); }
-let lang = langMode === "system" ? systemLang() : langMode;
-const t = k => (STR[lang] && STR[lang][k]) || STR.en[k] || k;
-const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
-/* theme follows the desktop/browser */
-function applyTheme() {
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
-}
-applyTheme();
-try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme); } catch (e) { /* older browsers */ }
-function isWebView() { try { return /;\s*wv\)/.test(navigator.userAgent); } catch (e) { return false; } }
-/* escapes text for HTML, and for an attribute in double or single quotes: the page writes both */
-function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function icon(name, cls) { return '<svg class="ic' + (cls ? " " + cls : "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>'; }
-function avatar(name, lg) {
-  let h = 0;
-  for (const c of name) h = (h * 31 + c.codePointAt(0)) >>> 0;
-  const tones = ["av-p", "av-s", "av-t"];
-  return '<span class="avatar ' + tones[h % 3] + " av-" + (h % 12) + (lg ? " lg" : "") + '" aria-hidden="true">' + esc((name || "?")[0].toUpperCase()) + "</span>";
-}
-/* fade-through page switch */
-let curTab = null;
-function switchTab(name, push) {
-  if (curTab === name) return;
-  curTab = name;
-  document.body.dataset.tab = name;
-  document.querySelectorAll(".dest").forEach(b => b.setAttribute("aria-current", b.dataset.tab === name ? "true" : "false"));
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active", "enter"));
-  const page = document.getElementById("tab-" + name);
-  page.classList.add("active");
-  if (!RM) { page.classList.add("enter"); }
-  document.getElementById("pageTitle").textContent = t(name === "sdks" ? "sdks" : name);
-  if (push !== false && location.hash !== "#/" + name) history.pushState({tab: name}, "", "#/" + name);
-}
-function route() {
-  const h = (location.hash || "#/home").slice(2);
-  const parts = h.split("/");
-  if (parts[0] === "sdk" && parts[1]) { showDetail(parts[1], false); switchTab("sdks", false); return; }
-  if (["home","sdks","plugins","tasks","settings"].includes(parts[0])) { switchTab(parts[0], false); if (parts[0] === "sdks") showList(false); return; }
-  switchTab("home", false);
-}
-addEventListener("hashchange", route);
-addEventListener("popstate", route);
-document.querySelectorAll(".dest").forEach(b => b.onclick = () => { if (b.dataset.tab === "sdks") location.hash = "#/sdks"; else location.hash = "#/" + b.dataset.tab; });
-["fabAdd", "fabAddM"].forEach(id => document.getElementById(id).onclick = () => { location.hash = "#/plugins"; setTimeout(() => document.getElementById("addSource").focus(), 60); });
-document.getElementById("railToggle").onclick = () => document.getElementById("rail").classList.toggle("expanded");
-function setPageLang(mode) { langMode = mode; lang = mode === "system" ? systemLang() : mode; try { localStorage.setItem("vfox-plus-lang", mode); } catch (e) {} renderChrome(); refresh(true); }
-document.querySelectorAll("#pageLangSeg button").forEach(b => b.onclick = () => setPageLang(b.dataset.l));
-/* snackbar */
-function snack(msg, action, onclick) {
-  const box = document.getElementById("snacks");
-  const el = document.createElement("div");
-  el.className = "snack";
-  el.innerHTML = "<span>" + esc(msg) + "</span>" + (action ? '<button>' + esc(action) + "</button>" : "");
-  if (action) el.querySelector("button").onclick = () => { dismiss(); onclick && onclick(); };
-  box.appendChild(el);
-  let gone = false;
-  function dismiss() { if (!gone) { gone = true; el.remove(); } }
-  setTimeout(dismiss, action ? 8000 : 4000);
-}
-function showError(msg) { const e = document.getElementById("error"); e.textContent = msg; e.style.display = "block"; clearTimeout(showError.t); showError.t = setTimeout(() => e.style.display = "none", 4000); }
-/* dialog returns a promise */
-function confirmDlg(title, body, okLabel, danger) {
-  return new Promise(resolve => {
-    const scrim = document.getElementById("scrim");
-    document.getElementById("dlgTitle").textContent = title;
-    document.getElementById("dlgBody").textContent = body;
-    const ok = document.getElementById("dlgOk");
-    ok.textContent = okLabel; ok.className = "btn " + (danger ? "danger" : "primary");
-    scrim.classList.add("open");
-    const done = v => { scrim.classList.remove("open"); ok.onclick = null; document.getElementById("dlgCancel").onclick = null; scrim.onclick = null; resolve(v); };
-    ok.onclick = () => done(true);
-    document.getElementById("dlgCancel").textContent = t("cancel");
-    document.getElementById("dlgCancel").onclick = () => done(false);
-    scrim.onclick = ev => { if (ev.target === scrim) done(false); };
-  });
-}
-/* popup menu */
-function openMenu(anchor, items) {
-  const menu = document.getElementById("menu");
-  menu.innerHTML = "";
-  items.forEach(it => {
-    const b = document.createElement("button");
-    if (it.danger) b.className = "danger";
-    b.innerHTML = icon(it.icon) + "<span>" + esc(it.label) + "</span>";
-    b.onclick = () => { closeMenu(); it.onclick && it.onclick(); };
-    menu.appendChild(b);
-  });
-  const r = anchor.getBoundingClientRect();
-  menu.classList.add("open");
-  const mw = 220, mh = items.length * 48 + 16;
-  menu.style.minWidth = mw + "px";
-  let x = Math.min(r.left, innerWidth - mw - 8), y = r.bottom + 6;
-  if (y + mh > innerHeight - 8) y = Math.max(8, r.top - mh - 6);
-  menu.style.left = Math.max(8, x) + "px"; menu.style.top = y + "px";
-  setTimeout(() => document.addEventListener("click", closeMenu, {once: true}), 0);
-}
-function closeMenu() { document.getElementById("menu").classList.remove("open"); }
-/* api */
-async function api(path, opts) {
-  opts = opts || {};
-  opts.headers = Object.assign({"Content-Type": "application/json"}, opts.headers || {});
-  opts.credentials = "same-origin";
-  const r = await fetch(path, opts);
-  if (r.status === 401) { location.href = "/"; throw new Error(t("needSession")); }
-  if (!r.ok) { const text = await r.text(); throw new Error(text || t("failed")); }
-  if (r.status === 204) return null;
-  return r.json();
-}
-let cache = { inventory: null, tasks: [], detail: null, versions: null };
-let prevTasks = {};
-function renderChrome() {
-  const names = { home: t("home"), sdks: t("sdks"), plugins: t("plugins"), tasks: t("tasks"), settings: t("settings") };
-  document.querySelectorAll(".dest").forEach(b => { const s = b.querySelector(".lbl"); if (s) s.textContent = names[b.dataset.tab] || b.dataset.tab; });
-  document.getElementById("h-installed").textContent = t("installed");
-  document.getElementById("pickSdk").textContent = t("pick");
-  document.getElementById("h-add").textContent = t("add");
-  document.getElementById("addBtn").textContent = t("add");
-  document.getElementById("uploadBtn").textContent = t("uploadAdd");
-  document.getElementById("h-registry").textContent = t("registry");
-  document.getElementById("updateAllBtn").textContent = t("updateAll");
-  document.querySelector("#homeRefresh span:last-child").textContent = t("refresh");
-  document.getElementById("sdkRefresh").title = t("refresh");
-  document.getElementById("regRefresh").title = t("refresh");
-  document.getElementById("h-tasks").textContent = t("tasksH");
-  document.getElementById("clearBtn").textContent = t("clear");
-  document.getElementById("h-gui").textContent = t("app");
-  document.getElementById("h-config").textContent = t("config");
-  document.getElementById("l-lang").textContent = t("language");
-  document.getElementById("l-env").textContent = t("extraEnv");
-  document.querySelector('#langSeg [data-l="system"]').textContent = t("langSystem");
-  document.getElementById("l-pageLang").textContent = t("pageLang");
-  document.querySelector('#pageLangSeg [data-l="system"]').textContent = t("langSystem");
-  document.querySelectorAll("#pageLangSeg button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.l === langMode) ? "true" : "false"));
-  document.getElementById("saveVfox").textContent = t("save");
-  document.getElementById("saveEnv").textContent = t("save");
-  document.getElementById("h-phone").textContent = t("phone");
-  document.getElementById("phoneLead").textContent = t("phoneLead");
-  document.querySelector("#phonePair span").textContent = t("phonePair");
-  document.querySelector("#phoneOut span").textContent = t("phoneOut");
-  document.getElementById("homeTitle").textContent = "vfox-plus";
-  document.getElementById("h-active").textContent = t("active");
-  document.getElementById("h-shell").textContent = t("shell");
-  document.getElementById("shellBody").textContent = t("shellBody");
-  document.getElementById("h-explore").textContent = t("explore");
-  document.getElementById("exploreBody").textContent = t("exploreBody");
-  document.querySelector("#exploreBtn span").textContent = t("plugins");
-  document.getElementById("h-docs").textContent = t("docsCard");
-  document.querySelectorAll("#fabAdd span:last-child,#fabAddM span:last-child").forEach(e => { e.textContent = t("add"); });
-  document.getElementById("sdkSearch").placeholder = t("searchSdks");
-  document.getElementById("pluginSearch").placeholder = t("searchPlugins");
-  document.getElementById("liveText").textContent = live ? "live" : "…";
-  if (document.getElementById("pageTitle")) document.getElementById("pageTitle").textContent = t(curTab === "sdks" ? "sdks" : (curTab || "home"));
-}
-let live = false;
-function setLive(v) { live = v; document.getElementById("live").className = "live" + (v ? " on" : ""); document.getElementById("liveText").textContent = v ? "live" : "…"; }
-function wavy(progress, indeterminate) {
-  const wave = '<svg width="120" height="8" viewBox="0 0 120 8" preserveAspectRatio="none"><path d="M0 4 Q 10 0 20 4 T 40 4 T 60 4 T 80 4 T 100 4 T 120 4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>';
-  if (indeterminate) return '<div class="wavy ind" role="progressbar"><div class="fill" style="color:var(--m3-primary)">' + wave + '</div></div>';
-  const p = Math.max(0, Math.min(1, progress == null ? 0 : progress));
-  return '<div class="wavy" role="progressbar" aria-valuenow="' + Math.round(p * 100) + '"><div class="fill" style="--p:1;width:' + (p * 100) + '%;color:var(--m3-primary)">' + wave + '</div>' + (p > 0.02 && p < 0.999 ? '<span class="stop"></span>' : "") + "</div>";
-}
-function spinner() { return '<div class="loader" role="progressbar" aria-label="' + esc(t("loading")) + '"><div class="blob"></div></div>'; }
-function stateBlock(kind, ic, title, body, actionLabel, onclick) {
-  return '<div class="state' + (kind === "err" ? " err" : "") + '"><div class="shape">' + icon(ic) + "</div><h3>" + esc(title) + '</h3><div class="t-body">' + body + "</div>" + (actionLabel ? '<button class="btn" data-act="1">' + esc(actionLabel) + "</button>" : "") + "</div>";
-}
-async function refresh(full) {
-  try {
-    const inv = await api("/api/inventory");
-    cache.inventory = inv;
-    document.getElementById("vfoxVer").textContent = inv.vfox.version ? "vfox " + inv.vfox.version : (inv.vfox.availability || "");
-    renderHome(inv); renderSdks(inv); renderPlugins(inv); renderSettings(inv);
-    document.getElementById("homeSub").textContent = inv.vfox.version ? "vfox " + inv.vfox.version : t("vfoxMissing");
-  } catch (e) { showError(e.message); }
-  try {
-    const tasks = await api("/api/tasks");
-    watchTasks(tasks);
-    cache.tasks = tasks;
-    renderTasks();
-  } catch (e) { showError(e.message); }
-  if (full && cache.detail) showDetail(cache.detail, true);
-  else if (cache.detail) updateDetail();
-}
-function watchTasks(tasks) {
-  tasks.forEach(task => {
-    const prev = prevTasks[task.id];
-    if (prev && ["queued","running"].includes(prev) && ["succeeded"].includes(task.status)) snack(t("taskSucceeded"), t("view"), () => { location.hash = "#/tasks"; });
-    if (prev && ["queued","running"].includes(prev) && ["failed","cancelled"].includes(task.status)) snack((task.errorMessage || t("taskFailed")), t("view"), () => { location.hash = "#/tasks"; });
-  });
-  prevTasks = {};
-  tasks.forEach(task => prevTasks[task.id] = task.status);
-}
-function sectionStatus(sec) {
-  if (!sec) return '<p class="muted">' + esc(t("loading")) + "</p>";
-  if (sec.loading && (!sec.value || !sec.value.length)) return spinner();
-  if (sec.error && (!sec.value || !sec.value.length)) return stateBlock("err", "error", t("failed"), esc(sec.error), t("refresh"), null);
-  return "";
-}
-/* ---------------- home ---------------- */
-function renderHome(inv) {
-  const installed = (inv.installed && inv.installed.value) || [];
-  let nVersions = 0, nCurrent = 0;
-  installed.forEach(s => { nVersions += (s.Versions || []).length; if (s.HasCurrent) nCurrent++; });
-  const stats = [[installed.length, t("pluginsN"), "s1", "extension"], [nVersions, t("versionsN"), "s2", "deployed-code"], [nCurrent, t("inUse"), "s3", "check-circle"]];
-  document.getElementById("homeStats").innerHTML = stats.map(s =>
-    '<button class="stat ' + s[2] + '" data-go="sdks"><span class="n">' + s[0] + "</span><br>" + esc(s[1]) +
-    '<span class="shape">' + icon(s[3]) + "</span></button>").join("");
-  document.querySelectorAll("#homeStats .stat").forEach(b => b.onclick = () => location.hash = "#/sdks");
-  const active = installed.filter(s => s.HasCurrent);
-  const box = document.getElementById("homeActive");
-  if (!active.length) box.innerHTML = '<p class="muted">' + esc(t("activeEmpty")) + "</p>";
-  else box.innerHTML = active.map(s =>
-    '<button class="item" data-sdk="' + esc(s.Name) + '">' + avatar(s.Name) + "<span><b>" + esc(s.Name) + '</b><br><span class="muted">' + esc(s.Current) + "</span></span></button>").join("");
-  box.querySelectorAll("[data-sdk]").forEach(b => b.onclick = () => location.hash = "#/sdk/" + encodeURIComponent(b.dataset.sdk));
-}
-document.getElementById("homeRefresh").onclick = () => refresh(true);
-document.getElementById("shellCopy").onclick = async () => {
-  const cmd = document.getElementById("shellCmd").textContent;
-  try { await navigator.clipboard.writeText(cmd); snack(t("copied")); }
-  catch (e) { showError(t("failed")); }
-};
-document.getElementById("exploreBtn").onclick = () => location.hash = "#/plugins";
-/* Opens an address of another site in a new tab. A link is clicked rather than calling window.open, because the WebView of the
-   Android app reports the navigation of a link to its shell, which hands the address to the browser of the phone. */
-function openExternal(url) {
-  const a = document.createElement("a");
-  a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
-  document.body.appendChild(a); a.click(); a.remove();
-}
-document.getElementById("docsBtn").onclick = () => openExternal("https://vfox.dev/");
-/* ---------------- sdks ---------------- */
-document.getElementById("sdkSearch").oninput = () => renderSdks(cache.inventory);
-document.getElementById("sdkRefresh").onclick = () => refresh(true);
-function renderSdks(inv) {
-  if (!inv) return;
-  const box = document.getElementById("sdkList");
-  const sec = inv.installed;
-  const st = sectionStatus(sec);
-  if (st) { box.innerHTML = st; wireStateRetry(box, () => refresh(true)); return; }
-  const q = (document.getElementById("sdkSearch").value || "").toLowerCase();
-  const list = (sec.value || []).filter(s => !q || s.Name.toLowerCase().includes(q));
-  if (!list.length) { box.innerHTML = stateBlock("empty", "inventory-2", t("noSdks"), "", null); return; }
-  // The version in use goes under the count, not beside the name: the list is narrow, and the
-  // names of Java and Flutter versions (21.0.12.1+1-tem, 3.47.7-x64) are long.
-  box.innerHTML = list.map(sdk =>
-    '<button class="item" data-sdk="' + esc(sdk.Name) + '" aria-current="' + (cache.detail === sdk.Name) + '">' + avatar(sdk.Name) +
-    "<span style='flex:1;min-width:0'><b><code>" + esc(sdk.Name) + "</code></b><br><span class='muted t-label'>" +
-    (sdk.HasCurrent ? "" : esc(t("empty")) + " · ") + (sdk.Versions || []).length + " " + esc(t("versionsN")) + "</span>" +
-    (sdk.HasCurrent ? '<br><span class="tag cur">' + esc(sdk.Current) + "</span>" : "") +
-    "</span>" + icon("chevron-right", "sm muted") + "</button>").join("");
-  box.querySelectorAll("[data-sdk]").forEach(b => b.onclick = () => location.hash = "#/sdk/" + encodeURIComponent(b.dataset.sdk));
-}
-function showList(push) {
-  document.querySelector("#tab-sdks").classList.remove("detail-open");
-  cache.detail = null; cache.versions = null; detail = null;
-  renderSdks(cache.inventory);
-  if (push !== false && location.hash !== "#/sdks") history.pushState({tab: "sdks"}, "", "#/sdks");
-}
-/* sdk details: Installed | Available | Options. A plugin that has a profile (java, nodejs, flutter) also
-   gets the choice of what a search lists, filter chips, installation by name and its options. */
-let detail = null;
-const txt = o => !o ? "" : (lang === "zh" && o.zh) ? o.zh : (o.en || "");
-function installedOf(name) { const inv = cache.inventory; return ((inv && inv.installed.value) || []).find(s => s.Name === name); }
-function configValue(key) { const sec = cache.inventory && cache.inventory.config; const c = ((sec && sec.value) || []).find(x => x.Key === key); return c ? c.Value : ""; }
-function chip(id, label, on, attr) {
-  return '<button class="chip" ' + (attr || "") + ' data-id="' + esc(id) + '" aria-pressed="' + (on ? "true" : "false") + '"><span class="ck">' + icon("check", "sm") + "</span><span>" + esc(label) + "</span></button>";
-}
-function tagList(words) { return words.filter(Boolean).map(w => '<span class="tag">' + esc(w) + "</span>").join(" "); }
-function partsLine(parts) {
-  if (!parts) return "";
-  return [parts.source ? txt(parts.source.name) : "", ...(parts.flavors || [])].filter(Boolean).join(" · ");
-}
-async function showDetail(name, keep) {
-  const tab = keep && detail && detail.name === name ? detail.tab : "installed";
-  detail = {name, tab, info: null, profile: null, versions: null, error: null, search: "", facets: {}, filter: "all", query: "", limit: 200};
-  cache.detail = name; cache.versions = null;
-  document.querySelector("#tab-sdks").classList.add("detail-open");
-  renderSdks(cache.inventory);
-  const box = document.getElementById("sdkDetail");
-  box.innerHTML = spinner();
-  const [info, profile] = await Promise.all([
-    api("/api/sdks/" + encodeURIComponent(name) + "/info").catch(() => null),
-    api("/api/sdks/" + encodeURIComponent(name) + "/profile").catch(() => null)
-  ]);
-  if (!detail || detail.name !== name) return;
-  detail.info = info; detail.profile = profile;
-  // What the user chose to list is kept by the application, so that the desktop and every browser agree on it.
-  const s = profile && profile.search;
-  detail.search = s && s.current !== s.default ? s.current : "";
-  renderDetail();
-  renderSdks(cache.inventory);
-}
-function renderDetail() {
-  const d = detail, box = document.getElementById("sdkDetail");
-  const sdk = installedOf(d.name), info = d.info;
-  let h = '<div class="row"><button class="iconbtn sm" id="detailBack" title="' + esc(t("close")) + '">' + icon("arrow-back", "sm") + "</button>" +
-    avatar(d.name, true) + "<span style='flex:1;min-width:0'><span class='t-title-l'><code>" + esc(d.name) + "</code></span>" +
-    (sdk && sdk.HasCurrent ? ' <span class="tag cur">' + esc(sdk.Current) + "</span>" : "") + "</span>" +
-    '<button class="iconbtn sm" id="detailMenu" title="…">' + icon("more-vert", "sm") + "</button></div>";
-  if (info) h += "<p class='muted t-body'>" + esc(info.Description || "") + (info.Homepage ? ' <a href="' + esc(info.Homepage) + '" target="_blank" rel="noreferrer">' + esc(t("homepage")) + "</a>" : "") + "</p>";
-  h += '<div class="seg" id="detailTabs" role="tablist"></div><div id="detailBody"></div>';
-  box.innerHTML = h;
-  document.getElementById("detailBack").onclick = () => showList(true);
-  document.getElementById("detailMenu").onclick = ev => {
-    const items = [];
-    if (info && info.Homepage) items.push({icon: "open-in-new", label: t("homepageOpen"), onclick: () => openExternal(info.Homepage)});
-    if (info && info.InstallPath) items.push({icon: "content-copy", label: t("copyPath"), onclick: () => copyText(info.InstallPath)});
-    items.push({icon: "delete", label: t("remove"), danger: true, onclick: () => removePlugin(d.name)});
-    openMenu(ev.currentTarget, items);
-  };
-  renderTabs();
-  renderTab(false);
-}
-function renderTabs() {
-  const d = detail, sdk = installedOf(d.name);
-  const tabs = [["installed", t("installed") + " (" + ((sdk && sdk.Versions) || []).length + ")", "deployed-code"], ["available", t("availableTab"), "download"]];
-  if (d.profile) tabs.push(["options", t("optionsTab"), "tune"]);
-  const seg = document.getElementById("detailTabs");
-  if (!seg) return;
-  seg.innerHTML = tabs.map(x => '<button role="tab" data-tab="' + x[0] + '" aria-pressed="' + (d.tab === x[0]) + '">' + icon(x[2], "sm") + "<span>" + esc(x[1]) + "</span></button>").join("");
-  seg.querySelectorAll("button").forEach(b => b.onclick = () => { if (detail.tab === b.dataset.tab) return; detail.tab = b.dataset.tab; renderTabs(); renderTab(true); });
-}
-/* fade-through between the tabs */
-function renderTab(animate) {
-  const body = document.getElementById("detailBody");
-  if (!body) return;
-  body.className = "tabpane" + (animate && !RM ? " enter" : "");
-  if (detail.tab === "available") renderAvailable(body);
-  else if (detail.tab === "options") renderOptions(body);
-  else renderInstalled(body);
-}
-/* ---- installed ---- */
-function renderInstalled(body) {
-  const d = detail, sdk = installedOf(d.name), versions = (sdk && sdk.Versions) || [];
-  if (!versions.length) {
-    body.innerHTML = stateBlock("empty", "download", t("noVersions"), "", t("browse"), null);
-    const b = body.querySelector("[data-act]"); if (b) b.onclick = () => { detail.tab = "available"; renderTabs(); renderTab(true); };
-    return;
-  }
-  let h = "<div class='list'>";
-  versions.forEach(v => {
-    const isCur = sdk.HasCurrent && sdk.Current === v;
-    const parts = d.profile && d.profile.installed && d.profile.installed[v];
-    const line = partsLine(parts);
-    h += "<div class='item'><span style='flex:1;min-width:0'><code>" + esc(v) + "</code>" + (isCur ? ' <span class="tag cur">' + esc(t("current")) + "</span>" : "") +
-      (line ? "<br><span class='muted t-label'>" + esc(line) + "</span>" : "") + "</span>" +
-      (isCur ? "" : "<button class='btn text' data-use='" + esc(v) + "'>" + esc(t("use")) + "</button>") +
-      " <button class='btn text' data-uninstall='" + esc(v) + "'>" + esc(t("uninstall")) + "</button></div>";
-  });
-  body.innerHTML = h + "</div>";
-  body.querySelectorAll("[data-use]").forEach(b => b.onclick = () => runTask({operation: "use", sdk: d.name, version: b.dataset.use, scope: "global"}));
-  body.querySelectorAll("[data-uninstall]").forEach(b => b.onclick = async () => { if (await confirmDlg(t("uninstall"), b.dataset.uninstall, t("uninstall"), true)) runTask({operation: "uninstall", sdk: d.name, version: b.dataset.uninstall}); });
-}
-/* ---- available ---- */
-function searchChoice() {
-  const s = detail.profile && detail.profile.search;
-  if (!s) return null;
-  const value = detail.search || s.default;
-  return s.choices.find(c => c.value === value) || null;
-}
-async function loadVersions() {
-  const d = detail, token = d.token = (d.token || 0) + 1, name = d.name, search = d.search;
-  d.versions = null; d.error = null; d.facets = {}; d.limit = 200; d.loading = true;
-  drawAvailable();
-  // Always name the choice, the default too: the list is the one that the button says, whatever another interface chose meanwhile.
-  const s = d.profile && d.profile.search;
-  const query = s ? "?search=" + encodeURIComponent(search || s.default) : "";
-  try {
-    const versions = await api("/api/sdks/" + encodeURIComponent(name) + "/versions" + query);
-    if (detail !== d || d.token !== token) return;
-    d.versions = versions || [];
-  } catch (e) {
-    if (detail !== d || d.token !== token) return;
-    d.error = e.message;
-  }
-  d.loading = false;
-  drawAvailable();
-}
-function renderAvailable(body) {
-  const d = detail, c = searchChoice(), s = d.profile && d.profile.search;
-  body.innerHTML =
-    '<div class="row actions">' +
-    (s ? '<button class="btn tonal" id="chooseBtn">' + icon("hub", "sm") + "<span>" + esc(t("choiceButton").replace("{what}", txt(s.label)).replace("{choice}", c ? txt(c.name) : d.search)) + "</span>" + icon("keyboard-arrow-down", "sm") + "</button>" : "") +
-    '<button class="btn outline" id="byNameBtn">' + icon("terminal", "sm") + "<span>" + esc(t("installByName")) + "</span></button></div>" +
-    '<div id="availBody"></div>';
-  const choose = document.getElementById("chooseBtn"); if (choose) choose.onclick = openChooser;
-  document.getElementById("byNameBtn").onclick = () => openInstallByName("");
-  if (d.versions === null && !d.error && !d.loading) loadVersions();
-  else drawAvailable();
-}
-function drawAvailable() {
-  const d = detail, host = document.getElementById("availBody");
-  if (!host || d.tab !== "available") return;
-  if (d.error) { host.innerHTML = stateBlock("err", "error", t("failed"), esc(d.error), t("retry"), null); const b = host.querySelector("[data-act]"); if (b) b.onclick = loadVersions; return; }
-  if (d.versions === null) { host.innerHTML = spinner() + "<p class='muted t-body' style='text-align:center'>" + esc(t(searchChoice() && searchChoice().everything ? "fetchingEverything" : "fetching")) + "</p>"; return; }
-  if (!document.getElementById("vSearch")) {
-    host.innerHTML = "<div class='row'><div class='search' style='flex:1;margin:0;min-width:200px'>" + icon("search", "sm muted") + "<input id='vSearch' placeholder='" + esc(t("search")) + "'></div>" +
-      "<div class='seg' id='vFilter'><button data-vf='all' aria-pressed='true'>" + esc(t("allVersions")) + "</button><button data-vf='note' aria-pressed='false'>" + esc(t("withNote")) + "</button><button data-vf='installed' aria-pressed='false'>" + esc(t("installedOnly")) + "</button></div></div>" +
-      "<div class='row chips' id='vChips'></div><div class='muted t-label' id='vCount' style='margin:4px 4px 8px'></div><div id='vList' class='list'></div>";
-    const input = document.getElementById("vSearch");
-    input.value = d.query;
-    input.oninput = () => { d.query = input.value; d.limit = 200; drawVersions(); };
-    host.querySelectorAll("#vFilter button").forEach(b => b.onclick = () => { d.filter = b.dataset.vf; d.limit = 200; host.querySelectorAll("#vFilter button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); drawVersions(); });
-  }
-  host.querySelectorAll("#vFilter button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.vf === d.filter)));
-  drawChips();
-  drawVersions();
-}
-function facetGroups() {
-  const d = detail, out = [];
-  ((d.profile && d.profile.facets) || []).forEach(f => {
-    const counts = {};
-    (d.versions || []).forEach(v => ((v.facets && v.facets[f.id]) || []).forEach(x => { counts[x] = (counts[x] || 0) + 1; }));
-    const values = f.values.filter(x => counts[x]);
-    if (values.length) out.push({id: f.id, label: f.label, values});
-  });
-  return out;
-}
-function drawChips() {
-  const d = detail, box = document.getElementById("vChips");
-  if (!box) return;
-  const groups = facetGroups();
-  let any = false, h = "";
-  groups.forEach(g => {
-    h += '<span class="muted t-label chiplabel">' + esc(txt(g.label)) + "</span>";
-    g.values.forEach(v => { const on = !!(d.facets[g.id] && d.facets[g.id][v]); any = any || on; h += chip(g.id + ":" + v, v, on, 'data-g="' + esc(g.id) + '" data-v="' + esc(v) + '"'); });
-  });
-  if (any) h += '<button class="btn text" id="clearChips">' + esc(t("clearFilters")) + "</button>";
-  box.innerHTML = h;
-  box.querySelectorAll(".chip").forEach(b => b.onclick = () => {
-    const g = b.dataset.g, v = b.dataset.v;
-    d.facets[g] = d.facets[g] || {};
-    if (d.facets[g][v]) delete d.facets[g][v]; else d.facets[g][v] = true;
-    d.limit = 200;
-    b.setAttribute("aria-pressed", String(!!d.facets[g][v]));
-    drawVersions();
-    // the clear button comes and goes; the chips keep their place, so that the check mark can slide
-    const has = Object.values(d.facets).some(o => Object.keys(o).length), clear = document.getElementById("clearChips");
-    if (has && !clear) { const x = document.createElement("button"); x.className = "btn text"; x.id = "clearChips"; x.textContent = t("clearFilters"); x.onclick = clearChips; box.appendChild(x); }
-    else if (!has && clear) clear.remove();
-  });
-  const clear = document.getElementById("clearChips"); if (clear) clear.onclick = clearChips;
-}
-function clearChips() { detail.facets = {}; detail.limit = 200; drawChips(); drawVersions(); }
-function drawVersions() {
-  const d = detail, list = document.getElementById("vList"), count = document.getElementById("vCount");
-  if (!list) return;
-  const q = (d.query || "").toLowerCase(), inst = new Set(((installedOf(d.name) || {}).Versions) || []);
-  const s = d.profile && d.profile.search, c = searchChoice(), showSource = !!(c && c.everything);
-  const rows = (d.versions || []).filter(v => {
-    if (d.filter === "note" && !v.HasNote) return false;
-    if (d.filter === "installed" && !inst.has(v.Version)) return false;
-    for (const g of Object.keys(d.facets)) {
-      const chosen = Object.keys(d.facets[g]);
-      if (chosen.length && !chosen.some(x => (v.facets && v.facets[g] || []).includes(x))) return false;
-    }
-    return !q || v.Version.toLowerCase().includes(q) || (v.Note || "").toLowerCase().includes(q);
-  });
-  count.textContent = t("nVersions").replace("{n}", rows.length);
-  if (!rows.length) { list.innerHTML = stateBlock("empty", "search-off", t("noMatch"), "", null); return; }
-  const shown = rows.slice(0, d.limit);
-  list.innerHTML = shown.map(v => {
-    const source = showSource && v.parts && v.parts.source ? txt(v.parts.source.name) : "";
-    return "<div class='item vrow'><span style='flex:1;min-width:0'><code>" + esc(v.Version) + "</code>" + (source ? " " + tagList([source]) : "") +
-      (v.HasNote ? ' <span class="tag">' + esc(v.Note) + "</span>" : "") +
-      ((v.Additions || []).length ? ' <span class="muted t-label">' + esc(v.Additions.map(a => a.Version ? a.Name + " " + a.Version : a.Name).join(", ")) + "</span>" : "") +
-      (inst.has(v.Version) ? ' <span class="tag">✓</span>' : "") + "</span>" +
-      (inst.has(v.Version) ? "" : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>") + "</div>";
-  }).join("") + (rows.length > shown.length ? "<button class='btn' id='showMore' style='margin-top:8px'>" + esc(t("showMore").replace("{n}", rows.length - shown.length)) + "</button>" : "");
-  list.querySelectorAll("[data-install]").forEach(b => b.onclick = () => runTask({operation: "install", sdk: d.name, version: b.dataset.install}));
-  const more = document.getElementById("showMore"); if (more) more.onclick = () => { d.limit += 400; drawVersions(); };
-}
-/* ---- sheets: the dialog of the choices, the names and the variables ---- */
-function openSheet(title, ic, build) {
-  const scrim = document.getElementById("sheet"), box = document.getElementById("sheetBody");
-  document.getElementById("sheetIcon").innerHTML = ic ? icon(ic) : "";
-  document.getElementById("sheetTitle").textContent = title;
-  box.innerHTML = "";
-  const close = () => { scrim.classList.remove("open"); scrim.onclick = null; document.removeEventListener("keydown", onKey); };
-  const onKey = ev => { if (ev.key === "Escape") close(); };
-  document.addEventListener("keydown", onKey);
-  scrim.onclick = ev => { if (ev.target === scrim) close(); };
-  scrim.classList.add("open");
-  build(box, close);
-  return close;
-}
-function openChooser() {
-  const d = detail, s = d.profile.search;
-  openSheet(txt(s.label), "hub", (box, close) => {
-    box.innerHTML = '<div class="search">' + icon("search", "sm muted") + '<input id="chQuery" placeholder="' + esc(t("chooseHint")) + '"></div><div class="list choices" id="chList"></div><div class="actions"><button class="btn text" id="chClose">' + esc(t("close")) + "</button></div>";
-    document.getElementById("chClose").onclick = close;
-    const input = document.getElementById("chQuery"), list = document.getElementById("chList"), current = d.search || s.default;
-    const matches = (c, q) => !q || [c.value, ...(c.aliases || []), c.name.en, c.name.zh, c.maker.en, c.maker.zh].some(x => (x || "").toLowerCase().includes(q));
-    const draw = () => {
-      const q = input.value.trim().toLowerCase(), rows = s.choices.filter(c => matches(c, q));
-      list.innerHTML = rows.length ? rows.map(c => "<button class='item' data-v='" + esc(c.value) + "' aria-current='" + (c.value === current) + "'>" +
-        '<span class="lead">' + (c.value === current ? icon("check") : "") + "</span><span style='flex:1;min-width:0'><b>" + esc(txt(c.name)) + "</b><br><span class='muted t-label'>" +
-        esc([txt(c.maker), c.value].filter(Boolean).join(" · ")) + "</span></span>" + (c.value === s.default ? '<span class="tag">' + esc(t("default")) + "</span>" : "") + "</button>").join("")
-        : stateBlock("empty", "search-off", t("chooseEmpty"), "", null);
-      list.querySelectorAll("[data-v]").forEach(b => b.onclick = async () => {
-        close();
-        try {
-          s.current = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/search", {method: "PUT", body: JSON.stringify({value: b.dataset.v})})).value;
-        } catch (e) { showError(e.message); return; }
-        if (detail !== d) return;
-        d.search = s.current === s.default ? "" : s.current;
-        renderTab(false);
-        loadVersions();
-      });
-    };
-    input.oninput = draw;
-    draw();
-    setTimeout(() => input.focus(), 50);
-  });
-}
-function validSpec(v) { return v && !/^-|[\s@]/.test(v); }
-function openInstallByName(initial) {
-  const d = detail, p = d.profile;
-  openSheet(t("installNameTitle").replace("{name}", d.name), "terminal", (box, close) => {
-    box.innerHTML = '<div class="field"><label for="nameIn">' + esc(t("versionName")) + '</label><input id="nameIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label" id="nameHelp"></div></div>' +
-      (p && p.shorthands.length ? '<div class="muted t-label chiplabel">' + esc(t("namesToTry")) + '</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>' : "") +
-      '<p class="muted t-label" style="margin:12px 0 0">' + esc(t("installNameNote")) + '</p><div class="actions"><button class="btn text" id="nameCancel">' + esc(t("cancel")) + '</button><button class="btn primary" id="nameOk">' + icon("download", "sm") + "<span>" + esc(t("install")) + "</span></button></div>";
-    const input = document.getElementById("nameIn"), help = document.getElementById("nameHelp");
-    help.textContent = t("installNameHelp").replace("{name}", d.name);
-    input.value = initial || "";
-    const sync = () => {
-      const cur = input.value.trim();
-      if (p) {
-        const row = document.getElementById("nameChips");
-        row.innerHTML = p.shorthands.map(x => chip(x.name, x.name, x.name === cur, 'data-name="' + esc(x.name) + '"')).join("");
-        row.querySelectorAll(".chip").forEach(b => b.onclick = () => { input.value = b.dataset.name; help.textContent = t("installNameHelp").replace("{name}", d.name); help.classList.remove("bad"); sync(); });
-        const m = p.shorthands.find(x => x.name === cur);
-        document.getElementById("nameMeaning").textContent = m ? txt(m.meaning) : "";
-      }
-    };
-    input.oninput = () => { help.textContent = t("installNameHelp").replace("{name}", d.name); help.classList.remove("bad"); sync(); };
-    const submit = () => {
-      const v = input.value.trim();
-      if (!v) { help.textContent = t("nameRequired"); help.classList.add("bad"); return; }
-      if (!validSpec(v)) { help.textContent = t("nameInvalid"); help.classList.add("bad"); return; }
-      close();
-      runTask({operation: "install", sdk: d.name, version: v});
-    };
-    input.onkeydown = ev => { if (ev.key === "Enter") submit(); };
-    document.getElementById("nameOk").onclick = submit;
-    document.getElementById("nameCancel").onclick = close;
-    sync();
-    setTimeout(() => input.focus(), 50);
-  });
-}
-/* ---- options ---- */
-function section(title, help, rows) {
-  return '<div class="t-title-m" style="margin-top:20px">' + esc(title) + "</div>" + (help ? '<p class="muted t-label" style="margin:0 4px 8px">' + esc(help) + "</p>" : "") + '<div class="list">' + rows + "</div>";
-}
-function renderOptions(body) {
-  const d = detail, p = d.profile;
-  if (!p) { body.innerHTML = ""; return; }
-  let h = "";
-  if (p.guide && (p.guide.en || p.guide.zh)) h += '<div class="list"><div class="item guide">' + icon("info") + "<span style='flex:1'><b>" + esc(t("guideTitle")) + "</b><br><span class='muted'>" + esc(txt(p.guide)) + "</span></span></div></div>";
-  if (p.variables.length) {
-    h += section(t("downloads"), t("downloadsHelp"), p.variables.map(v => {
-      const preset = (v.presets || []).find(x => x.value === v.value);
-      const sub = v.value ? (preset ? txt(preset.name) + " · " : "") + v.value : t("unset");
-      return "<div class='item'>" + icon("download") + "<span style='flex:1;min-width:0'><b>" + esc(txt(v.label)) + "</b>" + (v.advanced ? " " + tagList([t("advanced")]) : "") +
-        "<br><span class='muted t-label'><code>" + esc(v.key) + "</code><br>" + esc(sub) + "</span></span><button class='btn tonal' data-var='" + esc(v.key) + "'>" + esc(t("change")) + "</button></div>";
-    }).join(""));
-  }
-  h += '<div class="t-title-m" style="margin-top:20px">' + esc(t("legacyTitle")) + "</div><div class='list'>";
-  if (!p.legacyFiles.length) h += "<div class='item'>" + icon("history") + "<span class='muted'>" + esc(t("legacyNone")) + "</span></div>";
-  else {
-    h += "<div class='item'>" + icon("history") + "<span style='flex:1'><b>" + esc(t("legacyFiles")) + "</b><br><span class='muted t-label'>" + esc(t("legacyFilesHelp")) + "</span><br>" + tagList(p.legacyFiles) + "</span></div>";
-    const on = configValue("legacyVersionFile.enable") === "true";
-    h += "<div class='item'><span class='lead'></span><span style='flex:1'><b>" + esc(t("legacyEnable")) + "</b><br><span class='muted t-label'>" + esc(t("legacyEnableHelp")) + "</span></span><button class='switch' role='switch' id='legacySwitch' aria-checked='" + on + "' aria-label='" + esc(t("legacyEnable")) + "'></button></div>";
-    if (p.legacyStrategy) {
-      const strat = configValue("legacyVersionFile.strategy");
-      h += "<div class='item'><span class='lead'></span><span style='flex:1;min-width:0'><b>" + esc(t("legacyStrategy")) + "</b></span><div class='seg' id='legacyStrategy'>" +
-        [["specified", t("strategySpecified")], ["latest_installed", t("strategyInstalled")], ["latest_available", t("strategyAvailable")]].map(x => "<button data-s='" + x[0] + "' aria-pressed='" + (strat === x[0]) + "'>" + esc(x[1]) + "</button>").join("") + "</div></div>";
-    } else h += "<div class='item'><span class='lead'></span><span class='muted'>" + esc(t("legacyIgnored").replace("{setting}", t("legacyStrategy"))) + "</span></div>";
-  }
-  h += "</div>";
-  if (p.shorthands.length) {
-    h += section(t("shorthands"), t("shorthandsHelp").replace("{name}", d.name), p.shorthands.map(s => "<div class='item'>" + icon("terminal") + "<span style='flex:1;min-width:0'><code>" + esc(s.name) + "</code><br><span class='muted t-label'>" + esc(txt(s.meaning)) + "</span></span><button class='btn tonal' data-try='" + esc(s.name) + "'>" + icon("download", "sm") + "<span>" + esc(t("installDots")) + "</span></button></div>").join(""));
-  }
-  if (p.tips.length) h += section(t("tips"), "", p.tips.map(x => "<div class='item'>" + icon("info") + "<span style='flex:1'>" + esc(txt(x)) + "</span></div>").join(""));
-  if (p.docs.length) h += section(t("docs"), "", p.docs.map(x => "<button class='item' data-doc='" + esc(txt(x.url)) + "'>" + icon("menu-book") + "<span style='flex:1'>" + esc(txt(x.title)) + "</span>" + icon("open-in-new", "sm muted") + "</button>").join(""));
-  body.innerHTML = h;
-  body.querySelectorAll("[data-var]").forEach(b => b.onclick = () => openVariable(p.variables.find(v => v.key === b.dataset.var)));
-  body.querySelectorAll("[data-try]").forEach(b => b.onclick = () => openInstallByName(b.dataset.try));
-  body.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => openExternal(b.dataset.doc));
-  const sw = document.getElementById("legacySwitch");
-  if (sw) sw.onclick = async () => { try { await vfoxConfig("legacyVersionFile.enable", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); await refresh(false); renderTab(false); } catch (e) { showError(e.message); } };
-  body.querySelectorAll("#legacyStrategy button").forEach(b => b.onclick = async () => { try { await vfoxConfig("legacyVersionFile.strategy", b.dataset.s); await refresh(false); renderTab(false); } catch (e) { showError(e.message); } });
-}
-function openVariable(variable) {
-  const d = detail;
-  openSheet(txt(variable.label), "download", (box, close) => {
-    box.innerHTML = '<p class="muted t-body" style="margin:0">' + esc(txt(variable.help)) + '</p><p class="muted t-label"><code>' + esc(variable.key) + "</code></p>" +
-      (variable.kind === "url" ? '<div class="field"><label for="varIn">' + esc(t("address")) + '</label><input id="varIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(variable.example || "") + '"><div class="muted t-label" id="varHelp"></div></div>' : '<div class="muted t-label" id="varHelp"></div>') +
-      '<div class="muted t-label chiplabel">' + esc(t("quickPicks")) + '</div><div class="row chips" id="varChips"></div><div class="actions"><button class="btn text" id="varCancel">' + esc(t("cancel")) + '</button><button class="btn primary" id="varOk">' + esc(t("save")) + "</button></div>";
-    let value = variable.value || "";
-    const input = document.getElementById("varIn"), help = document.getElementById("varHelp");
-    const sync = () => {
-      if (input) input.value = value;
-      const row = document.getElementById("varChips"), cur = value.trim();
-      row.innerHTML = chip("", t("defaultOption"), cur === "", 'data-value=""') + variable.presets.map(x => chip(x.value, txt(x.name), cur === x.value, 'data-value="' + esc(x.value) + '"')).join("");
-      row.querySelectorAll(".chip").forEach(b => b.onclick = () => { value = b.dataset.value; help.textContent = ""; help.classList.remove("bad"); sync(); });
-    };
-    if (input) input.oninput = () => { value = input.value; help.textContent = ""; help.classList.remove("bad"); drawPressed(); };
-    const drawPressed = () => { const cur = value.trim(); document.querySelectorAll("#varChips .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === cur))); };
-    const submit = async () => {
-      try {
-        const r = await api("/api/sdks/" + encodeURIComponent(d.name) + "/variables", {method: "PUT", body: JSON.stringify({key: variable.key, value: value.trim()})});
-        variable.value = r.value || "";
-        close();
-        snack(t("saved"));
-        if (detail === d && d.tab === "options") renderTab(false);
-      } catch (e) { help.textContent = e.message; help.classList.add("bad"); }
-    };
-    if (input) input.onkeydown = ev => { if (ev.key === "Enter") submit(); };
-    document.getElementById("varOk").onclick = submit;
-    document.getElementById("varCancel").onclick = close;
-    sync();
-    if (input) setTimeout(() => input.focus(), 50);
-  });
-}
-/* what a refresh changes in the details: the installed versions, and which listed versions are installed */
-function updateDetail() {
-  const d = detail;
-  if (!d || !d.profile && !d.info && !document.getElementById("detailTabs")) return;
-  renderTabs();
-  const sdk = installedOf(d.name), key = ((sdk && sdk.Versions) || []).join("\n");
-  if (d.installedKey !== undefined && d.installedKey !== key && d.profile) {
-    api("/api/sdks/" + encodeURIComponent(d.name) + "/profile").then(p => { if (detail === d) { d.profile = p; d.installedKey = key; if (d.tab !== "available") renderTab(false); } }).catch(() => {});
-  }
-  d.installedKey = key;
-  if (d.tab === "installed") renderInstalled(document.getElementById("detailBody"));
-  else if (d.tab === "available") drawVersions();
-}
-async function copyText(s) { try { await navigator.clipboard.writeText(s); snack(t("copied")); } catch (e) { showError(t("failed")); } }
-async function removePlugin(name) {
-  if (await confirmDlg(t("remove"), name, t("remove"), true)) runTask({operation: "remove", sdk: name});
-}
-async function runTask(req) {
-  try {
-    const task = await api("/api/tasks", {method: "POST", body: JSON.stringify(req)});
-    location.hash = "#/tasks";
-    await refresh(false);
-  } catch (e) { showError(e.message); }
-}
-/* ---------------- plugins ---------------- */
-document.getElementById("pluginSearch").oninput = () => renderPlugins(cache.inventory);
-document.querySelectorAll("#pluginFilter button").forEach(b => b.onclick = () => {
-  document.querySelectorAll("#pluginFilter button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
-  renderPlugins(cache.inventory);
-});
-document.getElementById("regRefresh").onclick = () => refresh(true);
-function pluginFilter() { return (document.querySelector("#pluginFilter [aria-pressed=true]") || {}).dataset?.f || "all"; }
-function renderPlugins(inv) {
-  if (!inv) return;
-  const box = document.getElementById("pluginList");
-  const sec = inv.registry;
-  const st = sectionStatus(sec);
-  if (st) { box.innerHTML = ""; const w = document.createElement("div"); w.innerHTML = st; box.appendChild(w); wireStateRetry(w, () => refresh(true)); return; }
-  const q = (document.getElementById("pluginSearch").value || "").toLowerCase();
-  const f = pluginFilter();
-  const installed = new Set(((inv.installed.value) || []).map(s => s.Name));
-  const list = (sec.value || []).filter(p => {
-    if (f === "official" && !p.Official) return false;
-    if (f === "community" && p.Official) return false;
-    return !q || p.Name.toLowerCase().includes(q) || (p.Homepage || "").toLowerCase().includes(q);
-  });
-  if (!list.length) { box.innerHTML = stateBlock("empty", "search-off", t("registry"), "", null); return; }
-  box.innerHTML = list.map(p =>
-    '<div class="pcard">' + '<div class="row">' + avatar(p.Name) + "<span style='flex:1'><b><code>" + esc(p.Name) + "</code></b>" +
-    (p.Official ? ' <span class="tag" title="' + esc(t("official")) + '">' + icon("verified", "sm") + "</span>" : "") +
-    (installed.has(p.Name) ? ' <span class="tag cur">✓</span>' : "") + "</span>" +
-    (p.Homepage ? '<button class="iconbtn sm" data-home="' + esc(p.Homepage) + '" title="' + esc(t("homepage")) + '">' + icon("open-in-new", "sm") + "</button>" : "") + "</div>" +
-    (p.Homepage ? '<div class="muted t-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(p.Homepage) + "</div>" : "") +
-    '<div class="row" style="margin-top:auto">' +
-    (installed.has(p.Name)
-      ? '<button class="btn text" data-open="' + esc(p.Name) + '">' + esc(t("added")) + "</button><span style='flex:1'></span><button class='btn text' data-update='" + esc(p.Name) + "'>" + esc(t("update")) + "</button><button class='btn text' data-remove='" + esc(p.Name) + "'>" + esc(t("remove")) + "</button>"
-      : '<button class="btn primary" data-addname="' + esc(p.Name) + '">' + esc(t("install")) + "</button>") + "</div></div>").join("");
-  box.querySelectorAll("[data-home]").forEach(b => b.onclick = () => openExternal(b.dataset.home));
-  box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => location.hash = "#/sdk/" + encodeURIComponent(b.dataset.open));
-  box.querySelectorAll("[data-addname]").forEach(b => b.onclick = () => runTask({operation: "add", source: b.dataset.addname}));
-  box.querySelectorAll("[data-update]").forEach(b => b.onclick = () => runTask({operation: "update", sdk: b.dataset.update}));
-  box.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => removePlugin(b.dataset.remove));
-}
-document.getElementById("addBtn").onclick = () => {
-  const source = document.getElementById("addSource").value.trim();
-  const alias = document.getElementById("addAlias").value.trim();
-  if (!source) return;
-  api("/api/plugins", {method: "POST", body: JSON.stringify({source, alias})}).then(() => { location.hash = "#/tasks"; refresh(false); }).catch(e => showError(e.message));
-};
-document.getElementById("uploadBtn").onclick = () => {
-  const f = document.getElementById("addFile").files[0];
-  if (!f) return;
-  const fd = new FormData();
-  fd.append("file", f);
-  fd.append("alias", document.getElementById("addAlias").value.trim());
-  fetch("/api/plugins", {method: "POST", body: fd, credentials: "same-origin"}).then(async r => {
-    if (!r.ok) throw new Error(await r.text());
-    return r.json();
-  }).then(() => { location.hash = "#/tasks"; refresh(false); }).catch(e => showError(e.message));
-};
-document.getElementById("updateAllBtn").onclick = () => runTask({operation: "update"});
-/* ---------------- tasks ---------------- */
-function statusIcon(st) {
-  return {queued: "hourglass-empty", running: "schedule", succeeded: "task-alt", failed: "error", cancelled: "close"}[st] || "info";
-}
-function renderTasks() {
-  const box = document.getElementById("taskList");
-  ["taskCount", "taskCountM"].forEach(id => {
-    const badge = document.getElementById(id);
-    if (badge) { const n = cache.tasks.filter(x => ["queued","running"].includes(x.status)).length; badge.hidden = n === 0; badge.textContent = n; }
-  });
-  if (!cache.tasks.length) { box.innerHTML = stateBlock("empty", "pending-actions", t("noTasks"), "", null); return; }
-  box.innerHTML = "";
-  cache.tasks.forEach(task => {
-    const d = document.createElement("div");
-    d.className = "card";
-    const pct = task.progress != null ? Math.round(task.progress * 100) + "%" : "";
-    d.innerHTML = "<div class='row'>" + icon(statusIcon(task.status)) + "<b>" + esc(task.operation) + "</b> <code>" + esc(task.sdk + (task.version ? "@" + task.version : "")) + "</code> <span class='muted t-label'>" + esc(task.status + " " + pct) + "</span><span style='flex:1'></span><button class='btn text' data-open='" + task.id + "'>" + esc(t("log")) + "</button></div>" +
-      (task.progress != null && ["queued","running"].includes(task.status) ? wavy(task.progress, false) : "") +
-      (["queued","running"].includes(task.status) && task.progress == null ? wavy(0, true) : "") +
-      (task.errorMessage ? "<p style='color:var(--m3-error)'>" + esc(task.errorMessage) + "</p>" : "") +
-      "<div data-log='" + task.id + "' hidden></div>";
-    box.appendChild(d);
-  });
-  box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openTask(parseInt(b.dataset.open, 10)));
-}
-async function openTask(id) {
-  const slot = document.querySelector("[data-log='" + id + "']");
-  if (!slot) return;
-  if (!slot.hidden) { slot.hidden = true; slot.innerHTML = ""; return; }
-  try {
-    const task = await api("/api/tasks/" + id);
-    slot.hidden = false;
-    slot.innerHTML = "<p class='muted'><code>" + esc(task.commandLine) + "</code></p>" + (task.droppedLines ? "<p class='muted'>" + esc(t("droppedHead") + task.droppedLines + t("droppedTail")) + "</p>" : "") + (task.hasFullLog && !isWebView() ? "<div class='row'><a class='btn text' download href='/api/tasks/" + task.id + "/log'>" + esc(t("downloadLog")) + "</a></div>" : "") + "<pre class='log'>" + esc(task.log.join("\n")) + "</pre><div class='row'>" +
-      (["queued","running"].includes(task.status) ? "<button class='btn danger' data-cancel='" + id + "'>" + esc(t("cancel")) + "</button>" : "") +
-      (["failed","cancelled"].includes(task.status) ? "<button class='btn' data-retry='" + id + "'>" + esc(t("retry")) + "</button>" : "") + "</div>";
-    const c = slot.querySelector("[data-cancel]");
-    if (c) c.onclick = async () => { await api("/api/tasks/" + id + "/cancel", {method: "POST"}); refresh(false); };
-    const r = slot.querySelector("[data-retry]");
-    if (r) r.onclick = async () => { await api("/api/tasks/" + id + "/retry", {method: "POST"}); refresh(false); };
-  } catch (e) { showError(e.message); }
-}
-document.getElementById("clearBtn").onclick = async () => { try { await api("/api/tasks/finished", {method: "DELETE"}); refresh(false); } catch (e) { showError(e.message); } };
-/* ---------------- settings ---------------- */
-function renderSettings(inv) {
-  loadWeb();
-  api("/api/settings").then(s => {
-    if (document.activeElement !== document.getElementById("setVfox")) document.getElementById("setVfox").value = s.vfoxExecutable || "";
-    document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.l === (s.language || "system")) ? "true" : "false"));
-    if (document.activeElement !== document.getElementById("setEnv")) document.getElementById("setEnv").value = Object.entries(s.extraEnvironment || {}).map(([k, v]) => k + "=" + v).join("\n");
-  }).catch(() => {});
-  const sec = inv.config;
-  const box = document.getElementById("configList");
-  const st = sectionStatus(sec);
-  if (st) { box.innerHTML = st; wireStateRetry(box, () => refresh(true)); return; }
-  box.innerHTML = "<table><tr><th>" + esc(t("key")) + "</th><th>" + esc(t("value")) + "</th><th>" + esc(t("actions")) + "</th></tr>" + (sec.value || []).map(c =>
-    "<tr><td><code>" + esc(c.Key) + "</code></td><td>" + esc(c.Value || t("empty")) + "</td><td><button class='btn text' data-edit='" + esc(c.Key) + "'>" + esc(t("edit")) + "</button> <button class='btn text' data-reset='" + esc(c.Key) + "'>" + esc(t("reset")) + "</button></td></tr>").join("") + "</table>";
-  box.querySelectorAll("[data-edit]").forEach(b => b.onclick = async () => {
-    const cur = ((sec.value || []).find(c => c.Key === b.dataset.edit) || {}).Value || "";
-    const v = prompt(b.dataset.edit, cur);
-    if (v == null) return;
-    try { await vfoxConfig(b.dataset.edit, v); refresh(false); } catch (e) { showError(e.message); }
-  });
-  box.querySelectorAll("[data-reset]").forEach(b => b.onclick = async () => { try { await vfoxConfig(b.dataset.reset, null); refresh(false); } catch (e) { showError(e.message); } });
-}
-async function vfoxConfig(key, value) {
-  if (value == null) return api("/api/config?key=" + encodeURIComponent(key), {method: "DELETE"});
-  return api("/api/config", {method: "PUT", body: JSON.stringify({key, value})});
-}
-document.getElementById("saveVfox").onclick = async () => { try { await api("/api/settings", {method: "PUT", body: JSON.stringify({vfoxExecutable: document.getElementById("setVfox").value.trim()})}); refresh(false); } catch (e) { showError(e.message); } };
-document.getElementById("saveEnv").onclick = async () => {
-  const env = {};
-  document.getElementById("setEnv").value.split("\n").forEach(line => { const i = line.indexOf("="); if (i > 0) env[line.slice(0, i).trim()] = line.slice(i + 1); });
-  try { await api("/api/settings", {method: "PUT", body: JSON.stringify({extraEnvironment: env})}); refresh(false); } catch (e) { showError(e.message); }
-};
-document.querySelectorAll("#langSeg button").forEach(b => b.onclick = async e => {
-  try { await api("/api/settings", {method: "PUT", body: JSON.stringify({language: b.dataset.l})}); } catch (err) { showError(err.message); }
-});
-/* ---------------- connections ---------------- */
-let web = null;       // the last answer of /api/web
-let pairing = null;   // the last link and code that were made: {url, svg, host}
-async function loadWeb() {
-  try { web = await api("/api/web"); renderWeb(); } catch (e) { /* the card keeps what it had */ }
-}
-async function putWeb(change) {
-  try { web = await api("/api/web", {method: "PUT", body: JSON.stringify(change)}); } catch (e) { showError(e.message); }
-  renderWeb();
-}
-function webItem(title, help, control, extra) {
-  return "<div class='item'><span style='flex:1'><b>" + esc(title) + "</b>" + (help ? "<br><span class='muted t-label'>" + esc(help) + "</span>" : "") + (extra || "") + "</span>" + control + "</div>";
-}
-function webSwitch(id, on, title) { return "<button class='switch' role='switch' id='" + id + "' aria-checked='" + (on ? "true" : "false") + "' aria-label='" + esc(title) + "'></button>"; }
-function renderWeb() {
-  if (!web) return;
-  document.getElementById("h-web").textContent = t("webH");
-  let h = webItem(t("webRemote"), t("webRemoteHelp"), webSwitch("webRemote", web.remote, t("webRemote")));
-  if (web.remote) {
-    h += webItem(t("webPort"), t("webPortHelp"), "<input id='webPort' type='number' min='1024' max='65535' value='" + esc(web.port) + "' aria-label='" + esc(t("webPort")) + "'>");
-    if (web.error) {
-      h += "<div class='item'><span class='bad t-label'>" + esc(t("webError")) + " " + esc(web.error) + "</span></div>";
-    } else if (web.listening) {
-      const reach = web.addresses.length
-        ? "<br><span class='t-label'>" + esc(t("webReach")) + "</span> " + web.addresses.map(a => "<code>" + esc("https://" + (a.includes(":") ? "[" + a + "]" : a) + ":" + web.port) + "</code>").join(" ")
-        : "<br><span class='bad t-label'>" + esc(t("webNoAddress")) + "</span>";
-      const print = "<br><span class='muted t-label'>" + esc(t("webFingerprint")) + "</span><br><code>" + esc(web.fingerprint) + "</code>";
-      h += webItem(t("webPairBtn"), "", window.vfoxAndroid || !web.addresses.length ? "" : "<button class='btn' id='webPair'>" + esc(t("webPairBtn")) + "</button>", reach + print);
-    }
-  }
-  h += webItem(t("webLight"), t("webLightHelp"), webSwitch("webLight", web.lightweight, t("webLight")));
-  h += webItem(t("webQuit"), t("webQuitHelp"), "<button class='btn danger' id='webQuit'>" + esc(t("webQuitBtn")) + "</button>");
-  document.getElementById("webList").innerHTML = h;
-  document.getElementById("webRemote").onclick = async () => {
-    if (!web.remote && !await confirmDlg(t("webRemoteTitle"), t("webRemoteBody"), t("webRemoteOk"), false)) return;
-    pairing = null;
-    putWeb({remote: !web.remote});
-  };
-  document.getElementById("webLight").onclick = () => putWeb({lightweight: !web.lightweight});
-  document.getElementById("webQuit").onclick = async () => {
-    if (!await confirmDlg(t("webQuitTitle"), t("webQuitBody"), t("webQuitBtn"), true)) return;
-    try { await api("/api/quit", {method: "POST"}); snack(t("webQuitting")); } catch (e) { showError(e.message); }
-  };
-  const port = document.getElementById("webPort");
-  if (port) port.onchange = () => putWeb({port: parseInt(port.value, 10) || 0});
-  const pair = document.getElementById("webPair");
-  if (pair) pair.onclick = () => showPairing("");
-  renderPairing();
-}
-async function showPairing(host) {
-  try {
-    pairing = await api("/api/web/pairing", {method: "POST", body: JSON.stringify({host})});
-    pairing.host = host || (web && web.addresses[0]) || "";
-  } catch (e) { pairing = null; showError(e.message); }
-  renderPairing();
-}
-function renderPairing() {
-  const box = document.getElementById("pairBox");
-  if (!pairing || !web || !web.listening) { box.hidden = true; box.innerHTML = ""; return; }
-  const hosts = web.addresses.length > 1
-    ? "<div class='seg' id='pairHosts'>" + web.addresses.map(a => "<button data-host='" + esc(a) + "' aria-pressed='" + (a === pairing.host) + "'>" + esc(a) + "</button>").join("") + "</div>"
-    : "";
-  box.innerHTML = "<div class='qr'>" + pairing.svg + "</div><div class='t-label muted'>" + esc(t("webPairHelp")) + "</div>" + hosts +
-    "<code>" + esc(pairing.url) + "</code><div class='row'><button class='btn' id='pairCopy'>" + esc(t("webCopyLink")) + "</button><button class='btn text' id='pairClose'>" + esc(t("close")) + "</button></div>";
-  box.hidden = false;
-  document.getElementById("pairCopy").onclick = () => copyText(pairing.url);
-  document.getElementById("pairClose").onclick = () => { pairing = null; renderPairing(); };
-  box.querySelectorAll("[data-host]").forEach(b => b.onclick = () => showPairing(b.dataset.host));
-}
-function wireStateRetry(root, fn) { const b = root.querySelector("[data-act]"); if (b) b.onclick = fn; }
-/* ---------------- events ---------------- */
-function connectEvents() {
-  let es;
-  try { es = new EventSource("/api/events"); } catch (e) { setLive(false); return; }
-  es.onopen = () => setLive(true);
-  es.onerror = () => { setLive(false); es.close(); setTimeout(connectEvents, 3000); };
-  es.addEventListener("task", () => refresh(false));
-  es.addEventListener("inventory", () => refresh(false));
-  es.addEventListener("vfox", () => refresh(false));
-  es.addEventListener("web", () => loadWeb());
-  es.addEventListener("hello", () => refresh(true));
-}
-/* inside the Android app (WebBridge.kt) the settings offer what only the app can do */
-if (window.vfoxAndroid) {
-  const bridge = window.vfoxAndroid;
-  document.getElementById("phoneCard").hidden = false;
-  document.getElementById("phoneServer").textContent = String(bridge.server()).replace(/^[a-z]+:\/\//i, "");
-  document.getElementById("phonePair").onclick = () => bridge.pairNew();
-  document.getElementById("phoneOut").onclick = async () => { if (await confirmDlg(t("phoneOutTitle"), t("phoneOutBody"), t("phoneOut"), true)) bridge.disconnect(); };
-}
-renderChrome();
-route();
-refresh(true);
-connectEvents();
-
-</script>
 </body>
 </html>

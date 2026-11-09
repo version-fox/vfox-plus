@@ -16,10 +16,12 @@
 
 # The sandbox of the mygo implementation: the shared base image (see
 # shared/sandbox) with GTK 3, which mygo loads at run time (the application needs
-# no development files and no C compiler), a pinned Go and golangci-lint, and a
-# window manager with the Greybird theme, so that the screenshots show a title
-# bar the way modern GNOME applications look (a dark bar over light content),
-# over the default wallpaper of Ubuntu instead of the black of a bare X server.
+# no development files and no C compiler), a pinned Go and golangci-lint, and
+# Metacity with the Yaru theme, so that the screenshots show the title bar of
+# an Ubuntu 26.04 GNOME session on X11 (Yaru server-side decorations; Mutter no
+# longer does X11 window management, and this window has no custom title bar,
+# so GTK leaves the decorations to the window manager), over the default
+# wallpaper of Ubuntu instead of the black of a bare X server.
 # The C compiler is only there for the race detector of the unit tests. Build
 # and use it through `vfxtool sandbox`, which passes the versions from ../versions.env.
 #
@@ -43,7 +45,7 @@ fi
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libgtk-3-0t64 fontconfig libgl1-mesa-dri libegl1 libgles2 \
-  gcc libc6-dev xfwm4 xfconf greybird-gtk-theme \
+  gcc libc6-dev metacity yaru-theme-gtk gnome-themes-extra \
   feh ubuntu-wallpapers
 rm -rf /var/lib/apt/lists/*
 EOF
@@ -53,7 +55,13 @@ RUN <<EOF
 set -eu
 test -n "$GO_VERSION"
 test -n "$GO_SHA256"
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz"
+# Go publishes the same archive on go.dev and dl.google.com; take the other
+# when one of them is slow, and let the checksum below judge the bytes.
+# IPv4: a container with a broken IPv6 route must not fail the build.
+curl -4 -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
+    "https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz" ||
+  curl -4 -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
+    "https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz"
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /opt
 rm /tmp/go.tar.gz
@@ -65,9 +73,9 @@ RUN <<EOF
 set -eu
 test -n "$GOLANGCI_LINT_VERSION"
 test -n "$GOLANGCI_LINT_SHA256"
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/golangci-lint.tar.gz \
-  "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz"
-echo "$GOLANGCI_LINT_SHA256  /tmp/golangci-lint.tar.gz" | sha256sum --check --strict -
+download-release-asset golangci/golangci-lint "v$GOLANGCI_LINT_VERSION" \
+  "golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz" \
+  /tmp/golangci-lint.tar.gz "$GOLANGCI_LINT_SHA256"
 tar -xzf /tmp/golangci-lint.tar.gz -C /tmp
 install -m 755 "/tmp/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64/golangci-lint" /usr/local/bin/golangci-lint
 rm -rf /tmp/golangci-lint*

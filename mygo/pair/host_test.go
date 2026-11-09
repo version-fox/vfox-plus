@@ -202,6 +202,21 @@ func TestOtherDevicesConnectOverHTTPSAndOnlyWhileAllowed(t *testing.T) {
 		if _, err := f.host.RemoteLink("203.0.113.77"); !errors.Is(err, pair.ErrNoAddress) {
 			t.Errorf("an address that the computer does not have is refused, got %v", err)
 		}
+		// The address at which a proxy, a tunnel or the gateway publishes the
+		// interface is the one that a phone outside the network reaches.
+		f.set(func(s *settings.AppSettings) { s.WebPublicAddress = "https://vfox.example.com" })
+		link, err = f.host.RemoteLink("")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := "https://vfox.example.com/auth/connect/"; !strings.HasPrefix(link, want) {
+			t.Errorf("the public address is the default one, got %q, want the prefix %q", link, want)
+		}
+		if link, err = f.host.RemoteLink("https://vfox.example.com"); err != nil ||
+			!strings.HasPrefix(link, "https://vfox.example.com/auth/connect/") {
+			t.Errorf("the public address can be asked for by name, got %q, %v", link, err)
+		}
+		f.set(func(s *settings.AppSettings) { s.WebPublicAddress = "" })
 		if _, err := f.host.RemoteLink(status.Addresses[len(status.Addresses)-1]); err != nil {
 			t.Errorf("any address the computer has will do: %v", err)
 		}

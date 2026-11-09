@@ -198,7 +198,7 @@ class PairingFragment : Fragment() {
     private fun openViewer(pairingUrl: String) {
         parentFragmentManager.beginTransaction()
             .setReorderingAllowed(true)
-            .replace(R.id.container, ViewerFragment.newInstance(pairingUrl))
+            .replace(R.id.container, viewerFor(pairingUrl))
             .addToBackStack(null)
             .commit()
     }
@@ -218,6 +218,11 @@ class PairingFragment : Fragment() {
     }
 
     companion object {
+        // The session screen: the paired server in the system WebView. It
+        // takes the one-time link or a bare server address, and remembers
+        // the server for reconnecting.
+        fun viewerFor(startUrl: String): Fragment = ViewerFragment.newInstance(startUrl)
+
         // Accepts a full one-time pairing link or a bare server address.
         // Returns the server base (scheme + host + port), or null.
         fun pairingBase(link: String): String? {

@@ -7,6 +7,9 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
 
 ## Ground rules
 
+- A commit names the people who wrote and reviewed it. Do not add
+  `Co-authored-by` trailers for AI agents or tools; the repository workflow
+  rejects them.
 - Code comments, commit messages and pull requests are written in
   **English**. User-visible texts go through the translation catalogues in
   [`shared/i18n`](../../../shared/i18n) and are available in English and Simplified
@@ -188,6 +191,19 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
   grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
 ```
 
+### Web interface
+
+The web interface is TypeScript built with Vite, in [`mygo/web`](../../../mygo/web).
+Its build bundles the page into the single `mygo/pair/webapp.html` that the Go
+server embeds: edit the sources, run `npm run build` there, and commit the page
+with them. `npm test` runs the unit tests of the page; `npm run dev` serves it
+with hot reload against a running application (see
+[Node and the web interface](environment.md#node-and-the-web-interface)).
+The Go tests in `mygo/pair` still guard the contract of the built page: the
+design tokens and the springs, which fail when the theme moves without them,
+and the favicon placeholders. Copy of the page lives in its i18n catalogs
+(`mygo/web/src/i18n-*`), typed per language, not in `shared/i18n`.
+
 ### vfox output
 
 When vfox changes, recapture the fixtures with
@@ -222,8 +238,8 @@ The images of the documentation are not committed: they are hosted on
 account, and linked.
 
 **The desktop application.** `vfxtool sandbox screenshots` renders the pictures
-into `dist/sandbox/mygo/screenshots/`, reproducibly: with the Greybird title bar of
-xfwm4, the way modern GNOME applications look, over the default wallpaper of
+into `dist/sandbox/mygo/screenshots/`, reproducibly: with the title bar of an
+Ubuntu 26.04 GNOME session on X11, drawn by Metacity with the Yaru theme, over the default wallpaper of
 Ubuntu instead of the black of a bare X server. It starts the end-to-end build
 seven times against the fake vfox, drives it to every page through the automation plugin
 of mygo, and captures the screen with ImageMagick when the page has settled:
@@ -327,8 +343,9 @@ fake vfox with the fixtures — so that the SDK list has content, and
 `setsid` makes the application the leader of a group of processes of its own, which `kill -- -$app`
 ends together with the virtual display;
 `--lang` pins the interface language; `--window 412,915` shoots the phone portrait
-and defaults to the 1280 by 800 desktop window that CI measures; `--idle 0` skips
-the twenty seconds on the open page that the measurement of the heap needs; `--dark`
+and defaults to the 1280 by 800 desktop window; `--idle 0` skips
+the twenty seconds on the open page that the local heap diagnosis waits (the
+heap numbers stay local, out of the CI report); `--dark`
 takes the picture in the dark theme; `--chrome` takes any Chrome that speaks CDP, and
 the tool looks for one in `$CHROME_BIN` and on `PATH` when it is left out.) Look at the
 size of the picture before you upload it (`file webapp-en.png`): not every

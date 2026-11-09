@@ -15,6 +15,9 @@
 pluginManagement {
     repositories {
         google()
+        // Maven Central redirected some artifacts to GitHub, which answered
+        // 504; this mirror of it keeps the Kotlin compiler downloadable.
+        maven("https://maven.aliyun.com/repository/central")
         mavenCentral()
         gradlePluginPortal()
     }
@@ -23,6 +26,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        maven("https://maven.aliyun.com/repository/central")
         mavenCentral()
         // The Android XML of the Material Symbols, which google/material-design-icons keeps in git and does not publish as a
         // library: this repository serves its raw files to the group "symbols" and to nothing else, so that they are

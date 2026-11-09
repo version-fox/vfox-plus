@@ -106,6 +106,11 @@ cp app/build/outputs/apk/release/app-release.apk \
 
 装到手机（提示时允许安装未知应用），按[安卓 App](../user/android.md)配对。
 
+## 构建变体
+
+只有一个客户端：配对会话是系统 WebView 里的服务端网页界面。CI 构建并测量它；
+本地配对行按[内存页](memory.md#配对后的会话)跑 `vfxtool measure-apk --pair-url`。
+
 ## 签名状态
 
 安卓不安装没有签名的 APK（未签名的会以 `INSTALL_PARSE_FAILED_NO_CERTIFICATES`

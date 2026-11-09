@@ -70,6 +70,17 @@ object Motion {
             interpolator = curve
         }
     }
+
+    // A transition between two tabs of the same level: one fades through the
+    // other on the slow effects spring, sampled the same way.
+    fun fadeThrough(context: Context, forward: Boolean): MaterialSharedAxis {
+        val spring = slowEffects(context)
+        val curve = SpringInterpolator(spring.stiffness, spring.dampingRatio)
+        return MaterialSharedAxis(MaterialSharedAxis.Z, forward).apply {
+            duration = if (reduced(context)) 0 else curve.settleMillis / 2
+            interpolator = curve
+        }
+    }
 }
 
 // The way in of a view: it rises a little on the default spatial spring while it

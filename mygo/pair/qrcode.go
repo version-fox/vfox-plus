@@ -66,6 +66,12 @@ func QRSVG(text string) (string, error) {
 // and port of the server. The code that a phone scans uses an address of the
 // local network here, because the server listens on a wildcard address.
 func (s *Server) PairingURL(host, token string) string {
+	// A public address comes as a whole URL — the scheme, host and port at which
+	// a proxy, a tunnel or the gateway publishes the interface — and is used as
+	// it is: the port of this computer means nothing there.
+	if strings.Contains(host, "://") {
+		return strings.TrimRight(host, "/") + "/auth/connect/" + token
+	}
 	if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
 		host = "[" + host + "]"
 	}

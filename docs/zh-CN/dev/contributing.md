@@ -7,6 +7,8 @@
 
 ## 基本规则
 
+- 提交只署编写与评审的人。不要为 AI agent 或工具添加 `Co-authored-by`
+  trailer；仓库工作流会拒绝它们。
 - 代码注释、提交信息和 Pull Request 使用**英文**。用户可见文本走
   [`shared/i18n`](../../../shared/i18n) 中的翻译目录，提供英文和简体中文。
 - 文档使用**英文并附简体中文译文**：每个 Markdown 文档都有中文对照版本（见
@@ -154,6 +156,16 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
   grep -o '"integrity":"sha512-[^"]*"' | cut -d- -f2 | tr -d '"' | base64 -d | od -An -v -tx1 | tr -d ' \n'
 ```
 
+### Web 界面
+
+Web 界面是 TypeScript 加 Vite，源码在 [`mygo/web`](../../../mygo/web)。
+构建把它打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入：改源码，在那里跑
+`npm run build`，页面与源码一起提交。`npm test` 跑页面的单元测试；`npm run dev`
+对着运行中的应用以热重载供页面（见[Node 与 Web 界面](environment.md#node-与-web-界面)）。
+`mygo/pair` 的 Go 测试继续守构建产物的契约：设计 token 与弹簧（主题动了它们会失败），
+以及 favicon 占位符。页面的文案放在它自己的 i18n catalog（`mygo/web/src/i18n-*`），按语言做类型检查，
+不在 `shared/i18n` 里。
+
 ### vfox 输出
 
 vfox 变化时用 `vfxtool capture` 重抓夹具，按
@@ -181,7 +193,8 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 引用。
 
 **桌面应用。** `vfxtool sandbox screenshots` 可复现地把图渲染到
-`dist/sandbox/mygo/screenshots/`：xfwm4 Greybird 标题栏（现代 GNOME 应用观感），
+`dist/sandbox/mygo/screenshots/`：Metacity 加 Yaru 主题画出 Ubuntu 26.04 GNOME
+X11 会话的标题栏，
 Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动七遍，经 mygo 的自动化插件
 把它带到每个页面，页面沉降后用 ImageMagick 截取屏幕：
 
@@ -270,7 +283,8 @@ shoot web-zh-connections-pair zh 412,915 --scene connections-pair
 vfox——SDK 列表才有内容，`INVENTORY=profiles` 让它成为装着 Java 与 Flutter 的机器；
 `setsid` 让应用成为自己进程组的组长，`kill -- -$app` 把它连同虚拟显示一起结束；
 `--lang` 固定界面语言；`--window 412,915` 拍手机竖屏，默认是 CI 测量的 1280×800 桌面窗口；
-`--idle 0` 跳过测量堆所需的、停在打开页面上的 20 秒；`--dark` 用深色主题拍；
+`--idle 0` 跳过堆诊断用的、在打开页面上停 20 秒的等待（堆数字只做本地诊断，不进 CI 报告）；
+`--dark` 用深色主题拍；
 `--chrome` 接受任何讲 CDP 的 Chrome，不传则工具在 `$CHROME_BIN` 和 `PATH`
 上自动找。）上传前看一眼图的尺寸
 （`file webapp-en.png`）：不是每个 Chrome 都保持这么小的窗口。Chrome for
@@ -296,6 +310,7 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 （应用的构建就是上面那个；要在仓库根目录运行，命令靠它找假 vfox 的夹具；`--chrome` 和 `webheap` 一样指定 Chrome。）
 
 **Android。** CI 拍一张图 `screenshot-android`：`android.yml` 的 `measure` 任务在模拟器跑 release APK，
+**Android。** CI 拍一张图 `screenshot-android`：`android.yml` 的 `measure` 任务在模拟器跑 release APK，
 `vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[安卓 App 指南](../user/android.md)里的
 九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），
 用 CI 构建出来的 release APK（它的构件 `vfox-plus-android`），以及[运行 App](environment.md#运行-app)里描述的 PC 端应用：
@@ -303,7 +318,7 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问这台电脑用的地址。配对屏、链接和证书就都写着实际使用的地址，
 也不必自己生成证书。这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、
 `android-settings`、`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南
-都用英文版。让图保持一致的做法，以及容易出错的地方：
+都用英文版。让图保持一致的做法以及容易出错的地方：
 
 - 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
   再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
