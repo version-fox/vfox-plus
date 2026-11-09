@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/url"
 	"sort"
 	"strings"
 )
@@ -100,6 +101,12 @@ type AppSettings struct {
 	// get over HTTPS, or empty for a certificate that the application makes for
 	// itself and signs itself.
 	WebCertificate, WebKey string
+	// The address at which something else publishes the web interface — a
+	// reverse proxy, a tunnel or the gateway — such as https://vfox.example.com.
+	// Pairing links and the code a phone scans carry it instead of the address of
+	// this computer on the network. Empty when the interface is only reachable
+	// where it runs.
+	WebPublicAddress string
 	// What the user chose to list for the plugins whose search takes an
 	// argument, such as the distribution of Java: the plugin name, then the
 	// value of the choice (`tem`). A plugin that lists its default has no entry.
@@ -125,6 +132,29 @@ const (
 // ValidWebPort reports whether port is one that the web interface may listen
 // on for other devices.
 func ValidWebPort(port int) bool { return port >= MinWebPort && port <= MaxWebPort }
+
+// ValidWebAddress reports whether address is a URL that a pairing link can name:
+// http or https, with a host. Anything else is kept out of the links.
+func ValidWebAddress(address string) bool {
+	address = strings.TrimSpace(address)
+	if address == "" {
+		return false
+	}
+	u, err := url.Parse(address)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return false
+	}
+	return u.Path == "" || u.Path == "/"
+}
+
+// EffectiveWebAddress is the public address to name in pairing links, or empty.
+func (s AppSettings) EffectiveWebAddress() string {
+	address := strings.TrimRight(strings.TrimSpace(s.WebPublicAddress), "/")
+	if ValidWebAddress(address) {
+		return address
+	}
+	return ""
+}
 
 // EffectiveWebPort is the port that other devices connect to.
 func (s AppSettings) EffectiveWebPort() int {
@@ -153,8 +183,8 @@ var knownKeys = map[string]bool{
 	"theme": true, "useSystemColor": true, "seedColor": true, "language": true,
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
 	"webInterface": true, "lightweight": true, "webRemote": true, "webPort": true,
-	"webCertificate": true, "webKey": true, "remoteAccess": true, "searches": true,
-	"updateMirror": true,
+	"webCertificate": true, "webKey": true, "webPublicAddress": true,
+	"remoteAccess": true, "searches": true, "updateMirror": true,
 }
 
 // Clone returns a copy that shares no map with s, so that it can be modified.
@@ -236,6 +266,9 @@ func SettingsFromJSON(data interface{}) AppSettings {
 	if certificate, ok := object["webCertificate"].(string); ok {
 		settings.WebCertificate = certificate
 	}
+	if address, ok := object["webPublicAddress"].(string); ok && ValidWebAddress(address) {
+		settings.WebPublicAddress = strings.TrimRight(strings.TrimSpace(address), "/")
+	}
 	if key, ok := object["webKey"].(string); ok {
 		settings.WebKey = key
 	}
@@ -276,6 +309,10 @@ func settingsJSON(settings AppSettings) string {
 	fmt.Fprintf(&out, ",%q:%v", "webRemote", settings.WebRemote)
 	if ValidWebPort(settings.WebPort) {
 		fmt.Fprintf(&out, ",%q:%d", "webPort", settings.WebPort)
+	}
+	if address := settings.EffectiveWebAddress(); address != "" {
+		quoted, _ := json.Marshal(address)
+		fmt.Fprintf(&out, ",%q:%s", "webPublicAddress", quoted)
 	}
 	for _, field := range []struct{ key, value string }{{"webCertificate", settings.WebCertificate}, {"webKey", settings.WebKey}} {
 		if field.value != "" {
@@ -329,6 +366,7 @@ func (s AppSettings) Equal(other AppSettings) bool {
 		s.WebInterface != other.WebInterface || s.Lightweight != other.Lightweight ||
 		s.WebRemote != other.WebRemote || s.EffectiveWebPort() != other.EffectiveWebPort() ||
 		s.WebCertificate != other.WebCertificate || s.WebKey != other.WebKey ||
+		s.EffectiveWebAddress() != other.EffectiveWebAddress() ||
 		s.UpdateMirror != other.UpdateMirror ||
 		len(s.ExtraEnvironment) != len(other.ExtraEnvironment) || len(s.Searches) != len(other.Searches) {
 		return false

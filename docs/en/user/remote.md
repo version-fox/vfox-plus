@@ -95,26 +95,34 @@ network, so allow it only in a network that you trust.
 
 - vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
   firewall of this computer has to allow it.
+- Beyond your own network, the interface is only reachable where something else publishes
+  it: a reverse proxy, a tunnel, or the [gateway](gateway.md). Put that address — such as
+  `https://vfox.example.com` — in **Public address** and the pairing links and the code use
+  it instead of the address of this computer, so a phone that is not at home can pair.
+  Without it the links name the address of this computer on the network, which only a phone
+  on the same network reaches.
 - Other devices connect over **HTTPS**. Without a certificate of your own, vfox-plus makes
   one for itself and signs it itself, and the settings show its SHA-256 fingerprint: compare
   it with the one that the browser or the Android app shows before you trust it. To use
   your own, choose *Certificate → Browse…*, then the certificate and its private key
   (PEM files).
-- *Pair a phone* shows the **QR code** of a pairing link, and the link. A computer that is
-  on more than one network has more than one address; choose the one that the phone
-  reaches. Scan the code with the [Android app](android.md), or open the link in a
-  browser of another computer. It works once and expires after five minutes.
+- *Pair a phone* shows the **QR code** of a pairing link; nothing else is needed to pair.
+  Scan it with the [Android app](android.md), or open the link in the browser of another
+  computer. The link is under *Link and certificate*, with the fingerprint of the
+  certificate for whoever wants to check them. A computer that is on more than one network,
+  or that has a public address, offers each address above the code: choose the one that the
+  phone reaches. The link works once and expires after five minutes.
 - A paired device keeps its session for 24 hours. Turning *Other devices* off, or
   closing vfox-plus, ends the connections of all of them at once, and they have to pair
   again.
 
 | The code and the link of *Pair a phone*, on the computer | The same, in a browser that is paired |
 | --- | --- |
-| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nD3gsGs.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nbG8Jgn.png) |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nD3gsGs.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nbXhe6X.png) |
 
 The settings of the web interface show the same switches: from a paired browser or phone
 you can allow other devices, change the port and turn the lightweight mode on or off, and
 *Pair a phone* shows the code there, too, which is how a computer without a window
 (lightweight mode) pairs a phone.
 
-![The connections in the settings of a paired web interface, on a phone](https://iili.io/nbG835G.png)
+![The connections in the settings of a paired web interface, on a phone](https://iili.io/nbXhhjp.png)

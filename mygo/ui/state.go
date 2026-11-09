@@ -49,6 +49,10 @@ type pageStates struct {
 	portReady bool
 	portSeen  int
 	portText  string
+	// publicAddressReady says that publicAddressText was filled with the address of the settings.
+	publicAddressReady bool
+	publicAddressSeen  string
+	publicAddressText  string
 	// pairing is the link and the code that the dialog of the pairing shows.
 	pairing *pairingState
 

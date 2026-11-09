@@ -176,21 +176,12 @@ export function renderWeb(): void {
     if (web.error) {
       h += '<div class="rowitem"><span class="bad t-label">' + esc(t("webError")) + " " + esc(web.error) + "</span></div>";
     } else if (web.listening) {
-      const reach = web.addresses.length
-        ? "<br><span class='t-label'>" +
-          esc(t("webReach")) +
-          "</span> " +
-          web.addresses.map((a) => "<code>" + esc("https://" + (a.includes(":") ? "[" + a + "]" : a) + ":" + web.port) + "</code>").join(" ")
-        : "<br><span class='bad t-label'>" + esc(t("webNoAddress")) + "</span>";
-      const print =
-        "<br><span class='muted t-label'>" + esc(t("webFingerprint")) + "</span><br><code>" + esc(web.fingerprint) + "</code>";
+      // The code is the pairing: the link and the fingerprint are for whoever
+      // wants to check them, and stay folded away.
       h += webRow(
         "hub",
         t("webPairBtn"),
-        window.vfoxAndroid || !web.addresses.length
-          ? ""
-          : "<button class='btn tonal' id='webPair'>" + esc(t("webPairBtn")) + "</button>",
-        reach + print,
+        "<button class='btn tonal' id='webPair'>" + esc(t("pairShowCode")) + "</button>",
       );
     }
   }
@@ -223,7 +214,7 @@ export async function showPairing(host: string): Promise<void> {
   try {
     const web = state.web;
     const pairing = (await api("/api/web/pairing", { method: "POST", body: JSON.stringify({ host }) })) as Pairing;
-    pairing.host = host || (web && web.addresses[0]) || "";
+    pairing.host = host || (web && (web.publicAddress || web.addresses[0])) || "";
     state.pairing = pairing;
   } catch (e) {
     state.pairing = null;
@@ -241,12 +232,24 @@ export function renderPairing(): void {
     box.innerHTML = "";
     return;
   }
+  // The addresses a phone may reach, the public one first: the same link with
+  // another address, and the same code.
+  const choices: { value: string; label: string }[] = [];
+  if (web.publicAddress) choices.push({ value: web.publicAddress, label: web.publicAddress.replace(/^https?:\/\//, "") });
+  web.addresses.forEach((a) => choices.push({ value: a, label: a }));
   const hosts =
-    web.addresses.length > 1
+    choices.length > 1
       ? "<div class='seg' id='pairHosts'>" +
-        web.addresses
+        choices
           .map(
-            (a) => "<button data-host='" + esc(a) + "' aria-pressed='" + (a === pairing.host) + "'>" + esc(a) + "</button>",
+            (c) =>
+              "<button data-host='" +
+              esc(c.value) +
+              "' aria-pressed='" +
+              (c.value === pairing.host) +
+              "'>" +
+              esc(c.label) +
+              "</button>",
           )
           .join("") +
         "</div>"
@@ -254,17 +257,24 @@ export function renderPairing(): void {
   box.innerHTML =
     "<div class='qr'>" +
     pairing.svg +
-    '</div><div class="t-label muted">' +
-    esc(t("webPairHelp")) +
+    '</div><div class="muted t-label">' +
+    esc(t("pairScan")) +
     "</div>" +
     hosts +
-    "<code>" +
-    esc(pairing.url) +
-    '</code><div class="row"><button class="btn" id="pairCopy">' +
+    '<div class="row"><button class="btn text" id="pairCopy">' +
     esc(t("webCopyLink")) +
     '</button><button class="btn text" id="pairClose">' +
     esc(t("close")) +
-    "</button></div>";
+    "</button></div>" +
+    '<details class="tech"><summary>' +
+    esc(t("pairDetails")) +
+    "</summary><code>" +
+    esc(pairing.url) +
+    '</code><p class="muted t-label">' +
+    esc(t("webFingerprint")) +
+    "</p><code>" +
+    esc(web.fingerprint) +
+    "</code></details>";
   box.hidden = false;
   el("pairCopy").onclick = () => copyText(pairing.url);
   el("pairClose").onclick = () => {

@@ -198,4 +198,7 @@ export const en = {
   statusDone: "Done",
   statusFailed: "Failed",
   statusCancelled: "Cancelled",
+  pairDetails: "Link and certificate",
+  pairScan: "Scan this code with the Android app.",
+  pairShowCode: "Show code",
 } as const;

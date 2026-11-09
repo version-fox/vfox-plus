@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
@@ -284,10 +285,25 @@ func (h *Host) RemoteLink(host string) (string, error) {
 		return "", ErrNoRemote
 	}
 	addresses := NetworkAddresses()
-	if host == "" && len(addresses) > 0 {
-		host = addresses[0]
+	host = strings.TrimSpace(host)
+	public := h.model.Settings.Settings().EffectiveWebAddress()
+	switch {
+	case host == "":
+		// The address that a phone reaches first: the public one when the user
+		// published the interface, and else the likeliest address at home.
+		if public != "" {
+			host = public
+		} else if len(addresses) > 0 {
+			host = addresses[0]
+		}
+	case host == public:
+		// The configured public address is one of the two answers, with the
+		// addresses of this computer.
+	case slices.Contains(addresses, host):
+	default:
+		return "", ErrNoAddress
 	}
-	if host == "" || !slices.Contains(addresses, host) {
+	if host == "" {
 		return "", ErrNoAddress
 	}
 	token, _, err := remote.NewToken()

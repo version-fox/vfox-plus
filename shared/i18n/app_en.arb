@@ -1009,6 +1009,12 @@
   "@settingsWebPort": { "description": "Title of the field of the port that other devices connect to." },
   "settingsWebPortHelp": "Other devices connect to this port. Allow it in the firewall of this computer.",
   "@settingsWebPortHelp": { "description": "Explains the port that other devices connect to." },
+  "settingsWebPublicAddress": "Public address",
+  "@settingsWebPublicAddress": { "description": "Title of the field of the address at which a proxy, a tunnel or the gateway publishes the interface." },
+  "settingsWebPublicAddressHelp": "The address where a reverse proxy, a tunnel or the gateway publishes this interface, such as https://vfox.example.com. Pairing links and the code a phone scans carry it instead of the address of this computer.",
+  "@settingsWebPublicAddressHelp": { "description": "Explains the public address of the web interface." },
+  "settingsWebPublicAddressInvalid": "Write the address as https://…",
+  "@settingsWebPublicAddressInvalid": { "description": "Tells that the public address is not a URL." },
   "webPortInvalid": "Choose a port between {min} and {max}.",
   "@webPortInvalid": {
     "description": "Says that the port is not one that can be used.",

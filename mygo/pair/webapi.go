@@ -682,6 +682,9 @@ type WebDTO struct {
 	Listening bool `json:"listening"`
 	// Addresses are the addresses of this computer that they can connect to.
 	Addresses []string `json:"addresses"`
+	// PublicAddress is where something else publishes the interface, such as
+	// https://vfox.example.com, or empty when it is only reachable here.
+	PublicAddress string `json:"publicAddress"`
 	// Fingerprint is the SHA-256 fingerprint of the certificate they get.
 	Fingerprint string `json:"fingerprint"`
 	// SelfSigned reports whether the application made that certificate itself.
@@ -693,7 +696,10 @@ type WebDTO struct {
 // webDTO describes the connections of other devices.
 func (s *Server) webDTO() WebDTO {
 	current := s.model.Settings.Settings()
-	dto := WebDTO{Remote: current.WebRemote, Port: current.EffectiveWebPort(), Lightweight: current.Lightweight, Addresses: []string{}}
+	dto := WebDTO{
+		Remote: current.WebRemote, Port: current.EffectiveWebPort(), Lightweight: current.Lightweight,
+		Addresses: []string{}, PublicAddress: current.EffectiveWebAddress(),
+	}
 	if s.control != nil {
 		status := s.control.Status()
 		dto.Listening, dto.Fingerprint, dto.SelfSigned, dto.Error = status.Remote, status.Fingerprint, status.SelfSigned, status.RemoteError

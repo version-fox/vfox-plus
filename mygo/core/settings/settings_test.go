@@ -236,6 +236,37 @@ func TestThePortOfTheWebInterfaceIsOneThatAnApplicationMayListenOn(t *testing.T)
 	}
 }
 
+func TestThePublicAddressOfTheWebInterface(t *testing.T) {
+	for _, good := range []string{"https://vfox.example.com", "http://vfox.example.com:8080", "https://vfox.example.com/"} {
+		if !settings.ValidWebAddress(good) {
+			t.Errorf("%q is a URL to publish the interface at", good)
+		}
+	}
+	for _, bad := range []string{"", "vfox.example.com", "ftp://vfox.example.com", "https://", "https://vfox.example.com/app"} {
+		if settings.ValidWebAddress(bad) {
+			t.Errorf("%q is no URL of the interface", bad)
+		}
+	}
+	if got := (settings.AppSettings{WebPublicAddress: "https://vfox.example.com/"}).EffectiveWebAddress(); got != "https://vfox.example.com" {
+		t.Errorf("the address has no trailing slash, got %q", got)
+	}
+	// A settings file with the address keeps it, and one with a bad address ignores it.
+	got := settings.SettingsFromJSON(decode(t, `{"webPublicAddress":"https://vfox.example.com"}`))
+	if got.WebPublicAddress != "https://vfox.example.com" {
+		t.Errorf("the address is read, got %q", got.WebPublicAddress)
+	}
+	if got := settings.SettingsFromJSON(decode(t, `{"webPublicAddress":"not a URL"}`)); got.WebPublicAddress != "" {
+		t.Errorf("an address that is not a URL is ignored, got %q", got.WebPublicAddress)
+	}
+	// Equal sees it, so a change of only the address is saved.
+	base := settings.DefaultSettings()
+	other := base.Clone()
+	other.WebPublicAddress = "https://vfox.example.com"
+	if base.Equal(other) {
+		t.Error("a settings with another public address is not the same")
+	}
+}
+
 func TestLanguageCodes(t *testing.T) {
 	if settings.LanguageSystem.LanguageCode() != "" || settings.LanguageEnglish.LanguageCode() != "en" ||
 		settings.LanguageSimplifiedChinese.LanguageCode() != "zh" {

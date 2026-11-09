@@ -198,4 +198,7 @@ export const zh = {
   statusDone: "完成",
   statusFailed: "失败",
   statusCancelled: "已取消",
+  pairDetails: "链接与证书",
+  pairScan: "用安卓应用扫描这个二维码。",
+  pairShowCode: "显示二维码",
 } as const;

@@ -550,3 +550,10 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .mfab{display:none!important}
   main{padding-bottom:calc(104px + var(--sai-bottom))}
 }
+
+/* The pairing box: the code first, the link and the fingerprint folded away */
+.pairbox .qr{max-width:240px}
+.pairbox .tech{margin-top:4px;font-size:12px;color:var(--m3-on-surface-variant);max-width:100%}
+.pairbox .tech summary{cursor:pointer;font-weight:500;color:var(--m3-primary);padding:4px 0}
+.pairbox .tech code{display:block;overflow-wrap:anywhere;margin:4px 0 8px}
+.pairbox .tech p{margin:0}

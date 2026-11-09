@@ -65,7 +65,7 @@ func (a *App) webSection(k kit.Ctx) {
 	}
 	items = append(items, a.lightweightItem(k, current), a.remoteItem(k, current, status))
 	if current.WebInterface && current.WebRemote {
-		items = append(items, a.portItem(k, current))
+		items = append(items, a.portItem(k, current), a.publicAddressItem(k, current))
 		if status.Remote {
 			items = append(items, a.pairItem(k, status), a.certificateItem(k, current, status))
 		}
@@ -198,6 +198,35 @@ func (a *App) portItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec
 				ID: "web-port.field", Hint: itoa(settings.DefaultWebPort), Text: &a.pages.portText, Dense: true,
 				OnSubmit: save, OnBlur: save,
 			}).Width(120)
+		},
+	}
+}
+
+// publicAddressItem is the address at which something else publishes the
+// interface: pairing links and the code a phone scans carry it instead of the
+// address of this computer on the network.
+func (a *App) publicAddressItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec {
+	if address := current.EffectiveWebAddress(); !a.pages.publicAddressReady || address != a.pages.publicAddressSeen {
+		a.pages.publicAddressReady, a.pages.publicAddressSeen, a.pages.publicAddressText = true, address, address
+	}
+	save := func(text string) {
+		address := strings.TrimRight(strings.TrimSpace(text), "/")
+		if address != "" && !settings.ValidWebAddress(address) {
+			a.pages.publicAddressText = a.model.Settings.Settings().EffectiveWebAddress()
+			a.notify(a.T("settingsWebPublicAddressInvalid"))
+			return
+		}
+		a.pages.publicAddressSeen = address
+		a.updateSettings(func(s *settings.AppSettings) { s.WebPublicAddress = address })
+	}
+	return kit.ListItemSpec{
+		ID: "web-public-address", Title: a.T("settingsWebPublicAddress"), Subtitle: a.T("settingsWebPublicAddressHelp"),
+		Leading: icon(k, "proxy"), Wrap: a.wideSettingsWrap(k),
+		Trailing: func() {
+			kit.TextField(k, kit.TextFieldSpec{
+				ID: "web-public-address.field", Hint: "https://vfox.example.com", Text: &a.pages.publicAddressText,
+				Dense: true, OnSubmit: save, OnBlur: save,
+			}).Width(260)
 		},
 	}
 }

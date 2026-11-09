@@ -72,6 +72,7 @@ export interface WebState {
   error: string;
   listening: boolean;
   addresses: string[];
+  publicAddress: string;
   fingerprint: string;
   lightweight: boolean;
 }
