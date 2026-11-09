@@ -11,7 +11,9 @@
   "containerUser": "${localEnv:VFOX_PLUS_DEVCONTAINER_USER:vscode}",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {
-      "moby": false
+      "moby": false,
+      "dockerDashComposeVersion": "none",
+      "installDockerBuildx": false
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "24"
