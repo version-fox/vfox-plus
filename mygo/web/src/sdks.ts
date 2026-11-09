@@ -356,6 +356,7 @@ function renderAvailable(body: HTMLElement): void {
     "<span>" +
     esc(t("installByName")) +
     "</span></button>" +
+    "</div>" +
     '<div id="availBody"></div>';
   const choose = document.getElementById("chooseBtn");
   if (choose) choose.onclick = () => openChooser();

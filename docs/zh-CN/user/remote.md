@@ -21,7 +21,7 @@ vfox-plus 是桌面应用，没有命令行：像其他应用一样启动它，�
 
 | 配对后的 Web 界面 | 其中的 Java：Temurin，长期支持版 |
 | --- | --- |
-| ![配对后的 Web 界面](https://iili.io/nbUYSr7.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nbUYDrP.png) |
+| ![配对后的 Web 界面](https://iili.io/nbUYSr7.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nbgPBO7.png) |
 
 Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
 按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，vfox-plus

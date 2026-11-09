@@ -30,7 +30,7 @@ interface.
 
 | The paired web interface | Java in it: Temurin, long-term support |
 | --- | --- |
-| ![The paired web interface](https://iili.io/nbUYG1I.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nbUYhes.png) |
+| ![The paired web interface](https://iili.io/nbUYG1I.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nbg6mNt.png) |
 
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*
