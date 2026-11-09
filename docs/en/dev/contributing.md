@@ -7,6 +7,9 @@ the [user guide](../user/index.md)); most of what follows applies to all of its 
 
 ## Ground rules
 
+- A commit names the people who wrote and reviewed it. Do not add
+  `Co-authored-by` trailers for AI agents or tools; the repository workflow
+  rejects them.
 - Code comments, commit messages and pull requests are written in
   **English**. User-visible texts go through the translation catalogues in
   [`shared/i18n`](../../../shared/i18n) and are available in English and Simplified

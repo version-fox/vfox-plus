@@ -52,6 +52,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit messages of the whole pull request, which the check below reads.
+          fetch-depth: 0
+      - name: No AI agent co-authors
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$base" ]; then base="HEAD^"; fi
+          if git log --format=%B "$base..HEAD" | grep -qiE '^Co-authored-by:.*(opencode|claude|codex|copilot|cursor|devin|aider|gemini)'; then
+            echo "::error::A commit names an AI agent as its co-author. A commit carries the people who wrote and reviewed it."
+            exit 1
+          fi
       - name: Install actionlint
         env:
           GH_TOKEN: ${{ github.token }}
