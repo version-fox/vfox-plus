@@ -33,6 +33,11 @@
 # Docker runs the image under emulation.
 FROM --platform=linux/amd64 ubuntu:26.04
 
+# The release downloads below fall back to the GitHub API when the release
+# service is slow or answers 504.
+COPY shared/scripts/download-release-asset.sh /usr/local/bin/download-release-asset
+RUN chmod 755 /usr/local/bin/download-release-asset
+
 # An Ubuntu archive mirror such as http://mirrors.aliyun.com/ubuntu/, if the
 # default archive is slow from where the image is built (the build argument
 # that devcontainer.json fills from SANDBOX_UBUNTU_MIRROR).
@@ -118,9 +123,9 @@ set -eu
 . /tmp/mygo.env
 test -n "$GOLANGCI_LINT_VERSION"
 test -n "$GOLANGCI_LINT_SHA256"
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/golangci-lint.tar.gz \
-  "https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz"
-echo "$GOLANGCI_LINT_SHA256  /tmp/golangci-lint.tar.gz" | sha256sum --check --strict -
+download-release-asset golangci/golangci-lint "v$GOLANGCI_LINT_VERSION" \
+  "golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64.tar.gz" \
+  /tmp/golangci-lint.tar.gz "$GOLANGCI_LINT_SHA256"
 tar -xzf /tmp/golangci-lint.tar.gz -C /tmp
 install -m 755 "/tmp/golangci-lint-$GOLANGCI_LINT_VERSION-linux-amd64/golangci-lint" /usr/local/bin/golangci-lint
 rm -rf /tmp/golangci-lint*
@@ -134,9 +139,8 @@ set -eu
 . /tmp/mygo.env
 test -n "$VFOX_VERSION"
 test -n "$VFOX_SHA256"
-curl -fsSL --retry 5 --retry-all-errors -o /tmp/vfox.tar.gz \
-  "https://github.com/version-fox/vfox/releases/download/v$VFOX_VERSION/vfox_${VFOX_VERSION}_linux_x86_64.tar.gz"
-echo "$VFOX_SHA256  /tmp/vfox.tar.gz" | sha256sum --check --strict -
+download-release-asset version-fox/vfox "v$VFOX_VERSION" \
+  "vfox_${VFOX_VERSION}_linux_x86_64.tar.gz" /tmp/vfox.tar.gz "$VFOX_SHA256"
 tar -xzf /tmp/vfox.tar.gz -C /tmp
 install -m 755 "/tmp/vfox_${VFOX_VERSION}_linux_x86_64/vfox" /usr/local/bin/vfox
 rm -rf /tmp/vfox*
