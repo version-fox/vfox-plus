@@ -118,6 +118,8 @@ export async function showDetail(name: string, keep?: boolean): Promise<void> {
     loading: false,
     token: 0,
   };
+  state.detailName = name;
+  document.querySelector("#tab-sdks")?.classList.add("detail-open");
   renderSdks();
   const box = el("sdkDetail");
   box.innerHTML = spinner();
@@ -125,7 +127,6 @@ export async function showDetail(name: string, keep?: boolean): Promise<void> {
     api("/api/sdks/" + encodeURIComponent(name) + "/info").catch(() => null),
     api("/api/sdks/" + encodeURIComponent(name) + "/profile").catch(() => null),
   ]);
-  state.detailName = name;
   const d = state.detail;
   if (!d || d.name !== name) return;
   d.info = info;

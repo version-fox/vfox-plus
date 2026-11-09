@@ -21,7 +21,7 @@ vfox-plus 是桌面应用，没有命令行：像其他应用一样启动它，�
 
 | 配对后的 Web 界面 | 其中的 Java：Temurin，长期支持版 |
 | --- | --- |
-| ![配对后的 Web 界面](https://iili.io/nD3rB9V.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nD3rcNI.png) |
+| ![配对后的 Web 界面](https://iili.io/nbG8Fef.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nbVn53x.png) |
 
 Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
 按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，vfox-plus
@@ -82,9 +82,9 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
 
 | 在电脑上，*配对手机*显示的二维码与链接 | 在已配对的浏览器里，同样的内容 |
 | --- | --- |
-| ![在 vfox-plus 的窗口里，给手机配对的二维码与链接](https://iili.io/nD3rJne.png) | ![网页界面的设置里，给手机配对的二维码](https://iili.io/nD34JON.png) |
+| ![在 vfox-plus 的窗口里，给手机配对的二维码与链接](https://iili.io/nD3rJne.png) | ![网页界面的设置里，给手机配对的二维码](https://iili.io/nbG8CsS.png) |
 
 网页界面的设置里有同样的开关：在已配对的浏览器或手机上就能允许其他设备、修改端口、开关轻量
 模式，*配对手机*在那里也会显示二维码——没有窗口的电脑（轻量模式）就是这样给手机配对的。
 
-![已配对的网页界面设置里的连接卡片，在手机上](https://iili.io/nD3r8iu.png)
+![已配对的网页界面设置里的连接卡片，在手机上](https://iili.io/nbG8oq7.png)

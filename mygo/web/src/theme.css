@@ -535,10 +535,18 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .stats .stat .ic-row{margin-bottom:4px}
   .stats .stat .n{font-size:26px}
   .list .item{padding:14px 14px}
-  .pagehead{gap:6px}
+  .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
+  .pagehead .grow{display:none}
+  .pagehead .iconbtn{width:36px;height:36px}
+  .pagehead .btn{min-height:36px;padding:0 12px}
   .searchrow{flex-direction:column;align-items:stretch;gap:8px}
   .searchrow .seg{align-self:flex-start}
   .rowitem{padding:12px 0}
   .rowitem .seg{flex-wrap:wrap}
   .codefield{margin-top:8px}
+}
+@media (max-width:700px){
+  /* the bar already has the plugins destination; the floating button only ate the corner */
+  .mfab{display:none!important}
+  main{padding-bottom:calc(104px + var(--sai-bottom))}
 }
