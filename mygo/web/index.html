@@ -67,58 +67,88 @@
 </header>
 <main>
   <section class="page" id="tab-home">
-    <div class="pane">
-      <div class="t-title-l" id="homeTitle">vfox-plus</div>
-      <div class="muted t-body" id="homeSub"></div>
-      <div class="row" style="margin-top:8px"><button class="btn text" id="homeRefresh"><svg class="ic sm"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
+    <div class="pane hero">
+      <div class="row">
+        <div class="grow">
+          <div class="t-title-l" id="homeTitle">vfox+</div>
+          <div class="muted t-body" id="homeSub"></div>
+        </div>
+        <button class="iconbtn" id="homeRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+      </div>
     </div>
     <div class="stats" id="homeStats"></div>
-    <div class="card"><div class="t-title-m" id="h-active">In use</div><div class="list" id="homeActive"></div></div>
-    <div class="card"><div class="t-title-m" id="h-shell">Use in a terminal</div><p class="muted t-body" id="shellBody"></p><div class="row"><code id="shellCmd">eval "$(vfox activate bash)"</code><button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button></div></div>
-    <div class="row" style="gap:12px">
-      <div class="card" style="flex:1;min-width:220px"><div class="t-title-m" id="h-explore">Explore</div><p class="muted t-body" id="exploreBody"></p><button class="btn" id="exploreBtn"><svg class="ic sm"><use href="#i-explore"/></svg><span>Plugins</span></button></div>
-      <div class="card" style="flex:1;min-width:220px"><div class="t-title-m" id="h-docs">Docs</div><p class="muted t-body">vfox.dev</p><button class="btn" id="docsBtn"><svg class="ic sm"><use href="#i-menu-book"/></svg><span>vfox docs</span></button></div>
+    <div class="sectionlabel" id="h-active">In use</div>
+    <div class="list grouped" id="homeActive"></div>
+    <div class="pane">
+      <div class="row"><span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span><div class="t-title-m" id="h-shell">Use in a terminal</div></div>
+      <p class="muted t-body" id="shellBody"></p>
+      <div class="codefield"><code id="shellCmd">eval "$(vfox activate bash)"</code><button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button></div>
+    </div>
+    <div class="row cards2">
+      <button class="pane linkcard" id="exploreBtn">
+        <span class="icon-tile"><svg class="ic"><use href="#i-explore"/></svg></span>
+        <span class="grow"><span class="t-title-m" id="h-explore">Plugins</span><span class="muted t-body" id="exploreBody"></span></span>
+        <svg class="ic muted"><use href="#i-chevron-right"/></svg>
+      </button>
+      <button class="pane linkcard" id="docsBtn">
+        <span class="icon-tile"><svg class="ic"><use href="#i-menu-book"/></svg></span>
+        <span class="grow"><span class="t-title-m" id="h-docs">Documentation</span><span class="muted t-body" id="docsBody"></span></span>
+        <svg class="ic muted"><use href="#i-open-in-new"/></svg>
+      </button>
     </div>
   </section>
   <section class="page" id="tab-sdks">
+    <div class="pagehead">
+      <h1 class="pagetitle" id="h-installed">SDKs</h1>
+      <span class="sp"></span>
+      <button class="iconbtn" id="sdkRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+    </div>
     <div class="sdk-grid" id="sdkGrid">
-      <div class="card pane-list"><div class="row"><div class="t-title-m" id="h-installed" style="flex:1">Installed</div><button class="iconbtn sm" id="sdkRefresh" title="Refresh"><svg class="ic sm"><use href="#i-refresh"/></svg></button></div>
+      <div class="pane pane-list">
         <div class="search"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="sdkSearch" placeholder="Search…"></div>
         <div class="list" id="sdkList"></div>
       </div>
-      <div class="card pane-detail"><div id="sdkDetail"><p class="muted" id="pickSdk">Pick an SDK.</p></div></div>
+      <div class="pane pane-detail"><div id="sdkDetail"><p class="muted" id="pickSdk">Pick an SDK.</p></div></div>
     </div>
   </section>
   <section class="page" id="tab-plugins">
-    <div class="card"><div class="t-title-m" id="h-add">Add a plugin</div>
-      <div class="row"><input id="addSource" size="30" placeholder="https://…"><input id="addAlias" size="10" placeholder="alias"><button id="addBtn" class="btn primary">Add</button></div>
-      <div class="row" style="margin-top:8px"><input type="file" id="addFile" accept=".zip,.lua"><button id="uploadBtn" class="btn">Upload &amp; add</button></div>
+    <div class="pagehead">
+      <div class="grow"><h1 class="pagetitle" id="h-add">Plugins</h1><div class="muted t-body" id="pluginsLead"></div></div>
+      <button class="btn text" id="updateAllBtn"><svg class="ic sm"><use href="#i-update"/></svg><span>Update all</span></button>
+      <button class="iconbtn" id="regRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+      <button class="btn tonal" id="addPluginBtn"><svg class="ic sm"><use href="#i-add"/></svg><span id="addPluginLabel">Add from source</span></button>
     </div>
-    <div class="card"><div class="row"><div class="t-title-m" id="h-registry" style="margin:0;flex:1">Registry</div><button class="btn text" id="updateAllBtn">Update all</button><button class="iconbtn sm" id="regRefresh" title="Refresh"><svg class="ic sm"><use href="#i-refresh"/></svg></button></div>
-      <div class="search"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="pluginSearch" placeholder="Search…"></div>
+    <div class="row searchrow">
+      <div class="search grow"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="pluginSearch" placeholder="Search…"></div>
       <div class="seg" id="pluginFilter"><button data-f="all" aria-pressed="true">All</button><button data-f="official" aria-pressed="false">Official</button><button data-f="community" aria-pressed="false">Community</button></div>
-      <div class="grid-cards" id="pluginList" style="margin-top:12px"></div>
     </div>
+    <div class="grid-cards" id="pluginList"></div>
   </section>
   <section class="page" id="tab-tasks">
-    <div class="card"><div class="row"><div class="t-title-m" id="h-tasks" style="margin:0;flex:1">Tasks</div><button class="btn text" id="clearBtn">Clear finished</button></div><div id="taskList"></div></div>
+    <div class="pagehead">
+      <h1 class="pagetitle" id="h-tasks">Tasks</h1>
+      <span class="sp"></span>
+      <button class="btn text" id="clearBtn"><svg class="ic sm"><use href="#i-check-circle"/></svg><span>Clear finished</span></button>
+    </div>
+    <div class="list grouped" id="taskList"></div>
   </section>
   <section class="page" id="tab-settings">
+    <h1 class="pagetitle" id="h-settings">Settings</h1>
     <div class="card" id="phoneCard" hidden><div class="t-title-m" id="h-phone">This phone</div>
-      <div class="phone"><span class="avatar av-p av-3" aria-hidden="true"><svg class="ic"><use href="#i-link"/></svg></span><div><div class="t-label muted" id="phoneLead">Connected to</div><div class="phone-server" id="phoneServer"></div></div></div>
+      <div class="phone"><span class="avatar av-p av-3" aria-hidden="true"><svg class="ic"><use href="#i-devices"/></svg></span><div><div class="t-label muted" id="phoneLead">Connected to</div><div class="phone-server" id="phoneServer"></div></div></div>
       <div class="row"><button class="btn" id="phonePair"><svg class="ic sm"><use href="#i-link"/></svg><span>Pair a new link</span></button><button class="btn danger" id="phoneOut"><svg class="ic sm"><use href="#i-link-off"/></svg><span>Disconnect</span></button></div>
     </div>
-    <div class="card" id="webCard"><div class="t-title-m" id="h-web">Connections</div>
-      <div class="list" id="webList"></div>
-      <div class="pairbox" id="pairBox" hidden></div>
+    <div class="sectionlabel" id="h-web">Connections</div>
+    <div class="pane"><div class="list" id="webList"></div><div class="pairbox" id="pairBox" hidden></div></div>
+    <div class="sectionlabel" id="h-gui">Application</div>
+    <div class="pane">
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span><span class="grow"><span class="t-title-m" id="l-vfox">vfox executable</span><input id="setVfox" class="mono" size="30"></span><button id="saveVfox" class="btn tonal">Save</button></div>
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-translate"/></svg></span><span class="grow"><span class="t-title-m" id="l-lang">Application language</span></span><div class="seg" id="langSeg"><button data-l="system">system</button><button data-l="english">english</button><button data-l="simplifiedChinese">简体中文</button></div></div>
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-language"/></svg></span><span class="grow"><span class="t-title-m" id="l-pageLang">Page language</span></span><div class="seg" id="pageLangSeg"><button data-l="system">system</button><button data-l="en">English</button><button data-l="zh">简体中文</button></div></div>
+      <div class="rowitem col"><span class="row"><span class="icon-tile"><svg class="ic"><use href="#i-data-object"/></svg></span><span class="t-title-m" id="l-env">Extra environment (KEY=value, one per line)</span></span><textarea id="setEnv" rows="3"></textarea><div><button id="saveEnv" class="btn tonal">Save</button></div></div>
     </div>
-    <div class="card"><div class="t-title-m" id="h-gui">Application</div>
-      <div class="field"><label>vfox</label><div class="row"><input id="setVfox" size="30"><button id="saveVfox" class="btn">Save</button></div></div>
-      <div class="field"><label id="l-lang">Language</label><div class="row"><div class="seg" id="langSeg"><button data-l="system">system</button><button data-l="english">english</button><button data-l="simplifiedChinese">简体中文</button></div></div></div>
-      <div class="field"><label id="l-pageLang">Page language</label><div class="row"><div class="seg" id="pageLangSeg"><button data-l="system">system</button><button data-l="en">English</button><button data-l="zh">简体中文</button></div></div></div>
-      <div class="field"><label id="l-env">Extra environment (KEY=value, one per line)</label><textarea id="setEnv" rows="4" cols="50"></textarea><div><button id="saveEnv" class="btn" style="margin-top:6px">Save</button></div></div>
-    </div>
-    <div class="card"><div class="t-title-m" id="h-config">vfox config</div><div id="configList"></div></div>
+    <div class="sectionlabel" id="h-config">vfox config</div>
+    <div class="pane"><div class="list" id="configList"></div></div>
   </section>
 </main>
 </div>
@@ -180,8 +210,14 @@
 <symbol id="i-hub" viewBox="0 -960 960 960"><path d="M240-40q-50 0-85-35t-35-85q0-50 35-85t85-35q14 0 26 3t23 8l57-71q-28-31-39-70t-5-78l-81-27q-17 25-43 40t-58 15q-50 0-85-35T0-580q0-50 35-85t85-35q50 0 85 35t35 85v8l81 28q20-36 53.5-61t75.5-32v-87q-39-11-64.5-42.5T360-840q0-50 35-85t85-35q50 0 85 35t35 85q0 42-26 73.5T510-724v87q42 7 75.5 32t53.5 61l81-28v-8q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35q-32 0-58.5-15T739-515l-81 27q6 39-5 77.5T614-340l57 70q11-5 23-7.5t26-2.5q50 0 85 35t35 85q0 50-35 85t-85 35q-50 0-85-35t-35-85q0-20 6.5-38.5T624-232l-57-71q-41 23-87.5 23T392-303l-56 71q11 15 17.5 33.5T360-160q0 50-35 85t-85 35ZM120-540q17 0 28.5-11.5T160-580q0-17-11.5-28.5T120-620q-17 0-28.5 11.5T80-580q0 17 11.5 28.5T120-540Zm120 420q17 0 28.5-11.5T280-160q0-17-11.5-28.5T240-200q-17 0-28.5 11.5T200-160q0 17 11.5 28.5T240-120Zm240-680q17 0 28.5-11.5T520-840q0-17-11.5-28.5T480-880q-17 0-28.5 11.5T440-840q0 17 11.5 28.5T480-800Zm0 440q42 0 71-29t29-71q0-42-29-71t-71-29q-42 0-71 29t-29 71q0 42 29 71t71 29Zm240 240q17 0 28.5-11.5T760-160q0-17-11.5-28.5T720-200q-17 0-28.5 11.5T680-160q0 17 11.5 28.5T720-120Zm120-420q17 0 28.5-11.5T880-580q0-17-11.5-28.5T840-620q-17 0-28.5 11.5T800-580q0 17 11.5 28.5T840-540ZM480-840ZM120-580Zm360 120Zm360-120ZM240-160Zm480 0Z"/></symbol>
 <symbol id="i-keyboard-arrow-down" viewBox="0 -960 960 960"><path d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></symbol>
 <symbol id="i-history" viewBox="0 -960 960 960"><path d="M480-120q-126 0-223-76.5T131-392q-4-15 6-27.5t27-14.5q16-2 29 6t18 24q24 90 99 147t170 57q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h70q17 0 28.5 11.5T360-600q0 17-11.5 28.5T320-560H160q-17 0-28.5-11.5T120-600v-160q0-17 11.5-28.5T160-800q17 0 28.5 11.5T200-760v54q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm40-376 100 100q11 11 11 28t-11 28q-11 11-28 11t-28-11L452-452q-6-6-9-13.5t-3-15.5v-159q0-17 11.5-28.5T480-680q17 0 28.5 11.5T520-640v144Z"/></symbol>
-<symbol id="i-link" viewBox="0 0 24 24"><path d="M7 17q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h3q.425 0 .713.288T11 8t-.288.713T10 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h3q.425 0 .713.288T11 16t-.288.713T10 17zm2-4q-.425 0-.712-.288T8 12t.288-.712T9 11h6q.425 0 .713.288T16 12t-.288.713T15 13zm5 4q-.425 0-.712-.288T13 16t.288-.712T14 15h3q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-3q-.425 0-.712-.288T13 8t.288-.712T14 7h3q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol>
-<symbol id="i-link-off" viewBox="0 0 24 24"><path d="M15.625 12.775L13.85 11H15q.425 0 .713.288T16 12q0 .25-.1.45t-.275.325M20.5 21.9q-.275.275-.7.275t-.7-.275l-17-17q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l17 17q.275.275.275.7t-.275.7M7 17q-2.075 0-3.537-1.463T2 12q0-1.725 1.05-3.075t2.7-1.775L7.6 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h3q.425 0 .713.288T11 16t-.288.713T10 17zm2-4q-.425 0-.712-.288T8 12t.288-.712T9 11h.625l1.975 2zm9.5 2.8q-.225-.35-.162-.75t.412-.625q.575-.425.913-1.05T20 12q0-1.25-.875-2.125T17 9h-3q-.425 0-.712-.288T13 8t.288-.712T14 7h3q2.075 0 3.538 1.463T22 12q0 1.225-.562 2.288t-1.563 1.762q-.35.225-.75.163T18.5 15.8"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol>
+<symbol id="i-link-off" viewBox="0 0 24 24"><path d="m19.25 16.45l-1.5-1.55q1-.275 1.625-1.063T20 12q0-1.25-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12q0 1.425-.737 2.625T19.25 16.45M15.85 13l-2-2H16v2zm3.95 9.6L1.4 4.2l1.4-1.4l18.4 18.4zM11 17H7q-2.075 0-3.537-1.463T2 12q0-1.725 1.05-3.075t2.7-1.775L7.6 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h1.625l1.975 2z"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h6l2 2h8q.825 0 1.413.588T22 8v10q0 .825-.587 1.413T20 20z"/></symbol>
+<symbol id="i-eco" viewBox="0 0 24 24"><path d="m10.825 16.325l4.6-4.1q.225-.2.125-.475t-.4-.325l-3.6-.35L13.7 8.1q.075-.125.088-.238T13.7 7.65q-.1-.125-.25-.112t-.275.112L8.6 11.75q-.225.2-.125.475t.4.325l3.6.35l-2.175 2.975q-.075.125-.075.237t.1.213t.238.1t.262-.1M12 20q-1.4 0-2.637-.438T7.1 18.325L5.725 19.7q-.15.15-.337.225T5 20q-.425 0-.712-.288T4 19q0-.2.075-.387t.225-.338L5.675 16.9q-.8-1.025-1.237-2.262T4 12q0-3.35 2.325-5.675T12 4h8v8q0 3.35-2.325 5.675T12 20"/></symbol>
+<symbol id="i-power" viewBox="0 0 24 24"><path d="M12 22q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12q0-2.1.788-3.912t2.137-3.163l1.4 1.4q-1.1 1.1-1.712 2.55T4 12q0 3.35 2.325 5.675T12 20t5.675-2.325T20 12q0-1.675-.612-3.125t-1.713-2.55l1.4-1.4q1.35 1.35 2.138 3.163T22 12q0 2.075-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m-1-9V2h2v11z"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h7v2H5v14h7v2zm11-4l-1.375-1.45l2.55-2.55H9v-2h8.175l-2.55-2.55L16 7l5 5z"/></symbol>
+<symbol id="i-devices" viewBox="0 0 24 24"><path d="M5 17q-.825 0-1.412-.587T3 15V6q0-.825.588-1.412T5 4h14q.825 0 1.413.588T21 6h-5.5q-1.45 0-2.475 1.025T12 9.5V17zm10.5 3q-.625 0-1.062-.437T14 18.5v-9q0-.625.438-1.062T15.5 8h5q.625 0 1.063.438T22 9.5v9q0 .625-.437 1.063T20.5 20zM2 20v-2h10v2zm16-7.5q.325 0 .538-.225t.212-.525q0-.325-.213-.537T18 11q-.3 0-.525.213t-.225.537q0 .3.225.525T18 12.5"/></symbol>
+<symbol id="i-language" viewBox="0 0 24 24"><path d="M8.125 21.213q-1.825-.788-3.187-2.15t-2.15-3.188T2 11.988t.788-3.875t2.15-3.175t3.187-2.15T12.013 2t3.875.788t3.175 2.15t2.15 3.175t.787 3.875t-.787 3.887t-2.15 3.188t-3.175 2.15t-3.875.787t-3.888-.787M12 19.95q.65-.9 1.125-1.875T13.9 16h-3.8q.3 1.1.775 2.075T12 19.95m-2.6-.4q-.45-.825-.787-1.713T8.05 16H5.1q.725 1.25 1.813 2.175T9.4 19.55m5.2 0q1.4-.45 2.488-1.375T18.9 16h-2.95q-.225.95-.562 1.838T14.6 19.55M4.25 14h3.4q-.075-.5-.112-.987T7.5 12t.038-1.012T7.65 10h-3.4q-.125.5-.187.988T4 12t.063 1.013t.187.987m5.4 0h4.7q.075-.5.113-.987T14.5 12t-.038-1.012T14.35 10h-4.7q-.075.5-.112.988T9.5 12t.038 1.013t.112.987m6.7 0h3.4q.125-.5.188-.987T20 12t-.062-1.012T19.75 10h-3.4q.075.5.113.988T16.5 12t-.038 1.013t-.112.987m-.4-6h2.95q-.725-1.25-1.812-2.175T14.6 4.45q.45.825.788 1.713T15.95 8M10.1 8h3.8q-.3-1.1-.775-2.075T12 4.05q-.65.9-1.125 1.875T10.1 8m-5 0h2.95q.225-.95.563-1.838T9.4 4.45Q8 4.9 6.912 5.825T5.1 8"/></symbol>
 </defs></svg>
 </body>
 </html>

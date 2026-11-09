@@ -184,4 +184,18 @@ export const zh = {
   language: "语言",
   extraEnv: "额外环境变量（KEY=value，每行一个）",
   langSystem: "跟随系统",
+
+  pluginsLead: "每个插件为 vfox 增加一门语言或一个工具。",
+  addFromSource: "从来源添加",
+  addPluginTitle: "添加插件",
+  sourceUrl: "来源地址",
+  aliasLabel: "别名（可选）",
+  vfoxExecutable: "vfox 可执行文件",
+  applicationLanguage: "应用语言",
+  docsBody: "了解作用域、插件与配置文件。",
+  statusQueued: "排队中",
+  statusRunning: "进行中",
+  statusDone: "完成",
+  statusFailed: "失败",
+  statusCancelled: "已取消",
 } as const;

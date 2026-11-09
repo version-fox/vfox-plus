@@ -16,10 +16,11 @@
 
 import { api, confirmDlg, copyText, showError, snack } from "./api";
 import type { Pairing } from "./api";
-import { el, esc } from "./dom";
+import { el, esc, icon } from "./dom";
 import { setLang, systemLang, t, type Lang } from "./i18n";
 import { refresh } from "./main";
 import { state } from "./state";
+import { openMenu } from "./ui";
 
 /* ---------------- settings ---------------- */
 export function renderSettings(): void {
@@ -41,69 +42,64 @@ export function renderSettings(): void {
   const box = el("configList");
   if (!inv) return;
   const sec = inv.config;
-  let st = "";
-  if (!sec) st = '<p class="muted">' + esc(t("loading")) + "</p>";
-  else if (sec.loading && (!sec.value || !sec.value.length)) {
-    st = '<p class="muted">' + esc(t("loading")) + "</p>";
-  } else if (sec.error && (!sec.value || !sec.value.length)) {
-    st = '<p class="muted">' + esc(sec.error) + "</p>";
-  }
-  if (st) {
-    box.innerHTML = st;
+  if (!sec || (sec.loading && !sec.value && !sec.error)) {
+    box.innerHTML = '<p class="muted">' + esc(t("loading")) + "</p>";
     return;
   }
-  box.innerHTML =
-    "<table><tr><th>" +
-    esc(t("key")) +
-    "</th><th>" +
-    esc(t("value")) +
-    "</th><th>" +
-    esc(t("actions")) +
-    "</th></tr>" +
-    (sec.value || [])
-      .map(
-        (c) =>
-          "<tr><td><code>" +
-          esc(c.Key) +
-          "</code></td><td>" +
-          esc(c.Value || t("empty")) +
-          '</td><td><button class="btn text" data-edit="' +
-          esc(c.Key) +
-          '">' +
-          esc(t("edit")) +
-          '</button> <button class="btn text" data-reset="' +
-          esc(c.Key) +
-          '">' +
-          esc(t("reset")) +
-          "</button></td></tr>",
-      )
-      .join("") +
-    "</table>";
-  box.querySelectorAll("[data-edit]").forEach(
+  if (sec.error && (!sec.value || !sec.value.length)) {
+    box.innerHTML = '<p class="bad">' + esc(sec.error) + "</p>";
+    return;
+  }
+  box.innerHTML = (sec.value || [])
+    .map(
+      (c) =>
+        '<div class="confrow"><span class="grow"><code>' +
+        esc(c.Key) +
+        "</code><span class=\"muted\">" +
+        esc(c.Value || t("empty")) +
+        '</span></span><button class="iconbtn sm" data-more="' +
+        esc(c.Key) +
+        '" title="' +
+        esc(t("actions")) +
+        '">' +
+        icon("more-vert", "sm") +
+        "</button></div>",
+    )
+    .join("");
+  box.querySelectorAll("[data-more]").forEach(
     (b) =>
-      ((b as HTMLButtonElement).onclick = async () => {
-        const cur = (((sec.value || []).find((x) => x.Key === (b as HTMLButtonElement).dataset.edit) || {}).Value as
-          | string
-          | undefined) || "";
-        const v = prompt((b as HTMLButtonElement).dataset.edit || "", cur);
-        if (v == null) return;
-        try {
-          await vfoxConfig((b as HTMLButtonElement).dataset.edit || "", v);
-          refresh(false);
-        } catch (e) {
-          showError(e instanceof Error ? e.message : String(e));
-        }
-      }),
-  );
-  box.querySelectorAll("[data-reset]").forEach(
-    (b) =>
-      ((b as HTMLButtonElement).onclick = async () => {
-        try {
-          await vfoxConfig((b as HTMLButtonElement).dataset.reset || "", null);
-          refresh(false);
-        } catch (e) {
-          showError(e instanceof Error ? e.message : String(e));
-        }
+      ((b as HTMLButtonElement).onclick = (ev) => {
+        const key = (b as HTMLButtonElement).dataset.more || "";
+        const cur = (((sec.value || []).find((x) => x.Key === key) || {}).Value as string | undefined) || "";
+        openMenu(ev.currentTarget as Element, [
+          {
+            icon: "tune",
+            label: t("edit"),
+            onclick: async () => {
+              const v = prompt(key, cur);
+              if (v == null) return;
+              try {
+                await vfoxConfig(key, v);
+                refresh(false);
+              } catch (e) {
+                showError(e instanceof Error ? e.message : String(e));
+              }
+            },
+          },
+          {
+            icon: "history",
+            label: t("reset"),
+            danger: true,
+            onclick: async () => {
+              try {
+                await vfoxConfig(key, null);
+                refresh(false);
+              } catch (e) {
+                showError(e instanceof Error ? e.message : String(e));
+              }
+            },
+          },
+        ]);
       }),
   );
 }
@@ -114,12 +110,14 @@ async function vfoxConfig(key: string, value: string | null): Promise<unknown> {
 }
 
 /* ---------------- connections ---------------- */
-function webItem(title: string, help: string, control: string, extra?: string): string {
+function webRow(ic: string, title: string, control: string, extra?: string, help?: string): string {
   return (
-    "<div class='item'><span style='flex:1'><b>" +
+    '<div class="rowitem"><span class="icon-tile">' +
+    icon(ic) +
+    '</span><span class="grow"><span class="t-title-m">' +
     esc(title) +
-    "</b>" +
-    (help ? "<br><span class='muted t-label'>" + esc(help) + "</span>" : "") +
+    "</span>" +
+    (help ? '<span class="muted t-body">' + esc(help) + "</span>" : "") +
     (extra || "") +
     "</span>" +
     control +
@@ -162,42 +160,42 @@ export async function putWeb(change: Record<string, unknown>): Promise<void> {
 export function renderWeb(): void {
   const web = state.web;
   if (!web) return;
-  el("h-web").textContent = t("webH");
-  let h = webItem(t("webRemote"), "", webSwitch("webRemote", web.remote, t("webRemote")));
+  let h = webRow("devices", t("webRemote"), webSwitch("webRemote", web.remote, t("webRemote")));
   if (web.remote) {
-    h += webItem(
+    h += webRow(
+      "tune",
       t("webPort"),
-      t("webPortHelp"),
       "<input id='webPort' type='number' min='1024' max='65535' value='" +
         esc(web.port) +
         "' aria-label='" +
         esc(t("webPort")) +
         "'>",
+      "",
+      t("webPortHelp"),
     );
     if (web.error) {
-      h += "<div class='item'><span class='bad t-label'>" + esc(t("webError")) + " " + esc(web.error) + "</span></div>";
+      h += '<div class="rowitem"><span class="bad t-label">' + esc(t("webError")) + " " + esc(web.error) + "</span></div>";
     } else if (web.listening) {
-      const reach =
-        web.addresses.length > 0
-          ? "<br><span class='t-label'>" +
-            esc(t("webReach")) +
-            "</span> " +
-            web.addresses.map((a) => "<code>" + esc("https://" + (a.includes(":") ? "[" + a + "]" : a) + ":" + web.port) + "</code>").join(" ")
-          : "<br><span class='bad t-label'>" + esc(t("webNoAddress")) + "</span>";
+      const reach = web.addresses.length
+        ? "<br><span class='t-label'>" +
+          esc(t("webReach")) +
+          "</span> " +
+          web.addresses.map((a) => "<code>" + esc("https://" + (a.includes(":") ? "[" + a + "]" : a) + ":" + web.port) + "</code>").join(" ")
+        : "<br><span class='bad t-label'>" + esc(t("webNoAddress")) + "</span>";
       const print =
         "<br><span class='muted t-label'>" + esc(t("webFingerprint")) + "</span><br><code>" + esc(web.fingerprint) + "</code>";
-      h += webItem(
+      h += webRow(
+        "hub",
         t("webPairBtn"),
-        "",
         window.vfoxAndroid || !web.addresses.length
           ? ""
-          : "<button class='btn' id='webPair'>" + esc(t("webPairBtn")) + "</button>",
+          : "<button class='btn tonal' id='webPair'>" + esc(t("webPairBtn")) + "</button>",
         reach + print,
       );
     }
   }
-  h += webItem(t("webLight"), t("webLightHelp"), webSwitch("webLight", web.lightweight, t("webLight")));
-  h += webItem(t("webQuit"), "", "<button class='btn danger' id='webQuit'>" + esc(t("webQuitBtn")) + "</button>");
+  h += webRow("eco", t("webLight"), webSwitch("webLight", web.lightweight, t("webLight")), "", t("webLightHelp"));
+  h += webRow("power", t("webQuit"), "<button class='btn danger' id='webQuit'>" + esc(t("webQuitBtn")) + "</button>");
   el("webList").innerHTML = h;
   el("webRemote").onclick = async () => {
     if (!web.remote && !(await confirmDlg(t("webRemoteTitle"), t("webRemoteBody"), t("webRemoteOk"), false))) return;
@@ -248,8 +246,7 @@ export function renderPairing(): void {
       ? "<div class='seg' id='pairHosts'>" +
         web.addresses
           .map(
-            (a) =>
-              "<button data-host='" + esc(a) + "' aria-pressed='" + (a === pairing.host) + "'>" + esc(a) + "</button>",
+            (a) => "<button data-host='" + esc(a) + "' aria-pressed='" + (a === pairing.host) + "'>" + esc(a) + "</button>",
           )
           .join("") +
         "</div>"

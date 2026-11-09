@@ -33,6 +33,11 @@ import {
 import { initTasks, renderTasks, watchTasks } from "./tasks";
 
 // The static labels of the chrome, in the current language.
+function setText(id: string, text: string): void {
+  const e = document.getElementById(id);
+  if (e) e.textContent = text;
+}
+
 export function renderChrome(): void {
   const names: Record<TabName, string> = {
     home: t("home"),
@@ -46,42 +51,51 @@ export function renderChrome(): void {
     const tab = (b as HTMLButtonElement).dataset.tab as TabName | undefined;
     if (s && tab && names[tab]) s.textContent = names[tab];
   });
-  el("h-installed").textContent = t("installed");
-  el("pickSdk").textContent = t("pick");
-  el("h-add").textContent = t("add");
-  el("addBtn").textContent = t("add");
-  el("uploadBtn").textContent = t("uploadAdd");
-  el("h-registry").textContent = t("registry");
-  el("updateAllBtn").textContent = t("updateAll");
-  (document.querySelector("#homeRefresh span:last-child") as HTMLElement).textContent = t("refresh");
-  (document.getElementById("sdkRefresh") as HTMLElement).title = t("refresh");
-  (document.getElementById("regRefresh") as HTMLElement).title = t("refresh");
-  el("h-tasks").textContent = t("tasksH");
-  el("clearBtn").textContent = t("clear");
-  el("h-gui").textContent = t("app");
-  el("h-config").textContent = t("config");
-  el("l-lang").textContent = t("language");
-  el("l-env").textContent = t("extraEnv");
-  (document.querySelector('#langSeg [data-l="system"]') as HTMLElement).textContent = t("langSystem");
-  el("l-pageLang").textContent = t("pageLang");
-  (document.querySelector('#pageLangSeg [data-l="system"]') as HTMLElement).textContent = t("langSystem");
+  // Each page names itself once; the top bar carries the name on phones only.
+  setText("homeTitle", "vfox+");
+  setText("h-installed", t("sdks"));
+  setText("pickSdk", t("pick"));
+  setText("h-add", t("plugins"));
+  setText("pluginsLead", t("pluginsLead"));
+  setText("addPluginLabel", t("addFromSource"));
+  setText("h-tasks", t("tasksH"));
+  setText("h-settings", t("settings"));
+  setText("h-web", t("webH"));
+  setText("h-gui", t("app"));
+  setText("h-config", t("config"));
+  setText("l-vfox", t("vfoxExecutable"));
+  setText("l-lang", t("applicationLanguage"));
+  setText("l-pageLang", t("pageLang"));
+  setText("l-env", t("extraEnv"));
+  setText("h-active", t("active"));
+  setText("h-shell", t("shell"));
+  setText("shellBody", t("shellBody"));
+  setText("h-explore", t("registry"));
+  setText("exploreBody", t("exploreBody"));
+  setText("h-docs", t("docsCard"));
+  setText("docsBody", t("docsBody"));
+  setText("h-phone", t("phone"));
+  setText("phoneLead", t("phoneLead"));
+  const langSystem = t("langSystem");
+  const langSystemButton = document.querySelector('#langSeg [data-l="system"]');
+  if (langSystemButton) langSystemButton.textContent = langSystem;
+  const pageSystemButton = document.querySelector('#pageLangSeg [data-l="system"]');
+  if (pageSystemButton) pageSystemButton.textContent = langSystem;
   document.querySelectorAll("#pageLangSeg button").forEach((b) =>
     b.setAttribute("aria-pressed", String((b as HTMLButtonElement).dataset.l === state.langMode)),
   );
-  el("saveVfox").textContent = t("save");
-  el("saveEnv").textContent = t("save");
-  el("h-phone").textContent = t("phone");
-  el("phoneLead").textContent = t("phoneLead");
-  (document.querySelector("#phonePair span") as HTMLElement).textContent = t("phonePair");
-  (document.querySelector("#phoneOut span") as HTMLElement).textContent = t("phoneOut");
-  el("homeTitle").textContent = "vfox-plus";
-  el("h-active").textContent = t("active");
-  el("h-shell").textContent = t("shell");
-  el("shellBody").textContent = t("shellBody");
-  el("h-explore").textContent = t("explore");
-  el("exploreBody").textContent = t("exploreBody");
-  (document.querySelector("#exploreBtn span") as HTMLElement).textContent = t("plugins");
-  el("h-docs").textContent = t("docsCard");
+  const phonePair = document.querySelector("#phonePair span");
+  if (phonePair) phonePair.textContent = t("phonePair");
+  const phoneOut = document.querySelector("#phoneOut span");
+  if (phoneOut) phoneOut.textContent = t("phoneOut");
+  const updateAll = document.querySelector("#updateAllBtn span");
+  if (updateAll) updateAll.textContent = t("updateAll");
+  const saveVfox = document.getElementById("saveVfox");
+  if (saveVfox) saveVfox.textContent = t("save");
+  const saveEnv = document.getElementById("saveEnv");
+  if (saveEnv) saveEnv.textContent = t("save");
+  const clear = document.querySelector("#clearBtn span");
+  if (clear) clear.textContent = t("clear");
   document.querySelectorAll("#fabAdd span:last-child, #fabAddM span:last-child").forEach((e) => {
     e.textContent = t("add");
   });

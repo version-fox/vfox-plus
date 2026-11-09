@@ -184,4 +184,18 @@ export const en = {
   language: "Language",
   extraEnv: "Extra environment (KEY=value, one per line)",
   langSystem: "system",
+
+  pluginsLead: "Every plugin adds a language or tool to vfox.",
+  addFromSource: "Add from source",
+  addPluginTitle: "Add a plugin",
+  sourceUrl: "Source URL",
+  aliasLabel: "Alias (optional)",
+  vfoxExecutable: "vfox executable",
+  applicationLanguage: "Application language",
+  docsBody: "Learn about scopes, plugins and configuration files.",
+  statusQueued: "Queued",
+  statusRunning: "Running",
+  statusDone: "Done",
+  statusFailed: "Failed",
+  statusCancelled: "Cancelled",
 } as const;

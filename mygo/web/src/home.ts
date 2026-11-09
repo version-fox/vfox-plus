@@ -16,7 +16,7 @@
 
 import { copyText, openExternal } from "./api";
 import type { Inventory } from "./api";
-import { avatar, el, esc } from "./dom";
+import { avatar, el, esc, icon } from "./dom";
 import { t } from "./i18n";
 import { refresh } from "./main";
 
@@ -39,15 +39,18 @@ export function renderHome(inv: Inventory): void {
       (s) =>
         '<button class="stat ' +
         s[2] +
-        '" data-go="sdks"><span class="n">' +
+        '" data-go="sdks">' +
+        '<span class="ic-row">' +
+        icon(s[3]) +
+        "</span>" +
+        '<span class="n">' +
         s[0] +
-        "</span><br>" +
+        "</span>" +
+        '<span class="l">' +
         esc(s[1]) +
-        '<span class="shape">' +
-        '<svg class="ic" aria-hidden="true"><use href="#i-' +
-        s[3] +
-        '"/></svg>' +
-        "</span></button>",
+        "</span>" +
+        '<span class="shape"></span>' +
+        "</button>",
     )
     .join("");
   el("homeStats")
@@ -64,15 +67,19 @@ export function renderHome(inv: Inventory): void {
           esc(s.Name) +
           '">' +
           avatar(s.Name) +
-          "<span><b>" +
+          '<span class="grow"><b>' +
           esc(s.Name) +
-          '</b><br><span class="muted">' +
+          '</b><br><span class="muted t-label">' +
           esc(s.Current) +
-          "</span></span></button>",
+          "</span></span>" +
+          icon("chevron-right", "sm muted") +
+          "</button>",
       )
       .join("");
   box.querySelectorAll("[data-sdk]").forEach(
-    (b) => ((b as HTMLButtonElement).onclick = () => (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
+    (b) =>
+      ((b as HTMLButtonElement).onclick = () =>
+        (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
   );
 }
 

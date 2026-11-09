@@ -435,3 +435,110 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 
+
+/* ---------- the desktop's layout, at web widths ---------- */
+/* A page names itself once. The top bar keeps the page name on phones only,
+   where the content's own title is hidden to save the row. */
+@media (min-width:701px){
+  .topbar h1{display:none}
+  .topbar{justify-content:flex-end}
+}
+.pagetitle{font-size:28px;line-height:36px;font-weight:500;margin:0 0 12px}
+.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.pagehead .sp{flex:1}
+.pagehead .pagetitle{margin:0}
+.pagehead .grow{min-width:0}
+.pagehead .muted{margin-top:2px}
+.sectionlabel{font-size:12px;font-weight:500;color:var(--m3-primary);margin:16px 4px 6px}
+.grow{flex:1;min-width:0}
+.hero .t-title-l{line-height:1.2}
+.hero .row{align-items:flex-start}
+.stats .stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;position:relative}
+.stats .stat .ic-row{display:flex;margin-bottom:10px}
+.stats .stat .ic{width:24px;height:24px}
+.stats .stat .n{font-size:34px;line-height:1.05}
+.stats .stat .l{font-size:13px;font-weight:500}
+.stats .stat .shape{position:absolute;right:-26px;bottom:-26px;width:100px;height:100px;border-radius:52% 48% 60% 40%/45% 55% 42% 58%;background:color-mix(in srgb,currentColor 12%,transparent);opacity:1}
+.seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
+.taskrow:first-child{border-radius:20px 20px 4px 4px}
+.taskrow:last-child{border-radius:4px 4px 20px 20px}
+.taskrow:only-of-type{border-radius:20px}
+.taskrow+.tasklog:last-child{border-radius:0 0 20px 20px}
+.icon-tile{width:40px;height:40px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+.icon-tile .ic{width:22px;height:22px}
+.codefield{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:12px;padding:6px 6px 6px 14px;margin-top:10px}
+.codefield code{flex:1;min-width:0;overflow-wrap:anywhere}
+.pane>.row:first-child{margin-bottom:6px}
+.linkcard{flex:1;min-width:240px;display:flex;align-items:center;gap:14px;text-align:left;color:inherit;transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects),border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.linkcard:hover{background:var(--m3-surface-container)}
+.linkcard:active{border-radius:20px}
+.linkcard .grow{display:flex;flex-direction:column;gap:2px}
+.linkcard .muted{font-size:13px}
+.cards2{gap:12px;align-items:stretch;margin-top:12px}
+.searchrow{align-items:center;gap:12px}
+.searchrow .search{margin:0}
+.rowitem{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--m3-outline-variant)}
+.rowitem:last-child{border-bottom:0}
+.rowitem .grow{display:flex;flex-direction:column;gap:6px}
+.rowitem.col{flex-direction:column;align-items:stretch}
+.rowitem.col .row{gap:14px;align-items:center}
+.rowitem textarea{width:100%}
+.rowitem code,.pane code{overflow-wrap:anywhere}
+.rowitem input.mono{width:100%}
+/* segmented buttons: the choice is the filled one, as in the desktop */
+.seg button[aria-pressed="true"]{background:var(--m3-primary);color:var(--m3-on-primary)}
+.pcard{justify-content:space-between}
+.pcard .lead{display:flex;align-items:center;gap:12px;min-width:0}
+.pcard .lead .avatar{width:40px;height:40px;font-size:18px}
+.pcard .lead .names{min-width:0;display:flex;flex-direction:column}
+.pcard .lead .names b{font-weight:500}
+.pcard .lead .names .nameline{display:flex;align-items:center;gap:6px}
+.pcard .lead .names .muted{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.pcard .actions .grow{flex:1}
+.btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:999px;min-height:40px}
+.btn.tonal:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
+/* task rows */
+.taskrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;background:var(--m3-surface-container)}
+.taskrow .grow{display:flex;flex-direction:column;gap:2px}
+.taskrow .muted{font-size:12px}
+.taskrow[aria-expanded="true"]{border-radius:20px}
+.tasklog{padding:0 16px 14px;background:var(--m3-surface-container);border-radius:0 0 20px 20px}
+/* config rows */
+.confrow{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--m3-surface-container)}
+.confrow .grow{min-width:0;display:flex;flex-direction:column;gap:2px}
+.confrow .muted{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* page switch: shared axis, as the desktop between destinations */
+@keyframes sharedAxisPage{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.page.enter{animation:sharedAxisPage var(--sp-default-spatial-t) var(--sp-default-spatial)}
+@media (max-width:700px){
+  .pagetitle{display:none}
+  .pagehead{margin-bottom:8px}
+  .pagehead .grow .t-body{display:none}
+  .sectionlabel{margin:12px 4px 4px}
+  .stats .stat .n{font-size:26px}
+  .linkcard{min-width:0}
+  .rowitem{flex-wrap:wrap}
+}
+/* ---------- phones: one column, the page title lives in the top bar ---------- */
+@media (max-width:700px){
+  #tab-home>.pane{display:block}
+  #tab-home>.pane .row{margin:0!important}
+  .hero{padding:0 0 6px!important}
+  .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
+  .hero .t-title-l{display:none}
+  .hero .iconbtn{margin-left:auto}
+  .cards2{flex-direction:column;gap:8px!important}
+  .linkcard{width:100%;min-width:0;background:var(--m3-surface-container-low);padding:12px 14px;border-radius:20px}
+  .stats{margin-bottom:8px}
+  .stats .stat .shape{display:none}
+  .stats .stat .ic-row{margin-bottom:4px}
+  .stats .stat .n{font-size:26px}
+  .list .item{padding:14px 14px}
+  .pagehead{gap:6px}
+  .searchrow{flex-direction:column;align-items:stretch;gap:8px}
+  .searchrow .seg{align-self:flex-start}
+  .rowitem{padding:12px 0}
+  .rowitem .seg{flex-wrap:wrap}
+  .codefield{margin-top:8px}
+}

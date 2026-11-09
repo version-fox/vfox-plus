@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { api, showError, snack, type Task } from "./api";
+import { api, copyText, showError, snack, type Task } from "./api";
 import { el, esc, icon } from "./dom";
-import { t } from "./i18n";
+import { t, type Key } from "./i18n";
 import { refresh } from "./main";
 import { state } from "./state";
 import { stateBlock, wavy } from "./ui";
@@ -27,6 +27,27 @@ function statusIcon(st: string): string {
     { queued: "hourglass-empty", running: "schedule", succeeded: "task-alt", failed: "error", cancelled: "close" }[st] ||
     "info"
   );
+}
+
+/** The status as the page says it, not as the API names it. */
+function statusLabel(status: string): string {
+  const key: Record<string, Key> = {
+    queued: "statusQueued",
+    running: "statusRunning",
+    succeeded: "statusDone",
+    failed: "statusFailed",
+    cancelled: "statusCancelled",
+  };
+  return key[status] ? t(key[status]) : status;
+}
+
+/** "install nodejs@24.11.0" -> "Install nodejs@24.11.0" */
+function taskTitle(task: Task): string {
+  const op = task.operation || "";
+  const known = ["install", "uninstall", "update", "remove", "use", "add"];
+  const label = known.includes(op) ? t(op as Key) : op;
+  const subject = task.sdk + (task.version ? "@" + task.version : "");
+  return (label.charAt(0).toUpperCase() + label.slice(1) + (subject ? " " + subject : "")).trim();
 }
 
 export function renderTasks(): void {
@@ -43,44 +64,47 @@ export function renderTasks(): void {
     box.innerHTML = stateBlock("empty", "pending-actions", t("noTasks"), "", null);
     return;
   }
-  box.innerHTML = "";
-  state.tasks.forEach((task) => {
-    const d = document.createElement("div");
-    d.className = "card";
-    const pct = task.progress != null ? Math.round(task.progress * 100) + "%" : "";
-    d.innerHTML =
-      "<div class='row'>" +
-      icon(statusIcon(task.status)) +
-      "<b>" +
-      esc(task.operation) +
-      "</b> <code>" +
-      esc(task.sdk + (task.version ? "@" + task.version : "")) +
-      "</code> <span class='muted t-label'>" +
-      esc(task.status + " " + pct) +
-      "</span><span style='flex:1'></span><button class='btn text' data-open='" +
-      task.id +
-      "'>" +
-      esc(t("log")) +
-      "</button></div>" +
-      (task.progress != null && ["queued", "running"].includes(task.status) ? wavy(task.progress, false) : "") +
-      (["queued", "running"].includes(task.status) && task.progress == null ? wavy(0, true) : "") +
-      (task.errorMessage ? "<p style='color:var(--m3-error)'>" + esc(task.errorMessage) + "</p>" : "") +
-      "<div data-log='" +
-      task.id +
-      "' hidden></div>";
-    box.appendChild(d);
-  });
+  box.innerHTML = state.tasks
+    .map((task) => {
+      const pct = task.progress != null ? Math.round(task.progress * 100) + "%" : "";
+      const running = ["queued", "running"].includes(task.status);
+      return (
+        '<button class="taskrow" data-open="' +
+        task.id +
+        '" aria-expanded="false">' +
+        icon(statusIcon(task.status)) +
+        '<span class="grow"><b>' +
+        esc(taskTitle(task)) +
+        '</b><span class="muted">' +
+        esc(statusLabel(task.status) + (pct ? " · " + pct : "")) +
+        "</span>" +
+        (running && task.progress != null ? wavy(task.progress, false) : "") +
+        (running && task.progress == null ? wavy(0, true) : "") +
+        "</span>" +
+        icon("keyboard-arrow-down", "sm muted") +
+        "</button>" +
+        '<div class="tasklog" data-log="' +
+        task.id +
+        '" hidden></div>'
+      );
+    })
+    .join("");
   box.querySelectorAll("[data-open]").forEach(
-    (b) => ((b as HTMLButtonElement).onclick = () => openTask(parseInt((b as HTMLButtonElement).dataset.open || "0", 10))),
+    (b) =>
+      ((b as HTMLButtonElement).onclick = () => {
+        openTask(parseInt((b as HTMLButtonElement).dataset.open || "0", 10));
+      }),
   );
 }
 
 export async function openTask(id: number): Promise<void> {
-  const slot = document.querySelector("[data-log='" + id + "']");
+  const slot = document.querySelector("[data-log='" + id + "']") as HTMLElement | null;
+  const row = document.querySelector("[data-open='" + id + "']") as HTMLElement | null;
   if (!slot) return;
-  if (!(slot as HTMLElement).hidden) {
-    (slot as HTMLElement).hidden = true;
+  if (!slot.hidden) {
+    slot.hidden = true;
     slot.innerHTML = "";
+    if (row) row.setAttribute("aria-expanded", "false");
     return;
   }
   try {
@@ -90,7 +114,8 @@ export async function openTask(id: number): Promise<void> {
       hasFullLog: boolean;
       log: string[];
     };
-    (slot as HTMLElement).hidden = false;
+    if (row) row.setAttribute("aria-expanded", "true");
+    slot.hidden = false;
     const isWebView = (() => {
       try {
         return /;\s*wv\)/.test(navigator.userAgent);
@@ -102,7 +127,9 @@ export async function openTask(id: number): Promise<void> {
       "<p class='muted'><code>" +
       esc(task.commandLine) +
       "</code></p>" +
-      (task.droppedLines ? "<p class='muted'>" + esc(t("droppedHead") + task.droppedLines + t("droppedTail")) + "</p>" : "") +
+      (task.droppedLines
+        ? "<p class='muted'>" + esc(t("droppedHead") + task.droppedLines + t("droppedTail")) + "</p>"
+        : "") +
       (task.hasFullLog && !isWebView
         ? "<div class='row'><a class='btn text' download href='/api/tasks/" +
           task.id +
@@ -119,7 +146,13 @@ export async function openTask(id: number): Promise<void> {
       (["failed", "cancelled"].includes(task.status)
         ? "<button class='btn' data-retry='" + task.id + "'>" + esc(t("retry")) + "</button>"
         : "") +
-      "</div>";
+      '<span class="grow"></span><button class="iconbtn sm" data-copy="1" title="' +
+      esc(t("log")) +
+      '">' +
+      icon("content-copy", "sm") +
+      "</button></div>";
+    const copy = slot.querySelector("[data-copy]");
+    if (copy) (copy as HTMLButtonElement).onclick = () => copyText(task.log.join("\n"));
     const c = slot.querySelector("[data-cancel]");
     if (c)
       (c as HTMLButtonElement).onclick = async () => {

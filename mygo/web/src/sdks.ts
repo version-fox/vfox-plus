@@ -155,20 +155,23 @@ function renderDetail(): void {
     "</code></span>" +
     (sdk && sdk.HasCurrent ? ' <span class="tag cur">' + esc(sdk.Current) + "</span>" : "") +
     "</span>" +
+    (info && info.Homepage
+      ? '<button class="iconbtn sm" id="detailHome" title="' +
+        esc(t("homepage")) +
+        '">' +
+        icon("open-in-new", "sm") +
+        "</button>"
+      : "") +
     '<button class="iconbtn sm" id="detailMenu" title="…">' +
     icon("more-vert", "sm") +
     "</button></div>";
-  if (info)
-    h +=
-      "<p class='muted t-body'>" +
-      esc(info.Description || "") +
-      (info.Homepage
-        ? ' <a href="' + esc(info.Homepage) + '" target="_blank" rel="noreferrer">' + esc(t("homepage")) + "</a>"
-        : "") +
-      "</p>";
+  if (info && info.Description) h += "<p class='muted t-body'>" + esc(info.Description) + "</p>";
   h += '<div class="seg" id="detailTabs" role="tablist"></div><div id="detailBody"></div>';
   box.innerHTML = h;
   el("detailBack").onclick = () => showList(true);
+  const home = document.getElementById("detailHome");
+  if (home && info && info.Homepage)
+    (home as HTMLButtonElement).onclick = () => openExternal(info.Homepage as string);
   el("detailMenu").onclick = (ev) => {
     const items: { icon: string; label: string; danger?: boolean; onclick?: () => void }[] = [];
     if (info && info.Homepage)
@@ -259,11 +262,15 @@ function renderInstalled(body: HTMLElement): void {
       (isCur ? ' <span class="tag cur">' + esc(t("current")) + "</span>" : "") +
       (line ? "<br><span class='muted t-label'>" + esc(line) + "</span>" : "") +
       "</span>" +
-      (isCur ? "" : "<button class='btn text' data-use='" + esc(v) + "'>" + esc(t("use")) + "</button>") +
-      " <button class='btn text' data-uninstall='" +
+      (isCur
+        ? ""
+        : "<button class='btn tonal' data-use='" + esc(v) + "'>" + icon("check", "sm") + "<span>" + esc(t("use")) + "</span></button>") +
+      '<button class="iconbtn sm" data-more-version="' +
       esc(v) +
-      "'>" +
-      esc(t("uninstall")) +
+      '" title="' +
+      esc(t("actions")) +
+      '">' +
+      icon("more-vert", "sm") +
       "</button></div>";
   });
   body.innerHTML = h + "</div>";
@@ -272,11 +279,21 @@ function renderInstalled(body: HTMLElement): void {
       ((b as HTMLButtonElement).onclick = () =>
         runTask({ operation: "use", sdk: d.name, version: (b as HTMLButtonElement).dataset.use || "", scope: "global" })),
   );
-  body.querySelectorAll("[data-uninstall]").forEach(
+  body.querySelectorAll("[data-more-version]").forEach(
     (b) =>
-      ((b as HTMLButtonElement).onclick = async () => {
-        if (await confirmDlg(t("uninstall"), (b as HTMLButtonElement).dataset.uninstall || "", t("uninstall"), true))
-          runTask({ operation: "uninstall", sdk: d.name, version: (b as HTMLButtonElement).dataset.uninstall || "" });
+      ((b as HTMLButtonElement).onclick = (ev) => {
+        const v = (b as HTMLButtonElement).dataset.moreVersion || "";
+        openMenu(ev.currentTarget as Element, [
+          {
+            icon: "delete",
+            label: t("uninstall"),
+            danger: true,
+            onclick: async () => {
+              if (await confirmDlg(t("uninstall"), v, t("uninstall"), true))
+                runTask({ operation: "uninstall", sdk: d.name, version: v });
+            },
+          },
+        ]);
       }),
   );
 }
