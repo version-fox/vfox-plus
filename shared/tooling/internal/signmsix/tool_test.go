@@ -76,7 +76,7 @@ func serveTool(t *testing.T, data []byte, dropFirst int32) *atomic.Int32 {
 	}))
 	t.Cleanup(server.Close)
 	previousSource, previousDelay := source, retryDelay
-	source.url, source.sha256, retryDelay = server.URL+"/release.zip", checksum(data), 0
+	source.url, source.sha256, source.fallback, retryDelay = server.URL+"/release.zip", checksum(data), "", 0
 	t.Cleanup(func() { source, retryDelay = previousSource, previousDelay })
 	return &requests
 }
@@ -244,5 +244,32 @@ func TestUnzipRefusesLinksAndBombs(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(directory, "bomb.bin")); !os.IsNotExist(err) {
 		t.Errorf("the bomb was unpacked: %v", err)
+	}
+}
+
+// The release URL returning 504 for every attempt falls back to the GitHub
+// API asset endpoint, whose bytes pass the same checksum.
+func TestDownloadFallsBackToTheAPI(t *testing.T) {
+	data := release(t)
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "gateway timeout", http.StatusGatewayTimeout)
+	}))
+	t.Cleanup(failing.Close)
+	serving := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(data)
+	}))
+	t.Cleanup(serving.Close)
+
+	previousSource, previousDelay := source, retryDelay
+	source.url, source.sha256, source.fallback, retryDelay = failing.URL, checksum(data), serving.URL, 0
+	t.Cleanup(func() { source, retryDelay = previousSource, previousDelay })
+
+	directory := t.TempDir()
+	tool, err := ensureTool(directory, "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(tool); err != nil {
+		t.Errorf("the tool: %v", err)
 	}
 }
