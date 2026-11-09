@@ -15,7 +15,7 @@
 package ui
 
 import (
-	"errors"
+	"context"
 	"net"
 	"strconv"
 	"strings"
@@ -248,32 +248,51 @@ func (a *App) publicAddressItem(k kit.Ctx, current settings.AppSettings) kit.Lis
 func (a *App) publishItem(k kit.Ctx, status pair.Status) kit.ListItemSpec {
 	on := status.TunnelURL != ""
 	subtitle := a.T("settingsPublishHelp")
-	if on {
+	switch {
+	case on:
 		subtitle = status.TunnelURL
+	case a.pages.publishing:
+		subtitle = a.T("settingsPublishBusy")
 	}
-	return a.switchItem(k, "web-publish", a.T("settingsPublish"), subtitle, "otherDevices", on, status.Remote, func(want bool) {
+	return a.switchItem(k, "web-publish", a.T("settingsPublish"), subtitle, "otherDevices", on, status.Remote && !a.pages.publishing, func(want bool) {
 		if !want {
 			a.web.Unpublish()
 			return
 		}
+		body := a.T("settingsPublishConfirmBody")
+		if pair.CloudflaredPath() == "" {
+			body = a.T("settingsPublishDownloadBody")
+		}
 		a.confirm("web-publish", confirmation{
-			Title: a.T("settingsPublishConfirmTitle"), Body: a.T("settingsPublishConfirmBody"),
+			Title: a.T("settingsPublishConfirmTitle"), Body: body,
 			ConfirmLabel: a.T("settingsPublishConfirmAction"), Icon: "otherDevices",
 			OnConfirm: func() { a.publish() },
 		})
 	})
 }
 
-// publish starts the tunnel off the main thread, and tells what became of it.
+// publish downloads the tunnel program when it is not there yet, then starts
+// the tunnel off the main thread, and tells what became of it.
 func (a *App) publish() {
+	a.pages.publishing = true
+	a.invalidate()
 	go func() {
+		if pair.CloudflaredPath() == "" {
+			a.post(func() { a.notify(a.T("settingsPublishDownloading")) })
+			if _, err := pair.DownloadCloudflared(context.Background()); err != nil {
+				a.post(func() {
+					a.pages.publishing = false
+					a.notify(a.T("settingsPublishDownloadFailed", "reason", describeError(err)))
+					a.invalidate()
+				})
+				return
+			}
+		}
 		_, err := a.web.Publish()
 		a.post(func() {
-			switch {
-			case errors.Is(err, pair.ErrNoCloudflared):
-				a.notify(a.T("settingsPublishMissing"))
-			case err != nil:
-				a.notify(a.T("settingsPublishFailed", "reason", err.Error()))
+			a.pages.publishing = false
+			if err != nil {
+				a.notify(a.T("settingsPublishFailed", "reason", describeError(err)))
 			}
 			a.invalidate()
 		})

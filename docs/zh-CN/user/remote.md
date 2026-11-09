@@ -39,9 +39,9 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
   配对链接与二维码就会用它。
 - **自带的开关。***公网隧道*用免费的
   [Cloudflare 快速隧道](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
-  发布界面：无需账号、无需配置，一个开关。它需要这台电脑上有 `cloudflared` 程序
-  （[下载](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)），
-  没装时设置里会说明。地址是随机的，例如 `https://one-two-three.trycloudflare.com`，
+  发布界面：无需账号、无需配置，一个开关。还没有安装时，开启会从 Cloudflare 的 GitHub
+  发布页下载隧道程序（约 50 MB）并校验 SHA-256。地址是随机的，例如
+  `https://one-two-three.trycloudflare.com`，
   每次启动都会变。关闭开关或退出 vfox+ 就结束。
 
 隧道会让连进来的手机与浏览器经过 Cloudflare；快速隧道面向短时使用，不承诺可用性。

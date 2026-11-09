@@ -14,7 +14,11 @@
 
 package pair
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 // The address of a quick tunnel arrives in a box of the log of cloudflared.
 func TestTheTunnelAddressIsFoundInTheLog(t *testing.T) {
@@ -39,5 +43,25 @@ func TestTheTunnelAddressIsFoundInTheLog(t *testing.T) {
 	}
 	if isTunnelAddress("https://example.com") {
 		t.Error("another host is no tunnel")
+	}
+}
+
+// The environment may name the tunnel program; without one, the program is
+// found beside the application, in the cache or on the PATH.
+func TestTheTunnelProgramIsFound(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "cloudflared")
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o755); err != nil { //nolint:gosec // A stand-in program is executable.
+		t.Fatal(err)
+	}
+	t.Setenv("VFOX_PLUS_CLOUDFLARED", path)
+	t.Setenv("VFOX_PLUS_CLOUDFLARED_CACHE", t.TempDir())
+	t.Setenv("PATH", t.TempDir())
+	if got := CloudflaredPath(); got != path {
+		t.Errorf("got %q, want %q", got, path)
+	}
+	t.Setenv("VFOX_PLUS_CLOUDFLARED", filepath.Join(dir, "missing"))
+	if got := CloudflaredPath(); got != "" {
+		t.Errorf("a missing program is not found, got %q", got)
 	}
 }

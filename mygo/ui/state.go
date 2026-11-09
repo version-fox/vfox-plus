@@ -53,6 +53,9 @@ type pageStates struct {
 	publicAddressReady bool
 	publicAddressSeen  string
 	publicAddressText  string
+	// publishing says that the tunnel program is being downloaded or the
+	// tunnel started.
+	publishing bool
 	// pairing is the link and the code that the dialog of the pairing shows.
 	pairing *pairingState
 

@@ -53,9 +53,9 @@ that publishes the interface.
   [gateway](gateway.md) publishes in **Public address**; pairing links and the code use it.
 - **The built-in switch.** *Public tunnel* publishes the interface through a free
   [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/):
-  no account, no configuration, one switch. It needs the `cloudflared` program on this
-  computer ([download](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)),
-  and the settings say so when it is missing. The address is random, such as
+  no account, no configuration, one switch. When the program is not installed yet, turning
+  it on downloads it (about 50 MB) from Cloudflare's GitHub release and checks its SHA-256.
+  The address is random, such as
   `https://one-two-three.trycloudflare.com`, and changes at every start. It ends when you
   turn the switch off or quit vfox+.
 

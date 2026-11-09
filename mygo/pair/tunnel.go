@@ -26,8 +26,8 @@ import (
 	"time"
 )
 
-// ErrNoCloudflared means that the cloudflared program is not on the PATH.
-var ErrNoCloudflared = errors.New("cloudflared is not installed")
+// ErrNoCloudflared means that the cloudflared program is nowhere to be found.
+var ErrNoCloudflared = errors.New("the tunnel program is missing")
 
 // TunnelURL finds the public address that a cloudflared quick tunnel printed.
 var tunnelURL = regexp.MustCompile(`https://[a-z0-9-]+\.trycloudflare\.com`)
@@ -45,12 +45,12 @@ type Tunnel struct {
 // PublishTunnel starts cloudflared for the port that other devices connect to,
 // and waits until it prints the address where it serves it.
 func PublishTunnel(ctx context.Context, port int) (*Tunnel, error) {
-	binary, err := exec.LookPath("cloudflared")
-	if err != nil {
+	binary := CloudflaredPath()
+	if binary == "" {
 		return nil, ErrNoCloudflared
 	}
 	runCtx, cancel := context.WithCancel(ctx)
-	cmd := exec.CommandContext(runCtx, binary, "tunnel", "--no-autoupdate",
+	cmd := exec.CommandContext(runCtx, binary, "tunnel", "--no-autoupdate", //nolint:gosec // The binary is the tunnel program found above.
 		"--url", fmt.Sprintf("https://127.0.0.1:%d", port), "--no-tls-verify")
 	// The address arrives in the log, on the error stream of cloudflared.
 	stderr, err := cmd.StderrPipe()
