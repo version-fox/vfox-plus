@@ -843,7 +843,7 @@ function renderOptions(body: HTMLElement): void {
         .join(""),
     );
   }
-  h += '<div class="t-title-m" style="margin-top:20px">' + esc(t("legacyTitle")) + '</div><div class="list">';
+  h += '<div class="t-title-m" id="legacyHead" style="margin-top:20px">' + esc(t("legacyTitle")) + '</div><div class="list">';
   if (!p.legacyFiles.length)
     h += "<div class='item'>" + icon("history") + "<span class='muted'>" + esc(t("legacyNone")) + "</span></div>";
   else {
@@ -871,9 +871,9 @@ function renderOptions(body: HTMLElement): void {
     if (p.legacyStrategy) {
       const strat = configValue("legacyVersionFile.strategy");
       h +=
-        '<div class="item"><span class="lead"></span><span style="flex:1;min-width:0"><b>' +
+        '<div class="item"><span class="lead"></span><div style="flex:1;min-width:0"><div><b>' +
         esc(t("legacyStrategy")) +
-        '</b></span><div class="seg" id="legacyStrategy">' +
+        '</b></div><div class="seg" id="legacyStrategy">' +
         (
           [
             ["specified", t("strategySpecified")],
@@ -886,7 +886,7 @@ function renderOptions(body: HTMLElement): void {
               "<button data-s='" + x[0] + "' aria-pressed='" + (strat === x[0]) + "'>" + esc(x[1]) + "</button>",
           )
           .join("") +
-        "</div></div>";
+        "</div></div></div>";
     } else
       h +=
         '<div class="item"><span class="lead"></span><span class="muted">' +

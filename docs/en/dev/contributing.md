@@ -285,7 +285,7 @@ pictures are there to look at when the interface changes; nothing links them.
 display, and headless Chrome, in a language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
 that `--scene` plays: `connections`, `connections-pair`, `flutter-chips`, `java-available`,
-`java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`, `alias-set` and `link-manual` (see
+`java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`, `options-legacy`, `alias-set` and `link-manual` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
 scenes click against `mygo/pair/webapp.html`). Every picture gets an application and a home
 of its own, because choosing a distribution is kept in the settings of the application, and

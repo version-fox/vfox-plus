@@ -117,6 +117,15 @@ func init() {
 	scenes["link-manual"] = concat(javaAvailable, []step{pick("#linkManualBtn"), exists("#linkVer")})
 	scenes["options-aliases"] = concat(options, []step{exists("#aliasAdd"), scrollTo("#aliasHead")})
 	scenes["alias-set"] = concat(options, []step{pick("#aliasAdd"), exists("#aliasIn")})
+	// The version files of a plugin, with the choice of the version that they name: the label and the control of that
+	// row did not fit side by side on a phone, and the control covered the label. The last step waits for the control to
+	// be under the label, and for the page to be no wider than the window, so that a layout that goes back to that
+	// does not make a picture.
+	scenes["options-legacy"] = concat(options, []step{exists("#legacyStrategy"), scrollTo("#legacyHead"), until(`(() => {
+		const choice = document.getElementById("legacyStrategy"), label = choice.previousElementSibling.getBoundingClientRect();
+		const page = document.documentElement;
+		return choice.getBoundingClientRect().top >= label.bottom - 1 && page.scrollWidth <= page.clientWidth;
+	})()`)})
 }
 
 // sceneNames are the names that -scene takes, in order.
