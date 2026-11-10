@@ -74,6 +74,15 @@ Settings stay reachable in every case.
 - `homeActiveTitle`: a segmented list of the plugins that have a version in use,
   with their avatar and version. Tapping an item opens it on the SDKs page.
   Without any, the list shows `homeActiveEmpty`.
+- `doctorTitle`: the health of vfox and of the installed SDKs, from `vfox doctor --json`
+  (see [the CLI contract](vfox-cli-contract.md#health-aliases-and-linked-versions)).
+  It is there while vfox is available, asks by itself the first time, and asks again
+  when a task finishes. With nothing to report it is one item, `doctorNoProblems`,
+  with `doctorCheck`, which asks again. Otherwise there is one item for each of the
+  first five findings: its message, `<plugin>@<version> · <severity>` and, for
+  `sdk.no-receipt`, `doctorAdopt` (`vfox doctor --adopt <plugin>@<version>`), for
+  `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. A failure to ask
+  shows its message with `doctorCheck`.
 - A card explaining how to use the versions in a terminal (`homeShellTitle`,
   `homeShellBody`) with the line `eval "$(vfox activate bash)"` and a copy
   button.
@@ -113,10 +122,14 @@ shared axis, and the detail has a back button.
 
 - The current version has a filled `current` icon, an emphasized label and the
   tag `versionInUse`; its menu offers `versionUseInProject`, `versionUnuse`,
-  `versionCopyPath` and `versionUninstall`.
+  `versionCopyPath`, `versionReinstall` (`vfox install --reinstall`), `aliasSet`
+  (the [alias dialog](#choices-and-names)) and `versionUninstall`.
 - Other versions have a split button: `versionUse` makes the version the global
   default; its menu offers `versionUseGlobally` and `versionUseInProject`.
-  Their overflow menu offers `versionCopyPath` and `versionUninstall`.
+  Their overflow menu offers `versionCopyPath`, `versionReinstall`, `aliasSet` and
+  `versionUninstall`.
+- A version that has an alias (`vfox alias`) shows `@<alias>` at the end of its second
+  line. Linked versions keep the name that the user gave them.
 - While a task runs for a version, its actions are replaced by a loading
   indicator.
 - Empty: `sdkInstalledEmpty` with `sdkBrowseVersions`.
@@ -135,7 +148,13 @@ has a profile, the first row holds:
   survives a restart and is the same in the web interface, and the list of the earlier
   choice goes away at once;
 - `availableInstallByName`, an outlined button that opens the
-  [install by name dialog](#choices-and-names). Every plugin has it.
+  [install by name dialog](#choices-and-names). Every plugin has it;
+- `linkDetect`, an outlined button that queues `vfox link --detect --yes <plugin>`:
+  the plugin finds the SDKs that are already on the machine and vfox links them,
+  instead of downloading them again. A plugin that cannot detect says so in the
+  task. Every plugin has it;
+- `linkManual`, an outlined button that opens the
+  [link dialog](#choices-and-names), for an SDK in a directory that the user names.
 
 The row stays while the list loads or fails, so that another choice can be made.
 Then:
@@ -153,10 +172,11 @@ Then:
   filter field and the button group.
 - A lazily built segmented list. Each version shows its note as a tag and the
   bundled tools (`npm 11.19.1`); for a search that lists several
-  distributions, also a tag with the distribution. The trailing action is
-  `versionInstall`; for an installed version, a disabled `versionInstalled`;
-  while installing, a wavy progress indicator with `taskDownloading` and a
-  cancel button.
+  distributions, also a tag with the distribution. The trailing actions are
+  `versionInstall` and the outlined `versionInstallUse` (`vfox install --use`: it
+  makes the version the global default once it is installed); for an installed
+  version, a disabled `versionInstalled`; while installing, a wavy progress
+  indicator with `taskDownloading` and a cancel button.
 
 **Options** is built from the profile of the plugin, in segmented lists:
 
@@ -172,6 +192,9 @@ Then:
   switch `configLegacyEnable` of the vfox configuration; and, where the strategy
   matters (Node.js), `configLegacyStrategy`, or `optionsLegacyStrategyIgnored`
   where it does not (Java);
+- `aliasTitle`: the aliases of the plugin (`vfox alias list <plugin>`), loaded when
+  the tab opens, each with its target and `aliasUnset`, or `aliasEmpty`; `aliasSet`
+  opens the [alias dialog](#choices-and-names), and a refresh button asks again;
 - `optionsShorthands`: the names the plugin takes besides the listed versions,
   each with its meaning and `optionsShorthandTry`, which opens the install by
   name dialog with that name;
@@ -204,8 +227,20 @@ Dialogs scale in on a spring.
   a plugin with a profile, `installNameExamples`, one filter chip for each
   shorthand that fills the field, and the meaning of the shorthand that is
   typed. An empty name (`installNameRequired`) or one that has a space or a dash in
-  front (`installNameInvalid`) is refused. The confirmation queues
-  `vfox install --yes <plugin>@<name>` and shows Tasks.
+  front (`installNameInvalid`) is refused. A switch `installUseAfter`, off at first,
+  adds `--use`. The confirmation queues `vfox install --yes [--use] <plugin>@<name>`
+  and shows Tasks.
+- **Link** (`linkPath…`): the name that vfox lists the version under
+  (`linkVersionField`, with the rules of a version name) and the directory that holds
+  the SDK (`linkPathField`, with a browse button; it is required), and a switch
+  `linkForce`, off at first, that points an already linked version somewhere else
+  (`--force`). The confirmation queues `vfox link [--force] <plugin>@<version> <path>`
+  and shows Tasks.
+- **Alias** (`aliasSet`): the alias (`aliasField`, `aliasHelp`) and the version it
+  names (`linkVersionField`, which starts with the version of the row that opened
+  the dialog, or else the current one). Both follow the rules of a version name.
+  The confirmation queues `vfox alias set <plugin> <alias> <version>`; `aliasUnset`
+  queues `vfox alias unset <plugin> <alias>`.
 - **Variable** (`variable…`): the help of the variable and its name; for an
   address, a monospaced field `variableAddress` (an address needs `http://` or
   `https://`, `variableInvalidAddress`); `variablePresets`, a chip for every
@@ -283,10 +318,13 @@ Grouped in segmented lists:
   extra environment variables as `KEY=VALUE` lines with validation
   (`settingsEnvironmentInvalid`).
 - **vfox configuration**: an editor for each key listed in
-  [the CLI contract](vfox-cli-contract.md#configuration) — switches for booleans,
-  a menu for `legacyVersionFile.strategy`, text fields (saved on Enter or when
-  leaving the field; clearing a field resets the key) for the rest, and
-  `configOther` for keys the GUI does not know.
+  [the CLI contract](vfox-cli-contract.md#configuration) — switches for booleans
+  (among them `diagnostics.onUse`), a menu for `legacyVersionFile.strategy` and for
+  `path.mode` (`pathModeLegacy`, `pathModeBaseline`, `pathModeAggressive`), text fields
+  (saved on Enter or when leaving the field; clearing a field resets the key) for the
+  rest, `path.preserve` and `diagnostics.ignore` among them, which hold lists in JSON,
+  and `configOther` for keys the GUI does not know. `aliases` is not edited here: the
+  aliases of a plugin are in its options.
 - **About**: application name, version and license, links to the source code
   and the vfox documentation, and the open-source licenses of the dependencies,
   including the bundled Material Symbols icons (Apache-2.0, Google).

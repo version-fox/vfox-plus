@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { avatar, esc, icon, txt } from "./dom";
+import { aliasesOf, avatar, esc, icon, txt } from "./dom";
 
 // The page writes both double- and single-quoted attributes, so esc must
 // neutralize both quotes along with & < and > (replaces the Go regex test
@@ -64,5 +64,23 @@ describe("txt", () => {
   });
   it("passes strings through", () => {
     expect(txt("plain", "zh")).toBe("plain");
+  });
+});
+
+describe("aliasesOf", () => {
+  const aliases = [
+    { sdk: "java", alias: "j17", target: "java@17.0.9-tem" },
+    { sdk: "java", alias: "lts", target: "java@17.0.9-tem" },
+    { sdk: "java", alias: "j21", target: "21.0.1-tem" },
+    { sdk: "nodejs", alias: "j17", target: "nodejs@17.0.9-tem" },
+  ];
+  it("names the aliases of a version, of that plugin only", () => {
+    expect(aliasesOf(aliases, "java", "17.0.9-tem")).toBe("@j17, @lts");
+  });
+  it("takes a target that is only the version", () => {
+    expect(aliasesOf(aliases, "java", "21.0.1-tem")).toBe("@j21");
+  });
+  it("is empty for a version without one", () => {
+    expect(aliasesOf(aliases, "java", "11.0.2")).toBe("");
   });
 });

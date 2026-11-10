@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-flutter (https://github.com/version-fox/vfox-flutter),
-// written from its documentation at release 0.2.5.
+// written from its documentation at release 0.2.6.
 
 // flutterArchitectures are the architectures that a release can be asked for
 // with a suffix.
@@ -76,6 +76,12 @@ func flutterProfile() Profile {
 			text(
 				"Linux and Windows for ARM64, and the OpenHarmony builds, install as git checkouts and need git.",
 				"Linux 和 Windows 的 ARM64 版本以及 OpenHarmony 构建是以 git 检出的方式安装的，需要装有 git。"),
+			text(
+				"If an SDK changes in place, vfox use and vfox doctor report drift; reinstall it with vfox install --reinstall, and adopt older installs with vfox doctor --adopt.",
+				"如果 SDK 被原地改动，vfox use 与 vfox doctor 会报告漂移；用 vfox install --reinstall 重装，旧的安装用 vfox doctor --adopt 纳入管理。"),
+			text(
+				"When a Flutter SDK is already on the machine, adopt it with vfox link --detect flutter instead of downloading it again.",
+				"如果机器上已经有 Flutter SDK，用 vfox link --detect flutter 纳入管理，不必重新下载。"),
 		},
 		Docs: []Link{
 			docs("vfox-flutter", "versions", text("Versions and names", "版本与命名")),

@@ -4,13 +4,14 @@
 
 This document specifies how vfox-plus drives the vfox command
 line tool: which commands it runs, in which environment, how it reads their
-output and how it reports errors. It describes **vfox 1.0.13**; the captured
+output and how it reports errors. It describes **vfox 1.1.0**; the captured
 outputs are in [`shared/fixtures`](../../../shared/fixtures), together with the
 expected parser results in `cases.json`.
 
-The minimum supported vfox version is **1.0.13**: command errors go to standard
-error since then (see [Output conventions](#output-conventions)), and earlier
-versions are not supported.
+The minimum supported vfox version is **1.1.0**: 1.1.0 adds the link,
+doctor, alias, path.mode, install --use commands and the plugin Detect and
+Fingerprint hooks the application relies on, and earlier versions are not
+supported.
 
 ## Running vfox
 
@@ -117,7 +118,7 @@ Queries are read-only and may run concurrently.
 
 ```console
 $ vfox --version
-vfox version 1.0.13
+vfox version 1.1.0
 ```
 
 The version is the first `\d+.\d+.\d+…` token. Fixture: `version`.
@@ -140,22 +141,25 @@ All installed sdk versions
 
 Lines matching `^([│ ]*)[├└]─[─┬](.+)$` are items; the length of the first
 group divided by two is the depth. Depth 0 is a plugin (a leaf `├──name` is a
-plugin without versions), depth 1 a version of the last plugin. Order is
-preserved. When no plugin is installed, `vfox list` fails with
+plugin without versions), depth 1 a version of the last plugin. Since vfox
+1.1.0 a version carries its link and alias annotations, which are left out:
+`17-system (linked → /usr/lib/jvm/java-17) [alias: j17]` parses as
+`17-system`. Order is preserved. When no plugin is installed, `vfox list` fails with
 `you don't have any sdk installed yet` while `vfox current` prints nothing; this
 is an empty result, not an error. Fixtures: `list`, `list-empty`.
 
 ```console
 $ vfox current
-maven -> v3.9.16
+maven -> 3.9.16
 mvn2 -> N/A
-nodejs -> v24.11.1
+nodejs -> 24.11.1
 ```
 
-Each line is `<name> -> v<version>` or `<name> -> N/A` followed by a space (note
-the trailing space). Strip **one** leading `v`. `vfox current` reflects the scope chain
-global < session < project, which is why it must run in `/`. Fixtures:
-`current`, `current-unset`, `current-empty`.
+Each line is `<name> -> <version>` or `<name> -> N/A`. vfox 1.0.x prefixes the
+version with a `v`, which is stripped again; vfox 1.1.0 prints the stored name
+verbatim. `vfox current <sdk>` prints `-> <version>` for one plugin.
+`vfox current` reflects the scope chain global < session < project, which is
+why it must run in `/`. Fixtures: `current`, `current-unset`, `current-empty`.
 
 ### Plugin information
 
@@ -169,6 +173,12 @@ breaks; join any further fields back into it. Fixtures: `info`, `info-unknown`.
 
 `vfox info <name>@<version>` prints the installation directory of a version, or
 `notfound`. Fixtures: `info-version-path`, `info-version-not-installed`.
+
+`vfox info --json <name>[@<version>]` answers a JSON object with at least
+`name`, `version`, `installed`, `origin` (`installed` or `linked`), `target`
+(the linked directory, empty for installs) and `home` (the runtime directory,
+for example `JAVA_HOME`). The GUI reads `origin` and `target` to tell linked
+versions apart. Fixture: `info-json`.
 
 ### Installable versions
 
@@ -209,7 +219,7 @@ instead of OpenJDK from jdk.java.net, which is what it lists without an argument
 once per list of arguments. The application passes one argument, taken from the
 choices of the [profile](architecture.md#plugin-profiles) of the plugin, and none for the
 default. Each argument is checked like a plugin name is: not empty, not starting
-with `-`, without whitespace or control characters. The list of `java all` has 2,641
+with `-`, without whitespace or control characters. The list of `java all` has 2,683
 entries, the notes have the forms `LTS`, `JavaFX` and `LTS, JavaFX`, and the
 version names carry the distribution: `21.0.12.1+1-tem`, `25.0.4+9-librca-fx`.
 Fixtures: `search-java`, `search-java-tem`, `search-java-all`, `search-flutter`
@@ -243,7 +253,7 @@ proxy.enable = false
 
 Each line is `<key> = <value>`; the value may be empty. Unknown keys must be
 shown and editable as text, so that the GUI keeps working when vfox adds
-settings. The keys of vfox 1.0.13:
+settings. The keys of vfox 1.1.0:
 
 | Key                           | Type                                  | Notes                                             |
 | ----------------------------- | ------------------------------------- | ------------------------------------------------- |
@@ -251,19 +261,65 @@ settings. The keys of vfox 1.0.13:
 | `proxy.url`                   | URL                                   |                                                   |
 | `registry.address`            | URL                                   | Empty means the official registry.               |
 | `storage.sdkPath`             | directory                             | Must exist and be writable.                      |
-| `legacyVersionFile.enable`    | `true` / `false`                      | `.nvmrc`, `.node-version`, `.sdkmanrc`, …        |
+| `legacyVersionFile.enable`    | `true` / `false`                      | `.nvmrc`, `.node-version`, `.sdkmanrc`, `gradle/wrapper/gradle-wrapper.properties`, … |
 | `legacyVersionFile.strategy`  | `specified` / `latest_installed` / `latest_available` |                                  |
 | `cache.availableHookDuration` | duration (`12h`), `-1` forever, `0` off |                                                |
 | `plugin.http.timeout`         | duration, `0s` = default (30 s)       |                                                   |
 | `plugin.http.downloadTimeout` | duration, `0s` = default (30 min)     |                                                   |
 | `gitignore.enable`            | `true` / `false`                      | Adds `.vfox/` to `.gitignore` for project scopes. |
+| `diagnostics.onUse`           | `true` / `false`                      | Warn about shadowed and drifted SDKs on `vfox use`. |
+| `diagnostics.ignore`          | list, for example `[]`                | Finding IDs not to report.                        |
+| `path.mode`                   | `legacy` / `baseline` / `aggressive`  | `baseline` is the default since 1.1.0; see [PATH order](#path-order). |
+| `path.preserve`               | list of directories                   | Directories that stay in front with `baseline` and `aggressive`. |
+| `aliases`                     | map, for example `map[]`              | Version aliases; edited through `vfox alias`, not by hand. |
 
 `vfox config <key> <value>` sets a value and `vfox config --unset <key>` resets
-it. Invalid values fail with vfox's message, for example
-`time: invalid duration "notaduration"` (fixture
-`config-set-invalid-duration`). An unknown key is **silently accepted** (exit
-code 0), so only offer keys that `--list` printed. Fixtures: `config-list`,
-`config-set`, `config-get`.
+it. Since 1.1.0 vfox writes only the key it sets, keeping comments and the
+other keys untouched. Invalid values fail with vfox's message, for example
+`cache.availableHookDuration: time: invalid duration "notaduration"` (fixture
+`config-set-invalid-duration`). Setting a section, a list or a table as a key
+fails (`aliases holds a list or a table…: edit …`); unsetting a missing key
+succeeds without rewriting the file. An unknown key is **silently accepted**
+(exit code 0), so only offer keys that `--list` printed. Fixtures:
+`config-list`, `config-set`, `config-get`.
+
+### Health, aliases and linked versions
+
+```console
+$ vfox doctor --json
+{"ok": true, "findings": []}
+$ vfox alias list
+java@j17 -> java@17.0.9-tem
+```
+
+`vfox doctor [--json] [<sdk>[@<version>]]` checks vfox and the installed SDKs:
+`path.shadowed`, `sdk.drift`, `sdk.link-dangling`, `sdk.payload-empty`,
+`sdk.no-receipt`, `sdk.plugin-missing`, `alias.dangling` and others. The human
+output says `No problems found.` or `Found … errors, … warnings and …
+notices.` with a `fix:` per finding; `--json` answers
+`{"ok": bool, "findings": [{id, severity, sdk, version, message, hints, fix,
+ignored}]}` and exits 1 only on unignored errors. `--adopt` records
+pre-receipt installs so drift can be detected later. Fixtures: `doctor`,
+`doctor-json`.
+
+`vfox alias list [<sdk>]` prints `<sdk>@<alias> -> <sdk>@<version>` per line,
+or `No aliases defined. …` when there are none. `vfox alias set <sdk> <alias>
+<version>` names an installed version and `vfox alias unset <sdk> <alias>`
+removes it; aliases work wherever a version does (`use`, `uninstall`, `info`)
+and are never written to `.vfox.toml`. Fixture: `alias-list`.
+
+`vfox list` marks linked versions (`17-system (linked → /opt/jdk)`) and their
+aliases (`[alias: j17]`); the parser keeps only the version name.
+`vfox info --json` tells them apart with `origin` and `target`.
+
+### PATH order
+
+`path.mode` decides what stays in front of the vfox directories: `legacy` keeps
+everything (the behaviour before 1.1.0), `baseline` (the default since 1.1.0)
+keeps only what was added after activation, and `aggressive` keeps only
+`VIRTUAL_ENV`, `CONDA_PREFIX` and `path.preserve`. When `node` or `java` is not
+the one just selected, `vfox doctor` reports `path.shadowed` with the plugin
+`shadowHints` explaining the other manager.
 
 ## Commands
 
@@ -273,14 +329,21 @@ output streamed to the user.
 | Operation        | Command line                                         | Working directory | Notes |
 | ---------------- | ---------------------------------------------------- | ----------------- | ----- |
 | Install          | `vfox install --yes <name>@<version>`                | `/`               | Progress on standard error. Without a version vfox fails (`install-without-version`). The version may be any name the plugin resolves, see [Names that the plugin resolves](#names-that-the-plugin-resolves). |
-| Uninstall        | `vfox uninstall <name>@<version>`                    | `/`               | Uninstalling the current version makes vfox switch to another installed one. |
-| Use (global)     | `vfox use --global <name>@<version>`                 | `/`               | Needs `__VFOX_SHELL`, see below. |
+| Install and use  | `vfox install --yes --use <name>@<version>`          | `/`               | Like Install, then switches to it in the session scope like `vfox use`. Needs `__VFOX_SHELL` for the switch; without one the install succeeds and the switch fails. |
+| Reinstall        | `vfox install --yes --reinstall <name>@<version>`    | `/`               | Replaces an installed version with a fresh copy, for drifted SDKs (`flutter upgrade` moved it in place). Refuses linked versions. |
+| Uninstall        | `vfox uninstall <name>@<version>`                    | `/`               | Accepts a leading `v` (`v24.11.1`). Uninstalling the current version makes vfox switch to another installed one, removing aliases that point at it. |
+| Use (global)     | `vfox use --global <name>@<version>`                 | `/`               | Needs `__VFOX_SHELL`, see below. Aliases work as versions (`java@j17`). Prints shadow and drift warnings (disable with `diagnostics.onUse false`). |
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
 | Stop using       | `vfox unuse --global <name>`                         | `/` or project    | |
+| Link             | `vfox link <name>@<version> <path>`                  | `/`               | Uses the SDK at `path` (its `bin` directory) as `version`; `--force` repoints a linked version. Uninstalling removes the link only. |
+| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang) and links them; `-y` links everything without asking. |
+| Alias set        | `vfox alias set <sdk> <alias> <version>`             | `/`               | Names an installed version, for example `java@j17`. |
+| Alias unset      | `vfox alias unset <sdk> <alias>`                     | `/`               | Removes the alias. |
+| Doctor adopt     | `vfox doctor --adopt [<sdk>[@<version>]]`            | `/`               | Records pre-receipt installs so drift can be detected later. |
 | Add plugin       | `vfox add <name>`                                    | `/`               | |
 | Add from source  | `vfox add --source <url-or-path> [--alias <alias>] [<name>]` | `/`       | The name defaults to the plugin's own. Pass a copy of a local `.lua` file, see [the quirks](#known-quirks). |
 | Remove plugin    | `vfox remove --yes <name>`                           | `/`               | Also deletes every installed version. Without `--yes` it fails (`remove-without-yes`). |
-| Update plugin    | `vfox update <name>`                                 | `/`               | |
+| Update plugin    | `vfox update <name>`                                 | `/`               | Falls back to the plugin `manifestUrl` when the registry misses it. |
 | Update all       | `vfox update --all`                                  | `/`               | |
 
 Options always precede the positional arguments.
@@ -294,7 +357,9 @@ release (`24`, `24.21`) and `latest`; vfox-flutter takes the channels `stable` a
 `beta`, with an architecture suffix, and installs the release a channel points to
 under the name of that release; vfox-java takes a version and a distribution
 (`21-tem`, `temurin-21`, `21.0.8-tem`, `21-zulu-fx`) or an early-access build
-(`28.ea-open`). The application therefore installs whatever name the user types,
+(`28.ea-open`); vfox-gradle takes `latest` besides the listed releases;
+vfox-golang takes `latest` and release candidates such as `1.27rc3`. The
+application therefore installs whatever name the user types,
 checked like any other version (not empty, not starting with `-`, no whitespace, no
 `@`), and takes the installed names from `vfox list` afterwards, since a channel
 is not an installed name. The [profile](architecture.md#plugin-profiles) of each
@@ -308,7 +373,9 @@ vfox command (see [Environment](#environment)): `VFOX_JAVA_GITHUB_MIRROR` and
 `VFOX_FLUTTER_GITHUB_MIRROR` (a prefix that goes in front of a GitHub address, so it
 has to start with `http://` or `https://`; vfox takes anything else for a file on
 disk), `VFOX_NODEJS_MIRROR`, `FLUTTER_STORAGE_BASE_URL` and `VFOX_NODEJS_LIBC`
-(`musl` or `glibc`). vfox keeps the answer of a search per list of arguments for
+(`musl` or `glibc`), `VFOX_GRADLE_MIRRORS`, `VFOX_GOLANG_MIRROR` (with a trailing
+`/`) and `VFOX_JAVA_JDKS_LINKS` (exposes JDKs to Gradle and IDEA). vfox keeps the
+answer of a search per list of arguments for
 `cache.availableHookDuration`, whatever the environment says, so a changed mirror
 shows in the list after the cache expires.
 
@@ -361,7 +428,7 @@ process, for example in a terminal, installs it:
 
 ## Known quirks
 
-These hold for vfox 1.0.13.
+These hold for vfox 1.1.0.
 
 - `vfox add a b` reports per-plugin failures but exits with 0. The GUI adds one
   plugin per command.
@@ -369,7 +436,15 @@ These hold for vfox 1.0.13.
   broken proxy), `vfox install` may report `Install maven@ success!` with an
   empty version. Treat the task output, not only the exit code, as what the
   user sees.
-- `vfox config` with an unknown key succeeds without doing anything.
+- `vfox config` with an unknown key succeeds without doing anything. Since 1.1.0
+  it writes only the key it sets and rejects sections, lists and tables as
+  keys, bad booleans and bad durations with the messages above.
+- Download failures now name the HTTP status (`unexpected HTTP status 403
+  Forbidden for <url>`) and redact URL credentials (`user:xxxxx@host`,
+  `?token=****`).
+- `vfox current` prints the stored name verbatim (no leading `v`);
+  `uninstall`, `info`, `doctor` and `use` accept a conventional leading `v`
+  when it names nothing else.
 - `vfox add --source <path>.lua` *moves* the file: it renames it into a new
   directory in its temporary directory (`~/.vfox/tmp`, or `~/.version-fox/tmp`
   when that legacy directory exists). The file disappears from where the user

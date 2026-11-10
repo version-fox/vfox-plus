@@ -70,6 +70,10 @@
     "versions": "layers",
     "vfoxConfig": "tune",
     "warning": "warning",
-    "webInterface": "language"
+    "webInterface": "language",
+    "link": "link",
+    "alias": "tag",
+    "health": "health_and_safety",
+    "diagnostics": "health_and_safety"
   }
 }

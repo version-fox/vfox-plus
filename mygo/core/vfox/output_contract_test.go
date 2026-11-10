@@ -148,6 +148,22 @@ func TestParsersMatchTheFixtures(t *testing.T) {
 			}
 		case "config":
 			actual = configToJSON(vfox.ParseConfigList(stdout))
+		case "doctor":
+			report, ok := vfox.ParseDoctorReport(stdout)
+			if !ok {
+				actual = nil
+			} else {
+				actual = doctorToJSON(report)
+			}
+		case "aliases":
+			actual = aliasesToJSON(vfox.ParseAliasList(stdout))
+		case "versionDetail":
+			detail, ok := vfox.ParseVersionDetailJSON(stdout)
+			if !ok {
+				actual = nil
+			} else {
+				actual = versionDetailToJSON(detail)
+			}
 		case "finalProgress":
 			var last interface{}
 			for _, line := range core.SplitTerminalLines(core.StripANSI(stderr)) {
@@ -252,4 +268,30 @@ func configToJSON(entries []core.ConfigEntry) []interface{} {
 		result = append(result, map[string]interface{}{"key": entry.Key, "value": entry.Value})
 	}
 	return result
+}
+
+func doctorToJSON(report vfox.DoctorReport) interface{} {
+	findings := make([]interface{}, 0, len(report.Findings))
+	for _, finding := range report.Findings {
+		findings = append(findings, map[string]interface{}{
+			"id": finding.ID, "severity": finding.Severity, "sdk": finding.Sdk,
+			"version": finding.Version, "message": finding.Message,
+		})
+	}
+	return map[string]interface{}{"ok": report.OK, "count": len(report.Findings), "findings": findings}
+}
+
+func aliasesToJSON(aliases []vfox.VersionAlias) interface{} {
+	result := make([]interface{}, 0, len(aliases))
+	for _, alias := range aliases {
+		result = append(result, map[string]interface{}{"sdk": alias.Sdk, "alias": alias.Alias, "target": alias.Target})
+	}
+	return result
+}
+
+func versionDetailToJSON(detail vfox.VersionDetail) interface{} {
+	return map[string]interface{}{
+		"name": detail.Name, "version": detail.Version, "installed": detail.Installed,
+		"origin": detail.Origin, "target": detail.Target, "home": detail.Home,
+	}
 }

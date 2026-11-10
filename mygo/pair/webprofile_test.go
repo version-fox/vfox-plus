@@ -82,14 +82,14 @@ func TestWebVersionsOfAChosenDistributionCarryWhatTheProfileMakesOfThem(t *testi
 	}
 	var versions versionsAnswer
 	decodeJSON(t, body, &versions)
-	if len(versions) != 120 || versions[0].Version != "27+35-tem" {
+	if len(versions) != 123 || versions[0].Version != "27.0.1-tem" {
 		t.Fatalf("Temurin lists %d versions: %s", len(versions), body[:200])
 	}
 	if calls := runner.Calls("search java tem"); len(calls) != 1 {
 		t.Errorf("the argument reaches vfox: %v", runner.Invocations())
 	}
 	first := versions[0]
-	if first.Parts == nil || first.Parts.Version != "27+35" || first.Parts.Source == nil || first.Parts.Source.Value != "tem" || first.Parts.Source.Name.EN != "Temurin" {
+	if first.Parts == nil || first.Parts.Version != "27.0.1" || first.Parts.Source == nil || first.Parts.Source.Value != "tem" || first.Parts.Source.Name.EN != "Temurin" {
 		t.Errorf("the name is taken apart: %+v", first.Parts)
 	}
 	lts := 0
@@ -131,8 +131,8 @@ func TestWebVersionsOfAChosenDistributionCarryWhatTheProfileMakesOfThem(t *testi
 			}
 		}
 	}
-	// The real list of vfox-java 0.6.3 has 418 builds with JavaFX among its 2641 versions.
-	if status != http.StatusOK || len(all) != 2641 || javafx != 418 {
+	// The real list of vfox-java 0.6.5 has 427 builds with JavaFX among its 2683 versions.
+	if status != http.StatusOK || len(all) != 2683 || javafx != 427 {
 		t.Errorf("got %d, %d versions, %d with JavaFX", status, len(all), javafx)
 	}
 }
@@ -313,7 +313,7 @@ func TestWebChoiceOfASearchIsKeptAndListedFromThenOn(t *testing.T) {
 	status, body = webGet(t, server.BaseURL()+"/api/sdks/java/versions", session)
 	var versions versionsAnswer
 	decodeJSON(t, body, &versions)
-	if status != http.StatusOK || len(versions) != 120 || len(runner.Calls("search java tem")) != 1 {
+	if status != http.StatusOK || len(versions) != 123 || len(runner.Calls("search java tem")) != 1 {
 		t.Errorf("got %d, %d versions: %v", status, len(versions), runner.Invocations())
 	}
 	// A `search` of the request lists another choice, and chooses nothing.
@@ -400,7 +400,7 @@ func TestWebPluginAddedUnderAnAliasHasTheProfileOfThePluginItWasMadeFrom(t *test
 	status, body = webGet(t, server.BaseURL()+"/api/sdks/coffee/versions", session)
 	var versions versionsAnswer
 	decodeJSON(t, body, &versions)
-	if status != http.StatusOK || len(versions) != 120 || versions[0].Parts == nil || versions[0].Parts.Source.Value != "tem" {
+	if status != http.StatusOK || len(versions) != 123 || versions[0].Parts == nil || versions[0].Parts.Source.Value != "tem" {
 		t.Errorf("got %d, %d versions: %.200s", status, len(versions), body)
 	}
 	if len(runner.Calls("search coffee tem")) != 1 || len(runner.Calls("search java")) != 0 {

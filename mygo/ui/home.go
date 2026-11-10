@@ -18,6 +18,8 @@ import (
 	mui "github.com/egoist/mygo/ui"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/vfox"
+	"github.com/version-fox/vfox-plus/mygo/state"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 	"github.com/version-fox/vfox-plus/mygo/ui/shapes"
 )
@@ -62,6 +64,7 @@ func (a *App) homePage(k kit.Ctx) {
 					a.stats(k, len(sdks), versions, len(active))
 					kit.GroupHeader(k, a.T("homeActiveTitle"), nil)
 					a.activeList(k, active)
+					a.doctorCard(k)
 					a.shortcuts(k).Margin(gapXL, 0, 0, 0)
 				})
 			})
@@ -108,6 +111,105 @@ func (a *App) stats(k kit.Ctx, plugins, versions, active int) {
 		a.statTile(k, "active", compact, active, a.T("homeStatActive"), "current",
 			shapes.ShapeSunny, cs.TertiaryContainer, cs.OnTertiaryContainer)
 	})
+}
+
+// doctorCard shows the health of vfox and the installed SDKs.
+func (a *App) doctorCard(k kit.Ctx) {
+	if a.model.Vfox.Availability() != state.VfoxReady {
+		return
+	}
+	doctor := a.model.Doctor
+	if !doctor.HasValue() && doctor.Error() == nil && !doctor.IsLoading() {
+		doctor.EnsureLoaded()
+	}
+	cs := k.Colors()
+	kit.GroupHeader(k, a.T("doctorTitle"), nil)
+	switch {
+	case doctor.IsLoading():
+		kit.ListGroup(k, kit.ListItemSpec{
+			ID: "doctor-loading", Title: a.T("doctorCheck"), Leading: icon(k, "health"),
+			Trailing: func() { kit.LoadingIndicator(k, kit.LoadingSpec{ID: "doctor-loading", Size: 24}) },
+		})
+	case doctor.Error() != nil:
+		kit.ListGroup(k, kit.ListItemSpec{
+			ID: "doctor-error", Title: a.T("doctorCheck"), Subtitle: describeError(doctor.Error()),
+			Leading: icon(k, "health"),
+			Trailing: func() {
+				kit.Button(k, kit.ButtonSpec{ID: "doctor-retry", Kind: kit.TonalButton, Label: a.T("doctorCheck"), OnClick: func() { doctor.Load() }})
+			},
+		})
+	default:
+		report, _ := doctor.Value()
+		if len(report.Findings) == 0 {
+			kit.ListGroup(k, kit.ListItemSpec{
+				ID: "doctor-ok", Title: a.T("doctorNoProblems"), Leading: icon(k, "health"),
+				Trailing: func() {
+					kit.Button(k, kit.ButtonSpec{ID: "doctor-check", Kind: kit.TextButton, Label: a.T("doctorCheck"), OnClick: func() { doctor.Load() }})
+				},
+			})
+			return
+		}
+		var items []kit.ListItemSpec
+		for _, finding := range report.Findings {
+			finding := finding
+			title := finding.Message
+			if title == "" {
+				title = finding.ID
+			}
+			subtitle := finding.ID
+			if finding.Sdk != "" {
+				subtitle = finding.Sdk
+				if finding.Version != "" {
+					subtitle += "@" + finding.Version
+				}
+				subtitle += " · " + finding.Severity
+			}
+			items = append(items, kit.ListItemSpec{
+				ID:    "doctor:" + finding.ID + ":" + finding.Sdk + "@" + finding.Version,
+				Title: title, Subtitle: subtitle, Wrap: a.itemWraps(),
+				Leading: icon(k, "health"),
+				Trailing: func() {
+					mui.Row(k.Context).Gap(gapXS).Children(func() {
+						switch finding.ID {
+						case "sdk.no-receipt":
+							kit.Button(k, kit.ButtonSpec{
+								ID: "adopt:" + finding.Sdk + "@" + finding.Version, Kind: kit.TonalButton, Label: a.T("doctorAdopt"),
+								OnClick: func() {
+									command, err := a.model.Cli.DoctorAdopt(finding.Sdk, finding.Version)
+									if err != nil {
+										a.notify(describeError(err))
+										return
+									}
+									a.run(command, nil)
+								},
+							})
+						case "sdk.drift":
+							kit.Button(k, kit.ButtonSpec{
+								ID: "reinstall:" + finding.Sdk + "@" + finding.Version, Kind: kit.TonalButton, Label: a.T("versionReinstall"),
+								OnClick: func() {
+									command, err := a.model.Cli.InstallWithOptions(finding.Sdk, finding.Version, vfox.InstallOptions{Reinstall: true})
+									if err != nil {
+										a.notify(describeError(err))
+										return
+									}
+									a.run(command, nil)
+								},
+							})
+						}
+						kit.IconButton(k, kit.IconButtonSpec{
+							ID: "doctor-check-one", Icon: "refresh", Tooltip: a.T("actionRefresh"),
+							OnClick: func() { doctor.Load() },
+						})
+					})
+				},
+			})
+			if len(items) >= 5 {
+				break
+			}
+		}
+		kit.ListGroup(k, items...)
+		kit.Label(k, a.T("doctorProblems", "count", len(report.Findings)), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(gapS, 0, 0, gapL)
+	}
 }
 
 func (a *App) statTile(k kit.Ctx, id string, compact bool, value int, label, icon string, shape *shapes.Polygon,

@@ -15,13 +15,13 @@ vfox-plus 是桌面应用，没有命令行：像其他应用一样启动它，�
 ![网页界面的设置：开关与服务地址、在浏览器中打开的按钮、轻量模式与其他设备](https://iili.io/nbhBWEg.png)
 
 配对后的浏览器得到完整界面：已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时
-进度与日志的任务、以及设置。vfox-java、vfox-nodejs 与 vfox-flutter 这三个插件提供的功能一应
-俱全，和桌面应用一样：Java 要列出的发行版、筛选 Chip、按名称安装，以及带下载镜像的选项页（见
-[Java、Node.js 与 Flutter](using.md#javanodejs-与-flutter)）。[安卓 App](android.md) 显示的是同一个界面。
+进度与日志的任务、以及设置。vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 这五个插件提供的功能一应
+俱全，和桌面应用一样：Java 要列出的发行版、筛选 Chip、按名称安装、vfox 1.1.0 的链接与别名，以及带下载镜像的选项页（见
+[Java、Node.js、Flutter、Gradle 与 Go](using.md#javanodejsfluttergradle-与-go)）。[安卓 App](android.md) 显示的是同一个界面。
 
 | 配对后的 Web 界面 | 其中的 Java：Temurin，长期支持版 |
 | --- | --- |
-| ![配对后的 Web 界面](https://iili.io/nbrIyiP.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nbrT3Ja.png) |
+| ![配对后的 Web 界面](https://iili.io/nm0FB7p.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nm0FW4j.png) |
 
 Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
 按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，vfox-plus

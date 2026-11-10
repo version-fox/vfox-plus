@@ -29,7 +29,7 @@ func TestDecodePercentB(t *testing.T) {
 		want  string
 	}{
 		{"empty", "", ""},
-		{"plain", "vfox version 1.0.13\n", "vfox version 1.0.13\n"},
+		{"plain", "vfox version 1.1.0\n", "vfox version 1.1.0\n"},
 		{"double backslash", `a\\b`, `a\b`},
 		{"escaped backslash before n", `\\n`, "\\n"},
 		{"newline", `\n`, "\n"},
@@ -86,7 +86,7 @@ func TestRunCommandVersionAndList(t *testing.T) {
 	dir := t.TempDir()
 	// Captures escape backslashes and control characters; the fake vfox must
 	// decode them back to the bytes vfox printed.
-	writeFixture(t, dir, "version", "vfox version 1.0.13\n", "")
+	writeFixture(t, dir, "version", "vfox version 1.1.0\n", "")
 	writeFixture(t, dir, "list", `nodejs\\x1f24.11.1\n`, `\x1b[31merr\x1b[0m`+"\n")
 	fixtureEnv(t, dir)
 
@@ -94,7 +94,7 @@ func TestRunCommandVersionAndList(t *testing.T) {
 	if code := runCommand([]string{"--version"}, &out, &errOut); code != 0 {
 		t.Fatalf("--version exit code = %d, want 0", code)
 	}
-	if got, want := out.String(), "vfox version 1.0.13\n"; got != want {
+	if got, want := out.String(), "vfox version 1.1.0\n"; got != want {
 		t.Errorf("--version stdout = %q, want %q", got, want)
 	}
 	if errOut.String() != "" {

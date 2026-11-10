@@ -10,7 +10,7 @@
 ## 结果
 
 单位 MB，应用及其全部子进程之和，Docker 内 Ubuntu 26.04，Xvfb（1280×800，无 GPU）。
-"Versions" 是列出 Node.js 872 个可用版本的 SDK 页。
+"Versions" 是列出 Node.js 877 个可用版本的 SDK 页。
 
 | 实现 | 技术 | 进程 | Home PSS | Home RSS | Versions PSS | Versions RSS | 列表增加 (PSS) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -209,7 +209,7 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
    vfox 用 [`shared/fixtures`](../../../shared/fixtures) 的假 vfox（回放捕获输出，不跑真实 vfox）。
 2. 等 Home 页出现，再等 3 秒沉降，然后从 `/proc/<pid>/smaps_rollup` 累加应用及以下每个进程的
    `Rss` 与 `Pss`。
-3. 经窗口元素（mygo 的自动化插件）打开 Node.js 可用版本，等 872 个版本出现，再等 3 秒，再测一次。
+3. 经窗口元素（mygo 的自动化插件）打开 Node.js 可用版本，等 877 个版本出现，再等 3 秒，再测一次。
 
 大小为 MiB，工具称 MB。沙箱 `measure` 任务在 Docker 中跑全套（`vfxtool sandbox measure`，
 只需 Docker）；上表数字来自 16 逻辑 CPU 的 WSL2 主机。

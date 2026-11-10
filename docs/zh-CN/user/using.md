@@ -9,33 +9,37 @@
 - vfox 版本与可执行文件位置，带刷新按钮。
 - 三块统计：插件数、已安装版本数、在用版本数，点开进入 SDK 页。
 - 有在用版本的插件列表，点开进入该插件的 SDK 页。
+- 健康检查（**健康**）：`vfox doctor` 发现漂移或旧安装时，可**检查健康**、**纳入**、**重装**。
 - 终端里如何使用这些版本：给出写入 `~/.bashrc` 的那一行，带复制按钮。
 - 插件仓库与 vfox 文档的快捷入口。
 
 ## SDK
 
-已安装插件列表，标出当前版本。点一个看详情：描述、主页与两个页签（应用认识的插件有三个页签，
-见 [Java、Node.js 与 Flutter](#javanodejs-与-flutter)）。
+已安装插件列表，标出当前版本。链接版本显示其目录，卸载只删链接；别名当版本用。点一个看详情：描述、主页与两个页签（应用认识的插件有三个页签，
+见 [Java、Node.js、Flutter、Gradle 与 Go](#javanodejsfluttergradle-与-go)）。
 
 **已安装**列出已装版本，最新在前。当前版本有标记，其它版本可设为全局默认。
-每个版本还可固定到某个项目（在其目录下）、复制安装路径或卸载。移除插件本身会
+每个版本还可固定到某个项目（在其目录下）、复制安装路径、重装、命名别名或卸载。移除插件本身会
 删掉它的全部版本，操作前会确认。
 
 **可安装**搜索能装的版本：按文本过滤，只看带备注（如 LTS）的或只看已安装的。
 安装显示实时下载进度，可取消。**按名称安装…** 用 vfox 能理解的名称安装列表里没有的版本，例如
-用 `24` 安装最新的 Node.js 24。
+用 `24` 安装最新的 Node.js 24，勾选**安装后使用**可一次装好即用；列表里每个版本都有**安装**与**安装并使用**。
+**探测并链接**把机器上已有的纳入管理（`vfox link --detect`），**链接已有…**按你写的目录与版本名链接。
 
-### Java、Node.js 与 Flutter
+### Java、Node.js、Flutter、Gradle 与 Go
 
 插件 [vfox-java](https://github.com/version-fox/vfox-java)、
-[vfox-nodejs](https://github.com/version-fox/vfox-nodejs) 与
-[vfox-flutter](https://github.com/version-fox/vfox-flutter) 的功能不止列出版本，vfox-plus
+[vfox-nodejs](https://github.com/version-fox/vfox-nodejs)、
+[vfox-flutter](https://github.com/version-fox/vfox-flutter)、
+[vfox-gradle](https://github.com/version-fox/vfox-gradle) 与
+[vfox-golang](https://github.com/version-fox/vfox-golang) 的功能不止列出版本，vfox-plus
 把这些功能都提供出来，桌面应用、Web 界面和安卓应用都一样。用别名添加的插件，如
 `vfox add --alias coffee java`，与它所自出的插件提供同样的功能：
 
 - **Java 的发行版。** 单独的 `vfox search java` 只列出 jdk.java.net 上的 OpenJDK。列表上方的
   按钮（**发行版：OpenJDK**）会打开 31 个发行版的列表，例如 Temurin、Zulu、Liberica、Corretto 与
-  GraalVM，可以按名称、简称或厂商筛选；**全部发行版**一次列出所有发行版约 2500 个版本，并标明每个版本
+  GraalVM，可以按名称、简称或厂商筛选；**全部发行版**一次列出所有发行版约 2700 个版本，并标明每个版本
   属于哪个发行版。你的选择会被记住，下次打开该插件和重启之后仍然生效；它保存在桌面应用的设置里，所以
   Web 界面和安卓应用显示的是同一个选择。这和 `vfox search java tem` 是一回事。
 - **筛选 Chip。** 列表上方的 Chip 按插件对版本的说明来收窄列表：Java 有 LTS 与 JavaFX，Node.js 有 LTS，
@@ -43,24 +47,25 @@
   不同行互相收窄。
 - **按名称安装。** 有些名称由 vfox 在安装时解析：`24` 是最新的 Node.js 24，`latest` 是所有版本中最新的，
   `stable` 与 `beta` 是 Flutter 通道当前指向的版本，`21-tem` 是最新的 Temurin 21，`21-zulu-fx` 是带
-  JavaFX 的 Zulu 21，`28.ea-open` 是抢先体验版的 OpenJDK。对话框会为该插件给出这样的名称，并说明
+  JavaFX 的 Zulu 21，`28.ea-open` 是抢先体验版的 OpenJDK，`latest` 是最新的 Gradle 或 Go 版本。对话框会为该插件给出这样的名称，并说明
   各自的含义。通道会被它指向的版本替换，之后在**已安装**里看到的就是那个版本名。
-- **已安装的名称。** 已安装的 Java 版本会标出发行版（带 JavaFX 时也标出），已安装的 Flutter 版本会标出架构。
+- **已安装的名称。** 已安装的 Java 版本会标出发行版（带 JavaFX 时也标出），已安装的 Flutter 版本会标出架构。链接版本保留你起的名称（如 `17-system`）。
 
 | 中文界面里的 Java | 中文界面里的选项 |
 | --- | --- |
-| ![中文界面里 Java 的可安装版本](https://iili.io/nD3ge6J.png) | ![中文界面里 Node.js 的选项](https://iili.io/nD3gSvp.png) |
+| ![中文界面里 Java 的可安装版本](https://iili.io/nm03sLu.png) | ![中文界面里 Node.js 的选项](https://iili.io/nD3gSvp.png) |
 
 **选项**页签放的是这个插件特有的内容：
 
 - **下载**：插件读取的环境变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
-  下载镜像、Flutter 的存储镜像。它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
+  下载镜像、Flutter 的存储镜像、Gradle 镜像列表与 Go 镜像，它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
   `https://` 开头。
-- **版本文件**：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与 `.nvmrc`，以及决定 vfox 是否、如何
+- **版本文件**：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与 `.nvmrc`（vfox 1.1.0 上双向生效：离开项目切回全局），Gradle 的 `gradle/wrapper/gradle-wrapper.properties`，以及决定 vfox 是否、如何
   读取它们的 vfox 设置。
 - **可以直接输入的名称**，每个都有一个按钮，用该名称打开安装对话框。
 - **须知**：容易让人意外的地方，例如不写发行版的 Java 是 jdk.java.net 上的 OpenJDK（21 只到 21.0.2），
   又如装完 `flutter@stable` 之后不能再用 `flutter@stable`，因为安装按它指向的版本命名。
+- **纳入、漂移与盖住**：机器上已有 JDK、Gradle、Flutter 或 Go 时，**探测并链接**纳入管理，不必重下；SDK 被原地改动时主页**健康**与 `vfox use` 报告漂移（**重装**，旧安装用**纳入**）；别的工具盖住 vfox 的版本时健康检查指明是谁与做法（`path.mode`、`path.preserve`）。
 - **文档**：该插件讲解自身的页面，使用你的语言。
 
 ## 插件
@@ -72,7 +77,7 @@
 
 ## 任务
 
-安装、卸载、切换、添加、移除、更新都会成为一条任务，最新在前。每条任务显示
+安装（含安装并使用、重装、链接与探测链接、别名设置与删除、doctor 纳入）、卸载、切换、添加、移除、更新都会成为一条任务，最新在前。每条任务显示
 状态（排队、运行、成功、失败、已取消），运行中的安装有实时进度，输出日志附
 带丢弃行数；失败任务的完整日志保留在磁盘并显示位置。失败或取消的任务可重试，已完成的可以清除。在别的页面时任务完成会有
 消息提示。
@@ -84,11 +89,11 @@
   （轻量模式），以及同一网络中的手机和其他电脑是否可以通过 HTTPS 连接。见
   [网页界面与其他设备](remote.md)。
 - **vfox**：用哪个可执行文件（自动探测，也可自选）与下载镜像等额外环境变量。
-- **vfox 配置**：代理、仓库源、存储目录、旧版版本文件、缓存与超时——开关、菜单与
-  文本框；清空文本框即恢复默认。
+- **vfox 配置**：代理、仓库源、存储目录、旧版版本文件、缓存与超时、诊断（`diagnostics.onUse`）与 PATH 顺序（默认 `path.mode` 为 `baseline`，`path.preserve`）——开关、菜单与
+  文本框；清空文本框即恢复默认。别名（`vfox alias`）与链接版本（`vfox link`）从 vfox 读取。
 - **关于**：版本、源码与依赖许可证。
 
 ## 找不到 vfox 时
 
-找不到 vfox 可执行文件，或找到的不能用时，每个页面都会说明如何安装 vfox，并提供
+找不到 vfox 可执行文件，或找到的不能用、版本早于 vfox 1.1.0 时，每个页面都会说明如何安装 vfox，并提供
 定位可执行文件与重试。设置页始终可用，可手动指向 vfox。

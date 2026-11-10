@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-nodejs (https://github.com/version-fox/vfox-nodejs),
-// written from its documentation at release 0.5.3.
+// written from its documentation at release 0.5.6.
 
 func nodejsProfile() Profile {
 	return Profile{
@@ -79,6 +79,9 @@ func nodejsProfile() Profile {
 			text(
 				"The version list is the same on every platform; a release without a package for this machine fails when it is installed.",
 				"版本列表在所有平台上都一样；没有适用于本机的安装包的版本，安装时会失败。"),
+			text(
+				"On vfox 1.1.0 the version files work both ways: entering a project selects its version, leaving it switches back to the global one.",
+				"在 vfox 1.1.0 上版本文件是双向的：进入项目选中它的版本，离开则切回全局版本。"),
 		},
 		Docs: []Link{
 			docs("vfox-nodejs", "versions", text("Versions and names", "版本与命名")),

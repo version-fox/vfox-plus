@@ -346,6 +346,15 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 	if err := r.capture("list-empty", nil, "list"); err != nil {
 		return err
 	}
+	if err := r.capture("doctor", nil, "doctor"); err != nil {
+		return err
+	}
+	if err := r.capture("doctor-json", nil, "doctor", "--json"); err != nil {
+		return err
+	}
+	if err := r.capture("alias-list", nil, "alias", "list"); err != nil {
+		return err
+	}
 
 	for attempt := 1; attempt <= 5; attempt++ {
 		if err := r.capture("add", nil, "add", "nodejs"); err != nil {
@@ -401,6 +410,9 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 		return err
 	}
 	if err := r.capture("info-unknown", nil, "info", "nosuchsdk"); err != nil {
+		return err
+	}
+	if err := r.capture("info-json", nil, "info", "--json", "nodejs"); err != nil {
 		return err
 	}
 

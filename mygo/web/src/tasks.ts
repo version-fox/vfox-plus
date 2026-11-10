@@ -44,7 +44,11 @@ function statusLabel(status: string): string {
 /** "install nodejs@24.11.0" -> "Install nodejs@24.11.0" */
 function taskTitle(task: Task): string {
   const op = task.operation || "";
-  const known = ["install", "uninstall", "update", "remove", "use", "add"];
+  if (op === "aliasSet" || op === "aliasUnset") {
+    const named = task.sdk + (task.version ? "@" + task.version : "");
+    return t(op === "aliasSet" ? "taskAliasSet" : "taskAliasUnset").replace("{alias}", task.alias || "").replace("{subject}", named);
+  }
+  const known = ["install", "installUse", "uninstall", "update", "remove", "use", "unuse", "add", "link", "linkDetect", "aliasSet", "aliasUnset", "doctorAdopt"];
   const label = known.includes(op) ? t(op as Key) : op;
   const subject = task.sdk + (task.version ? "@" + task.version : "");
   return (label.charAt(0).toUpperCase() + label.slice(1) + (subject ? " " + subject : "")).trim();
@@ -170,7 +174,7 @@ export async function openTask(id: number): Promise<void> {
   }
 }
 
-export async function runTask(req: Record<string, string>): Promise<void> {
+export async function runTask(req: Record<string, string | boolean>): Promise<void> {
   try {
     await api("/api/tasks", { method: "POST", body: JSON.stringify(req) });
     location.hash = "#/tasks";

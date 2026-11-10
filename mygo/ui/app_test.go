@@ -73,7 +73,7 @@ func TestHomeShowsTheOverviewAndTheShortcuts(t *testing.T) {
 	} {
 		ta.mustText(text)
 	}
-	if !ta.text("vfox 1.0.13 · /usr/bin/vfox") {
+	if !ta.text("vfox 1.1.0 · /usr/bin/vfox") {
 		t.Errorf("the subtitle names the version and the executable: %q", ta.texts())
 	}
 	// The tiles count what vfox lists: three plugins, four installed versions.
@@ -143,7 +143,7 @@ func TestTheSdkPageSearchesAndShowsTheVersionsOfThePluginThatWasChosen(t *testin
 	ta.item("nodejs")
 	ta.until("the plugin information", func() bool { _, ok := ta.app.detailFor("nodejs").controller.Info.Value(); return ok })
 	ta.settle()
-	for _, text := range []string{"Node.js runtime environment.", "Installed (2)", "24.11.1", "22.21.0", "In use", "Plugin 0.5.1"} {
+	for _, text := range []string{"Node.js runtime environment.", "Installed (2)", "24.11.1", "22.21.0", "In use", "Plugin 0.5.4"} {
 		ta.mustText(text)
 	}
 	ta.snapshot("sdks")
@@ -177,7 +177,7 @@ func TestTheVersionsThatCanBeInstalledAreFilteredAndInstalled(t *testing.T) {
 	ta.button("Available")
 	ta.until("the versions", func() bool { return ta.app.detailFor("nodejs").controller.Versions.HasValue() })
 	ta.settle()
-	ta.mustText("872 versions")
+	ta.mustText("877 versions")
 	ta.snapshot("available")
 	d := ta.app.detailFor("nodejs")
 	d.controller.SetQuery("24.11.0")
@@ -674,4 +674,47 @@ func TestTheVersionOfTheApplicationIsTheOneInTheVersionFile(t *testing.T) {
 	if got := strings.TrimSpace(string(content)); got != Version {
 		t.Errorf("VERSION says %q, the application %q", got, Version)
 	}
+}
+
+func TestHomeShowsHealthAndChecksAgain(t *testing.T) {
+	ta := defaultApp(t)
+	ta.mustText("Health")
+	ta.until("the doctor", func() bool { return len(ta.runner.Calls("doctor --json")) >= 1 })
+	ta.settle()
+	ta.mustText("No problems found.")
+	ta.button("Check health")
+	ta.until("the doctor again", func() bool { return len(ta.runner.Calls("doctor --json")) >= 2 })
+}
+
+func TestInstalledVersionsOfferReinstallAndAlias(t *testing.T) {
+	ta := defaultApp(t)
+	ta.button("SDKs")
+	ta.item("nodejs")
+	ta.settle()
+	ta.click(kit.RoleButton, "More actions for 22.21.0")
+	ta.click(kit.RoleMenuItem, "Reinstall")
+	ta.until("the reinstall", func() bool { return len(ta.runner.Calls("install --yes --reinstall nodejs@22.21.0")) == 1 })
+	// While a task runs for a version its actions are a loading indicator: wait until it is over.
+	ta.until("the reinstall to end", func() bool { return ta.app.model.Tasks.ActiveTask("", "nodejs", "22.21.0") == nil })
+	ta.settle()
+	ta.click(kit.RoleButton, "More actions for 22.21.0")
+	ta.click(kit.RoleMenuItem, "Name alias…")
+	ta.mustText("Alias")
+	field, ok := ta.find(kit.RoleTextField, "Alias")
+	if !ok {
+		t.Fatalf("no alias field: %q", ta.texts())
+	}
+	ta.fill(field, "lts", false)
+	ver, ok := ta.find(kit.RoleTextField, "Version name")
+	if !ok {
+		t.Fatalf("no version field: %q", ta.texts())
+	}
+	if ver.Value() != "22.21.0" {
+		t.Errorf("the version is prefilled: %q", ver.Value())
+	}
+	ta.fill(ver, "22.21.0", true)
+	ta.until("the alias", func() bool { return len(ta.runner.Calls("alias set")) == 1 })
+	// The task says which alias it names, and for what.
+	ta.button("Tasks")
+	ta.mustText("Name alias lts for nodejs@22.21.0")
 }

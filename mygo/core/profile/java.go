@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-java (https://github.com/version-fox/vfox-java), written
-// from its documentation at release 0.6.3.
+// from its documentation at release 0.6.6.
 
 // javaOpenJDK is the distribution that `vfox search java` lists without an
 // argument, and that a version name without a suffix belongs to.
@@ -159,6 +159,12 @@ func javaProfile(platform Platform) Profile {
 			text(
 				"A search lists what exists for this machine, and vfox keeps the answer for 12 hours per distribution.",
 				"搜索列出的是适用于本机的版本，vfox 会按发行版把结果缓存 12 小时。"),
+			text(
+				"When a JDK is already on the machine, adopt it instead of downloading it again: vfox link --detect java.",
+				"如果机器上已经有 JDK，不必重新下载：vfox link --detect java 可以把它纳入管理。"),
+			text(
+				"Set VFOX_JAVA_JDKS_LINKS before installing to also expose the JDK to Gradle and IntelliJ IDEA in ~/.jdks; uninstalling removes that link again.",
+				"安装前设置 VFOX_JAVA_JDKS_LINKS 可以把 JDK 同时暴露给 Gradle 与 IntelliJ IDEA（~/.jdks）；卸载时会删掉这个链接。"),
 		},
 		Docs: []Link{
 			docs("vfox-java", "versions", text("Versions and names", "版本与命名")),

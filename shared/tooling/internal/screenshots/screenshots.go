@@ -121,7 +121,7 @@ func pages(s *appsession.Session, c shooter) {
 	s.WaitForText("Node.js runtime environment.")
 	c.shot(s, "sdks")
 	s.ClickButton("Available")
-	s.WaitForText("872 versions")
+	s.WaitForText("877 versions")
 	c.shot(s, "available")
 	s.Fill("Filter versions", "24.11.0", false)
 	s.WaitForText("1 version")
@@ -153,7 +153,7 @@ func pages(s *appsession.Session, c shooter) {
 	s.ClickItem("nodejs")
 	s.WaitForText("Node.js runtime environment.")
 	s.ClickButton("Available")
-	s.WaitForText("872 versions")
+	s.WaitForText("877 versions")
 	c.shot(s, "dark-available")
 
 	s.Navigate(appsession.Settings)
@@ -233,7 +233,7 @@ func installing(s *appsession.Session, c shooter) {
 	s.Navigate(appsession.SDKs)
 	s.ClickItem("nodejs")
 	s.ClickButton("Available")
-	s.WaitForText("872 versions")
+	s.WaitForText("877 versions")
 	s.ClickButtonNear("26.12.0", "Install")
 	s.WaitUntil("the download to start", 30*time.Second, func(t automation.Tree) bool {
 		percent, _ := t.Downloading()
@@ -244,8 +244,8 @@ func installing(s *appsession.Session, c shooter) {
 
 // profiles shows what vfox-plus offers for the plugins that it knows: the
 // distributions of Java, the filter chips of its versions and of Flutter's, the
-// installation by name, and the options of Node.js. The fake vfox plays a machine
-// that has Java and Flutter installed next to Node.js.
+// installation by name, the options of Node.js, and its aliases and the link of an SDK. The
+// fake vfox plays a machine that has Java and Flutter installed next to Node.js.
 func profiles(s *appsession.Session, c shooter) {
 	s.Navigate(appsession.SDKs)
 	s.ClickItem("java")
@@ -259,9 +259,9 @@ func profiles(s *appsession.Session, c shooter) {
 	s.WaitForText("Distribution")
 	c.shot(s, "java-choose")
 	s.ClickItem("Temurin")
-	s.WaitForText("120 versions")
+	s.WaitForText("123 versions")
 	s.ClickButton("LTS")
-	s.WaitForTextGone("120 versions")
+	s.WaitForTextGone("123 versions")
 	c.shot(s, "java-temurin")
 	s.ClickButton("Install by name…")
 	s.WaitForText("Install java by name")
@@ -272,7 +272,7 @@ func profiles(s *appsession.Session, c shooter) {
 	s.ClickButton("Distribution: Temurin")
 	s.WaitForText("Distribution")
 	s.ClickItem("All distributions")
-	s.WaitForText("2,641 versions")
+	s.WaitForText("2,683 versions")
 	c.shot(s, "java-all")
 	// The choice is kept, so Java would list every distribution again at the next visit:
 	// take it back to the default, as a user does.
@@ -284,9 +284,9 @@ func profiles(s *appsession.Session, c shooter) {
 	s.Navigate(appsession.SDKs)
 	s.ClickItem("flutter")
 	s.ClickButton("Available")
-	s.WaitForText("457 versions")
+	s.WaitForText("460 versions")
 	s.ClickButton("stable")
-	s.WaitForTextGone("457 versions")
+	s.WaitForTextGone("460 versions")
 	c.shot(s, "flutter-available")
 
 	s.Navigate(appsession.SDKs)
@@ -309,6 +309,27 @@ func profiles(s *appsession.Session, c shooter) {
 	s.ClickButton("可安装")
 	s.WaitForText("75 个版本")
 	c.shot(s, "zh-java-available")
+
+	// What vfox 1.1.0 adds to a plugin: its aliases, the dialog that names one, and the dialog that links an
+	// SDK that is already on the machine. In English again: the pictures above are in Simplified Chinese, and the
+	// page of the options was not scrolled when they were taken.
+	s.Navigate(appsession.Settings)
+	s.PressKey("english")
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("nodejs")
+	s.ClickButton("Options")
+	scrollTo(s, "alias-set")
+	c.shot(s, "options-aliases")
+	s.ClickButton("Name alias…")
+	s.WaitForText("Name an alias for nodejs")
+	c.shot(s, "alias-set")
+	s.TapDialog(false)
+	s.ClickButton("Available")
+	s.WaitForText("877 versions")
+	s.ClickButton("Link existing…")
+	s.WaitForText("Link nodejs at a directory")
+	c.shot(s, "link-manual")
+	s.TapDialog(false)
 }
 
 // compactPages shows the Home page and the versions of Node.js in a window of the
@@ -328,6 +349,6 @@ func compactProfiles(s *appsession.Session, c shooter) {
 	s.WaitForText("75 versions")
 	s.ClickButton("Distribution: OpenJDK")
 	s.ClickItem("Temurin")
-	s.WaitForText("120 versions")
+	s.WaitForText("123 versions")
 	c.shot(s, "compact-java")
 }

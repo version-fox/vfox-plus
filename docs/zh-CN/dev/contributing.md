@@ -202,7 +202,7 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 | --- | --- |
 | 普通 | 每个页面 × 双主题 × 双语言：`home`、`sdks`、`available`、`tasks`、`plugins`、`dialog`、`settings`、`dark-expanded`、`dark-sdks`、`dark-available`、`zh-home`、`zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | 安装中：`installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`zh-options`、`zh-java-available` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`options-aliases`、`alias-set`、`link-manual`、`zh-options`、`zh-java-available` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | 窄布局（窗口窄于 600 dp）：`compact-home`、`compact-detail` |
 | 上面两个一起 | 窄布局下 Java 的发行版：`compact-java` |
 | 设置 `webInterface`，以及 `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 网页界面的设置，像用户操作那样一步步走：已开启的开关与它的地址、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
@@ -232,7 +232,7 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 **Web 界面。** 用应用的端到端构建（在虚拟显示里）与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
 可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
 `connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
-`java-install-name`、`options` 与 `options-mirror`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
+`java-install-name`、`options`、`options-mirror`、`options-aliases`、`alias-set` 与 `link-manual`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
 `mygo/pair/webapp.html` 检查场景点击的元素）。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
 设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面，并允许其他设备（连接卡片与给
 手机配对的二维码需要它：`{"webInterface":true,"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
@@ -253,7 +253,7 @@ shoot() {
   echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
-      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.0.13 VFOX_PLUS_E2E_LINK=$home/link.txt \
+      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
       VFOX_PLUS_E2E_ADDRESSES=192.168.1.20
     [ -n "${INVENTORY:-}" ] && export VFOX_PLUS_FAKE_INVENTORY=$INVENTORY
     exec setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >$home/app.log 2>&1

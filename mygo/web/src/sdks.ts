@@ -16,7 +16,8 @@
 
 import { api, confirmDlg, openExternal, showError, snack } from "./api";
 import type { VersionEntry } from "./api";
-import { avatar, el, esc, icon, txt } from "./dom";
+import { aliasesOf, avatar, el, esc, icon, txt } from "./dom";
+import type { VersionAlias } from "./dom";
 import { getLang, t } from "./i18n";
 import { refresh } from "./main";
 import { state, type DetailState } from "./state";
@@ -255,7 +256,9 @@ function renderInstalled(body: HTMLElement): void {
     const parts = d.profile && d.profile.installed && d.profile.installed[v];
     const line = parts ? partsLine(parts, getLang()) : "";
     h +=
-      "<div class='item'><span style='flex:1;min-width:0'><code>" +
+      "<div class='item'><span style='flex:1;min-width:0' data-alias-of='" +
+      esc(v) +
+      "'><code>" +
       esc(v) +
       "</code>" +
       (isCur ? ' <span class="tag cur">' + esc(t("current")) + "</span>" : "") +
@@ -273,6 +276,7 @@ function renderInstalled(body: HTMLElement): void {
       "</button></div>";
   });
   body.innerHTML = h + "</div>";
+  showAliases(body);
   body.querySelectorAll("[data-use]").forEach(
     (b) =>
       ((b as HTMLButtonElement).onclick = () =>
@@ -283,6 +287,16 @@ function renderInstalled(body: HTMLElement): void {
       ((b as HTMLButtonElement).onclick = (ev) => {
         const v = (b as HTMLButtonElement).dataset.moreVersion || "";
         openMenu(ev.currentTarget as Element, [
+          {
+            icon: "refresh",
+            label: t("versionReinstall"),
+            onclick: () => runTask({ operation: "install", sdk: d.name, version: v, reinstall: true }),
+          },
+          {
+            icon: "label",
+            label: t("aliasSet"),
+            onclick: () => openAliasSet(v),
+          },
           {
             icon: "delete",
             label: t("uninstall"),
@@ -297,6 +311,27 @@ function renderInstalled(body: HTMLElement): void {
   );
 }
 
+
+// An alias is shown after the version that it names, as the desktop does (`@j17`). The list is there before they are:
+// the aliases come from vfox, and a failure to ask for them leaves the list as it is.
+async function showAliases(body: HTMLElement): Promise<void> {
+  const d = state.detail;
+  if (!d) return;
+  const name = d.name;
+  try {
+    const aliases = (await api("/api/sdks/" + encodeURIComponent(name) + "/aliases")) as VersionAlias[];
+    if (!state.detail || state.detail.name !== name) return;
+    body.querySelectorAll<HTMLElement>("[data-alias-of]").forEach((row) => {
+      const named = aliasesOf(aliases, name, row.dataset.aliasOf || "");
+      if (!named) return;
+      const second = row.querySelector(".t-label");
+      if (second) second.textContent = (second.textContent ? second.textContent + " · " : "") + named;
+      else row.insertAdjacentHTML("beforeend", "<br><span class='muted t-label'>" + esc(named) + "</span>");
+    });
+  } catch {
+    /* the aliases are an addition */
+  }
+}
 
 /* ---- available ---- */
 function searchChoice() {
@@ -356,11 +391,23 @@ function renderAvailable(body: HTMLElement): void {
     "<span>" +
     esc(t("installByName")) +
     "</span></button>" +
+    '<button class="btn outline" id="linkDetectBtn">' +
+    icon("link", "sm") +
+    "<span>" +
+    esc(t("linkDetect")) +
+    "</span></button>" +
+    '<button class="btn outline" id="linkManualBtn">' +
+    icon("folder", "sm") +
+    "<span>" +
+    esc(t("linkManual")) +
+    "</span></button>" +
     "</div>" +
     '<div id="availBody"></div>';
   const choose = document.getElementById("chooseBtn");
   if (choose) choose.onclick = () => openChooser();
   el("byNameBtn").onclick = () => openInstallByName("");
+  el("linkDetectBtn").onclick = () => runTask({ operation: "linkDetect", sdk: d.name, yes: true });
+  el("linkManualBtn").onclick = () => openLinkManual();
   if (d.versions === null && !d.error && !d.loading) loadVersions();
   else drawAvailable();
 }
@@ -500,7 +547,8 @@ function drawVersions(): void {
           "</span>" +
           (inst.has(v.Version)
             ? ""
-            : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>") +
+            : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>" +
+              "<button class='btn text' data-install-use='" + esc(v.Version) + "'>" + esc(t("installUse")) + "</button>") +
           "</div>"
         );
       })
@@ -512,6 +560,11 @@ function drawVersions(): void {
     (b) =>
       ((b as HTMLButtonElement).onclick = () =>
         runTask({ operation: "install", sdk: d.name, version: (b as HTMLButtonElement).dataset.install || "" })),
+  );
+  list.querySelectorAll("[data-install-use]").forEach(
+    (b) =>
+      ((b as HTMLButtonElement).onclick = () =>
+        runTask({ operation: "install", sdk: d.name, version: (b as HTMLButtonElement).dataset.installUse || "", use: true })),
   );
   const more = document.getElementById("showMore");
   if (more)
@@ -596,6 +649,30 @@ function validSpec(v: string): boolean {
   return !!v && !/^[-\s@]/.test(v);
 }
 
+// A switch in a sheet, like the ones of the options: its label, and a button that has the role of a switch.
+// It starts off; wireSwitch makes it turn, and switchOn tells which way it is.
+function switchRow(id: string, label: string): string {
+  return (
+    '<div class="row" style="justify-content:space-between;margin:12px 0 0"><span>' +
+    esc(label) +
+    '</span><button class="switch" role="switch" id="' +
+    id +
+    '" aria-checked="false" aria-label="' +
+    esc(label) +
+    '"></button></div>'
+  );
+}
+
+function wireSwitch(id: string): void {
+  const button = document.getElementById(id);
+  if (button) button.onclick = () => button.setAttribute("aria-checked", String(button.getAttribute("aria-checked") !== "true"));
+}
+
+function switchOn(id: string): boolean {
+  const button = document.getElementById(id);
+  return !!button && button.getAttribute("aria-checked") === "true";
+}
+
 function openInstallByName(initial: string): void {
   const d = state.detail;
   if (!d) return;
@@ -610,6 +687,7 @@ function openInstallByName(initial: string): void {
           esc(t("namesToTry")) +
           '</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>'
         : "") +
+      switchRow("nameUse", t("installUseAfter")) +
       '<p class="muted t-label" style="margin:12px 0 0">' +
       esc(t("installNameNote")) +
       '</p><div class="actions"><button class="btn text" id="nameCancel">' +
@@ -655,8 +733,9 @@ function openInstallByName(initial: string): void {
         help.classList.add("bad");
         return;
       }
+      const use = switchOn("nameUse");
       close();
-      runTask({ operation: "install", sdk: d.name, version: v });
+      runTask({ operation: "install", sdk: d.name, version: v, use });
     };
     input.oninput = () => {
       help.textContent = t("installNameHelp").replace("{name}", d.name);
@@ -668,8 +747,51 @@ function openInstallByName(initial: string): void {
     };
     (document.getElementById("nameOk") as HTMLButtonElement).onclick = submit;
     (document.getElementById("nameCancel") as HTMLButtonElement).onclick = close;
+    wireSwitch("nameUse");
     sync();
     window.setTimeout(() => input.focus(), 50);
+  });
+}
+
+function openLinkManual(): void {
+  const d = state.detail;
+  if (!d) return;
+  openSheet(t("linkPathTitle"), "link", (box, close) => {
+    box.innerHTML =
+      '<div class="field"><label for="linkVer">' +
+      esc(t("linkVersionField")) +
+      '</label><input id="linkVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '<div class="field"><label for="linkPath">' +
+      esc(t("linkPathField")) +
+      '</label><input id="linkPath" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      switchRow("linkForce", t("linkForce")) +
+      '<div class="actions"><button class="btn text" id="linkCancel">' +
+      esc(t("cancel")) +
+      '</button><button class="btn primary" id="linkOk">' +
+      icon("link", "sm") +
+      "<span>" +
+      esc(t("linkConfirm")) +
+      "</span></button></div>";
+    const ver = document.getElementById("linkVer") as HTMLInputElement;
+    const path = document.getElementById("linkPath") as HTMLInputElement;
+    const submit = () => {
+      const v = ver.value.trim();
+      const pth = path.value.trim();
+      if (!v || !pth) return;
+      const force = switchOn("linkForce");
+      close();
+      runTask({ operation: "link", sdk: d.name, version: v, path: pth, force });
+    };
+    ver.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    path.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    (document.getElementById("linkOk") as HTMLButtonElement).onclick = submit;
+    (document.getElementById("linkCancel") as HTMLButtonElement).onclick = close;
+    wireSwitch("linkForce");
+    window.setTimeout(() => ver.focus(), 50);
   });
 }
 
@@ -772,6 +894,7 @@ function renderOptions(body: HTMLElement): void {
         "</span></div>";
   }
   h += "</div>";
+  h += '<div class="t-title-m" id="aliasHead" style="margin-top:20px">' + esc(t("aliasTitle")) + '</div><div class="list" id="aliasList"><div class="item"><span class="muted">…</span></div></div>';
   if (p.shorthands.length) {
     h += section(
       t("shorthands"),
@@ -860,6 +983,89 @@ function renderOptions(body: HTMLElement): void {
         }
       }),
   );
+  loadAliases();
+}
+
+async function loadAliases(): Promise<void> {
+  const d = state.detail;
+  const host = document.getElementById("aliasList");
+  if (!d || !host) return;
+  try {
+    const aliases = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/aliases")) as { sdk: string; alias: string; target: string }[];
+    if (!aliases.length) {
+      host.innerHTML = "<div class='item'>" + icon("label", "sm muted") + "<span class='muted'>" + esc(t("aliasEmpty")) + "</span></div>";
+    } else {
+      host.innerHTML = aliases
+        .map(
+          (x) =>
+            "<div class='item'><span style='flex:1'><code>" +
+            esc(x.alias) +
+            "</code><br><span class='muted t-label'>" +
+            esc(x.target) +
+            "</span></span><button class='btn text' data-unalias='" +
+            esc(x.alias) +
+            "'>" +
+            esc(t("aliasUnset")) +
+            "</button></div>",
+        )
+        .join("");
+    }
+    host.innerHTML +=
+      "<div class='item'><span style='flex:1'></span><button class='btn tonal' id='aliasAdd'>" +
+      icon("add", "sm") +
+      "<span>" +
+      esc(t("aliasSet")) +
+      "</span></button></div>";
+    host.querySelectorAll("[data-unalias]").forEach(
+      (b) =>
+        ((b as HTMLButtonElement).onclick = () =>
+          runTask({ operation: "aliasUnset", sdk: d.name, alias: (b as HTMLButtonElement).dataset.unalias || "" })),
+    );
+    (document.getElementById("aliasAdd") as HTMLButtonElement).onclick = () => openAliasSet();
+  } catch (e) {
+    host.innerHTML = "<div class='item'><span class='bad'>" + esc(e instanceof Error ? e.message : String(e)) + "</span></div>";
+  }
+}
+
+function openAliasSet(initialVersion?: string): void {
+  const d = state.detail;
+  if (!d) return;
+  openSheet(t("aliasSet"), "label", (box, close) => {
+    box.innerHTML =
+      '<div class="field"><label for="aliasIn">' +
+      esc(t("aliasField")) +
+      '</label><input id="aliasIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '<div class="field"><label for="aliasVer">' +
+      esc(t("linkVersionField")) +
+      '</label><input id="aliasVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '<div class="actions"><button class="btn text" id="aliasCancel">' +
+      esc(t("cancel")) +
+      '</button><button class="btn primary" id="aliasOk">' +
+      icon("add", "sm") +
+      "<span>" +
+      esc(t("aliasSet")) +
+      "</span></button></div>";
+    const aliasIn = document.getElementById("aliasIn") as HTMLInputElement;
+    const verIn = document.getElementById("aliasVer") as HTMLInputElement;
+    const sdk = installedOf(d.name);
+    verIn.value = initialVersion || (sdk && sdk.HasCurrent ? sdk.Current : (sdk && sdk.Versions && sdk.Versions[0]) || "");
+    const submit = () => {
+      const a = aliasIn.value.trim();
+      const v = verIn.value.trim();
+      if (!a || !v) return;
+      close();
+      runTask({ operation: "aliasSet", sdk: d.name, alias: a, version: v });
+    };
+    aliasIn.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    verIn.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    (document.getElementById("aliasOk") as HTMLButtonElement).onclick = submit;
+    (document.getElementById("aliasCancel") as HTMLButtonElement).onclick = close;
+    window.setTimeout(() => aliasIn.focus(), 50);
+  });
 }
 
 function openVariable(variable: {

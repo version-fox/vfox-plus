@@ -21,16 +21,16 @@ five minutes, and *Copy link* makes another one for the clipboard.
 
 The paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
-live progress and logs, and the settings. The plugins vfox-java, vfox-nodejs and
-vfox-flutter get everything they offer, as in the desktop application: the
-distribution of Java to list, filter chips, installation by name and the options
-with the download mirrors (see [Java, Node.js and
-Flutter](using.md#java-nodejs-and-flutter)). The [Android app](android.md) shows the same
-interface.
+live progress and logs, and the settings. The plugins vfox-java, vfox-nodejs,
+vfox-flutter, vfox-gradle and vfox-golang get everything they offer, as in the desktop
+application: the distribution of Java to list, filter chips, installation by name,
+the links and aliases of vfox 1.1.0 and the options with the download mirrors (see
+[Java, Node.js, Flutter, Gradle and Go](using.md#java-nodejs-flutter-gradle-and-go)).
+The [Android app](android.md) shows the same interface.
 
 | The paired web interface | Java in it: Temurin, long-term support |
 | --- | --- |
-| ![The paired web interface](https://iili.io/nbrIOSs.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nbrIgx2.png) |
+| ![The paired web interface](https://iili.io/nm0FHI1.png) | ![The distribution and the chips of Java in the paired web interface](https://iili.io/nm0FYYl.png) |
 
 Chrome and Edge can install the paired interface as an application, with a window
 of its own and the vfox+ icon (the install button in the address bar, or *Install*

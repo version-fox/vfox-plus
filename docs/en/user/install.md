@@ -7,7 +7,7 @@ drives it and cannot work without it.
 
 ## Linux
 
-Requirements: GTK 3, fontconfig and a font, plus vfox 1.0.0 or later:
+Requirements: GTK 3, fontconfig and a font, plus vfox 1.1.0 or later:
 
 ```sh
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk

@@ -15,6 +15,7 @@
 package vfox
 
 import (
+	"encoding/json"
 	"regexp"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ var (
 	tracebackEntryPattern = regexp.MustCompile(`^(?:\[[^\]]*\]|\S.*?:\d+): (?:in .+|\?)$|^\.\.\.`)
 )
 
-// ParseVfoxVersion parses `vfox --version`, for example `vfox version 1.0.13.
+// ParseVfoxVersion parses `vfox --version`, for example `vfox version 1.1.0.
 // It returns empty if no version number is found.
 func ParseVfoxVersion(output string) string {
 	match := versionPattern.FindStringSubmatch(core.StripANSI(output))
@@ -67,9 +68,10 @@ func ParseVfoxVersion(output string) string {
 // ParseCurrent parses `vfox current` without arguments into plugin name and
 // current version; an empty version means no version is in effect.
 //
-// Each line has the form `<name> -> v<version>`, or `<name> -> N/A` when no
-// version is in effect. vfox prefixes the version with a `v`, which is
-// removed again. The result preserves the order of the output.
+// Each line has the form `<name> -> <version>`, or `<name> -> N/A` when no
+// version is in effect. vfox 1.0.x prefixes the version with a `v`, which is
+// removed again; vfox 1.1.0 prints the stored name verbatim. The result
+// preserves the order of the output.
 func ParseCurrent(output string) []CurrentVersion {
 	var result []CurrentVersion
 	for _, line := range lines(output) {
@@ -110,11 +112,14 @@ type SdkVersions struct {
 // into the installed versions of every plugin, in output order. A plugin
 // without installed versions is drawn as a leaf (`└──maven`).
 //
+// Since vfox 1.1.0 a version carries its link and alias annotations, which
+// are left out:
+//
 // ```text
 // All installed sdk versions
 // ├─┬java
 // │ ├──25.4.4.1-graalce
-// │ └──25.3.4.1-graalce
+// │ └──17-system (linked → /usr/lib/jvm/java-17) [alias: j17]
 // └──maven
 // ```
 func ParseInstalledTree(output string) []SdkVersions {
@@ -133,15 +138,18 @@ func ParseInstalledTree(output string) []SdkVersions {
 			continue
 		}
 		if level == 0 {
-			entry, ok := byName[text]
+			name := cleanInstalledName(text)
+			entry, ok := byName[name]
 			if !ok {
-				entry = &SdkVersions{Name: text}
-				byName[text] = entry
-				order = append(order, text)
+				entry = &SdkVersions{Name: name}
+				byName[name] = entry
+				order = append(order, name)
 			}
 			current = entry
 		} else if current != nil {
-			current.Versions = append(current.Versions, text)
+			if version := cleanInstalledVersion(text); version != "" {
+				current.Versions = append(current.Versions, version)
+			}
 		}
 	}
 	result := make([]SdkVersions, 0, len(order))
@@ -149,6 +157,33 @@ func ParseInstalledTree(output string) []SdkVersions {
 		result = append(result, *byName[name])
 	}
 	return result
+}
+
+// cleanInstalledName takes the plugin name out of a level-0 tree item.
+func cleanInstalledName(text string) string {
+	// A plugin line holds only its name; guard against a future suffix anyway.
+	if cut, _, found := strings.Cut(text, " "); found {
+		if cut != "" {
+			return cut
+		}
+	}
+	return text
+}
+
+// cleanInstalledVersion takes the version name out of a level-1 tree item,
+// leaving out the annotations vfox 1.1.0 appends: ` (linked → <path>)`,
+// ` [alias: <alias>]`, and the `<— current` marker of `vfox list <sdk>`.
+func cleanInstalledVersion(text string) string {
+	trimmed := strings.TrimSpace(text)
+	trimmed = strings.TrimPrefix(trimmed, "-> ")
+	trimmed = strings.TrimSpace(trimmed)
+	if trimmed == "" {
+		return ""
+	}
+	if cut, _, found := strings.Cut(trimmed, " "); found {
+		return cut
+	}
+	return trimmed
 }
 
 func utf8Runes(s string) int {
@@ -432,6 +467,11 @@ func pluginErrorSentence(line string) string {
 	return line
 }
 
+// decodeJSON decodes text into value, reporting whether it succeeded.
+func decodeJSON(text string, value interface{}) bool {
+	return json.Unmarshal([]byte(text), value) == nil
+}
+
 func stripVPrefix(version string) string {
 	if strings.HasPrefix(version, "v") && len(version) > 1 {
 		return version[1:]
@@ -441,4 +481,216 @@ func stripVPrefix(version string) string {
 
 func lines(output string) []string {
 	return core.SplitTerminalLines(core.StripANSI(output))
+}
+
+// MinimumVfoxVersion is the oldest vfox release the application works with.
+// Command errors go to standard error since 1.0.13, and 1.1.0 adds the link,
+// doctor, alias, path.mode, install --use and plugin Detect/Fingerprint APIs
+// the application relies on.
+const MinimumVfoxVersion = "1.1.0"
+
+// IsSupportedVersion reports whether version is at least MinimumVfoxVersion.
+// It compares the leading numeric release (for example `1.1.0` in
+// `1.1.0-beta.1`); a version without one counts as unsupported.
+func IsSupportedVersion(version string) bool {
+	return CompareVersions(version, MinimumVfoxVersion) >= 0
+}
+
+// CompareVersions compares two version numbers by their leading numeric
+// release: 1.10.0 is newer than 1.2.0, and a suffix after the numbers (such as
+// `-beta.1`) does not order them. It returns -1, 0 or 1. A version without a
+// leading number sorts before any version with one.
+func CompareVersions(left, right string) int {
+	return compareNumericRelease(numericRelease(left), numericRelease(right))
+}
+
+func numericRelease(version string) []int {
+	match := versionPattern.FindStringSubmatch(version)
+	if match == nil {
+		return nil
+	}
+	numeric := match[1]
+	// Keep the leading numbers: `1.1.0-beta.1` is release `1.1.0`.
+	end := 0
+	for end < len(numeric) && (numeric[end] >= '0' && numeric[end] <= '9' || numeric[end] == '.') {
+		end++
+	}
+	var release []int
+	for _, part := range strings.Split(numeric[:end], ".") {
+		if part == "" {
+			continue
+		}
+		number, err := strconv.Atoi(part)
+		if err != nil {
+			break
+		}
+		release = append(release, number)
+	}
+	return release
+}
+
+func compareNumericRelease(left, right []int) int {
+	if len(left) == 0 && len(right) == 0 {
+		return 0
+	}
+	if len(left) == 0 {
+		return -1
+	}
+	if len(right) == 0 {
+		return 1
+	}
+	for i := 0; i < len(left) || i < len(right); i++ {
+		var l, r int
+		if i < len(left) {
+			l = left[i]
+		}
+		if i < len(right) {
+			r = right[i]
+		}
+		if l < r {
+			return -1
+		}
+		if l > r {
+			return 1
+		}
+	}
+	return 0
+}
+
+// DoctorFinding is one problem, warning or notice that `vfox doctor --json`
+// reports.
+type DoctorFinding struct {
+	ID       string   `json:"id"`
+	Severity string   `json:"severity"`
+	Sdk      string   `json:"sdk"`
+	Version  string   `json:"version"`
+	Message  string   `json:"message"`
+	Hints    []string `json:"hints"`
+	Fix      []string `json:"fix"`
+	Ignored  bool     `json:"ignored"`
+}
+
+// DoctorReport is the parsed output of `vfox doctor --json`.
+type DoctorReport struct {
+	OK       bool            `json:"ok"`
+	Findings []DoctorFinding `json:"findings"`
+}
+
+// VersionAlias is one alias that `vfox alias list` reports:
+// `<sdk>@<alias> -> <sdk>@<version>`.
+type VersionAlias struct {
+	Sdk     string `json:"sdk"`
+	Alias   string `json:"alias"`
+	Target  string `json:"target"`
+	Display string `json:"display"`
+}
+
+// ParseAliasList parses `vfox alias list [<sdk>]`.
+//
+// ```text
+// java@j17 -> java@17.0.9-tem
+// ```
+//
+// The `No aliases defined. …` message parses as no aliases.
+func ParseAliasList(output string) []VersionAlias {
+	var result []VersionAlias
+	for _, line := range lines(output) {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "No aliases defined") {
+			continue
+		}
+		left, right, found := strings.Cut(trimmed, " -> ")
+		if !found {
+			continue
+		}
+		sdk, alias, ok := strings.Cut(strings.TrimSpace(left), "@")
+		if !ok || sdk == "" || alias == "" || strings.Contains(sdk, " ") || strings.Contains(alias, " ") {
+			continue
+		}
+		target := strings.TrimSpace(right)
+		if target == "" {
+			continue
+		}
+		result = append(result, VersionAlias{Sdk: sdk, Alias: alias, Target: target, Display: trimmed})
+	}
+	return result
+}
+
+// VersionDetail is what `vfox info --json <sdk>[@<version>]` says about one
+// plugin or one installed version.
+type VersionDetail struct {
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	Installed bool   `json:"installed"`
+	Origin    string `json:"origin"`
+	Target    string `json:"target"`
+	Home      string `json:"home"`
+}
+
+// ParseVersionDetailJSON parses `vfox info --json [<sdk>[@<version>]]`.
+func ParseVersionDetailJSON(output string) (VersionDetail, bool) {
+	var detail VersionDetail
+	trimmed := strings.TrimSpace(core.StripANSI(output))
+	if trimmed == "" {
+		return detail, false
+	}
+	// The output is a JSON object; decode only the fields the GUI shows so
+	// that new fields stay compatible.
+	var raw struct {
+		Name      *string `json:"name"`
+		Version   *string `json:"version"`
+		Installed *bool   `json:"installed"`
+		Origin    *string `json:"origin"`
+		Target    *string `json:"target"`
+		Home      *string `json:"home"`
+	}
+	if !decodeJSON(trimmed, &raw) {
+		return detail, false
+	}
+	if raw.Name != nil {
+		detail.Name = *raw.Name
+	}
+	if raw.Version != nil {
+		detail.Version = *raw.Version
+	}
+	if raw.Installed != nil {
+		detail.Installed = *raw.Installed
+	}
+	if raw.Origin != nil {
+		detail.Origin = *raw.Origin
+	}
+	if raw.Target != nil {
+		detail.Target = *raw.Target
+	}
+	if raw.Home != nil {
+		detail.Home = *raw.Home
+	}
+	if detail.Name == "" {
+		return detail, false
+	}
+	return detail, true
+}
+
+// ParseDoctorReport parses `vfox doctor --json [<sdk>[@<version>]]`.
+func ParseDoctorReport(output string) (DoctorReport, bool) {
+	var report DoctorReport
+	trimmed := strings.TrimSpace(core.StripANSI(output))
+	if trimmed == "" {
+		return report, false
+	}
+	var raw struct {
+		OK       *bool           `json:"ok"`
+		Findings []DoctorFinding `json:"findings"`
+	}
+	if !decodeJSON(trimmed, &raw) {
+		return report, false
+	}
+	if raw.OK != nil {
+		report.OK = *raw.OK
+	}
+	report.Findings = raw.Findings
+	if report.Findings == nil {
+		report.Findings = []DoctorFinding{}
+	}
+	return report, true
 }

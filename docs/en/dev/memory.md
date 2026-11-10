@@ -12,7 +12,7 @@ the Memory section of the [mygo README](implementation-mygo.md#memory).
 
 In MB, for the application and all of its child processes together, in Docker on
 Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). "Versions" is
-the SDKs page with the 872 available versions of Node.js listed.
+the SDKs page with the 877 available versions of Node.js listed.
 
 | Implementation                   | Technology                                                        | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | -------------------------------- | ----------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
@@ -281,7 +281,7 @@ interpreted and compiled just in time; "compiled" is after
    settled, and adds up `Rss` and `Pss` from `/proc/<pid>/smaps_rollup` for the
    application and every process below it.
 3. It opens the available versions of Node.js through the elements of the window
-   (the automation plugin of mygo), waits for the 872 versions and for 3 seconds, and
+   (the automation plugin of mygo), waits for the 877 versions and for 3 seconds, and
    measures again.
 
 The sizes are in MiB, which the tool calls MB. The `measure` task of the sandbox runs

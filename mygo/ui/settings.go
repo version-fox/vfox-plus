@@ -31,21 +31,27 @@ var seedColors = []uint32{
 
 // The keys of the vfox configuration that the settings page edits.
 const (
-	keyProxyEnable     = "proxy.enable"
-	keyProxyURL        = "proxy.url"
-	keyRegistry        = "registry.address"
-	keyStorage         = "storage.sdkPath"
-	keyLegacyEnable    = "legacyVersionFile.enable"
-	keyLegacyStrategy  = "legacyVersionFile.strategy"
-	keyCache           = "cache.availableHookDuration"
-	keyHTTPTimeout     = "plugin.http.timeout"
-	keyDownloadTimeout = "plugin.http.downloadTimeout"
-	keyGitignore       = "gitignore.enable"
+	keyProxyEnable       = "proxy.enable"
+	keyProxyURL          = "proxy.url"
+	keyRegistry          = "registry.address"
+	keyStorage           = "storage.sdkPath"
+	keyLegacyEnable      = "legacyVersionFile.enable"
+	keyLegacyStrategy    = "legacyVersionFile.strategy"
+	keyCache             = "cache.availableHookDuration"
+	keyHTTPTimeout       = "plugin.http.timeout"
+	keyDownloadTimeout   = "plugin.http.downloadTimeout"
+	keyGitignore         = "gitignore.enable"
+	keyDiagnosticsOnUse  = "diagnostics.onUse"
+	keyDiagnosticsIgnore = "diagnostics.ignore"
+	keyPathMode          = "path.mode"
+	keyPathPreserve      = "path.preserve"
+	keyAliases           = "aliases"
 )
 
 var knownConfigKeys = map[string]bool{
 	keyProxyEnable: true, keyProxyURL: true, keyRegistry: true, keyStorage: true, keyLegacyEnable: true,
 	keyLegacyStrategy: true, keyCache: true, keyHTTPTimeout: true, keyDownloadTimeout: true, keyGitignore: true,
+	keyDiagnosticsOnUse: true, keyDiagnosticsIgnore: true, keyPathMode: true, keyPathPreserve: true, keyAliases: true,
 }
 
 // settingsPage holds the preferences of the application and the configuration of
@@ -381,6 +387,16 @@ func (a *App) configSection(k kit.Ctx) {
 				{Value: "latest_available", Label: a.T("strategyLatestAvailable")},
 			}),
 			a.configSwitch(k, keyGitignore, "gitignore", a.T("configGitignore"), a.T("configGitignoreHelp")),
+		).Margin(0, 0, gapL, 0)
+		kit.ListGroup(k,
+			a.configChoice(k, keyPathMode, a.T("configPathMode"), []kit.Choice{
+				{Value: "legacy", Label: a.T("pathModeLegacy")},
+				{Value: "baseline", Label: a.T("pathModeBaseline")},
+				{Value: "aggressive", Label: a.T("pathModeAggressive")},
+			}),
+			a.configText(k, keyPathPreserve, a.T("configPathPreserve"), "", a.T("configPathPreserveHelp"), `["/opt/corp/bin"]`, false),
+			a.configSwitch(k, keyDiagnosticsOnUse, "diagnostics", a.T("configDiagnosticsOnUse"), a.T("configDiagnosticsOnUseHelp")),
+			a.configText(k, keyDiagnosticsIgnore, a.T("configDiagnosticsIgnore"), "", a.T("configDiagnosticsIgnoreHelp"), `["sdk.drift:flutter@3.47.0"]`, false),
 		).Margin(0, 0, gapL, 0)
 		kit.ListGroup(k,
 			a.configText(k, keyCache, a.T("configCache"), "cache", a.T("configCacheHelp"), "12h", false),

@@ -11,7 +11,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 | 目录 | 职责 |
 | --- | --- |
-| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs 与 vfox-flutter 的特有之处）——无 UI |
+| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
 | [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面与对话框 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
@@ -30,7 +30,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 - Go（锁定在 [`versions.env`](../../../mygo/versions.env)）；mygo 需要 Go 1.27。
 
-- 运行时 GTK 3、fontconfig 与字体，以及 vfox 1.0.0 或更高：
+- 运行时 GTK 3、fontconfig 与字体，以及 vfox 1.1.0 或更高：
 
   ```sh
   sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
@@ -183,7 +183,7 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   painter 动，不重建视图。
 - **浮层**——菜单、tooltip、对话框、snack bar——是 mygo popover、tooltip、dialog 与
   toast，管焦点、Escape 与外部按压；kit 定样式。
-- **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 872 项。
+- **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 877 项。
 - **registry**（[`registry.go`](../../../mygo/ui/kit/registry.go)）是某次构建组件注册节点的扁平表：
   角色、名称、状态、所在列表项或对话框、点击或输入作用。组件与页面测试用它找操作部件；
   不是无障碍树（mygo 给屏幕阅读器另有一套，端到端场景读的是那一套，见[局限](#局限)）。

@@ -25,6 +25,8 @@ func (a *App) taskTitle(command vfox.VfoxCommand) string {
 	switch command.Operation {
 	case vfox.OperationInstall:
 		return a.T("taskInstall", "subject", subject)
+	case vfox.OperationInstallUse:
+		return a.T("taskInstallUse", "subject", subject)
 	case vfox.OperationUninstall:
 		return a.T("taskUninstall", "subject", subject)
 	case vfox.OperationUse:
@@ -40,6 +42,19 @@ func (a *App) taskTitle(command vfox.VfoxCommand) string {
 		return a.T("taskRemovePlugin", "subject", subject)
 	case vfox.OperationUpdatePlugin:
 		return a.T("taskUpdatePlugin", "subject", subject)
+	case vfox.OperationLink:
+		return a.T("taskLink", "subject", subject)
+	case vfox.OperationLinkDetect:
+		return a.T("taskLinkDetect", "subject", subject)
+	case vfox.OperationAliasSet:
+		return a.T("taskAliasSet", "alias", command.Alias(), "subject", subject)
+	case vfox.OperationAliasUnset:
+		return a.T("taskAliasUnset", "alias", command.Alias(), "subject", subject)
+	case vfox.OperationDoctorAdopt:
+		if subject == "" {
+			return a.T("taskDoctorAdoptAll")
+		}
+		return a.T("taskDoctorAdopt", "subject", subject)
 	default:
 		return a.T("taskUpdateAllPlugins")
 	}

@@ -201,7 +201,8 @@ func (c *VfoxController) EnsureChecked() {
 }
 
 // Check runs `vfox --version` to check that vfox works. It blocks while vfox
-// is probed.
+// is probed. vfox older than the minimum supported version counts as broken,
+// so that the user upgrades instead of meeting commands that do not exist yet.
 func (c *VfoxController) Check() {
 	c.mu.Lock()
 	c.availability = VfoxChecking
@@ -209,6 +210,9 @@ func (c *VfoxController) Check() {
 	c.mu.Unlock()
 	c.NotifyListeners()
 	version, err := c.cli.Version()
+	if err == nil && !vfox.IsSupportedVersion(version) {
+		err = &vfox.VfoxError{Message: "vfox " + version + " is too old: vfox-plus needs vfox " + vfox.MinimumVfoxVersion + " or later"}
+	}
 	c.mu.Lock()
 	if err == nil {
 		c.version, c.hasVersion = version, true
@@ -336,6 +340,9 @@ type SdkDetailController struct {
 	// search can be slow. They are the versions of the chosen search: a change
 	// of SetSearch empties them and loads the next list.
 	Versions *AsyncResource[[]core.AvailableVersion]
+	// Aliases are the version aliases of the plugin (`vfox alias list <name>`),
+	// loaded on demand for the options tab.
+	Aliases *AsyncResource[[]vfox.VersionAlias]
 
 	cli      *vfox.Client
 	profiles *profile.Registry
@@ -370,7 +377,8 @@ func NewSdkDetailController(cli *vfox.Client, name string, profiles *profile.Reg
 	c.Versions = NewAsyncResource(func() ([]core.AvailableVersion, error) {
 		return cli.SearchVersions(name, c.SearchArguments()...)
 	})
-	c.stops = []Unsubscribe{c.Versions.AddListener(c.NotifyListeners), c.Info.AddListener(c.onInfo)}
+	c.Aliases = NewAsyncResource(func() ([]vfox.VersionAlias, error) { return cli.Aliases(name) })
+	c.stops = []Unsubscribe{c.Versions.AddListener(c.NotifyListeners), c.Info.AddListener(c.onInfo), c.Aliases.AddListener(c.NotifyListeners)}
 	return c
 }
 
@@ -708,5 +716,6 @@ func (c *SdkDetailController) Dispose() {
 	}
 	c.Info.Dispose()
 	c.Versions.Dispose()
+	c.Aliases.Dispose()
 	c.Notifier.Dispose()
 }

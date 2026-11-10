@@ -67,6 +67,7 @@ export function renderChrome(): void {
   setText("l-pageLang", t("pageLang"));
   setText("l-env", t("extraEnv"));
   setText("h-active", t("active"));
+  setText("h-doctor", t("doctorTitle"));
   setText("h-phone", t("phone"));
   setText("phoneLead", t("phoneLead"));
   const langSystem = t("langSystem");

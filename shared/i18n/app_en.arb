@@ -1338,5 +1338,235 @@
   },
   "@updateMirrorHelp": {
     "description": "Help for the update mirror field."
+  },
+  "taskInstallUse": "Install and use {subject}",
+  "@taskInstallUse": {
+    "description": "Title of a task that installs a version and makes it the global default (vfox install --use).",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs@24.11.1"
+      }
+    }
+  },
+  "taskLink": "Link {subject}",
+  "@taskLink": {
+    "description": "Title of a task that links an SDK that is already on the machine as a version (vfox link).",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "java@17-system"
+      }
+    }
+  },
+  "taskLinkDetect": "Detect and link {subject}",
+  "@taskLinkDetect": {
+    "description": "Title of a task that lets a plugin find the SDKs that are already on the machine and links them (vfox link --detect).",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "java"
+      }
+    }
+  },
+  "taskAliasSet": "Name alias {alias} for {subject}",
+  "@taskAliasSet": {
+    "description": "Title of a task that names an alias for a version (vfox alias set).",
+    "placeholders": {
+      "alias": {
+        "type": "String",
+        "example": "j17"
+      },
+      "subject": {
+        "type": "String",
+        "example": "java@17.0.9-tem"
+      }
+    }
+  },
+  "taskAliasUnset": "Remove alias {alias} of {subject}",
+  "@taskAliasUnset": {
+    "description": "Title of a task that removes an alias of a plugin (vfox alias unset).",
+    "placeholders": {
+      "alias": {
+        "type": "String",
+        "example": "j17"
+      },
+      "subject": {
+        "type": "String",
+        "example": "java"
+      }
+    }
+  },
+  "taskDoctorAdopt": "Adopt {subject} for drift detection",
+  "@taskDoctorAdopt": {
+    "description": "Title of a task that records the current state of an installed version, so that vfox doctor can tell later whether it changed (vfox doctor --adopt).",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "example": "nodejs@24.11.1"
+      }
+    }
+  },
+  "taskDoctorAdoptAll": "Adopt installed versions for drift detection",
+  "@taskDoctorAdoptAll": {
+    "description": "Title of the same task for every installed version."
+  },
+  "configPathMode": "PATH order",
+  "@configPathMode": {
+    "description": "vfox setting path.mode: what stays in front of the vfox directories in PATH."
+  },
+  "pathModeLegacy": "Legacy",
+  "@pathModeLegacy": {
+    "description": "A value of path.mode: keep everything that is in PATH, as vfox did before 1.1.0."
+  },
+  "pathModeBaseline": "Baseline",
+  "@pathModeBaseline": {
+    "description": "A value of path.mode, the default since vfox 1.1.0: keep only what was added to PATH after the shell was activated."
+  },
+  "pathModeAggressive": "Aggressive",
+  "@pathModeAggressive": {
+    "description": "A value of path.mode: keep only VIRTUAL_ENV, CONDA_PREFIX and the directories of path.preserve."
+  },
+  "configPathPreserve": "Directories kept in front",
+  "@configPathPreserve": {
+    "description": "vfox setting path.preserve: directories that stay in front of the vfox directories in PATH."
+  },
+  "configPathPreserveHelp": "One JSON list, for example [\"/opt/corp/bin\"]. Only with baseline and aggressive.",
+  "@configPathPreserveHelp": {
+    "description": "Help of the field of path.preserve."
+  },
+  "configDiagnosticsOnUse": "Warn about shadowed and drifted SDKs",
+  "@configDiagnosticsOnUse": {
+    "description": "vfox setting diagnostics.onUse: warn about shadowed and drifted SDKs when a version is used."
+  },
+  "configDiagnosticsOnUseHelp": "On vfox use, like vfox doctor.",
+  "@configDiagnosticsOnUseHelp": {
+    "description": "Help of the switch of diagnostics.onUse."
+  },
+  "configDiagnosticsIgnore": "Checks not to report",
+  "@configDiagnosticsIgnore": {
+    "description": "vfox setting diagnostics.ignore: the findings of vfox doctor that are not reported."
+  },
+  "configDiagnosticsIgnoreHelp": "One JSON list of finding IDs, for example [\"sdk.drift:flutter@3.47.0\"].",
+  "@configDiagnosticsIgnoreHelp": {
+    "description": "Help of the field of diagnostics.ignore."
+  },
+  "installUseAfter": "Use after install",
+  "@installUseAfter": {
+    "description": "Switch of the dialog that installs a version by its name: make it the global default once it is installed (vfox install --use)."
+  },
+  "versionInstallUse": "Install and use",
+  "@versionInstallUse": {
+    "description": "Button of an available version that installs it and makes it the global default (vfox install --use)."
+  },
+  "linkDetect": "Detect and link",
+  "@linkDetect": {
+    "description": "Button that lets the plugin find the SDKs that are already on the machine and links them (vfox link --detect)."
+  },
+  "linkManual": "Link existing…",
+  "@linkManual": {
+    "description": "Button that opens the dialog that links an SDK in a directory that the user names."
+  },
+  "linkPathTitle": "Link {name} at a directory",
+  "@linkPathTitle": {
+    "description": "Title of the dialog that links an SDK in a directory.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "java"
+      }
+    }
+  },
+  "linkPathField": "SDK directory",
+  "@linkPathField": {
+    "description": "Label of the field of the directory that holds the SDK to link."
+  },
+  "linkPathHelp": "The directory that holds the SDK, with its bin directory.",
+  "@linkPathHelp": {
+    "description": "Help of the field of the directory of an SDK to link."
+  },
+  "linkVersionField": "Version name",
+  "@linkVersionField": {
+    "description": "Label of the field of the name of a version, in the dialogs that link an SDK and that name an alias."
+  },
+  "linkVersionHelp": "The name vfox lists it under, such as 17-system.",
+  "@linkVersionHelp": {
+    "description": "Help of the field of the name of a version."
+  },
+  "linkForce": "Repoint an already linked version",
+  "@linkForce": {
+    "description": "Switch of the dialog that links an SDK: point a version that is already linked to the new directory (vfox link --force)."
+  },
+  "linkConfirm": "Link",
+  "@linkConfirm": {
+    "description": "Button that links the SDK, in the dialog that links one."
+  },
+  "aliasTitle": "Aliases",
+  "@aliasTitle": {
+    "description": "Heading of the aliases of a plugin, in its options."
+  },
+  "aliasDialogTitle": "Name an alias for {name}",
+  "@aliasDialogTitle": {
+    "description": "Title of the dialog that names an alias for a version of a plugin.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "java"
+      }
+    }
+  },
+  "aliasSet": "Name alias…",
+  "@aliasSet": {
+    "description": "Button, and item of the menu of a version, that opens the dialog that names an alias for a version."
+  },
+  "aliasConfirm": "Name alias",
+  "@aliasConfirm": {
+    "description": "Button that makes the alias, in the dialog that names one."
+  },
+  "aliasUnset": "Remove",
+  "@aliasUnset": {
+    "description": "Button that removes an alias."
+  },
+  "aliasField": "Alias",
+  "@aliasField": {
+    "description": "Label of the field of an alias, in the dialog that names it."
+  },
+  "aliasHelp": "A short name that works wherever the version does, such as j17.",
+  "@aliasHelp": {
+    "description": "Help of the field of an alias, and of the list of the aliases of a plugin."
+  },
+  "aliasEmpty": "No aliases yet.",
+  "@aliasEmpty": {
+    "description": "Shown in the list of the aliases of a plugin when it has none."
+  },
+  "doctorTitle": "Health",
+  "@doctorTitle": {
+    "description": "Heading of the health of vfox and of the installed SDKs on Home."
+  },
+  "doctorCheck": "Check health",
+  "@doctorCheck": {
+    "description": "Button that asks vfox doctor again."
+  },
+  "doctorAdopt": "Adopt",
+  "@doctorAdopt": {
+    "description": "Button of a finding of vfox doctor about an installed version that has no receipt: record its current state."
+  },
+  "doctorNoProblems": "No problems found.",
+  "@doctorNoProblems": {
+    "description": "Shown when vfox doctor has nothing to report."
+  },
+  "doctorProblems": "{count, plural, =1{1 finding} other{# findings}}",
+  "@doctorProblems": {
+    "description": "Number of findings of vfox doctor, below the first ones that Home lists.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "versionReinstall": "Reinstall",
+  "@versionReinstall": {
+    "description": "Item of the menu of an installed version, and of a finding of vfox doctor: installs the version again, with a fresh copy (vfox install --reinstall)."
   }
 }

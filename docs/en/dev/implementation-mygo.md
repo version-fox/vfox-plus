@@ -15,7 +15,7 @@ project, in Go:
 
 | Directory | What it does |
 | --- | --- |
-| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs and vfox-flutter) — no UI |
+| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle and vfox-golang) — no UI |
 | [`state/`](../../../mygo/state) | The observable controllers, the task queue (one state-changing command at a time, streamed output, download progress, cancellation, retry) |
 | [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages and the dialogs |
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |
@@ -35,7 +35,7 @@ toolkit, and the parsers pass the [fixtures](../../../shared/fixtures/README.md)
 
 - Go (pinned in [`versions.env`](../../../mygo/versions.env)); mygo needs Go 1.27.
 
-- At run time GTK 3, fontconfig and a font, and vfox 1.0.0 or later:
+- At run time GTK 3, fontconfig and a font, and vfox 1.1.0 or later:
 
   ```sh
   sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
@@ -233,7 +233,7 @@ pages are built from its components.
   outside; the kit styles them.
 - **Lists** are virtual: only the rows in view are built, their heights are
   remembered, and a jump of thousands of pixels costs the same as a step. The
-  version list of Node.js has 872 entries.
+  version list of Node.js has 877 entries.
 - **The registry** ([`registry.go`](../../../mygo/ui/kit/registry.go)) is a flat list of the
   nodes the components of a build registered: role, name, state, the list item or
   dialog they are in, and what a click or an input does. The tests of the components

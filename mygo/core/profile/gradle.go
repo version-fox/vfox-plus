@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-gradle (https://github.com/version-fox/vfox-gradle),
-// written from its documentation at release 0.1.2.
+// written from its documentation at release 0.1.3.
 
 func gradleProfile() Profile {
 	return Profile{
@@ -39,6 +39,7 @@ func gradleProfile() Profile {
 				},
 			},
 		},
+		LegacyFiles: []string{"gradle/wrapper/gradle-wrapper.properties"},
 		Guide: text(
 			"A version is a release as vfox search gradle lists it: 8.7, 8.14.3, 9.0.0. A bare major such as 8 is not a release and does not install; latest installs the newest release. Copy the name from the list.",
 			"版本就是 vfox search gradle 列出的发行版名称：8.7、8.14.3、9.0.0。单独的主版本号（如 8）不是发行版，无法安装；latest 会安装最新版。请从列表里复制名称。"),
@@ -52,6 +53,12 @@ func gradleProfile() Profile {
 			text(
 				"A mirror without a .sha256 still installs: the checksum is then read from services.gradle.org.",
 				"没有 .sha256 文件的镜像仍可安装：此时校验和从 services.gradle.org 读取。"),
+			text(
+				"When a Gradle is already on the machine, adopt it with vfox link --detect gradle; wrapper distributions in ~/.gradle are found as well.",
+				"如果机器上已经有 Gradle，用 vfox link --detect gradle 纳入管理；~/.gradle 下的 wrapper 发行版也能找到。"),
+			text(
+				"If another Gradle shadows the one of vfox, vfox doctor explains which one it is; a project wrapper still wins through gradle/wrapper/gradle-wrapper.properties.",
+				"如果另一个 Gradle 盖住了 vfox 的版本，vfox doctor 会说明是哪一个；项目的 wrapper 仍通过 gradle/wrapper/gradle-wrapper.properties 生效。"),
 		},
 		Docs: []Link{
 			docs("vfox-gradle", "versions", text("Versions and names", "版本与命名")),

@@ -24,7 +24,7 @@ func fakeScenario(s *appsession.Session) {
 	s.WaitForText("Versions in use")
 	s.Step("home")
 	// The executable of the settings is the one that the Home page names.
-	s.WaitForText("vfox 1.0.13 · " + s.Vfox)
+	s.WaitForText("vfox 1.1.0 · " + s.Vfox)
 
 	s.Navigate(appsession.SDKs)
 	s.ClickItem("nodejs")
@@ -37,7 +37,7 @@ func fakeScenario(s *appsession.Session) {
 
 	// Install a version from the available tab.
 	s.ClickButton("Available")
-	s.WaitForText("872 versions")
+	s.WaitForText("877 versions")
 	s.Fill("Filter versions", "24.11.0", false)
 	s.WaitForText("1 version")
 	s.ClickButtonNear("24.11.0", "Install")

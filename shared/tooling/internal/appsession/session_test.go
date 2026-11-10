@@ -534,7 +534,7 @@ func TestFindRepoRoot(t *testing.T) {
 	if got, _ = filepath.EvalSymlinks(got); got != root {
 		t.Fatalf("FindRepoRoot = %q, want %q", got, root)
 	}
-	if want := filepath.Join(root, "shared", "fixtures", "vfox-1.0.13"); FixturesDir(root) != want {
+	if want := filepath.Join(root, "shared", "fixtures", "vfox-1.1.0"); FixturesDir(root) != want {
 		t.Fatalf("FixturesDir = %q, want %q", FixturesDir(root), want)
 	}
 

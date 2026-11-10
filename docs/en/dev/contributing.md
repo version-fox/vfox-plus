@@ -248,7 +248,7 @@ of mygo, and captures the screen with ImageMagick when the page has settled:
 | --- | --- |
 | plain | every page, in both themes and languages: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | an installation in progress: `installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `options-aliases`, `alias-set`, `link-manual`, `zh-options`, `zh-java-available` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
 | both of the above | the distributions of Java in the compact layout: `compact-java` |
 | the setting `webInterface`, and `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of the web interface, as a person goes through them: the switch that is on with its address, the question that asks before other devices may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
@@ -285,7 +285,7 @@ pictures are there to look at when the interface changes; nothing links them.
 display, and headless Chrome, in a language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
 that `--scene` plays: `connections`, `connections-pair`, `flutter-chips`, `java-available`,
-`java-choose`, `java-temurin`, `java-install-name`, `options` and `options-mirror` (see
+`java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`, `alias-set` and `link-manual` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
 scenes click against `mygo/pair/webapp.html`). Every picture gets an application and a home
 of its own, because choosing a distribution is kept in the settings of the application, and
@@ -311,7 +311,7 @@ shoot() {
   echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
-      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.0.13 VFOX_PLUS_E2E_LINK=$home/link.txt \
+      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
       VFOX_PLUS_E2E_ADDRESSES=192.168.1.20
     [ -n "${INVENTORY:-}" ] && export VFOX_PLUS_FAKE_INVENTORY=$INVENTORY
     exec setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >$home/app.log 2>&1

@@ -73,14 +73,20 @@ func (a *App) detailFor(name string) *detailState {
 	controller := a.model.SdkDetail(name)
 	d := &detailState{name: name, controller: controller, tab: tabInstalled}
 	// The search starts at the choice that the user made before, which is kept in the
-	// settings; it does not search until the available versions are asked for.
+	// settings; it does not search until the available versions are asked for. The aliases are asked for
+	// now, because the installed versions, which are what opens first, say them.
 	controller.Info.Load()
+	controller.Aliases.Load()
 	d.stops = append(d.stops,
 		controller.AddListener(a.invalidate),
 		controller.Info.AddListener(a.invalidate),
+		controller.Aliases.AddListener(a.invalidate),
 		a.model.Tasks.OnFinished(func(task *state.VfoxTask) {
 			if task.Command.Sdk == name && task.Command.Operation == vfox.OperationUpdatePlugin {
 				controller.Info.Load()
+			}
+			if task.Command.Sdk == name && (task.Command.Operation == vfox.OperationAliasSet || task.Command.Operation == vfox.OperationAliasUnset) {
+				controller.Aliases.Load()
 			}
 		}),
 	)
@@ -91,10 +97,13 @@ func (a *App) detailFor(name string) *detailState {
 func (a *App) showTab(d *detailState, tab string) {
 	d.tab = tab
 	switch tab {
+	case tabInstalled:
+		d.controller.Aliases.EnsureLoaded()
 	case tabAvailable:
 		d.controller.Versions.EnsureLoaded()
 	case tabOptions:
 		a.model.VfoxConfig.EnsureLoaded()
+		d.controller.Aliases.EnsureLoaded()
 	}
 	a.invalidate()
 }
@@ -203,7 +212,7 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 					line = a.partsLine(parts)
 				}
 			}
-			a.installedVersionRow(k, sdk, sdk.Versions[i], line, kit.PositionOf(i, len(sdk.Versions))).
+			a.installedVersionRow(k, d, sdk, sdk.Versions[i], line, kit.PositionOf(i, len(sdk.Versions))).
 				Margin(0, gapXL, hairline, gapXL)
 		},
 	}
@@ -404,12 +413,31 @@ func (a *App) confirmRemovePlugin(sdk core.InstalledSdk) {
 func (a *App) itemWraps() bool { return a.pages.detailWidth-2*gapXL < wrapWidth }
 
 // installedVersionRow is an installed version, with the buttons that use it,
-// copy its path and uninstall it.
-func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version, line string, position kit.Position) mui.Element {
+// copy its path, reinstall it, name an alias for it and uninstall it.
+func (a *App) installedVersionRow(k kit.Ctx, d *detailState, sdk core.InstalledSdk, version, line string, position kit.Position) mui.Element {
 	cs := k.Colors()
 	current := sdk.HasCurrent && sdk.Current == version
 	task := a.model.Tasks.ActiveTask("", sdk.Name, version)
 	useGlobally := func() { a.run(a.model.Cli.Use(sdk.Name, version, core.UseScopeGlobal, "")) }
+	aliasFor := ""
+	if values, ok := d.controller.Aliases.Value(); ok {
+		for _, alias := range values {
+			if alias.Sdk == sdk.Name && (alias.Target == sdk.Name+"@"+version || alias.Target == version) {
+				if aliasFor == "" {
+					aliasFor = alias.Alias
+				} else {
+					aliasFor += ", " + alias.Alias
+				}
+			}
+		}
+	}
+	subtitle := line
+	if aliasFor != "" {
+		if subtitle != "" {
+			subtitle += " · "
+		}
+		subtitle += "@" + aliasFor
+	}
 	trailing := func() {
 		if task != nil {
 			kit.LoadingIndicator(k, kit.LoadingSpec{ID: "busy", Size: 40})
@@ -424,6 +452,15 @@ func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version, lin
 		}
 		menu = append(menu,
 			kit.MenuItem{Label: a.T("versionCopyPath"), Icon: "copy", OnClick: func() { a.copyInstallPath(sdk.Name, version) }},
+			kit.MenuItem{Label: a.T("versionReinstall"), Icon: "refresh", OnClick: func() {
+				command, err := a.model.Cli.InstallWithOptions(sdk.Name, version, vfox.InstallOptions{Reinstall: true})
+				if err != nil {
+					a.notify(describeError(err))
+					return
+				}
+				a.run(command, nil)
+			}},
+			kit.MenuItem{Label: a.T("aliasSet"), Icon: "alias", OnClick: func() { a.askAliasSetFor(d, version) }},
 			kit.MenuItem{Label: a.T("versionUninstall"), Icon: "uninstall", Danger: true, OnClick: func() { a.confirmUninstall(sdk, version, current) }},
 		)
 		mui.Row(k.Context).Gap(gapXS).Children(func() {
@@ -450,7 +487,7 @@ func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version, lin
 		leadingIcon, leadingFill, leadingColor = "current", 1, cs.Primary
 	}
 	return kit.ListItem(k, kit.ListItemSpec{
-		ID: "iv:" + version, Title: version, TitleStyle: &titleStyle, Subtitle: line, Position: position, Wrap: a.itemWraps(), Trailing: trailing,
+		ID: "iv:" + version, Title: version, TitleStyle: &titleStyle, Subtitle: subtitle, Position: position, Wrap: a.itemWraps(), Trailing: trailing,
 		Leading: func(mui.Color) { kit.Icon(k, leadingIcon, 24, leadingColor, leadingFill) },
 	})
 }
@@ -459,6 +496,9 @@ func (a *App) installedVersionRow(k kit.Ctx, sdk core.InstalledSdk, version, lin
 // distribution it is of, for a search that lists several.
 func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableVersion, source string, installed bool, position kit.Position) mui.Element {
 	task := a.model.Tasks.ActiveTask(vfox.OperationInstall, sdk, version.Version)
+	if task == nil {
+		task = a.model.Tasks.ActiveTask(vfox.OperationInstallUse, sdk, version.Version)
+	}
 	additions := make([]string, len(version.Additions))
 	for i, addition := range version.Additions {
 		additions[i] = addition.String()
@@ -470,9 +510,22 @@ func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableV
 		case installed:
 			kit.Button(k, kit.ButtonSpec{ID: "installed", Kind: kit.TextButton, Icon: "check", Label: a.T("versionInstalled"), Disabled: true})
 		default:
-			kit.Button(k, kit.ButtonSpec{
-				ID: "install", Kind: kit.TonalButton, Icon: "install", Label: a.T("versionInstall"),
-				OnClick: func() { a.run(a.model.Cli.Install(sdk, version.Version)) },
+			mui.Row(k.Context).Gap(gapS).Children(func() {
+				kit.Button(k, kit.ButtonSpec{
+					ID: "install", Kind: kit.TonalButton, Icon: "install", Label: a.T("versionInstall"),
+					OnClick: func() { a.run(a.model.Cli.Install(sdk, version.Version)) },
+				})
+				kit.Button(k, kit.ButtonSpec{
+					ID: "install-use", Kind: kit.OutlinedButton, Icon: "check", Label: a.T("versionInstallUse"),
+					OnClick: func() {
+						command, err := a.model.Cli.InstallWithOptions(sdk, version.Version, vfox.InstallOptions{Use: true})
+						if err != nil {
+							a.notify(describeError(err))
+							return
+						}
+						a.run(command, nil)
+					},
+				})
 			})
 		}
 	}

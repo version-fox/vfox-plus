@@ -40,9 +40,9 @@ func TestResolveFakeVfox(t *testing.T) {
 	}{
 		"nothing given, the repository":           {"", "", "", appsession.FixturesDir(root)},
 		"fixtures of another version":             {"/x/vfox-1.0.12", "", "", "/x/vfox-1.0.12"},
-		"fixtures given as their directory":       {"/x/fixtures", "", "", "/x/fixtures/vfox-1.0.13"},
+		"fixtures given as their directory":       {"/x/fixtures", "", "", "/x/fixtures/vfox-1.1.0"},
 		"a fake vfox, fixtures of the repository": {"", fake, fake, appsession.FixturesDir(root)},
-		"a fake vfox and fixtures":                {"/x/fixtures", fake, fake, "/x/fixtures/vfox-1.0.13"},
+		"a fake vfox and fixtures":                {"/x/fixtures", fake, fake, "/x/fixtures/vfox-1.1.0"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestResolveFakeVfox(t *testing.T) {
 	if _, err := appsession.FindRepoRoot(); err == nil {
 		return
 	}
-	if gotFake, gotFixtures, err := resolveFakeVfox("", fake); err != nil || gotFake != fake || gotFixtures != filepath.Join(filepath.Dir(fake), "vfox-1.0.13") {
+	if gotFake, gotFixtures, err := resolveFakeVfox("", fake); err != nil || gotFake != fake || gotFixtures != filepath.Join(filepath.Dir(fake), "vfox-1.1.0") {
 		t.Errorf("a fake vfox away from the repository = %q, %q, %v", gotFake, gotFixtures, err)
 	}
 	if _, _, err := resolveFakeVfox("", ""); err == nil || !strings.Contains(err.Error(), "pass --fake-vfox or --fixtures-root") {
@@ -139,10 +139,10 @@ func TestUsageOfThisProcess(t *testing.T) {
 
 func TestFixturesDirFromRoot(t *testing.T) {
 	cases := map[string]string{
-		"shared/fixtures":             "shared/fixtures/vfox-1.0.13",
-		"shared/fixtures/vfox-1.0.13": "shared/fixtures/vfox-1.0.13",
-		"/x/vfox-1.0.12":              "/x/vfox-1.0.12",
-		"/x/fixtures":                 "/x/fixtures/vfox-1.0.13",
+		"shared/fixtures":            "shared/fixtures/vfox-1.1.0",
+		"shared/fixtures/vfox-1.1.0": "shared/fixtures/vfox-1.1.0",
+		"/x/vfox-1.0.12":             "/x/vfox-1.0.12",
+		"/x/fixtures":                "/x/fixtures/vfox-1.1.0",
 	}
 	for root, want := range cases {
 		if got := fixturesDirFromRoot(root); got != want {

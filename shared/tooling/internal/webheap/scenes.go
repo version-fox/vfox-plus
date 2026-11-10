@@ -112,6 +112,11 @@ func init() {
 	scenes["options-mirror"] = concat(options, []step{
 		pick(`[data-var="VFOX_NODEJS_MIRROR"]`), pick(`#varChips [data-value="https://npmmirror.com/mirrors/node"]`),
 	})
+	// What vfox 1.1.0 adds to a plugin: the dialog that links an SDK that is already on the machine, the
+	// aliases of a plugin, and the dialog that names one.
+	scenes["link-manual"] = concat(javaAvailable, []step{pick("#linkManualBtn"), exists("#linkVer")})
+	scenes["options-aliases"] = concat(options, []step{exists("#aliasAdd"), scrollTo("#aliasHead")})
+	scenes["alias-set"] = concat(options, []step{pick("#aliasAdd"), exists("#aliasIn")})
 }
 
 // sceneNames are the names that -scene takes, in order.

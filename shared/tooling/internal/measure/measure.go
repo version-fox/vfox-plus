@@ -107,12 +107,12 @@ func UsageOf(pid int) Usage {
 
 // fixturesDirFromRoot resolves a --fixtures-root value to the directory with
 // the captured outputs: the value itself when it already names a vfox-<v>
-// directory, else its vfox-1.0.13 child.
+// directory, else its vfox-1.1.0 child.
 func fixturesDirFromRoot(root string) string {
 	if strings.HasPrefix(filepath.Base(root), "vfox-") {
 		return root
 	}
-	return filepath.Join(root, "vfox-1.0.13")
+	return filepath.Join(root, "vfox-1.1.0")
 }
 
 func resolveFakeVfox(fixturesRootFlag, fakeVfoxFlag string) (fakeExplicit, fixturesDir string, err error) {
@@ -126,7 +126,7 @@ func resolveFakeVfox(fixturesRootFlag, fakeVfoxFlag string) (fakeExplicit, fixtu
 		if root, rerr := appsession.FindRepoRoot(); rerr == nil {
 			return fakeVfoxFlag, appsession.FixturesDir(root), nil
 		}
-		return fakeVfoxFlag, filepath.Join(filepath.Dir(fakeVfoxFlag), "vfox-1.0.13"), nil
+		return fakeVfoxFlag, filepath.Join(filepath.Dir(fakeVfoxFlag), "vfox-1.1.0"), nil
 	}
 	if fixturesRootFlag != "" {
 		return "", fixturesDirFromRoot(fixturesRootFlag), nil
@@ -206,7 +206,7 @@ func scenario(s *appsession.Session, output string) {
 	s.Navigate(appsession.SDKs)
 	s.ClickItem("nodejs")
 	s.ClickButton("Available")
-	s.WaitForText("872 versions")
+	s.WaitForText("877 versions")
 	s.Pause(settle)
 	measureAt("nodejs")
 }

@@ -73,6 +73,9 @@ type AppModel struct {
 	Registry *AsyncResource[[]core.AvailablePlugin]
 	// VfoxConfig is the vfox configuration.
 	VfoxConfig *VfoxConfigController
+	// Doctor reports the health of vfox and the installed SDKs (`vfox doctor
+	// --json`), loaded on demand for the home page.
+	Doctor *AsyncResource[vfox.DoctorReport]
 	// Tasks runs state-changing operations.
 	Tasks *TaskQueue
 	// Profiles is what the application knows about particular plugins.
@@ -109,6 +112,7 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	model.Installed = NewAsyncResource(model.Cli.InstalledSdks)
 	model.Registry = NewAsyncResource(model.Cli.AvailablePlugins)
 	model.VfoxConfig = NewVfoxConfigController(model.Cli)
+	model.Doctor = NewAsyncResource(func() (vfox.DoctorReport, error) { return model.Cli.DoctorReport("", "") })
 	model.Tasks = NewTaskQueue(model.Cli, 0, 0)
 	model.Tasks.LockPath = options.TaskLockPath
 	model.Tasks.TaskLogDir = options.TaskLogDir
@@ -317,6 +321,9 @@ func (m *AppModel) onTaskFinished(task *VfoxTask) {
 		}
 	}
 	m.Installed.Load()
+	if m.Doctor.HasValue() || m.Doctor.Error() != nil {
+		m.Doctor.Load()
+	}
 }
 
 // Dispose releases every resource.
@@ -330,6 +337,7 @@ func (m *AppModel) Dispose() {
 	m.Installed.Dispose()
 	m.Registry.Dispose()
 	m.VfoxConfig.Dispose()
+	m.Doctor.Dispose()
 	m.Vfox.Dispose()
 	m.Settings.Dispose()
 }

@@ -57,3 +57,18 @@ export function el<T extends HTMLElement>(id: string): T {
 export function setPressed(button: Element | null, on: boolean): void {
   if (button) button.setAttribute("aria-pressed", String(on));
 }
+
+/** An alias of a version, as `vfox alias list` has it and the web API gives it. */
+export interface VersionAlias {
+  sdk: string;
+  alias: string;
+  target: string;
+}
+
+/** The aliases that name a version of a plugin, as `@j17, @lts`; vfox says the target as `plugin@version`. */
+export function aliasesOf(aliases: VersionAlias[], sdk: string, version: string): string {
+  return aliases
+    .filter((a) => a.sdk === sdk && (a.target === sdk + "@" + version || a.target === version))
+    .map((a) => "@" + a.alias)
+    .join(", ");
+}
