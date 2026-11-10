@@ -140,11 +140,11 @@ network, so allow it only in a network that you trust.
 
 | The code and the link of *Pair a phone*, on the computer | The same, in a browser that is paired |
 | --- | --- |
-| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nbhBaYx.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nbrItOx.png) |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nbhBaYx.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nmW9sMF.png) |
 
 The settings of the web interface show the same switches: from a paired browser or phone
 you can allow other devices, change the port and turn the lightweight mode on or off, and
 *Pair a phone* shows the code there, too, which is how a computer without a window
 (lightweight mode) pairs a phone.
 
-![The connections in the settings of a paired web interface, on a phone](https://iili.io/nbrIPf9.png)
+![The connections in the settings of a paired web interface, on a phone](https://iili.io/nmV6IDv.png)

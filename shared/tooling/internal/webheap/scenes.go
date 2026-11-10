@@ -117,15 +117,29 @@ func init() {
 	scenes["link-manual"] = concat(javaAvailable, []step{pick("#linkManualBtn"), exists("#linkVer")})
 	scenes["options-aliases"] = concat(options, []step{exists("#aliasAdd"), scrollTo("#aliasHead")})
 	scenes["alias-set"] = concat(options, []step{pick("#aliasAdd"), exists("#aliasIn")})
-	// The version files of a plugin, with the choice of the version that they name: the label and the control of that
-	// row did not fit side by side on a phone, and the control covered the label. The last step waits for the control to
-	// be under the label, and for the page to be no wider than the window, so that a layout that goes back to that
-	// does not make a picture.
-	scenes["options-legacy"] = concat(options, []step{exists("#legacyStrategy"), scrollTo("#legacyHead"), until(`(() => {
-		const choice = document.getElementById("legacyStrategy"), label = choice.previousElementSibling.getBoundingClientRect();
-		const page = document.documentElement;
-		return choice.getBoundingClientRect().top >= label.bottom - 1 && page.scrollWidth <= page.clientWidth;
-	})()`)})
+	// The rows that have a choice of a few buttons: the version that the version files of a plugin name, and the
+	// languages. The choice did not fit beside its label on a phone, and covered it. The last step of each waits for the
+	// choices to be under their labels, at the same edge, so that a layout that goes back to that does not make a picture.
+	scenes["options-legacy"] = concat(options, []step{exists("#legacyStrategy"), scrollTo("#legacyHead"), underTheirLabels("legacyStrategy")})
+	scenes["settings-languages"] = []step{
+		pick(`[data-tab="settings"]`), exists("#langSeg"), scrollTo("#l-lang"), underTheirLabels("langSeg", "pageLangSeg"),
+	}
+}
+
+// underTheirLabels waits until each of the choices that the identifiers name is under the label that comes before it,
+// and starts at the same edge. Beside its label a choice starts above the end of the label, which is what it did when
+// it covered it.
+func underTheirLabels(ids ...string) step {
+	list := make([]string, len(ids))
+	for i, id := range ids {
+		list[i] = fmt.Sprintf("%q", id)
+	}
+	return until(fmt.Sprintf(`[%s].every((id) => {
+		const choice = document.getElementById(id);
+		if (!choice) return false;
+		const at = choice.getBoundingClientRect(), label = choice.previousElementSibling.getBoundingClientRect();
+		return at.top >= label.bottom - 1 && Math.abs(at.left - label.left) < 1;
+	})`, strings.Join(list, ", ")))
 }
 
 // sceneNames are the names that -scene takes, in order.

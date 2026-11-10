@@ -233,10 +233,12 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .seg button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:18px;color:var(--m3-on-surface-variant);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
 .seg button[aria-pressed="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:18px}
 .seg button:active{border-radius:8px}
-/* A choice in a row of a list goes under the label, at its edge: beside it, the label of a phone has a few letters
-   of width left, and the row grows wider than the screen. */
-.list .item .seg{margin-top:8px;max-width:100%}
-.list .item .seg button{padding:0 12px}
+/* A label and its choice in one column: the choice goes under the label and starts at the same edge, at every width. A
+   choice of a few buttons does not fit beside a label on a phone, nor in the narrow pane of a plugin; here it has the
+   column to itself. The buttons that do not fit in a line go on to the next, whole, and those of a line share its width. */
+.stack{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.stack>.seg{max-width:100%;flex-wrap:wrap}
+.stack>.seg button{flex:1 1 auto;justify-content:center}
 /* search bar: full pill */
 .search{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:28px;padding:4px 16px 4px 12px;margin-bottom:12px}
 .search input{flex:1;background:none;border:0;padding:10px 0;outline:none;min-width:0}
@@ -545,12 +547,8 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .searchrow{flex-direction:column;align-items:stretch;gap:8px}
   .searchrow .seg{align-self:flex-start}
   .rowitem{padding:12px 0}
-  .rowitem .seg{flex-wrap:wrap}
-  /* A row with a choice: where the choice does not fit beside the label, it goes under it. The label asks for the room
-     of a short word; with the width of nothing, which .grow gives it, the row never wrapped, and a narrow phone left
-     the label a few letters under the choice. */
-  .rowitem.choice .grow{flex:1 1 64px}
-  .rowitem.choice .seg{margin-left:auto}
+  /* the label of a row starts where the control of the row starts; the margin of .t-title-m on a phone is for a heading */
+  .rowitem .t-title-m{margin:0}
 }
 @media (max-width:700px){
   /* the bar already has the plugins destination; the floating button only ate the corner */

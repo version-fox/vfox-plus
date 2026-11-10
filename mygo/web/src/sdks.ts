@@ -871,9 +871,9 @@ function renderOptions(body: HTMLElement): void {
     if (p.legacyStrategy) {
       const strat = configValue("legacyVersionFile.strategy");
       h +=
-        '<div class="item"><span class="lead"></span><div style="flex:1;min-width:0"><div><b>' +
+        '<div class="item"><span class="lead"></span><div class="grow stack"><b id="legacyStrategyLabel">' +
         esc(t("legacyStrategy")) +
-        '</b></div><div class="seg" id="legacyStrategy">' +
+        '</b><div class="seg" id="legacyStrategy" role="group" aria-labelledby="legacyStrategyLabel">' +
         (
           [
             ["specified", t("strategySpecified")],
