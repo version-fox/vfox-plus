@@ -87,7 +87,7 @@ func TestHomeShowsTheOverviewAndTheShortcuts(t *testing.T) {
 	ta.mustText("Copied to the clipboard")
 	ta.snapshot("home")
 	ta.button("Add more SDKs")
-	ta.mustText("Every plugin adds a language or tool to vfox.")
+	ta.mustText("Add from source…")
 	ta.button("Home")
 	ta.button("vfox documentation")
 	if len(ta.desktop.opened) != 1 || ta.desktop.opened[0] != "https://vfox.dev/" {
@@ -108,20 +108,20 @@ func TestAWindowDrawnByTheCPUTellsItsTransitionsToOnlyFade(t *testing.T) {
 
 func TestTheRailNavigatesBetweenThePagesAndTheBadgeCountsTasks(t *testing.T) {
 	ta := defaultApp(t)
-	for destination, title := range map[string]string{"SDKs": "Select an SDK to manage its versions.", "Tasks": "Nothing is running", "Settings": "Appearance"} {
+	for destination, title := range map[string]string{"SDKs": "Select an SDK.", "Tasks": "Nothing is running", "Settings": "Appearance"} {
 		ta.button(destination)
 		ta.mustText(title)
 	}
 	ta.button("Plugins")
 	ta.until("the registry", func() bool { return ta.app.model.Registry.HasValue() })
 	ta.settle()
-	ta.mustText("Every plugin adds a language or tool to vfox.")
+	ta.mustText("Add from source…")
 	ta.button("Home")
 	ta.mustText("Versions in use")
 	// The action button of the rail leads to the plugins, and the menu button
 	// shows the labels.
 	ta.button("Add plugin")
-	ta.mustText("Every plugin adds a language or tool to vfox.")
+	ta.mustText("Add from source…")
 	ta.button("Show labels")
 	if !ta.app.model.Settings.Settings().RailExpanded {
 		t.Error("the rail is expanded")

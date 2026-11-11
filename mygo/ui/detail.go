@@ -510,22 +510,18 @@ func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableV
 		case installed:
 			kit.Button(k, kit.ButtonSpec{ID: "installed", Kind: kit.TextButton, Icon: "check", Label: a.T("versionInstalled"), Disabled: true})
 		default:
-			mui.Row(k.Context).Gap(gapS).Children(func() {
-				kit.Button(k, kit.ButtonSpec{
-					ID: "install", Kind: kit.TonalButton, Icon: "install", Label: a.T("versionInstall"),
-					OnClick: func() { a.run(a.model.Cli.Install(sdk, version.Version)) },
-				})
-				kit.Button(k, kit.ButtonSpec{
-					ID: "install-use", Kind: kit.OutlinedButton, Icon: "check", Label: a.T("versionInstallUse"),
-					OnClick: func() {
-						command, err := a.model.Cli.InstallWithOptions(sdk, version.Version, vfox.InstallOptions{Use: true})
-						if err != nil {
-							a.notify(describeError(err))
-							return
-						}
-						a.run(command, nil)
-					},
-				})
+			installAndUse := func() {
+				command, err := a.model.Cli.InstallWithOptions(sdk, version.Version, vfox.InstallOptions{Use: true})
+				if err != nil {
+					a.notify(describeError(err))
+					return
+				}
+				a.run(command, nil)
+			}
+			kit.SplitButton(k, kit.SplitButtonSpec{
+				ID: "install", Label: a.T("versionInstall"), Icon: "install", MenuTooltip: a.T("versionInstallOptions"),
+				OnClick: func() { a.run(a.model.Cli.Install(sdk, version.Version)) },
+				Items:   []kit.MenuItem{{Label: a.T("versionInstallUse"), Icon: "check", OnClick: installAndUse}},
 			})
 		}
 	}

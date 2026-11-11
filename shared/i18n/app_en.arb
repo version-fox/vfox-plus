@@ -160,7 +160,7 @@
   "@homeActiveTitle": {
     "description": "Heading of the list of current SDK versions."
   },
-  "homeActiveEmpty": "No SDK version is in use yet. Pick one on the SDKs page.",
+  "homeActiveEmpty": "No SDK version is in use yet.",
   "@homeActiveEmpty": {
     "description": "Shown when no SDK has a current version."
   },
@@ -168,7 +168,7 @@
   "@homeShellTitle": {
     "description": "Heading of the tip about shell integration."
   },
-  "homeShellBody": "Add this line to ~/.bashrc so that new shells pick up the versions chosen here. Other shells are covered in the vfox documentation.",
+  "homeShellBody": "Add this line to ~/.bashrc so that new shells use the versions chosen here.",
   "@homeShellBody": {
     "description": "Explains how to activate vfox in a shell."
   },
@@ -196,7 +196,7 @@
   "@sdksEmptyTitle": {
     "description": "Shown when no plugin is installed."
   },
-  "sdksEmptyBody": "A plugin teaches vfox how to install an SDK. Add one to get started.",
+  "sdksEmptyBody": "Add a plugin to get started.",
   "@sdksEmptyBody": {
     "description": "Shown when no plugin is installed."
   },
@@ -234,7 +234,7 @@
       }
     }
   },
-  "sdksSelectPrompt": "Select an SDK to manage its versions.",
+  "sdksSelectPrompt": "Select an SDK.",
   "@sdksSelectPrompt": {
     "description": "Placeholder of the detail pane when no SDK is selected."
   },
@@ -482,16 +482,6 @@
   "@installNameField": {
     "description": "Label of the field that takes the name of a version to install."
   },
-  "installNameHelp": "What follows {name}@ in vfox install",
-  "@installNameHelp": {
-    "description": "Helper text of the field that takes the name of a version to install.",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "nodejs"
-      }
-    }
-  },
   "installNameExamples": "Names to try",
   "@installNameExamples": {
     "description": "Heading of the names that the profile of a plugin suggests."
@@ -504,27 +494,15 @@
   "@installNameInvalid": {
     "description": "Shown when the name of the version cannot be passed to vfox."
   },
-  "installNameNote": "vfox looks the name up while it installs. A name that matches nothing fails, and the task shows why.",
-  "@installNameNote": {
-    "description": "Explains what happens to a name that no version has."
-  },
   "sdkTabOptions": "Options",
   "@sdkTabOptions": {
     "description": "Tab with what is particular to a plugin: its downloads, version files and names."
-  },
-  "optionsGuideTitle": "Version names",
-  "@optionsGuideTitle": {
-    "description": "Title of the card that explains how the version names of a plugin work."
   },
   "optionsVariables": "Downloads",
   "@optionsVariables": {
     "description": "Heading of the environment variables that a plugin reads, such as its download mirror."
   },
-  "optionsVariablesHelp": "Environment variables that the plugin reads. They are added to every vfox command that this application runs.",
-  "@optionsVariablesHelp": {
-    "description": "Explains the variables of a plugin."
-  },
-  "optionsVariableUnset": "Not set. The plugin uses its own default.",
+  "optionsVariableUnset": "Default",
   "@optionsVariableUnset": {
     "description": "Shown for an environment variable that has no value."
   },
@@ -560,47 +538,7 @@
   "@optionsLegacy": {
     "description": "Heading of the files that vfox reads through a plugin to find the version of a project."
   },
-  "optionsLegacyFiles": "Files read through this plugin",
-  "@optionsLegacyFiles": {
-    "description": "Title of the list of version files of a plugin, such as .nvmrc."
-  },
-  "optionsLegacyFilesHelp": "vfox reads them when a shell enters a project directory and selects the version they name, if it is installed.",
-  "@optionsLegacyFilesHelp": {
-    "description": "Explains what vfox does with the version files of a plugin."
-  },
-  "optionsLegacyNone": "This plugin reads no version files of its own.",
-  "@optionsLegacyNone": {
-    "description": "Shown for a plugin that lists no legacy file names."
-  },
-  "optionsLegacyStrategyIgnored": "{setting} has no effect on this plugin: the version in the file is what counts.",
-  "@optionsLegacyStrategyIgnored": {
-    "description": "Says that the strategy of the legacy version files does not matter for a plugin.",
-    "placeholders": {
-      "setting": {
-        "type": "String",
-        "example": "Version used from legacy files"
-      }
-    }
-  },
-  "optionsShorthands": "Names you can type",
-  "@optionsShorthands": {
-    "description": "Heading of the version names that a plugin takes besides the listed versions."
-  },
-  "optionsShorthandsHelp": "Besides the versions in the list, vfox install accepts these names for {name}.",
-  "@optionsShorthandsHelp": {
-    "description": "Explains the shorthands of a plugin.",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "nodejs"
-      }
-    }
-  },
-  "optionsShorthandTry": "Install…",
-  "@optionsShorthandTry": {
-    "description": "Opens the dialog that installs a version by name, filled with a shorthand."
-  },
-  "optionsTips": "Good to know",
+  "optionsTips": "Notes",
   "@optionsTips": {
     "description": "Heading of the notes that a profile has for a plugin."
   },
@@ -641,10 +579,6 @@
   "pluginsTitle": "Plugins",
   "@pluginsTitle": {
     "description": "Title of the plugin registry page."
-  },
-  "pluginsSubtitle": "Every plugin adds a language or tool to vfox.",
-  "@pluginsSubtitle": {
-    "description": "Subtitle of the plugin registry page."
   },
   "pluginsSearchHint": "Search plugins",
   "@pluginsSearchHint": {
@@ -728,10 +662,6 @@
   },
   "tasksEmptyTitle": "Nothing is running",
   "@tasksEmptyTitle": {
-    "description": "Shown when there is no task."
-  },
-  "tasksEmptyBody": "Installations and other changes appear here while vfox works on them.",
-  "@tasksEmptyBody": {
     "description": "Shown when there is no task."
   },
   "tasksClearFinished": "Clear finished",
@@ -928,7 +858,7 @@
   "@settingsSystemColor": {
     "description": "Derive the colors from the accent color of the desktop."
   },
-  "settingsSystemColorUnavailable": "The desktop does not share an accent color, so the color below is used.",
+  "settingsSystemColorUnavailable": "No desktop accent color: the one below is used.",
   "@settingsSystemColorUnavailable": {
     "description": "Shown when no desktop accent color is available."
   },
@@ -956,8 +886,6 @@
   "@settingsWeb": { "description": "Heading of the settings about the web interface." },
   "settingsWebInterface": "Web interface",
   "@settingsWebInterface": { "description": "Title of the switch that serves the web interface of the application." },
-  "settingsWebInterfaceHelp": "Use vfox+ in a browser on this computer. Turn it on, then choose Open in browser.",
-  "@settingsWebInterfaceHelp": { "description": "Explains what the switch of the web interface does." },
   "webServing": "Serving at {address}",
   "@webServing": {
     "description": "Says where the web interface is served on this computer.",
@@ -970,8 +898,6 @@
   },
   "webOpen": "Open in browser",
   "@webOpen": { "description": "Title of the item that opens the web interface in the browser of this computer." },
-  "webOpenHelp": "Pairs a browser on this computer with a one-time link.",
-  "@webOpenHelp": { "description": "Explains what opening the web interface in the browser does." },
   "webOpenAction": "Open",
   "@webOpenAction": { "description": "Button that opens the web interface in the browser." },
   "webCopyLink": "Copy link",
@@ -983,7 +909,7 @@
   },
   "settingsLightweight": "Lightweight mode",
   "@settingsLightweight": { "description": "Title of the switch that keeps the application running without its window." },
-  "settingsLightweightHelp": "When you close the window, vfox+ keeps running in the background without it: the web interface stays up and tasks go on. Its icon in the tray, where the desktop has one, brings the window back, and so does starting vfox+ again.",
+  "settingsLightweightHelp": "Keeps vfox+ running in the background after the window closes; the tray icon, or starting vfox+ again, brings the window back.",
   "@settingsLightweightHelp": { "description": "Explains what the lightweight mode does." },
   "settingsNeedsWebInterface": "Turn on the web interface first.",
   "@settingsNeedsWebInterface": { "description": "Says why a switch cannot be flipped: it depends on the web interface." },
@@ -1007,17 +933,17 @@
   "@webRemoteConfirmAction": { "description": "Button that lets other devices connect." },
   "settingsWebPort": "Port",
   "@settingsWebPort": { "description": "Title of the field of the port that other devices connect to." },
-  "settingsWebPortHelp": "Other devices connect to this port. Allow it in the firewall of this computer.",
+  "settingsWebPortHelp": "Allow it in the firewall of this computer.",
   "@settingsWebPortHelp": { "description": "Explains the port that other devices connect to." },
   "settingsWebPublicAddress": "Public address",
   "@settingsWebPublicAddress": { "description": "Title of the field of the address at which a proxy, a tunnel or the gateway publishes the interface." },
-  "settingsWebPublicAddressHelp": "The address where a reverse proxy, a tunnel or the gateway publishes this interface, such as https://vfox.example.com. Pairing links and the code a phone scans carry it instead of the address of this computer.",
+  "settingsWebPublicAddressHelp": "Where a reverse proxy, a tunnel or the gateway publishes this interface. Pairing links and codes use it.",
   "@settingsWebPublicAddressHelp": { "description": "Explains the public address of the web interface." },
   "settingsWebPublicAddressInvalid": "Write the address as https://…",
   "@settingsWebPublicAddressInvalid": { "description": "Tells that the public address is not a URL." },
   "settingsPublish": "Public tunnel",
   "@settingsPublish": { "description": "Title of the switch that publishes the web interface through Cloudflare." },
-  "settingsPublishHelp": "Publish this interface through a free Cloudflare quick tunnel: a random address, no account, for as long as it runs.",
+  "settingsPublishHelp": "A free Cloudflare quick tunnel: a random address, no account, for as long as it runs.",
   "@settingsPublishHelp": { "description": "Explains the public tunnel." },
   "settingsPublishConfirmTitle": "Publish to the internet?",
   "@settingsPublishConfirmTitle": { "description": "Asks before the interface is published through a tunnel." },
@@ -1047,11 +973,11 @@
     "description": "Lists the addresses of this computer that other devices connect to.",
     "placeholders": { "addresses": { "type": "String", "example": "https://192.168.1.5:8369" } }
   },
-  "webPairNone": "This computer has no address on a network, so there is nothing to scan.",
+  "webPairNone": "This computer has no network address.",
   "@webPairNone": { "description": "Says that no code can be made because the computer is on no network." },
   "webPairShow": "Show code",
   "@webPairShow": { "description": "Button that shows the code that a phone scans." },
-  "webPairHelp": "Scan the code with the Android app, or open the link on the other device. It works once and expires in {minutes} minutes.",
+  "webPairHelp": "Scan with the Android app or open the link elsewhere. It works once and expires in {minutes} minutes.",
   "@webPairHelp": {
     "description": "Explains how to use the pairing code.",
     "placeholders": { "minutes": { "type": "String", "example": "5" } }
@@ -1125,7 +1051,7 @@
   "@settingsEnvironment": {
     "description": "Extra environment variables for vfox."
   },
-  "settingsEnvironmentHelp": "Passed to vfox and its plugins, one KEY=VALUE per line. Useful for download mirrors such as VFOX_NODEJS_MIRROR, which a desktop launcher does not read from your shell profile.",
+  "settingsEnvironmentHelp": "Passed to vfox and its plugins, one KEY=VALUE per line.",
   "@settingsEnvironmentHelp": {
     "description": "Help text of the environment variables field."
   },
@@ -1151,7 +1077,7 @@
   "@settingsVfoxConfig": {
     "description": "Heading of the settings stored by vfox."
   },
-  "settingsVfoxConfigHelp": "Stored by vfox in ~/.vfox/config.yaml and shared with the command line.",
+  "settingsVfoxConfigHelp": "Shared with the vfox command line.",
   "@settingsVfoxConfigHelp": {
     "description": "Explains where the vfox configuration lives."
   },
@@ -1186,10 +1112,6 @@
   "configLegacyEnable": "Read legacy version files",
   "@configLegacyEnable": {
     "description": "vfox setting legacyVersionFile.enable."
-  },
-  "configLegacyEnableHelp": "Such as .nvmrc, .node-version, .python-version and .sdkmanrc.",
-  "@configLegacyEnableHelp": {
-    "description": "Help text of legacyVersionFile.enable."
   },
   "configLegacyStrategy": "Version used from legacy files",
   "@configLegacyStrategy": {
@@ -1459,6 +1381,8 @@
   "@versionInstallUse": {
     "description": "Button of an available version that installs it and makes it the global default (vfox install --use)."
   },
+  "versionInstallOptions": "More ways to install this version",
+  "@versionInstallOptions": { "description": "Tooltip of the button that opens the menu of the install button of a version." },
   "linkDetect": "Detect and link",
   "@linkDetect": {
     "description": "Button that lets the plugin find the SDKs that are already on the machine and links them (vfox link --detect)."
@@ -1489,6 +1413,8 @@
   "@linkVersionField": {
     "description": "Label of the field of the name of a version, in the dialogs that link an SDK and that name an alias."
   },
+  "linkVersionHint": "17-system",
+  "@linkVersionHint": { "description": "Example of the name that a linked version is listed under, shown in the empty field." },
   "linkVersionHelp": "The name vfox lists it under, such as 17-system.",
   "@linkVersionHelp": {
     "description": "Help of the field of the name of a version."
@@ -1531,14 +1457,8 @@
   "@aliasField": {
     "description": "Label of the field of an alias, in the dialog that names it."
   },
-  "aliasHelp": "A short name that works wherever the version does, such as j17.",
-  "@aliasHelp": {
-    "description": "Help of the field of an alias, and of the list of the aliases of a plugin."
-  },
-  "aliasEmpty": "No aliases yet.",
-  "@aliasEmpty": {
-    "description": "Shown in the list of the aliases of a plugin when it has none."
-  },
+  "aliasHint": "j17",
+  "@aliasHint": { "description": "Example of an alias, shown in the empty field." },
   "doctorTitle": "Health",
   "@doctorTitle": {
     "description": "Heading of the health of vfox and of the installed SDKs on Home."

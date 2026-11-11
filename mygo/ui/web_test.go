@@ -73,7 +73,6 @@ func (ta *testApp) waitFor(description string, condition func(pair.Status) bool)
 func TestTheWebInterfaceIsOffUntilTheUserTurnsItOnAndThenItOpensInTheBrowser(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openSettings()
-	ta.mustText("Use vfox+ in a browser on this computer. Turn it on, then choose Open in browser.")
 	if _, ok := ta.listItem("Open in browser"); ok {
 		t.Fatal("there is no browser to open while the web interface is off")
 	}
@@ -108,7 +107,6 @@ func TestTheWebInterfaceIsOffUntilTheUserTurnsItOnAndThenItOpensInTheBrowser(t *
 	if _, ok := ta.listItem("Open in browser"); ok {
 		t.Error("nothing to open once the web interface is off")
 	}
-	ta.mustText("Use vfox+ in a browser on this computer. Turn it on, then choose Open in browser.")
 }
 
 func TestTheWebInterfaceSaysWhyItCannotBeServed(t *testing.T) {
@@ -365,7 +363,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 		if item == nil {
 			t.Fatalf("no item to pair a phone: %q", ta.texts())
 		}
-		ta.mustText("This computer has no address on a network, so there is nothing to scan.")
+		ta.mustText("This computer has no network address.")
 		return
 	}
 	ta.mustTextWith("Reachable at https://" + net.JoinHostPort(status.Addresses[0], strconv.Itoa(status.Port)))
@@ -375,7 +373,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 		return "https://" + net.JoinHostPort(address, strconv.Itoa(status.Port)) + "/auth/connect/"
 	}
 	first := ta.mustTextWith(link(status.Addresses[0]))
-	ta.mustTextWith("Scan the code with the Android app")
+	ta.mustTextWith("Scan with the Android app")
 	if ta.app.pages.pairing == nil || len(ta.app.pages.pairing.matrix) < 29 {
 		t.Fatalf("the code is drawn from a matrix of modules: %+v", ta.app.pages.pairing)
 	}
@@ -397,7 +395,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	if ta.app.pages.pairing != nil {
 		t.Error("a closed dialog keeps no link")
 	}
-	if _, ok := ta.textWith("Scan the code with the Android app"); ok {
+	if _, ok := ta.textWith("Scan with the Android app"); ok {
 		t.Error("the dialog is gone")
 	}
 }

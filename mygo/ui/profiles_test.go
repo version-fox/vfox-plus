@@ -195,7 +195,7 @@ func TestAVersionIsInstalledByTheNameThatTheUserTypes(t *testing.T) {
 	ta.openAvailable("nodejs")
 	ta.button("Install by name…")
 	ta.mustText("Install nodejs by name")
-	ta.mustText("What follows nodejs@ in vfox install")
+	ta.mustText("24, 24.21 or 24.21.0 install the newest release of that line; latest the newest of any line. There is no lts alias: name the line.")
 	ta.snapshot("install-by-name")
 	// Nothing, and a name with a space, are refused with a reason.
 	field, ok := ta.find(kit.RoleTextField, "Version name")
@@ -267,7 +267,7 @@ func TestAPluginAddedUnderAnAliasHasTheChoicesOfThePluginItWasMadeFrom(t *testin
 	ta.settle()
 	ta.mustText("Temurin")
 	ta.button("Options")
-	ta.mustText("Besides the versions in the list, vfox install accepts these names for coffee.")
+	ta.mustText("GitHub mirror")
 	ta.button("Available")
 	ta.until("the versions", func() bool { return ta.app.detailFor("coffee").controller.Versions.HasValue() })
 	ta.settle()
@@ -316,14 +316,22 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.button("SDKs")
 	ta.item("nodejs")
 	ta.button("Options")
+	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+	ta.settle()
 	for _, text := range []string{
-		"Version names", "Downloads", "Download mirror", "C library", "Advanced", "Version files",
-		".node-version", ".nvmrc", "Names you can type", "Good to know", "Documentation",
+		"Downloads", "Download mirror", "C library", "Advanced", "Version files", "Read legacy version files",
+		".node-version", ".nvmrc", "Aliases", "Notes", "Documentation",
 	} {
 		ta.mustText(text)
 	}
+	// What the dialog of the names says, or the buttons of the page, is not said again here.
+	for _, text := range []string{"Version names", "Names you can type", "Good to know", "No aliases yet."} {
+		if ta.text(text) {
+			t.Errorf("the options say %q", text)
+		}
+	}
 	ta.snapshot("options")
-	ta.mustText("VFOX_NODEJS_MIRROR\nNot set. The plugin uses its own default.")
+	ta.mustText("VFOX_NODEJS_MIRROR\nDefault")
 
 	// An address that is not one is refused, and nothing changes.
 	ta.button("Change")
@@ -355,7 +363,7 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.button("Change")
 	ta.button("Default (not set)")
 	ta.button("Save")
-	ta.mustText("VFOX_NODEJS_MIRROR\nNot set. The plugin uses its own default.")
+	ta.mustText("VFOX_NODEJS_MIRROR\nDefault")
 
 	// A choice takes its values only.
 	nodejs, _ := ta.app.model.Profiles.Lookup("nodejs")
@@ -391,9 +399,8 @@ func TestTheVersionFilesAreReadThroughThePluginIfVfoxReadsThem(t *testing.T) {
 	for _, text := range []string{".sdkmanrc", "GitHub mirror", "Read legacy version files"} {
 		ta.mustText(text)
 	}
-	// Java reads the file as it is: the strategy of vfox makes no difference.
-	ta.mustText("Version used from legacy files has no effect on this plugin: the version in the file is what counts.")
-	if _, ok := ta.find(kit.RoleListItem, "Version used from legacy files"); ok {
+	// Java reads the file as it is: the strategy of vfox makes no difference, so there is none to choose.
+	if _, ok := ta.find(kit.RoleListItem, "Version used from legacy files"); ok || ta.text("Version used from legacy files") {
 		t.Error("there is no strategy to choose for Java")
 	}
 	ta.snapshot("options-java")
@@ -409,19 +416,16 @@ func TestTheVersionFilesAreReadThroughThePluginIfVfoxReadsThem(t *testing.T) {
 	}
 }
 
-func TestAShorthandIsTriedFromTheOptions(t *testing.T) {
+func TestAShorthandFillsTheFieldOfTheNames(t *testing.T) {
 	ta := javaApp(t)
-	ta.button("SDKs")
-	ta.item("java")
-	ta.button("Options")
-	ta.mustText("21-tem")
+	ta.openAvailable("java")
+	ta.button("Install by name…")
+	ta.button("21-tem")
 	ta.mustText("The newest Temurin 21")
-	ta.buttonNear("21-tem", "Install…")
 	field, ok := ta.find(kit.RoleTextField, "Version name")
 	if !ok || field.Value() != "21-tem" {
-		t.Fatalf("the dialog starts with the shorthand: %v %q", ok, ta.texts())
+		t.Fatalf("the chip fills the field: %v %q", ok, ta.texts())
 	}
-	ta.mustText("The newest Temurin 21")
 	ta.button("Install")
 	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes java@21-tem")) == 1 })
 }
@@ -433,7 +437,9 @@ func TestTheOptionsFollowTheLanguage(t *testing.T) {
 	ta.button("SDK")
 	ta.item("nodejs")
 	ta.button("选项")
-	for _, text := range []string{"版本名称", "下载", "下载镜像", "版本文件", "可以直接输入的名称", "须知", "文档"} {
+	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+	ta.settle()
+	for _, text := range []string{"下载", "下载镜像", "版本文件", "别名", "须知", "文档"} {
 		if !ta.text(text) && !strings.Contains(strings.Join(ta.texts(), "\n"), text) {
 			t.Errorf("no %q: %q", text, ta.texts())
 		}
@@ -469,7 +475,9 @@ func TestInstallByNameOffersUseAfterInstall(t *testing.T) {
 func TestAvailableVersionsOfferInstallAndUseAndLink(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openAvailable("nodejs")
+	ta.click(kit.RoleButton, "More ways to install this version")
 	ta.mustText("Install and use")
+	ta.click(kit.RoleMenuItem, "Install and use")
 	ta.mustText("Detect and link")
 	ta.mustText("Link existing…")
 	ta.button("Detect and link")
@@ -494,7 +502,7 @@ func TestAnAliasIsNamedForAVersion(t *testing.T) {
 	ta.item("nodejs")
 	ta.button("Options")
 	ta.mustText("Aliases")
-	ta.until("the aliases", func() bool { return ta.text("No aliases yet.") })
+	ta.until("the aliases", func() bool { return ta.text("Name alias…") })
 	ta.button("Name alias…")
 	ta.mustText("Alias")
 	field, ok := ta.find(kit.RoleTextField, "Alias")
@@ -532,9 +540,9 @@ func TestAliasesAreListedAndRemoved(t *testing.T) {
 func TestAvailableRowOffersInstallAndUse(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openAvailable("nodejs")
-	ta.mustText("Install and use")
-	// Click the first Install and use button (for 26.13.0).
-	ta.click(kit.RoleButton, "Install and use")
+	// The first row (26.13.0) has Install, and next to it the menu that has Install and use.
+	ta.click(kit.RoleButton, "More ways to install this version")
+	ta.click(kit.RoleMenuItem, "Install and use")
 	ta.until("the install and use", func() bool {
 		for _, call := range ta.runner.Calls("install") {
 			if len(call.Arguments) >= 4 && call.Arguments[2] == "--use" {

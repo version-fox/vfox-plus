@@ -198,6 +198,10 @@ func (a *App) applySearch(d *detailState, value string) {
 func (a *App) askInstallName(name string, p profile.Profile, hasProfile bool, initial string) {
 	text, problem := initial, ""
 	useAfter := false
+	guide := ""
+	if hasProfile {
+		guide = a.text(p.Guide)
+	}
 	a.env.ShowDialog("install-by-name", func(k kit.Ctx, closeDialog func()) kit.DialogSpec {
 		cs := k.Colors()
 		submit := func(use bool) func() {
@@ -230,7 +234,7 @@ func (a *App) askInstallName(name string, p profile.Profile, hasProfile bool, in
 			Icon: "terminal", Title: a.T("installNameTitle", "name", name), MaxWidth: 560,
 			Content: func() {
 				kit.TextField(k, kit.TextFieldSpec{
-					ID: "name", Label: a.T("installNameField"), Helper: a.T("installNameHelp", "name", name), Error: problem,
+					ID: "name", Label: a.T("installNameField"), Helper: guide, Error: problem,
 					AutoFocus: true, Text: &text, Monospace: true, OnSubmit: func(string) { submit(useAfter)() },
 					OnChange: func(string) { problem = "" },
 				})
@@ -254,7 +258,6 @@ func (a *App) askInstallName(name string, p profile.Profile, hasProfile bool, in
 					}
 				}
 				a.switchRow(k, "use-after", a.T("installUseAfter"), useAfter, func(on bool) { useAfter = on })
-				kit.Label(k, a.T("installNameNote"), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(gapL, 0, 0, 0)
 			},
 			Actions: []func(){
 				func() {
@@ -309,7 +312,7 @@ func (a *App) askLinkPath(name string) {
 			Icon: "link", Title: a.T("linkPathTitle", "name", name), MaxWidth: 560,
 			Content: func() {
 				kit.TextField(k, kit.TextFieldSpec{
-					ID: "version", Label: a.T("linkVersionField"), Helper: a.T("linkVersionHelp"), Error: versionProblem,
+					ID: "version", Label: a.T("linkVersionField"), Hint: a.T("linkVersionHint"), Error: versionProblem,
 					AutoFocus: true, Text: &version, Monospace: true, OnSubmit: func(string) { submit() },
 					OnChange: func(string) { versionProblem = "" },
 				})
@@ -348,11 +351,9 @@ func (a *App) optionsBody(k kit.Ctx, d *detailState) detailBody {
 	p, _ := d.controller.EffectiveProfile()
 	return single("options", func() {
 		mui.Column(k.Context).Padding(0, gapXL, gapXXL, gapXL).Children(func() {
-			a.guideSection(k, p)
 			a.variablesSection(k, p)
 			a.legacySection(k, p)
 			a.aliasSection(k, d)
-			a.shorthandsSection(k, d, p)
 			a.tipsSection(k, p)
 			a.docsSection(k, p)
 		})
@@ -364,25 +365,11 @@ func (a *App) longText(k kit.Ctx, text string, style kit.TextStyle) func(mui.Col
 	return func(foreground mui.Color) { kit.Label(k, text, style, foreground) }
 }
 
-func (a *App) guideSection(k kit.Ctx, p profile.Profile) {
-	if p.Guide.EN == "" {
-		return
-	}
-	kit.ListGroup(k, kit.ListItemSpec{
-		ID: "guide", Title: a.T("optionsGuideTitle"), Leading: icon(k, "info"), Wrap: a.itemWraps(),
-		SubtitleWidget: func(foreground mui.Color) {
-			kit.Label(k, a.text(p.Guide), kit.Type(kit.BodyMedium), foreground).Margin(gapS, 0, 0, 0)
-		},
-	}).Margin(gapS, 0, 0, 0)
-}
-
 func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 	if len(p.Variables) == 0 {
 		return
 	}
-	cs := k.Colors()
 	kit.GroupHeader(k, a.T("optionsVariables"), nil)
-	kit.Label(k, a.T("optionsVariablesHelp"), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(0, 0, gapM, gapL)
 	var items []kit.ListItemSpec
 	for _, variable := range p.Variables {
 		value := a.model.PluginVariable(variable.Key)
@@ -394,7 +381,7 @@ func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 			}
 		}
 		items = append(items, kit.ListItemSpec{
-			ID: "variable:" + variable.Key, Leading: icon(k, "install"), Wrap: a.itemWraps(),
+			ID: "variable:" + variable.Key, Wrap: a.itemWraps(),
 			TitleWidget: func(foreground mui.Color) {
 				mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {
 					kit.Label(k, a.text(variable.Label), kit.Type(kit.BodyLarge), foreground)
@@ -476,47 +463,37 @@ func (a *App) askVariable(p profile.Profile, variable profile.Variable) {
 }
 
 func (a *App) legacySection(k kit.Ctx, p profile.Profile) {
-	kit.GroupHeader(k, a.T("optionsLegacy"), nil)
 	if len(p.LegacyFiles) == 0 {
-		kit.ListGroup(k, kit.ListItemSpec{
-			ID: "legacy-none", Title: a.T("optionsLegacyNone"), Leading: icon(k, "legacyFiles"),
-		})
 		return
 	}
 	a.model.VfoxConfig.EnsureLoaded()
-	items := []kit.ListItemSpec{{
-		ID: "legacy-files", Title: a.T("optionsLegacyFiles"), Leading: icon(k, "legacyFiles"), Wrap: a.itemWraps(),
-		SubtitleWidget: func(foreground mui.Color) {
-			mui.Column(k.Context).Margin(gapS, 0, 0, 0).Gap(gapS).Children(func() {
-				kit.Label(k, a.T("optionsLegacyFilesHelp"), kit.Type(kit.BodyMedium), foreground)
-				mui.Row(k.Context).Wrap().Gap(gapS).GapY(gapS).Children(func() {
-					for _, file := range p.LegacyFiles {
-						kit.Tag(k, kit.TagSpec{Label: file, Icon: "legacyFiles"})
-					}
-				})
-			})
-		},
-	}}
-	if a.model.VfoxConfig.HasValue() {
-		items = append(items, a.configSwitch(k, keyLegacyEnable, "", a.T("configLegacyEnable"), a.T("configLegacyEnableHelp")))
-		if p.LegacyStrategy {
-			items = append(items, a.configChoice(k, keyLegacyStrategy, a.T("configLegacyStrategy"), []kit.Choice{
-				{Value: "specified", Label: a.T("strategySpecified")},
-				{Value: "latest_installed", Label: a.T("strategyLatestInstalled")},
-				{Value: "latest_available", Label: a.T("strategyLatestAvailable")},
-			}))
-		} else {
-			items = append(items, kit.ListItemSpec{
-				ID: "legacy-strategy-ignored", Leading: blank(k),
-				TitleWidget: a.longText(k, a.T("optionsLegacyStrategyIgnored", "setting", a.T("configLegacyStrategy")), kit.Type(kit.BodyMedium)),
-			})
-		}
+	if !a.model.VfoxConfig.HasValue() {
+		return
+	}
+	kit.GroupHeader(k, a.T("optionsLegacy"), nil)
+	enable := a.configSwitch(k, keyLegacyEnable, "", a.T("configLegacyEnable"), "")
+	enable.Leading, enable.Wrap = nil, a.itemWraps()
+	enable.SubtitleWidget = func(mui.Color) {
+		mui.Row(k.Context).Wrap().Gap(gapS).GapY(gapS).Margin(gapS, 0, 0, 0).Children(func() {
+			for _, file := range p.LegacyFiles {
+				kit.Tag(k, kit.TagSpec{Label: file})
+			}
+		})
+	}
+	items := []kit.ListItemSpec{enable}
+	if p.LegacyStrategy {
+		strategy := a.configChoice(k, keyLegacyStrategy, a.T("configLegacyStrategy"), []kit.Choice{
+			{Value: "specified", Label: a.T("strategySpecified")},
+			{Value: "latest_installed", Label: a.T("strategyLatestInstalled")},
+			{Value: "latest_available", Label: a.T("strategyLatestAvailable")},
+		})
+		strategy.Leading = nil
+		items = append(items, strategy)
 	}
 	kit.ListGroup(k, items...)
 }
 
 func (a *App) aliasSection(k kit.Ctx, d *detailState) {
-	cs := k.Colors()
 	kit.GroupHeader(k, a.T("aliasTitle"), nil)
 	aliases := d.controller.Aliases
 	switch {
@@ -540,7 +517,6 @@ func (a *App) aliasSection(k kit.Ctx, d *detailState) {
 		}
 		items = append(items, kit.ListItemSpec{
 			ID: "alias:" + alias.Alias, Title: alias.Alias, Subtitle: alias.Target,
-			Leading: icon(k, "alias"),
 			Trailing: func() {
 				kit.Button(k, kit.ButtonSpec{
 					ID: "unset:" + alias.Alias, Kind: kit.TextButton, Label: a.T("aliasUnset"), Danger: true,
@@ -556,13 +532,9 @@ func (a *App) aliasSection(k kit.Ctx, d *detailState) {
 			},
 		})
 	}
-	if len(items) == 0 {
-		items = append(items, kit.ListItemSpec{
-			ID: "alias-empty", Title: a.T("aliasEmpty"), Leading: icon(k, "alias"),
-		})
+	if len(items) > 0 {
+		kit.ListGroup(k, items...)
 	}
-	kit.ListGroup(k, items...)
-	kit.Label(k, a.T("aliasHelp"), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(gapS, 0, 0, gapL)
 	mui.Row(k.Context).Margin(gapM, 0, 0, gapL).Children(func() {
 		kit.Button(k, kit.ButtonSpec{
 			ID: "alias-set", Kind: kit.TonalButton, Icon: "add", Label: a.T("aliasSet"),
@@ -616,12 +588,12 @@ func (a *App) askAliasSetFor(d *detailState, initialVersion string) {
 			Icon: "alias", Title: a.T("aliasDialogTitle", "name", d.name), MaxWidth: 560,
 			Content: func() {
 				kit.TextField(k, kit.TextFieldSpec{
-					ID: "alias", Label: a.T("aliasField"), Helper: a.T("aliasHelp"), Error: aliasProblem,
+					ID: "alias", Label: a.T("aliasField"), Hint: a.T("aliasHint"), Error: aliasProblem,
 					AutoFocus: true, Text: &alias, Monospace: true, OnSubmit: func(string) { submit() },
 					OnChange: func(string) { aliasProblem = "" },
 				})
 				kit.TextField(k, kit.TextFieldSpec{
-					ID: "version", Label: a.T("linkVersionField"), Helper: a.T("linkVersionHelp"), Error: versionProblem,
+					ID: "version", Label: a.T("linkVersionField"), Hint: a.T("linkVersionHint"), Error: versionProblem,
 					Text: &version, Monospace: true, OnSubmit: func(string) { submit() },
 					OnChange: func(string) { versionProblem = "" },
 				}).Margin(gapM, 0, 0, 0)
@@ -638,29 +610,6 @@ func (a *App) askAliasSetFor(d *detailState, initialVersion string) {
 	})
 }
 
-func (a *App) shorthandsSection(k kit.Ctx, d *detailState, p profile.Profile) {
-	if len(p.Shorthands) == 0 {
-		return
-	}
-	cs := k.Colors()
-	kit.GroupHeader(k, a.T("optionsShorthands"), nil)
-	kit.Label(k, a.T("optionsShorthandsHelp", "name", d.name), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(0, 0, gapM, gapL)
-	var items []kit.ListItemSpec
-	for _, shorthand := range p.Shorthands {
-		items = append(items, kit.ListItemSpec{
-			ID: "shorthand:" + shorthand.Name, Leading: icon(k, "terminal"), Wrap: a.itemWraps(),
-			Title: shorthand.Name, Subtitle: a.text(shorthand.Meaning), SubtitleLines: 2,
-			Trailing: func() {
-				kit.Button(k, kit.ButtonSpec{
-					ID: "try:" + shorthand.Name, Kind: kit.TonalButton, Icon: "install", Label: a.T("optionsShorthandTry"),
-					OnClick: func() { a.askInstallName(d.name, p, true, shorthand.Name) },
-				})
-			},
-		})
-	}
-	kit.ListGroup(k, items...)
-}
-
 func (a *App) tipsSection(k kit.Ctx, p profile.Profile) {
 	if len(p.Tips) == 0 {
 		return
@@ -669,7 +618,7 @@ func (a *App) tipsSection(k kit.Ctx, p profile.Profile) {
 	var items []kit.ListItemSpec
 	for i, tip := range p.Tips {
 		items = append(items, kit.ListItemSpec{
-			ID: fmt.Sprintf("tip:%d", i), Leading: icon(k, "info"),
+			ID:          fmt.Sprintf("tip:%d", i),
 			TitleWidget: a.longText(k, a.text(tip), kit.Type(kit.BodyMedium)),
 		})
 	}
@@ -686,7 +635,7 @@ func (a *App) docsSection(k kit.Ctx, p profile.Profile) {
 	for _, link := range p.Docs {
 		address := a.text(link.URL)
 		items = append(items, kit.ListItemSpec{
-			ID: "doc:" + link.URL.EN, Leading: icon(k, "docs"), Title: a.text(link.Title),
+			ID: "doc:" + link.URL.EN, Title: a.text(link.Title),
 			Trailing: func() { kit.Icon(k, "openInNew", 24, cs.OnSurfaceVariant, 0) },
 			OnClick:  func() { a.openURL(address) },
 		})

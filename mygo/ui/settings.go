@@ -380,7 +380,7 @@ func (a *App) configSection(k kit.Ctx) {
 			a.configText(k, keyStorage, a.T("configStorage"), "storage", "", a.T("configStorageHint"), true),
 		).Margin(0, 0, gapL, 0)
 		kit.ListGroup(k,
-			a.configSwitch(k, keyLegacyEnable, "legacyFiles", a.T("configLegacyEnable"), a.T("configLegacyEnableHelp")),
+			a.configSwitch(k, keyLegacyEnable, "legacyFiles", a.T("configLegacyEnable"), ""),
 			a.configChoice(k, keyLegacyStrategy, a.T("configLegacyStrategy"), []kit.Choice{
 				{Value: "specified", Label: a.T("strategySpecified")},
 				{Value: "latest_installed", Label: a.T("strategyLatestInstalled")},

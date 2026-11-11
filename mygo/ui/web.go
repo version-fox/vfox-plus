@@ -105,7 +105,7 @@ func (a *App) switchItem(k kit.Ctx, id, title, subtitle, iconName string, on, en
 }
 
 func (a *App) webInterfaceItem(k kit.Ctx, current settings.AppSettings, status pair.Status) kit.ListItemSpec {
-	subtitle := a.T("settingsWebInterfaceHelp")
+	subtitle := ""
 	switch {
 	case status.Error != "":
 		subtitle = a.T("webCannotServe", "reason", status.Error)
@@ -120,7 +120,7 @@ func (a *App) webInterfaceItem(k kit.Ctx, current settings.AppSettings, status p
 // link that pairs it.
 func (a *App) webOpenItem(k kit.Ctx) kit.ListItemSpec {
 	return kit.ListItemSpec{
-		ID: "web-open", Title: a.T("webOpen"), Subtitle: a.T("webOpenHelp"), Leading: icon(k, "openInNew"), Wrap: a.wideSettingsWrap(k),
+		ID: "web-open", Title: a.T("webOpen"), Leading: icon(k, "openInNew"), Wrap: a.wideSettingsWrap(k),
 		Trailing: func() {
 			mui.Row(k.Context).Gap(gapXS).Children(func() {
 				kit.IconButton(k, kit.IconButtonSpec{ID: "web-copy", Icon: "copy", Tooltip: a.T("webCopyLink"), OnClick: a.copyWebLink})

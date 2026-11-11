@@ -67,7 +67,7 @@ func (a *App) pluginsPage(k kit.Ctx) {
 		}
 
 		header := func() {
-			kit.PageHeader(k, a.T("pluginsTitle"), a.T("pluginsSubtitle"), nil,
+			kit.PageHeader(k, a.T("pluginsTitle"), "", nil,
 				func() {
 					if a.model.Tasks.ActiveTask(vfox.OperationUpdateAllPlugins, "", "") != nil {
 						kit.LoadingIndicator(k, kit.LoadingSpec{ID: "updating-all", Size: 40})

@@ -41,7 +41,7 @@ func (a *App) tasksPage(k kit.Ctx) {
 		if len(tasks) == 0 {
 			headerAndBody(k, header, func() {
 				kit.StatusMessage(k, kit.StatusSpec{
-					Icon: "tasks", Shape: shapes.ShapeSunny, Title: a.T("tasksEmptyTitle"), Body: a.T("tasksEmptyBody"),
+					Icon: "tasks", Shape: shapes.ShapeSunny, Title: a.T("tasksEmptyTitle"),
 				})
 			})
 			return
