@@ -44,17 +44,9 @@
   "@actionOpenHomepage": {
     "description": "Opens the homepage of a plugin in the web browser."
   },
-  "actionShowDetails": "Details",
-  "@actionShowDetails": {
-    "description": "Shows more information about an error."
-  },
   "loading": "Loading…",
   "@loading": {
     "description": "Accessibility label of loading indicators."
-  },
-  "errorTitle": "Something went wrong",
-  "@errorTitle": {
-    "description": "Title of an error message without more specific information."
   },
   "navHome": "Home",
   "@navHome": {
@@ -265,10 +257,6 @@
   "sdkBrowseVersions": "Browse versions",
   "@sdkBrowseVersions": {
     "description": "Switches to the available versions."
-  },
-  "sdkInfoError": "Could not read the plugin information.",
-  "@sdkInfoError": {
-    "description": "Shown when vfox info fails."
   },
   "versionInUse": "In use",
   "@versionInUse": {
@@ -815,10 +803,6 @@
   "settingsSystemColor": "Use the desktop accent color",
   "@settingsSystemColor": {
     "description": "Derive the colors from the accent color of the desktop."
-  },
-  "settingsSystemColorUnavailable": "No desktop accent color: the one below is used.",
-  "@settingsSystemColorUnavailable": {
-    "description": "Shown when no desktop accent color is available."
   },
   "settingsColorOption": "Accent color {index}",
   "@settingsColorOption": {
@@ -1373,10 +1357,6 @@
   },
   "linkVersionHint": "17-system",
   "@linkVersionHint": { "description": "Example of the name that a linked version is listed under, shown in the empty field." },
-  "linkVersionHelp": "The name vfox lists it under, such as 17-system.",
-  "@linkVersionHelp": {
-    "description": "Help of the field of the name of a version."
-  },
   "linkForce": "Repoint an already linked version",
   "@linkForce": {
     "description": "Switch of the dialog that links an SDK: point a version that is already linked to the new directory (vfox link --force)."
