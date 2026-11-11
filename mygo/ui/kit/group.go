@@ -74,6 +74,7 @@ func connectedButton(c Ctx, s Segment, selected, first, last bool, g ButtonGroup
 		id: s.Value, role: RoleButton, name: s.Label, tooltip: s.Tooltip, selected: selected, disabled: inert,
 		onClick: func() { g.OnSelect(s.Value) },
 	})
+	node.Choice = true
 	motion := c.Env.Theme.Motion.FastSpatial.Anim()
 	selection := el.AnimateTo("selection", Flag(selected), motion)
 	pressed := el.AnimateTo("shape", Flag(in.pressed), motion)

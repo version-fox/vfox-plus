@@ -47,6 +47,7 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 	el, in, node := press(c, pressSpec{
 		id: s.ID, role: RoleButton, name: s.Label, selected: s.Selected, disabled: s.Disabled, onClick: s.OnClick,
 	})
+	node.Choice = true
 	motion := c.Env.Theme.Motion.FastSpatial.Anim()
 	selection := el.AnimateTo("selection", Flag(s.Selected), motion)
 	pressed := el.AnimateTo("shape", Flag(in.pressed), motion)

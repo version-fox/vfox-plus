@@ -30,12 +30,13 @@ const (
 	RoleSwitch    Role = "switch"
 	RoleTextField Role = "textfield"
 	RoleText      Role = "text"
+	RoleIcon      Role = "icon"
 	RoleDialog    Role = "dialog"
 )
 
 // Node is what a frame knows about one widget: where it is, what it is
 // called and what a click on it does. Interactive widgets register one, and,
-// when the registry collects text, every label does, too.
+// when the registry collects text, every label and every icon does, too.
 type Node struct {
 	// Role says what the widget is.
 	Role Role
@@ -43,6 +44,26 @@ type Node struct {
 	Name string
 	// Text is the text that a label shows.
 	Text string
+	// Size is the size in dp of the text of a label (before the text scale of
+	// the user is applied) or of an icon, Weight the weight of the text, Color
+	// the colour that the label or the icon was asked for, as it is before it
+	// is drawn over what is behind it, and Mono says that a label is in the
+	// monospaced font. They tell the census of a screen what it cannot read
+	// from the image.
+	Size   float32
+	Weight int
+	Color  ui.Color
+	Mono   bool
+	// Natural is the width in dp that a text of a single line wants, which is more than its Rect when the text is cut
+	// short with an ellipsis. It is 0 for a text that wraps.
+	Natural float32
+	// Choice says that the widget is one of the alternatives of a group, a
+	// segment of a button group or a filter chip, and not an action of its own.
+	Choice bool
+	// Position is where a list item sits in its list, and Holds the scope of the widgets in it (its title): a
+	// widget is in the row if it has that scope, whatever else is drawn over the row.
+	Position Position
+	Holds    string
 	// Rect is where the widget was drawn last, in dp of the window. It is empty
 	// for a widget that no frame has drawn yet.
 	Rect ui.Rect
@@ -69,7 +90,7 @@ type Node struct {
 
 // Registry collects the nodes of a frame.
 type Registry struct {
-	// CollectText makes labels register, too. Only tests need them.
+	// CollectText makes labels and icons register, too. Only tests need them.
 	CollectText bool
 
 	nodes  []*Node

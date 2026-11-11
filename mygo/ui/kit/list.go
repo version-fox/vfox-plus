@@ -117,6 +117,7 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 		el = ui.Row(c.Context)
 		node = c.Env.Reg.Add(Node{Role: RoleListItem, Name: name, Selected: it.Selected})
 	}
+	node.Position, node.Holds = it.Position, scope
 	active := el.AnimateTo("active", Flag(interactive && (in.hovered || in.pressed) || it.Selected),
 		c.Env.Theme.Motion.FastSpatial.Anim())
 	outer := CornerLargeInc

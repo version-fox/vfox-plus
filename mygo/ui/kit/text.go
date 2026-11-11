@@ -66,7 +66,14 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 		e.Selectable()
 	}
 	if c.Env.Reg.CollectText && s != "" {
-		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s})
+		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono})
+		if o.lines == 1 {
+			span := ui.Span{Text: s, Size: style.Size * scale, Weight: style.Weight}
+			if o.mono {
+				span.Font = MonoFamilies
+			}
+			node.Natural, _ = c.MeasureText(0, span)
+		}
 		e.DrawOver(func(_ *ui.Painter, r ui.Rect) { node.Rect = r })
 	}
 	return e

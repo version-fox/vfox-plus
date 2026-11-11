@@ -133,18 +133,25 @@ func Icon(c Ctx, name string, size float32, col ui.Color, fill float32) ui.Eleme
 	fill = clamp01(fill)
 	// An element is added to the tree where it is made, so the square is only
 	// made when it is the icon.
+	var e ui.Element
 	switch {
 	case outlined == nil:
-		return ui.Box(c.Context).Size(size, size).Shrink(0)
+		e = ui.Box(c.Context).Size(size, size).Shrink(0)
 	case fill < 0.005:
-		return iconSVG(c, outlined, size, col)
+		e = iconSVG(c, outlined, size, col)
 	case fill > 0.995:
-		return iconSVG(c, filled, size, col)
+		e = iconSVG(c, filled, size, col)
+	default:
+		e = ui.Box(c.Context).Size(size, size).Shrink(0).Children(func() {
+			iconSVG(c, outlined, size, col).Opacity(1 - fill)
+			iconSVG(c, filled, size, col).Opacity(fill).Absolute().Top(0).Left(0)
+		})
 	}
-	return ui.Box(c.Context).Size(size, size).Shrink(0).Children(func() {
-		iconSVG(c, outlined, size, col).Opacity(1 - fill)
-		iconSVG(c, filled, size, col).Opacity(fill).Absolute().Top(0).Left(0)
-	})
+	if c.Env.Reg.CollectText {
+		node := c.Env.Reg.Add(Node{Role: RoleIcon, Name: name, Size: size, Color: col})
+		e.DrawOver(func(_ *ui.Painter, r ui.Rect) { node.Rect = r })
+	}
+	return e
 }
 
 func iconSVG(c Ctx, svg *ui.SVG, size float32, col ui.Color) ui.Element {
