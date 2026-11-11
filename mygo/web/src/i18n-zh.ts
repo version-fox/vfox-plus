@@ -21,7 +21,7 @@ export const zh = {
   webRemoteBody: "同一网络中的手机和其他电脑将能用配对链接连接 vfox+。链接一次性有效，连接使用 HTTPS。请只在可信网络中允许。",
   webRemoteOk: "允许",
   webPort: "端口",
-  webPortHelp: "需要在这台电脑的防火墙中放行。",
+  webPortHelp: "需要在防火墙中放行。",
   webFingerprint: "证书指纹，请在另一台设备上核对。",
   webError: "其他设备无法连接：",
   webPairBtn: "配对手机",

@@ -21,7 +21,7 @@ export const en = {
   webRemoteBody: "Phones and other computers on your network will be able to connect to vfox+ with a pairing link. Links work once, and the connection uses HTTPS. Only allow this in a network you trust.",
   webRemoteOk: "Allow",
   webPort: "Port",
-  webPortHelp: "Allow it in the firewall of this computer.",
+  webPortHelp: "Allow it in the firewall.",
   webFingerprint: "Certificate fingerprint. Compare it on the other device.",
   webError: "Other devices cannot connect:",
   webPairBtn: "Pair a phone",
