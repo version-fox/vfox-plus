@@ -40,13 +40,14 @@ const (
 // buttons on a row of their own.
 const narrowHeader = 520
 
+// narrowHeaderWidth and wrapItemWidth are the two widths at the size of the text that the system asks for: text that is
+// larger needs the room to be larger, too.
+func (a *App) narrowHeaderWidth() float32 { return narrowHeader * a.env.Theme.TextScale }
+func (a *App) wrapItemWidth() float32     { return wrapWidth * a.env.Theme.TextScale }
+
 // wrapWidth is the width in dp of a list item below which the buttons at its end
 // move under its text.
 const wrapWidth = 560
-
-// tabIconsWidth is the width in dp of the details from which their tabs have an icon each: three tabs with icons are 370 dp
-// wide, and the margin is 24 dp on each side.
-const tabIconsWidth = 400
 
 // detailState is the state of the details of one plugin.
 type detailState struct {
@@ -142,21 +143,16 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 		installed[version] = true
 	}
 	tabs := func() {
-		tabIcon := func(name string) string {
-			if a.pages.detailWidth < tabIconsWidth {
-				return ""
-			}
-			return name
-		}
 		segments := []kit.Segment{
-			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: tabIcon("versions")},
-			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: tabIcon("install")},
+			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: "versions"},
+			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: "install"},
 		}
 		if _, known := d.controller.EffectiveProfile(); known {
-			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: tabIcon("options")})
+			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: "options"})
 		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
 			ID: "tabs", Selected: d.tab, OnSelect: func(tab string) { a.showTab(d, tab) }, Segments: segments,
+			MaxWidth: a.pages.detailWidth - 2*gapXL,
 		}).AlignSelf(mui.Start).Margin(0, gapXL, gapL, gapXL)
 	}
 	head := []func(){
@@ -271,7 +267,7 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 				kit.TextField(k, kit.TextFieldSpec{
 					ID: "filter", Hint: a.T("availableSearchHint"), LeadingIcon: "search", Dense: true,
 					Value: controller.Query(), OnChange: controller.SetQuery,
-				}).Width(280)
+				}).Width(min(scaled(k, 280), a.pages.detailWidth-2*gapXL))
 				kit.ButtonGroup(k, kit.ButtonGroupSpec{
 					ID: "filters", Selected: string(controller.Filter()),
 					OnSelect: func(value string) { controller.SetFilter(state.VersionFilter(value)) },
@@ -375,7 +371,7 @@ func (a *App) detailHeader(k kit.Ctx, sdk core.InstalledSdk, info core.PluginInf
 	back := func() {
 		kit.IconButton(k, kit.IconButtonSpec{ID: "back", Icon: "back", Tooltip: a.T("actionClose"), OnClick: onBack})
 	}
-	if a.pages.detailWidth < narrowHeader {
+	if a.pages.detailWidth < a.narrowHeaderWidth() {
 		// Narrow panes put the buttons on their own row above the name.
 		mui.Column(k.Context).Padding(gapXL, gapL, gapXL, gapL).Gap(gapS).Children(func() {
 			mui.Row(k.Context).Children(func() {
@@ -420,7 +416,7 @@ func (a *App) confirmRemovePlugin(sdk core.InstalledSdk) {
 
 // itemWraps tells whether the buttons at the end of the items of the details
 // move under their text.
-func (a *App) itemWraps() bool { return a.pages.detailWidth-2*gapXL < wrapWidth }
+func (a *App) itemWraps() bool { return a.pages.detailWidth-2*gapXL < a.wrapItemWidth() }
 
 // installedVersionRow is an installed version, with the buttons that use it,
 // copy its path, reinstall it, name an alias for it and uninstall it.

@@ -48,6 +48,8 @@ type censusWindow struct {
 	name          string
 	width, height int
 	dark          bool
+	// scale is the text scale of the system that the window is drawn with; 0 is 1.
+	scale float32
 }
 
 var (
@@ -57,6 +59,10 @@ var (
 	censusMedium  = censusWindow{name: "medium", width: 700, height: 1800}
 	censusCompact = censusWindow{name: "compact", width: 412, height: 2400}
 	censusNarrow  = censusWindow{name: "narrow", width: 360, height: 2400}
+	// The text that the system makes larger: 130 % in a window of 412 dp, and 200 % in the widest. A window below 412 dp
+	// holds at the size of 100 % only, and so does one of 412 dp at 150 % and more: docs/en/dev/design-system.md#budgets.
+	censusLarge = censusWindow{name: "compact-130", width: 412, height: 2400, scale: 1.3}
+	censusHuge  = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
 )
 
 // censusScene is a screen that the census takes.
@@ -74,7 +80,7 @@ func (s censusScene) in() []censusWindow {
 	if s.windows != nil {
 		return s.windows
 	}
-	return []censusWindow{censusWide, censusDark, censusMedium, censusCompact, censusNarrow}
+	return []censusWindow{censusWide, censusDark, censusMedium, censusCompact, censusNarrow, censusLarge, censusHuge}
 }
 
 // optionsOf opens the options of a plugin, with the configuration of vfox that its version files need.
@@ -149,6 +155,9 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 		preferences.Theme = settings.ThemeDark
 	}
 	ta := newTestApp(t, runner, window.width, window.height, settings.NewMemorySettingsStore(preferences))
+	if window.scale > 0 {
+		ta.tester.SetPreferences(mui.Preferences{ReduceMotion: true, TextScale: window.scale})
+	}
 	if scene.missing {
 		ta.app.model.Start()
 		ta.until("vfox to be missing", func() bool { return ta.app.model.Vfox.Availability() == state.VfoxNotFound })

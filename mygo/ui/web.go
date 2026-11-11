@@ -209,7 +209,7 @@ func (a *App) portItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "web-port.field", Hint: itoa(settings.DefaultWebPort), Text: &a.pages.portText, Dense: true,
 				OnSubmit: save, OnBlur: save,
-			}).Width(120)
+			}).Width(scaled(k, 120))
 		},
 	}
 }
@@ -238,7 +238,7 @@ func (a *App) publicAddressItem(k kit.Ctx, current settings.AppSettings) kit.Lis
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "web-public-address.field", Hint: "https://vfox.example.com", Text: &a.pages.publicAddressText,
 				Dense: true, OnSubmit: save, OnBlur: save,
-			}).Width(min(260, a.settingsContentWidth(k)))
+			}).Width(min(scaled(k, 260), a.settingsContentWidth(k)))
 		},
 	}
 }
@@ -375,11 +375,15 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 			mui.Column(k.Context).Children(func() {
 				kit.Label(k, kind, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 				kit.Label(k, a.T("webFingerprint"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
-				perLine := 16
-				if a.wideSettingsWrap(k) {
-					perLine = fingerprintBytesPerLine(a.settingsContentWidth(k))
+				// Beside the buttons, the lines have what they leave.
+				room := a.settingsContentWidth(k)
+				if !a.wideSettingsWrap(k) {
+					room -= kit.ButtonWidth(k, kit.ButtonSpec{Label: a.T("actionBrowse")}) + gapL
+					if custom {
+						room -= 48 + gapXS
+					}
 				}
-				for _, line := range fingerprintLines(status.Fingerprint, perLine) {
+				for _, line := range fingerprintLines(status.Fingerprint, fingerprintBytesPerLine(k, room)) {
 					kit.Label(k, line, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace())
 				}
 			})
@@ -397,10 +401,16 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 	}
 }
 
-// fingerprintBytesPerLine is how many bytes of a fingerprint a line of width dp holds, in the monospaced font of 12 dp: a byte
-// is two characters and a colon, and a character is about 7.5 dp wide.
-func fingerprintBytesPerLine(width float32) int {
-	return max(4, min(16, int((width/7.5+1)/3)))
+// fingerprintBytesPerLine is how many bytes of a fingerprint a line holds in a width of dp, at most sixteen, which is two
+// lines for a SHA-256 fingerprint. A byte is two characters of the monospaced font and a colon; the width of a character
+// is measured, so that the lines follow the text scale.
+func fingerprintBytesPerLine(k kit.Ctx, width float32) int {
+	style := kit.Type(kit.BodySmall)
+	character, _ := k.MeasureText(0, mui.Span{Text: "0", Size: style.Size * k.Env.Theme.TextScale, Weight: style.Weight, Font: kit.MonoFamilies})
+	if character <= 0 {
+		return 16
+	}
+	return max(4, min(16, int((width/character+1)/3)))
 }
 
 // fingerprintLines breaks a fingerprint, the bytes of it in hexadecimal and separated by

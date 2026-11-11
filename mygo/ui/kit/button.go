@@ -58,6 +58,11 @@ type ButtonSpec struct {
 const (
 	buttonHeight = 40
 	buttonIcon   = 20
+	// buttonPadding is the padding in dp at each side of the content of a button; buttonGap the space between its icon
+	// and its label, and buttonMinWidth the least that it is wide.
+	buttonPadding  = 16
+	buttonGap      = 8
+	buttonMinWidth = 48
 )
 
 // colors are the colours of a style: container, content and border.
@@ -90,6 +95,18 @@ func (b ButtonSpec) colors(cs *Palette) (container, content, border ui.Color) {
 	return container, content, border
 }
 
+// ButtonWidth is the width in dp of a button that has the room for its label, as it is measured now: it follows the
+// language, the font and the text scale.
+func ButtonWidth(c Ctx, b ButtonSpec) float32 {
+	style := Type(LabelLarge)
+	text, _ := c.MeasureText(0, ui.Span{Text: b.Label, Size: style.Size * c.Env.Theme.TextScale, Weight: style.Weight})
+	width := 2*buttonPadding + text
+	if b.Icon != "" {
+		width += buttonIcon + buttonGap
+	}
+	return max(width, buttonMinWidth)
+}
+
 // Button is a Material 3 Expressive button: round at rest, and squarer while it
 // is pressed (docs/en/dev/design-system.md#shape-morphing-on-interaction).
 func Button(c Ctx, b ButtonSpec) ui.Element {
@@ -99,7 +116,7 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 	})
 	pressed := el.AnimateTo("shape", Flag(in.pressed), c.Env.Theme.Motion.FastSpatial.Anim())
 	radius := Lerp(buttonHeight/2, CornerSmall, pressed)
-	el.Height(buttonHeight).MinWidth(48).PaddingX(16).Gap(8).Radius(radius).Background(container).TextColor(content)
+	el.Height(buttonHeight).MinWidth(buttonMinWidth).PaddingX(buttonPadding).Gap(buttonGap).Radius(radius).Background(container).TextColor(content)
 	if border.A != 0 {
 		el.Border(1, border)
 	}

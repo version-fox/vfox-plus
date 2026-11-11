@@ -42,6 +42,53 @@ type ButtonGroupSpec struct {
 	OnSelect func(value string)
 	// Expand makes the group as wide as its space, its buttons sharing it.
 	Expand bool
+	// MaxWidth is the width in dp that the group has, or 0 for as much as it wants. A group that is wider than that
+	// gives up what it can do without, the least visible first: 4 dp of the padding at each side of a segment (12 dp is
+	// what Material 3 has), then the icons, and then 4 dp and 8 dp more. It measures the labels to know, so the fit
+	// follows the language, the font and the text scale, and the page need not know how wide a group is.
+	MaxWidth float32
+}
+
+// segmentFit is how the segments of a group are drawn: with their icons or without, and with so much padding at each
+// side.
+type segmentFit struct {
+	icons   bool
+	padding float32
+}
+
+// segmentFits are what a group gives up to fit, from what it has at its best to the least that it can be: each is
+// narrower than the one before.
+var segmentFits = [...]segmentFit{
+	{icons: true, padding: 16}, {icons: true, padding: 12}, {padding: 16}, {padding: 12}, {padding: 8},
+}
+
+// segmentGap is the space in dp between two segments.
+const segmentGap = 2
+
+// fit picks the first of the segmentFits in which the group is not wider than MaxWidth, or the last one when none is.
+func (g ButtonGroupSpec) fit(c Ctx) segmentFit {
+	if g.MaxWidth <= 0 || g.Expand || len(g.Segments) == 0 {
+		return segmentFits[0]
+	}
+	style := Type(LabelLarge)
+	labels := make([]float32, len(g.Segments))
+	for i, s := range g.Segments {
+		labels[i], _ = c.MeasureText(0, ui.Span{Text: s.Label, Size: style.Size * c.Env.Theme.TextScale, Weight: style.Weight})
+	}
+	for _, fit := range segmentFits {
+		width := float32(segmentGap * (len(g.Segments) - 1))
+		for i, s := range g.Segments {
+			inner := labels[i]
+			if fit.icons && s.Icon != "" {
+				inner += buttonIcon + segmentIconGap
+			}
+			width += max(segmentMinWidth, 2*fit.padding+inner)
+		}
+		if width <= g.MaxWidth {
+			return fit
+		}
+	}
+	return segmentFits[len(segmentFits)-1]
 }
 
 // ButtonGroup is a connected button group with a single selection
@@ -52,15 +99,22 @@ func ButtonGroup(c Ctx, g ButtonGroupSpec) ui.Element {
 	if hasKey(g.ID) {
 		c.Key(g.ID)
 	}
-	row := ui.Row(c.Context).Gap(2).FocusGroup(ui.Horizontal)
+	fit := g.fit(c)
+	row := ui.Row(c.Context).Gap(segmentGap).FocusGroup(ui.Horizontal)
 	return row.Children(func() {
 		for i, segment := range g.Segments {
-			connectedButton(c, segment, segment.Value == g.Selected, i == 0, i == len(g.Segments)-1, g)
+			connectedButton(c, segment, segment.Value == g.Selected, i == 0, i == len(g.Segments)-1, g, fit)
 		}
 	})
 }
 
-func connectedButton(c Ctx, s Segment, selected, first, last bool, g ButtonGroupSpec) {
+// The size of a segment: the least that it is wide, and the space between its icon and its label.
+const (
+	segmentMinWidth = 48
+	segmentIconGap  = 8
+)
+
+func connectedButton(c Ctx, s Segment, selected, first, last bool, g ButtonGroupSpec, fit segmentFit) {
 	cs := c.Colors()
 	container, content := cs.SecondaryContainer, cs.OnSecondaryContainer
 	if selected {
@@ -88,14 +142,14 @@ func connectedButton(c Ctx, s Segment, selected, first, last bool, g ButtonGroup
 		right = full
 	}
 	radii := Radii{left, right, right, left}
-	el.Height(buttonHeight).MinWidth(48).PaddingX(16).Gap(8).Background(container).TextColor(content)
+	el.Height(buttonHeight).MinWidth(segmentMinWidth).PaddingX(fit.padding).Gap(segmentIconGap).Background(container).TextColor(content)
 	radii.Apply(el)
 	if g.Expand {
 		el.Grow(1).Basis(0)
 	}
 	paintPress(c, el, node, radii, stateLayer(c, el, in), content, in.keyboard)
 	el.Children(func() {
-		if s.Icon != "" {
+		if fit.icons && s.Icon != "" {
 			Icon(c, s.Icon, buttonIcon, content, 0)
 		}
 		Line(c, s.Label, Type(LabelLarge), content).Shrink(1)

@@ -80,6 +80,19 @@ type ListItemSpec struct {
 	Name string
 }
 
+// sidePadding is the padding in dp at the left and at the right of an item, from a padding as CSS takes it: top, right,
+// bottom and left, or the first two, or the first three, or the first alone.
+func sidePadding(pad []float32) (left, right float32) {
+	switch len(pad) {
+	case 1:
+		return pad[0], pad[0]
+	case 4:
+		return pad[3], pad[1]
+	default:
+		return pad[1], pad[1]
+	}
+}
+
 // ListItem is an item of a segmented list.
 func ListItem(c Ctx, it ListItemSpec) ui.Element {
 	cs := c.Colors()
@@ -134,6 +147,7 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 	if len(pad) == 0 {
 		pad = []float32{12, 16}
 	}
+	node.PadLeft, node.PadRight = sidePadding(pad)
 	el.Padding(pad...).Gap(16).Background(background).TextColor(foreground)
 	radii.Apply(el)
 	var layer float32

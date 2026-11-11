@@ -64,6 +64,9 @@ type Census struct {
 	// says what.
 	Overflow    bool     `json:"overflow"`
 	Overflowing []string `json:"overflowing"`
+	// Sticking are the controls that a row of a list holds and that are drawn beyond its padding, which a row wide
+	// enough for them does not do: they are nearer the edge of the row than anything else in it.
+	Sticking []string `json:"sticking"`
 	// Cut are the titles (22 dp and more) and the texts of controls that do not fit where they are and end with an
 	// ellipsis. A name or a path that is data, in a line of its own, may be cut short, and is not counted.
 	Cut []string `json:"cut"`
@@ -126,7 +129,7 @@ func proseWords(text string) int { return CountWords(dataToken.ReplaceAllString(
 // of its own screen. A node that no frame has drawn, or that lies outside the window (scrolled away), is not on
 // the screen. The image may be nil, and then the contrast is not measured.
 func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
-	census := Census{OffScale: map[string]int{}, Wallpaper: []string{}, MissingIcons: []string{}, Cut: []string{}}
+	census := Census{OffScale: map[string]int{}, Wallpaper: []string{}, MissingIcons: []string{}, Cut: []string{}, Sticking: []string{}}
 	modal := false
 	for _, n := range nodes {
 		modal = modal || n.Modal
@@ -224,6 +227,12 @@ func (c *Census) rows(shown []*Node) {
 			c.RowsWithTwoActions++
 			c.TwoActionRows = append(c.TwoActionRows, truncate(row.Name, 40))
 		}
+		for _, n := range shown {
+			if controls[n.Role] && startsInRow(n, row) && (n.Rect.X < row.Rect.X+row.PadLeft-0.5 || n.Rect.X+n.Rect.W > row.Rect.X+row.Rect.W-row.PadRight+0.5) {
+				c.Sticking = append(c.Sticking, fmt.Sprintf("%s %q at %.0f to %.0f in the row %q, whose inside is %.0f to %.0f", n.Role, truncate(n.Name, 30), n.Rect.X, n.Rect.X+n.Rect.W,
+					truncate(row.Name, 30), row.Rect.X+row.PadLeft, row.Rect.X+row.Rect.W-row.PadRight))
+			}
+		}
 		// A list runs from its first item to its last; the items of the registry are in the order they were built.
 		switch row.Position {
 		case PosSingle:
@@ -262,6 +271,14 @@ func (c *Census) rows(shown []*Node) {
 // heldBy reports whether the widget is in the row: it is drawn inside it and was built in it, which tells it from a bar
 // that is drawn over the last row of a page.
 func heldBy(n, row *Node) bool { return n.Inside(row) && (row.Holds == "" || n.Scope == row.Holds) }
+
+// startsInRow reports whether the widget was built in the row and starts inside it, in the band of the row: it may end
+// beyond the row, which is what a widget that is too wide for it does.
+func startsInRow(n, row *Node) bool {
+	return (row.Holds == "" || n.Scope == row.Holds) && n.Visible() &&
+		n.Rect.Y >= row.Rect.Y-0.5 && n.Rect.Y+n.Rect.H <= row.Rect.Y+row.Rect.H+0.5 &&
+		n.Rect.X >= row.Rect.X-0.5 && n.Rect.X < row.Rect.X+row.Rect.W
+}
 
 // leading is the icon that a row starts with, or "" for a row that starts with something else (an avatar, a text).
 func leading(row *Node, shown []*Node) string {
@@ -372,6 +389,9 @@ func (c Census) Over() []string {
 	}
 	if c.Helpers > 3 {
 		add("%d small lines of four words or more (at most 3): %q", c.Helpers, c.SmallLines)
+	}
+	if len(c.Sticking) > 0 {
+		add("%d controls drawn beyond the padding of their row: %q", len(c.Sticking), c.Sticking)
 	}
 	if len(c.Cut) > 0 {
 		add("%d texts that do not fit and are cut: %q", len(c.Cut), c.Cut)

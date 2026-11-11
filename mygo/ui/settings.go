@@ -103,12 +103,6 @@ func blank(k kit.Ctx) func(mui.Color) {
 
 func (a *App) appearanceSection(k kit.Ctx) {
 	current := a.model.Settings.Settings()
-	themeIcon := func(name string) string {
-		if a.settingsContentWidth(k) < themeIconsWidth {
-			return ""
-		}
-		return name
-	}
 	items := []kit.ListItemSpec{
 		{
 			ID: "theme", Title: a.T("settingsTheme"), Leading: icon(k, "darkMode"), Wrap: a.wideSettingsWrap(k),
@@ -119,10 +113,11 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						a.updateSettings(func(s *settings.AppSettings) { s.Theme = settings.ThemePreference(value) })
 					},
 					Segments: []kit.Segment{
-						{Value: string(settings.ThemeSystem), Label: a.T("themeSystem"), Icon: themeIcon("systemMode")},
-						{Value: string(settings.ThemeLight), Label: a.T("themeLight"), Icon: themeIcon("lightMode")},
-						{Value: string(settings.ThemeDark), Label: a.T("themeDark"), Icon: themeIcon("darkMode")},
+						{Value: string(settings.ThemeSystem), Label: a.T("themeSystem"), Icon: "systemMode"},
+						{Value: string(settings.ThemeLight), Label: a.T("themeLight"), Icon: "lightMode"},
+						{Value: string(settings.ThemeDark), Label: a.T("themeDark"), Icon: "darkMode"},
 					},
+					MaxWidth: a.settingsContentWidth(k),
 				})
 			},
 		},
@@ -168,6 +163,7 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						{Value: string(settings.LanguageEnglish), Label: "English"},
 						{Value: string(settings.LanguageSimplifiedChinese), Label: "简体中文"},
 					},
+					MaxWidth: a.settingsContentWidth(k),
 				})
 			},
 		},
@@ -176,25 +172,30 @@ func (a *App) appearanceSection(k kit.Ctx) {
 	kit.ListGroup(k, items...)
 }
 
-// settingsContentWidth is the width in dp that what is under the text of an item of the settings can have: the page less
-// the space around it, the padding of the item and the icon that it starts with.
+// scaled is a width in dp that follows the text scale of the system: what holds text is as wide as the text that it
+// holds.
+func scaled(k kit.Ctx, width float32) float32 { return width * k.Env.Theme.TextScale }
+
+// settingsPageWidth is the width in dp of the content of the settings, at most 840, and settingsItemWidth the width of an
+// item in it: the content less the space around the items.
+func (a *App) settingsPageWidth(k kit.Ctx) float32 { return min(a.pageWidth(k), 840) }
+func (a *App) settingsItemWidth(k kit.Ctx) float32 { return a.settingsPageWidth(k) - 2*gapXL }
+
+// settingsContentWidth is the width in dp that what is under the text of an item of the settings can have: the item less
+// its padding and the icon that it starts with.
 func (a *App) settingsContentWidth(k kit.Ctx) float32 {
-	return min(a.pageWidth(k)-2*gapXL, 840) - 2*gapL - 40
+	return a.settingsItemWidth(k) - 2*gapL - 40
 }
 
 // environmentWidth is the width in dp of the field of the environment variables and of what is above and under it: the
 // example in it, of 53 characters, is in one line.
 const environmentWidth = 480
 
-// themeIconsWidth is the width in dp from which the segments of the theme have an icon each: with them the three are
-// 294 dp wide.
-const themeIconsWidth = 300
-
 // wideSettingsWrap tells whether the buttons at the end of the items of the
-// settings move under their text: the items are as wide as the page less the
-// space around them, at most 840 dp.
+// settings move under their text: the items are as wide as the content of the
+// page less the space around them, and the content is 840 dp at most.
 func (a *App) wideSettingsWrap(k kit.Ctx) bool {
-	return min(a.pageWidth(k)-2*gapXL, 840) < wrapWidth
+	return a.settingsItemWidth(k) < a.wrapItemWidth()
 }
 
 // environmentInitial is the text the environment field starts with.
@@ -247,7 +248,7 @@ func (a *App) vfoxSection(k kit.Ctx) {
 			SubtitleWidget: func(mui.Color) {
 				// The field has a width of its own: it was as wide as the line of help above it, and got narrower when the
 				// line did.
-				mui.Column(k.Context).Width(min(environmentWidth, a.settingsContentWidth(k))).Margin(gapS, 0, 0, 0).Children(func() {
+				mui.Column(k.Context).Width(min(scaled(k, environmentWidth), a.settingsContentWidth(k))).Margin(gapS, 0, 0, 0).Children(func() {
 					kit.Label(k, a.T("settingsEnvironmentHelp"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 					kit.TextField(k, kit.TextFieldSpec{
 						ID: "environment", Text: &a.pages.environmentText, Lines: 3, MaxLines: 8, Monospace: true,
@@ -298,7 +299,7 @@ func (a *App) updateSection(k kit.Ctx) {
 				ID: "update-mirror-field", Hint: "https://gh-proxy.org/", Text: &a.pages.updateMirrorText,
 				Monospace: true, OnSubmit: func(text string) { a.saveUpdateMirror(text) },
 				OnBlur: func(text string) { a.pages.updateMirrorText = text },
-			}).Width(min(300, a.settingsContentWidth(k)))
+			}).Width(min(scaled(k, 300), a.settingsContentWidth(k)))
 		},
 	})
 	kit.GroupHeader(k, a.T("updateTitle"), nil)
@@ -571,7 +572,7 @@ func (a *App) configText(k kit.Ctx, key, title, iconName, help, hint string, pic
 						}})
 					}
 				},
-			}).Width(min(300, a.settingsContentWidth(k)))
+			}).Width(min(scaled(k, 300), a.settingsContentWidth(k)))
 		},
 	}
 }

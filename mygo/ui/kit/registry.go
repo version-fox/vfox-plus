@@ -64,6 +64,9 @@ type Node struct {
 	// widget is in the row if it has that scope, whatever else is drawn over the row.
 	Position Position
 	Holds    string
+	// PadLeft and PadRight are the padding in dp at the sides of a row of a list: what the row holds is meant to be
+	// inside it.
+	PadLeft, PadRight float32
 	// Rect is where the widget was drawn last, in dp of the window. It is empty
 	// for a widget that no frame has drawn yet.
 	Rect ui.Rect

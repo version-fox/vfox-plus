@@ -265,6 +265,37 @@ func TestTheCensusFindsATitleOrAControlThatIsCutShort(t *testing.T) {
 	}
 }
 
+func TestTheCensusFindsAControlThatIsDrawnBeyondThePaddingOfItsRow(t *testing.T) {
+	// A window of 360 dp: the row is 312 dp wide, from 24, its padding is 16 dp, and under the title, which starts at 80
+	// after the icon, 240 dp are left up to the padding.
+	census := func(width float32) Census {
+		h := newTested(t, 360, 300, func(c Ctx) {
+			Column(c).Background(c.Colors().Surface).Padding(24).Children(func() {
+				ListGroup(c, ListItemSpec{
+					ID: "item", Title: "Item", Wrap: true,
+					Leading: func(col ui.Color) { Icon(c, "check", 24, col, 0) },
+					Trailing: func() {
+						Button(c, ButtonSpec{ID: "wide", Label: "A button", Kind: TonalButton}).Width(width).Shrink(0)
+					},
+				})
+			})
+		})
+		h.tester.Frame()
+		h.tester.Advance(time.Second)
+		return TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 360, 300), nil)
+	}
+	if got := census(240); len(got.Sticking) != 0 || got.Overflow {
+		t.Errorf("a button that fills what is left is inside the padding: %q", got.Sticking)
+	}
+	if got := census(248); len(got.Sticking) != 1 || !strings.Contains(got.Sticking[0], "A button") || got.Overflow {
+		t.Errorf("a button that is 8 dp too wide is in the padding: %q", got.Sticking)
+	}
+	// Too wide for the row, too: it ends beyond the row and beyond the window.
+	if got := census(330); len(got.Sticking) != 1 || !got.Overflow {
+		t.Errorf("a button across the edge: %q, overflow %v", got.Sticking, got.Overflow)
+	}
+}
+
 func TestTheCensusFindsAnIconThatTheTableDoesNotHave(t *testing.T) {
 	h := newTested(t, 300, 100, func(c Ctx) {
 		Row(c).Padding(16).Gap(8).Children(func() {
