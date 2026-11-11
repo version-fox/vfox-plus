@@ -322,6 +322,50 @@ func TestRunScreenshot(t *testing.T) {
 	}
 }
 
+func TestRunTakesTheCensusOfThePageThatItShoots(t *testing.T) {
+	s := newServer(t, serving)
+	directory := t.TempDir()
+	shot, census := filepath.Join(directory, "plugins.png"), filepath.Join(directory, "census", "plugins.json")
+	got := runTool(t, s, "-screenshot", shot, "-audit", census, "-tab", "plugins", "-dark", "-window", "412,915")
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	data, err := os.ReadFile(census)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found struct {
+		Dark     bool `json:"dark"`
+		Width    int  `json:"width"`
+		Words    int  `json:"words"`
+		Contrast struct {
+			Measured int `json:"measured"`
+		} `json:"contrast"`
+		Targets struct {
+			Total int `json:"total"`
+		} `json:"targets"`
+		Overflow bool `json:"overflow"`
+	}
+	if err := json.Unmarshal(data, &found); err != nil {
+		t.Fatalf("the census is not JSON: %v\n%s", err, data)
+	}
+	// The page that was shot is the one that was counted: dark, with the words and the buttons of the test page. (Its
+	// width is the one of the window of the Chrome that runs the test, which may not be as narrow as a phone.)
+	if !found.Dark || found.Width == 0 || found.Words < 5 || found.Contrast.Measured == 0 || found.Targets.Total < 5 || found.Overflow {
+		t.Errorf("census: %+v\n%s", found, data)
+	}
+}
+
+func TestAnAuditGoesWithAScreenshot(t *testing.T) {
+	base := []string{"-server", "http://127.0.0.1:1", "-pairing", "http://127.0.0.1:1/auth/connect/x", "-output", "memory.txt"}
+	if _, err := parseOptions(append(append([]string{}, base...), "-audit", "census.json")); err == nil {
+		t.Error("a census of a page that is not shot is refused")
+	}
+	if _, err := parseOptions(append(append([]string{}, base...), "-audit", "census.json", "-screenshot", "page.png")); err != nil {
+		t.Errorf("a census with a screenshot is taken: %v", err)
+	}
+}
+
 func TestRunPlaysTheSceneBeforeTheScreenshot(t *testing.T) {
 	s := newServer(t, serving)
 	shot := filepath.Join(t.TempDir(), "options-mirror.png")

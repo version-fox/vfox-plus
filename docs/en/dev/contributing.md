@@ -444,3 +444,21 @@ the documentation. If curl stops with error 56, the connection broke: run it aga
 Every upload gets a new URL, so cached copies of an old image never show. The
 uploader of an anonymous image cannot delete it; upload nothing that must not
 stay public.
+
+### Auditing the interface
+
+`vfxtool webheap` can take the census of the page that it shoots: `-audit census.json`
+next to a `-screenshot` writes, in JSON, what a person reads and what could not be read:
+the words, the sentences of eight words or more and the small lines under a title, the
+texts under the contrast of WCAG AA, the rows of a list that have two buttons with words
+on them, the lists in which three rows start with the same icon, the sizes off the type
+scale, the controls under 24 px and whether the page is wider than its window (the
+expression is `shared/tooling/internal/webheap/audit.js`). The budgets that a screen is
+held to are in [the design system](design-system.md#budgets).
+
+To audit the whole interface, shoot every tab (`-tab`) and every scene (`-scene`) as
+described above, in the two colour schemes (`-dark`), on a phone (`-window 412,915`) and
+in a wide window (`-window 1280,800`), each with its own `-audit` file, and read the files
+together: the totals show where the words are, and a screen over a budget shows where to
+look. Look at the pictures too, side by side on one sheet: the census has no number for a
+layout that is bad in a way that nobody has measured yet.

@@ -104,6 +104,50 @@ version) and card titles.
 
 mygo: `Emph` in `mygo/ui/kit/theme.go`.
 
+## Copy and density
+
+The three interfaces say as little as they can. A text earns its place when it helps a
+person to understand, to judge or to act; what the layout already says is not said again.
+
+- **A label is not explained.** A title and its control say what a row does. A line
+  under it is for what the control cannot say: the value (`Default`), a consequence
+  that a person has to weigh, or a limit that an error would name later. What a
+  setting is, where it is stored and what a mirror is belong in the documentation.
+- **A format is an example in the empty field** (`j17`, `17-system`, `KEY=value`), not
+  a caption under it. The field names the mistake when one is made.
+- **An empty list has no sentence.** It has what fills it: the button that names an
+  alias, or an icon, a title and the action.
+- **A section has a title and no caption, and a page has its title in the bar and no
+  subtitle.**
+- **A consequence is said once**, in the confirmation that asks, and not again in the
+  row that opens it.
+- **A name is explained where it is typed.** The guide of a plugin is in the dialog of
+  the names, not in its options. The notes of a profile are the few sentences that no
+  control says, at most three.
+- **An icon tells rows apart.** Rows that start with the same icon have an icon that
+  says nothing; the rows of a settings list each have their own.
+- **A row has one action.** The others are in its menu: a split button, or the overflow
+  button. The segments of a segmented control are one action.
+- **Sizes are the ones of the type scale** (11, 12, 14, 16, 22, 24, 28, 32, 36, 45 and
+  57 px); the monospace of code, 13 px, is read as a size of its own.
+
+### Budgets
+
+`webheap -audit` takes the census of a screen of the web interface, which the Android app
+shows as well ([how to take it](contributing.md#auditing-the-interface)). A screen is
+held to:
+
+| Census | Budget |
+| ------ | -----: |
+| Texts under the contrast of WCAG AA (4.5:1; 3:1 for large text) | 0 |
+| Page wider than its window | no |
+| Controls under 24 px | 0 |
+| Sizes off the type scale | 0 |
+| Rows of a list with two buttons that have words on them | 0 |
+| Lists in which three rows or more start with the same icon | 0 |
+| Sentences of eight words or more | 3 |
+| Small lines of four words or more | 3 |
+
 ## Motion
 
 Material 3 Expressive replaces durations and easing curves with **springs**.

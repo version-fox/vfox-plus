@@ -30,6 +30,7 @@ package webheap
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -56,7 +57,12 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/chrome"
 )
 
-const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
+const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE [-audit FILE]] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
+
+// auditScript is the census of a screen: what a person reads, and what could not be read.
+//
+//go:embed audit.js
+var auditScript string
 
 var windowSize = regexp.MustCompile(`^([0-9]{2,5}),([0-9]{2,5})$`)
 
@@ -77,6 +83,7 @@ type options struct {
 	pairing    string
 	output     string
 	screenshot string
+	audit      string
 	lang       string
 	tab        string
 	scene      string
@@ -104,6 +111,7 @@ func parseOptions(args []string) (options, error) {
 	flags.StringVar(&o.pairing, "pairing", "", "the one-time pairing `URL` that the server printed")
 	flags.StringVar(&o.output, "output", "", "`file` that gets the two webheap lines")
 	flags.StringVar(&o.screenshot, "screenshot", "", "also write a PNG screenshot of the settled page to this `file`")
+	flags.StringVar(&o.audit, "audit", "", "also write the census of that page, in JSON, to this `file`: the words, the sentences, the contrast, the repeated buttons and icons, the sizes (with a -screenshot)")
 	flags.StringVar(&o.lang, "lang", "", "pin the interface language to `en|zh`")
 	flags.StringVar(&o.tab, "tab", "", "open this page before the screenshot: home, sdks, plugins, tasks or settings")
 	flags.StringVar(&o.scene, "scene", "", "play this scene before the screenshot, which opens a dialog, a tab of a plugin or the connections of the settings: "+strings.Join(sceneNames(), ", "))
@@ -143,6 +151,9 @@ func parseOptions(args []string) (options, error) {
 	}
 	if o.tab != "" && !contains(tabs, o.tab) {
 		return o, fmt.Errorf("bad -tab (want one of %s)", strings.Join(tabs, ", "))
+	}
+	if o.audit != "" && o.screenshot == "" {
+		return o, errors.New("an -audit goes with a -screenshot")
 	}
 	if o.scene != "" {
 		if _, known := scenes[o.scene]; !known {
@@ -187,6 +198,7 @@ func formatLines(heap, settled int64) string {
 //	-idle SECONDS      idle time on the open page before the second reading (default 20)
 //	-timeout SECONDS   time that the whole run may take (default 180)
 //	-screenshot FILE   also write a PNG of the settled page
+//	-audit FILE        and the census of that page, in JSON (audit.js)
 //	-lang en|zh        pin the interface language (default: the browser's)
 //	-window W,H        browser window (default 1280,800)
 //	-tab NAME          open home, sdks, plugins, tasks or settings before the screenshot
@@ -326,6 +338,18 @@ func (s *session) capture(ctx context.Context, o options) error {
 			return err
 		}
 		if err := sleep(ctx, 900*time.Millisecond); err != nil {
+			return err
+		}
+	}
+	if o.audit != "" {
+		census, err := evaluate[string](s, auditScript)
+		if err != nil {
+			return fmt.Errorf("taking the census: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(o.audit), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(o.audit, []byte(census+"\n"), 0o644); err != nil {
 			return err
 		}
 	}

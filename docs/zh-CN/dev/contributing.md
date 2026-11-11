@@ -358,3 +358,16 @@ curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json 
 输出 URL（key 是 freeimage.host 在 [API 页](https://freeimage.host/api) 给所有人的公开
 key），替换文档中的链接。curl 以 56 退出是连接断了：重试。每次上传都有新 URL，
 旧图缓存不会串。匿名图无法删除；不可公开的东西不要传。
+
+### 审查界面
+
+`vfxtool webheap` 可以给它截图的那个页面做普查：`-screenshot` 旁边加 `-audit census.json`，会以 JSON
+写出人读到什么、什么读不到：词数、8 个词以上的句子和标题下的说明小字、对比度低于 WCAG AA 的文字、
+一行里有两个带文字按钮的列表行、三行以同一图标开头的列表、不在字号阶梯上的字号、小于 24 px 的控件，
+以及页面是否比窗口宽（表达式在 `shared/tooling/internal/webheap/audit.js`）。一个屏幕要满足的预算在
+[设计系统](design-system.md#预算)里。
+
+要审查整个界面，就按上文把每个页签（`-tab`）和每个场景（`-scene`）都拍一遍，浅色和深色（`-dark`）、
+手机（`-window 412,915`）和宽窗口（`-window 1280,800`）各一遍，每张带自己的 `-audit` 文件，再把这些文件
+放在一起看：总数显示字都在哪里，超预算的屏幕显示该看哪里。图也要看，并排放在一张图上：有的布局差，
+差在还没有人量过的地方，普查里没有对应的数字。
