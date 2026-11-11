@@ -132,30 +132,6 @@
       }
     }
   },
-  "homeStatPlugins": "{count, plural, =1{Plugin} other{Plugins}}",
-  "@homeStatPlugins": {
-    "description": "Label below the number of installed plugins.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    }
-  },
-  "homeStatVersions": "{count, plural, =1{Installed version} other{Installed versions}}",
-  "@homeStatVersions": {
-    "description": "Label below the number of installed SDK versions.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "7"
-      }
-    }
-  },
-  "homeStatActive": "In use",
-  "@homeStatActive": {
-    "description": "Label below the number of SDKs that have a current version."
-  },
   "homeActiveTitle": "Versions in use",
   "@homeActiveTitle": {
     "description": "Heading of the list of current SDK versions."
@@ -171,22 +147,6 @@
   "homeShellBody": "Add this line to ~/.bashrc so that new shells use the versions chosen here.",
   "@homeShellBody": {
     "description": "Explains how to activate vfox in a shell."
-  },
-  "homeExploreTitle": "Add more SDKs",
-  "@homeExploreTitle": {
-    "description": "Heading of the shortcut to the plugin registry."
-  },
-  "homeExploreBody": "Plugins add Node.js, Java, Python, Go and many more to vfox.",
-  "@homeExploreBody": {
-    "description": "Text of the shortcut to the plugin registry."
-  },
-  "homeDocsTitle": "vfox documentation",
-  "@homeDocsTitle": {
-    "description": "Heading of the shortcut to the vfox documentation."
-  },
-  "homeDocsBody": "Learn about scopes, plugins and configuration files.",
-  "@homeDocsBody": {
-    "description": "Text of the shortcut to the vfox documentation."
   },
   "sdksSearchHint": "Search installed plugins",
   "@sdksSearchHint": {
@@ -233,10 +193,6 @@
         "example": "3"
       }
     }
-  },
-  "sdksSelectPrompt": "Select an SDK.",
-  "@sdksSelectPrompt": {
-    "description": "Placeholder of the detail pane when no SDK is selected."
   },
   "sdksLoadError": "Could not list the installed SDKs.",
   "@sdksLoadError": {
@@ -438,6 +394,8 @@
   "@availableInstallByName": {
     "description": "Opens a dialog that installs a version by typing its name, such as 24 or latest."
   },
+  "availableMoreWays": "More ways to add",
+  "@availableMoreWays": { "description": "Tooltip of the menu button that has the ways to add an SDK that the list of the available versions does not offer." },
   "availableClearFilters": "Clear filters",
   "@availableClearFilters": {
     "description": "Takes back the choices of the filter chips of the available versions."

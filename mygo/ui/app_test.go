@@ -65,20 +65,21 @@ func (ta *testApp) fill(n *kit.Node, text string, submit bool) {
 	ta.settle()
 }
 
-func TestHomeShowsTheOverviewAndTheShortcuts(t *testing.T) {
+func TestHomeShowsWhatIsInUseAndTheLineForATerminal(t *testing.T) {
 	ta := defaultApp(t)
 	for _, text := range []string{
-		"vfox+", "Versions in use", "Plugins", "Installed versions", "In use", "maven", "nodejs",
-		"Use the versions in a terminal", `eval "$(vfox activate bash)"`, "Add more SDKs", "vfox documentation",
+		"vfox+", "Versions in use", "maven", "nodejs", "Use the versions in a terminal", `eval "$(vfox activate bash)"`,
 	} {
 		ta.mustText(text)
 	}
 	if !ta.text("vfox 1.1.0 · /usr/bin/vfox") {
 		t.Errorf("the subtitle names the version and the executable: %q", ta.texts())
 	}
-	// The tiles count what vfox lists: three plugins, four installed versions.
-	for _, count := range []string{"3", "4", "2"} {
-		ta.mustText(count)
+	// The counts of what the lists hold, and the shortcuts to what the navigation reaches, are not on the page.
+	for _, text := range []string{"Installed versions", "Add more SDKs", "vfox documentation"} {
+		if ta.text(text) {
+			t.Errorf("the home page says %q", text)
+		}
 	}
 	ta.button("Copy")
 	if len(ta.desktop.copied) != 1 || ta.desktop.copied[0] != `eval "$(vfox activate bash)"` {
@@ -86,13 +87,6 @@ func TestHomeShowsTheOverviewAndTheShortcuts(t *testing.T) {
 	}
 	ta.mustText("Copied to the clipboard")
 	ta.snapshot("home")
-	ta.button("Add more SDKs")
-	ta.mustText("Add from source…")
-	ta.button("Home")
-	ta.button("vfox documentation")
-	if len(ta.desktop.opened) != 1 || ta.desktop.opened[0] != "https://vfox.dev/" {
-		t.Errorf("got %q", ta.desktop.opened)
-	}
 	ta.button("Refresh")
 	ta.until("the SDKs to be listed again", func() bool { return len(ta.runner.Calls("list")) >= 2 })
 }
@@ -106,9 +100,35 @@ func TestAWindowDrawnByTheCPUTellsItsTransitionsToOnlyFade(t *testing.T) {
 	}
 }
 
+func TestTheDefaultSdkIsTheFirstInUseOrElseTheFirst(t *testing.T) {
+	sdks := []core.InstalledSdk{{Name: "a"}, {Name: "b", HasCurrent: true}, {Name: "c", HasCurrent: true}}
+	if got := defaultSdk(sdks); got != "b" {
+		t.Errorf("the plugin in use is open: %q", got)
+	}
+	if got := defaultSdk(sdks[:1]); got != "a" {
+		t.Errorf("with none in use, the first is open: %q", got)
+	}
+}
+
+func TestTheSdksPageOpensAPluginNextToTheListAndTheChoiceOfTheUserWins(t *testing.T) {
+	ta := defaultApp(t)
+	ta.button("SDKs")
+	// Nothing was chosen: the first plugin that has a version in use is open, and is the one that the list marks.
+	ta.mustText("Installed (2)")
+	ta.until("the details of maven", func() bool { return ta.app.pages.detail != nil && ta.app.pages.detail.name == "maven" })
+	if ta.app.shell.selectedSdk != "" {
+		t.Errorf("the page opens a plugin without making it the choice: %q", ta.app.shell.selectedSdk)
+	}
+	ta.item("nodejs")
+	ta.until("the details of nodejs", func() bool { return ta.app.pages.detail != nil && ta.app.pages.detail.name == "nodejs" })
+	if ta.app.shell.selectedSdk != "nodejs" {
+		t.Errorf("the choice is kept: %q", ta.app.shell.selectedSdk)
+	}
+}
+
 func TestTheRailNavigatesBetweenThePagesAndTheBadgeCountsTasks(t *testing.T) {
 	ta := defaultApp(t)
-	for destination, title := range map[string]string{"SDKs": "Select an SDK.", "Tasks": "Nothing is running", "Settings": "Appearance"} {
+	for destination, title := range map[string]string{"SDKs": "Installed (2)", "Tasks": "Nothing is running", "Settings": "Appearance"} {
 		ta.button(destination)
 		ta.mustText(title)
 	}
@@ -601,7 +621,7 @@ func TestTheLanguageFollowsTheDesktopLocale(t *testing.T) {
 	ta.start()
 	ta.settle()
 	ta.mustText("正在使用的版本")
-	if got := ta.app.T("homeStatPlugins", "count", 1); got != "插件" {
+	if got := ta.app.T("availableCount", "count", 1); got != "1 个版本" {
 		t.Errorf("got %q", got)
 	}
 }

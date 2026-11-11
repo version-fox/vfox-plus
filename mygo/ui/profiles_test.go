@@ -45,6 +45,14 @@ func javaApp(t *testing.T) *testApp {
 }
 
 // openAvailable opens the details of a plugin and its available versions, which it waits for.
+// addMore chooses one of the ways to add an SDK that the list does not offer, in the menu at the end of the row above
+// the available versions.
+func (ta *testApp) addMore(item string) {
+	ta.t.Helper()
+	ta.click(kit.RoleButton, "More ways to add")
+	ta.click(kit.RoleMenuItem, item)
+}
+
 func (ta *testApp) openAvailable(plugin string) {
 	ta.t.Helper()
 	ta.button("SDKs")
@@ -193,7 +201,7 @@ func TestAnErrorOfASearchLeavesTheChoiceOfAnotherOne(t *testing.T) {
 func TestAVersionIsInstalledByTheNameThatTheUserTypes(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openAvailable("nodejs")
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	ta.mustText("Install nodejs by name")
 	ta.mustText("24, 24.21 or 24.21.0 install the newest release of that line; latest the newest of any line. There is no lts alias: name the line.")
 	ta.snapshot("install-by-name")
@@ -237,7 +245,7 @@ func TestAPluginWithoutAProfileTakesNamesToo(t *testing.T) {
 	if strings.Contains(strings.Join(ta.texts(), "|"), "Distribution") {
 		t.Error("maven has no distribution to choose")
 	}
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	ta.mustText("Install maven by name")
 	if ta.text("Names to try") {
 		t.Error("maven has no names to suggest")
@@ -419,7 +427,7 @@ func TestTheVersionFilesAreReadThroughThePluginIfVfoxReadsThem(t *testing.T) {
 func TestAShorthandFillsTheFieldOfTheNames(t *testing.T) {
 	ta := javaApp(t)
 	ta.openAvailable("java")
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	ta.button("21-tem")
 	ta.mustText("The newest Temurin 21")
 	field, ok := ta.find(kit.RoleTextField, "Version name")
@@ -450,7 +458,7 @@ func TestTheOptionsFollowTheLanguage(t *testing.T) {
 func TestInstallByNameOffersUseAfterInstall(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openAvailable("nodejs")
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	// The switch says what it is for, in the text of the dialog and not only for assistive technology.
 	ta.mustText("Use after install")
 	// Off by default: plain install.
@@ -464,7 +472,7 @@ func TestInstallByNameOffersUseAfterInstall(t *testing.T) {
 	ta.settle()
 	// On: install and use.
 	ta.openAvailable("nodejs")
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	ta.mustText("Use after install")
 	ta.click(kit.RoleSwitch, "Use after install")
 	field, _ = ta.find(kit.RoleTextField, "Version name")
@@ -478,16 +486,20 @@ func TestAvailableVersionsOfferInstallAndUseAndLink(t *testing.T) {
 	ta.click(kit.RoleButton, "More ways to install this version")
 	ta.mustText("Install and use")
 	ta.click(kit.RoleMenuItem, "Install and use")
-	ta.mustText("Detect and link")
-	ta.mustText("Link existing…")
-	ta.button("Detect and link")
+	// The other ways to add an SDK are the items of one menu, and not buttons of their own.
+	for _, text := range []string{"Install by name…", "Detect and link", "Link existing…"} {
+		if ta.text(text) {
+			t.Errorf("the row above the list shows %q", text)
+		}
+	}
+	ta.addMore("Detect and link")
 	ta.until("the detection", func() bool { return len(ta.runner.Calls("link --detect")) == 1 })
 }
 
 func TestManualLinkNeedsAVersionAndADirectory(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openAvailable("nodejs")
-	ta.button("Link existing…")
+	ta.addMore("Link existing…")
 	ta.mustText("Link nodejs at a directory")
 	ta.mustText("Repoint an already linked version")
 	// Submit empty: stays open with errors.

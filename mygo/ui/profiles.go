@@ -45,13 +45,26 @@ func (a *App) partsLine(parts profile.Parts) string {
 	return strings.Join(append(words, parts.Flavors...), " · ")
 }
 
-// availableActions is the row above the available versions with the buttons that
-// choose what a search lists, install a version by its name and link SDKs that
-// are already on the machine.
+// availableActions is the row above the available versions: the choice of what a
+// search lists, where the plugin has one, and at its end the menu with the other
+// ways to add an SDK that the list does not offer: by its name, or one that is
+// already on the machine.
 func (a *App) availableActions(k kit.Ctx, d *detailState) {
 	controller := d.controller
 	known, hasKnown := controller.Profile()
-	mui.Row(k.Context).Wrap().Gap(gapM).GapY(gapS).Margin(0, gapXL, gapM, gapXL).Children(func() {
+	menu := []kit.MenuItem{
+		{Label: a.T("availableInstallByName"), Icon: "terminal", OnClick: func() { a.askInstallName(d.name, known, hasKnown, "") }},
+		{Label: a.T("linkDetect"), Icon: "link", OnClick: func() {
+			command, err := a.model.Cli.LinkDetect(d.name, true)
+			if err != nil {
+				a.notify(describeError(err))
+				return
+			}
+			a.run(command, nil)
+		}},
+		{Label: a.T("linkManual"), Icon: "folder", OnClick: func() { a.askLinkPath(d.name) }},
+	}
+	mui.Row(k.Context).Gap(gapM).AlignItems(mui.Center).Margin(0, gapL, gapS, gapXL).Children(func() {
 		if hasKnown && known.Search != nil {
 			search := known.Search
 			current, _ := search.Choice(controller.Search())
@@ -59,26 +72,11 @@ func (a *App) availableActions(k kit.Ctx, d *detailState) {
 				ID: "choose-search", Kind: kit.TonalButton, Icon: "registry",
 				Label:   a.T("availableChoiceButton", "what", a.text(search.Label), "choice", a.text(current.Name)),
 				OnClick: func() { a.chooseSearch(d) },
-			})
+			}).Shrink(1)
 		}
-		kit.Button(k, kit.ButtonSpec{
-			ID: "install-by-name", Kind: kit.OutlinedButton, Icon: "terminal", Label: a.T("availableInstallByName"),
-			OnClick: func() { a.askInstallName(d.name, known, hasKnown, "") },
-		})
-		kit.Button(k, kit.ButtonSpec{
-			ID: "link-detect", Kind: kit.OutlinedButton, Icon: "link", Label: a.T("linkDetect"),
-			OnClick: func() {
-				command, err := a.model.Cli.LinkDetect(d.name, true)
-				if err != nil {
-					a.notify(describeError(err))
-					return
-				}
-				a.run(command, nil)
-			},
-		})
-		kit.Button(k, kit.ButtonSpec{
-			ID: "link-manual", Kind: kit.OutlinedButton, Icon: "folder", Label: a.T("linkManual"),
-			OnClick: func() { a.askLinkPath(d.name) },
+		mui.Spacer(k.Context)
+		kit.IconButton(k, kit.IconButtonSpec{
+			ID: "more-ways", Icon: "add", Tooltip: a.T("availableMoreWays"), Menu: menu, MenuAlignEnd: true,
 		})
 	})
 }

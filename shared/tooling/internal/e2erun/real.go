@@ -156,7 +156,7 @@ func realScenario(s *appsession.Session, server, pluginSource string) {
 	s.Pause(500 * time.Millisecond)
 	// Install it again by its name, which vfox looks up while it installs.
 	s.Step("install by name")
-	s.ClickButton("Install by name…")
+	s.ChooseMenuItem("More ways to add", "Install by name…")
 	s.WaitForText("Install testsdk by name")
 	s.Fill("Version name", "1.0.0", false)
 	s.TapDialog(true)
@@ -191,7 +191,8 @@ func realScenario(s *appsession.Session, server, pluginSource string) {
 	s.WaitForText("Remove localsdk?")
 	s.TapDialog(true)
 	s.WaitForTask("Remove plugin localsdk")
-	s.WaitForText("Select an SDK to manage its versions.")
+	// The details leave the plugin that is gone, and open the one that is in use.
+	s.WaitForText("Installed (1)")
 	s.WaitUntil("the removed plugin to disappear from the list", 30*time.Second, func(t automation.Tree) bool {
 		_, listed := t.Find(func(n automation.Node) bool { return n.KeyText() == "sdk:localsdk" })
 		return !listed
