@@ -147,4 +147,4 @@ you can allow other devices, change the port and turn the lightweight mode on or
 *Pair a phone* shows the code there, too, which is how a computer without a window
 (lightweight mode) pairs a phone.
 
-![The connections in the settings of a paired web interface, on a phone](https://iili.io/nmiAkMB.png)
+![The connections in the settings of a paired web interface, on a phone](https://iili.io/nmDNrvI.png)

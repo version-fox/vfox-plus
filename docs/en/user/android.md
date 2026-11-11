@@ -35,7 +35,7 @@ phone; the connections below it are the ones of the window of vfox-plus on the P
 
 | Home | An SDK | The settings, with the card of this phone and the connections |
 | --- | --- | --- |
-| ![The home page in the Android app](https://iili.io/nmiRUs2.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nmi5PBp.png) | ![The settings in the Android app: the card of this phone, and the connections of the PC](https://iili.io/nmsNHuf.png) |
+| ![The home page in the Android app](https://iili.io/nmiRUs2.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nmi5PBp.png) | ![The settings in the Android app: the card of this phone, and the connections of the PC](https://iili.io/nmbqY9s.png) |
 
 The app follows the dark theme of the phone. When it cannot reach the PC (vfox-plus
 stopped, other devices not allowed, another network, a firewall in the way), it says
