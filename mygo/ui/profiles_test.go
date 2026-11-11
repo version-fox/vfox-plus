@@ -48,7 +48,6 @@ func javaApp(t *testing.T) *testApp {
 	return app
 }
 
-// openAvailable opens the details of a plugin and its available versions, which it waits for.
 // addMore chooses one of the ways to add an SDK that the list does not offer, in the menu at the end of the row above
 // the available versions.
 func (ta *testApp) addMore(item string) {
@@ -57,11 +56,31 @@ func (ta *testApp) addMore(item string) {
 	ta.click(kit.RoleMenuItem, item)
 }
 
+// openTab goes to a tab of the details of a plugin: its button, or, where the room is too short for the tabs and they are a
+// dropdown that shows the tab that is open (the first, Installed, when the details have just been opened), the dropdown and
+// the entry of the tab in its menu.
+func (ta *testApp) openTab(name string) {
+	ta.t.Helper()
+	if _, ok := ta.find(kit.RoleButton, name); ok {
+		ta.button(name)
+		return
+	}
+	for _, n := range ta.nodes() {
+		if n.Role == kit.RoleButton && n.Visible() && strings.HasPrefix(n.Name, "Installed") {
+			ta.click(kit.RoleButton, n.Name)
+			ta.click(kit.RoleMenuItem, name)
+			return
+		}
+	}
+	ta.t.Fatalf("no tab %q and no dropdown of the tabs (on screen: %q)", name, ta.texts())
+}
+
+// openAvailable opens the details of a plugin and its available versions, which it waits for.
 func (ta *testApp) openAvailable(plugin string) {
 	ta.t.Helper()
 	ta.button("SDKs")
 	ta.item(plugin)
-	ta.button("Available")
+	ta.openTab("Available")
 	ta.until("the versions", func() bool { return ta.app.detailFor(plugin).controller.Versions.HasValue() })
 	ta.settle()
 }
@@ -343,7 +362,8 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 		}
 	}
 	ta.snapshot("options")
-	ta.mustText("VFOX_NODEJS_MIRROR\nDefault")
+	ta.mustText("VFOX_NODEJS_MIRROR")
+	ta.mustText("Default")
 
 	// An address that is not one is refused, and nothing changes.
 	ta.button("Change")
@@ -366,7 +386,7 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	if got := ta.app.model.PluginVariable("VFOX_NODEJS_MIRROR"); got != "https://npmmirror.com/mirrors/node" {
 		t.Errorf("stored %q", got)
 	}
-	ta.mustText("VFOX_NODEJS_MIRROR\nnpmmirror · https://npmmirror.com/mirrors/node")
+	ta.mustText("npmmirror · https://npmmirror.com/mirrors/node")
 	// vfox runs with it from now on, and the settings page shows it among the other variables.
 	ta.until("vfox to run with the mirror", func() bool {
 		return ta.app.model.Cli.LaunchConfig().ExtraEnvironment["VFOX_NODEJS_MIRROR"] == "https://npmmirror.com/mirrors/node"
@@ -375,7 +395,8 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.button("Change")
 	ta.button("Default (not set)")
 	ta.button("Save")
-	ta.mustText("VFOX_NODEJS_MIRROR\nDefault")
+	ta.mustText("VFOX_NODEJS_MIRROR")
+	ta.mustText("Default")
 
 	// A choice takes its values only.
 	nodejs, _ := ta.app.model.Profiles.Lookup("nodejs")

@@ -152,7 +152,7 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
 			ID: "tabs", Selected: d.tab, OnSelect: func(tab string) { a.showTab(d, tab) }, Segments: segments,
-			MaxWidth: a.pages.detailWidth - 2*gapXL,
+			MaxWidth: a.pages.detailWidth - 2*gapXL, Collapse: true,
 		}).AlignSelf(mui.Start).Margin(0, gapXL, gapL, gapXL)
 	}
 	head := []func(){
@@ -276,6 +276,7 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 						{Value: string(state.VersionFilterWithNote), Label: a.T("availableFilterTagged")},
 						{Value: string(state.VersionFilterInstalled), Label: a.T("availableFilterInstalled")},
 					},
+					MaxWidth: a.pages.detailWidth - 2*gapXL, Collapse: true,
 				})
 				kit.Label(k, a.T("availableCount", "count", len(visible)), kit.Type(kit.LabelLarge), cs.OnSurfaceVariant)
 			})

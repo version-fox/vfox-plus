@@ -197,7 +197,7 @@ func (a *App) shellCard(k kit.Ctx) mui.Element {
 			mui.Column(k.Context).Padding(gapXL).Children(func() {
 				mui.Row(k.Context).Gap(gapM).Children(func() {
 					kit.Icon(k, "terminal", 24, cs.Primary, 0)
-					kit.Line(k, a.T("homeShellTitle"), kit.Emph(kit.TitleMedium), cs.OnSurface).Grow(1)
+					kit.Label(k, a.T("homeShellTitle"), kit.Emph(kit.TitleMedium), cs.OnSurface, kit.Lines(2)).Grow(1).Shrink(1)
 				})
 				kit.Label(k, a.T("homeShellBody"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant).Margin(gapS, 0, 0, 0)
 				kit.Card(k, kit.CardSpec{

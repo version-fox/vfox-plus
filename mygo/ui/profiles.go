@@ -71,7 +71,7 @@ func (a *App) availableActions(k kit.Ctx, d *detailState) {
 			kit.Button(k, kit.ButtonSpec{
 				ID: "choose-search", Kind: kit.TonalButton, Icon: "registry",
 				Label:   a.T("availableChoiceButton", "what", a.text(search.Label), "choice", a.text(current.Name)),
-				OnClick: func() { a.chooseSearch(d) },
+				OnClick: func() { a.chooseSearch(d) }, Lines: 2,
 			}).Shrink(1)
 		}
 		mui.Spacer(k.Context)
@@ -388,8 +388,15 @@ func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 					}
 				})
 			},
-			Name:     a.text(variable.Label),
-			Subtitle: variable.Key + "\n" + subtitle, SubtitleLines: 2,
+			Name: a.text(variable.Label),
+			SubtitleWidget: func(secondary mui.Color) {
+				mui.Column(k.Context).AlignItems(mui.Start).Children(func() {
+					// The name of the variable is one word that cannot be broken: where the room is the least it is cut, and
+					// at 200 % it is not larger than at 130 %. The value is a few words or an address, which wrap.
+					kit.Line(k, variable.Key, kit.Type(kit.BodyMedium), secondary, kit.ScaleCap(1.3)).Shrink(1)
+					kit.Label(k, subtitle, kit.Type(kit.BodyMedium), secondary, kit.Lines(2))
+				})
+			},
 			Trailing: func() {
 				kit.Button(k, kit.ButtonSpec{
 					ID: "change:" + variable.Key, Kind: kit.TonalButton, Label: a.T("optionsVariableChange"),

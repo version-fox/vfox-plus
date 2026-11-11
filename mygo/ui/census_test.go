@@ -59,10 +59,12 @@ var (
 	censusMedium  = censusWindow{name: "medium", width: 700, height: 1800}
 	censusCompact = censusWindow{name: "compact", width: 412, height: 2400}
 	censusNarrow  = censusWindow{name: "narrow", width: 360, height: 2400}
-	// The text that the system makes larger: 130 % in a window of 412 dp, and 200 % in the widest. A window below 412 dp
-	// holds at the size of 100 % only, and so does one of 412 dp at 150 % and more: docs/en/dev/design-system.md#budgets.
-	censusLarge = censusWindow{name: "compact-130", width: 412, height: 2400, scale: 1.3}
-	censusHuge  = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
+	// The text that the system makes larger, at 200 %, which is as large as it is held (docs/en/dev/design-system.md#budgets):
+	// in the narrowest window, in one of the rail and in the widest, which are the three that lay out differently. What
+	// holds at 200 % holds at 130 % and 150 %, too, in a window of the same width.
+	censusNarrowLarge = censusWindow{name: "narrow-200", width: 360, height: 2400, scale: 2}
+	censusMediumLarge = censusWindow{name: "medium-200", width: 700, height: 1800, scale: 2}
+	censusWideLarge   = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
 )
 
 // censusScene is a screen that the census takes.
@@ -80,7 +82,7 @@ func (s censusScene) in() []censusWindow {
 	if s.windows != nil {
 		return s.windows
 	}
-	return []censusWindow{censusWide, censusDark, censusMedium, censusCompact, censusNarrow, censusLarge, censusHuge}
+	return []censusWindow{censusWide, censusDark, censusMedium, censusCompact, censusNarrow, censusNarrowLarge, censusMediumLarge, censusWideLarge}
 }
 
 // optionsOf opens the options of a plugin, with the configuration of vfox that its version files need.
@@ -88,7 +90,7 @@ func optionsOf(plugin string) func(ta *testApp) {
 	return func(ta *testApp) {
 		ta.button("SDKs")
 		ta.item(plugin)
-		ta.button("Options")
+		ta.openTab("Options")
 		ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 		ta.settle()
 	}

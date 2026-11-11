@@ -117,7 +117,7 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						{Value: string(settings.ThemeLight), Label: a.T("themeLight"), Icon: "lightMode"},
 						{Value: string(settings.ThemeDark), Label: a.T("themeDark"), Icon: "darkMode"},
 					},
-					MaxWidth: a.settingsContentWidth(k),
+					MaxWidth: a.settingsContentWidth(k), Collapse: true,
 				})
 			},
 		},
@@ -163,7 +163,7 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						{Value: string(settings.LanguageEnglish), Label: "English"},
 						{Value: string(settings.LanguageSimplifiedChinese), Label: "简体中文"},
 					},
-					MaxWidth: a.settingsContentWidth(k),
+					MaxWidth: a.settingsContentWidth(k), Collapse: true,
 				})
 			},
 		},

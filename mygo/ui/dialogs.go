@@ -115,11 +115,11 @@ func (a *App) askProjectDirectory(name, version string) {
 			Icon: "projectScope", Title: a.T("useProjectTitle", "name", name, "version", version), MaxWidth: 560,
 			Content: func() {
 				kit.Label(k, a.T("useProjectBody"), kit.Type(kit.BodyMedium), k.Colors().OnSurfaceVariant)
-				mui.Row(k.Context).Gap(gapS).AlignItems(mui.Start).Margin(gapL, 0, 0, 0).Children(func() {
+				mui.Row(k.Context).Wrap().Gap(gapS).AlignItems(mui.Start).Margin(gapL, 0, 0, 0).Children(func() {
 					kit.TextField(k, kit.TextFieldSpec{
 						ID: "path", Label: a.T("useProjectDirectory"), Error: problem, AutoFocus: true, Text: &path,
 						OnSubmit: func(string) { submit() },
-					}).Grow(1).Shrink(1)
+					}).Grow(1).Shrink(1).Basis(scaled(k, 200))
 					a.browseButton(k, "browse", browse).Margin(gapS, 0, 0, 0)
 				})
 			},
