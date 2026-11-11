@@ -144,27 +144,15 @@ func javaProfile(platform Platform) Profile {
 			{ID: "flavor", Label: text("Flavor", "类型"), Kind: FacetNote, Values: []string{"JavaFX"}},
 		},
 		Guide: text(
-			"A version is written <version>-<distribution>, such as 21.0.8-tem, with -fx after it for a build with JavaFX. The distribution is its short name (tem) or its long name (temurin). Without one, the version means OpenJDK from jdk.java.net.",
-			"版本写成 <版本>-<发行版>，例如 21.0.8-tem，后面加 -fx 表示带 JavaFX 的构建。发行版可以写简称（tem）或全称（temurin）。不写发行版时指 jdk.java.net 上的 OpenJDK。"),
+			"Write <version>-<distribution>, such as 21.0.8-tem: the short name (tem) or the long one (temurin), and -fx after it for JavaFX. Without a distribution it is OpenJDK from jdk.java.net.",
+			"写成 <版本>-<发行版>，如 21.0.8-tem：发行版用简称（tem）或全称（temurin），末尾加 -fx 表示带 JavaFX。不写发行版时是 jdk.java.net 的 OpenJDK。"),
 		Tips: []Text{
 			text(
-				"OpenJDK from jdk.java.net keeps only the newest releases and the last build of older ones: 17 stops at 17.0.2 and 21 at 21.0.2. Name a distribution for a release that is still maintained.",
-				"jdk.java.net 只保留最新的版本和旧版本的最后一次构建：17 只到 17.0.2，21 只到 21.0.2。要装仍在维护的版本，请写上发行版。"),
+				"OpenJDK from jdk.java.net keeps only the newest releases: name a distribution for an older one.",
+				"jdk.java.net 的 OpenJDK 只保留最新的版本：要装较旧的版本，请写上发行版。"),
 			text(
-				"An installed JDK keeps its full name, such as 21.0.12.1+1-tem. Using and uninstalling take that name; vfox use also maps 21-tem to the newest installed build.",
-				"已安装的 JDK 使用完整名称，例如 21.0.12.1+1-tem。使用和卸载都要用这个名称；vfox use 还能把 21-tem 对应到已安装的最新构建。"),
-			text(
-				"-fx builds and plain builds are never mixed: java@21-zulu installs a build without JavaFX, and java@21-tem-fx fails because Temurin has none.",
-				"带 -fx 的构建和普通构建不会混用：java@21-zulu 安装不带 JavaFX 的构建，而 java@21-tem-fx 会失败，因为 Temurin 没有这种构建。"),
-			text(
-				"A search lists what exists for this machine, and vfox keeps the answer for 12 hours per distribution.",
-				"搜索列出的是适用于本机的版本，vfox 会按发行版把结果缓存 12 小时。"),
-			text(
-				"When a JDK is already on the machine, adopt it instead of downloading it again: vfox link --detect java.",
-				"如果机器上已经有 JDK，不必重新下载：vfox link --detect java 可以把它纳入管理。"),
-			text(
-				"Set VFOX_JAVA_JDKS_LINKS before installing to also expose the JDK to Gradle and IntelliJ IDEA in ~/.jdks; uninstalling removes that link again.",
-				"安装前设置 VFOX_JAVA_JDKS_LINKS 可以把 JDK 同时暴露给 Gradle 与 IntelliJ IDEA（~/.jdks）；卸载时会删掉这个链接。"),
+				"Set VFOX_JAVA_JDKS_LINKS before installing to expose the JDK to Gradle and IntelliJ IDEA in ~/.jdks.",
+				"安装前设置 VFOX_JAVA_JDKS_LINKS，可以把 JDK 暴露给 Gradle 与 IntelliJ IDEA（~/.jdks）。"),
 		},
 		Docs: []Link{
 			docs("vfox-java", "versions", text("Versions and names", "版本与命名")),
