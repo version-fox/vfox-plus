@@ -78,6 +78,21 @@ func TestTheCensusTakesASentenceForWhatItsWordsAreNotData(t *testing.T) {
 	}
 }
 
+func TestTheCensusReadsATextOnlyWhenMoreThanHalfOfItsBoxIsInTheWindow(t *testing.T) {
+	window := rect(0, 0, 400, 300)
+	page := []*Node{
+		{Role: RoleText, Text: "Whole in the window", Rect: rect(10, 100, 200, 20), Size: 14},
+		{Role: RoleText, Text: "Most in the window below", Rect: rect(10, 288, 200, 20), Size: 14},
+		{Role: RoleText, Text: "Half in the window", Rect: rect(10, 290, 200, 20), Size: 14},
+		{Role: RoleText, Text: "Mostly out of the window", Rect: rect(10, 295, 200, 20), Size: 14},
+		{Role: RoleText, Text: "Most in the window above", Rect: rect(10, -8, 200, 20), Size: 14},
+		{Role: RoleText, Text: "Half above the window", Rect: rect(10, -10, 200, 20), Size: 14},
+	}
+	if got := TakeCensus(page, window, nil); got.Words != 4+5+5 {
+		t.Errorf("the three texts that are more than half in the window are read, and not the half or less: %d words", got.Words)
+	}
+}
+
 func TestTheCensusHoldsTheControlsToTheirSizeAndThePageToItsWindow(t *testing.T) {
 	window := rect(0, 0, 400, 300)
 	nodes := []*Node{

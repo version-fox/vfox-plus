@@ -136,7 +136,7 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 	}
 	var shown []*Node
 	for _, n := range nodes {
-		if n.Visible() && (n.Modal || !modal) && overlaps(n.Rect, window) {
+		if n.Visible() && (n.Modal || !modal) && onScreen(n, window) {
 			shown = append(shown, n)
 		}
 	}
@@ -424,6 +424,20 @@ func (c Census) Over() []string {
 	}
 	sort.Strings(over)
 	return over
+}
+
+// onScreen reports whether a node is where a person sees it: a text that is drawn, with more than half of its box in the
+// window (the line that begins below the last one that fits is not read, and its ink is not drawn), and any other node
+// that is partly in it.
+func onScreen(n *Node, window ui.Rect) bool {
+	if !overlaps(n.Rect, window) {
+		return false
+	}
+	if n.Role != RoleText {
+		return true
+	}
+	inside := min(n.Rect.Y+n.Rect.H, window.Y+window.H) - max(n.Rect.Y, window.Y)
+	return inside > n.Rect.H/2
 }
 
 // overlaps reports whether the rectangle is at least partly in the window.
