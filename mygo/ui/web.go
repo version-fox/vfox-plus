@@ -373,7 +373,7 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 		// text that can be selected, in lines that fit the item: a line of colons does not break.
 		SubtitleWidget: func(mui.Color) {
 			mui.Column(k.Context).Children(func() {
-				kit.Label(k, kind, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
+				kit.Label(k, kind, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Breakable())
 				kit.Label(k, a.T("webFingerprint"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 				// Beside the buttons, the lines have what they leave.
 				room := a.settingsContentWidth(k)
@@ -450,6 +450,9 @@ func (a *App) quitItem(k kit.Ctx) kit.ListItemSpec {
 	}
 }
 
+// pairingWidth is the width in dp of the dialog of the pairing at the most.
+const pairingWidth = 440
+
 // showPairing opens the dialog with the code that a phone scans, for host, the address of
 // this computer, or the likeliest one when it is empty.
 func (a *App) showPairing(host string) {
@@ -458,7 +461,7 @@ func (a *App) showPairing(host string) {
 		cs := k.Colors()
 		pairing := a.pages.pairing
 		return kit.DialogSpec{
-			Icon: "qrCode", Title: a.T("webPair"), MaxWidth: 440,
+			Icon: "qrCode", Title: a.T("webPair"), MaxWidth: pairingWidth,
 			Content: func() {
 				mui.Column(k.Context).Gap(gapM).AlignItems(mui.Center).Children(func() {
 					a.pairingContent(k, pairing)
@@ -518,12 +521,15 @@ func (a *App) pairingContent(k kit.Ctx, pairing *pairingState) {
 		for _, choice := range choices {
 			segments = append(segments, kit.Segment{Value: choice.value, Label: choice.label})
 		}
+		// The addresses of a computer are as many as its networks, and an IPv6 one is 39 characters: they are segments while they fit
+		// the dialog, and a dropdown when they do not.
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
 			ID: "pair-hosts", Selected: selected, Segments: segments,
 			OnSelect: func(address string) { a.makePairing(address) },
+			MaxWidth: kit.DialogContentWidth(k, pairingWidth), Collapse: true,
 		})
 	}
-	kit.Label(k, pairing.link, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace())
+	kit.Label(k, pairing.link, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace(), kit.Breakable())
 }
 
 // qrCode draws the modules of a QR code, black on white whatever the theme is: a scanner

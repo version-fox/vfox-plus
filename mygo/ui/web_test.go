@@ -358,13 +358,8 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.openSettings()
 	status := ta.web.Status()
-	if len(status.Addresses) == 0 {
-		item, _ := ta.listItem("Pair a phone")
-		if item == nil {
-			t.Fatalf("no item to pair a phone: %q", ta.texts())
-		}
-		ta.mustText("This computer has no network address.")
-		return
+	if len(status.Addresses) != 2 {
+		t.Fatalf("the computer has the two addresses that the test gave it: %v", status.Addresses)
 	}
 	ta.mustTextWith("Reachable at https://" + net.JoinHostPort(status.Addresses[0], strconv.Itoa(status.Port)))
 	ta.button("Show code")
@@ -387,10 +382,8 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	if second := ta.mustTextWith(link(status.Addresses[0])); second == first {
 		t.Errorf("a new code has a link of its own, got %q twice", first)
 	}
-	if len(status.Addresses) > 1 {
-		ta.button(status.Addresses[1])
-		ta.mustTextWith(link(status.Addresses[1]))
-	}
+	ta.button(status.Addresses[1])
+	ta.mustTextWith(link(status.Addresses[1]))
 	ta.button("Close")
 	if ta.app.pages.pairing != nil {
 		t.Error("a closed dialog keeps no link")
@@ -398,6 +391,24 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	if _, ok := ta.textWith("Scan with the Android app"); ok {
 		t.Error("the dialog is gone")
 	}
+}
+
+func TestTheSettingsSayWhenThisComputerHasNoNetworkAddress(t *testing.T) {
+	ta := defaultApp(t)
+	ta.setAddresses()
+	ta.updateSettings(func(s *settings.AppSettings) {
+		s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(t)
+	})
+	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
+	ta.openSettings()
+	if item, _ := ta.listItem("Pair a phone"); item == nil {
+		t.Fatalf("no item to pair a phone: %q", ta.texts())
+	}
+	ta.mustText("This computer has no network address.")
+	ta.app.showPairing("")
+	ta.settle()
+	ta.mustText("Cannot make a link: this computer has no such address on a network")
+	ta.button("Close")
 }
 
 func TestThePairingDialogSaysWhyThereIsNoCode(t *testing.T) {

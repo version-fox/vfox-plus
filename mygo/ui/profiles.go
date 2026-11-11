@@ -391,10 +391,10 @@ func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 			Name: a.text(variable.Label),
 			SubtitleWidget: func(secondary mui.Color) {
 				mui.Column(k.Context).AlignItems(mui.Start).Children(func() {
-					// The name of the variable is one word that cannot be broken: where the room is the least it is cut, and
-					// at 200 % it is not larger than at 130 %. The value is a few words or an address, which wrap.
-					kit.Line(k, variable.Key, kit.Type(kit.BodyMedium), secondary, kit.ScaleCap(1.3)).Shrink(1)
-					kit.Label(k, subtitle, kit.Type(kit.BodyMedium), secondary, kit.Lines(2))
+					// The name of the variable is one word that has no space to break at, and the value is a few words or an address:
+					// both break where the room ends, at the size of the text of the system.
+					kit.Label(k, variable.Key, kit.Type(kit.BodyMedium), secondary, kit.Breakable())
+					kit.Label(k, subtitle, kit.Type(kit.BodyMedium), secondary, kit.Lines(2), kit.Breakable())
 				})
 			},
 			Trailing: func() {

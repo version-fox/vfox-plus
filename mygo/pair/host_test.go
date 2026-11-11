@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -44,8 +45,15 @@ type hostFixture struct {
 
 func newHost(t *testing.T) *hostFixture {
 	t.Helper()
+	return newHostWith(t, pair.HostOptions{})
+}
+
+// newHostWith is a host with the options that a test gives it, besides the directory and the quit that the fixture has.
+func newHostWith(t *testing.T, options pair.HostOptions) *hostFixture {
+	t.Helper()
 	fixture := &hostFixture{model: testModel(t, testsupport.FixtureRunner()), dir: t.TempDir()}
-	fixture.host = pair.NewHost(fixture.model, pair.HostOptions{SettingsDir: fixture.dir, Quit: func() { fixture.quit.Add(1) }})
+	options.SettingsDir, options.Quit = fixture.dir, func() { fixture.quit.Add(1) }
+	fixture.host = pair.NewHost(fixture.model, options)
 	t.Cleanup(fixture.host.Close)
 	return fixture
 }
@@ -138,6 +146,44 @@ func TestTheHostFollowsTheSettingsAndTellsWhoListens(t *testing.T) {
 	f.host.Apply()
 	if status := f.host.Status(); status.Running {
 		t.Errorf("a closed host stays closed: %v", status)
+	}
+}
+
+// A host that is told the addresses of the computer has those, whatever machine runs the test: the IPv4 ones first and each
+// once, a link that names an IPv6 one has it in brackets, an address that is not among them is refused, and a computer with
+// none cannot be reached. What the interfaces say is not the answer then, so a screen that shows the addresses shows the same
+// at every run, on a machine with no network, and on one with many.
+func TestAHostThatIsToldTheAddressesOfTheComputerHasThoseAndNoOthers(t *testing.T) {
+	addresses := []string{"2001:db8::17", "192.0.2.17", "192.0.2.17", "198.51.100.23", "not an address"}
+	f := newHostWith(t, pair.HostOptions{Addresses: func() []string { return addresses }})
+	port := testsupport.FreePort(t)
+	f.set(func(s *settings.AppSettings) { s.WebInterface, s.WebRemote, s.WebPort = true, true, port })
+
+	status := f.host.Status()
+	if want := []string{"192.0.2.17", "198.51.100.23", "2001:db8::17"}; !slices.Equal(status.Addresses, want) {
+		t.Fatalf("the addresses of the computer are the ones it was told, IPv4 first, each once: got %v, want %v", status.Addresses, want)
+	}
+	for _, c := range []struct{ host, want string }{
+		{"", "192.0.2.17"}, {"198.51.100.23", "198.51.100.23"}, {"2001:db8::17", "2001:db8::17"},
+	} {
+		link, err := f.host.RemoteLink(c.host)
+		if err != nil {
+			t.Fatalf("a link for %q: %v", c.host, err)
+		}
+		if want := "https://" + hostPort(c.want, port) + "/auth/connect/"; !strings.HasPrefix(link, want) {
+			t.Errorf("a link for %q is got %q, want the prefix %q", c.host, link, want)
+		}
+	}
+	if _, err := f.host.RemoteLink("203.0.113.77"); !errors.Is(err, pair.ErrNoAddress) {
+		t.Errorf("an address that the computer was not told it has is refused, got %v", err)
+	}
+
+	addresses = nil
+	if got := f.host.Status().Addresses; len(got) != 0 {
+		t.Errorf("a computer with no address has none, got %v", got)
+	}
+	if _, err := f.host.RemoteLink(""); !errors.Is(err, pair.ErrNoAddress) {
+		t.Errorf("a computer with no address cannot be reached, got %v", err)
 	}
 }
 

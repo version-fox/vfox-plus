@@ -38,7 +38,7 @@ func (a *App) confirm(id string, question confirmation) {
 		return kit.DialogSpec{
 			Icon: question.Icon, IconError: question.Destructive, Title: question.Title,
 			Content: func() {
-				kit.Label(k, question.Body, kit.Type(kit.BodyMedium), k.Colors().OnSurfaceVariant)
+				kit.Label(k, question.Body, kit.Type(kit.BodyMedium), k.Colors().OnSurfaceVariant, kit.Breakable())
 			},
 			Actions: []func(){
 				func() {

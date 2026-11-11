@@ -20,6 +20,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -145,7 +146,14 @@ type testApp struct {
 	web     *pair.Host
 	// settingsDir holds the certificate that the web interface makes for other devices.
 	settingsDir string
+	// addresses are the addresses that the web interface says this computer has.
+	addresses *atomic.Pointer[[]string]
 }
+
+// setAddresses says which addresses this computer has on the networks it is on. Two addresses of the ranges that are kept
+// for documentation, which no computer has, are what a test starts with: what shows them is the same at every run, on a
+// machine with no network and on one that has many.
+func (ta *testApp) setAddresses(addresses ...string) { ta.addresses.Store(&addresses) }
 
 func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, height int, store settings.SettingsStore) *testApp {
 	t.Helper()
@@ -155,7 +163,10 @@ func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, heig
 		Locator: vfox.NewVfoxLocator(map[string]string{}, func(path string) bool { return path == "/usr/bin/vfox" }),
 	})
 	settingsDir := t.TempDir()
-	web := pair.NewHost(model, pair.HostOptions{SettingsDir: settingsDir})
+	var addresses atomic.Pointer[[]string]
+	documented := []string{"192.0.2.17", "198.51.100.23"}
+	addresses.Store(&documented)
+	web := pair.NewHost(model, pair.HostOptions{SettingsDir: settingsDir, Addresses: func() []string { return slices.Clone(*addresses.Load()) }})
 	a, err := New(Options{Model: model, Environment: environment, Web: web})
 	if err != nil {
 		t.Fatal(err)
@@ -193,7 +204,7 @@ func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, heig
 	// Springs that jump to their targets keep the tests short: a dialog that
 	// scales in is drawn on the slow path of the renderer for a second.
 	tester.SetPreferences(mui.Preferences{ReduceMotion: true, TextScale: 1})
-	return &testApp{t: t, app: a, runner: runner, desktop: recording, tester: tester, web: web, settingsDir: settingsDir}
+	return &testApp{t: t, app: a, runner: runner, desktop: recording, tester: tester, web: web, settingsDir: settingsDir, addresses: &addresses}
 }
 
 func defaultApp(t *testing.T) *testApp {

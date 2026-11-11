@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -59,13 +60,22 @@ var (
 	censusMedium  = censusWindow{name: "medium", width: 700, height: 1800}
 	censusCompact = censusWindow{name: "compact", width: 412, height: 2400}
 	censusNarrow  = censusWindow{name: "narrow", width: 360, height: 2400}
-	// The text that the system makes larger, at 200 %, which is as large as it is held (docs/en/dev/design-system.md#budgets):
-	// in the narrowest window, in one of the rail and in the widest, which are the three that lay out differently. What
-	// holds at 200 % holds at 130 % and 150 %, too, in a window of the same width.
+	// The text that the system makes larger is held up to 200 % (docs/en/dev/design-system.md#budgets): at 200 % in the
+	// narrowest window, in one of the rail and in the widest, which are the three that lay out differently; and at 130 % and
+	// 150 % in the narrowest, and at 150 % in the next, where the room is the least and what did not fit was found. The sizes in
+	// between are taken by TestTheScreensAreWithinTheBudgetsAtEverySizeOfText, when it is asked to.
+	censusNarrowMid   = censusWindow{name: "narrow-130", width: 360, height: 2400, scale: 1.3}
+	censusNarrowMore  = censusWindow{name: "narrow-150", width: 360, height: 2400, scale: 1.5}
+	censusCompactMore = censusWindow{name: "compact-150", width: 412, height: 2400, scale: 1.5}
 	censusNarrowLarge = censusWindow{name: "narrow-200", width: 360, height: 2400, scale: 2}
 	censusMediumLarge = censusWindow{name: "medium-200", width: 700, height: 1800, scale: 2}
 	censusWideLarge   = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
 )
+
+// censusAddresses are the addresses that the computer of the census has on its networks: one of IPv4 and one of IPv6, of the
+// ranges that are kept for documentation. A computer at home has both, and an IPv6 address is the longest word that a screen
+// of the interface has to hold, 36 characters with no space in them.
+var censusAddresses = []string{"192.0.2.17", "2001:db8:85a3:8d3:1319:8a2e:370:7334"}
 
 // censusScene is a screen that the census takes.
 type censusScene struct {
@@ -82,7 +92,10 @@ func (s censusScene) in() []censusWindow {
 	if s.windows != nil {
 		return s.windows
 	}
-	return []censusWindow{censusWide, censusDark, censusMedium, censusCompact, censusNarrow, censusNarrowLarge, censusMediumLarge, censusWideLarge}
+	return []censusWindow{
+		censusWide, censusDark, censusMedium, censusCompact, censusNarrow,
+		censusNarrowMid, censusNarrowMore, censusCompactMore, censusNarrowLarge, censusMediumLarge, censusWideLarge,
+	}
 }
 
 // optionsOf opens the options of a plugin, with the configuration of vfox that its version files need.
@@ -133,6 +146,23 @@ var censusScenes = []censusScene{
 		ta.until("the use task", func() bool { return len(ta.app.model.Tasks.Tasks()) == 1 })
 		ta.button("Tasks")
 	}},
+	{name: "task-output", reach: func(ta *testApp) {
+		// What vfox prints names links and paths, which are one word each, longer than a window of 360 dp.
+		process := testsupport.NewFakeRunningProcess()
+		ta.runner.OnStart("install --yes maven@3.9.16", func() *testsupport.FakeRunningProcess { return process })
+		ta.t.Cleanup(func() { process.Exit(0) })
+		command, err := ta.app.model.Cli.Install("maven", "3.9.16")
+		if err != nil {
+			ta.t.Fatal(err)
+		}
+		running := ta.app.model.Run(command)
+		ta.button("Tasks")
+		process.WriteStdout("Downloading https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.16/apache-maven-3.9.16-bin.tar.gz\n")
+		process.WriteStdout("Unpacking to /home/someone/.version-fox/cache/maven/v-3.9.16/maven-3.9.16/apache-maven-3.9.16\n")
+		ta.until("the output", func() bool { return len(running.Log()) >= 2 })
+		ta.settle()
+		ta.buttonNear("Install maven@3.9.16", "Show output")
+	}},
 	{name: "settings", reach: func(ta *testApp) { ta.button("Settings") }},
 	{name: "settings-web", reach: func(ta *testApp) {
 		ta.updateSettings(func(s *settings.AppSettings) {
@@ -140,6 +170,15 @@ var censusScenes = []censusScene{
 		})
 		ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 		ta.openSettings()
+	}},
+	{name: "pairing", reach: func(ta *testApp) {
+		ta.updateSettings(func(s *settings.AppSettings) {
+			s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(ta.t)
+		})
+		ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
+		ta.openSettings()
+		ta.button("Show code")
+		ta.mustText("Pair a phone")
 	}},
 	{name: "vfox-missing", missing: true, reach: func(ta *testApp) {}},
 }
@@ -157,6 +196,7 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 		preferences.Theme = settings.ThemeDark
 	}
 	ta := newTestApp(t, runner, window.width, window.height, settings.NewMemorySettingsStore(preferences))
+	ta.setAddresses(censusAddresses...)
 	if window.scale > 0 {
 		ta.tester.SetPreferences(mui.Preferences{ReduceMotion: true, TextScale: window.scale})
 	}
@@ -200,6 +240,67 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 		}
 	}
 	writeCensus(t, report)
+}
+
+// The sizes of text between 100 % and 200 % that the census does not take, in the four widths of the windows: what holds at 200 %
+// holds below it is a thing that the layouts do not promise, where a row wraps at one width and a group of segments is a dropdown at
+// another, and this is how it is looked at. It takes about as long as the census does, twice, so only a run that asks for it
+// (VFOX_PLUS_CENSUS_SWEEP=1) takes it; the census holds the sizes where the room was the least.
+func TestTheScreensAreWithinTheBudgetsAtEverySizeOfText(t *testing.T) {
+	if os.Getenv("VFOX_PLUS_CENSUS_SWEEP") == "" {
+		t.Skip("VFOX_PLUS_CENSUS_SWEEP=1 takes the sizes of text between those of the census: it takes a few minutes")
+	}
+	if raceDetector {
+		t.Skip("the census does not need the race detector, which makes it three times slower")
+	}
+	for _, base := range []censusWindow{censusNarrow, censusCompact, censusMedium, censusWide} {
+		for _, scale := range []float32{1.15, 1.3, 1.5, 1.75} {
+			window := base
+			window.scale, window.name = scale, fmt.Sprintf("%s-%d", base.name, int(scale*100+0.5))
+			for _, scene := range censusScenes {
+				t.Run(scene.name+"."+window.name, func(t *testing.T) {
+					ta := censusApp(t, scene, window)
+					scene.reach(ta)
+					if over := ta.census().Over(); len(over) > 0 {
+						t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+					}
+				})
+			}
+		}
+	}
+}
+
+// fontOf is the family that the system gives for a name, for the log of a test.
+func fontOf(name string) string {
+	out, err := exec.Command("fc-match", "-f", "%{family}", name).Output() //nolint:gosec // The names are the two that the test asks for.
+	if err != nil {
+		return name + " (fc-match is not there)"
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// The screens hold in the fonts that the system chooses where it has not those of the interface: nothing of the layout is
+// written for the width of Ubuntu Sans. The scenes are taken in the narrowest window, at 100 % and at 200 %, and in the widest,
+// with `sans-serif` and `monospace`, which are Noto Sans or DejaVu Sans, as they are installed.
+func TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses(t *testing.T) {
+	if raceDetector {
+		t.Skip("the census does not need the race detector, which makes it three times slower: `go test ./ui -run TestTheScreensAreWithinTheBudgets` takes it")
+	}
+	interfaceFamilies, monospaceFamilies := kit.UIFamilies, kit.MonoFamilies
+	kit.UIFamilies, kit.MonoFamilies = "sans-serif", "monospace"
+	t.Cleanup(func() { kit.UIFamilies, kit.MonoFamilies = interfaceFamilies, monospaceFamilies })
+	t.Logf("the interface is set in %s, and the monospaced text in %s", fontOf("sans-serif"), fontOf("monospace"))
+	for _, scene := range censusScenes {
+		for _, window := range []censusWindow{censusNarrow, censusNarrowLarge, censusWide} {
+			t.Run(scene.name+"."+window.name, func(t *testing.T) {
+				ta := censusApp(t, scene, window)
+				scene.reach(ta)
+				if over := ta.census().Over(); len(over) > 0 {
+					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+				}
+			})
+		}
+	}
 }
 
 // censusLine is a census in one line.
