@@ -47,7 +47,7 @@ const testPage = `<!doctype html><meta charset="utf-8"><title>vfox-plus</title>
   <button data-tab="tasks">Tasks</button><button data-tab="settings">Settings</button>
 </nav>
 <div id="sdkList"><div class="loader"></div></div>
-<div id="detail"></div>
+<div id="sdkDetail"></div>
 <script>
 const note = (what) => navigator.sendBeacon("/note?" + encodeURIComponent(what));
 const dark = matchMedia("(prefers-color-scheme: dark)");
@@ -71,8 +71,10 @@ setTimeout(() => {
 }, 200);
 function openDetail(name) {
   note("sdk=" + name);
-  document.getElementById("detail").innerHTML =
-    '<div id="detailTabs"><button data-tab="installed">Installed</button><button data-tab="options">Options</button></div><div id="body"></div>';
+  // As the page does: the row of the plugin is the current one, and the details are headed with its name.
+  for (const row of document.querySelectorAll("[data-sdk]")) row.setAttribute("aria-current", String(row.dataset.sdk === name));
+  document.getElementById("sdkDetail").innerHTML =
+    '<div class="t-title-l"><code>' + name + '</code></div><div id="detailTabs"><button data-tab="installed">Installed</button><button data-tab="options">Options</button></div><div id="body"></div>';
   for (const button of document.querySelectorAll("#detailTabs [data-tab]")) {
     button.onclick = () => { note("detail=" + button.dataset.tab); if (button.dataset.tab === "options") showOptions(); };
   }

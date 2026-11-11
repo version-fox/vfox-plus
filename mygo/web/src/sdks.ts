@@ -26,6 +26,9 @@ import { runTask } from "./tasks";
 import { chip, openMenu, openSheet, partsLine, section, sectionStatus, spinner, stateBlock, tagList, wireStateRetry } from "./ui";
 
 // ---------------- sdks ----------------
+// The width from which the list and the details are side by side (the style sheet says the same).
+const TWO_PANES = "(min-width: 900px)";
+
 export function renderSdks(): void {
   const inv = state.inventory;
   if (!inv) return;
@@ -37,10 +40,19 @@ export function renderSdks(): void {
     wireStateRetry(box, () => refresh(true));
     return;
   }
+  const all = sec.value || [];
+  // With no plugin at all there is nothing for a second pane to show: the list has the page.
+  document.querySelector("#tab-sdks")?.classList.toggle("none", !all.length);
   const q = ((document.getElementById("sdkSearch") as HTMLInputElement).value || "").toLowerCase();
-  const list = (sec.value || []).filter((s) => !q || s.Name.toLowerCase().includes(q));
+  const list = all.filter((s) => !q || s.Name.toLowerCase().includes(q));
   if (!list.length) {
-    box.innerHTML = stateBlock("empty", "inventory-2", t("noSdks"), "", null);
+    if (all.length) {
+      box.innerHTML = stateBlock("empty", "search-off", t("noSdkMatch"), "", null);
+      return;
+    }
+    box.innerHTML = stateBlock("empty", "inventory-2", t("noSdks"), "", t("add"));
+    const add = box.querySelector("[data-act]");
+    if (add) (add as HTMLButtonElement).onclick = () => (location.hash = "#/plugins");
     return;
   }
   // The version in use goes under the count, not beside the name: the list is narrow, and the
@@ -73,6 +85,11 @@ export function renderSdks(): void {
       ((b as HTMLButtonElement).onclick = () =>
         (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
   );
+  if (!state.detail && matchMedia(TWO_PANES).matches) {
+    const first = list.find((s) => s.HasCurrent) || list[0];
+    history.replaceState({ tab: "sdks" }, "", "#/sdk/" + encodeURIComponent(first.Name));
+    void showDetail(first.Name);
+  }
 }
 
 export function showList(push?: boolean): void {
@@ -386,28 +403,22 @@ function renderAvailable(body: HTMLElement): void {
   body.innerHTML =
     '<div class="row actions">' +
     chooseBtn +
-    '<button class="btn outline" id="byNameBtn">' +
-    icon("terminal", "sm") +
-    "<span>" +
-    esc(t("installByName")) +
-    "</span></button>" +
-    '<button class="btn outline" id="linkDetectBtn">' +
-    icon("link", "sm") +
-    "<span>" +
-    esc(t("linkDetect")) +
-    "</span></button>" +
-    '<button class="btn outline" id="linkManualBtn">' +
-    icon("folder", "sm") +
-    "<span>" +
-    esc(t("linkManual")) +
-    "</span></button>" +
-    "</div>" +
+    '<button class="iconbtn" id="addMore" title="' +
+    esc(t("moreWays")) +
+    '" aria-label="' +
+    esc(t("moreWays")) +
+    '" aria-haspopup="menu">' +
+    icon("add") +
+    "</button></div>" +
     '<div id="availBody"></div>';
   const choose = document.getElementById("chooseBtn");
   if (choose) choose.onclick = () => openChooser();
-  el("byNameBtn").onclick = () => openInstallByName("");
-  el("linkDetectBtn").onclick = () => runTask({ operation: "linkDetect", sdk: d.name, yes: true });
-  el("linkManualBtn").onclick = () => openLinkManual();
+  el("addMore").onclick = (ev) =>
+    openMenu(ev.currentTarget as Element, [
+      { id: "by-name", icon: "terminal", label: t("installByName"), onclick: () => openInstallByName("") },
+      { id: "link-detect", icon: "link", label: t("linkDetect"), onclick: () => runTask({ operation: "linkDetect", sdk: d.name, yes: true }) },
+      { id: "link-manual", icon: "folder", label: t("linkManual"), onclick: () => openLinkManual() },
+    ]);
   if (d.versions === null && !d.error && !d.loading) loadVersions();
   else drawAvailable();
 }
@@ -1127,4 +1138,5 @@ export function updateDetail(): void {
 export function initSdks(): void {
   (document.getElementById("sdkSearch") as HTMLInputElement).oninput = () => renderSdks();
   el("sdkRefresh").onclick = () => refresh(true);
+  matchMedia(TWO_PANES).addEventListener("change", () => renderSdks());
 }

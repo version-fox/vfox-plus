@@ -24,39 +24,6 @@ import { runTask } from "./tasks";
 // ---------------- home ----------------
 export function renderHome(inv: Inventory): void {
   const installed = (inv.installed && inv.installed.value) || [];
-  let nVersions = 0,
-    nCurrent = 0;
-  installed.forEach((s) => {
-    nVersions += (s.Versions || []).length;
-    if (s.HasCurrent) nCurrent++;
-  });
-  const stats: [number, string, string, string][] = [
-    [installed.length, t("pluginsN"), "s1", "extension"],
-    [nVersions, t("versionsN"), "s2", "deployed-code"],
-    [nCurrent, t("inUse"), "s3", "check-circle"],
-  ];
-  el("homeStats").innerHTML = stats
-    .map(
-      (s) =>
-        '<button class="stat ' +
-        s[2] +
-        '" data-go="sdks">' +
-        '<span class="ic-row">' +
-        icon(s[3]) +
-        "</span>" +
-        '<span class="n">' +
-        s[0] +
-        "</span>" +
-        '<span class="l">' +
-        esc(s[1]) +
-        "</span>" +
-        '<span class="shape"></span>' +
-        "</button>",
-    )
-    .join("");
-  el("homeStats")
-    .querySelectorAll("[data-go]")
-    .forEach((b) => ((b as HTMLButtonElement).onclick = () => (location.hash = "#/sdks")));
   const active = installed.filter((s) => s.HasCurrent);
   const box = el("homeActive");
   if (!active.length) box.innerHTML = '<p class="muted">' + esc(t("activeEmpty")) + "</p>";

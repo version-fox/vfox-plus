@@ -315,13 +315,6 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 @keyframes riseIn{from{transform:translateY(16px)}to{transform:none}}
 .snack button{color:var(--m3-inverse-primary);font-weight:500}
 /* stat tiles: container colour + decorative shape */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
-.stat{position:relative;overflow:hidden;border-radius:28px;padding:16px;min-height:110px}
-.stat.s1{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
-.stat.s2{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
-.stat.s3{background:var(--m3-tertiary-container);color:var(--m3-on-tertiary-container)}
-.stat .n{font-size:32px;font-weight:500;line-height:1.1}
-.stat .shape{position:absolute;right:-30px;bottom:-30px;width:110px;height:110px;opacity:.35}
 /* switch */
 .switch{position:relative;width:52px;height:32px;flex:none;border-radius:16px;background:var(--m3-outline-variant);transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
 .switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--m3-on-surface-variant);transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
@@ -347,6 +340,10 @@ th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--m3-outline-
 pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all}
 @media (prefers-color-scheme:dark){pre.log{background:#000}}
 .sdk-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px}
+/* with no plugin at all there is nothing for a second pane to show: the list has the page */
+#tab-sdks.none .sdk-grid{grid-template-columns:minmax(0,1fr)}
+#tab-sdks.none .pane-detail{display:none}
+#tab-sdks.none .pane-list .search{display:none}
 /* master/detail as two screens where two panes would leave the detail too little room for its tabs and its rows: it has
    the window less 488 px (the rail, the list and the paddings), which is 412 px at 900 and 213 px at 701 */
 @media (max-width:899px){
@@ -354,6 +351,13 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
   .pane-detail{display:none}
   #tab-sdks.detail-open .pane-list{display:none}
   #tab-sdks.detail-open .pane-detail{display:block;animation:sharedX var(--sp-slow-effects-t) var(--sp-slow-effects)}
+  /* the details are a screen of their own and the bar of the details is its header: the title of the page and the refresh
+     above it are not there */
+  #tab-sdks.detail-open>.pagehead{display:none}
+}
+/* the list is beside the details, so there is nothing to go back to */
+@media (min-width:900px){
+  #detailBack{display:none}
 }
 @keyframes sharedX{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
 .navbar{display:none}
@@ -369,6 +373,8 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 .btn.outline:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
 .btn .ic.sm{width:20px;height:20px}
 #detailTabs{margin:8px 0 16px}
+/* the ways to add an SDK besides the list are one menu, at the end of the row of the distribution */
+#addMore{margin-left:auto}
 /* The three tabs of a plugin are 356 px wide with their icons, and a phone leaves 32 px less than its width: on the
    narrow ones the tabs keep their labels and lose the icons, which fit in a line. */
 @media (max-width:400px){
@@ -401,6 +407,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   /* app bar: flat, large title, status as a dot only */
   .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left));border-bottom:0;background:var(--m3-surface)}
   .topbar h1{font-size:28px;line-height:36px;font-weight:500}
+  body:has(#tab-sdks.active.detail-open) .topbar h1{display:none}
   .live,.ver{display:none}
   .live .dot{width:10px;height:10px}
   main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
@@ -431,11 +438,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   #tab-home>.pane{display:flex;align-items:center;gap:8px;margin-bottom:12px}
   #tab-home>.pane>.row{margin:0 0 0 auto!important}
   #homeSub{font-size:14px}
-  .stats{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
-  .stat{min-height:0;padding:14px 12px 12px;border-radius:20px;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
-  .stat .shape{display:none}
-  .stat .n{font-size:28px}
-  .stat .l,.stat .lbl,.stat div:last-child{font-size:12px}
   /* terminal hint and cards: tonal containers where there is content to group */
   #snacks{bottom:calc(176px + var(--sai-bottom))}
   #error{bottom:calc(176px + var(--sai-bottom))}
@@ -468,12 +470,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .grow{flex:1;min-width:0}
 .hero .t-title-l{line-height:1.2}
 .hero .row{align-items:flex-start}
-.stats .stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;position:relative}
-.stats .stat .ic-row{display:flex;margin-bottom:10px}
-.stats .stat .ic{width:24px;height:24px}
-.stats .stat .n{font-size:32px;line-height:1.05}
-.stats .stat .l{font-size:12px;font-weight:500}
-.stats .stat .shape{position:absolute;right:-26px;bottom:-26px;width:100px;height:100px;border-radius:52% 48% 60% 40%/45% 55% 42% 58%;background:color-mix(in srgb,currentColor 12%,transparent);opacity:1}
 .seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
 .taskrow:first-child{border-radius:20px 20px 4px 4px}
 .taskrow:last-child{border-radius:4px 4px 20px 20px}
@@ -487,8 +483,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .shell .iconbtn{flex:none}
 .shell .iconbtn:active{background:var(--m3-surface-container-high)}
 .list .item:active{background:var(--m3-surface-container-high)}
-.stats .stat{transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
-.stats .stat:active{transform:scale(.97)}
 .spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
 .filterline{display:flex;align-items:center;gap:12px;margin:8px 4px 8px;min-height:32px}
 .filterline #vChips{flex:1;min-width:0;margin:0}
@@ -534,7 +528,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .pagehead{margin-bottom:8px}
   .pagehead .grow .t-body{display:none}
   .sectionlabel{margin:12px 4px 4px}
-  .stats .stat .n{font-size:24px}
   .rowitem{flex-wrap:wrap}
 }
 /* ---------- phones: one column, the page title lives in the top bar ---------- */
@@ -545,10 +538,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
   .hero .t-title-l{display:none}
   .hero .iconbtn{margin-left:auto}
-  .stats{margin-bottom:8px}
-  .stats .stat .shape{display:none}
-  .stats .stat .ic-row{margin-bottom:4px}
-  .stats .stat .n{font-size:24px}
   .list .item{padding:14px 14px}
   .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
   .pagehead .grow{display:none}

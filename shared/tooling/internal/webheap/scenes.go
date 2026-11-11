@@ -69,9 +69,20 @@ func fitsTheWindow() step {
 	})()`)
 }
 
-// plugin opens the details of the plugin that the list of the SDKs shows.
+// plugin opens the details of the plugin that the list of the SDKs shows. In a wide window the details of another plugin
+// are open before the click, so the step waits for the ones of this plugin.
 func plugin(name string) []step {
-	return []step{pick(fmt.Sprintf(`[data-sdk="%s"]`, name)), exists("#detailTabs"), fitsTheWindow()}
+	return []step{
+		pick(fmt.Sprintf(`[data-sdk="%s"]`, name)),
+		exists(fmt.Sprintf(`[data-sdk="%s"][aria-current="true"]`, name)),
+		until(fmt.Sprintf(`document.querySelector("#sdkDetail .t-title-l code")?.textContent === %q`, name)),
+		exists("#detailTabs"), fitsTheWindow(),
+	}
+}
+
+// moreWays picks one of the ways to add an SDK that are in the menu next to the choice of the distribution.
+func moreWays(item string) []step {
+	return []step{pick("#addMore"), pick(fmt.Sprintf(`#menu [data-item="%s"]`, item))}
 }
 
 // tab opens a tab of the details: installed, available or options.
@@ -108,7 +119,7 @@ func init() {
 		pick(`#vChips [data-v="LTS"]`), exists(`#vChips [data-v="LTS"][aria-pressed="true"]`),
 	})
 	scenes["java-install-name"] = concat(javaAvailable, []step{
-		pick("#byNameBtn"), pick(`#nameChips [data-name="21-tem"]`),
+		pick("#addMore"), pick(`#menu [data-item="by-name"]`), pick(`#nameChips [data-name="21-tem"]`),
 		until(`document.getElementById("nameMeaning").textContent !== ""`),
 	})
 	scenes["flutter-chips"] = concat(plugin("flutter"), tab("available"), versions, []step{
@@ -124,7 +135,7 @@ func init() {
 	})
 	// What vfox 1.1.0 adds to a plugin: the dialog that links an SDK that is already on the machine, the
 	// aliases of a plugin, and the dialog that names one.
-	scenes["link-manual"] = concat(javaAvailable, []step{pick("#linkManualBtn"), exists("#linkVer")})
+	scenes["link-manual"] = concat(javaAvailable, moreWays("link-manual"), []step{exists("#linkVer")})
 	scenes["options-aliases"] = concat(options, []step{exists("#aliasAdd"), scrollTo("#aliasHead")})
 	scenes["alias-set"] = concat(options, []step{pick("#aliasAdd"), exists("#aliasIn")})
 	// The rows that have a choice of a few buttons: the version that the version files of a plugin name, and the

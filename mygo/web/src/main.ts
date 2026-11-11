@@ -54,7 +54,6 @@ export function renderChrome(): void {
   // Each page names itself once; the top bar carries the name on phones only.
   setText("homeTitle", "vfox+");
   setText("h-installed", t("sdks"));
-  setText("pickSdk", t("pick"));
   setText("h-add", t("plugins"));
   setText("addPluginLabel", t("addFromSource"));
   setText("h-tasks", t("tasksH"));

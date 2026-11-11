@@ -113,6 +113,7 @@ export function partsLine(parts: { source?: { name: { en: string; zh: string } }
 }
 
 export interface MenuItem {
+  id?: string;
   icon: string;
   label: string;
   danger?: boolean;
@@ -126,6 +127,7 @@ export function openMenu(anchor: Element, items: MenuItem[]): void {
   items.forEach((it) => {
     const b = document.createElement("button");
     if (it.danger) b.className = "danger";
+    if (it.id) b.setAttribute("data-item", it.id);
     b.innerHTML = icon(it.icon) + "<span>" + esc(it.label) + "</span>";
     b.onclick = () => {
       closeMenu();
