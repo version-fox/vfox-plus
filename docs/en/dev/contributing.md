@@ -473,11 +473,11 @@ and, for a text of a single line, the width that it wants, and from the picture 
 window what a text stands on. That gives it what the web census has not: an icon that the
 table of the icons lacks. A screen that has a dialog or a menu open is the dialog or the
 menu. The windows are as tall as a page can be, so that what is below the fold counts as
-well, and two of them have the text scale of the system at 130 % and at 200 %. Seven windows
-make 133 screens, which take about 25 s: every frame of every screen is drawn by a software
+well, and three of them have the text scale of the system at 200 %. Eight windows make 152
+screens, which take about 30 s: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
-costs seven drawings and a new window nineteen, so weigh them; they are not worth a thread
+costs eight drawings and a new window nineteen, so weigh them; they are not worth a thread
 more, as the renderer uses the cores already.
 
 ```sh

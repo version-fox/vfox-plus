@@ -139,10 +139,10 @@ person to understand, to judge or to act; what the layout already says is not sa
 The census of a screen is taken by `webheap -audit` for the web interface, which the Android
 app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
 ([how to take them](contributing.md#auditing-the-interface)). The test draws 19 screens in
-seven windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
-narrowest that the application opens in), and, with the text that the system makes larger,
-412 dp wide at 130 % and 1280 dp wide at 200 %. It fails when one of them is over a budget.
-A dp of the desktop is a px of the web interface. A screen is held to:
+eight windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
+narrowest that the application opens in), and, with the text that the system makes 200 % larger,
+360, 700 and 1280 dp wide. It fails when one of them is over a budget. A dp of the desktop is
+a px of the web interface. A screen is held to:
 
 | Census | Budget |
 | ------ | -----: |
@@ -158,15 +158,17 @@ A dp of the desktop is a px of the web interface. A screen is held to:
 | Controls that a row of a list holds and that are drawn beyond its padding | 0 |
 | Icons that the table of the icons does not have (desktop only) | 0 |
 
-**Larger text.** The text of the system may be larger than 100 %, and what holds text is as wide as
-the text then: the widths that follow the text are measured (the segments of a group, the lines of a
-fingerprint) or grow with the text scale (a field, and the widths below which the buttons at the end
-of an item move under its text), and none is a width that was measured once with one font. The desktop
-is held to the budgets in every window at 100 %, in a window of 412 dp at 130 % and in one of 1280 dp
-at 200 %. A window of 700 dp at 200 % holds, too, and is not taken. Beyond that it is not held: in a
-window of 360 dp at 130 % the button of the health on the home page and the segments of the language
-end a few dp beyond their row, and the button that adds a plugin is cut by the window; from 150 % the
-chips and the names of the mirrors outgrow the dialogs of a window of 360 dp.
+**Larger text.** The text of the system may be larger, up to 200 %, and the budgets hold at every
+size in every window. What holds text is as wide as the text: where there is no room for it, a
+control goes under the text that it was beside (the end of an item of a list, the actions of the
+header of a page and of a dialog), a group of segments gives up its padding and its icons and then
+is a dropdown (the tabs, the theme, the language, the filters), a chip, a tag and the name of a choice
+have a second line, and what has a room that does not grow is not read larger than 130 % (the labels
+of the navigation bar, the name of a variable of the options). The widths that follow the text are
+measured (the segments, a button, the lines of a fingerprint, the room of an item) or grow with
+the text scale (a field, the cards of the registry), and none is a width that was measured once with
+one font. The census takes 200 % in the narrowest window, in one of the rail and in the widest, which are
+the three layouts; what holds at 200 % holds at the sizes below it, in a window of the same width.
 
 ## Motion
 
