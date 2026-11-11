@@ -81,7 +81,7 @@ made from:
 
 | Install by name | A download mirror |
 | --- | --- |
-| ![The dialog that installs a version by its name](https://iili.io/nm03NXn.png) | ![Choosing the download mirror of Node.js](https://iili.io/nD3gjZF.png) |
+| ![The dialog that installs a version by its name](https://iili.io/nmseXvn.png) | ![Choosing the download mirror of Node.js](https://iili.io/nmiTxNR.png) |
 
 The **Options** tab holds what is particular to the plugin:
 

@@ -53,7 +53,7 @@
 
 | 中文界面里的 Java | 中文界面里的选项 |
 | --- | --- |
-| ![中文界面里 Java 的可安装版本](https://iili.io/nm03sLu.png) | ![中文界面里 Node.js 的选项](https://iili.io/nD3gSvp.png) |
+| ![中文界面里 Java 的可安装版本](https://iili.io/nmih2xS.png) | ![中文界面里 Node.js 的选项](https://iili.io/nms7NXj.png) |
 
 **选项**页签放的是这个插件特有的内容：
 
