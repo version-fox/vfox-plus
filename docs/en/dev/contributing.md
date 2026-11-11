@@ -452,8 +452,9 @@ next to a `-screenshot` writes, in JSON, what a person reads and what could not 
 the words, the sentences of eight words or more and the small lines under a title, the
 texts under the contrast of WCAG AA, the rows of a list that have two buttons with words
 on them, the lists in which three rows start with the same icon, the sizes off the type
-scale, the controls under 24 px and whether the page is wider than its window (the
-expression is `shared/tooling/internal/webheap/audit.js`). The budgets that a screen is
+scale, the controls under 24 px, the titles and the texts of controls that an ellipsis cuts
+short, the controls that a row holds beyond its padding, and whether the page is wider than
+its window (the expression is `shared/tooling/internal/webheap/audit.js`). The budgets that a screen is
 held to are in [the design system](design-system.md#budgets).
 
 To audit the whole interface, shoot every tab (`-tab`) and every scene (`-scene`) as
@@ -468,10 +469,14 @@ The desktop application has the census in its tests (`mygo/ui/census_test.go`,
 [the design system](design-system.md#budgets) names, and reads from the nodes that every
 text, icon and control registered where it is, how a text is set (size, weight, colour)
 and, for a text of a single line, the width that it wants, and from the picture of the
-window what a text stands on. That gives it what the web census has not: a title or the text of a
-control that an ellipsis cuts short, and an icon that the table of the icons lacks. A
-screen that has a dialog or a menu open is the dialog or the menu. The windows are as tall
-as a page can be, so that what is below the fold counts as well.
+window what a text stands on. That gives it what the web census has not: an icon that the
+table of the icons lacks. A screen that has a dialog or a menu open is the dialog or the
+menu. The windows are as tall as a page can be, so that what is below the fold counts as
+well, and two of them have the text scale of the system at 130 % and at 200 %. Seven windows
+make 133 screens, which take about 25 s, and three times that under the race detector: every
+frame of every screen is drawn by a software renderer. A new scene costs seven drawings and
+a new window nineteen, so weigh them; they are not worth a thread more, as the renderer uses
+the cores already.
 
 ```sh
 cd mygo
