@@ -110,7 +110,8 @@ const (
 
 // clippedMarkup is what the page of the mode clipped has besides the page of the tests: a title and the label of a button
 // that an ellipsis ends, which the census counts, and a name that is data, a title that wraps and a button that scrolls,
-// which it does not; and a row of a list whose button is inside its padding, and one whose button is 8 px beyond it.
+// which it does not; and a row of a list whose button is inside its padding, and one whose button is 8 px beyond it; and a
+// row whose word is wider than the row, one whose word breaks, and one whose word an ellipsis clips.
 const clippedMarkup = `<h1 style="font-size:24px;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A title that is far too long</h1>
 <button style="width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A label that is far too long</button>
 <div style="font-size:12px;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">version-fox/a-name-that-is-data</div>
@@ -120,6 +121,9 @@ const clippedMarkup = `<h1 style="font-size:24px;width:80px;overflow:hidden;text
 <div class="list">
   <div style="display:flex;width:300px;padding:8px 16px"><span>Inside</span><button style="margin-left:auto;width:120px">Fits</button></div>
   <div style="display:flex;width:300px;padding:8px 16px"><span>Beyond</span><button style="margin-left:auto;margin-right:-8px;width:120px">Sticks out</button></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span>A_word_with_no_space_in_it_that_is_wider_than_the_row_that_holds_it</span></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span style="min-width:0;overflow-wrap:anywhere">A_word_with_no_space_in_it_that_breaks_where_the_row_ends_as_it_may</span></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A_word_that_an_ellipsis_clips_which_the_cut_counts_if_it_counts_it_at_all</span></div>
 </div>`
 
 func newServer(t *testing.T, mode serverMode) *server {
@@ -397,8 +401,10 @@ func TestTheCensusFindsATitleAndALabelThatAreCutShortAndAControlBeyondThePadding
 	if len(found.Cut) != 2 || !strings.HasPrefix(found.Cut[0], "A title that is far too long") || !strings.HasPrefix(found.Cut[1], "A label that is far too long") {
 		t.Errorf("the title and the label of the button are cut, and nothing else: %q", found.Cut)
 	}
-	if len(found.Sticking) != 1 || !strings.Contains(found.Sticking[0], "button") {
-		t.Errorf("the button that is 8 px beyond the padding of its row, and no other: %q", found.Sticking)
+	// The rows are read in the order of the page: the button that is 8 px beyond the padding, then the word that is wider than its row.
+	// The word that breaks and the word that an ellipsis clips are not beyond it.
+	if len(found.Sticking) != 2 || !strings.HasPrefix(found.Sticking[0], "button") || !strings.HasPrefix(found.Sticking[1], "A_word_with_no_space_in_it_tha") {
+		t.Errorf("the button that is 8 px beyond the padding of its row and the word that is wider than its row, and no other: %q", found.Sticking)
 	}
 }
 

@@ -92,6 +92,7 @@
     if (!text || !element || ["SCRIPT", "STYLE", "NOSCRIPT", "TITLE"].includes(element.tagName) || !visible(element)) continue;
     const style = getComputedStyle(element);
     texts.push({
+      node,
       element,
       text,
       words: words(text),
@@ -131,14 +132,32 @@
       [...row.querySelectorAll("button,[role=button],a[href]")].filter((b) => visible(b) && words(b.textContent) > 0 && !b.closest(".seg")).length >= 2,
   ).length;
 
-  // ---- padding: a control that a row holds and that is drawn beyond the padding of the row, nearer its edge than anything
-  // else in it
+  // ---- padding: a control or a text that a row holds and that is drawn beyond the padding of the row, nearer its edge than
+  // anything else in it. A word that is longer than the room of its row does, and hangs out of it or is clipped by it. A text
+  // that an element clips, which is the cut of the census, and a text that a control holds, which is the control's, are not
+  // counted.
+  const controlSelector = "button,[role=button],[role=tab],[role=switch],input:not([type=hidden]),select,textarea,a[href]";
+  const clips = (element, row) => {
+    for (let at = element; at && at !== row.parentElement; at = at.parentElement) {
+      if (getComputedStyle(at).overflowX !== "visible") return true;
+    }
+    return false;
+  };
   const sticking = [];
   for (const row of rows) {
     const box = row.getBoundingClientRect();
     const style = getComputedStyle(row);
     const inside = [box.left + parseFloat(style.paddingLeft), box.right - parseFloat(style.paddingRight)];
-    for (const control of row.querySelectorAll("button,[role=button],[role=tab],[role=switch],input:not([type=hidden]),select,textarea,a[href]")) {
+    for (const { node, element, text } of texts) {
+      if (!row.contains(element) || element.closest(controlSelector) || clips(element, row)) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const at = range.getBoundingClientRect();
+      if (at.width > 0 && (at.left < inside[0] - 0.5 || at.right > inside[1] + 0.5)) {
+        sticking.push(text.slice(0, 30) + " at " + Math.round(at.left) + " to " + Math.round(at.right) + " in a row whose inside is " + Math.round(inside[0]) + " to " + Math.round(inside[1]));
+      }
+    }
+    for (const control of row.querySelectorAll(controlSelector)) {
       if (!visible(control)) continue;
       const at = control.getBoundingClientRect();
       if (at.left < inside[0] - 0.5 || at.right > inside[1] + 0.5) {
