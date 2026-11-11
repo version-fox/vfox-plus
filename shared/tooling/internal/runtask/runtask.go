@@ -257,6 +257,9 @@ func Run(args []string) error {
 			// The race detector needs the C compiler; the application is
 			// built without.
 			offline("env", "CGO_ENABLED=1", "go", "test", "-race", "-coverprofile=coverage.out", "./..."),
+			// The census of the screens is taken without the race detector, which it does not need and which makes it
+			// three times slower; the tests above skip it.
+			offline("go", "test", "./ui", "-run", "TestTheScreensAreWithinTheBudgets", "-count=1"),
 		} {
 			if err := asTester(app, step...); err != nil {
 				return err

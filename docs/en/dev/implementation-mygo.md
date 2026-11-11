@@ -67,6 +67,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | Format check (CI fails on a difference) | `golangci-lint fmt --diff` |
 | Lint (CI fails on any finding) | `golangci-lint run` and `golangci-lint run --build-tags e2e` |
 | Unit tests | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...` |
+| Census of the screens (the unit tests skip it under `-race`) | `go test ./ui -run TestTheScreensAreWithinTheBudgets` |
 | Coverage gates | `vfxtool coverage coverage.out 85` |
 | `.deb`, `.tar.gz`, `.msix`, `.msixbundle` | see [Packaging](#packaging) |
 

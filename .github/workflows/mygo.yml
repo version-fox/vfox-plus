@@ -132,6 +132,9 @@ jobs:
           # The race detector needs cgo; the application is built without it.
           CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
           "$RUNNER_TEMP/vfxtool" coverage coverage.out 85
+          # The census of the screens does not need the race detector, which makes it three times slower: the tests
+          # above skip it, and it is taken here.
+          go test ./ui -run TestTheScreensAreWithinTheBudgets -count=1
       - name: Test vfxtool
         run: |
           go -C shared/tooling vet ./...

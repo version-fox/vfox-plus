@@ -59,6 +59,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | 格式检查（CI 有差异即失败） | `golangci-lint fmt --diff` |
 | Lint（CI 有发现即失败） | `golangci-lint run` 与 `golangci-lint run --build-tags e2e` |
 | 单元测试 | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...` |
+| 屏幕普查（单元测试在 `-race` 下跳过它） | `go test ./ui -run TestTheScreensAreWithinTheBudgets` |
 | 覆盖率门禁 | `vfxtool coverage coverage.out 85` |
 | `.deb`、`.tar.gz`、`.msix`、`.msixbundle` | 见[打包](#打包) |
 

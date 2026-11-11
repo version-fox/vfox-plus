@@ -48,6 +48,7 @@ container, see [Development environment](environment.md).
    golangci-lint fmt --diff
    golangci-lint run && golangci-lint run --build-tags e2e
    CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./... && vfxtool coverage coverage.out 85
+   go test ./ui -run TestTheScreensAreWithinTheBudgets
    ```
 
    To run every check, the end-to-end tests and the packaging without installing
@@ -473,10 +474,11 @@ window what a text stands on. That gives it what the web census has not: an icon
 table of the icons lacks. A screen that has a dialog or a menu open is the dialog or the
 menu. The windows are as tall as a page can be, so that what is below the fold counts as
 well, and two of them have the text scale of the system at 130 % and at 200 %. Seven windows
-make 133 screens, which take about 25 s, and three times that under the race detector: every
-frame of every screen is drawn by a software renderer. A new scene costs seven drawings and
-a new window nineteen, so weigh them; they are not worth a thread more, as the renderer uses
-the cores already.
+make 133 screens, which take about 25 s: every frame of every screen is drawn by a software
+renderer, and three times slower under the race detector, which the census does not need, so
+the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
+costs seven drawings and a new window nineteen, so weigh them; they are not worth a thread
+more, as the renderer uses the cores already.
 
 ```sh
 cd mygo

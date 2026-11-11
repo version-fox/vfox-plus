@@ -179,6 +179,9 @@ func (ta *testApp) census() kit.Census {
 }
 
 func TestTheScreensAreWithinTheBudgets(t *testing.T) {
+	if raceDetector {
+		t.Skip("the census does not need the race detector, which makes it three times slower: `go test ./ui -run TestTheScreensAreWithinTheBudgets` takes it")
+	}
 	report := map[string]kit.Census{}
 	for _, scene := range censusScenes {
 		for _, window := range scene.in() {
