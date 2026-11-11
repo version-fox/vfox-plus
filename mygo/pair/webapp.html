@@ -279,16 +279,15 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .btn.text{background:transparent;color:var(--m3-primary);padding:0 12px}
 .btn:disabled{opacity:.45;cursor:default}
 /* segmented buttons */
-.seg{display:inline-flex;background:var(--m3-surface-container-highest);border-radius:20px;padding:2px;gap:2px}
-.seg button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:18px;color:var(--m3-on-surface-variant);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+/* A segmented control never outgrows its container: the buttons that do not fit in a line go on to the next one, whole,
+   and those of a line share its width. */
+.seg{display:inline-flex;flex-wrap:wrap;max-width:100%;background:var(--m3-surface-container-highest);border-radius:20px;padding:2px;gap:2px}
+.seg button{display:inline-flex;flex:1 1 auto;justify-content:center;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:18px;color:var(--m3-on-surface-variant);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
 .seg button[aria-pressed="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:18px}
 .seg button:active{border-radius:8px}
 /* A label and its choice in one column: the choice goes under the label and starts at the same edge, at every width. A
-   choice of a few buttons does not fit beside a label on a phone, nor in the narrow pane of a plugin; here it has the
-   column to itself. The buttons that do not fit in a line go on to the next, whole, and those of a line share its width. */
+   choice of a few buttons does not fit beside a label on a phone; here it has the column to itself. */
 .stack{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-.stack>.seg{max-width:100%;flex-wrap:wrap}
-.stack>.seg button{flex:1 1 auto;justify-content:center}
 /* search bar: full pill */
 .search{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:28px;padding:4px 16px 4px 12px;margin-bottom:12px}
 .search input{flex:1;background:none;border:0;padding:10px 0;outline:none;min-width:0}
@@ -397,7 +396,15 @@ table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--m3-outline-variant);vertical-align:middle}
 pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all}
 @media (prefers-color-scheme:dark){pre.log{background:#000}}
-.sdk-grid{display:grid;grid-template-columns:300px 1fr;gap:12px}
+.sdk-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px}
+/* master/detail as two screens where two panes would leave the detail too little room for its tabs and its rows: it has
+   the window less 488 px (the rail, the list and the paddings), which is 412 px at 900 and 213 px at 701 */
+@media (max-width:899px){
+  .sdk-grid{grid-template-columns:minmax(0,1fr)}
+  .pane-detail{display:none}
+  #tab-sdks.detail-open .pane-list{display:none}
+  #tab-sdks.detail-open .pane-detail{display:block;animation:sharedX var(--sp-slow-effects-t) var(--sp-slow-effects)}
+}
 @keyframes sharedX{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
 .navbar{display:none}
 #error{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + var(--sai-bottom));background:var(--m3-error);color:var(--m3-on-error);padding:10px 18px;border-radius:12px;display:none;max-width:88vw;z-index:60}
@@ -408,6 +415,11 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 .btn.outline:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
 .btn .ic.sm{width:20px;height:20px}
 #detailTabs{margin:8px 0 16px}
+/* The three tabs of a plugin are 356 px wide with their icons, and a phone leaves 32 px less than its width: on the
+   narrow ones the tabs keep their labels and lose the icons, which fit in a line. */
+@media (max-width:400px){
+  #detailTabs .ic{display:none}
+}
 .tabpane.enter{animation:fadeThrough var(--sp-slow-effects-t) var(--sp-slow-effects)}
 .actions.row,.row.actions{margin-bottom:12px;gap:12px}
 .chips{gap:8px;align-items:center;margin:0 0 8px}
@@ -442,7 +454,8 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
   /* navigation bar: 80dp, pill indicator, labels always shown */
   .navbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--m3-surface-container);padding:12px calc(8px + var(--sai-right)) calc(16px + var(--sai-bottom)) calc(8px + var(--sai-left));justify-content:space-around}
-  .navbar .dest{min-height:56px;min-width:64px;padding:0}
+  /* the five destinations share the bar: at 64 px each they needed 336 px, and a phone of 320 px lost the edge of the last */
+  .navbar .dest{min-height:56px;flex:1 1 0;min-width:0;padding:0}
   /* extended FAB above the bar on the pages where adding makes sense */
   .mfab{position:fixed;right:calc(16px + var(--sai-right));bottom:calc(96px + var(--sai-bottom));z-index:9;display:none;align-items:center;gap:12px;height:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.28);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
   .mfab span:last-child{display:none}
@@ -472,11 +485,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .stat .n{font-size:28px}
   .stat .l,.stat .lbl,.stat div:last-child{font-size:12px}
   /* terminal hint and cards: tonal containers where there is content to group */
-  /* sdks: master/detail as two screens */
-  .sdk-grid{grid-template-columns:1fr}
-  .pane-detail{display:none}
-  #tab-sdks.detail-open .pane-list{display:none}
-  #tab-sdks.detail-open .pane-detail{display:block;animation:sharedX var(--sp-slow-effects-t) var(--sp-slow-effects)}
   #snacks{bottom:calc(176px + var(--sai-bottom))}
   #error{bottom:calc(176px + var(--sai-bottom))}
   /* the keyboard is open (the Android app says so): the bars make room for the field */

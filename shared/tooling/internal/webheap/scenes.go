@@ -59,9 +59,19 @@ func concat(parts ...[]step) []step {
 	return all
 }
 
+// fitsTheWindow waits until the page is no wider than the window, and what each of the two panes of the SDKs holds is
+// no wider than the pane. The tabs of a plugin that did not fit made the column of the details grow, and with it the
+// page; and a pane can be overrun by its content while the page still fits, when the overflow stays inside the window.
+func fitsTheWindow() step {
+	return until(`(() => {
+		const fits = (element) => !element || element.scrollWidth <= element.clientWidth + 1;
+		return fits(document.documentElement) && ["#sdkGrid", ".pane-detail"].every((selector) => fits(document.querySelector(selector)));
+	})()`)
+}
+
 // plugin opens the details of the plugin that the list of the SDKs shows.
 func plugin(name string) []step {
-	return []step{pick(fmt.Sprintf(`[data-sdk="%s"]`, name)), exists("#detailTabs")}
+	return []step{pick(fmt.Sprintf(`[data-sdk="%s"]`, name)), exists("#detailTabs"), fitsTheWindow()}
 }
 
 // tab opens a tab of the details: installed, available or options.
@@ -123,6 +133,10 @@ func init() {
 	scenes["options-legacy"] = concat(options, []step{exists("#legacyStrategy"), scrollTo("#legacyHead"), underTheirLabels("legacyStrategy")})
 	scenes["settings-languages"] = []step{
 		pick(`[data-tab="settings"]`), exists("#langSeg"), scrollTo("#l-lang"), underTheirLabels("langSeg", "pageLangSeg"),
+	}
+	// A page that does not fit its window is not one to take a picture of, whatever the scene shows.
+	for name, steps := range scenes {
+		scenes[name] = concat(steps, []step{fitsTheWindow()})
 	}
 }
 

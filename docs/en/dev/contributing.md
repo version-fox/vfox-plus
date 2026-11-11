@@ -288,15 +288,16 @@ that `--scene` plays: `connections`, `connections-pair`, `flutter-chips`, `java-
 `java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`,
 `options-legacy`, `settings-languages`, `alias-set` and `link-manual` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
-scenes click against `mygo/pair/webapp.html`). Every picture gets an application and a home
-of its own, because choosing a distribution is kept in the settings of the application, and
-a scene that chooses one would change every picture after it. The application serves its web
-interface because its settings say so, and allows other devices, which the connections and the code
-that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is told the addresses of the
-documentation (see above); and the end-to-end build writes a pairing link to the file that
-`VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The scenes of Java need a machine
-that has Java and Flutter installed, and the home page needs one that has not, which is why
-the inventory of the fake vfox is a variable of the call:
+scenes click against `mygo/pair/webapp.html`). A scene ends by waiting for the page to fit its
+window, so a layout that overflows fails the shot instead of making a picture. Every picture gets
+an application and a home of its own, because choosing a distribution is kept in the settings of
+the application, and a scene that chooses one would change every picture after it. The application
+serves its web interface because its settings say so, and allows other devices, which the
+connections and the code that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is
+told the addresses of the documentation (see above); and the end-to-end build writes a pairing link
+to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The
+scenes of Java need a machine that has Java and Flutter installed, and the home page needs one that
+has not, which is why the inventory of the fake vfox is a variable of the call:
 
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
