@@ -775,10 +775,12 @@ function openLinkManual(): void {
     box.innerHTML =
       '<div class="field"><label for="linkVer">' +
       esc(t("linkVersionField")) +
-      '</label><input id="linkVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '</label><input id="linkVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="17-system"></div>' +
       '<div class="field"><label for="linkPath">' +
       esc(t("linkPathField")) +
-      '</label><input id="linkPath" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '</label><input id="linkPath" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label">' +
+      esc(t("linkPathHelp")) +
+      "</div></div>" +
       switchRow("linkForce", t("linkForce")) +
       '<div class="actions"><button class="btn text" id="linkCancel">' +
       esc(t("cancel")) +
@@ -986,10 +988,10 @@ function openAliasSet(initialVersion?: string): void {
     box.innerHTML =
       '<div class="field"><label for="aliasIn">' +
       esc(t("aliasField")) +
-      '</label><input id="aliasIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '</label><input id="aliasIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="j17"></div>' +
       '<div class="field"><label for="aliasVer">' +
       esc(t("linkVersionField")) +
-      '</label><input id="aliasVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' +
+      '</label><input id="aliasVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="17-system"></div>' +
       '<div class="actions"><button class="btn text" id="aliasCancel">' +
       esc(t("cancel")) +
       '</button><button class="btn primary" id="aliasOk">' +
