@@ -457,6 +457,33 @@ func TestSnackbarsAnnounceFinishedTasksAndFailuresStay(t *testing.T) {
 	ta.mustText("Failed · java plugin not installed")
 }
 
+// The field of the environment variables was as wide as the line of help above it, and was narrower when the line was shorter, which
+// no census counts: the example in it broke after "https:".
+func TestTheFieldOfTheEnvironmentHasAWidthOfItsOwnAndNotTheOneOfTheHelpAboveIt(t *testing.T) {
+	ta := newTestApp(t, testsupport.FixtureRunner(), 1280, 1600, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+	ta.start()
+	ta.button("Settings")
+	ta.until("the vfox configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+	ta.settle()
+	width := func() float32 {
+		field, ok := ta.find(kit.RoleTextField, "VFOX_NODEJS_MIRROR=https://npmmirror.com/mirrors/node")
+		if !ok {
+			t.Fatal("the field of the environment variables is not on the screen")
+		}
+		return field.Rect.W
+	}
+	if got := width(); got != environmentWidth {
+		t.Errorf("the field is %v dp wide, want %v", got, float32(environmentWidth))
+	}
+	// The help above it is a different line in Chinese.
+	ta.button("简体中文")
+	ta.mustText("外观")
+	ta.settle()
+	if got := width(); got != environmentWidth {
+		t.Errorf("in Chinese the field is %v dp wide, want %v", got, float32(environmentWidth))
+	}
+}
+
 func TestSettingsChangeTheAppearanceTheLanguageAndTheEnvironment(t *testing.T) {
 	store := settings.NewMemorySettingsStore(settings.DefaultSettings())
 	ta := newTestApp(t, testsupport.FixtureRunner(), windowWidth, windowHeight, store)

@@ -182,6 +182,10 @@ func (a *App) settingsContentWidth(k kit.Ctx) float32 {
 	return min(a.pageWidth(k)-2*gapXL, 840) - 2*gapL - 40
 }
 
+// environmentWidth is the width in dp of the field of the environment variables and of what is above and under it: the
+// example in it, of 53 characters, is in one line.
+const environmentWidth = 480
+
 // themeIconsWidth is the width in dp from which the segments of the theme have an icon each: with them the three are
 // 294 dp wide.
 const themeIconsWidth = 300
@@ -241,7 +245,9 @@ func (a *App) vfoxSection(k kit.Ctx) {
 		{
 			ID: "environment", Title: a.T("settingsEnvironment"), Leading: icon(k, "environment"),
 			SubtitleWidget: func(mui.Color) {
-				mui.Column(k.Context).Margin(gapS, 0, 0, 0).Children(func() {
+				// The field has a width of its own: it was as wide as the line of help above it, and got narrower when the
+				// line did.
+				mui.Column(k.Context).Width(min(environmentWidth, a.settingsContentWidth(k))).Margin(gapS, 0, 0, 0).Children(func() {
 					kit.Label(k, a.T("settingsEnvironmentHelp"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 					kit.TextField(k, kit.TextFieldSpec{
 						ID: "environment", Text: &a.pages.environmentText, Lines: 3, MaxLines: 8, Monospace: true,
