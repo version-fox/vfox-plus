@@ -238,7 +238,7 @@ func (a *App) publicAddressItem(k kit.Ctx, current settings.AppSettings) kit.Lis
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "web-public-address.field", Hint: "https://vfox.example.com", Text: &a.pages.publicAddressText,
 				Dense: true, OnSubmit: save, OnBlur: save,
-			}).Width(260)
+			}).Width(min(260, a.settingsContentWidth(k)))
 		},
 	}
 }
@@ -375,7 +375,11 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 			mui.Column(k.Context).Children(func() {
 				kit.Label(k, kind, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 				kit.Label(k, a.T("webFingerprint"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
-				for _, line := range fingerprintLines(status.Fingerprint, 16) {
+				perLine := 16
+				if a.wideSettingsWrap(k) {
+					perLine = fingerprintBytesPerLine(a.settingsContentWidth(k))
+				}
+				for _, line := range fingerprintLines(status.Fingerprint, perLine) {
 					kit.Label(k, line, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace())
 				}
 			})
@@ -391,6 +395,12 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 			})
 		},
 	}
+}
+
+// fingerprintBytesPerLine is how many bytes of a fingerprint a line of width dp holds, in the monospaced font of 12 dp: a byte
+// is two characters and a colon, and a character is about 7.5 dp wide.
+func fingerprintBytesPerLine(width float32) int {
+	return max(4, min(16, int((width/7.5+1)/3)))
 }
 
 // fingerprintLines breaks a fingerprint, the bytes of it in hexadecimal and separated by

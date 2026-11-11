@@ -96,7 +96,7 @@ func (a *App) pluginsPage(k kit.Ctx) {
 			mui.Row(k.Context).Wrap().Gap(gapM).GapY(gapM).Margin(0, registryInset, gapL, registryInset).Children(func() {
 				kit.SearchBar(k, kit.SearchBarSpec{
 					ID: "search", Hint: a.T("pluginsSearchHint"), Text: &a.pages.pluginsQuery, ClearTooltip: a.T("actionClose"),
-				}).Width(420).Shrink(1)
+				}).Width(min(420, a.pageWidth(k)-2*registryInset))
 				kit.ButtonGroup(k, kit.ButtonGroupSpec{
 					ID: "filter", Selected: selected, OnSelect: func(value string) { a.pages.pluginsFilter = value },
 					Segments: []kit.Segment{

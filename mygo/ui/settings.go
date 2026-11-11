@@ -103,6 +103,12 @@ func blank(k kit.Ctx) func(mui.Color) {
 
 func (a *App) appearanceSection(k kit.Ctx) {
 	current := a.model.Settings.Settings()
+	themeIcon := func(name string) string {
+		if a.settingsContentWidth(k) < themeIconsWidth {
+			return ""
+		}
+		return name
+	}
 	items := []kit.ListItemSpec{
 		{
 			ID: "theme", Title: a.T("settingsTheme"), Leading: icon(k, "darkMode"), Wrap: a.wideSettingsWrap(k),
@@ -113,9 +119,9 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						a.updateSettings(func(s *settings.AppSettings) { s.Theme = settings.ThemePreference(value) })
 					},
 					Segments: []kit.Segment{
-						{Value: string(settings.ThemeSystem), Label: a.T("themeSystem"), Icon: "systemMode"},
-						{Value: string(settings.ThemeLight), Label: a.T("themeLight"), Icon: "lightMode"},
-						{Value: string(settings.ThemeDark), Label: a.T("themeDark"), Icon: "darkMode"},
+						{Value: string(settings.ThemeSystem), Label: a.T("themeSystem"), Icon: themeIcon("systemMode")},
+						{Value: string(settings.ThemeLight), Label: a.T("themeLight"), Icon: themeIcon("lightMode")},
+						{Value: string(settings.ThemeDark), Label: a.T("themeDark"), Icon: themeIcon("darkMode")},
 					},
 				})
 			},
@@ -169,6 +175,16 @@ func (a *App) appearanceSection(k kit.Ctx) {
 	kit.GroupHeader(k, a.T("settingsAppearance"), nil)
 	kit.ListGroup(k, items...)
 }
+
+// settingsContentWidth is the width in dp that what is under the text of an item of the settings can have: the page less
+// the space around it, the padding of the item and the icon that it starts with.
+func (a *App) settingsContentWidth(k kit.Ctx) float32 {
+	return min(a.pageWidth(k)-2*gapXL, 840) - 2*gapL - 40
+}
+
+// themeIconsWidth is the width in dp from which the segments of the theme have an icon each: with them the three are
+// 294 dp wide.
+const themeIconsWidth = 300
 
 // wideSettingsWrap tells whether the buttons at the end of the items of the
 // settings move under their text: the items are as wide as the page less the
@@ -276,7 +292,7 @@ func (a *App) updateSection(k kit.Ctx) {
 				ID: "update-mirror-field", Hint: "https://gh-proxy.org/", Text: &a.pages.updateMirrorText,
 				Monospace: true, OnSubmit: func(text string) { a.saveUpdateMirror(text) },
 				OnBlur: func(text string) { a.pages.updateMirrorText = text },
-			}).Width(300)
+			}).Width(min(300, a.settingsContentWidth(k)))
 		},
 	})
 	kit.GroupHeader(k, a.T("updateTitle"), nil)
@@ -549,7 +565,7 @@ func (a *App) configText(k kit.Ctx, key, title, iconName, help, hint string, pic
 						}})
 					}
 				},
-			}).Width(300)
+			}).Width(min(300, a.settingsContentWidth(k)))
 		},
 	}
 }

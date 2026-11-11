@@ -44,6 +44,10 @@ const narrowHeader = 520
 // move under its text.
 const wrapWidth = 560
 
+// tabIconsWidth is the width in dp of the details from which their tabs have an icon each: three tabs with icons are 370 dp
+// wide, and the margin is 24 dp on each side.
+const tabIconsWidth = 400
+
 // detailState is the state of the details of one plugin.
 type detailState struct {
 	name       string
@@ -138,12 +142,18 @@ func (a *App) detailView(k kit.Ctx, name string, onBack func()) {
 		installed[version] = true
 	}
 	tabs := func() {
+		tabIcon := func(name string) string {
+			if a.pages.detailWidth < tabIconsWidth {
+				return ""
+			}
+			return name
+		}
 		segments := []kit.Segment{
-			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: "versions"},
-			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: "install"},
+			{Value: tabInstalled, Label: fmt.Sprintf("%s (%d)", a.T("sdkTabInstalled"), len(sdk.Versions)), Icon: tabIcon("versions")},
+			{Value: tabAvailable, Label: a.T("sdkTabAvailable"), Icon: tabIcon("install")},
 		}
 		if _, known := d.controller.EffectiveProfile(); known {
-			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: "options"})
+			segments = append(segments, kit.Segment{Value: tabOptions, Label: a.T("sdkTabOptions"), Icon: tabIcon("options")})
 		}
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
 			ID: "tabs", Selected: d.tab, OnSelect: func(tab string) { a.showTab(d, tab) }, Segments: segments,

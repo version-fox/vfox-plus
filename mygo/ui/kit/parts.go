@@ -74,12 +74,15 @@ func Card(c Ctx, cd CardSpec) ui.Element {
 // the end.
 func PageHeader(c Ctx, title, subtitle string, leading func(), actions ...func()) ui.Element {
 	cs := c.Colors()
+	style := Emph(HeadlineMedium)
+	// The title is what the actions give way to: it keeps the width that it needs, and the actions go under one another.
+	room, _ := c.MeasureText(0, ui.Span{Text: title, Size: style.Size * c.Env.Theme.TextScale, Weight: style.Weight})
 	return ui.Row(c.Context).Padding(24, 16, 16, 24).Gap(8).Children(func() {
 		if leading != nil {
 			leading()
 		}
-		ui.Column(c.Context).Grow(1).Shrink(1).Gap(4).Children(func() {
-			Line(c, title, Emph(HeadlineMedium), cs.OnSurface).Role(ui.RoleHeading).Level(1)
+		ui.Column(c.Context).Grow(1).Shrink(1).MinWidth(room).Gap(4).Children(func() {
+			Line(c, title, style, cs.OnSurface).Role(ui.RoleHeading).Level(1)
 			if subtitle != "" {
 				Label(c, subtitle, Type(BodyMedium), cs.OnSurfaceVariant, Lines(2))
 			}

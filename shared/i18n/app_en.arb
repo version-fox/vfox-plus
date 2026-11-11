@@ -875,7 +875,7 @@
   "@webRemoteConfirmAction": { "description": "Button that lets other devices connect." },
   "settingsWebPort": "Port",
   "@settingsWebPort": { "description": "Title of the field of the port that other devices connect to." },
-  "settingsWebPortHelp": "Allow it in the firewall of this computer.",
+  "settingsWebPortHelp": "Allow it in the firewall.",
   "@settingsWebPortHelp": { "description": "Explains the port that other devices connect to." },
   "settingsWebPublicAddress": "Public address",
   "@settingsWebPublicAddress": { "description": "Title of the field of the address at which a proxy, a tunnel or the gateway publishes the interface." },
@@ -993,7 +993,7 @@
   "@settingsEnvironment": {
     "description": "Extra environment variables for vfox."
   },
-  "settingsEnvironmentHelp": "Passed to vfox and its plugins, one KEY=VALUE per line.",
+  "settingsEnvironmentHelp": "Passed to vfox and its plugins.",
   "@settingsEnvironmentHelp": {
     "description": "Help text of the environment variables field."
   },

@@ -26,11 +26,10 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// javaApp is the application with Java installed: Temurin 21 in use, Liberica 25 with
-// JavaFX and OpenJDK 25, next to the Node.js of the fixtures.
-func javaApp(t *testing.T) *testApp {
-	t.Helper()
-	runner := testsupport.FixtureRunner().
+// javaRunner is vfox with Java installed: Temurin 21 in use, Liberica 25 with JavaFX and
+// OpenJDK 25, next to the Node.js of the fixtures.
+func javaRunner() *testsupport.FakeProcessRunner {
+	return testsupport.FixtureRunner().
 		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n├─┬java\n│ ├──21.0.12.1+1-tem\n│ ├──25.0.4+9-librca-fx\n│ └──25.0.2+10\n└─┬nodejs\n  ├──24.11.1\n  └──22.21.0\n"}).
 		On("current", core.ProcessOutput{Stdout: "java -> v21.0.12.1+1-tem\nnodejs -> v24.11.1\n"}).
 		On("info java --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
@@ -39,7 +38,12 @@ func javaApp(t *testing.T) *testApp {
 		On("info flutter --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
 			Stdout: "flutter\x1f0.2.5\x1fhttps://github.com/version-fox/vfox-flutter\x1f/home/u/.vfox/cache/flutter\x1fFlutter plugin, https://flutter.dev",
 		})
-	app := newTestApp(t, runner, windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+}
+
+// javaApp is the application with Java installed.
+func javaApp(t *testing.T) *testApp {
+	t.Helper()
+	app := newTestApp(t, javaRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
 	app.start()
 	return app
 }

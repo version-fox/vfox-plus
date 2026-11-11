@@ -180,6 +180,23 @@ var emphasizedWeight = [...]int{
 	LabelLarge: 700, LabelMedium: 700, LabelSmall: 700,
 }
 
+// ScaleSize is the largest size of the type scale that is not above size, or the smallest of them for a size below all
+// of them: a text whose size follows the size of what it is in, like the initial in an avatar, keeps to the steps of the
+// scale.
+func ScaleSize(size float32) float32 {
+	best, smallest := float32(0), scale[0].Size
+	for _, style := range scale {
+		if style.Size <= size && style.Size > best {
+			best = style.Size
+		}
+		smallest = min(smallest, style.Size)
+	}
+	if best == 0 {
+		return smallest
+	}
+	return best
+}
+
 // Type is the style of a role of the type scale.
 func Type(role TextRole) TextStyle { return scale[role] }
 

@@ -80,7 +80,7 @@ func Avatar(c Ctx, a AvatarSpec) ui.Element {
 			Icon(c, a.Icon, size/2, foreground, 0)
 			return
 		}
-		style := Emph(TitleMedium).WithSize(size * 0.42).WithWeight(700)
+		style := Emph(TitleMedium).WithSize(ScaleSize(size * 0.42)).WithWeight(700)
 		Line(c, initial(a.Name), style, foreground)
 	})
 }
