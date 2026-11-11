@@ -105,7 +105,22 @@ const (
 	redirects                   // sends /app to the intro page, as for an unpaired browser
 	neverList                   // shows no SDK list, ever
 	noScenes                    // lists no SDK to click
+	clipped                     // has a title and a button whose text does not fit, and some that do not count
 )
+
+// clippedMarkup is what the page of the mode clipped has besides the page of the tests: a title and the label of a button
+// that an ellipsis ends, which the census counts, and a name that is data, a title that wraps and a button that scrolls,
+// which it does not; and a row of a list whose button is inside its padding, and one whose button is 8 px beyond it.
+const clippedMarkup = `<h1 style="font-size:24px;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A title that is far too long</h1>
+<button style="width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A label that is far too long</button>
+<div style="font-size:12px;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">version-fox/a-name-that-is-data</div>
+<h2 style="font-size:24px;width:80px">A title that wraps instead of being cut</h2>
+<button style="width:70px;overflow:auto;white-space:nowrap">A label that scrolls</button>
+<button style="width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A label with room</button>
+<div class="list">
+  <div style="display:flex;width:300px;padding:8px 16px"><span>Inside</span><button style="margin-left:auto;width:120px">Fits</button></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span>Beyond</span><button style="margin-left:auto;margin-right:-8px;width:120px">Sticks out</button></div>
+</div>`
 
 func newServer(t *testing.T, mode serverMode) *server {
 	t.Helper()
@@ -125,6 +140,10 @@ func newServer(t *testing.T, mode serverMode) *server {
 		listed := "true"
 		if mode == neverList || mode == noScenes {
 			listed = "false"
+		}
+		if mode == clipped {
+			_, _ = fmt.Fprint(w, strings.Replace(strings.Replace(testPage, "LISTED", listed, 1), "<script>", clippedMarkup+"\n<script>", 1))
+			return
 		}
 		if mode == noScenes {
 			// The list has rows, but not the ones that the scenes click.
@@ -355,6 +374,31 @@ func TestRunTakesTheCensusOfThePageThatItShoots(t *testing.T) {
 	// width is the one of the window of the Chrome that runs the test, which may not be as narrow as a phone.)
 	if !found.Dark || found.Width == 0 || found.Words < 5 || found.Contrast.Measured == 0 || found.Targets.Total < 5 || found.Overflow {
 		t.Errorf("census: %+v\n%s", found, data)
+	}
+}
+
+func TestTheCensusFindsATitleAndALabelThatAreCutShortAndAControlBeyondThePaddingOfItsRow(t *testing.T) {
+	s := newServer(t, clipped)
+	census := filepath.Join(t.TempDir(), "census.json")
+	if got := runTool(t, s, "-screenshot", filepath.Join(t.TempDir(), "page.png"), "-audit", census, "-window", "412,915"); got.err != nil {
+		t.Fatal(got.err)
+	}
+	data, err := os.ReadFile(census)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found struct {
+		Cut      []string `json:"cut"`
+		Sticking []string `json:"sticking"`
+	}
+	if err := json.Unmarshal(data, &found); err != nil {
+		t.Fatalf("the census is not JSON: %v\n%s", err, data)
+	}
+	if len(found.Cut) != 2 || !strings.HasPrefix(found.Cut[0], "A title that is far too long") || !strings.HasPrefix(found.Cut[1], "A label that is far too long") {
+		t.Errorf("the title and the label of the button are cut, and nothing else: %q", found.Cut)
+	}
+	if len(found.Sticking) != 1 || !strings.Contains(found.Sticking[0], "button") {
+		t.Errorf("the button that is 8 px beyond the padding of its row, and no other: %q", found.Sticking)
 	}
 }
 

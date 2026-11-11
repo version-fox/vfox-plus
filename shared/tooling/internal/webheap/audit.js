@@ -131,6 +131,22 @@
       [...row.querySelectorAll("button,[role=button],a[href]")].filter((b) => visible(b) && words(b.textContent) > 0 && !b.closest(".seg")).length >= 2,
   ).length;
 
+  // ---- padding: a control that a row holds and that is drawn beyond the padding of the row, nearer its edge than anything
+  // else in it
+  const sticking = [];
+  for (const row of rows) {
+    const box = row.getBoundingClientRect();
+    const style = getComputedStyle(row);
+    const inside = [box.left + parseFloat(style.paddingLeft), box.right - parseFloat(style.paddingRight)];
+    for (const control of row.querySelectorAll("button,[role=button],[role=tab],[role=switch],input:not([type=hidden]),select,textarea,a[href]")) {
+      if (!visible(control)) continue;
+      const at = control.getBoundingClientRect();
+      if (at.left < inside[0] - 0.5 || at.right > inside[1] + 0.5) {
+        sticking.push(describe(control) + " at " + Math.round(at.left) + " to " + Math.round(at.right) + " in a row whose inside is " + Math.round(inside[0]) + " to " + Math.round(inside[1]));
+      }
+    }
+  }
+
   // ---- icons: a list in which three rows or more start with the same icon has an icon that says nothing
   const wallpaper = [];
   for (const list of document.querySelectorAll(".list")) {
@@ -154,6 +170,24 @@
     if (!t.mono && !scale.has(size)) offScale[size] = (offScale[size] || 0) + 1;
   }
 
+  // ---- cut: a title (22 px and more) or the text of a control that does not fit its box, in one line that an ellipsis ends
+  // or that is clipped. A name or a path that is data, in a line of its own, may be cut short, and is not counted; a box
+  // that scrolls loses nothing, and is not counted either.
+  const cut = [];
+  const boxes = new Set();
+  for (const { element, text, size } of texts) {
+    if (size < 22 && !element.closest("button,[role=button],[role=tab],a[href],input,select,summary")) continue;
+    let box = element;
+    while (box && box !== document.body) {
+      const style = getComputedStyle(box);
+      if (["hidden", "clip"].includes(style.overflowX) && (style.whiteSpace === "nowrap" || style.textOverflow === "ellipsis")) break;
+      box = box.parentElement;
+    }
+    if (!box || box === document.body || boxes.has(box) || box.scrollWidth <= box.clientWidth + 1) continue;
+    boxes.add(box);
+    cut.push(text.slice(0, 30) + " is " + box.scrollWidth + " px wide where it has " + box.clientWidth);
+  }
+
   // ---- targets: what a finger or a pointer has to hit
   const targets = [
     ...document.querySelectorAll("button,a[href],input:not([type=hidden]),select,textarea,[role=button],[role=tab],[role=switch],[role=checkbox]"),
@@ -175,5 +209,7 @@
     offScale,
     targets: { total: targets.length, under24: smallest.filter((s) => s < 24).length, under40: smallest.filter((s) => s < 40).length },
     overflow: page.scrollWidth > page.clientWidth,
+    cut,
+    sticking,
   });
 })()
