@@ -168,7 +168,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .rail.expanded{width:calc(240px + var(--sai-left))}
 .rail .brand{display:flex;align-items:center;gap:12px;padding:4px 8px 12px}
 .rail .mark{width:44px;height:44px;flex:none;display:block}
-.rail .wordmark{display:none;font-size:18px;font-weight:500;white-space:nowrap}
+.rail .wordmark{display:none;font-size:16px;font-weight:500;white-space:nowrap}
 .rail.expanded .wordmark{display:block}
 .rail .iconbtn{align-self:flex-start}
 .rail nav{display:flex;flex-direction:column;gap:4px;margin-top:8px}
@@ -201,7 +201,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .iconbtn.toggled{color:var(--m3-primary)}
 /* top bar */
 .topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(10px + var(--sai-top)) calc(20px + var(--sai-right)) 10px 20px;background:var(--m3-surface);border-bottom:1px solid var(--m3-outline-variant)}
-.topbar h1{font-size:18px;font-weight:500;margin:0}
+.topbar h1{font-size:16px;font-weight:500;margin:0}
 .topbar .sp{flex:1}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--m3-on-surface-variant)}
 .live .dot{width:9px;height:9px;border-radius:50%;background:var(--m3-outline)}
@@ -255,9 +255,9 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 /* content-visibility: the cards below the screen are not laid out, so that opening the page takes one frame */
 .pcard{background:var(--m3-surface-container);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px;content-visibility:auto;contain-intrinsic-size:auto 150px}
 /* avatars: expressive shapes by hash, 3 tone pairs */
-.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:20px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:22px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
 .avatar:hover{transform:rotate(30deg)}
-.avatar.lg{width:72px;height:72px;font-size:30px}
+.avatar.lg{width:72px;height:72px;font-size:28px}
 .av-p{background:var(--m3-primary-fixed);color:var(--m3-on-primary-fixed)}
 .av-s{background:var(--m3-secondary-fixed);color:var(--m3-on-secondary-fixed)}
 .av-t{background:var(--m3-tertiary-fixed);color:var(--m3-on-tertiary-fixed)}
@@ -301,7 +301,7 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .scrim.open .dialog{animation:scaleIn var(--sp-default-spatial-t) var(--sp-default-spatial),fadeIn var(--sp-default-effects-t) var(--sp-default-effects)}
 @keyframes scaleIn{from{transform:scale(.8)}to{transform:scale(1)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.dialog h3{margin:0 0 8px;font-size:20px;font-weight:500}
+.dialog h3{margin:0 0 8px;font-size:22px;font-weight:500}
 .dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 /* menus */
 .menu{position:fixed;z-index:40;background:var(--m3-surface-container-high);border-radius:12px;padding:8px 0;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none}
@@ -471,8 +471,8 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .stats .stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;position:relative}
 .stats .stat .ic-row{display:flex;margin-bottom:10px}
 .stats .stat .ic{width:24px;height:24px}
-.stats .stat .n{font-size:34px;line-height:1.05}
-.stats .stat .l{font-size:13px;font-weight:500}
+.stats .stat .n{font-size:32px;line-height:1.05}
+.stats .stat .l{font-size:12px;font-weight:500}
 .stats .stat .shape{position:absolute;right:-26px;bottom:-26px;width:100px;height:100px;border-radius:52% 48% 60% 40%/45% 55% 42% 58%;background:color-mix(in srgb,currentColor 12%,transparent);opacity:1}
 .seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
 .taskrow:first-child{border-radius:20px 20px 4px 4px}
@@ -507,7 +507,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .seg button[aria-pressed="true"]{background:var(--m3-primary);color:var(--m3-on-primary)}
 .pcard{justify-content:space-between}
 .pcard .lead{display:flex;align-items:center;gap:12px;min-width:0}
-.pcard .lead .avatar{width:40px;height:40px;font-size:18px}
+.pcard .lead .avatar{width:40px;height:40px;font-size:16px}
 .pcard .lead .names{min-width:0;display:flex;flex-direction:column}
 .pcard .lead .names b{font-weight:500}
 .pcard .lead .names .nameline{display:flex;align-items:center;gap:6px}
@@ -534,7 +534,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .pagehead{margin-bottom:8px}
   .pagehead .grow .t-body{display:none}
   .sectionlabel{margin:12px 4px 4px}
-  .stats .stat .n{font-size:26px}
+  .stats .stat .n{font-size:24px}
   .rowitem{flex-wrap:wrap}
 }
 /* ---------- phones: one column, the page title lives in the top bar ---------- */
@@ -548,7 +548,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .stats{margin-bottom:8px}
   .stats .stat .shape{display:none}
   .stats .stat .ic-row{margin-bottom:4px}
-  .stats .stat .n{font-size:26px}
+  .stats .stat .n{font-size:24px}
   .list .item{padding:14px 14px}
   .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
   .pagehead .grow{display:none}
