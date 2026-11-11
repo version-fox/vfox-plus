@@ -85,9 +85,11 @@ export function renderSdks(): void {
       ((b as HTMLButtonElement).onclick = () =>
         (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
   );
-  if (!state.detail && matchMedia(TWO_PANES).matches) {
+  // Beside the list there is always a plugin, once the page of the SDKs is the one that is shown: the one in use, or else the
+  // first. It is a default and not a place that the person went to, so the address stays what it is (#/sdks), and a page
+  // that is not shown does not open anything.
+  if (state.tab === "sdks" && !state.detail && matchMedia(TWO_PANES).matches) {
     const first = list.find((s) => s.HasCurrent) || list[0];
-    history.replaceState({ tab: "sdks" }, "", "#/sdk/" + encodeURIComponent(first.Name));
     void showDetail(first.Name);
   }
 }

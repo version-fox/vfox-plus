@@ -155,8 +155,9 @@ function route(): void {
     switchTab("sdks", false);
     return;
   }
-  if (r.tab === "sdks") showList(false);
+  // The page first, so that the list of the SDKs knows that it is the one that is shown (it opens a plugin beside itself).
   switchTab(r.tab, false);
+  if (r.tab === "sdks") showList(false);
 }
 
 function applyTheme(): void {

@@ -231,7 +231,7 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 
 **Web 界面。** 用应用的端到端构建（在虚拟显示里）与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
 可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
-`connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
+`home`、`connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
 `java-install-name`、`options`、`options-mirror`、`options-aliases`、`options-legacy`、`settings-languages`、
 `alias-set` 与 `link-manual`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
 `mygo/pair/webapp.html` 检查场景点击的元素）。场景的最后一步会等页面不比窗口宽，所以溢出的布局会让截图失败，而不是

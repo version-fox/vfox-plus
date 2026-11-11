@@ -284,7 +284,7 @@ pictures are there to look at when the interface changes; nothing links them.
 **The web interface.** Render it with the end-to-end build of the application, in a virtual
 display, and headless Chrome, in a language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
-that `--scene` plays: `connections`, `connections-pair`, `flutter-chips`, `java-available`,
+that `--scene` plays: `home`, `connections`, `connections-pair`, `flutter-chips`, `java-available`,
 `java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`,
 `options-legacy`, `settings-languages`, `alias-set` and `link-manual` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the

@@ -129,6 +129,13 @@ func init() {
 	// allow other devices (the setting webRemote) and to have an address to give.
 	scenes["connections"] = concat(connections, []step{scrollTo("#webCard")})
 	scenes["connections-pair"] = concat(connections, []step{pick("#webPair"), exists("#pairBox .qr"), scrollTo("#pairBox")})
+	// The home page, once its lists have come, is still at its own address: a page that is not shown does not move the
+	// address to a plugin, which a reload would take for the page that was asked for.
+	scenes["home"] = []step{
+		until(`document.querySelectorAll("#homeActive .item").length > 0`),
+		until(`!location.hash.startsWith("#/sdk")`),
+		fitsTheWindow(),
+	}
 	scenes["options"] = options
 	scenes["options-mirror"] = concat(options, []step{
 		pick(`[data-var="VFOX_NODEJS_MIRROR"]`), pick(`#varChips [data-value="https://npmmirror.com/mirrors/node"]`),
