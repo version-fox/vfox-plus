@@ -125,7 +125,6 @@ class PairingFragment : Fragment() {
     private fun enter() {
         binding.hero.springIn(0, 40f)
         binding.title.springIn(70)
-        binding.body.springIn(110)
         val steps = listOf(binding.reconnectCard, binding.whereCard, binding.scanButton, binding.linkLayout, binding.connectButton)
         steps.filter { it.isVisible }.forEachIndexed { index, step -> step.springIn(170L + index * 50) }
         binding.howButton.springIn(170L + steps.size * 50)
