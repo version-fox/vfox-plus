@@ -40,7 +40,7 @@ colour.
 
 ## What it does
 
-- Shows your installed SDKs, the versions in use and statistics at a glance.
+- Shows the versions in use, and the health of your installed SDKs, at a glance.
 - Installs, uninstalls and selects SDK versions, globally or for a project,
   with live download progress.
 - Browses the vfox plugin registry, adds plugins (also from a URL or a file),

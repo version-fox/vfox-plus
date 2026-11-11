@@ -14,7 +14,7 @@
 
 | 目的地 | 标签键 | 图标 | 用途 |
 | --- | --- | --- | --- |
-| Home | `navHome` | `home` | 总览与快捷入口。 |
+| Home | `navHome` | `home` | 在用的版本与健康状况。 |
 | SDKs | `navSdks` | `sdks` | 已安装插件及其版本。 |
 | Plugins | `navPlugins` | `plugins` | 插件仓库。 |
 | Tasks | `navTasks` | `tasks` | 运行中与已完成的操作。徽标显示排队与运行数。 |
@@ -56,8 +56,6 @@
 ## Home
 
 - 页眉：应用名、`vfox <版本> · <可执行文件路径>` 与刷新按钮。
-- 三个统计块：插件数、已安装版本数、有使用中版本的插件数。每块自有容器色
-  （primary、secondary、tertiary）与半藏边后的大装饰形。点统计块打开 SDKs。
 - `homeActiveTitle`：有使用中版本的插件分段列表，头像加版本。点项打开 SDKs 页对应项。
   无则显示 `homeActiveEmpty`。
 - `doctorTitle`：vfox 与已安装 SDK 的健康状况，来自 `vfox doctor --json`
@@ -66,16 +64,17 @@
   否则前五条结果各一项：其消息、`<插件>@<版本> · <严重程度>`，`sdk.no-receipt` 另有 `doctorAdopt`
   （`vfox doctor --adopt <插件>@<版本>`），`sdk.drift` 另有 `versionReinstall`；`doctorProblems` 给出总数。
   询问失败时显示其消息与 `doctorCheck`。
-- 终端使用说明卡（`homeShellTitle`、`homeShellBody`），含
-  `eval "$(vfox activate bash)"` 行与复制按钮。
-- 两个快捷卡：`homeExploreTitle`（打开 Plugins）、`homeDocsTitle`
-  （打开 <https://vfox.dev/>）。
+- 一张卡：终端用这些版本所需的那一行（`homeShellTitle`、`homeShellBody`）：
+  `eval "$(vfox activate bash)"` 与复制按钮。
+
+页面上没有列表里数量的统计，也没有通往导航已能到达的页面的快捷入口（Plugins；vfox 文档在设置里）。
 
 ## SDKs
 
-列表-详情布局。页宽 ≥ 840 dp 时列表（360 dp）与详情并排；详情无选中显示
-`sdksSelectPrompt`，切换选中 fade through。窄页列表与详情沿横向 shared axis 互换，
-详情有返回按钮。
+列表-详情布局。页宽 ≥ 840 dp 时列表（360 dp）与详情并排。详情窗格从不为空：没选插件时显示
+第一个有使用中版本的插件，没有就显示第一个插件（页面只是显示它，并不把它当作选中项），切换选中
+fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它的动作）占满整页。窄页列表与详情沿
+横向 shared axis 互换，详情有返回按钮。
 
 ### 列表
 
@@ -106,17 +105,18 @@
 - 有配置档案的插件，版本名称会被拆开，标题下第二行显示发行版（`Temurin`、`OpenJDK`）与
   类型（`JavaFX`、`x64`、`OpenHarmony`）。
 
-**可用**首次打开跑 `vfox search`。有配置档案的插件，第一行放：
+**可用**首次打开跑 `vfox search`。第一行放：
 
 - **搜索按钮** `availableChoiceButton`（“发行版：Temurin”；选择项的标签来自档案，图标 `registry`）。
   档案里有这样的搜索时（`java`），它会打开[选择对话框](#选择与名称)来决定搜索列出什么；所选值成为
   `vfox search` 的参数，按插件保存在设置里（`searches`），所以重启后仍在，Web 界面里也一样，之前选择的列表立即消失；
-- `availableInstallByName`，描边按钮，打开[按名称安装对话框](#选择与名称)。每个插件都有；
-- `linkDetect`，描边按钮，排队 `vfox link --detect --yes <插件>`：由插件找出机器上已有的 SDK，
-  vfox 把它们链接进来，不必再下载一遍。插件不会探测时，任务里会这么说。每个插件都有；
-- `linkManual`，描边按钮，打开[链接对话框](#选择与名称)，用于用户指明目录里的 SDK。
+- 行尾是图标按钮 `availableMoreWays`，菜单里是列表没有提供的其他添加方式，每个插件都有：
+  - `availableInstallByName` 打开[按名称安装对话框](#选择与名称)；
+  - `linkDetect` 排队 `vfox link --detect --yes <插件>`：由插件找出机器上已有的 SDK，
+    vfox 把它们链接进来，不必再下载一遍。插件不会探测时，任务里会这么说；
+  - `linkManual` 打开[链接对话框](#选择与名称)，用于用户指明目录里的 SDK。
 
-列表加载中或失败时这一行仍在，方便改选。随后是：
+列表加载中或失败时这一行仍在，方便改选，也方便添加列表里没有的 SDK。随后是：
 
 - 过滤框（`availableSearchHint`，匹配版本与备注）、连接按钮组
   `availableFilterAll` / `availableFilterTagged`（有备注如 LTS）/

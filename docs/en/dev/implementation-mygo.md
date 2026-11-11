@@ -244,7 +244,7 @@ pages are built from its components.
   colour of the desktop with the Material colour utilities
   ([`ui/mcu`](../../../mygo/ui/mcu), tonal spot 2021). mygo's
   own widgets (text fields, scroll bars, tooltips) follow them through its theme.
-- **Shapes** — the avatars, the stat tiles, the swatches, the loading
+- **Shapes** — the avatars, the swatches, the loading
   indicator — are the polygons and morphs of Material 3 Expressive, drawn as
   paths ([`ui/shapes`](../../../mygo/ui/shapes)).
 - **Text** is laid out and drawn by Pango, in the sans-serif font of the desktop

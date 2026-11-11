@@ -14,8 +14,8 @@ vfox-plus 遵循 [Material 3 Expressive](https://m3.material.io/)——2025 年 
   `org.freedesktop.appearance accent-color`，回退 GTK 主题），否则为设置中所选颜色。
   默认 vfox 徽标橙 `#F28C1B`。
 - 大面积用 surface 容器角色：窗口 `surface`，页面板 `surfaceContainerLow`，列表项
-  `surfaceContainer`，突出卡片 `surfaceContainerHighest`。主、次、第三容器标记统计块
-  与头像。
+  `surfaceContainer`，突出卡片 `surfaceContainerHighest`。主、次、第三容器标记
+  头像。
 - 危险操作用 `error`。
 - Web 界面（`mygo/pair/webapp.html` 的 `--m3-*` 变量）与 Android 应用（`values/colors.xml`、`values-night/colors.xml`）以字面值存放
   方案的 48 个角色，它们与 `mygo/ui/mcu` 按种子算出的角色不同时，`mygo` 里的 `go test ./pair` 会失败。
@@ -35,7 +35,7 @@ mygo：`mygo/ui/kit/theme.go` 的 `PaletteFor`，由 `mygo/ui/mcu`（Material �
 | medium | 12 dp | 文本框、snack bar |
 | large | 16 dp | 卡片、菜单、浮动按钮 |
 | large increased | 20 dp | 分段列表外角、插件卡片 |
-| extra large | 28 dp | 页面板、对话框、统计块 |
+| extra large | 28 dp | 页面板、对话框 |
 | extra large increased | 32 dp | |
 | extra extra large | 48 dp | |
 | full | 50% | 静息按钮、搜索栏、标签 |
@@ -52,7 +52,6 @@ mygo：`mygo/ui/kit/draw.go` 的 `Corner*` 常量。
   颜色之一：primary fixed dim、secondary 与 tertiary 容器。不用 secondary 容器（选中列表项）
   与 primary 容器（vfox 橙等种子下太浅）。悬停旋转 30°，fast spatial 弹簧。
 - **空与错误状态**图标置于大形状上。
-- **统计块**大形状半藏边后。
 - **颜色 swatch**选中从圆变成花，微转。
 - **加载指示器**在 soft burst、9 边 cookie、五边形、pill、sunny、4 边 cookie、oval 间形变。
 
@@ -71,7 +70,7 @@ mygo：`mygo/ui/kit/draw.go` 的 `Corner*` 常量。
 ## 字体
 
 应用使用平台无衬线字体（Ubuntu 上 Ubuntu Sans，中文 Noto Sans CJK）与 Material 3
-字阶。Material 3 Expressive 为每档加 **emphasized** 重字，用于页面标题、统计块数字、
+字阶。Material 3 Expressive 为每档加 **emphasized** 重字，用于页面标题、
 需注意的列表标题（当前版本）与卡片标题。
 
 | 档 | 常规字重 | Emphasized 字重 |
@@ -91,6 +90,9 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
   需要权衡的后果，或之后出错时才会指出的限制。设置是什么、存在哪里、镜像是什么，这些属于文档。
 - **格式是空字段里的示例**（`j17`、`17-system`、`KEY=value`），不是它下面的说明。出错时由字段指出错在哪。
 - **空列表没有句子。** 它有能填满它的东西：命名别名的按钮，或者一个图标、一个标题和那个操作。
+- **页面不用卡片来宣布。** 没有统计下方列表条数的块，也没有通往导航已能到达的页面的快捷入口。
+- **没有窗格在等人选择。** 并排时列表已打开第一项，也就是在用的那个；列表之外的添加方式是一个菜单，
+  不是每种一个按钮。
 - **一节只有标题，没有说明；一页的标题在栏里，没有副标题。**
 - **后果只说一次**，在发问的确认框里，不在打开它的那一行里再说。
 - **名称在输入的地方解释。** 插件的指南在“按名称安装”对话框里，不在选项里。档案里的须知是没有控件能说的

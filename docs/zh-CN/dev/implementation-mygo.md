@@ -189,7 +189,7 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   不是无障碍树（mygo 给屏幕阅读器另有一套，端到端场景读的是那一套，见[局限](#局限)）。
 - **颜色**运行时从种子色或桌面强调色按 Material 颜色工具（[`ui/mcu`](../../../mygo/ui/mcu)，
   tonal spot 2021）生成。mygo 自有部件（文本框、滚动条、tooltip）经其主题跟随。
-- **形状**——头像、统计块、swatch、加载指示器——是 Material 3 Expressive 多边形与形变，
+- **形状**——头像、swatch、加载指示器——是 Material 3 Expressive 多边形与形变，
   按路径绘制（[`ui/shapes`](../../../mygo/ui/shapes)）。
 - **文本**由 Pango 用桌面 sans-serif 排版绘制：Ubuntu 上 Ubuntu Sans，中文字体按系统
   选（Noto Sans CJK），字重按 type scale，桌面文本缩放生效。

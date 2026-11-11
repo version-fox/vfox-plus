@@ -9,21 +9,19 @@ move to the bottom bar.
 ## Home
 
 - The vfox version and where its executable was found, with a refresh button.
-- Three statistic tiles: plugins, installed versions and versions in use.
-  Tapping one opens SDKs.
 - The plugins that have a version in use; tapping one opens it on the SDKs
   page.
 - The health of vfox and the installed SDKs (**Health**), with **Check health**,
   **Adopt** and **Reinstall** where `vfox doctor` finds drift or old installs.
 - How to use the versions in a terminal, with the line to add to `~/.bashrc`
   and a copy button.
-- Shortcuts to the plugin registry and to the vfox documentation.
 
 ## SDKs
 
 A list of your installed plugins with their current version. Pick one to see
 its detail: description, homepage, and two tabs (three for the plugins that
 the application knows, see [Java, Node.js, Flutter, Gradle and Go](#java-nodejs-flutter-gradle-and-go)).
+On a wide window the detail is always open, the plugin in use until you pick another.
 
 **Installed** lists the installed versions, newest first. The current version
 is marked; the others offer to become the global default. Each version can
@@ -37,12 +35,14 @@ itself deletes all its versions, after a confirmation.
 
 **Available** searches the versions you can install: filter by text, show
 only versions with a note (such as LTS) or only installed ones. Installing
-shows live download progress and can be cancelled. **Install by name…** installs
-a version that is not in the list by the name vfox understands, such as `24` for
-the newest Node.js 24, with **Use after install** to switch to it at once;
-each listed version offers **Install** and **Install and use** alike.
-**Detect and link** adopts what is already on the machine (`vfox link --detect`),
-**Link existing…** links a directory you name as the version you name.
+shows live download progress and can be cancelled. Each listed version offers
+**Install**, and **Install and use** in the menu next to it. The menu at the end of the
+row above the list (**More ways to add**) has the other ways to add an SDK:
+**Install by name…** installs a version that is not in the list by the name vfox
+understands, such as `24` for the newest Node.js 24, with **Use after install** to
+switch to it at once; **Detect and link** adopts what is already on the machine
+(`vfox link --detect`); **Link existing…** links a directory you name as the version
+you name.
 
 ### Java, Node.js, Flutter, Gradle and Go
 

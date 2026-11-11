@@ -15,7 +15,7 @@ The application has five top-level destinations:
 
 | Destination | Label key     | Icon       | Purpose                                              |
 | ----------- | ------------- | ---------- | ---------------------------------------------------- |
-| Home        | `navHome`     | `home`     | Overview and shortcuts.                              |
+| Home        | `navHome`     | `home`     | What is in use and how healthy it is.                |
 | SDKs        | `navSdks`     | `sdks`     | Installed plugins and their versions.                |
 | Plugins     | `navPlugins`  | `plugins`  | The plugin registry.                                 |
 | Tasks       | `navTasks`    | `tasks`    | Running and finished operations. Shows a badge with the number of queued and running tasks. |
@@ -67,10 +67,6 @@ Settings stay reachable in every case.
 
 - Header: the application name, `vfox <version> · <executable path>`, and a
   refresh button.
-- Three statistic tiles: number of plugins, of installed versions and of
-  plugins with a version in use. Each tile has its own container colour
-  (primary, secondary, tertiary) and a large decorative shape partly hidden
-  behind its edge. Tapping a tile opens SDKs.
 - `homeActiveTitle`: a segmented list of the plugins that have a version in use,
   with their avatar and version. Tapping an item opens it on the SDKs page.
   Without any, the list shows `homeActiveEmpty`.
@@ -83,19 +79,23 @@ Settings stay reachable in every case.
   `sdk.no-receipt`, `doctorAdopt` (`vfox doctor --adopt <plugin>@<version>`), for
   `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. A failure to ask
   shows its message with `doctorCheck`.
-- A card explaining how to use the versions in a terminal (`homeShellTitle`,
-  `homeShellBody`) with the line `eval "$(vfox activate bash)"` and a copy
+- A card with the line that a terminal needs to use these versions
+  (`homeShellTitle`, `homeShellBody`): `eval "$(vfox activate bash)"` and a copy
   button.
-- Two shortcut cards: `homeExploreTitle` (opens Plugins) and `homeDocsTitle`
-  (opens <https://vfox.dev/>).
+
+The page has no counts of what its lists hold and no shortcut to a page that the
+navigation reaches (Plugins; the vfox documentation is in the settings).
 
 ## SDKs
 
 A list-detail layout. When the page is at least 840 dp wide, the list (360 dp)
-and the detail pane are side by side; the detail pane shows `sdksSelectPrompt`
-until a plugin is selected and fades through when the selection changes. On
-narrower pages the list and the detail replace each other along the horizontal
-shared axis, and the detail has a back button.
+and the detail pane are side by side. The detail pane is never empty: until a
+plugin is selected it shows the first plugin that has a version in use, or else the
+first plugin (the page shows it without making it the selection), and it fades
+through when the selection changes. With no plugin at all the list, which then has
+`sdksEmptyTitle` and its action, takes the whole page. On narrower pages the list
+and the detail replace each other along the horizontal shared axis, and the detail
+has a back button.
 
 ### List
 
@@ -137,8 +137,7 @@ shared axis, and the detail has a back button.
   title: the distribution (`Temurin`, `OpenJDK`) and the flavours (`JavaFX`,
   `x64`, `OpenHarmony`) as a second line.
 
-**Available** runs `vfox search` the first time it is opened. For a plugin that
-has a profile, the first row holds:
+**Available** runs `vfox search` the first time it is opened. The first row holds:
 
 - the **search button** `availableChoiceButton` ("Distribution: Temurin"; the
   label of the choice is the profile's, the icon `registry`), which opens the
@@ -147,17 +146,17 @@ has a profile, the first row holds:
   `vfox search` and is kept in the settings (`searches`) per plugin, so that it
   survives a restart and is the same in the web interface, and the list of the earlier
   choice goes away at once;
-- `availableInstallByName`, an outlined button that opens the
-  [install by name dialog](#choices-and-names). Every plugin has it;
-- `linkDetect`, an outlined button that queues `vfox link --detect --yes <plugin>`:
-  the plugin finds the SDKs that are already on the machine and vfox links them,
-  instead of downloading them again. A plugin that cannot detect says so in the
-  task. Every plugin has it;
-- `linkManual`, an outlined button that opens the
-  [link dialog](#choices-and-names), for an SDK in a directory that the user names.
+- at its end, the icon button `availableMoreWays` with the menu of the other ways
+  to add an SDK, which every plugin has:
+  - `availableInstallByName` opens the [install by name dialog](#choices-and-names);
+  - `linkDetect` queues `vfox link --detect --yes <plugin>`: the plugin finds the
+    SDKs that are already on the machine and vfox links them, instead of
+    downloading them again. A plugin that cannot detect says so in the task;
+  - `linkManual` opens the [link dialog](#choices-and-names), for an SDK in a
+    directory that the user names.
 
-The row stays while the list loads or fails, so that another choice can be made.
-Then:
+The row stays while the list loads or fails, so that another choice can be made, and
+an SDK that the list does not have can be added. Then:
 
 - A filter field (`availableSearchHint`) matching versions and notes, a
   connected button group `availableFilterAll` / `availableFilterTagged`

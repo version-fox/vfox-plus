@@ -21,7 +21,7 @@ defines them.
 - Large surfaces use the surface container roles: the window is `surface`, page
   panes `surfaceContainerLow`, list items `surfaceContainer`, prominent cards
   `surfaceContainerHighest`. Primary, secondary and tertiary containers mark the
-  statistic tiles and avatars.
+  avatars.
 - Destructive actions use `error`.
 - The web interface (the `--m3-*` variables of `mygo/pair/webapp.html`) and the
   Android app (`values/colors.xml` and `values-night/colors.xml`) hold the 48 roles
@@ -43,7 +43,7 @@ Go port of the Material colour utilities, tonal spot).
 | medium                 |  12 dp | Text fields, snack bars                          |
 | large                  |  16 dp | Cards, menus, floating action buttons            |
 | large increased        |  20 dp | Outer corners of segmented lists, plugin cards   |
-| extra large            |  28 dp | Page panes, dialogs, statistic tiles             |
+| extra large            |  28 dp | Page panes, dialogs                              |
 | extra large increased  |  32 dp |                                                  |
 | extra extra large      |  48 dp |                                                  |
 | full                   |  50 %  | Buttons at rest, search bars, tags               |
@@ -64,7 +64,6 @@ give the interface its character:
   container, which some seeds (the vfox orange among them) make just as light.
   Hovering spins the shape by 30° on the fast spatial spring.
 - **Empty and error states** show their icon on a large shape.
-- **Statistic tiles** show a large shape partly hidden behind their edge.
 - **Colour swatches** morph from a circle into a flower, turning slightly, when
   selected.
 - The **loading indicator** morphs through soft burst, 9-sided cookie, pentagon,
@@ -92,7 +91,7 @@ Interactive elements change shape as they are used:
 The application uses the platform's sans-serif font (Ubuntu on Ubuntu, with
 Noto Sans CJK for Chinese) and the Material 3 type scale. Material 3 Expressive
 adds an **emphasized** variant of each role with a heavier weight, used for page
-titles, numbers in statistic tiles, list titles that need attention (the current
+titles, list titles that need attention (the current
 version) and card titles.
 
 | Role                       | Baseline weight | Emphasized weight |
@@ -117,6 +116,10 @@ person to understand, to judge or to act; what the layout already says is not sa
   a caption under it. The field names the mistake when one is made.
 - **An empty list has no sentence.** It has what fills it: the button that names an
   alias, or an icon, a title and the action.
+- **A page is not announced by a card.** Nothing counts what the list below it holds,
+  and nothing is a shortcut to a page that the navigation reaches.
+- **No pane waits for a choice.** Side by side, the list has its first item open, the
+  one in use; the ways to add something besides the list are one menu, not a button each.
 - **A section has a title and no caption, and a page has its title in the bar and no
   subtitle.**
 - **A consequence is said once**, in the confirmation that asks, and not again in the
