@@ -138,11 +138,11 @@ person to understand, to judge or to act; what the layout already says is not sa
 
 The census of a screen is taken by `webheap -audit` for the web interface, which the Android
 app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
-([how to take them](contributing.md#auditing-the-interface)). The test draws 19 screens in
-eight windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
-narrowest that the application opens in), and, with the text that the system makes 200 % larger,
-360, 700 and 1280 dp wide. It fails when one of them is over a budget. A dp of the desktop is
-a px of the web interface. A screen is held to:
+([how to take them](contributing.md#auditing-the-interface)). The test draws 21 screens in
+eleven windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
+narrowest that the application opens in), and, with the text that the system makes larger, 130 % and
+150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp. It fails when one of them is over
+a budget. A dp of the desktop is a px of the web interface. A screen is held to:
 
 | Census | Budget |
 | ------ | -----: |
@@ -154,21 +154,38 @@ a px of the web interface. A screen is held to:
 | Lists in which three rows or more start with the same icon | 0 |
 | Sentences of eight words or more | 3 |
 | Small lines of four words or more | 3 |
-| Titles and texts of controls that an ellipsis cuts short | 0 |
-| Controls that a row of a list holds and that are drawn beyond its padding | 0 |
+| Titles and texts of controls that an ellipsis cuts short, in a line or in the lines they may have | 0 |
+| Controls and texts that a row of a list holds and that are drawn beyond its padding | 0 |
 | Icons that the table of the icons does not have (desktop only) | 0 |
 
 **Larger text.** The text of the system may be larger, up to 200 %, and the budgets hold at every
 size in every window. What holds text is as wide as the text: where there is no room for it, a
 control goes under the text that it was beside (the end of an item of a list, the actions of the
 header of a page and of a dialog), a group of segments gives up its padding and its icons and then
-is a dropdown (the tabs, the theme, the language, the filters), a chip, a tag and the name of a choice
-have a second line, and what has a room that does not grow is not read larger than 130 % (the labels
-of the navigation bar, the name of a variable of the options). The widths that follow the text are
-measured (the segments, a button, the lines of a fingerprint, the room of an item) or grow with
-the text scale (a field, the cards of the registry), and none is a width that was measured once with
-one font. The census takes 200 % in the narrowest window, in one of the rail and in the widest, which are
-the three layouts; what holds at 200 % holds at the sizes below it, in a window of the same width.
+is a dropdown (the tabs, the theme, the language, the filters, the addresses of the pairing), and a chip,
+a tag, the name of a choice and the choice that a dropdown shows have a second line. What has a room that
+does not grow is not read larger than 130 % (the labels of the navigation bar).
+
+**Long words.** A word that has no space to break at, a name, an address, a path or a link, and that is
+longer than its room, breaks at any character (`kit.Breakable`, which an item of a list does for its
+strings): it is not cut with an ellipsis, it does not stick out of what holds it, and what is beside it
+goes under it before it is broken, so only a word that does not fit alone is. A box that holds such a
+word has to be told it may be narrower than the word (`MinWidth(0)`): the least width of a box in a row is
+that of its longest word, and it carries up through every box that holds it.
+
+The widths that follow the text are measured (the segments, a button, the lines of a fingerprint, the room
+of an item) or grow with the text scale (a field, the cards of the registry), and none is a width that was
+measured once with one font. The census takes 200 % in the narrowest window, in one of the rail and in the
+widest, which are the three layouts, and 130 % and 150 % where the room is the least. The layouts do not
+promise that what holds at 200 % holds below it, so the sizes in between are looked at and not assumed:
+`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes 115, 130, 150 and 175 % in four widths when
+`VFOX_PLUS_CENSUS_SWEEP=1` asks for it, and is to be run after a change of a layout.
+
+**Fonts.** Nothing of the layout is written for the width of Ubuntu Sans, which the pictures are in: the
+widths follow the text as the font sets it, and text at 200 % is twice as wide as at 100 %, which is
+more than the fonts of a system differ by. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws the scenes in what the system gives
+for `sans-serif` and `monospace` (its log says which font that is on the machine that runs it), in
+the narrowest window at 100 % and 200 %, and in the widest.
 
 ## Motion
 

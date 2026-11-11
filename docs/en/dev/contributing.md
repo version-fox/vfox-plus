@@ -454,7 +454,7 @@ the words, the sentences of eight words or more and the small lines under a titl
 texts under the contrast of WCAG AA, the rows of a list that have two buttons with words
 on them, the lists in which three rows start with the same icon, the sizes off the type
 scale, the controls under 24 px, the titles and the texts of controls that an ellipsis cuts
-short, the controls that a row holds beyond its padding, and whether the page is wider than
+short, the controls and the texts that a row holds beyond its padding, and whether the page is wider than
 its window (the expression is `shared/tooling/internal/webheap/audit.js`). The budgets that a screen is
 held to are in [the design system](design-system.md#budgets).
 
@@ -473,12 +473,14 @@ and, for a text of a single line, the width that it wants, and from the picture 
 window what a text stands on. That gives it what the web census has not: an icon that the
 table of the icons lacks. A screen that has a dialog or a menu open is the dialog or the
 menu. The windows are as tall as a page can be, so that what is below the fold counts as
-well, and three of them have the text scale of the system at 200 %. Eight windows make 152
-screens, which take about 30 s: every frame of every screen is drawn by a software
+well, and six of them have the text scale of the system at 130, 150 and 200 %. Eleven windows make 231
+screens, which take about 40 s: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
-costs eight drawings and a new window nineteen, so weigh them; they are not worth a thread
-more, as the renderer uses the cores already.
+costs eleven drawings and a new window twenty-one, so weigh them; they are not worth a thread
+more, as the renderer uses the cores already. The addresses that a computer has are told to
+the web interface by the test (`pair.HostOptions.Addresses`), an IPv4 and an IPv6 one of the
+ranges that are kept for documentation, so that the screen of the pairing is the same on every machine.
 
 ```sh
 cd mygo
@@ -490,3 +492,10 @@ make it so. `VFOX_PLUS_CENSUS=dir` writes the census of every screen to `dir`, o
 file for each and `summary.txt` with a row for each, and `VFOX_PLUS_SNAPSHOTS=dir` writes
 the picture of every screen too (`census.<screen>.<window>.png`), to look at what the numbers
 are about. A new screen is a new entry of `censusScenes`.
+
+Two more tests take the scenes in other windows. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws
+them in the font that the system gives for `sans-serif` and `monospace` (its log says which one that is),
+in three windows, about 12 s; and `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes the sizes of text that the
+census does not, 115, 130, 150 and 175 %, in four widths, 336 screens in about a minute. The second runs only
+when asked, with `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run TestTheScreensAreWithinTheBudgetsAtEverySizeOfText`: run it
+after a change of a layout.
