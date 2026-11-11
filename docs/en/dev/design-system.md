@@ -136,9 +136,12 @@ person to understand, to judge or to act; what the layout already says is not sa
 
 ### Budgets
 
-`webheap -audit` takes the census of a screen of the web interface, which the Android app
-shows as well ([how to take it](contributing.md#auditing-the-interface)). A screen is
-held to:
+The census of a screen is taken by `webheap -audit` for the web interface, which the Android
+app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
+([how to take them](contributing.md#auditing-the-interface)). The test draws 19 screens in
+five windows, which are 1280 dp wide in the light and in the dark theme, and 700, 412 and
+360 dp wide (the narrowest that the application opens in), and fails when one of them is over
+a budget. A dp of the desktop is a px of the web interface. A screen is held to:
 
 | Census | Budget |
 | ------ | -----: |
@@ -150,6 +153,8 @@ held to:
 | Lists in which three rows or more start with the same icon | 0 |
 | Sentences of eight words or more | 3 |
 | Small lines of four words or more | 3 |
+| Titles and texts of controls that an ellipsis cuts short (desktop only) | 0 |
+| Icons that the table of the icons does not have (desktop only) | 0 |
 
 ## Motion
 

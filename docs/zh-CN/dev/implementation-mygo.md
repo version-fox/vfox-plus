@@ -104,6 +104,8 @@ Go 模块与构建缓存。
   [`ui/app_test.go`](../../../mygo/ui/app_test.go) 对捕获的 vfox 输出跑完整应用，每流一测：Home、
   导航、SDK 列表与详情、安装、使用、卸载、仓库、任务、设置、窄布局、vfox 缺失。设
   `VFOX_PLUS_SNAPSHOTS=<目录>` 让测试写页面 PNG。
+- **普查**（[`ui/census_test.go`](../../../mygo/ui/census_test.go)）在五种窗口里画每个屏幕，从 1280 dp 宽到应用能打开的
+  最窄 360 dp，任何一个超出[设计系统的预算](design-system.md#预算)就失败（[怎么做](contributing.md#审查界面)）。
 - **Golden 测试**比较 Go 配色形状与移植来源 JavaScript 库。[`ui/mcu/testdata`](../../../mygo/ui/mcu/testdata)
   存 82 种子色双主题配色，bit 一致；[`ui/shapes/testdata`](../../../mygo/ui/shapes/testdata) 存形状轮廓，
   尺寸 2% 内一致。各 `testdata` 说明重生成方法：配色需 Node.js 跑 JS 参考实现，形状

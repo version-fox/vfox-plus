@@ -125,6 +125,10 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   settings, the compact layout and the missing vfox. Set
   `VFOX_PLUS_SNAPSHOTS=<directory>` to have the tests write PNGs of the pages
   there.
+- **The census** ([`ui/census_test.go`](../../../mygo/ui/census_test.go)) draws every
+  screen in five windows, from 1280 dp wide to the 360 dp that is the narrowest the
+  application opens in, and fails when one is over a [budget of the design
+  system](design-system.md#budgets) ([how it is taken](contributing.md#auditing-the-interface)).
 - **Golden tests** compare the Go colour scheme and shapes with the JavaScript
   libraries they are ported from. [`ui/mcu/testdata`](../../../mygo/ui/mcu/testdata)
   holds the schemes of 82 seed colours in both modes, bit-exact;

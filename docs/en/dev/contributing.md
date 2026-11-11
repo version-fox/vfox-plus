@@ -462,3 +462,24 @@ in a wide window (`-window 1280,800`), each with its own `-audit` file, and read
 together: the totals show where the words are, and a screen over a budget shows where to
 look. Look at the pictures too, side by side on one sheet: the census has no number for a
 layout that is bad in a way that nobody has measured yet.
+
+The desktop application has the census in its tests (`mygo/ui/census_test.go`,
+`mygo/ui/kit/census.go`). It draws each screen without a window, in the windows that
+[the design system](design-system.md#budgets) names, and reads from the nodes that every
+text, icon and control registered where it is, how a text is set (size, weight, colour)
+and, for a text of a single line, the width that it wants, and from the picture of the
+window what a text stands on. That gives it what the web census has not: a title or the text of a
+control that an ellipsis cuts short, and an icon that the table of the icons lacks. A
+screen that has a dialog or a menu open is the dialog or the menu. The windows are as tall
+as a page can be, so that what is below the fold counts as well.
+
+```sh
+cd mygo
+go test ./ui -run TestTheScreensAreWithinTheBudgets
+```
+
+fails with the budgets that a screen is over, each with the texts, rows or controls that
+make it so. `VFOX_PLUS_CENSUS=dir` writes the census of every screen to `dir`, one JSON
+file for each and `summary.txt` with a row for each, and `VFOX_PLUS_SNAPSHOTS=dir` writes
+the picture of every screen too (`census.<screen>.<window>.png`), to look at what the numbers
+are about. A new screen is a new entry of `censusScenes`.
