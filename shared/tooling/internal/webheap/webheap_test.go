@@ -307,11 +307,17 @@ func TestRunScreenshot(t *testing.T) {
 	if err != nil || image.Bounds().Dx() == 0 || image.Bounds().Dy() == 0 {
 		t.Fatalf("the screenshot is not a picture: %v", err)
 	}
-	// The language is pinned, the colour scheme is dark and the page of the tab is open.
-	notes := s.seen(t, "lang=zh", "dark=true", "tab=plugins")
-	for _, want := range []string{"dark-at-start=false", "lang=zh", "dark=true", "tab=plugins"} {
+	// The language is pinned, the page of the tab is open, and the colour scheme is dark from the first frame: a page
+	// that starts light and turns dark runs the transitions of its colours, which a screenshot catches half way.
+	notes := s.seen(t, "dark-at-start=true", "lang=zh", "tab=plugins")
+	for _, want := range []string{"dark-at-start=true", "lang=zh", "tab=plugins"} {
 		if !contains(notes, want) {
 			t.Errorf("the page did not hear %q: %q", want, notes)
+		}
+	}
+	for _, unwanted := range []string{"dark-at-start=false", "dark=true"} {
+		if contains(notes, unwanted) {
+			t.Errorf("the page heard %q, so it was light before it turned dark: %q", unwanted, notes)
 		}
 	}
 }

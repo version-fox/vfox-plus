@@ -299,15 +299,18 @@ func (s *session) heap() (int64, error) {
 	return median(samples), nil
 }
 
-// capture writes a PNG of the page, in the dark colour scheme and on the page
-// or in the scene that the options name.
+// emulateDark makes the colour scheme dark before the page is opened, so that the page is dark from its first frame.
+// Turned dark once it is open, every colour of the page runs a transition from the light one, which headless Chrome,
+// with no frame to draw, does not carry on: a screenshot caught the cards of the home page half way, still light, with
+// the light text of the dark scheme on them.
+func (s *session) emulateDark() error {
+	dark := emulation.SetEmulatedMediaParams{Features: []*emulation.MediaFeature{{Name: "prefers-color-scheme", Value: "dark"}}}
+	_, err := chromedp.Call(s.page, emulation.SetEmulatedMedia, dark)
+	return err
+}
+
+// capture writes a PNG of the page, on the page or in the scene that the options name.
 func (s *session) capture(ctx context.Context, o options) error {
-	if o.dark {
-		dark := emulation.SetEmulatedMediaParams{Features: []*emulation.MediaFeature{{Name: "prefers-color-scheme", Value: "dark"}}}
-		if _, err := chromedp.Call(s.page, emulation.SetEmulatedMedia, dark); err != nil {
-			return err
-		}
-	}
 	if o.tab != "" {
 		// Open the page through whichever navigation is shown (rail or bar).
 		click := fmt.Sprintf(`[...document.querySelectorAll('[data-tab="%s"]')].find((b) => b.offsetParent)?.click()`, o.tab)
@@ -348,6 +351,11 @@ func measure(ctx context.Context, o options) (measurement, error) {
 	tab, closeTab := chromedp.NewContext(allocator)
 	defer closeTab()
 	s := &session{page: tab}
+	if o.dark && o.screenshot != "" {
+		if err := s.emulateDark(); err != nil {
+			return found, err
+		}
+	}
 
 	// Pair first, exactly like a browser: the pairing link sets the session
 	// cookie and takes the browser to the app, which then opens paired.
