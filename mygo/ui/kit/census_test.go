@@ -353,6 +353,30 @@ func TestTheCensusFindsAControlThatIsDrawnBeyondThePaddingOfItsRow(t *testing.T)
 	}
 }
 
+func TestTheCensusFindsATextThatIsDrawnBeyondThePaddingOfItsRow(t *testing.T) {
+	// The same row: the inside of it is 280 dp wide, from 40 to 320 in a window of 360 dp. A word that is as wide as the inside is
+	// within it, and one that is 20 dp wider hangs out of the row, as a word that is longer than the room of its row does.
+	census := func(width float32) Census {
+		h := newTested(t, 360, 300, func(c Ctx) {
+			Column(c).Background(c.Colors().Surface).Padding(24).Children(func() {
+				ListGroup(c, ListItemSpec{
+					ID: "item", Title: "Item",
+					SubtitleWidget: func(col ui.Color) { Label(c, "A word", Type(BodyMedium), col).Width(width).Shrink(0) },
+				})
+			})
+		})
+		h.tester.Frame()
+		h.tester.Advance(time.Second)
+		return TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 360, 300), nil)
+	}
+	if got := census(280); len(got.Sticking) != 0 {
+		t.Errorf("a text as wide as the inside of the row is inside its padding: %q", got.Sticking)
+	}
+	if got := census(300); len(got.Sticking) != 1 || !strings.Contains(got.Sticking[0], "A word") || got.Overflow {
+		t.Errorf("a text that is 20 dp too wide is in the padding, and not across the edge of the window: %q", got.Sticking)
+	}
+}
+
 func TestTheCensusFindsAnIconThatTheTableDoesNotHave(t *testing.T) {
 	h := newTested(t, 300, 100, func(c Ctx) {
 		Row(c).Padding(16).Gap(8).Children(func() {
@@ -365,5 +389,49 @@ func TestTheCensusFindsAnIconThatTheTableDoesNotHave(t *testing.T) {
 	got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 300, 100), nil)
 	if !reflect.DeepEqual(got.MissingIcons, []string{"no-such-icon"}) {
 		t.Errorf("missing icons: %v", got.MissingIcons)
+	}
+}
+
+func TestTheCensusMeasuresTheContrastOfATextThatIsWhollyInTheWindow(t *testing.T) {
+	// White on white cannot be read. The text at the bottom of the window has most of its box in it, and is counted as words, but
+	// its glyph is cut by the edge of the window, and whatever is left of it is not measured.
+	img := image.NewRGBA(image.Rect(0, 0, 40, 40))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+	white := ui.Color{R: 255, G: 255, B: 255, A: 255}
+	whole := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 0, 20, 20), Size: 14, Color: white}}, rect(0, 0, 40, 40), img)
+	if whole.Contrast.Measured != 1 || whole.Contrast.Failing != 1 {
+		t.Errorf("white text on white in the window is measured and fails: %+v", whole.Contrast)
+	}
+	cut := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 28, 20, 20), Size: 14, Color: white}}, rect(0, 0, 40, 40), img)
+	if cut.Words != 1 || cut.Contrast.Measured != 0 {
+		t.Errorf("a text that the edge of the window cuts is read as words and not measured: %d words, %+v", cut.Words, cut.Contrast)
+	}
+}
+
+func TestTheCensusFindsALabelThatNeedsMoreLinesThanItMayHave(t *testing.T) {
+	// A word of 48 characters that is broken at characters, in the button of a data label, which may have two lines: where the
+	// room has three lines of it the third is an ellipsis, and where it has two it is not cut. The rooms are those of the width
+	// of the word, which is measured, so that the test does not depend on the font.
+	const word = "VFOX_JAVA_GITHUB_MIRROR_VFOX_JAVA_GITHUB_MIRROR_"
+	build := func(room float32) func(Ctx) {
+		return func(ctx Ctx) {
+			ui.Row(ctx.Context).Background(ctx.Colors().Surface).Padding(16).Children(func() {
+				ui.Row(ctx.Context).Width(room).Children(func() {
+					Button(ctx, ButtonSpec{ID: "data", Label: word, Kind: TonalButton, Lines: 2}).Shrink(1)
+				})
+			})
+		}
+	}
+	width := drawnAtScale(t, 1200, 1, build(1000)).rectOf(RoleText, word).W
+	for _, c := range []struct {
+		name string
+		room float32
+		cut  bool
+	}{{"three lines", 2*buttonPadding + 0.4*width, true}, {"two lines", 2*buttonPadding + 0.62*width, false}} {
+		h := drawnAtScale(t, 1200, 1, build(c.room))
+		got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 1200, 300), nil)
+		if cut := len(got.Cut) == 1; cut != c.cut {
+			t.Errorf("in the room of %s the label is cut: %v, want %v (%q)", c.name, cut, c.cut, got.Cut)
+		}
 	}
 }

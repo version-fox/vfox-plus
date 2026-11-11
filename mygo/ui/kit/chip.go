@@ -60,7 +60,7 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 	}
 	// A label that does not fit has a second line, where the chip is as high as it needs; a line of it is 32 dp high, with
 	// the border that is 1 dp at each side.
-	el.Shrink(1).MinHeight(chipHeight).PaddingX(12).PaddingY((chipHeight-Type(LabelLarge).Line-2)/2).Radius(radius).TextColor(content).
+	el.Shrink(1).MinWidth(0).MinHeight(chipHeight).PaddingX(12).PaddingY((chipHeight-Type(LabelLarge).Line-2)/2).Radius(radius).TextColor(content).
 		Background(cs.SecondaryContainer.Alpha(selection)).Border(1, border)
 	paintPress(c, el, node, Uniform(radius), stateLayer(c, el, in), content, in.keyboard)
 	return el.Children(func() {
@@ -75,6 +75,6 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 				Icon(c, "check", chipIcon, content, 0).Margin(0, 8, 0, 0)
 			})
 		}
-		Label(c, s.Label, Type(LabelLarge), content, Lines(2)).Shrink(1)
+		Label(c, s.Label, Type(LabelLarge), content, Lines(2), Breakable()).Shrink(1)
 	})
 }

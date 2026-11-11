@@ -15,6 +15,7 @@
 package kit
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -141,5 +142,103 @@ func TestALabelDoesNotGrowBeyondItsScaleCap(t *testing.T) {
 	}
 	if ratio := widths[1] / widths[0]; ratio < 0.64 || ratio > 0.66 {
 		t.Errorf("the label with a cap is %.2f of the other, want 0.65: %v", ratio, widths)
+	}
+}
+
+// listItemWith is a build of an item of a list in a window, with a button at its end.
+func listItemWith(title, subtitle string) func(c Ctx) {
+	return func(c Ctx) {
+		ui.Column(c.Context).Background(c.Colors().Surface).Padding(24).Children(func() {
+			ListGroup(c, ListItemSpec{
+				ID: "item", Title: title, Subtitle: subtitle,
+				Trailing: func() { Button(c, ButtonSpec{ID: "show", Label: "Show code", Kind: TonalButton}) },
+			})
+		})
+	}
+}
+
+// A word that is longer than the room that its item has, an address in the way that a computer on a network has one, breaks
+// over lines where the room ends: it does not stick out of the item or of the window, and it is not cut. The control that is
+// at the end of the item goes under it. Where the room is enough, the word is one line, and the control is beside it.
+func TestAListItemBreaksAWordThatIsLongerThanItsRoom(t *testing.T) {
+	const address = "https://[2001:db8:85a3:8d3:1319:8a2e:370:7334]:8080"
+	line := Type(BodyMedium).Line
+	for _, scale := range []float32{1, 2} {
+		h := drawnAtScale(t, 360, scale, listItemWith("Reachable", address))
+		text, button := h.rectOf(RoleText, address), h.rectOf(RoleButton, "Show code")
+		if text.H < 2*line*scale-1 {
+			t.Errorf("at %.0f %% the address is wider than the item and breaks over lines: %+v", scale*100, text)
+		}
+		if edge := float32(360 - 24 - 16); text.X+text.W > edge+0.5 {
+			t.Errorf("at %.0f %% the address ends at %.0f dp, where the inside of the item ends at %.0f", scale*100, text.X+text.W, edge)
+		}
+		if button.Y < text.Y+text.H-0.5 {
+			t.Errorf("at %.0f %% the button is under the address: %+v and %+v", scale*100, button, text)
+		}
+		got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 360, 600), nil)
+		if got.Overflow || len(got.Sticking) != 0 || len(got.Cut) != 0 {
+			t.Errorf("at %.0f %% nothing sticks out or is cut: %v %q %q", scale*100, got.Overflowing, got.Sticking, got.Cut)
+		}
+	}
+	wide := drawnAtScale(t, 1280, 1, listItemWith("Reachable", address))
+	text, button := wide.rectOf(RoleText, address), wide.rectOf(RoleButton, "Show code")
+	if text.H > line+0.5 || button.X < text.X+text.W {
+		t.Errorf("in a window of 1280 dp the address is one line and the button is beside it: %+v and %+v", text, button)
+	}
+}
+
+// A word that fits the room of its item, but not with the control beside it, is not broken to keep the control there: the
+// control goes under the word. The room is the least with which a control beside the text would be kept there if the word did
+// not count (the text of an item asks for textRoom ems, and the control and the gap), and 8 dp more.
+func TestAListItemMovesItsControlUnderAWordBeforeItBreaksTheWord(t *testing.T) {
+	const key = "VFOX_JAVA_GITHUB_MIRROR"
+	wide := drawnAtScale(t, 1280, 1, listItemWith("Mirror", key))
+	word, control := wide.rectOf(RoleText, key).W, wide.rectOf(RoleButton, "Show code").W
+	room := textRoom * Type(BodyLarge).Size
+	// The inside of the item is 80 dp less than the window (24 and 16 on each side).
+	inside := max(word, room+16+control) + 8
+	if inside >= word+16+control || word <= room+8 {
+		t.Fatalf("the word of %v dp, the control of %v dp and the room of %v dp do not make a room that tells the two apart", word, control, room)
+	}
+	h := drawnAtScale(t, int(math.Ceil(float64(inside)))+80, 1, listItemWith("Mirror", key))
+	text, button := h.rectOf(RoleText, key), h.rectOf(RoleButton, "Show code")
+	if text.H > Type(BodyMedium).Line+0.5 {
+		t.Errorf("a word that fits the room is not broken to keep the control beside it: %+v", text)
+	}
+	if button.Y < text.Y+text.H-0.5 || button.X != text.X {
+		t.Errorf("the control is under the word, at its start: %+v and %+v", button, text)
+	}
+}
+
+// What holds a name that is data shows it in the lines that it has: a chip, a tag and a dropdown break a word that is longer than
+// their room, and are not cut; and the census says which ones need more lines than they may have.
+func TestWhatHoldsADataLabelBreaksTheWordInsteadOfCuttingIt(t *testing.T) {
+	const room = 160
+	const longWord = "VFOX_JAVA_GITHUB_MIRROR"
+	build := func(c Ctx) {
+		ui.Column(c.Context).Background(c.Colors().Surface).Padding(16).Gap(8).Children(func() {
+			ui.Row(c.Context).Width(room).Wrap().Children(func() { FilterChip(c, ChipSpec{ID: "chip", Label: longWord}) })
+			ui.Row(c.Context).Width(room).Wrap().Children(func() { Tag(c, TagSpec{Label: longWord}) })
+			Dropdown(c, DropdownSpec{
+				ID: "hosts", Value: "v6", Width: 260,
+				Choices:  []Choice{{Value: "v4", Label: "192.0.2.17"}, {Value: "v6", Label: "2001:db8:85a3:8d3:1319:8a2e:370"}},
+				OnSelect: func(string) {},
+			})
+		})
+	}
+	h := drawnAtScale(t, 300, 1, build)
+	chip, dropdown := h.rectOf(RoleButton, longWord), h.rectOf(RoleButton, "2001:db8:85a3:8d3:1319:8a2e:370")
+	if chip.W > room+0.5 || chip.H <= chipHeight {
+		t.Errorf("a chip that holds a word longer than its room is as wide as the room, with a second line: %+v", chip)
+	}
+	if label := h.rectOf(RoleText, "2001:db8:85a3:8d3:1319:8a2e:370"); label.H < 2*Type(BodyLarge).Line-1 {
+		t.Errorf("a dropdown shows an address that is longer than its field in two lines: %+v", label)
+	}
+	if dropdown.W > 260.5 {
+		t.Errorf("and is not wider than it was told to be: %+v", dropdown)
+	}
+	got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 300, 600), nil)
+	if len(got.Cut) != 0 || got.Overflow {
+		t.Errorf("nothing is cut and nothing sticks out: %q %q", got.Cut, got.Overflowing)
 	}
 }

@@ -15,6 +15,9 @@
 package kit
 
 import (
+	"strings"
+	"unicode/utf8"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -155,23 +158,31 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 		layer = stateLayer(c, el, in)
 	}
 	paintPress(c, el, node, radii, layer, foreground, in.keyboard)
+	// What a page builds as the text of an item is held to the width of the text, as the strings are: a word of it that is longer
+	// than the room breaks there (Breakable), and does not make the box that holds it as wide as the word.
+	built := func(build func(ui.Color), col ui.Color) {
+		ui.Column(c.Context).MinWidth(0).MaxWidthPercent(100).Children(func() { build(col) })
+	}
 	text := func() ui.Element {
-		return ui.Column(c.Context).Grow(1).Shrink(1).AlignItems(ui.Start).Children(func() {
+		// The text may be narrower than its longest word: its least width is not that of the word, or a name that is longer than
+		// the room would stick out of the item. Under the control it is a box in a column, which is as wide as the word unless it is
+		// held to the width of the column.
+		return ui.Column(c.Context).Grow(1).Shrink(1).MinWidth(0).MaxWidthPercent(100).AlignItems(ui.Start).Children(func() {
 			switch {
 			case it.TitleWidget != nil:
-				it.TitleWidget(foreground)
+				built(it.TitleWidget, foreground)
 			case it.Title != "":
 				style := Type(BodyLarge)
 				if it.TitleStyle != nil {
 					style = *it.TitleStyle
 				}
-				Label(c, it.Title, style, foreground)
+				Label(c, it.Title, style, foreground, Breakable())
 			}
 			switch {
 			case it.SubtitleWidget != nil:
-				it.SubtitleWidget(secondary)
+				built(it.SubtitleWidget, secondary)
 			case it.Subtitle != "":
-				Label(c, it.Subtitle, Type(BodyMedium), secondary, Lines(it.SubtitleLines))
+				Label(c, it.Subtitle, Type(BodyMedium), secondary, Lines(it.SubtitleLines), Breakable())
 			}
 		})
 	}
@@ -181,7 +192,7 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 			it.Leading(iconColor)
 		}
 		if it.Wrap && it.Trailing != nil {
-			ui.Column(c.Context).Grow(1).Shrink(1).AlignItems(ui.Start).Gap(8).Children(func() {
+			ui.Column(c.Context).Grow(1).Shrink(1).MinWidth(0).AlignItems(ui.Start).Gap(8).Children(func() {
 				text()
 				ui.Box(c.Context).Children(it.Trailing)
 			})
@@ -195,7 +206,7 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 		// textBasis, to be read in; when there is not, it goes under the text, at its start. The room is what the text
 		// and the control need, so it follows the language, the font and the text scale, where a width at which the item
 		// is told to wrap would be the one of a text of 100 %.
-		ui.Row(c.Context).Grow(1).Shrink(1).Wrap().Gap(16).GapY(8).AlignItems(ui.Center).Children(func() {
+		ui.Row(c.Context).Grow(1).Shrink(1).MinWidth(0).Wrap().Gap(16).GapY(8).AlignItems(ui.Center).Children(func() {
 			text().Basis(c.textBasis(it))
 			it.Trailing()
 		})
@@ -206,8 +217,9 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 const textRoom = 6
 
 // textBasis is the width in dp that the text of the item asks for before a control may sit beside it: the width of its
-// longest line when that is less than textRoom ems, and textRoom ems otherwise; a text that is built by a widget asks for
-// textRoom ems.
+// longest line when that is less than textRoom ems, and textRoom ems otherwise, and never less than its longest word (the
+// control goes under the text before the word is broken); a text that is built by a widget asks for textRoom ems, and the page
+// that builds it says when the control goes under it (ListItemSpec.Wrap).
 func (c Ctx) textBasis(it ListItemSpec) float32 {
 	style := Type(BodyLarge)
 	if it.TitleStyle != nil {
@@ -218,7 +230,7 @@ func (c Ctx) textBasis(it ListItemSpec) float32 {
 	if it.TitleWidget != nil || it.SubtitleWidget != nil {
 		return room
 	}
-	natural := float32(0)
+	natural, word := float32(0), float32(0)
 	for _, line := range []struct {
 		text  string
 		style TextStyle
@@ -226,10 +238,28 @@ func (c Ctx) textBasis(it ListItemSpec) float32 {
 		if line.text == "" {
 			continue
 		}
-		width, _ := c.MeasureText(0, ui.Span{Text: line.text, Size: line.style.Size * scale, Weight: line.style.Weight})
+		span := ui.Span{Text: line.text, Size: line.style.Size * scale, Weight: line.style.Weight}
+		width, _ := c.MeasureText(0, span)
 		natural = max(natural, width)
+		if width > room {
+			// Only a line that is longer than the room may hold a word that is.
+			span.Text = longestWord(line.text)
+			longest, _ := c.MeasureText(0, span)
+			word = max(word, longest)
+		}
 	}
-	return min(room, natural)
+	return max(min(room, natural), word)
+}
+
+// longestWord is the word of the text that has the most characters, a word being what spaces and line breaks leave.
+func longestWord(text string) string {
+	longest := ""
+	for _, word := range strings.Fields(text) {
+		if utf8.RuneCountInString(word) > utf8.RuneCountInString(longest) {
+			longest = word
+		}
+	}
+	return longest
 }
 
 // ListGroup lays out items as a segmented list: the first and the last have

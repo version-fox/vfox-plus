@@ -139,7 +139,7 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 			Icon(c, b.Icon, buttonIcon, content, 0)
 		}
 		if b.Label != "" && b.Lines > 1 {
-			Label(c, b.Label, Type(LabelLarge), content, Lines(b.Lines)).Shrink(1)
+			Label(c, b.Label, Type(LabelLarge), content, Lines(b.Lines), Breakable()).Shrink(1)
 		} else if b.Label != "" {
 			Line(c, b.Label, Type(LabelLarge), content)
 		}
@@ -322,10 +322,10 @@ func Tag(c Ctx, t TagSpec) ui.Element {
 		background, foreground = cs.TertiaryContainer, cs.OnTertiaryContainer
 	}
 	// A tag is as wide as its label, and shrinks when the room is short, where the label has a second line.
-	return Row(c).Padding(3, 10).Gap(4).Radius(CornerFull).Background(background).Shrink(1).Children(func() {
+	return Row(c).Padding(3, 10).Gap(4).Radius(CornerFull).Background(background).Shrink(1).MinWidth(0).Children(func() {
 		if t.Icon != "" {
 			Icon(c, t.Icon, 16, foreground, 1)
 		}
-		Label(c, t.Label, Type(LabelMedium), foreground, Lines(2)).Shrink(1)
+		Label(c, t.Label, Type(LabelMedium), foreground, Lines(2), Breakable()).Shrink(1)
 	})
 }

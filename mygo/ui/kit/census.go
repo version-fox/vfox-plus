@@ -64,11 +64,13 @@ type Census struct {
 	// says what.
 	Overflow    bool     `json:"overflow"`
 	Overflowing []string `json:"overflowing"`
-	// Sticking are the controls that a row of a list holds and that are drawn beyond its padding, which a row wide
-	// enough for them does not do: they are nearer the edge of the row than anything else in it.
+	// Sticking are the controls and the texts that a row of a list holds and that are drawn beyond its padding, which a
+	// row wide enough for them does not do: they are nearer the edge of the row than anything else in it. A word that is
+	// longer than the room of its row does, and is clipped by the corner of the row, or hangs out of it.
 	Sticking []string `json:"sticking"`
 	// Cut are the titles (22 dp and more) and the texts of controls that do not fit where they are and end with an
-	// ellipsis. A name or a path that is data, in a line of its own, may be cut short, and is not counted.
+	// ellipsis, in one line or in the lines that they may have. A name or a path that is data, in a line of its own, may
+	// be cut short, and is not counted.
 	Cut []string `json:"cut"`
 	// MissingIcons are the icons that the code asks for and that the table of the icons does not have: they
 	// draw an empty square.
@@ -157,8 +159,12 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 			if !n.Mono && proseWords(n.Text) >= 8 {
 				prose = append(prose, n)
 			}
-			if n.Natural > 0 && n.Rect.W < n.Natural-1 && (n.Size >= 22 || within(n, shown, func(o *Node) bool { return controls[o.Role] })) {
+			counted := n.Size >= 22 || within(n, shown, func(o *Node) bool { return controls[o.Role] })
+			if n.Natural > 0 && n.Rect.W < n.Natural-1 && counted {
 				census.Cut = append(census.Cut, fmt.Sprintf("%q is %.0f dp wide where it has %.0f", truncate(n.Text, 30), n.Natural, n.Rect.W))
+			}
+			if n.Lines > 1 && n.Needs > n.Lines && counted {
+				census.Cut = append(census.Cut, fmt.Sprintf("%q needs %d lines where it has %d", truncate(n.Text, 30), n.Needs, n.Lines))
 			}
 			if n.Size > 0 && !allowed[n.Size] {
 				size := strconv.Itoa(int(math.Round(float64(n.Size))))
@@ -169,7 +175,8 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 				census.Helpers++
 				census.SmallLines = append(census.SmallLines, truncate(n.Text, 60))
 			}
-			if img != nil && !within(n, shown, func(o *Node) bool { return controls[o.Role] && !o.Enabled }) {
+			// A glyph that the edge of the window cuts is not what a person reads, and what is left of it may be none of its ink.
+			if img != nil && wholly(n.Rect, window) && !within(n, shown, func(o *Node) bool { return controls[o.Role] && !o.Enabled }) {
 				census.measure(n, img)
 			}
 		case RoleIcon:
@@ -228,8 +235,10 @@ func (c *Census) rows(shown []*Node) {
 			c.TwoActionRows = append(c.TwoActionRows, truncate(row.Name, 40))
 		}
 		for _, n := range shown {
-			if controls[n.Role] && startsInRow(n, row) && (n.Rect.X < row.Rect.X+row.PadLeft-0.5 || n.Rect.X+n.Rect.W > row.Rect.X+row.Rect.W-row.PadRight+0.5) {
-				c.Sticking = append(c.Sticking, fmt.Sprintf("%s %q at %.0f to %.0f in the row %q, whose inside is %.0f to %.0f", n.Role, truncate(n.Name, 30), n.Rect.X, n.Rect.X+n.Rect.W,
+			// A text is held to the padding as a control is, unless a control holds it: that is the control's to be inside.
+			in := controls[n.Role] || (n.Role == RoleText && !within(n, shown, func(o *Node) bool { return controls[o.Role] }))
+			if in && startsInRow(n, row) && (n.Rect.X < row.Rect.X+row.PadLeft-0.5 || n.Rect.X+n.Rect.W > row.Rect.X+row.Rect.W-row.PadRight+0.5) {
+				c.Sticking = append(c.Sticking, fmt.Sprintf("%s %q at %.0f to %.0f in the row %q, whose inside is %.0f to %.0f", n.Role, truncate(n.Name+n.Text, 30), n.Rect.X, n.Rect.X+n.Rect.W,
 					truncate(row.Name, 30), row.Rect.X+row.PadLeft, row.Rect.X+row.Rect.W-row.PadRight))
 			}
 		}
@@ -414,7 +423,7 @@ func (c Census) Over() []string {
 		add("%d small lines of four words or more (at most 3): %q", c.Helpers, c.SmallLines)
 	}
 	if len(c.Sticking) > 0 {
-		add("%d controls drawn beyond the padding of their row: %q", len(c.Sticking), c.Sticking)
+		add("%d controls and texts drawn beyond the padding of their row: %q", len(c.Sticking), c.Sticking)
 	}
 	if len(c.Cut) > 0 {
 		add("%d texts that do not fit and are cut: %q", len(c.Cut), c.Cut)
@@ -438,6 +447,11 @@ func onScreen(n *Node, window ui.Rect) bool {
 	}
 	inside := min(n.Rect.Y+n.Rect.H, window.Y+window.H) - max(n.Rect.Y, window.Y)
 	return inside > n.Rect.H/2
+}
+
+// wholly reports whether the rectangle is wholly in the window.
+func wholly(r, window ui.Rect) bool {
+	return r.X >= window.X-0.5 && r.Y >= window.Y-0.5 && r.X+r.W <= window.X+window.W+0.5 && r.Y+r.H <= window.Y+window.H+0.5
 }
 
 // overlaps reports whether the rectangle is at least partly in the window.

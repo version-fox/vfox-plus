@@ -192,14 +192,15 @@ func Dropdown(c Ctx, d DropdownSpec) ui.Element {
 		content = cs.OnSurface.Alpha(0.38)
 	}
 	turn := el.AnimateTo("turn", Flag(*open), c.Env.Theme.Motion.FastSpatial.Anim())
-	el.Width(width).Height(56).PaddingX(16).Gap(8).Justify(ui.Start).Radius(CornerMedium).
+	// The field is 56 dp high, and as high as its label needs when the label has two lines or the text is larger than that.
+	el.Width(width).MinHeight(56).PaddingX(16).PaddingY(4).Gap(8).Justify(ui.Start).Radius(CornerMedium).
 		Background(cs.SurfaceContainerHighest).TextColor(content)
 	if *open || in.keyboard {
 		el.Border(2, cs.Primary)
 	}
 	paintPress(c, el, node, Uniform(CornerMedium), stateLayer(c, el, in), content, false)
 	el.Children(func() {
-		Line(c, label, Type(BodyLarge), content).Grow(1)
+		Label(c, label, Type(BodyLarge), content, Lines(2), Breakable()).Grow(1).Shrink(1)
 		Icon(c, "expandMore", 24, cs.OnSurfaceVariant, 0).Rotate(180 * turn)
 	})
 	Menu(c, el, open, items, MenuOptions{MatchWidth: true})

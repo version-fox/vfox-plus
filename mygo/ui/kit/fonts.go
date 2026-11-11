@@ -18,8 +18,10 @@ package kit
 // the desktop, which finds these through fontconfig: the sans-serif font of the
 // desktop is the font of Material 3 on Linux (Ubuntu Sans on Ubuntu), and what
 // it lacks, such as Chinese, comes from the next family and then from the
-// fonts the system chooses.
-const (
+// fonts the system chooses. They are variables so that a test can put the fonts
+// that the system chooses in their place, and see that the screens do not
+// depend on the width of Ubuntu Sans; nothing else writes them.
+var (
 	// UIFamilies is the font of the interface.
 	UIFamilies = "Ubuntu Sans, Ubuntu, Noto Sans, sans-serif"
 	// MonoFamilies is the monospaced font.

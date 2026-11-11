@@ -15,6 +15,8 @@
 package kit
 
 import (
+	"math"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -25,6 +27,7 @@ type labelOptions struct {
 	mono       bool
 	selectable bool
 	scaleCap   float32
+	breakable  bool
 }
 
 // LabelOption changes how a label lays out its text.
@@ -44,6 +47,12 @@ func Monospace() LabelOption { return func(o *labelOptions) { o.mono = true } }
 // grow with the text, such as the label of a destination of the navigation bar, is read at 130 % at the most.
 func ScaleCap(scale float32) LabelOption { return func(o *labelOptions) { o.scaleCap = scale } }
 
+// Breakable lets a word that is longer than the room the label has break at any character, where it would stick out of what
+// holds it or be cut: a name, an address, a path or a link is one word that has no space to break at. Words that can break at a
+// space still do, and only a word that cannot fit a line of its own is broken. What holds the label has to leave it that room:
+// a container that is a flex item has to be told MinWidth(0), as its least width is that of the longest word.
+func Breakable() LabelOption { return func(o *labelOptions) { o.breakable = true } }
+
 // Selectable lets the user select the text and copy it.
 func Selectable() LabelOption { return func(o *labelOptions) { o.selectable = true } }
 
@@ -62,6 +71,11 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 	if o.mono {
 		e.Font(MonoFamilies)
 	}
+	if o.breakable {
+		// The width that a text asks for is that of its longest word, which a box that is aligned to the start of its parent is
+		// as wide as: the box is held to the width of its parent, and the line breaks inside the word.
+		e.MinWidth(0).MaxWidthPercent(100)
+	}
 	if o.lines == 1 {
 		e.SingleLine()
 	} else if o.lines > 1 {
@@ -75,16 +89,37 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 	}
 	if c.Env.Reg.CollectText && s != "" {
 		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono})
-		if o.lines == 1 {
-			span := ui.Span{Text: s, Size: style.Size * scale, Weight: style.Weight}
-			if o.mono {
-				span.Font = MonoFamilies
-			}
-			node.Natural, _ = c.MeasureText(0, span)
+		span := ui.Span{Text: s, Size: style.Size * scale, Weight: style.Weight}
+		if o.mono {
+			span.Font = MonoFamilies
 		}
-		e.DrawOver(func(_ *ui.Painter, r ui.Rect) { node.Rect = r })
+		switch {
+		case o.lines == 1:
+			node.Natural, _ = c.MeasureText(0, span)
+		case o.lines > 1:
+			node.Lines = o.lines
+		}
+		e.DrawOver(func(p *ui.Painter, r ui.Rect) {
+			node.Rect = r
+			if node.Lines > 1 {
+				node.Needs = linesNeeded(p, span, r.W)
+			}
+		})
 	}
 	return e
+}
+
+// linesNeeded is how many lines the span takes when it wraps at the width: the height that it has there over the height of a
+// line of the same font.
+func linesNeeded(p *ui.Painter, span ui.Span, width float32) int {
+	_, height := p.MeasureText(width, span)
+	one := span
+	one.Text = "x"
+	_, line := p.MeasureText(0, one)
+	if line <= 0 {
+		return 0
+	}
+	return int(math.Round(float64(height / line)))
 }
 
 // Line is a label of a single line of text that never wraps; it ends with an

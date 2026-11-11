@@ -57,6 +57,10 @@ type Node struct {
 	// Natural is the width in dp that a text of a single line wants, which is more than its Rect when the text is cut
 	// short with an ellipsis. It is 0 for a text that wraps.
 	Natural float32
+	// Lines is how many lines a label may have when it is limited to more than one, and Needs how many lines the text takes
+	// at the width the label was drawn with: a label that needs more lines than it may have ends with an ellipsis. Both are
+	// 0 for a label that has no limit or is limited to one line, which Natural tells.
+	Lines, Needs int
 	// Choice says that the widget is one of the alternatives of a group, a
 	// segment of a button group or a filter chip, and not an action of its own.
 	Choice bool
