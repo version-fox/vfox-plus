@@ -60,11 +60,11 @@
 - **下载**：插件读取的环境变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
   下载镜像、Flutter 的存储镜像、Gradle 镜像列表与 Go 镜像，它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
   `https://` 开头。
-- **版本文件**：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与 `.nvmrc`（vfox 1.1.0 上双向生效：离开项目切回全局），Gradle 的 `gradle/wrapper/gradle-wrapper.properties`，以及决定 vfox 是否、如何
-  读取它们的 vfox 设置。
-- **可以直接输入的名称**，每个都有一个按钮，用该名称打开安装对话框。
-- **须知**：容易让人意外的地方，例如不写发行版的 Java 是 jdk.java.net 上的 OpenJDK（21 只到 21.0.2），
-  又如装完 `flutter@stable` 之后不能再用 `flutter@stable`，因为安装按它指向的版本命名。
+- **版本文件**：一个开关，下面是该插件读取的文件：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与
+  `.nvmrc`（vfox 1.1.0 上双向生效：离开项目切回全局），Gradle 的 `gradle/wrapper/gradle-wrapper.properties`；
+  Node.js 还有“文件里写的版本怎么选”的选项。
+- **须知**：容易让人意外、又没有按钮能说明的几件事，例如不写发行版的 Java 是 jdk.java.net 上的 OpenJDK，只保留
+  最新的版本；又如 vfox 管理的 Flutter 不能原地升级。名称怎么写、常用的名称，在**按名称安装**对话框里。
 - **纳入、漂移与盖住**：机器上已有 JDK、Gradle、Flutter 或 Go 时，**探测并链接**纳入管理，不必重下；SDK 被原地改动时主页**健康**与 `vfox use` 报告漂移（**重装**，旧安装用**纳入**）；别的工具盖住 vfox 的版本时健康检查指明是谁与做法（`path.mode`、`path.preserve`）。
 - **文档**：该插件讲解自身的页面，使用你的语言。
 

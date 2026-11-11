@@ -172,33 +172,33 @@ Then:
   filter field and the button group.
 - A lazily built segmented list. Each version shows its note as a tag and the
   bundled tools (`npm 11.19.1`); for a search that lists several
-  distributions, also a tag with the distribution. The trailing actions are
-  `versionInstall` and the outlined `versionInstallUse` (`vfox install --use`: it
-  makes the version the global default once it is installed); for an installed
-  version, a disabled `versionInstalled`; while installing, a wavy progress
-  indicator with `taskDownloading` and a cancel button.
+  distributions, also a tag with the distribution. The trailing action is a split
+  button: `versionInstall`, and in its menu `versionInstallUse` (`vfox install
+  --use`: it makes the version the global default once it is installed); for an
+  installed version, a disabled `versionInstalled`; while installing, a wavy
+  progress indicator with `taskDownloading` and a cancel button.
 
-**Options** is built from the profile of the plugin, in segmented lists:
+**Options** is built from the profile of the plugin, in segmented lists. It holds
+settings and what no control says; what a button or a dialog already says is not
+said again (a name is explained in the install by name dialog, the shorthands
+are its chips):
 
-- the guide to the version names of the plugin (`optionsGuideTitle`);
 - `optionsVariables`: one item per environment variable the plugin reads (the
   GitHub mirror of Java and Flutter, the download mirror of Node.js, the
   storage mirror of Flutter, the C library of Node.js, tagged
   `optionsVariableAdvanced`), with the variable name, its value (with the name
-  of the mirror, if it is one that was checked) or `optionsVariableUnset`, and
+  of the mirror, if it is one that was checked) or `optionsVariableUnset` (Default), and
   `optionsVariableChange`, which opens the [variable dialog](#choices-and-names);
-- `optionsLegacy`: the version files the plugin lets vfox read, as tags
-  (`.sdkmanrc`; `.node-version` and `.nvmrc`), or `optionsLegacyNone`; the
-  switch `configLegacyEnable` of the vfox configuration; and, where the strategy
-  matters (Node.js), `configLegacyStrategy`, or `optionsLegacyStrategyIgnored`
-  where it does not (Java);
+- `optionsLegacy`: the switch `configLegacyEnable` of the vfox configuration, with
+  the version files that the plugin lets vfox read as tags under its title
+  (`.sdkmanrc`; `.node-version` and `.nvmrc`), and, where the strategy matters
+  (Node.js), `configLegacyStrategy`. A plugin that reads no version files has no such
+  section, and one that is not affected by the strategy has no choice of it;
 - `aliasTitle`: the aliases of the plugin (`vfox alias list <plugin>`), loaded when
-  the tab opens, each with its target and `aliasUnset`, or `aliasEmpty`; `aliasSet`
-  opens the [alias dialog](#choices-and-names), and a refresh button asks again;
-- `optionsShorthands`: the names the plugin takes besides the listed versions,
-  each with its meaning and `optionsShorthandTry`, which opens the install by
-  name dialog with that name;
-- `optionsTips`, the notes of the profile;
+  the tab opens, each with its target and `aliasUnset`, and `aliasSet`, which opens
+  the [alias dialog](#choices-and-names), with a refresh button that asks again; a plugin
+  without aliases has the button and nothing else;
+- `optionsTips` (Notes), at most a few lines of the profile that no control says;
 - `optionsDocs`: links that open the documentation of the plugin in the
   language of the application.
 
@@ -223,7 +223,8 @@ Dialogs scale in on a spring.
   and `searchChoiceDefault` where it is the one vfox lists without an argument.
   Choosing one closes the dialog and lists it.
 - **Install by name** (`installName…`): a field `installNameField`, which takes
-  what follows `<plugin>@` in `vfox install` (helper `installNameHelp`), and, for
+  what follows `<plugin>@` in `vfox install`, with the guide of the profile of the
+  plugin under it (how a name is written), and, for
   a plugin with a profile, `installNameExamples`, one filter chip for each
   shorthand that fills the field, and the meaning of the shorthand that is
   typed. An empty name (`installNameRequired`) or one that has a space or a dash in
@@ -236,7 +237,7 @@ Dialogs scale in on a spring.
   `linkForce`, off at first, that points an already linked version somewhere else
   (`--force`). The confirmation queues `vfox link [--force] <plugin>@<version> <path>`
   and shows Tasks.
-- **Alias** (`aliasSet`): the alias (`aliasField`, `aliasHelp`) and the version it
+- **Alias** (`aliasSet`): the alias (`aliasField`, with `aliasHint` in the empty field) and the version it
   names (`linkVersionField`, which starts with the version of the row that opened
   the dialog, or else the current one). Both follow the rules of a version name.
   The confirmation queues `vfox alias set <plugin> <alias> <version>`; `aliasUnset`
@@ -251,7 +252,7 @@ Dialogs scale in on a spring.
 
 ## Plugins
 
-- Header: `pluginsTitle`, `pluginsSubtitle`; actions: update all plugins,
+- Header: `pluginsTitle`; actions: update all plugins,
   refresh, and `pluginsAddCustom`.
 - A search bar (`pluginsSearchHint`, matching name and homepage) and a
   connected button group `pluginsFilterAll` / `pluginsFilterOfficial` /

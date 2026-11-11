@@ -126,25 +126,23 @@
   有 Chip 开启时显示 `availableClearFilters`。Chip 是 Material 3 的筛选 Chip
   （见[设计系统](design-system.md#组件)）：同一维度内的值是“或”，维度之间、过滤框与按钮组互相收窄。
 - 懒加载分段列表。每版备注成标签，附带工具（`npm 11.19.1`）；搜索列出多个发行版时，还有一个
-  发行版标签。尾动作为 `versionInstall` 与描边的 `versionInstallUse`（`vfox install --use`：装好后
-  把该版本设为全局默认）；已安装为禁用 `versionInstalled`；安装中为波浪进度配
+  发行版标签。尾动作是一个拆分按钮：`versionInstall`，菜单里是 `versionInstallUse`（`vfox install --use`：
+  装好后把该版本设为全局默认）；已安装为禁用 `versionInstalled`；安装中为波浪进度配
   `taskDownloading` 与取消按钮。
 
-**选项**按插件的档案用分段列表构建：
+**选项**按插件的档案用分段列表构建。这里放设置，以及没有控件能说明的内容；按钮或对话框已经说过的不再重复
+（名称怎么写在“按名称安装”对话框里说明，简写是那里的 Chip）：
 
-- 该插件版本名称的说明（`optionsGuideTitle`）；
 - `optionsVariables`：插件读取的每个环境变量一项（Java 与 Flutter 的 GitHub 镜像、Node.js 的下载镜像、
   Flutter 的存储镜像、Node.js 的 C 库，后者带 `optionsVariableAdvanced` 标签），显示变量名、值（若是
-  已检查过的镜像则带镜像名）或 `optionsVariableUnset`，以及 `optionsVariableChange`，打开
+  已检查过的镜像则带镜像名）或 `optionsVariableUnset`（默认），以及 `optionsVariableChange`，打开
   [变量对话框](#选择与名称)；
-- `optionsLegacy`：插件让 vfox 读取的版本文件，以标签显示（`.sdkmanrc`；`.node-version` 与 `.nvmrc`），
-  没有时为 `optionsLegacyNone`；vfox 配置里的开关 `configLegacyEnable`；策略有影响时（Node.js）
-  显示 `configLegacyStrategy`，没有影响时（Java）显示 `optionsLegacyStrategyIgnored`；
+- `optionsLegacy`：vfox 配置里的开关 `configLegacyEnable`，标题下以标签显示插件让 vfox 读取的版本文件
+  （`.sdkmanrc`；`.node-version` 与 `.nvmrc`）；策略有影响时（Node.js）再加 `configLegacyStrategy`。
+  不读版本文件的插件没有这一节，不受策略影响的插件没有策略的选项；
 - `aliasTitle`：该插件的别名（`vfox alias list <插件>`），打开页签时加载，每个带目标与 `aliasUnset`，
-  没有时为 `aliasEmpty`；`aliasSet` 打开[别名对话框](#选择与名称)，刷新按钮再问一次；
-- `optionsShorthands`：插件除列出的版本外接受的名称，每个带含义与 `optionsShorthandTry`，后者用该名称
-  打开按名称安装对话框；
-- `optionsTips`，档案里的须知；
+  以及 `aliasSet`，打开[别名对话框](#选择与名称)，另有刷新按钮再问一次；没有别名的插件只有这个按钮；
+- `optionsTips`（须知），档案里没有控件能说明的几行；
 - `optionsDocs`：用应用的语言打开该插件文档的链接。
 
 ### 确认与对话框
@@ -165,14 +163,14 @@
   常用的在前；每项显示名称、厂商与简称，当前项带对勾，vfox 不带参数时列出的那一项带 `searchChoiceDefault`。
   选中即关闭对话框并列出该项。
 - **按名称安装**（`installName…`）：字段 `installNameField`，接受 `vfox install` 中 `<插件>@` 后面的部分
-  （辅助文字 `installNameHelp`）；有档案的插件还有 `installNameExamples`，每个简写一个筛选 Chip，点击
+  ，字段下是该插件档案里的指南（名称怎么写）；有档案的插件还有 `installNameExamples`，每个简写一个筛选 Chip，点击
   填入字段，并显示当前所输简写的含义。空名称（`installNameRequired`）、含空格或以短横线开头的名称
   （`installNameInvalid`）会被拒绝。开关 `installUseAfter`（默认关）加上 `--use`。确认后排队
   `vfox install --yes [--use] <插件>@<名称>` 并切到任务页。
 - **链接**（`linkPath…`）：vfox 列出该版本用的名称（`linkVersionField`，规则同版本名称）与放着 SDK 的目录
   （`linkPathField`，带浏览按钮，必填），以及开关 `linkForce`（默认关），让已链接的版本指向别处
   （`--force`）。确认后排队 `vfox link [--force] <插件>@<版本> <路径>` 并切到任务页。
-- **别名**（`aliasSet`）：别名（`aliasField`、`aliasHelp`）与它指的版本（`linkVersionField`，初值是打开
+- **别名**（`aliasSet`）：别名（`aliasField`，空字段里是 `aliasHint`）与它指的版本（`linkVersionField`，初值是打开
   对话框那一行的版本，否则是当前版本）。两者都遵守版本名称的规则。确认后排队
   `vfox alias set <插件> <别名> <版本>`；`aliasUnset` 排队 `vfox alias unset <插件> <别名>`。
 - **变量**（`variable…`）：变量的说明与名称；地址类变量有等宽字段 `variableAddress`（地址必须以 `http://`
@@ -182,7 +180,7 @@
 
 ## Plugins
 
-- 页眉：`pluginsTitle`、`pluginsSubtitle`；动作：更新全部插件、刷新、
+- 页眉：`pluginsTitle`；动作：更新全部插件、刷新、
   `pluginsAddCustom`。
 - 搜索栏（`pluginsSearchHint`，匹配名称与主页）与连接按钮组
   `pluginsFilterAll` / `pluginsFilterOfficial` / `pluginsFilterCommunity`。

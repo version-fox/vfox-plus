@@ -91,15 +91,15 @@ The **Options** tab holds what is particular to the plugin:
   list and the Go mirror. They are added to
   every vfox command that the application runs, and the application checks that
   an address starts with `http://` or `https://`.
-- **Version files**: `.sdkmanrc` for Java, `.node-version` and `.nvmrc` for
-  Node.js (which work both ways on vfox 1.1.0: leaving a project switches back),
-  `gradle/wrapper/gradle-wrapper.properties` for Gradle, with the vfox settings
-  that decide whether and how vfox reads them.
-- **Names you can type**, each with a button that opens the dialog with that name.
-- **Good to know**: the things that surprise people, such as that Java without a
-  distribution is OpenJDK from jdk.java.net, which stops at 21.0.2, and that
-  `flutter@stable` cannot be used afterwards because the install is named after
-  its release.
+- **Version files**: a switch with the files that the plugin reads under it,
+  `.sdkmanrc` for Java, `.node-version` and `.nvmrc` for Node.js (which work both
+  ways on vfox 1.1.0: leaving a project switches back),
+  `gradle/wrapper/gradle-wrapper.properties` for Gradle, and, for Node.js, the
+  choice of the version that a file names.
+- **Notes**: the few things that surprise people and that no button says, such as
+  that Java without a distribution is OpenJDK from jdk.java.net, which keeps only the
+  newest releases, and that a Flutter that vfox manages is not upgraded in place.
+  How a name is written, and the common names, are in the **Install by name** dialog.
 - **Adopt, drift and shadowing**: when a JDK, Gradle, Flutter or Go is already on
   the machine, **Detect and link** adopts it instead of downloading it again;
   when an SDK changes in place, the **Health** card on Home and `vfox use` report
