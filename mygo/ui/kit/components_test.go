@@ -171,8 +171,7 @@ func TestMenuAndDialogSnapshot(t *testing.T) {
 	}
 }
 
-// What does not fit in the room that it has wraps, in the components that hold a label: a chip, a tag, and a button that is
-// allowed two lines.
+// What does not fit in the room that it has wraps, in the components that hold a label: a chip, a tag, and a button that wraps.
 func TestWhatHoldsALabelWrapsItWhereTheRoomIsShort(t *testing.T) {
 	const room = 160
 	h := newTested(t, 300, 400, func(c Ctx) {
@@ -185,7 +184,7 @@ func TestWhatHoldsALabelWrapsItWhereTheRoomIsShort(t *testing.T) {
 				Tag(c, TagSpec{Label: "In use: 21.0.12.1+1-tem"})
 			})
 			ui.Row(c.Context).Width(room).Children(func() {
-				Button(c, ButtonSpec{ID: "two", Label: "Distribution: OpenJDK", Kind: TonalButton, Lines: 2}).Shrink(1)
+				Button(c, ButtonSpec{ID: "two", Label: "Distribution: OpenJDK", Kind: TonalButton, Wraps: true}).Shrink(1)
 			})
 			ui.Row(c.Context).Width(room).Children(func() {
 				Button(c, ButtonSpec{ID: "one", Label: "Fits", Kind: TonalButton})

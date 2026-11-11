@@ -77,6 +77,18 @@ var (
 // of the interface has to hold, 36 characters with no space in them.
 var censusAddresses = []string{"192.0.2.17", "2001:db8:85a3:8d3:1319:8a2e:370:7334"}
 
+// chooseAddress picks an address of the dialog of the pairing: its segment where they fit the dialog, or, where they do not and
+// are a dropdown that shows the first, its entry in the menu.
+func (ta *testApp) chooseAddress(address string) {
+	ta.t.Helper()
+	if _, ok := ta.find(kit.RoleButton, address); ok {
+		ta.button(address)
+		return
+	}
+	ta.click(kit.RoleButton, censusAddresses[0])
+	ta.click(kit.RoleMenuItem, address)
+}
+
 // censusScene is a screen that the census takes.
 type censusScene struct {
 	name string
@@ -179,6 +191,8 @@ var censusScenes = []censusScene{
 		ta.openSettings()
 		ta.button("Show code")
 		ta.mustText("Pair a phone")
+		// The IPv6 address is the longest word of the screen: the choice, and the link of the code, are in it.
+		ta.chooseAddress(censusAddresses[1])
 	}},
 	{name: "vfox-missing", missing: true, reach: func(ta *testApp) {}},
 }

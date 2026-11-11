@@ -53,9 +53,9 @@ type ButtonSpec struct {
 	Danger bool
 	// Content overrides the colour of the content when its alpha is not zero.
 	Content ui.Color
-	// Lines is how many lines the label may have: 1 by default, and the button is as high as that. A label that is data,
-	// the name of a choice, gets 2, so that it is not cut where the room is short.
-	Lines int
+	// Wraps lets the label go on as many lines as it needs, and the button is as high as they are: it has one line by default.
+	// A label that is data, the name of a choice, wraps, so that it is not cut where the room is short.
+	Wraps bool
 }
 
 const (
@@ -124,7 +124,7 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 	if border.A != 0 {
 		borderWidth = 1
 	}
-	if b.Lines > 1 {
+	if b.Wraps {
 		// Two lines of the label, with the padding that makes a line of it 40 dp high, the border included.
 		el.MinHeight(buttonHeight).PaddingY((buttonHeight - Type(LabelLarge).Line - 2*borderWidth) / 2)
 	} else {
@@ -138,8 +138,8 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 		if b.Icon != "" {
 			Icon(c, b.Icon, buttonIcon, content, 0)
 		}
-		if b.Label != "" && b.Lines > 1 {
-			Label(c, b.Label, Type(LabelLarge), content, Lines(b.Lines), Breakable()).Shrink(1)
+		if b.Label != "" && b.Wraps {
+			Label(c, b.Label, Type(LabelLarge), content, Breakable()).Shrink(1)
 		} else if b.Label != "" {
 			Line(c, b.Label, Type(LabelLarge), content)
 		}
@@ -321,11 +321,11 @@ func Tag(c Ctx, t TagSpec) ui.Element {
 	if t.Emphasized {
 		background, foreground = cs.TertiaryContainer, cs.OnTertiaryContainer
 	}
-	// A tag is as wide as its label, and shrinks when the room is short, where the label has a second line.
+	// A tag is as wide as its label, and shrinks when the room is short, where the label goes on as many lines as it needs.
 	return Row(c).Padding(3, 10).Gap(4).Radius(CornerFull).Background(background).Shrink(1).MinWidth(0).Children(func() {
 		if t.Icon != "" {
 			Icon(c, t.Icon, 16, foreground, 1)
 		}
-		Label(c, t.Label, Type(LabelMedium), foreground, Lines(2), Breakable()).Shrink(1)
+		Label(c, t.Label, Type(LabelMedium), foreground, Breakable()).Shrink(1)
 	})
 }

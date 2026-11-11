@@ -409,15 +409,21 @@ func TestTheCensusMeasuresTheContrastOfATextThatIsWhollyInTheWindow(t *testing.T
 }
 
 func TestTheCensusFindsALabelThatNeedsMoreLinesThanItMayHave(t *testing.T) {
-	// A word of 48 characters that is broken at characters, in the button of a data label, which may have two lines: where the
-	// room has three lines of it the third is an ellipsis, and where it has two it is not cut. The rooms are those of the width
-	// of the word, which is measured, so that the test does not depend on the font.
+	// A word of 48 characters that is broken at characters, in a control whose label may have two lines: where the room has
+	// three lines of it the third is an ellipsis, and where it has two it is not cut. The rooms are those of the width of the
+	// word, which is measured, so that the test does not depend on the font. (No component of the kit limits the lines of a
+	// label that is data; the control is made here.)
 	const word = "VFOX_JAVA_GITHUB_MIRROR_VFOX_JAVA_GITHUB_MIRROR_"
 	build := func(room float32) func(Ctx) {
 		return func(ctx Ctx) {
 			ui.Row(ctx.Context).Background(ctx.Colors().Surface).Padding(16).Children(func() {
 				ui.Row(ctx.Context).Width(room).Children(func() {
-					Button(ctx, ButtonSpec{ID: "data", Label: word, Kind: TonalButton, Lines: 2}).Shrink(1)
+					el, in, node := press(ctx, pressSpec{id: "data", role: RoleButton, name: word})
+					el.MinWidth(0).PaddingX(buttonPadding).Shrink(1)
+					paintPress(ctx, el, node, Uniform(8), stateLayer(ctx, el, in), ctx.Colors().OnSurface, in.keyboard)
+					el.Children(func() {
+						Label(ctx, word, Type(LabelLarge), ctx.Colors().OnSurface, Lines(2), Breakable()).Shrink(1)
+					})
 				})
 			})
 		}

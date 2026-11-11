@@ -163,8 +163,9 @@ size in every window. What holds text is as wide as the text: where there is no 
 control goes under the text that it was beside (the end of an item of a list, the actions of the
 header of a page and of a dialog), a group of segments gives up its padding and its icons and then
 is a dropdown (the tabs, the theme, the language, the filters, the addresses of the pairing), and a chip,
-a tag, the name of a choice and the choice that a dropdown shows have a second line. What has a room that
-does not grow is not read larger than 130 % (the labels of the navigation bar).
+a tag, the name of a choice and the choice that a dropdown shows go on as many lines as they need, and are
+not cut by an ellipsis. What has a room that does not grow is not read larger than 130 % (the labels of the
+navigation bar).
 
 **Long words.** A word that has no space to break at, a name, an address, a path or a link, and that is
 longer than its room, breaks at any character (`kit.Breakable`, which an item of a list does for its

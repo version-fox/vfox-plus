@@ -71,7 +71,7 @@ func (a *App) availableActions(k kit.Ctx, d *detailState) {
 			kit.Button(k, kit.ButtonSpec{
 				ID: "choose-search", Kind: kit.TonalButton, Icon: "registry",
 				Label:   a.T("availableChoiceButton", "what", a.text(search.Label), "choice", a.text(current.Name)),
-				OnClick: func() { a.chooseSearch(d) }, Lines: 2,
+				OnClick: func() { a.chooseSearch(d) }, Wraps: true,
 			}).Shrink(1)
 		}
 		mui.Spacer(k.Context)

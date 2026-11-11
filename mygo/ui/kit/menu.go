@@ -192,7 +192,7 @@ func Dropdown(c Ctx, d DropdownSpec) ui.Element {
 		content = cs.OnSurface.Alpha(0.38)
 	}
 	turn := el.AnimateTo("turn", Flag(*open), c.Env.Theme.Motion.FastSpatial.Anim())
-	// The field is 56 dp high, and as high as its label needs when the label has two lines or the text is larger than that.
+	// The field is 56 dp high, and as high as its label needs when the label goes on more lines than one, or the text is larger.
 	el.Width(width).MinHeight(56).PaddingX(16).PaddingY(4).Gap(8).Justify(ui.Start).Radius(CornerMedium).
 		Background(cs.SurfaceContainerHighest).TextColor(content)
 	if *open || in.keyboard {
@@ -200,7 +200,7 @@ func Dropdown(c Ctx, d DropdownSpec) ui.Element {
 	}
 	paintPress(c, el, node, Uniform(CornerMedium), stateLayer(c, el, in), content, false)
 	el.Children(func() {
-		Label(c, label, Type(BodyLarge), content, Lines(2), Breakable()).Grow(1).Shrink(1)
+		Label(c, label, Type(BodyLarge), content, Breakable()).Grow(1).Shrink(1)
 		Icon(c, "expandMore", 24, cs.OnSurfaceVariant, 0).Rotate(180 * turn)
 	})
 	Menu(c, el, open, items, MenuOptions{MatchWidth: true})

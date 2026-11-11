@@ -210,8 +210,8 @@ func TestAListItemMovesItsControlUnderAWordBeforeItBreaksTheWord(t *testing.T) {
 	}
 }
 
-// What holds a name that is data shows it in the lines that it has: a chip, a tag and a dropdown break a word that is longer than
-// their room, and are not cut; and the census says which ones need more lines than they may have.
+// What holds a name that is data shows all of it, in as many lines as it needs: a chip, a tag and a dropdown break a word that
+// is longer than their room, however many lines that makes, and are not cut.
 func TestWhatHoldsADataLabelBreaksTheWordInsteadOfCuttingIt(t *testing.T) {
 	const room = 160
 	const longWord = "VFOX_JAVA_GITHUB_MIRROR"
@@ -240,5 +240,29 @@ func TestWhatHoldsADataLabelBreaksTheWordInsteadOfCuttingIt(t *testing.T) {
 	got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 300, 600), nil)
 	if len(got.Cut) != 0 || got.Overflow {
 		t.Errorf("nothing is cut and nothing sticks out: %q %q", got.Cut, got.Overflowing)
+	}
+
+	// A word that needs more lines than two: three in a chip, and four in a dropdown that is 160 dp wide. They are not stopped at
+	// two lines with an ellipsis.
+	const longer = "VFOX_JAVA_GITHUB_MIRROR_VFOX_JAVA_GITHUB_MIRROR_"
+	const address = "2001:db8:85a3:8d3:1319:8a2e:370:7334"
+	more := drawnAtScale(t, 300, 1, func(c Ctx) {
+		ui.Column(c.Context).Background(c.Colors().Surface).Padding(16).Gap(8).Children(func() {
+			ui.Row(c.Context).Width(room).Wrap().Children(func() { FilterChip(c, ChipSpec{ID: "chip", Label: longer}) })
+			Dropdown(c, DropdownSpec{
+				ID: "hosts", Value: "v6", Width: 160,
+				Choices:  []Choice{{Value: "v6", Label: address}},
+				OnSelect: func(string) {},
+			})
+		})
+	})
+	if chip := more.rectOf(RoleButton, longer); chip.H < 3*Type(LabelLarge).Line {
+		t.Errorf("a chip that holds a word of three lines has them: %+v", chip)
+	}
+	if label := more.rectOf(RoleText, address); label.H < 3*Type(BodyLarge).Line {
+		t.Errorf("a dropdown that holds an address of four lines has more than two of them: %+v", label)
+	}
+	if got := TakeCensus(more.env.Reg.Nodes(), rect(0, 0, 300, 600), nil); len(got.Cut) != 0 || got.Overflow {
+		t.Errorf("and nothing is cut: %q %q", got.Cut, got.Overflowing)
 	}
 }
