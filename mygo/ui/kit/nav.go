@@ -225,6 +225,10 @@ func NavBar(c Ctx, b NavBarSpec) ui.Element {
 		})
 }
 
+// barLabelMaxScale is the text scale beyond which the labels of the navigation bar do not grow: each destination has a
+// fifth of the window to be read in, and the bar is as high as it is.
+const barLabelMaxScale = 1.3
+
 func barItem(c Ctx, b NavBarSpec, index int, d NavDestination) {
 	cs := c.Colors()
 	selected := index == b.Selected
@@ -255,7 +259,7 @@ func barItem(c Ctx, b NavBarSpec, index int, d NavDestination) {
 	el.Children(func() {
 		ui.Column(c.Context).FillWidth().AlignItems(ui.Center).Padding(16, 0, 0, 0).Gap(8).Children(func() {
 			navIcon(c, d, iconColor, fill)
-			Line(c, d.Label, Type(LabelMedium).WithWeight(weight), labelColor, Centered()).MaxWidth(100)
+			Line(c, d.Label, Type(LabelMedium).WithWeight(weight), labelColor, Centered(), ScaleCap(barLabelMaxScale)).MaxWidth(100)
 		})
 	})
 }

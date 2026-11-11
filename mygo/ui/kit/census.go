@@ -290,20 +290,43 @@ func leading(row *Node, shown []*Node) string {
 	return ""
 }
 
-// measure takes the contrast of a text against what stands behind it: the colour that most of its box has in the
-// image, which the colour of the text, with its opacity, is laid over.
+// measure takes the contrast of a text against what stands behind it: the colour that most of the pixels around its ink
+// have in the image, which the colour of the text, with its opacity, is laid over. The ink of an opaque text is the pixels
+// that have the colour of the text itself, and what is behind it is read in the 3 px around them, which is what the glyphs
+// stand on whatever the box of the line holds: a large or a bold glyph fills more than half of its box; the box of a line
+// of large text is as high as the control that holds it, so that the border is a part of it; and it is higher than an avatar,
+// so that the page is. A text with no pixel of its own colour (a thin one, or one with an opacity) has the box.
 func (c *Census) measure(n *Node, img image.Image) {
 	box := image.Rect(int(math.Floor(float64(n.Rect.X))), int(math.Floor(float64(n.Rect.Y))),
 		int(math.Ceil(float64(n.Rect.X+n.Rect.W))), int(math.Ceil(float64(n.Rect.Y+n.Rect.H)))).Intersect(img.Bounds())
 	if box.Empty() {
 		return
 	}
+	ink := [3]uint8{n.Color.R, n.Color.G, n.Color.B}
+	opaque := n.Color.A == 255
+	region := box
+	if opaque {
+		found := image.Rectangle{}
+		for y := box.Min.Y; y < box.Max.Y; y++ {
+			for x := box.Min.X; x < box.Max.X; x++ {
+				if pixel(img, x, y) == ink {
+					found = found.Union(image.Rect(x, y, x+1, y+1))
+				}
+			}
+		}
+		if !found.Empty() {
+			region = found.Inset(-3).Intersect(box)
+		}
+	}
 	counts := map[[3]uint8]int{}
-	var behind [3]uint8
-	most := 0
-	for y := box.Min.Y; y < box.Max.Y; y++ {
-		for x := box.Min.X; x < box.Max.X; x++ {
+	// Text that nothing but its own colour stands on is not to be read, so it stays its own background.
+	behind, most := ink, 0
+	for y := region.Min.Y; y < region.Max.Y; y++ {
+		for x := region.Min.X; x < region.Max.X; x++ {
 			key := pixel(img, x, y)
+			if opaque && key == ink {
+				continue
+			}
 			counts[key]++
 			if counts[key] > most {
 				most, behind = counts[key], key

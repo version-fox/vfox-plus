@@ -159,6 +159,48 @@ func TestTheCensusReadsThePixelsOfAnyImage(t *testing.T) {
 	}
 }
 
+func TestTheCensusReadsWhatATextStandsOnAndNotItsInk(t *testing.T) {
+	// A glyph that fills 64 % of its box (a large bold letter does): the ink is the colour that most of the box has, and
+	// the colour behind the text is the other.
+	img := image.NewRGBA(image.Rect(0, 0, 40, 40))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(2, 2, 18, 18), &image.Uniform{color.Black}, image.Point{}, draw.Src)
+	black := ui.Color{A: 255}
+	got := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 0, 20, 20), Size: 14, Color: black}}, rect(0, 0, 40, 40), img)
+	if got.Contrast.Measured != 1 || got.Contrast.Failing != 0 {
+		t.Errorf("black on white, however much of the box the ink fills: %+v", got.Contrast)
+	}
+	// On a colour that does not stand out the picture says so, too.
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.Gray{Y: 20}}, image.Point{}, draw.Src)
+	if got := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 0, 20, 20), Size: 14, Color: black}}, rect(0, 0, 40, 40), img); got.Contrast.Failing != 1 {
+		t.Errorf("black on a dark gray is hard to read: %+v", got.Contrast)
+	}
+	// A box as high as the control that holds it has the border of the control in it, 2 rows of 20, and the fill is the
+	// rest: the border is not what the text stands on.
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(0, 0, 20, 1), &image.Uniform{color.Gray{Y: 120}}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(0, 19, 20, 20), &image.Uniform{color.Gray{Y: 120}}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(2, 2, 12, 18), &image.Uniform{color.Black}, image.Point{}, draw.Src)
+	if got := TakeCensus([]*Node{{Role: RoleText, Text: "R", Rect: rect(0, 0, 20, 20), Size: 14, Color: black}}, rect(0, 0, 40, 40), img); got.Contrast.Failing != 0 {
+		t.Errorf("black on white, with a gray border across the box: %+v", got.Contrast)
+	}
+	// A box that is larger than what the text stands on, as the line of a large initial is higher than its avatar: light text on
+	// a dark fill, in a page that is nearly as light as the text. The page outweighs the fill in the box, and is not what the
+	// glyph stands on.
+	cream := color.RGBA{R: 250, G: 245, B: 240, A: 255}
+	draw.Draw(img, img.Bounds(), &image.Uniform{cream}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(15, 15, 35, 35), &image.Uniform{color.RGBA{R: 60, G: 40, B: 20, A: 255}}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(21, 19, 29, 31), &image.Uniform{color.White}, image.Point{}, draw.Src)
+	if got := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 0, 40, 40), Size: 14, Color: ui.Color{R: 255, G: 255, B: 255, A: 255}}}, rect(0, 0, 40, 40), img); got.Contrast.Measured != 1 || got.Contrast.Failing != 0 {
+		t.Errorf("white on a dark fill, in a box that holds more of a light page: %+v", got.Contrast)
+	}
+	// Text of the colour of what it stands on is not to be read: nothing is left that is not ink.
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.Black}, image.Point{}, draw.Src)
+	if got := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 0, 20, 20), Size: 14, Color: black}}, rect(0, 0, 40, 40), img); got.Contrast.Failing != 1 {
+		t.Errorf("black on black cannot be read: %+v", got.Contrast)
+	}
+}
+
 func TestTheCensusFindsTheSizesThatTheTypeScaleDoesNotHave(t *testing.T) {
 	window := rect(0, 0, 400, 300)
 	nodes := []*Node{

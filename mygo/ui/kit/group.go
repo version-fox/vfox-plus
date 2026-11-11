@@ -47,6 +47,9 @@ type ButtonGroupSpec struct {
 	// what Material 3 has), then the icons, and then 4 dp and 8 dp more. It measures the labels to know, so the fit
 	// follows the language, the font and the text scale, and the page need not know how wide a group is.
 	MaxWidth float32
+	// Collapse makes the group a dropdown when its segments do not fit MaxWidth even when they give up all that they can:
+	// the choice stays one choice, in the room that there is.
+	Collapse bool
 }
 
 // segmentFit is how the segments of a group are drawn: with their icons or without, and with so much padding at each
@@ -65,10 +68,11 @@ var segmentFits = [...]segmentFit{
 // segmentGap is the space in dp between two segments.
 const segmentGap = 2
 
-// fit picks the first of the segmentFits in which the group is not wider than MaxWidth, or the last one when none is.
-func (g ButtonGroupSpec) fit(c Ctx) segmentFit {
+// fit picks the first of the segmentFits in which the group is not wider than MaxWidth, or the last one when none is, and
+// says whether it is.
+func (g ButtonGroupSpec) fit(c Ctx) (segmentFit, bool) {
 	if g.MaxWidth <= 0 || g.Expand || len(g.Segments) == 0 {
-		return segmentFits[0]
+		return segmentFits[0], true
 	}
 	style := Type(LabelLarge)
 	labels := make([]float32, len(g.Segments))
@@ -85,10 +89,19 @@ func (g ButtonGroupSpec) fit(c Ctx) segmentFit {
 			width += max(segmentMinWidth, 2*fit.padding+inner)
 		}
 		if width <= g.MaxWidth {
-			return fit
+			return fit, true
 		}
 	}
-	return segmentFits[len(segmentFits)-1]
+	return segmentFits[len(segmentFits)-1], false
+}
+
+// dropdown is the group as a dropdown, which has the choices of the segments in a menu.
+func (g ButtonGroupSpec) dropdown(c Ctx) ui.Element {
+	choices := make([]Choice, len(g.Segments))
+	for i, s := range g.Segments {
+		choices[i] = Choice{Value: s.Value, Label: s.Label}
+	}
+	return Dropdown(c, DropdownSpec{ID: g.ID, Value: g.Selected, Choices: choices, OnSelect: g.OnSelect, Width: g.MaxWidth, Disabled: g.OnSelect == nil})
 }
 
 // ButtonGroup is a connected button group with a single selection
@@ -96,10 +109,13 @@ func (g ButtonGroupSpec) fit(c Ctx) segmentFit {
 // inner ones 8 dp; the selected button becomes fully round, and a button that is
 // pressed pinches its inner corners to 4 dp.
 func ButtonGroup(c Ctx, g ButtonGroupSpec) ui.Element {
+	fit, fits := g.fit(c)
+	if !fits && g.Collapse {
+		return g.dropdown(c)
+	}
 	if hasKey(g.ID) {
 		c.Key(g.ID)
 	}
-	fit := g.fit(c)
 	row := ui.Row(c.Context).Gap(segmentGap).FocusGroup(ui.Horizontal)
 	return row.Children(func() {
 		for i, segment := range g.Segments {

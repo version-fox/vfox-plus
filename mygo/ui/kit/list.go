@@ -155,8 +155,8 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 		layer = stateLayer(c, el, in)
 	}
 	paintPress(c, el, node, radii, layer, foreground, in.keyboard)
-	text := func() {
-		ui.Column(c.Context).Grow(1).Shrink(1).AlignItems(ui.Start).Children(func() {
+	text := func() ui.Element {
+		return ui.Column(c.Context).Grow(1).Shrink(1).AlignItems(ui.Start).Children(func() {
 			switch {
 			case it.TitleWidget != nil:
 				it.TitleWidget(foreground)
@@ -187,11 +187,49 @@ func ListItem(c Ctx, it ListItemSpec) ui.Element {
 			})
 			return
 		}
-		text()
-		if it.Trailing != nil {
-			it.Trailing()
+		if it.Trailing == nil {
+			text()
+			return
 		}
+		// The control at the end sits beside the text while there is room for both, the text having its own room,
+		// textBasis, to be read in; when there is not, it goes under the text, at its start. The room is what the text
+		// and the control need, so it follows the language, the font and the text scale, where a width at which the item
+		// is told to wrap would be the one of a text of 100 %.
+		ui.Row(c.Context).Grow(1).Shrink(1).Wrap().Gap(16).GapY(8).AlignItems(ui.Center).Children(func() {
+			text().Basis(c.textBasis(it))
+			it.Trailing()
+		})
 	})
+}
+
+// textRoom is the width in ems of the title of an item that a control beside it leaves to the text at the least.
+const textRoom = 6
+
+// textBasis is the width in dp that the text of the item asks for before a control may sit beside it: the width of its
+// longest line when that is less than textRoom ems, and textRoom ems otherwise; a text that is built by a widget asks for
+// textRoom ems.
+func (c Ctx) textBasis(it ListItemSpec) float32 {
+	style := Type(BodyLarge)
+	if it.TitleStyle != nil {
+		style = *it.TitleStyle
+	}
+	scale := c.Env.Theme.TextScale
+	room := textRoom * style.Size * scale
+	if it.TitleWidget != nil || it.SubtitleWidget != nil {
+		return room
+	}
+	natural := float32(0)
+	for _, line := range []struct {
+		text  string
+		style TextStyle
+	}{{it.Title, style}, {it.Subtitle, Type(BodyMedium)}} {
+		if line.text == "" {
+			continue
+		}
+		width, _ := c.MeasureText(0, ui.Span{Text: line.text, Size: line.style.Size * scale, Weight: line.style.Weight})
+		natural = max(natural, width)
+	}
+	return min(room, natural)
 }
 
 // ListGroup lays out items as a segmented list: the first and the last have

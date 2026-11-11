@@ -145,7 +145,7 @@ func (d *dialogEntry) layout(c Ctx) bool {
 				}
 			}
 			if len(spec.Actions) > 0 {
-				ui.Row(c.Context).Justify(ui.End).Gap(8).Margin(24, 0, 0, 0).Children(func() {
+				ui.Row(c.Context).Justify(ui.End).Wrap().Gap(8).GapY(8).Margin(24, 0, 0, 0).Children(func() {
 					for _, action := range spec.Actions {
 						action()
 					}

@@ -170,3 +170,55 @@ func TestMenuAndDialogSnapshot(t *testing.T) {
 		t.Fatalf("no dialog: %q", tt.Texts())
 	}
 }
+
+// What does not fit in the room that it has wraps, in the components that hold a label: a chip, a tag, and a button that is
+// allowed two lines.
+func TestWhatHoldsALabelWrapsItWhereTheRoomIsShort(t *testing.T) {
+	const room = 160
+	h := newTested(t, 300, 400, func(c Ctx) {
+		cs := c.Colors()
+		ui.Column(c.Context).Background(cs.Surface).Padding(16).Gap(8).Children(func() {
+			ui.Row(c.Context).Width(room).Wrap().Gap(8).Children(func() {
+				FilterChip(c, ChipSpec{ID: "long", Label: "Beijing Foreign Studies University"})
+			})
+			ui.Row(c.Context).Width(room).Wrap().Gap(8).Children(func() {
+				Tag(c, TagSpec{Label: "In use: 21.0.12.1+1-tem"})
+			})
+			ui.Row(c.Context).Width(room).Children(func() {
+				Button(c, ButtonSpec{ID: "two", Label: "Distribution: OpenJDK", Kind: TonalButton, Lines: 2}).Shrink(1)
+			})
+			ui.Row(c.Context).Width(room).Children(func() {
+				Button(c, ButtonSpec{ID: "one", Label: "Fits", Kind: TonalButton})
+			})
+		})
+	})
+	h.tester.Frame()
+	h.tester.Advance(time.Second)
+	var chip, two, one *Node
+	for _, n := range h.env.Reg.Nodes() {
+		switch {
+		case n.Role == RoleButton && n.Name == "Beijing Foreign Studies University":
+			chip = n
+		case n.Role == RoleButton && n.Name == "Distribution: OpenJDK":
+			two = n
+		case n.Role == RoleButton && n.Name == "Fits":
+			one = n
+		}
+	}
+	if chip == nil || two == nil || one == nil {
+		t.Fatalf("no chip, or button: %v %v %v", chip, two, one)
+	}
+	if chip.Rect.W > room+0.5 || chip.Rect.H <= chipHeight {
+		t.Errorf("a chip that is too long is as wide as the room and has a second line: %+v", chip.Rect)
+	}
+	if two.Rect.W > room+0.5 || two.Rect.H <= buttonHeight {
+		t.Errorf("a button with two lines is as wide as the room and has a second line: %+v", two.Rect)
+	}
+	if one.Rect.H != buttonHeight || chip.Rect.X < 0 {
+		t.Errorf("a button with one line is 40 dp high: %+v", one.Rect)
+	}
+	got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 300, 400), nil)
+	if len(got.Cut) != 0 || got.Overflow {
+		t.Errorf("nothing is cut and nothing is across the edge: %q", got.Cut)
+	}
+}
