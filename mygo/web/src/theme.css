@@ -361,6 +361,10 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 .mfab{display:none}
 /* ---------- plugin profiles: tabs, chips, sheets ---------- */
 .btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+/* a split button: the action, and the way to the others, 2 px apart; the corners that face each other are small */
+.split{display:inline-flex;gap:2px;flex:none}
+.split>.btn{border-radius:4px 999px 999px 4px;padding:0 10px;min-width:40px}
+.split>.btn:first-child{border-radius:999px 4px 4px 999px;padding:0 16px}
 .btn.outline{background:transparent;border:1px solid var(--m3-outline);color:var(--m3-on-surface-variant)}
 .btn.outline:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
 .btn .ic.sm{width:20px;height:20px}
@@ -382,8 +386,6 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 .chip[aria-pressed="true"] .ck{width:18px;opacity:1;margin-right:8px}
 .chip[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
 .chip:active{border-radius:4px}
-.list .item .lead{width:24px;flex:none;display:inline-flex}
-.list .item.guide{align-items:flex-start}
 .list .item .tag{vertical-align:middle}
 .vrow code{overflow-wrap:anywhere}
 .dialog.sheet{max-width:560px;max-height:min(88vh,720px);display:flex;flex-direction:column;overflow:hidden}

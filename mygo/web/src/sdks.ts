@@ -547,8 +547,9 @@ function drawVersions(): void {
           "</span>" +
           (inst.has(v.Version)
             ? ""
-            : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>" +
-              "<button class='btn text' data-install-use='" + esc(v.Version) + "'>" + esc(t("installUse")) + "</button>") +
+            : "<span class='split'><button class='btn tonal' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>" +
+              "<button class='btn tonal' data-install-more='" + esc(v.Version) + "' aria-haspopup='menu' title='" + esc(t("actions")) + "'>" +
+              icon("keyboard-arrow-down", "sm") + "</button></span>") +
           "</div>"
         );
       })
@@ -561,10 +562,14 @@ function drawVersions(): void {
       ((b as HTMLButtonElement).onclick = () =>
         runTask({ operation: "install", sdk: d.name, version: (b as HTMLButtonElement).dataset.install || "" })),
   );
-  list.querySelectorAll("[data-install-use]").forEach(
+  list.querySelectorAll("[data-install-more]").forEach(
     (b) =>
-      ((b as HTMLButtonElement).onclick = () =>
-        runTask({ operation: "install", sdk: d.name, version: (b as HTMLButtonElement).dataset.installUse || "", use: true })),
+      ((b as HTMLButtonElement).onclick = (ev) => {
+        const v = (b as HTMLButtonElement).dataset.installMore || "";
+        openMenu(ev.currentTarget as Element, [
+          { icon: "check", label: t("installUse"), onclick: () => runTask({ operation: "install", sdk: d.name, version: v, use: true }) },
+        ]);
+      }),
   );
   const more = document.getElementById("showMore");
   if (more)
@@ -688,9 +693,7 @@ function openInstallByName(initial: string): void {
           '</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>'
         : "") +
       switchRow("nameUse", t("installUseAfter")) +
-      '<p class="muted t-label" style="margin:12px 0 0">' +
-      esc(t("installNameNote")) +
-      '</p><div class="actions"><button class="btn text" id="nameCancel">' +
+      '<div class="actions"><button class="btn text" id="nameCancel">' +
       esc(t("cancel")) +
       '</button><button class="btn primary" id="nameOk">' +
       icon("download", "sm") +
@@ -699,7 +702,8 @@ function openInstallByName(initial: string): void {
       "</span></button></div>";
     const input = document.getElementById("nameIn") as HTMLInputElement;
     const help = document.getElementById("nameHelp") as HTMLElement;
-    help.textContent = t("installNameHelp").replace("{name}", d.name);
+    const guide = () => (p && (p.guide.en || p.guide.zh) ? txt(p.guide, getLang()) : "");
+    help.textContent = guide();
     input.value = initial || "";
     const sync = () => {
       const cur = input.value.trim();
@@ -711,7 +715,7 @@ function openInstallByName(initial: string): void {
             (b) =>
               ((b as HTMLButtonElement).onclick = () => {
                 input.value = (b as HTMLButtonElement).dataset.name || "";
-                help.textContent = t("installNameHelp").replace("{name}", d.name);
+                help.textContent = guide();
                 help.classList.remove("bad");
                 sync();
               }),
@@ -738,7 +742,7 @@ function openInstallByName(initial: string): void {
       runTask({ operation: "install", sdk: d.name, version: v, use });
     };
     input.oninput = () => {
-      help.textContent = t("installNameHelp").replace("{name}", d.name);
+      help.textContent = guide();
       help.classList.remove("bad");
       sync();
     };
@@ -805,27 +809,15 @@ function renderOptions(body: HTMLElement): void {
     return;
   }
   let h = "";
-  if (p.guide && (p.guide.en || p.guide.zh))
-    h +=
-      '<div class="list"><div class="item guide">' +
-      icon("info") +
-      "<span style='flex:1'><b>" +
-      esc(t("guideTitle")) +
-      "</b><br><span class='muted'>" +
-      esc(txt(p.guide, getLang())) +
-      "</span></span></div>";
   if (p.variables.length) {
     h += section(
       t("downloads"),
-      t("downloadsHelp"),
       p.variables
         .map((v) => {
           const preset = (v.presets || []).find((x) => x.value === v.value);
           const sub = v.value ? (preset ? txt(preset.name, getLang()) + " · " : "") + v.value : t("unset");
           return (
-            "<div class='item'>" +
-            icon("download") +
-            "<span style='flex:1;min-width:0'><b>" +
+            "<div class='item'><span style='flex:1;min-width:0'><b>" +
             esc(txt(v.label, getLang())) +
             "</b>" +
             (v.advanced ? " " + tagList([t("advanced")]) : "") +
@@ -843,27 +835,17 @@ function renderOptions(body: HTMLElement): void {
         .join(""),
     );
   }
-  h += '<div class="t-title-m" id="legacyHead" style="margin-top:20px">' + esc(t("legacyTitle")) + '</div><div class="list">';
-  if (!p.legacyFiles.length)
-    h += "<div class='item'>" + icon("history") + "<span class='muted'>" + esc(t("legacyNone")) + "</span></div>";
-  else {
-    h +=
-      "<div class='item'>" +
-      icon("history") +
-      "<span style='flex:1'><b>" +
-      esc(t("legacyFiles")) +
-      "</b><br><span class='muted t-label'>" +
-      esc(t("legacyFilesHelp")) +
-      "</span><br>" +
-      tagList(p.legacyFiles) +
-      "</span></div>";
+  // The version files: the switch names them, and the choice of the version is there where the plugin has one.
+  if (p.legacyFiles.length) {
     const on = configValue("legacyVersionFile.enable") === "true";
     h +=
-      '<div class="item"><span class="lead"></span><span style="flex:1"><b>' +
+      '<div class="t-title-m" id="legacyHead" style="margin-top:20px">' +
+      esc(t("legacyTitle")) +
+      '</div><div class="list"><div class="item"><span style="flex:1"><b>' +
       esc(t("legacyEnable")) +
-      '</b><br><span class="muted t-label">' +
-      esc(t("legacyEnableHelp")) +
-      '</span></span><button class="switch" role="switch" id="legacySwitch" aria-checked="' +
+      "</b><br>" +
+      tagList(p.legacyFiles) +
+      '</span><button class="switch" role="switch" id="legacySwitch" aria-checked="' +
       on +
       '" aria-label="' +
       esc(t("legacyEnable")) +
@@ -871,7 +853,7 @@ function renderOptions(body: HTMLElement): void {
     if (p.legacyStrategy) {
       const strat = configValue("legacyVersionFile.strategy");
       h +=
-        '<div class="item"><span class="lead"></span><div class="grow stack"><b id="legacyStrategyLabel">' +
+        '<div class="item"><div class="grow stack"><b id="legacyStrategyLabel">' +
         esc(t("legacyStrategy")) +
         '</b><div class="seg" id="legacyStrategy" role="group" aria-labelledby="legacyStrategyLabel">' +
         (
@@ -887,58 +869,24 @@ function renderOptions(body: HTMLElement): void {
           )
           .join("") +
         "</div></div></div>";
-    } else
-      h +=
-        '<div class="item"><span class="lead"></span><span class="muted">' +
-        esc(t("legacyIgnored").replace("{setting}", t("legacyStrategy"))) +
-        "</span></div>";
+    }
+    h += "</div>";
   }
-  h += "</div>";
   h += '<div class="t-title-m" id="aliasHead" style="margin-top:20px">' + esc(t("aliasTitle")) + '</div><div class="list" id="aliasList"><div class="item"><span class="muted">…</span></div></div>';
-  if (p.shorthands.length) {
-    h += section(
-      t("shorthands"),
-      t("shorthandsHelp").replace("{name}", d.name),
-      p.shorthands
-        .map(
-          (s) =>
-            "<div class='item'>" +
-            icon("terminal") +
-            "<span style='flex:1;min-width:0'><code>" +
-            esc(s.name) +
-            '</code><br><span class="muted t-label">' +
-            esc(txt(s.meaning, getLang())) +
-            "</span></span><button class='btn tonal' data-try='" +
-            esc(s.name) +
-            "'>" +
-            icon("download", "sm") +
-            "<span>" +
-            esc(t("installDots")) +
-            "</span></button></div>",
-        )
-        .join(""),
-    );
-  }
   if (p.tips.length)
     h += section(
       t("tips"),
-      "",
-      p.tips
-        .map((x) => "<div class='item'>" + icon("info") + "<span style='flex:1'>" + esc(txt(x, getLang())) + "</span></div>")
-        .join(""),
+      p.tips.map((x) => "<div class='item'><span style='flex:1'>" + esc(txt(x, getLang())) + "</span></div>").join(""),
     );
   if (p.docs.length)
     h += section(
       t("docs"),
-      "",
       p.docs
         .map(
           (x) =>
             "<button class='item' data-doc='" +
             esc(txt(x.url, getLang())) +
-            "'>" +
-            icon("menu-book") +
-            "<span style='flex:1'>" +
+            "'><span style='flex:1'>" +
             esc(txt(x.title, getLang())) +
             "</span>" +
             icon("open-in-new", "sm muted") +
@@ -953,9 +901,6 @@ function renderOptions(body: HTMLElement): void {
         const v = p.variables.find((x) => x.key === (b as HTMLButtonElement).dataset.var);
         if (v) openVariable(v);
       }),
-  );
-  body.querySelectorAll("[data-try]").forEach(
-    (b) => ((b as HTMLButtonElement).onclick = () => openInstallByName((b as HTMLButtonElement).dataset.try || "")),
   );
   body.querySelectorAll("[data-doc]").forEach(
     (b) => ((b as HTMLButtonElement).onclick = () => openExternal((b as HTMLButtonElement).dataset.doc || "")),
@@ -992,24 +937,20 @@ async function loadAliases(): Promise<void> {
   if (!d || !host) return;
   try {
     const aliases = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/aliases")) as { sdk: string; alias: string; target: string }[];
-    if (!aliases.length) {
-      host.innerHTML = "<div class='item'>" + icon("label", "sm muted") + "<span class='muted'>" + esc(t("aliasEmpty")) + "</span></div>";
-    } else {
-      host.innerHTML = aliases
-        .map(
-          (x) =>
-            "<div class='item'><span style='flex:1'><code>" +
-            esc(x.alias) +
-            "</code><br><span class='muted t-label'>" +
-            esc(x.target) +
-            "</span></span><button class='btn text' data-unalias='" +
-            esc(x.alias) +
-            "'>" +
-            esc(t("aliasUnset")) +
-            "</button></div>",
-        )
-        .join("");
-    }
+    host.innerHTML = aliases
+      .map(
+        (x) =>
+          "<div class='item'><span style='flex:1'><code>" +
+          esc(x.alias) +
+          "</code><br><span class='muted t-label'>" +
+          esc(x.target) +
+          "</span></span><button class='btn text' data-unalias='" +
+          esc(x.alias) +
+          "'>" +
+          esc(t("aliasUnset")) +
+          "</button></div>",
+      )
+      .join("");
     host.innerHTML +=
       "<div class='item'><span style='flex:1'></span><button class='btn tonal' id='aliasAdd'>" +
       icon("add", "sm") +

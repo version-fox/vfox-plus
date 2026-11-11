@@ -77,16 +77,8 @@ export function wireStateRetry(root: ParentNode, fn: () => void): void {
   if (b) (b as HTMLButtonElement).onclick = fn;
 }
 
-export function section(title: string, help: string, rows: string): string {
-  return (
-    '<div class="t-title-m" style="margin-top:20px">' +
-    esc(title) +
-    "</div>" +
-    (help ? '<p class="muted t-label" style="margin:0 4px 8px">' + esc(help) + "</p>" : "") +
-    '<div class="list">' +
-    rows +
-    "</div>"
-  );
+export function section(title: string, rows: string): string {
+  return '<div class="t-title-m" style="margin-top:20px">' + esc(title) + '</div><div class="list">' + rows + "</div>";
 }
 
 export function chip(id: string, label: string, on: boolean, attr?: string): string {
