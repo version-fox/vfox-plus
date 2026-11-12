@@ -348,11 +348,16 @@ func pressing(role kit.Role, name string) func(ta *testApp) {
 	}
 }
 
-// reveal scrolls the page, by what a wheel does, until the node is wholly in the window.
+// reveal scrolls the page, by what a wheel does, until the node is wholly in the window; the pointer is taken away after it, as it is
+// by scrollToEnd.
 func (ta *testApp) reveal(role kit.Role, name string) {
 	ta.t.Helper()
 	img := ta.tester.Image()
 	width, height := float32(img.Bounds().Dx()), float32(img.Bounds().Dy())
+	defer func() {
+		ta.tester.Move(-1, -1)
+		ta.settle()
+	}()
 	for range 200 {
 		if n, ok := ta.find(role, name); ok && n.Visible() && n.Rect.Y >= 0 && n.Rect.Y+n.Rect.H <= height {
 			return
@@ -363,11 +368,15 @@ func (ta *testApp) reveal(role kit.Role, name string) {
 	ta.t.Fatalf("%s %q is not in the window, however far the page is scrolled (%q)", role, name, ta.texts())
 }
 
-// scrollToEnd scrolls what is under the middle of the window, a list or a dialog, to its end.
+// scrollToEnd scrolls what is under the middle of the window, a list or a dialog, to its end, and takes the pointer away, as a person
+// does who is done: left where the wheel was, it rests on a button, and the tooltip of the button is drawn over the text that is under
+// it, which is not the text that the census reads (the last row of a list was 1.4 on Windows, against the tooltip that is dark).
 func (ta *testApp) scrollToEnd() {
 	ta.t.Helper()
 	img := ta.tester.Image()
 	ta.tester.Scroll(float32(img.Bounds().Dx())/2, float32(img.Bounds().Dy())/2, 0, 1e6)
+	ta.settle()
+	ta.tester.Move(-1, -1)
 	ta.settle()
 	ta.settle()
 }
