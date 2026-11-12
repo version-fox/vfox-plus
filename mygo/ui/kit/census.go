@@ -474,10 +474,15 @@ func overlaps(r, window ui.Rect) bool {
 	return r.X < window.X+window.W && r.X+r.W > window.X && r.Y < window.Y+window.H && r.Y+r.H > window.Y
 }
 
-// within reports whether another node of the screen, of the kind that the test says, has the node inside it.
+// within reports whether another node of the screen, of the kind that the test says, holds the node: the centre of the node is
+// in it. A text is held by the control that it is the label of, whatever the height of its line: where a Han character is set
+// in another font than the Latin letters around it, the line is taller than the font of the control, and a text that was 42 dp high
+// in a button of 40 was not inside it.
 func within(n *Node, shown []*Node, kind func(*Node) bool) bool {
+	x, y := n.Rect.X+n.Rect.W/2, n.Rect.Y+n.Rect.H/2
 	for _, o := range shown {
-		if o != n && kind(o) && n.Inside(o) {
+		if o != n && kind(o) && o.Visible() &&
+			x >= o.Rect.X && x <= o.Rect.X+o.Rect.W && y >= o.Rect.Y && y <= o.Rect.Y+o.Rect.H {
 			return true
 		}
 	}

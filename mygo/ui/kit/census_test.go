@@ -436,6 +436,28 @@ func TestTheCensusReadsAThinGlyphAgainstItsBackgroundAndNotAgainstItsOwnStrokes(
 	}
 }
 
+func TestTheCensusKnowsTheTextOfAControlThatIsDisabledWhenItsLineIsTallerThanTheControl(t *testing.T) {
+	// The line of a text that is set in the font of Han characters (Noto Sans CJK has a taller line than the font of the
+	// Latin letters) is 42 dp high where the button that it is the label of is 40: the rectangles of a real screen. The button
+	// is its control all the same, and the text of what is disabled is not held to the contrast of a text; where no control
+	// holds it, the same text is measured and found out.
+	img := image.NewRGBA(image.Rect(0, 0, 300, 200))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{R: 255, G: 241, B: 232, A: 255}}, image.Point{}, draw.Src)
+	button := &Node{Role: RoleButton, Name: "清除已完成", Rect: rect(32, 114, 200, 40)}
+	text := &Node{Role: RoleText, Text: "清除已完成", Rect: rect(76, 113, 140, 42), Size: 14, Color: ui.Color{R: 34, G: 26, B: 20, A: 97}}
+	if got := TakeCensus([]*Node{button, text}, rect(0, 0, 300, 200), img); got.Contrast.Measured != 0 {
+		t.Errorf("the text of a disabled button is not measured, though its line is taller than the button: %+v", got.Contrast)
+	}
+	if got := TakeCensus([]*Node{text}, rect(0, 0, 300, 200), img); got.Contrast.Measured != 1 || got.Contrast.Failing != 1 {
+		t.Errorf("and without a button it is measured, and as dim as it is it fails: %+v", got.Contrast)
+	}
+	// A text beside the button, whose line overlaps it but whose centre does not, is not the label of the button.
+	beside := &Node{Role: RoleText, Text: "next to it", Rect: rect(230, 113, 60, 42), Size: 14, Color: ui.Color{R: 34, G: 26, B: 20, A: 97}}
+	if got := TakeCensus([]*Node{button, beside}, rect(0, 0, 300, 200), img); got.Contrast.Measured != 1 {
+		t.Errorf("a text that stands by a button is its own: %+v", got.Contrast)
+	}
+}
+
 func TestTheBudgetsOfTheCopyAreNotThoseOfALanguageWithoutSpaces(t *testing.T) {
 	// Five sentences of eight words and five small lines are over the budgets of the copy; a page that is across the edge
 	// of its window is over a budget of the layout. A language without spaces is held to the second.
