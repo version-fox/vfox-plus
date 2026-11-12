@@ -184,8 +184,10 @@ a tag, the name of a choice, the title of a group and of a card, the choice that
 they need, and are not cut by an ellipsis. A text field is as high as its label and its line need (56 dp at 100 %), and the
 label of it is as wide as its line, which a button beside it leaves. What has a room that does not grow is read at 130 % at the
 most, and smaller where the longest of its labels does not fit the room, down to 100 %: the labels of the navigation bar, which
-has a fifth of the window for each, and those of the rail, which has its 96 dp. The bar is as high as its labels, and each item of
-the rail, and the count of a badge is as large as they are.
+has a fifth of the window for each, and those of the rail, which has its 96 dp. The bar is as high as its labels are, which a font may
+set higher than they ask (Noto Sans, and the font that the Han characters of a Chinese label fall back to, by 2 to 3 dp): it grows by
+that, and is not a height that holds a line as high as it was meant to be. So is each item of the rail, and the count of a badge is as
+large as they are.
 
 **Short windows.** A window may be as short as 480 dp, which is less than the dialog of the mirrors or of the pairing is at 100 %.
 A dialog keeps its title and its actions where they can be pressed, and what is between them scrolls; a menu is as tall as the room
@@ -241,7 +243,10 @@ Sans, which the runners give for `sans-serif` and which found a chip that the ot
 budgets in all of them. What the census trusts is what the text engine measures: `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw`
 draws the labels of the navigation bar, at the weights and sizes that it uses, in the default family and in the widest, once as wide as
 they want and once in a box of the width that the engine measured, and fails when the box cuts one or the width is not the one that
-is drawn.
+is drawn: it has found no label, on any platform that CI takes, that a box of the measured width cuts. The census holds a text to that
+width to 0.05 dp, as the engine ends a line with an ellipsis for any width that it has less than the text wants. A dp of slack, which
+the census had, hid a label that was short by 0.4 dp: *Settings* drawn as *Settin…* in the bar on macOS, in Verdana (which has a
+regular and a bold, so that the weight of 500 is drawn as bold) at 200 % in 360 dp, where it wants 72.4 dp and its slot had 72.
 
 ## Motion
 
