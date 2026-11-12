@@ -54,7 +54,7 @@
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、文档语言与链接（`vfxtool docs-check`）、Markdown（markdownlint）、共享 JSON、无二进制文件 |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | 构建工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、在 Linux、Windows（x64 与 arm64）和 macOS 上取桌面应用各屏幕的普查、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、在 Linux、Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取桌面应用各屏幕的普查、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中跑 `vfxtool sandbox all` |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（debug 密钥签名）并作为 `vfox-plus-android` 上传 |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`android/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、Android 构建，以及用到 Docker 的检查 |
@@ -378,8 +378,10 @@ key），替换文档中的链接。curl 以 56 退出是连接断了：重试�
 窗口就是[设计系统](design-system.md#预算)里写的那几种；从节点里读每段文字、每个图标和每个控件登记的位置，
 文字怎么排的（字号、字重、颜色），以及单行文字想要的宽度；从窗口的图里读文字落在什么底色上。所以它能查到
 网页普查查不到的一件事：图标表里没有的图标。开着对话框或菜单的屏幕，就按对话框或菜单算。
-窗口高到能放下一整页，折叠线以下的内容也算在内；其中六种窗口用系统文字缩放的 130 %、150 % 和 200 %，三种显示中文（场景用英文走到它的屏幕，再在那里切换语言）。
-十四种窗口共 294 个屏幕，约一分钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
+比窗口还高的页面（设置、插件的选项、插件和 Java 发行版的列表：`censusWindow.heightFor`）画在和它一样高的窗口里，
+折叠线以下的内容也算在内；页面仍然比窗口高时，普查就超预算（`Census.Taller`；带着一个比任何窗口能显示的行数都多的列表的页面，
+Node.js 的版本，按它显示出来的行算）。其中六种窗口用系统文字缩放的 130 %、150 % 和 200 %，三种显示中文（场景用英文走到它的屏幕，
+再在那里切换语言）。十四种窗口共 294 个屏幕，约一分半钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
 所以单元测试在竞态下跳过普查，CI 和沙箱单独用一步来跑。新增一个场景要多画十四次，新增一种窗口要多画二十一次，
 加之前先掂量；也别指望再开线程，渲染器已经在用多个核了。这台电脑有哪些地址，由测试告诉网页界面
 （`pair.HostOptions.Addresses`）：一个 IPv4 和一个 IPv6，都取自专门留作文档示例的地址段，所以配对的屏幕在每台机器上都一样。
@@ -393,12 +395,17 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 写到该目录：每屏一个 JSON 文件，外加每屏一行的 `summary.txt`；`VFOX_PLUS_SNAPSHOTS=目录` 再把每个屏幕的图也写出来
 （`census.<屏幕>.<窗口>.png`），好看看数字说的是什么。新增一个屏幕，就在 `censusScenes` 里加一项。
 
-另有两个测试用别的窗口取这些场景。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和
-`monospace` 的字体画它们（日志里写着那是哪种字体），取三种窗口，约 12 秒；`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText`
-取普查没取的文字大小 115、130、150 和 175 %，四种宽度，336 个屏幕，约一分钟。第二个只在要求时才跑，
-用 `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run TestTheScreensAreWithinTheBudgetsAtEverySizeOfText`。
+另有三个测试用别的窗口取这些场景。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和
+`monospace` 的字体画它们（日志里写着那是哪种字体），取三种窗口，约 20 秒；
+`TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` 用系统和桌面拿来排界面的字体族里最宽的三个
+（Verdana、DejaVu Sans、Geneva、Inter 等，由文字引擎量出来）画它们，同样三种窗口，约一分钟；
+`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` 取普查没取的文字大小 115、130、150 和 175 %，四种宽度，英文和中文各一遍，
+672 个屏幕，约四分钟。后两个只在要求时才跑，用
+`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts)'`。
 
-CI 会要求它。`mygo.yml` 的 `census` 任务在 Windows Server 2025（x64）、ARM 版 Windows 11（arm64）和 macOS 上取普查、字体测试和
-扫描，每个平台用它自己的文字引擎和字体（Linux 是 Pango，这两个是 DirectWrite 和 Core Text）；在 Linux 上只取扫描，因为 Linux 的
-普查是 `build` 任务的一步。它不等 `build`；每个平台上也跑 `kit` 的测试；某个屏幕超出预算、或人工触发工作流
-（`workflow_dispatch`）时，把各屏幕的图作为产物保存。沙箱在它的普查那一步里也取扫描。改了布局之后自己也要跑一遍，好在推送前就知道。
+CI 会要求它们。`mygo.yml` 的 `census` 任务在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和
+macOS 15（arm64）以及 Intel 上的 macOS 15 上取普查、字体测试、最宽字体测试和扫描，每个平台用它自己的文字引擎和字体（Linux 是 Pango，
+这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。在 Linux 上取最宽字体测试和扫描，
+并装上桌面用来排文字的字体，Linux 的普查是 `build` 任务的一步。它不等 `build`；每个平台上也跑 `kit` 的测试；打印它所在系统的版本；
+某个屏幕超出预算、或人工触发工作流（`workflow_dispatch`）时，把各屏幕的图作为产物保存。沙箱在它的普查那一步里也取最宽字体测试和扫描。
+改了布局之后自己也要跑一遍，好在推送前就知道。

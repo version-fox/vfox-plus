@@ -348,7 +348,8 @@ adds 8 MB because only the rows in view are built.
   arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows 11
   is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI;
   installing it is sideloading with `Add-AppxPackage -AllowUnsigned`. The census of
-  the screens is taken on Windows (x64 and arm64) and on macOS in CI too (the job `census`): what the text
+  the screens is taken on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel) in CI too
+  (the job `census`): what the text
   engine and the fonts of a platform do to a layout is for a machine of that platform to say. `core` is
   portable: process termination (`SIGTERM` on Unix, kill on Windows), `PATH`
   splitting (`:` vs `;`), vfox lookup (`vfox` vs `vfox.exe` with Windows fallback

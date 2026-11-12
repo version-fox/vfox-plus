@@ -143,12 +143,16 @@ fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
 150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
 100 % and at 200 %, and 1280 dp wide. It fails when one of them is over a budget. A dp of the desktop is
-a px of the web interface. A screen is held to:
+a px of the web interface. A page that is taller than the windows (the settings, the options of a plugin, the lists of the
+plugins and of the distributions of Java: up to 9 500 dp at 200 %) is drawn in a window as tall as it is, so that what it
+has below the fold is counted, too; a page that has a list with more rows than any window shows (the versions of Node.js)
+is counted by the rows that it shows. A screen is held to:
 
 | Census | Budget |
 | ------ | -----: |
 | Texts under the contrast of WCAG AA (4.5:1; 3:1 for large text) | 0 |
 | Page wider than its window | no |
+| Page taller than its window (what is below the fold is not counted) | no |
 | Controls under 24 px | 0 |
 | Sizes off the type scale | 0 |
 | Rows of a list with two buttons that have words on them | 0 |
@@ -168,7 +172,7 @@ all one run of characters, and what breaks a word at any character (see *Long wo
 size in every window. What holds text is as wide as the text: where there is no room for it, a
 control goes under the text that it was beside (the end of an item of a list, the actions of the
 header of a page and of a dialog), a group of segments gives up its padding and its icons and then
-is a dropdown (the tabs, the theme, the language, the filters, the addresses of the pairing), and a chip,
+is a dropdown (the tabs, the theme, the language, the filters, the addresses of the pairing), and a button, a chip,
 a tag, the name of a choice and the choice that a dropdown shows go on as many lines as they need, and are
 not cut by an ellipsis. What has a room that does not grow is not read larger than 130 % (the labels of the
 navigation bar).
@@ -185,22 +189,29 @@ of an item) or grow with the text scale (a field, the cards of the registry), an
 measured once with one font. The census takes 200 % in the narrowest window, in one of the rail and in the
 widest, which are the three layouts, and 130 % and 150 % where the room is the least. The layouts do not
 promise that what holds at 200 % holds below it, so the sizes in between are looked at and not assumed:
-`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes 115, 130, 150 and 175 % in four widths when
+`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes 115, 130, 150 and 175 % in four widths, in English and in Chinese, when
 `VFOX_PLUS_CENSUS_SWEEP=1` asks for it, which CI does on every platform and the sandbox does; run it after a change of a
 layout to know before the push.
 
 **Fonts.** Nothing of the layout is written for the width of Ubuntu Sans, which the pictures are in: the
-widths follow the text as the font sets it, and text at 200 % is twice as wide as at 100 %, which is
-more than the fonts of a system differ by. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws the scenes in what the system gives
-for `sans-serif` and `monospace` (its log says which font that is on the machine that runs it), in
-the narrowest window at 100 % and 200 %, and in the widest.
+widths follow the text as the font sets it. That is shown, and not said.
+`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws the scenes in what the system gives for `sans-serif`
+and `monospace` (its log says which font that is on the machine that runs it), and
+`TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` in the three widest of the families that systems and
+desktops set their interface in (Verdana, DejaVu Sans, Geneva, Inter and the like, as the text engine measures them; its log
+says how much wider than `sans-serif` each is). Both take the narrowest window at 100 % and 200 %, and the widest. Verdana
+is the widest of the fonts of text that every Windows and every Mac has, 15 % wider than Segoe UI and 10 % wider than the
+system font of macOS, and the test fails on those systems where it is not among the fonts that it tries. The widest of every
+family that the engines list is not the choice: that is Segoe Script, Zapfino and an emoji font, which no screen is set in.
 
-CI takes the census where the text engine and the fonts are not those of Linux, so that the layout is held in them and
-not assumed to hold: on Windows Server 2025 and Windows 11 on ARM, where DirectWrite has Segoe UI and Arial for
-`sans-serif` and Cascadia Mono, Consolas and Courier New for `monospace`, and on macOS, where Core Text gives the system
-font and its monospaced kind. There is no Ubuntu Sans on those, so that the census itself is in the font of the platform.
-On Linux the runners give DejaVu Sans for `sans-serif`, the widest of the common fonts, which found a chip that the others
-did not. The screens are within the budgets in all of them.
+CI takes the census where the text engine and the fonts are not those of Linux, and in more than one version of each, so that
+the layout is held in them and not assumed to hold: on Windows Server 2025, Windows Server 2022 and Windows 11 on ARM, where
+DirectWrite has Segoe UI and Arial for `sans-serif` and Cascadia Mono, Consolas and Courier New for `monospace`, and on macOS
+26, macOS 15 and macOS 15 on Intel, where Core Text gives the system font and its monospaced kind. There is no Ubuntu Sans on
+those, so that the census itself is in the font of the platform. On Linux the job installs the fonts that the desktops set
+their text in (Adwaita Sans, Cantarell, Noto Sans, Inter, Open Sans, Roboto, Lato, Liberation Sans and FreeSans) beside DejaVu
+Sans, which the runners give for `sans-serif` and which found a chip that the others did not. The screens are within the
+budgets in all of them.
 
 ## Motion
 

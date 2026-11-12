@@ -262,7 +262,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 11 打包为
   未签名 `.msixbundle`（x64 与 arm64），CI 校验；安装为 `Add-AppxPackage -AllowUnsigned`
-  侧加载。屏幕的普查在 CI 里也在 Windows（x64 与 arm64）和 macOS 上取（`census` 任务）：
+  侧加载。屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
   一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。

@@ -109,12 +109,15 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
 1280 dp 宽的浅色和深色，700、412 和 360 dp 宽（应用能打开的最窄窗口），系统把文字放大之后的六种：
 360 dp 宽的 130 % 和 150 %，412 dp 宽的 150 %，以及 360、700 和 1280 dp 宽的 200 %，还有三种中文窗口：360 dp 宽的 100 % 和 200 %，
 以及 1280 dp 宽。任何一个超出预算，测试就失败。
-桌面的 1 dp 对应网页界面的 1 px。一个屏幕要满足：
+桌面的 1 dp 对应网页界面的 1 px。比这些窗口还高的页面（设置、插件的选项、插件和 Java 发行版的列表：200 % 时最高约 9 500 dp）
+画在和它一样高的窗口里，折叠线以下的内容也算在内；带着一个比任何窗口能显示的行数都多的列表的页面（Node.js 的版本）
+按它显示出来的行算。一个屏幕要满足：
 
 | 普查项 | 预算 |
 | ------ | -----: |
 | 对比度低于 WCAG AA 的文字（4.5:1；大字 3:1） | 0 |
 | 页面比窗口宽 | 否 |
+| 页面比窗口高（折叠线以下的内容没有被数到） | 否 |
 | 小于 24 px 的控件 | 0 |
 | 不在字号阶梯上的字号 | 0 |
 | 一行里有两个带文字的按钮的列表行 | 0 |
@@ -131,7 +134,7 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
 
 **更大的文字。** 系统的文字可以放大，最大到 200 %，每种窗口、每种字号下都要满足预算。装文字的东西跟着文字变宽：
 放不下时，原本在文字旁边的控件移到文字下面（列表项末尾的控件、页头和对话框的操作），分段按钮组先让出内边距和图标，
-再退成下拉框（标签页、主题、语言、过滤、配对的地址），芯片、标签、选项名，以及下拉框里显示的那个选项，想要几行就几行，不用省略号截断。
+再退成下拉框（标签页、主题、语言、过滤、配对的地址），按钮、芯片、标签、选项名，以及下拉框里显示的那个选项，想要几行就几行，不用省略号截断。
 位置本身不随文字变大的东西最多读到 130 %（底栏的标签）。
 
 **长词。** 一个没有空格可断的词，名字、地址、路径或链接，比它的空间长时，在任意字符处断开（`kit.Breakable`，
@@ -143,16 +146,21 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
 没有一个是拿某种字体量一次就写死的宽度。普查在最窄的窗口、带导航栏的窗口和最宽的窗口取 200 %，这是三种布局，
 并在空间最紧的地方取 130 % 和 150 %。布局并不保证 200 % 下满足的，更小的字号下也满足，所以中间的字号是看出来的，
 不是假设出来的：`VFOX_PLUS_CENSUS_SWEEP=1` 时，`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` 在四种宽度下取 115、130、150
-和 175 %，CI 在每个平台上都会要求它，沙箱也会；改了布局之后自己也要跑一遍，好在推送前就知道。
+和 175 %，英文和中文各一遍，CI 在每个平台上都会要求它，沙箱也会；改了布局之后自己也要跑一遍，好在推送前就知道。
 
-**字体。** 布局没有哪一处是照 Ubuntu Sans（图是用它拍的）的宽度写的：宽度跟着字体排出来的文字走，而 200 % 的文字
-比 100 % 的宽一倍，比系统里各种字体之间的差别大得多。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif`
-和 `monospace` 的字体画这些场景（日志里写着跑它的机器上那是哪种字体），取最窄窗口的 100 % 和 200 %，以及最宽的窗口。
+**字体。** 布局没有哪一处是照 Ubuntu Sans（图是用它拍的）的宽度写的：宽度跟着字体排出来的文字走。这是要拿出来看的，不是说说的：
+`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和 `monospace` 的字体画这些场景
+（日志里写着跑它的机器上那是哪种字体），`TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` 用系统和桌面拿来排界面的
+字体族里最宽的三个（Verdana、DejaVu Sans、Geneva、Inter 等，由文字引擎量出来；日志里写着每个比 `sans-serif` 宽多少）。两个都取
+最窄窗口的 100 % 和 200 %，以及最宽的窗口。Verdana 是每台 Windows 和每台 Mac 都有的、文字字体里最宽的一个，比 Segoe UI 宽 15 %，
+比 macOS 的系统字体宽 10 %；在这两个系统上，它不在被测试的字体之列时，测试会失败。选择不是“引擎列出的所有字体族里最宽的”：
+那样会选到 Segoe Script、Zapfino 和一个表情字体，没有哪个屏幕是用它们排的。
 
-CI 在文字引擎和字体不是 Linux 那一套的地方取普查，让布局在那里被验证，而不是假设它成立：在 Windows Server 2025 和 ARM 版
-Windows 11 上，DirectWrite 给 `sans-serif` 的是 Segoe UI 和 Arial，给 `monospace` 的是 Cascadia Mono、Consolas 和 Courier New；
-在 macOS 上，Core Text 给的是系统字体及其等宽版本。这几个平台上都没有 Ubuntu Sans，所以普查本身就是用平台自己的字体画的。
-Linux 的运行器给 `sans-serif` 的是 DejaVu Sans，常见字体里最宽的一个，它找出了别的字体没找出的一个芯片。
+CI 在文字引擎和字体不是 Linux 那一套的地方取普查，每个平台不止一个版本，让布局在那里被验证，而不是假设它成立：在 Windows Server 2025、
+Windows Server 2022 和 ARM 版 Windows 11 上，DirectWrite 给 `sans-serif` 的是 Segoe UI 和 Arial，给 `monospace` 的是 Cascadia Mono、
+Consolas 和 Courier New；在 macOS 26、macOS 15 和 Intel 上的 macOS 15 上，Core Text 给的是系统字体及其等宽版本。这几个平台上都没有
+Ubuntu Sans，所以普查本身就是用平台自己的字体画的。Linux 上，任务除了运行器给 `sans-serif` 的 DejaVu Sans（它找出了别的字体没找出的
+一个芯片），还装上桌面用来排文字的字体（Adwaita Sans、Cantarell、Noto Sans、Inter、Open Sans、Roboto、Lato、Liberation Sans、FreeSans）。
 各屏幕在所有这些字体里都满足预算。
 
 ## 动效
