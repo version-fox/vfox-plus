@@ -258,9 +258,11 @@ func Run(args []string) error {
 			// built without.
 			offline("env", "CGO_ENABLED=1", "go", "test", "-race", "-coverprofile=coverage.out", "./..."),
 			// The census of the screens is taken without the race detector, which it does not need and which makes it
-			// three times slower; the tests above skip it. It takes the sizes of text between those of the census, too,
-			// as the job census of CI does on Linux.
-			offline("env", "VFOX_PLUS_CENSUS_SWEEP=1", "go", "test", "./ui", "-run", "TestTheScreensAreWithinTheBudgets", "-count=1"),
+			// three times slower; the tests above skip it. It takes the sizes of text between those of the census and
+			// the widest fonts, too, as the job census of CI does on Linux: 1 200 screens, some of them as tall as 12 000 dp,
+			// which take five minutes on a machine of ours and fifteen on a runner of CI, where the default of ten minutes
+			// of go test is not enough.
+			offline("env", "VFOX_PLUS_CENSUS_SWEEP=1", "go", "test", "./ui", "-run", "TestTheScreensAreWithinTheBudgets", "-count=1", "-timeout", "40m"),
 		} {
 			if err := asTester(app, step...); err != nil {
 				return err
