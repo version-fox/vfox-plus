@@ -105,14 +105,19 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 	scale := c.Env.Theme.TextScale
 	height := float32(56)
 	padding := []float32{0, 16}
+	// The label floats over the line, which it is a little over, by 2 dp at 100 %: the room above the line is that of the label, which
+	// is as high as its text is, and not a fixed 22 dp, in which the label of a text of 200 % was drawn over the line.
+	smallLine := Type(BodySmall).Line * scale
 	switch {
 	case f.Dense:
 		height = 48
 		padding = []float32{12, 16}
 	case hasLabel && single:
-		padding = []float32{22, 16, 10, 16}
+		padding = []float32{6 + smallLine, 16, 10, 16}
+		// The field is as high as its label and its line need, which is 56 dp at 100 %.
+		height = max(height, padding[0]+style.Line*scale+padding[2])
 	case hasLabel:
-		padding = []float32{24, 16, 8, 16}
+		padding = []float32{8 + smallLine, 16, 8, 16}
 	case !single:
 		padding = []float32{16, 16}
 	}
@@ -162,30 +167,52 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 			if f.LeadingIcon != "" {
 				Icon(c, f.LeadingIcon, 24, cs.OnSurfaceVariant, 0)
 			}
-			if single {
-				input = ui.TextInputBase(c.Context, buf)
-			} else {
-				input = ui.TextAreaBase(c.Context, buf).Lines(lines, maxLines)
-			}
-			input.Grow(1).Shrink(1).Label(firstNonEmpty(f.Label, f.Hint))
-			if f.Monospace {
-				input.Font(MonoFamilies)
-			}
-			if f.Disabled {
-				input.Disabled(true)
-			}
-			if f.Hint != "" && (!hasLabel || focused) {
-				input.Placeholder(f.Hint)
-			}
-			if f.AutoFocus {
-				input.AutoFocus()
-			}
-			if f.OnChange != nil {
-				input.OnChange(func() { f.OnChange(*buf) })
-			}
-			if f.OnSubmit != nil && single {
-				input.OnSubmit(func() { f.OnSubmit(*buf) })
-			}
+			// The line of text and the label are in the room that the icons before and after them leave: the label is as wide as the
+			// line, where it rests, too, and not as wide as the field, under the button at its end.
+			ui.Column(c.Context).Grow(1).Shrink(1).MinWidth(0).AlignSelf(ui.Stretch).Justify(ui.Center).Children(func() {
+				if single {
+					input = ui.TextInputBase(c.Context, buf)
+				} else {
+					input = ui.TextAreaBase(c.Context, buf).Lines(lines, maxLines)
+				}
+				input.MinWidth(0).Label(firstNonEmpty(f.Label, f.Hint))
+				if c.Env.Reg.CollectText {
+					// The line of text is what the label must stay clear of, and the census asks where it is. A field that is empty
+					// has no text for the label to be drawn over, and the hint is the text that the line shows in its place.
+					shown := *buf
+					if shown == "" && f.Hint != "" && (!hasLabel || focused) {
+						shown = f.Hint
+					}
+					line := c.Env.Reg.Add(Node{Role: RoleInput, Name: firstNonEmpty(f.Label, f.Hint), Text: shown, Enabled: !f.Disabled})
+					input.DrawOver(func(p *ui.Painter, r ui.Rect) { line.Rect, line.Seen = r, intersection(r, p.Visible()) })
+				}
+				if f.Monospace {
+					input.Font(MonoFamilies)
+				}
+				if f.Disabled {
+					input.Disabled(true)
+				}
+				if f.Hint != "" && (!hasLabel || focused) {
+					input.Placeholder(f.Hint)
+				}
+				if f.AutoFocus {
+					input.AutoFocus()
+				}
+				if f.OnChange != nil {
+					input.OnChange(func() { f.OnChange(*buf) })
+				}
+				if f.OnSubmit != nil && single {
+					input.OnSubmit(func() { f.OnSubmit(*buf) })
+				}
+				if hasLabel {
+					// The floating label. It is placed from the top of the field, and this room begins below the padding of it.
+					big, small := Type(BodyLarge), Type(BodySmall)
+					label := big.WithSize(Lerp(big.Size, small.Size, labelProgress))
+					centred := (height - label.Line*scale) / 2
+					Line(c, f.Label, label, labelColor).Absolute().Top(Lerp(centred, 8, labelProgress) - padding[0]).
+						Left(0).Right(0).PassThrough()
+				}
+			})
 			if f.Trailing != nil {
 				f.Trailing()
 			}
@@ -218,14 +245,6 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 				strokeRRect(p, r, radii, 2*focusProgress, rest)
 			}
 		})
-		if hasLabel {
-			// The floating label.
-			big, small := Type(BodyLarge), Type(BodySmall)
-			label := big.WithSize(Lerp(big.Size, small.Size, labelProgress))
-			centred := (height - label.Line*scale) / 2
-			Line(c, f.Label, label, labelColor).Absolute().Top(Lerp(centred, 8, labelProgress)).
-				Left(16 + leadingOffset(f.LeadingIcon)).Right(16).PassThrough()
-		}
 		if note := firstNonEmpty(f.Error, f.Helper); note != "" {
 			noteColor := cs.OnSurfaceVariant
 			if hasError {
@@ -234,14 +253,6 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 			Label(c, note, Type(BodySmall), noteColor).Margin(0, 16, 0, 16)
 		}
 	})
-}
-
-// leadingOffset is the room that the icon before the text takes.
-func leadingOffset(icon string) float32 {
-	if icon == "" {
-		return 0
-	}
-	return 24 + 12
 }
 
 func firstNonEmpty(values ...string) string {

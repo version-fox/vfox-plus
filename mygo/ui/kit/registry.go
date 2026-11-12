@@ -32,6 +32,11 @@ const (
 	RoleText      Role = "text"
 	RoleIcon      Role = "icon"
 	RoleDialog    Role = "dialog"
+	// RoleActions is the row of the actions of a dialog, RoleMenu the panel of a menu and RoleInput the line of text that a text field
+	// holds: only a registry that collects text has them, for the census to ask where they are.
+	RoleActions Role = "actions"
+	RoleMenu    Role = "menu"
+	RoleInput   Role = "input"
 )
 
 // Node is what a frame knows about one widget: where it is, what it is
@@ -74,6 +79,9 @@ type Node struct {
 	// Rect is where the widget was drawn last, in dp of the window. It is empty
 	// for a widget that no frame has drawn yet.
 	Rect ui.Rect
+	// Seen is the part of Rect that shows, inside the scroll containers around the widget: what a person can see of a text that is
+	// partly scrolled away. Only texts and the lines of text fields have it.
+	Seen ui.Rect
 	// Enabled says whether the widget reacts to input.
 	Enabled bool
 	// Selected says whether the widget is selected or switched on.

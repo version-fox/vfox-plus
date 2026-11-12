@@ -519,6 +519,182 @@ func TestTheCensusFindsAPageThatIsTallerThanItsWindow(t *testing.T) {
 	}
 }
 
+func TestTheCensusFindsWhatOfADialogIsWhereNobodyCanReachIt(t *testing.T) {
+	// A dialog in a window of 360 by 480 dp. Its actions are what closes it: out of the dialog or out of the window, nothing does,
+	// and what it holds that is drawn wholly outside it is a thing that no person can read or press.
+	window := rect(0, 0, 360, 480)
+	dialog := &Node{Role: RoleDialog, Name: "Download mirror", Modal: true, Rect: rect(24, 24, 312, 432)}
+	node := func(role Role, name string, r ui.Rect) *Node {
+		return &Node{Role: role, Name: name, Modal: true, Scope: "dialog", Rect: r, Enabled: true}
+	}
+	spilling := func(extra ...*Node) []string {
+		return TakeCensus(append([]*Node{dialog}, extra...), window, nil).Spilling
+	}
+	// The actions are in it, and the content that scrolls is cut by the edge of what scrolls: across the edge of the dialog,
+	// and not outside it.
+	if got := spilling(node(RoleActions, "Download mirror", rect(48, 392, 264, 40)), node(RoleButton, "A chip", rect(48, 440, 120, 32))); len(got) != 0 {
+		t.Errorf("a dialog that holds its actions and a content that is cut at its edge spills nothing: %q", got)
+	}
+	// The actions are below it, beyond the window.
+	if got := spilling(node(RoleActions, "Download mirror", rect(48, 470, 264, 40))); len(got) != 1 || !strings.Contains(got[0], "the actions of the dialog") {
+		t.Errorf("the actions that are below the dialog and the window: %q", got)
+	}
+	// The actions were not drawn: they are in the registry, with no place.
+	if got := spilling(&Node{Role: RoleActions, Name: "Download mirror", Modal: true, Scope: "dialog", Enabled: true}); len(got) != 1 || !strings.Contains(got[0], "are not drawn") {
+		t.Errorf("the actions that nothing drew: %q", got)
+	}
+	// A chip that is drawn under the dialog, in the window and wholly out of it.
+	if got := spilling(node(RoleActions, "Download mirror", rect(48, 392, 264, 40)), node(RoleButton, "Alibaba Cloud", rect(48, 458, 120, 20))); len(got) != 1 || !strings.Contains(got[0], "Alibaba Cloud") {
+		t.Errorf("a chip wholly outside the dialog: %q", got)
+	}
+	// A dialog that is taller than its window.
+	dialog = &Node{Role: RoleDialog, Name: "Download mirror", Modal: true, Rect: rect(24, 24, 312, 560)}
+	if got := spilling(); len(got) != 1 || !strings.Contains(got[0], "in a window that is 480 tall") {
+		t.Errorf("a dialog that is taller than its window: %q", got)
+	}
+	// A menu has no dialog.
+	menu := []*Node{{Role: RoleMenuItem, Name: "Use", Modal: true, Rect: rect(100, 100, 200, 48)}}
+	if got := TakeCensus(menu, window, nil).Spilling; len(got) != 0 {
+		t.Errorf("a menu is not a dialog: %q", got)
+	}
+	// The budget names it.
+	if over := TakeCensus([]*Node{dialog, node(RoleActions, "Download mirror", rect(48, 392, 264, 40))}, window, nil).Over(); len(over) == 0 {
+		t.Error("a dialog that spills is over a budget")
+	}
+}
+
+func TestTheCensusFindsAMenuThatGoesOutOfItsWindow(t *testing.T) {
+	// A menu that is in the window is where a person can reach every entry of it, by scrolling when it is shorter than they are;
+	// one that goes below the window, or beyond the side of it, has entries that nothing can press.
+	window := rect(0, 0, 360, 480)
+	spilling := func(menu ui.Rect) []string {
+		nodes := []*Node{
+			{Role: RoleMenu, Modal: true, Enabled: true, Rect: menu},
+			{Role: RoleMenuItem, Name: "Use", Modal: true, Enabled: true, Rect: rect(menu.X, menu.Y, menu.W, 48)},
+		}
+		return TakeCensus(nodes, window, nil).Spilling
+	}
+	if got := spilling(rect(96, 96, 208, 144)); len(got) != 0 {
+		t.Errorf("a menu in its window spills nothing: %q", got)
+	}
+	if got := spilling(rect(8, 8, 344, 464)); len(got) != 0 {
+		t.Errorf("a menu that takes the window up to its margin spills nothing: %q", got)
+	}
+	if got := spilling(rect(96, 400, 208, 144)); len(got) != 1 || !strings.Contains(got[0], "the menu is at") {
+		t.Errorf("a menu below the window: %q", got)
+	}
+	if got := spilling(rect(200, 96, 208, 144)); len(got) != 1 {
+		t.Errorf("a menu beyond the side of the window: %q", got)
+	}
+	// A menu that no frame has drawn is not on the screen, and is not out of it.
+	if got := TakeCensus([]*Node{{Role: RoleMenu, Modal: true, Enabled: true}}, window, nil).Spilling; len(got) != 0 {
+		t.Errorf("a menu that was not drawn: %q", got)
+	}
+}
+
+func TestTheCensusFindsTextsThatAreDrawnOverOneAnother(t *testing.T) {
+	// The label of a text field and the line that it holds: at 200 % the field was as high as it was at 100 %, and the label was drawn
+	// over the text. Two lines of one text, one under the other, touch and do not overlap, and the label of a field is a little over
+	// the text, as Material draws it.
+	window := rect(0, 0, 360, 480)
+	text := func(name string, r ui.Rect) *Node {
+		return &Node{Role: RoleText, Text: name, Size: 14, Enabled: true, Rect: r, Seen: r}
+	}
+	input := func(r ui.Rect) *Node {
+		return &Node{Role: RoleInput, Text: "17-system", Enabled: true, Rect: r, Seen: r}
+	}
+	overlapping := func(nodes ...*Node) []string { return TakeCensus(nodes, window, nil).Overlapping }
+	if got := overlapping(text("Version name", rect(16, 8, 200, 16)), input(rect(16, 22, 200, 24))); len(got) != 0 {
+		t.Errorf("a label a little over the text of its field, as Material draws it (2 dp of 16): %q", got)
+	}
+	if got := overlapping(text("A title", rect(16, 8, 200, 24)), text("A subtitle", rect(16, 32, 200, 20))); len(got) != 0 {
+		t.Errorf("two lines that touch: %q", got)
+	}
+	if got := overlapping(text("A title", rect(16, 8, 100, 24)), text("Another", rect(130, 8, 100, 24))); len(got) != 0 {
+		t.Errorf("two texts side by side: %q", got)
+	}
+	if got := overlapping(text("Version name", rect(16, 8, 200, 32)), input(rect(16, 22, 200, 48))); len(got) != 1 || !strings.Contains(got[0], "Version name") {
+		t.Errorf("a label that is 18 dp of its 32 over the text of its field: %q", got)
+	}
+	if got := overlapping(text("One", rect(16, 8, 100, 24)), text("Two", rect(60, 8, 100, 24))); len(got) != 1 {
+		t.Errorf("two texts that are drawn over one another by the half of them: %q", got)
+	}
+	// What a scroll container clips is not drawn: a row that is scrolled half under a header has the text that shows of it, and
+	// the header's text is not drawn over by what is under it.
+	row := text("A row", rect(16, 20, 200, 24))
+	row.Seen = rect(16, 40, 200, 4)
+	if got := overlapping(text("A header", rect(16, 8, 200, 24)), row); len(got) != 0 {
+		t.Errorf("a text that is clipped away from what it was over: %q", got)
+	}
+	// A text that no frame has drawn is not on the screen, and a field that is empty has no text to be drawn over.
+	if got := overlapping(text("One", rect(16, 8, 100, 24)), &Node{Role: RoleText, Text: "Two"}); len(got) != 0 {
+		t.Errorf("a text that was not drawn: %q", got)
+	}
+	empty := input(rect(16, 8, 200, 24))
+	empty.Text = ""
+	if got := overlapping(text("Version name", rect(16, 8, 200, 24)), empty); len(got) != 0 {
+		t.Errorf("the label of a field that rests, over the line that has no text: %q", got)
+	}
+	// A tooltip is over what is under it, and the badge of a destination of the rail is over the label above it by a quarter of the
+	// label: no letters touch.
+	tip := text("A tooltip", rect(30, 12, 100, 24))
+	tip.Scope = "tooltip"
+	if got := overlapping(text("A title", rect(16, 8, 200, 24)), tip); len(got) != 0 {
+		t.Errorf("a tooltip is over what is under it: %q", got)
+	}
+	if got := overlapping(text("Plugins", rect(16, 8, 100, 32)), text("1", rect(60, 32, 20, 32))); len(got) != 0 {
+		t.Errorf("a badge over a quarter of the label above it: %q", got)
+	}
+	// The budget names it.
+	if over := TakeCensus([]*Node{text("One", rect(16, 8, 100, 24)), text("Two", rect(60, 8, 100, 24))}, window, nil).Over(); len(over) == 0 {
+		t.Error("texts that are drawn over one another are over a budget")
+	}
+}
+
+func TestTheCensusFindsATextThatSticksOutOfItsControl(t *testing.T) {
+	// A label that is wider than the destination that it names, with no ellipsis to cut it, is drawn over its neighbours: its
+	// element is as wide as the text wants, and the width of it is what the census would compare with that.
+	window := rect(0, 0, 360, 480)
+	item := func(r ui.Rect) *Node { return &Node{Role: RoleButton, Name: "Settings", Enabled: true, Rect: r} }
+	label := func(r ui.Rect) *Node {
+		return &Node{Role: RoleText, Text: "Settings", Size: 12, Enabled: true, Rect: r, Seen: r}
+	}
+	outside := func(nodes ...*Node) []string { return TakeCensus(nodes, window, nil).Outside }
+	if got := outside(item(rect(288, 416, 72, 64)), label(rect(296, 448, 56, 16))); len(got) != 0 {
+		t.Errorf("a label in its destination: %q", got)
+	}
+	if got := outside(item(rect(288, 416, 72, 64)), label(rect(288, 448, 72, 16))); len(got) != 0 {
+		t.Errorf("a label as wide as its destination: %q", got)
+	}
+	if got := outside(item(rect(288, 416, 72, 64)), label(rect(281, 448, 86, 16))); len(got) != 1 || !strings.Contains(got[0], "Settings") {
+		t.Errorf("a label that is 86 dp wide in a destination of 72: %q", got)
+	}
+	// A text that is held by no control is not held by any.
+	if got := outside(label(rect(281, 448, 86, 16))); len(got) != 0 {
+		t.Errorf("a text that no control holds: %q", got)
+	}
+	// A row that goes under the bar of the navigation is clipped by the page: what is under the bar is not drawn, and what shows of
+	// a row is above it.
+	under := label(rect(288, 408, 56, 24))
+	under.Seen = rect(288, 408, 56, 8)
+	if got := outside(item(rect(288, 416, 72, 64)), under); len(got) != 0 {
+		t.Errorf("a row that is clipped above the bar: %q", got)
+	}
+	gone := label(rect(288, 430, 56, 24))
+	gone.Seen = ui.Rect{}
+	if got := outside(item(rect(288, 416, 72, 64)), gone); len(got) != 0 {
+		t.Errorf("a row that is clipped away: %q", got)
+	}
+	// A label whose line goes below its destination: the line of it is as high as the text wants, 21 dp at 130 %, in a bar of 64.
+	if got := outside(item(rect(288, 400, 72, 64)), label(rect(296, 448, 56, 21))); len(got) != 1 {
+		t.Errorf("a label of 21 dp from 448 in a destination that ends at 464: %q", got)
+	}
+	// The budget names it.
+	if over := TakeCensus([]*Node{item(rect(288, 416, 72, 64)), label(rect(281, 448, 86, 16))}, window, nil).Over(); len(over) == 0 {
+		t.Error("a text that sticks out of its control is over a budget")
+	}
+}
+
 func TestTheBudgetsOfTheCopyAreNotThoseOfALanguageWithoutSpaces(t *testing.T) {
 	// Five sentences of eight words and five small lines are over the budgets of the copy; a page that is across the edge
 	// of its window is over a budget of the layout. A language without spaces is held to the second.

@@ -63,26 +63,45 @@ func Menu(c Ctx, anchor ui.Element, open *bool, items []MenuItem, o MenuOptions)
 		if o.MatchWidth {
 			minWidth = max(minWidth, anchor.Bounds().W)
 		}
+		// The panel goes on the side of the anchor that has more room, and is no taller than that room: what it holds beyond it
+		// scrolls, where it went down the window and past it, and the entries below the edge could not be pressed.
+		_, windowHeight := c.Size()
+		bounds := anchor.Bounds()
+		room := max(windowHeight-(bounds.Y+bounds.H), bounds.Y) - 4 - menuEdge
 		panel.Padding(8, 0).Radius(CornerLarge).Background(cs.SurfaceContainer).
-			MinWidth(minWidth).MaxWidth(max(minWidth, 280)).FocusGroup(ui.Vertical)
+			MinWidth(minWidth).MaxWidth(max(minWidth, 280)).MaxHeight(max(room, menuLeast)).FocusGroup(ui.Vertical)
 		if o.AlignEnd {
 			panel.AttachTo(anchor, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0)
 			originX = 1
 		} else {
 			panel.Margin(4, 0, 0, 0)
 		}
+		if reg.CollectText {
+			// Where the menu is what the census asks of it: it is in the window.
+			menu := reg.Add(Node{Role: RoleMenu, Enabled: true, Modal: true})
+			panel.Draw(func(_ *ui.Painter, r ui.Rect) { menu.Rect = r })
+		}
 		Elevation(c, panel, 3)
 		popIn(c, panel, 0.8, originX, 0, c.Env.Theme.Motion.DefaultSpatial)
 		panel.Children(func() {
-			focused := false
-			for _, item := range items {
-				first := !focused && !item.Disabled && (item.Selected || !hasSelected(items))
-				focused = focused || first
-				menuItem(c, open, item, first)
-			}
+			ui.Scroll(c.Context).Shrink(1).Children(func() {
+				focused := false
+				for _, item := range items {
+					first := !focused && !item.Disabled && (item.Selected || !hasSelected(items))
+					focused = focused || first
+					menuItem(c, open, item, first)
+				}
+			})
 		})
 	})
 }
+
+// menuEdge is the room that a menu leaves between itself and the edge of the window, and menuLeast the least height that it has, in
+// dp: three entries.
+const (
+	menuEdge  = 8
+	menuLeast = 144
+)
 
 func hasSelected(items []MenuItem) bool {
 	for _, item := range items {
@@ -115,7 +134,8 @@ func menuItem(c Ctx, open *bool, item MenuItem, focus bool) {
 			}
 		},
 	})
-	el.MinHeight(48).PaddingX(12).Gap(12).Justify(ui.Start).TextColor(foreground)
+	// An entry is 48 dp high, and as high as its lines need where the text is larger, or longer than the menu is wide.
+	el.MinHeight(48).PaddingX(12).PaddingY(4).Gap(12).Justify(ui.Start).TextColor(foreground)
 	if item.Selected {
 		el.Background(cs.SecondaryContainer)
 	}
@@ -127,7 +147,7 @@ func menuItem(c Ctx, open *bool, item MenuItem, focus bool) {
 		if item.Icon != "" {
 			Icon(c, item.Icon, 24, iconColor, 0)
 		}
-		Line(c, item.Label, Type(BodyLarge), foreground).Grow(1)
+		Label(c, item.Label, Type(BodyLarge), foreground, Breakable()).Grow(1).Shrink(1)
 	})
 }
 

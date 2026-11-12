@@ -58,9 +58,19 @@ type NavRailSpec struct {
 const (
 	railCollapsed = 96
 	railExpanded  = 240
-	// NavBarHeight is the height of the navigation bar in dp.
+	// NavBarHeight is the height of the navigation bar in dp, where the text of the system is not larger than usual; BarHeight is
+	// what it is where it is.
 	NavBarHeight = 64
 )
+
+// BarHeight is the height in dp of the navigation bar: NavBarHeight, which holds the icon and a label of 16 dp, and more where the
+// labels are larger, to the size that they are read at most (barLabelMaxScale).
+func BarHeight(c Ctx) float32 {
+	return NavBarHeight + Type(LabelMedium).Line*max(min(c.Env.Theme.TextScale, barLabelMaxScale)-1, 0)
+}
+
+// barGrowth is how much higher than NavBarHeight the bar is at the most.
+func barGrowth() float32 { return Type(LabelMedium).Line * (barLabelMaxScale - 1) }
 
 // NavRail is the navigation rail; it is as high as the space it is given, and
 // grows and shrinks between its two widths on a spatial spring.
@@ -90,14 +100,16 @@ func NavRail(c Ctx, r NavRailSpec) ui.Element {
 		} else {
 			Gap(c, 0, 16)
 		}
-		itemHeight := Lerp(64, 56, t) + 4
+		// An item is as high as its label needs, which is more than the 16 dp of a line at 100 % where the text is larger.
+		labelScale := railLabelScale(c, r)
+		itemHeight := Lerp(64, 56, t) + 4 + Type(LabelMedium).Line*max(labelScale-1, 0)*(1-t)
 		for i, d := range r.Destinations {
-			railItem(c, r, i, d, t, width, itemHeight)
+			railItem(c, r, i, d, t, width, itemHeight, labelScale)
 		}
 	})
 }
 
-func railItem(c Ctx, r NavRailSpec, index int, d NavDestination, t, width, height float32) {
+func railItem(c Ctx, r NavRailSpec, index int, d NavDestination, t, width, height, labelScale float32) {
 	cs := c.Colors()
 	selected := index == r.Selected
 	el, in, node := press(c, pressSpec{
@@ -130,7 +142,7 @@ func railItem(c Ctx, r NavRailSpec, index int, d NavDestination, t, width, heigh
 			if selected {
 				colour, weight = cs.Secondary, 700
 			}
-			Line(c, d.Label, Type(LabelMedium).WithWeight(weight), colour, Centered()).
+			Line(c, d.Label, Type(LabelMedium).WithWeight(weight), colour, Centered(), ScaleCap(labelScale)).
 				Absolute().Left(0).Top(indicator.Y + indicator.H + 4).Width(railCollapsed).Opacity(collapsed)
 		}
 		if expanded := (t - 0.5) * 2; expanded > 0 {
@@ -163,9 +175,12 @@ func badge(c Ctx, count int) ui.Element {
 	if count > 999 {
 		label = "999+"
 	}
-	return Row(c).Height(16).MinWidth(16).PaddingX(4).Justify(ui.Center).Radius(8).Background(cs.Error).Shrink(0).
+	// The count is as large as the labels are read, and no larger, and the badge is as high as its line: a count of 22 dp was drawn in a
+	// badge of 16, as high as the digit.
+	height := Type(LabelSmall).Line * max(min(c.Env.Theme.TextScale, barLabelMaxScale), 1)
+	return Row(c).Height(height).MinWidth(height).PaddingX(4).Justify(ui.Center).Radius(height / 2).Background(cs.Error).Shrink(0).
 		Children(func() {
-			Line(c, label, Type(LabelSmall), cs.OnError).NoWrap()
+			Line(c, label, Type(LabelSmall), cs.OnError, ScaleCap(barLabelMaxScale)).NoWrap()
 		})
 }
 
@@ -217,10 +232,11 @@ func NavBar(c Ctx, b NavBarSpec) ui.Element {
 	if hasKey(b.ID) {
 		c.Key(b.ID)
 	}
-	return ui.Row(c.Context).Height(NavBarHeight).Shrink(0).AlignItems(ui.Stretch).Background(cs.SurfaceContainer).
+	return ui.Row(c.Context).Height(BarHeight(c)).Shrink(0).AlignItems(ui.Stretch).Background(cs.SurfaceContainer).
 		Children(func() {
+			labelScale := barLabelScale(c, b)
 			for i, d := range b.Destinations {
-				barItem(c, b, i, d)
+				barItem(c, b, i, d, labelScale)
 			}
 		})
 }
@@ -229,7 +245,39 @@ func NavBar(c Ctx, b NavBarSpec) ui.Element {
 // fifth of the window to be read in, and the bar is as high as it is.
 const barLabelMaxScale = 1.3
 
-func barItem(c Ctx, b NavBarSpec, index int, d NavDestination) {
+// navLabelMargin is the room in dp that a label of a destination leaves in its slot, between itself and what is beside it.
+const navLabelMargin = 8
+
+// fitLabelScale is the text scale of the labels of the destinations, which have a room that does not grow with the text: the text
+// scale of the system, up to limit, and less where the longest of the labels does not fit the room, down to 100 %. A label that does
+// not fit at that size is cut with an ellipsis, as the text of the interface is where it has not the room, and the size of the text
+// is not made less than it is.
+func fitLabelScale(c Ctx, destinations []NavDestination, style TextStyle, room, limit float32) float32 {
+	floor := min(1, c.Env.Theme.TextScale)
+	scale := min(c.Env.Theme.TextScale, limit)
+	for _, d := range destinations {
+		// The label of the selected destination is bold, which is the widest that a label is.
+		natural, _ := c.MeasureText(0, ui.Span{Text: d.Label, Size: style.Size, Weight: 700})
+		if natural > 0 {
+			scale = min(scale, room/natural)
+		}
+	}
+	return max(scale, floor)
+}
+
+// barLabelScale is the text scale of the labels of the bar: each has a fifth of the window.
+func barLabelScale(c Ctx, b NavBarSpec) float32 {
+	windowWidth, _ := c.Size()
+	room := windowWidth/float32(max(1, len(b.Destinations))) - navLabelMargin
+	return fitLabelScale(c, b.Destinations, Type(LabelMedium), room, barLabelMaxScale)
+}
+
+// railLabelScale is the text scale of the labels of the rail when it is collapsed, which are under the icons, in the width of the rail.
+func railLabelScale(c Ctx, r NavRailSpec) float32 {
+	return fitLabelScale(c, r.Destinations, Type(LabelMedium), railCollapsed-navLabelMargin, c.Env.Theme.TextScale)
+}
+
+func barItem(c Ctx, b NavBarSpec, index int, d NavDestination, labelScale float32) {
 	cs := c.Colors()
 	selected := index == b.Selected
 	el, in, node := press(c, pressSpec{
@@ -259,7 +307,7 @@ func barItem(c Ctx, b NavBarSpec, index int, d NavDestination) {
 	el.Children(func() {
 		ui.Column(c.Context).FillWidth().AlignItems(ui.Center).Padding(16, 0, 0, 0).Gap(8).Children(func() {
 			navIcon(c, d, iconColor, fill)
-			Line(c, d.Label, Type(LabelMedium).WithWeight(weight), labelColor, Centered(), ScaleCap(barLabelMaxScale)).MaxWidth(100)
+			Line(c, d.Label, Type(LabelMedium).WithWeight(weight), labelColor, Centered(), ScaleCap(labelScale)).MaxWidth(100)
 		})
 	})
 }

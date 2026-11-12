@@ -72,6 +72,16 @@ type Census struct {
 	Taller   bool   `json:"taller"`
 	TallerBy string `json:"tallerBy,omitempty"`
 	Scrolls  bool   `json:"scrolls,omitempty"`
+	// Spilling says what of a dialog is where a person cannot reach it: its actions, which are not in it or not in the window
+	// (a window that was shorter than the dialog took them, and nothing could close it), and what is drawn wholly outside it.
+	// What the dialog cuts at the edge of the content that scrolls is across its edge, and is not spilling.
+	Spilling []string `json:"spilling"`
+	// Overlapping are the texts that are drawn over one another, by what shows of them inside the scroll containers around them: the
+	// label of a text field over the line that it holds, a title over its subtitle. Lines that touch are not.
+	Overlapping []string `json:"overlapping"`
+	// Outside are the texts that are drawn beyond the control that they are the label of: a label that is as wide as its text wants and
+	// the destination that it names is less wide, which the neighbours of it cover, or the edge of the window.
+	Outside []string `json:"outside"`
 	// Sticking are the controls and the texts that a row of a list holds and that are drawn beyond its padding, which a
 	// row wide enough for them does not do: they are nearer the edge of the row than anything else in it. A word that is
 	// longer than the room of its row does, and is clipped by the corner of the row, or hangs out of it.
@@ -139,7 +149,7 @@ func proseWords(text string) int { return CountWords(dataToken.ReplaceAllString(
 // of its own screen. A node that no frame has drawn, or that lies outside the window (scrolled away), is not on
 // the screen. The image may be nil, and then the contrast is not measured.
 func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
-	census := Census{OffScale: map[string]int{}, Wallpaper: []string{}, MissingIcons: []string{}, Cut: []string{}, Sticking: []string{}}
+	census := Census{OffScale: map[string]int{}, Wallpaper: []string{}, MissingIcons: []string{}, Cut: []string{}, Sticking: []string{}, Overlapping: []string{}, Outside: []string{}}
 	modal := false
 	for _, n := range nodes {
 		modal = modal || n.Modal
@@ -205,7 +215,11 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 	}
 	if !modal {
 		census.taller(shown, window)
+	} else {
+		census.spilling(nodes, shown, window)
 	}
+	census.overlap(shown)
+	census.outside(shown)
 	sort.SliceStable(prose, func(i, j int) bool { return proseWords(prose[i].Text) > proseWords(prose[j].Text) })
 	census.Prose.Blocks = len(prose)
 	for _, n := range prose {
@@ -226,12 +240,12 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 const pageEndRoom = 48
 
 // taller says whether the page, which is every node of the screen that is not in a dialog, goes beyond its window or up to it.
-// The room of a page is the window, or what the bar of the navigation leaves of it: a button as high as the bar, whose
-// bottom is the bottom of the window.
+// The room of a page is the window, or what the bar of the navigation leaves of it: a button as high as the bar (BarHeight, which is
+// more than NavBarHeight where the text is larger), whose bottom is the bottom of the window.
 func (c *Census) taller(shown []*Node, window ui.Rect) {
 	room := window.Y + window.H
 	for _, n := range shown {
-		if n.Role == RoleButton && math.Abs(float64(n.Rect.H-NavBarHeight)) < 0.5 && math.Abs(float64(n.Rect.Y+n.Rect.H-room)) < 0.5 {
+		if n.Role == RoleButton && n.Rect.H >= NavBarHeight-0.5 && n.Rect.H <= NavBarHeight+barGrowth()+0.5 && math.Abs(float64(n.Rect.Y+n.Rect.H-room)) < 0.5 {
 			room = min(room, n.Rect.Y)
 		}
 	}
@@ -247,6 +261,106 @@ func (c *Census) taller(shown []*Node, window ui.Rect) {
 	if lowest != nil && lowest.Rect.Y+lowest.Rect.H > room-pageEndRoom {
 		c.Taller = true
 		c.TallerBy = fmt.Sprintf("%s %q ends at %.0f of the %.0f that the page has", lowest.Role, truncate(lowest.Text+lowest.Name, 30), lowest.Rect.Y+lowest.Rect.H, room)
+	}
+}
+
+// lineSlack is how far, in dp, the line of a text may go beyond its control: the engine makes a line as high as a whole dp, and the
+// font that Han characters fall back to has a line a little higher than the one that the label was given (19 dp for 18.4, in a bar at
+// 115 %), where the letters of it are far from the edge. A label that was cut by the foot of the window was 5 dp beyond.
+const lineSlack = 1
+
+// outside says which texts of the screen are drawn beyond the control that holds them, which is the control whose box has the centre
+// of the text in it (within): a text is the label of its control, and is in it, where its line is wide enough for the text, or ends
+// with an ellipsis where it is not.
+func (c *Census) outside(shown []*Node) {
+	for _, n := range shown {
+		// A text that a scroll container clips away entirely is not drawn, and one that shows in part is held by what is under the
+		// part that shows: a row that goes under the bar of the navigation, or under the field of a search, is not in them.
+		if n.Role != RoleText || n.Text == "" || n.Seen.W <= 0 || n.Seen.H <= 0 {
+			continue
+		}
+		x, y := n.Seen.X+n.Seen.W/2, n.Seen.Y+n.Seen.H/2
+		for _, o := range shown {
+			if o == n || !controls[o.Role] || !o.Visible() || x < o.Rect.X || x > o.Rect.X+o.Rect.W || y < o.Rect.Y || y > o.Rect.Y+o.Rect.H {
+				continue
+			}
+			if n.Rect.X < o.Rect.X-0.5 || n.Rect.X+n.Rect.W > o.Rect.X+o.Rect.W+0.5 ||
+				n.Rect.Y < o.Rect.Y-lineSlack || n.Rect.Y+n.Rect.H > o.Rect.Y+o.Rect.H+lineSlack {
+				c.Outside = append(c.Outside, fmt.Sprintf("%q is at x %.0f to %.0f and y %.0f to %.0f, where its %s is at %.0f to %.0f and %.0f to %.0f", truncate(n.Text, 30), n.Rect.X, n.Rect.X+n.Rect.W, n.Rect.Y, n.Rect.Y+n.Rect.H, o.Role, o.Rect.X, o.Rect.X+o.Rect.W, o.Rect.Y, o.Rect.Y+o.Rect.H))
+			}
+			break
+		}
+	}
+}
+
+// overlapShare is how much of the lower of two lines of text the other may be drawn over, before their letters touch. A line of
+// text has room above its letters and below them, a quarter of its height each, so that two lines may be over one another by what
+// the rooms of both are, which is the half of the lower, and the letters are apart: the label of a field is over the line that it
+// holds by a fifth of its own height, as Material draws it, and the badge of a destination of the rail is over the label above it by
+// a quarter of that label.
+const overlapShare = 0.4
+
+// overlap says which texts of the screen are drawn over one another: the lines of text that the labels draw and those that the text
+// fields hold. They overlap when the part that shows of both, which is inside the scroll containers around them, is wider than a
+// stroke of a letter, and taller than overlapShare of the lower of the lines, where the line is whole: a line that a scroll
+// container cuts is as low as what shows, and is no more over a header than what shows of it.
+func (c *Census) overlap(shown []*Node) {
+	var texts []*Node
+	for _, n := range shown {
+		// A tooltip is shown over what is under it.
+		if (n.Role == RoleText || n.Role == RoleInput) && n.Text != "" && n.Seen.W > 0 && n.Seen.H > 0 && n.Scope != "tooltip" {
+			texts = append(texts, n)
+		}
+	}
+	for i, a := range texts {
+		for _, b := range texts[i+1:] {
+			common := intersection(a.Seen, b.Seen)
+			if lower := min(a.Rect.H, b.Rect.H); common.W > 2 && common.H > overlapShare*lower {
+				c.Overlapping = append(c.Overlapping, fmt.Sprintf("%q is drawn over %q, by %.0f dp of %.0f", truncate(a.Text, 30), truncate(b.Text, 30), common.H, lower))
+			}
+		}
+	}
+}
+
+// spilling says what of the dialog or the menu on the screen is out of its reach: for a menu, that its panel is not in the window,
+// for a dialog, the actions that are not drawn, or not in the dialog and in the window, and the nodes of it that are wholly outside
+// it. A dialog is the node of its panel, and its actions are the node of their row, which is there whether it was drawn or not.
+func (c *Census) spilling(nodes, shown []*Node, window ui.Rect) {
+	inside := func(r, outer ui.Rect) bool {
+		return r.X >= outer.X-0.5 && r.Y >= outer.Y-0.5 && r.X+r.W <= outer.X+outer.W+0.5 && r.Y+r.H <= outer.Y+outer.H+0.5
+	}
+	for _, n := range nodes {
+		if n.Role == RoleMenu && n.Visible() && !inside(n.Rect, window) {
+			c.Spilling = append(c.Spilling, fmt.Sprintf("the menu is at %.0f to %.0f and %.0f to %.0f in a window that is %.0f by %.0f", n.Rect.X, n.Rect.X+n.Rect.W, n.Rect.Y, n.Rect.Y+n.Rect.H, window.W, window.H))
+		}
+	}
+	var dialog *Node
+	for _, n := range shown {
+		if n.Role == RoleDialog {
+			dialog = n
+		}
+	}
+	if dialog == nil {
+		return
+	}
+	name := truncate(dialog.Name, 30)
+	if !inside(dialog.Rect, window) {
+		c.Spilling = append(c.Spilling, fmt.Sprintf("the dialog %q is at %.0f to %.0f in a window that is %.0f tall", name, dialog.Rect.Y, dialog.Rect.Y+dialog.Rect.H, window.H))
+	}
+	for _, n := range nodes {
+		if n.Role == RoleActions && n.Modal {
+			switch {
+			case !n.Visible():
+				c.Spilling = append(c.Spilling, fmt.Sprintf("the actions of the dialog %q are not drawn", name))
+			case !inside(n.Rect, dialog.Rect) || !inside(n.Rect, window):
+				c.Spilling = append(c.Spilling, fmt.Sprintf("the actions of the dialog %q are at %.0f to %.0f where it is %.0f to %.0f", name, n.Rect.Y, n.Rect.Y+n.Rect.H, dialog.Rect.Y, dialog.Rect.Y+dialog.Rect.H))
+			}
+		}
+	}
+	for _, n := range shown {
+		if n.Scope == "dialog" && n != dialog && n.Role != RoleActions && !overlaps(n.Rect, dialog.Rect) {
+			c.Spilling = append(c.Spilling, fmt.Sprintf("%s %q is drawn at %.0f to %.0f, outside the dialog", n.Role, truncate(n.Text+n.Name, 30), n.Rect.Y, n.Rect.Y+n.Rect.H))
+		}
 	}
 }
 
@@ -462,6 +576,9 @@ func (c Census) over(withCopy bool) []string {
 	if c.Taller && !c.Scrolls {
 		add("the page is taller than its window, and what it has below the fold is not counted: %s", c.TallerBy)
 	}
+	if len(c.Spilling) > 0 {
+		add("%d things of a dialog are where nobody can reach them: %q", len(c.Spilling), c.Spilling)
+	}
 	if c.Targets.Under24 > 0 {
 		add("%d controls under 24 dp", c.Targets.Under24)
 	}
@@ -479,6 +596,12 @@ func (c Census) over(withCopy bool) []string {
 	}
 	if withCopy && c.Helpers > 3 {
 		add("%d small lines of four words or more (at most 3): %q", c.Helpers, c.SmallLines)
+	}
+	if len(c.Overlapping) > 0 {
+		add("%d texts are drawn over one another: %q", len(c.Overlapping), c.Overlapping)
+	}
+	if len(c.Outside) > 0 {
+		add("%d texts are drawn beyond their control: %q", len(c.Outside), c.Outside)
 	}
 	if len(c.Sticking) > 0 {
 		add("%d controls and texts drawn beyond the padding of their row: %q", len(c.Sticking), c.Sticking)

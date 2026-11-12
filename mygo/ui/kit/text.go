@@ -66,8 +66,13 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 	if o.scaleCap > 0 {
 		scale = min(scale, o.scaleCap)
 	}
-	e := ui.Text(c.Context, s).FontSize(style.Size * scale).FontWeight(style.Weight).
+	size := style.Size * scale
+	spacing := Tracking * size
+	e := ui.Text(c.Context, s).FontSize(size).FontWeight(style.Weight).
 		FixedLineHeight(style.Line * scale).TextColor(col)
+	if spacing != 0 {
+		e.LetterSpacing(spacing)
+	}
 	if o.mono {
 		e.Font(MonoFamilies)
 	}
@@ -89,7 +94,7 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 	}
 	if c.Env.Reg.CollectText && s != "" {
 		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono})
-		span := ui.Span{Text: s, Size: style.Size * scale, Weight: style.Weight}
+		span := ui.Span{Text: s, Size: size, Weight: style.Weight, LetterSpacing: spacing}
 		if o.mono {
 			span.Font = MonoFamilies
 		}
@@ -100,13 +105,23 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 			node.Lines = o.lines
 		}
 		e.DrawOver(func(p *ui.Painter, r ui.Rect) {
-			node.Rect = r
+			node.Rect, node.Seen = r, intersection(r, p.Visible())
 			if node.Lines > 1 {
 				node.Needs = linesNeeded(p, span, r.W)
 			}
 		})
 	}
 	return e
+}
+
+// intersection is the part of a that is in b: empty where there is none.
+func intersection(a, b ui.Rect) ui.Rect {
+	x, y := max(a.X, b.X), max(a.Y, b.Y)
+	right, bottom := min(a.X+a.W, b.X+b.W), min(a.Y+a.H, b.Y+b.H)
+	if right <= x || bottom <= y {
+		return ui.Rect{}
+	}
+	return ui.Rect{X: x, Y: y, W: right - x, H: bottom - y}
 }
 
 // linesNeeded is how many lines the span takes when it wraps at the width: the height that it has there over the height of a

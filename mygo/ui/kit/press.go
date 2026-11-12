@@ -128,6 +128,7 @@ func tooltip(c Ctx, anchor ui.Element, text string) {
 	ui.TooltipBase(c.Context, anchor, func(tip ui.Element) {
 		tip.Margin(6, 0, 6, 0).Padding(4, 8).Radius(CornerExtraSmall).Background(cs.InverseSurface)
 		tip.Children(func() {
+			defer c.Env.Reg.EnterScope("tooltip")()
 			Label(c, text, Type(BodySmall), cs.InverseOnSurface, Lines(2)).MaxWidth(240)
 		})
 	})

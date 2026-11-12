@@ -314,19 +314,21 @@ func (a *App) askLinkPath(name string) {
 					AutoFocus: true, Text: &version, Monospace: true, OnSubmit: func(string) { submit() },
 					OnChange: func(string) { versionProblem = "" },
 				})
-				kit.TextField(k, kit.TextFieldSpec{
-					ID: "path", Label: a.T("linkPathField"), Helper: a.T("linkPathHelp"), Error: pathProblem,
-					Text: &path, Monospace: true, OnSubmit: func(string) { submit() },
-					OnChange: func(string) { pathProblem = "" },
-					Trailing: func() {
-						kit.IconButton(k, kit.IconButtonSpec{ID: "browse", Icon: "folder", Tooltip: a.T("actionBrowse"), Size: 32, OnClick: func() {
-							a.choose(chooseOptions{Title: a.T("linkPathField"), Initial: strings.TrimSpace(path), Directory: true}, func(picked string) {
-								path = picked
-								pathProblem = ""
-							})
-						}})
-					},
-				}).Margin(gapM, 0, 0, 0)
+				// The button that browses is beside the field, as in the other dialogs that ask for a directory, and under it where the
+				// room is short: a label that rests in a field has the room of the field, and not what a button at its end leaves.
+				mui.Row(k.Context).Wrap().Gap(gapS).AlignItems(mui.Start).Margin(gapM, 0, 0, 0).Children(func() {
+					kit.TextField(k, kit.TextFieldSpec{
+						ID: "path", Label: a.T("linkPathField"), Helper: a.T("linkPathHelp"), Error: pathProblem,
+						Text: &path, Monospace: true, OnSubmit: func(string) { submit() },
+						OnChange: func(string) { pathProblem = "" },
+					}).Grow(1).Shrink(1).Basis(scaled(k, 200))
+					a.browseButton(k, "browse", func() {
+						a.choose(chooseOptions{Title: a.T("linkPathField"), Initial: strings.TrimSpace(path), Directory: true}, func(picked string) {
+							path = picked
+							pathProblem = ""
+						})
+					}).Margin(gapS, 0, 0, 0)
+				})
 				a.switchRow(k, "force", a.T("linkForce"), force, func(on bool) { force = on })
 			},
 			Actions: []func(){
@@ -541,10 +543,12 @@ func (a *App) aliasSection(k kit.Ctx, d *detailState) {
 		kit.ListGroup(k, items...)
 	}
 	mui.Row(k.Context).Margin(gapM, 0, 0, gapL).Children(func() {
+		// The button gives way to the one beside it: its label goes on another line where the room is short, and the button that
+		// refreshes is not pushed out of the window.
 		kit.Button(k, kit.ButtonSpec{
 			ID: "alias-set", Kind: kit.TonalButton, Icon: "add", Label: a.T("aliasSet"),
 			OnClick: func() { a.askAliasSet(d) },
-		})
+		}).Shrink(1)
 		kit.IconButton(k, kit.IconButtonSpec{
 			ID: "alias-refresh", Icon: "refresh", Tooltip: a.T("actionRefresh"),
 			OnClick: func() { aliases.Load() },

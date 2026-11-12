@@ -81,7 +81,7 @@ func (e *Env) LayoutSnackbars(c Ctx) {
 	ui.ToastViewportBase(c.Context, func(viewport ui.Element, toasts []ui.Toast) {
 		bottom := float32(16)
 		if e.Compact {
-			bottom += NavBarHeight
+			bottom += BarHeight(c)
 		}
 		viewport.Padding(16, 16, bottom, 16).AlignItems(ui.Center).Gap(8)
 		for _, t := range toasts {
