@@ -18,7 +18,9 @@
 # against a stand-in for the host of the tray icons on Linux, against the GNOME
 # Shell of Ubuntu in a container, and against the taskbar on Windows), the Docker
 # image of the gateway (built, and run against the application as the people who use
-# it run it: it is not published), the Linux packages and the Windows MSIX bundle.
+# it run it: it is not published), the Linux packages and the Windows MSIX bundle, and
+# the census of the screens of the desktop in the text engine of each platform (Linux, Windows
+# on x64 and on ARM, macOS).
 # shared/tooling/internal/runtask runs the same steps locally; keep them in sync.
 # The tool versions are in mygo/versions.env.
 name: mygo
@@ -606,3 +608,75 @@ jobs:
           $dir = Join-Path $PWD "e2e/${{ matrix.arch }}"
           & "$dir/vfxtool.exe" e2e-run tray "$dir/vfox-plus-e2e.exe"
           if ($LASTEXITCODE -ne 0) { throw "the tray scenario failed with exit code $LASTEXITCODE" }
+
+  census:
+    name: Take the census of the screens (${{ matrix.os }})
+    # What holds text is as wide as the text, which a platform sets in its own engine and fonts (Pango on Linux,
+    # DirectWrite on Windows, Core Text on macOS), so that each platform draws every screen and holds it to the budgets
+    # of the design system. The census of Linux is a step of the job build; here Linux takes the sizes of text between
+    # the ones that it names (a run of the sweep is what no run of the census is), and the others take it all.
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-26.04
+            run: TestTheScreensAreWithinTheBudgetsAtEverySizeOfText
+          - os: windows-2025
+            run: TestTheScreensAreWithinTheBudgets
+          - os: windows-11-arm
+            run: TestTheScreensAreWithinTheBudgets
+          - os: macos-latest
+            run: TestTheScreensAreWithinTheBudgets
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        shell: bash
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            mygo/go.sum
+            shared/tooling/go.sum
+      - name: Install the Linux packages
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }}
+      - name: Prepare the embedded assets
+        # The icons and the translations: the licenses of the modules are not what a census reads.
+        id: prepare
+        shell: bash
+        env:
+          MYGO_SKIP_LICENSES: '1'
+        run: go -C shared/tooling run ./cmd/vfxtool prepare --root "$GITHUB_WORKSPACE/mygo"
+      - name: Take the census
+        # The screens of the census, in the fonts that the platform gives for sans-serif and monospace, and the sizes of text
+        # between the ones of the census. The log has the census of each screen.
+        working-directory: mygo
+        shell: bash
+        env:
+          VFOX_PLUS_CENSUS_SWEEP: '1'
+          VFOX_PLUS_CENSUS: ${{ runner.temp }}/census
+          VFOX_PLUS_SNAPSHOTS: ${{ runner.temp }}/census
+        run: go test ./ui -run ${{ matrix.run }} -count=1 -timeout 40m -v
+      - name: Test the kit
+        # The components measure the text and wrap by what they measure, whatever it is set in: what their tests hold is the
+        # same on every platform. It runs when the census did not pass, too, so that a run says both.
+        if: ${{ !cancelled() && steps.prepare.conclusion == 'success' }}
+        working-directory: mygo
+        shell: bash
+        run: go test ./ui/kit -count=1
+      - name: Keep the pictures of the screens
+        # When a screen is over a budget, to look at it; and when a run is asked for by hand.
+        if: failure() || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: census-${{ matrix.os }}
+          path: ${{ runner.temp }}/census
+          retention-days: 7
+          if-no-files-found: ignore

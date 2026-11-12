@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -284,11 +285,13 @@ func TestTheScreensAreWithinTheBudgetsAtEverySizeOfText(t *testing.T) {
 	}
 }
 
-// fontOf is the family that the system gives for a name, for the log of a test.
+// fontOf is the family that the system gives for a name, for the log of a test; on a platform that has no fontconfig, what the
+// name stands for in the text engine of the platform.
 func fontOf(name string) string {
 	out, err := exec.Command("fc-match", "-f", "%{family}", name).Output() //nolint:gosec // The names are the two that the test asks for.
 	if err != nil {
-		return name + " (fc-match is not there)"
+		// Windows and macOS have no fontconfig: the text engine of the platform chooses the font.
+		return name + ", as the text engine of " + runtime.GOOS + " has it"
 	}
 	return strings.TrimSpace(string(out))
 }
