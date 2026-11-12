@@ -122,26 +122,30 @@ func TestAButtonGroupThatMayCollapseIsADropdownWhenItDoesNotFit(t *testing.T) {
 	}
 }
 
-// A label that is told its limit does not grow with the text scale of the system beyond it: the same word, at 200 % and at the
-// cap of 130 %, is 130 / 200 as wide.
+// A label that is told its limit does not grow with the text scale of the system beyond it: at 200 % it is as wide as the same
+// word is at the cap of 130 %, and narrower than the one that has none. (Not a ratio of the widths: the width of a word is not
+// in proportion to the size of the font in every engine, which sets a word at 18 dp with another tracking than at 28.)
 func TestALabelDoesNotGrowBeyondItsScaleCap(t *testing.T) {
-	h := drawnAtScale(t, 400, 2, func(c Ctx) {
-		ui.Column(c.Context).Padding(16).Gap(8).Children(func() {
-			Line(c, "Plugins", Type(LabelMedium), c.Colors().OnSurface)
-			Line(c, "Plugins", Type(LabelMedium), c.Colors().OnSurface, ScaleCap(1.3))
+	width := func(scale float32, options ...LabelOption) float32 {
+		h := drawnAtScale(t, 400, scale, func(c Ctx) {
+			ui.Column(c.Context).Padding(16).Children(func() {
+				Line(c, "Plugins", Type(LabelMedium), c.Colors().OnSurface, options...)
+			})
 		})
-	})
-	var widths []float32
-	for _, n := range h.env.Reg.Nodes() {
-		if n.Text == "Plugins" {
-			widths = append(widths, n.Natural)
+		for _, n := range h.env.Reg.Nodes() {
+			if n.Text == "Plugins" && n.Natural > 0 {
+				return n.Natural
+			}
 		}
+		t.Fatalf("no label was drawn at %v", scale)
+		return 0
 	}
-	if len(widths) != 2 || widths[0] <= 0 {
-		t.Fatalf("two labels were drawn: %v", widths)
+	capped, atCap, uncapped := width(2, ScaleCap(1.3)), width(1.3), width(2)
+	if math.Abs(float64(capped-atCap)) > 0.01 {
+		t.Errorf("a label that is capped at 130 %% is as wide at 200 %% as the same label at 130 %%: %v and %v", capped, atCap)
 	}
-	if ratio := widths[1] / widths[0]; ratio < 0.64 || ratio > 0.66 {
-		t.Errorf("the label with a cap is %.2f of the other, want 0.65: %v", ratio, widths)
+	if capped >= uncapped {
+		t.Errorf("and it is narrower than the label that has no cap: %v and %v", capped, uncapped)
 	}
 }
 

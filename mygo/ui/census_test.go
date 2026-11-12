@@ -288,12 +288,14 @@ func TestTheScreensAreWithinTheBudgetsAtEverySizeOfText(t *testing.T) {
 // fontOf is the family that the system gives for a name, for the log of a test; on a platform that has no fontconfig, what the
 // name stands for in the text engine of the platform.
 func fontOf(name string) string {
-	out, err := exec.Command("fc-match", "-f", "%{family}", name).Output() //nolint:gosec // The names are the two that the test asks for.
-	if err != nil {
-		// Windows and macOS have no fontconfig: the text engine of the platform chooses the font.
-		return name + ", as the text engine of " + runtime.GOOS + " has it"
+	// Only Linux asks fontconfig. A runner of macOS has one too (Homebrew's), and it says Verdana, where Core Text gives the
+	// system font; DirectWrite has its own list for sans-serif and monospace: the engines of Windows and macOS choose.
+	if runtime.GOOS == "linux" {
+		if out, err := exec.Command("fc-match", "-f", "%{family}", name).Output(); err == nil { //nolint:gosec // The names are the two that the test asks for.
+			return strings.TrimSpace(string(out))
+		}
 	}
-	return strings.TrimSpace(string(out))
+	return name + ", as the text engine of " + runtime.GOOS + " has it"
 }
 
 // The screens hold in the fonts that the system chooses where it has not those of the interface: nothing of the layout is
