@@ -377,12 +377,15 @@ key），替换文档中的链接。curl 以 56 退出是连接断了：重试�
 桌面应用的普查在它的测试里（`mygo/ui/census_test.go`、`mygo/ui/kit/census.go`）。它不开窗口地画每个屏幕，
 窗口就是[设计系统](design-system.md#预算)里写的那几种；从节点里读每段文字、每个图标和每个控件登记的位置，
 文字怎么排的（字号、字重、颜色），以及单行文字想要的宽度；从窗口的图里读文字落在什么底色上。所以它能查到
-网页普查查不到的一件事：图标表里没有的图标。开着对话框或菜单的屏幕，就按对话框或菜单算。
+网页普查查不到的几件事：图标表里没有的图标，以及一段文字画在另一段上面、或画出了它的控件之外，这些图上看得出、数字里说不出。
+开着对话框或菜单的屏幕，就按对话框或菜单算。
 比窗口还高的页面（设置、插件的选项、插件和 Java 发行版的列表：`censusWindow.heightFor`）画在和它一样高的窗口里，
 折叠线以下的内容也算在内；页面仍然比窗口高时，普查就超预算（`Census.Taller`；带着一个比任何窗口能显示的行数都多的列表的页面，
 Node.js 的版本，按它显示出来的行算）。其中六种窗口用系统文字缩放的 130 %、150 % 和 200 %，三种显示中文（场景用英文走到它的屏幕，
-再在那里切换语言）。十四种窗口共 294 个屏幕，约一分半钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
-所以单元测试在竞态下跳过普查，CI 和沙箱单独用一步来跑。新增一个场景要多画十四次，新增一种窗口要多画二十一次，
+再在那里切换语言）。十四种窗口共 336 个屏幕。以对话框或菜单结尾的场景（`modal`）还要多画在三种窗口里，那是应用能打开的最矮窗口：场景先在够高的窗口里走到
+它的屏幕，再把窗口缩矮（`censusWindow.shrunk`），场景要打开的菜单（`open`）则是从它滚动到了的按钮上打开的，就像人做的那样。会滚动的列表
+（`toEnd`）还要在末尾再画一遍。一共 369 个屏幕外加 31 个列表末尾，约两分钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
+所以单元测试在竞态下跳过普查，CI 和沙箱单独用一步来跑。新增一个场景要多画十四次，新增一种窗口要多画二十四次，
 加之前先掂量；也别指望再开线程，渲染器已经在用多个核了。这台电脑有哪些地址，由测试告诉网页界面
 （`pair.HostOptions.Addresses`）：一个 IPv4 和一个 IPv6，都取自专门留作文档示例的地址段，所以配对的屏幕在每台机器上都一样。
 
@@ -395,17 +398,21 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 写到该目录：每屏一个 JSON 文件，外加每屏一行的 `summary.txt`；`VFOX_PLUS_SNAPSHOTS=目录` 再把每个屏幕的图也写出来
 （`census.<屏幕>.<窗口>.png`），好看看数字说的是什么。新增一个屏幕，就在 `censusScenes` 里加一项。
 
-另有三个测试用别的窗口取这些场景。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和
+另有五个测试用别的窗口、别的文字取这些场景。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和
 `monospace` 的字体画它们（日志里写着那是哪种字体），取三种窗口，约 20 秒；
 `TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` 用系统和桌面拿来排界面的字体族里最宽的三个
-（Verdana、DejaVu Sans、Geneva、Inter 等，由文字引擎量出来）画它们，同样三种窗口，约一分钟；
+（Verdana、DejaVu Sans、Geneva、Inter 等，由文字引擎量出来）画它们，同样三种窗口，其中最宽的一个再用中文画一遍，约一分半钟；
+`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` 用字距（`kit.Tracking`）把所有文字变宽，100 % 到 150 % 宽 40 %，200 % 宽 15 %，
+九种窗口，216 个屏幕，约一分半钟；
 `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` 取普查没取的文字大小 115、130、150 和 175 %，四种宽度，英文和中文各一遍，
-672 个屏幕，约四分钟。后两个只在要求时才跑，用
-`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts)'`。
+768 个屏幕，约七分钟。这三个只在要求时才跑，用
+`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`。
+`TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` 很快，每次都跑：它向文字引擎问底栏标签的宽度，再把标签画进这个宽度的盒子里，
+普查说一个标签被截断，靠的就是这一点。
 
 CI 会要求它们。`mygo.yml` 的 `census` 任务在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和
-macOS 15（arm64）以及 Intel 上的 macOS 15 上取普查、字体测试、最宽字体测试和扫描，每个平台用它自己的文字引擎和字体（Linux 是 Pango，
-这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。在 Linux 上取最宽字体测试和扫描，
+macOS 15（arm64）以及 Intel 上的 macOS 15 上取普查、字体测试、最宽字体测试、加宽文字测试和扫描，每个平台用它自己的文字引擎和字体（Linux 是 Pango，
+这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。在 Linux 上取最宽字体测试、加宽文字测试和扫描，
 并装上桌面用来排文字的字体，Linux 的普查是 `build` 任务的一步。它不等 `build`；每个平台上也跑 `kit` 的测试；打印它所在系统的版本；
-某个屏幕超出预算、或人工触发工作流（`workflow_dispatch`）时，把各屏幕的图作为产物保存。沙箱在它的普查那一步里也取最宽字体测试和扫描。
+某个屏幕超出预算、或人工触发工作流（`workflow_dispatch`）时，把各屏幕的图作为产物保存。沙箱在它的普查那一步里也取最宽字体测试、加宽文字测试和扫描。
 改了布局之后自己也要跑一遍，好在推送前就知道。

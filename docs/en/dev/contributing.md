@@ -471,16 +471,20 @@ The desktop application has the census in its tests (`mygo/ui/census_test.go`,
 text, icon and control registered where it is, how a text is set (size, weight, colour)
 and, for a text of a single line, the width that it wants, and from the picture of the
 window what a text stands on. That gives it what the web census has not: an icon that the
-table of the icons lacks. A screen that has a dialog or a menu open is the dialog or the
-menu. A page that is taller than the windows is drawn in a window as tall as it is (the settings, the options
+table of the icons lacks, and where a text is drawn over another, or beyond its control, which the picture does not say
+in numbers. A screen that has a dialog or a menu open is the dialog or the menu. A page that is taller than the windows is drawn in a window as tall as it is (the settings, the options
 of a plugin, the lists of the plugins and of the distributions of Java: `censusWindow.heightFor`), so that what is below the fold
 counts as well, and the census is over a budget when a page is still taller than its window (`Census.Taller`; a page that has a
 list with more rows than any window shows, the versions of Node.js, is counted by the rows that it shows). Six of the windows
 have the text scale of the system at 130, 150 and 200 %, and three show the Chinese text (a scene goes to its screen in
-English, and the language is changed there). Fourteen windows make 294 screens, which take about a minute and a half: every frame of every screen is drawn by a software
+English, and the language is changed there). Fourteen windows make 336 screens. The scenes that end in a dialog or a menu (`modal`) are drawn in three windows more, the
+shortest that the application opens in: the scene goes to its screen in a window as tall as it needs, the window is made
+shorter (`censusWindow.shrunk`), and a menu that the scene opens (`open`) is opened from a button that it has scrolled to, as a
+person does. The lists that scroll (`toEnd`) are drawn at their end as well. That is 369 screens and 31 ends of lists, which take
+about two minutes: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
-costs fourteen drawings and a new window twenty-one, so weigh them; they are not worth a thread
+costs fourteen drawings and a new window twenty-four, so weigh them; they are not worth a thread
 more, as the renderer uses the cores already. The addresses that a computer has are told to
 the web interface by the test (`pair.HostOptions.Addresses`), an IPv4 and an IPv6 one of the
 ranges that are kept for documentation, so that the screen of the pairing is the same on every machine.
@@ -496,21 +500,25 @@ file for each and `summary.txt` with a row for each, and `VFOX_PLUS_SNAPSHOTS=di
 the picture of every screen too (`census.<screen>.<window>.png`), to look at what the numbers
 are about. A new screen is a new entry of `censusScenes`.
 
-Three more tests take the scenes in other windows. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws
+Five more tests take the scenes in other windows, and in other text. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws
 them in the font that the system gives for `sans-serif` and `monospace` (its log says which one that is),
 in three windows, about 20 s; `TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` draws them in the same
 three windows in the three widest of the families that systems and desktops set their interface in (Verdana, DejaVu Sans,
-Geneva, Inter and the like, as the text engine measures them), about a minute; and
+Geneva, Inter and the like, as the text engine measures them), and in Chinese in the widest of them, about a minute and a half;
+`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes every text wider by letter spacing (`kit.Tracking`), by two fifths up to 150 % of
+the size of text and by 15 % at 200 %, in nine windows, 216 screens in about a minute and a half; and
 `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes the sizes of text that the census does not, 115, 130, 150 and 175 %,
-in four widths, in English and in Chinese, 672 screens in about four minutes. The last two run only when asked, with
-`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts)'`.
+in four widths, in English and in Chinese, 768 screens in about seven minutes. These three run only when asked, with
+`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`.
+`TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` is quick and always runs: it asks the text engine for the width of the labels of
+the navigation bar and draws them in a box of that width, which the census relies on to say that a label is cut.
 
-CI asks for them. The job `census` of `mygo.yml` takes the census, the fonts, the widest fonts and the sweep on Windows Server
+CI asks for them. The job `census` of `mygo.yml` takes the census, the fonts, the widest fonts, the wider text and the sweep on Windows Server
 2025 and Windows Server 2022 (x64), Windows 11 on ARM (arm64), macOS 26 and macOS 15 (arm64) and macOS 15 on Intel, each in
 the text engine and the fonts of its own platform (DirectWrite and Core Text, where Linux has Pango): the newest and the oldest
-Windows and macOS that GitHub has, and the other architecture of each. On Linux it takes the widest fonts and the sweep, with the
+Windows and macOS that GitHub has, and the other architecture of each. On Linux it takes the widest fonts, the wider text and the sweep, with the
 fonts that the desktops set their text in installed, and the census of Linux is a step of the job `build`. It does not wait
 for `build`; it runs the tests of the kit on each platform, too; it prints the version of the system that it runs on; and it
 keeps the pictures of the screens as an artifact when a screen is over a budget and when the workflow is run by hand
-(`workflow_dispatch`). The sandbox takes the widest fonts and the sweep in its census step. Ask for them yourself after a change
+(`workflow_dispatch`). The sandbox takes the widest fonts, the wider text and the sweep in its census step. Ask for them yourself after a change
 of a layout, to know before the push.

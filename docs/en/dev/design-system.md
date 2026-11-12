@@ -138,15 +138,19 @@ person to understand, to judge or to act; what the layout already says is not sa
 
 The census of a screen is taken by `webheap -audit` for the web interface, which the Android
 app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
-([how to take them](contributing.md#auditing-the-interface)). The test draws 21 screens in
+([how to take them](contributing.md#auditing-the-interface)). The test draws 24 screens in
 fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
 150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
-100 % and at 200 %, and 1280 dp wide. It fails when one of them is over a budget. A dp of the desktop is
+100 % and at 200 %, and 1280 dp wide. The 11 screens that are a dialog or a menu are drawn in three windows more, the
+shortest that the application opens in, 360 by 480 dp, at 100 % and at 200 %, and a window as short and 1280 dp wide: the
+screen is reached in a window as tall as it needs, and the window is made shorter, as a person makes it, and a menu is opened
+from a button that has been scrolled to. It fails when one of them is over a budget. A dp of the desktop is
 a px of the web interface. A page that is taller than the windows (the settings, the options of a plugin, the lists of the
 plugins and of the distributions of Java: up to 9 500 dp at 200 %) is drawn in a window as tall as it is, so that what it
 has below the fold is counted, too; a page that has a list with more rows than any window shows (the versions of Node.js)
-is counted by the rows that it shows. A screen is held to:
+is counted by the rows that it shows, and a list that scrolls (that one, and the distributions of Java in their dialog) is
+drawn at its end, too. A screen is held to:
 
 | Census | Budget |
 | ------ | -----: |
@@ -161,6 +165,9 @@ is counted by the rows that it shows. A screen is held to:
 | Small lines of four words or more | 3 |
 | Titles and texts of controls that an ellipsis cuts short, in a line or in the lines they may have | 0 |
 | Controls and texts that a row of a list holds and that are drawn beyond its padding | 0 |
+| Texts drawn over one another (a field's label is a little over the line that it holds, and its letters do not touch it) | 0 |
+| Texts drawn beyond the control that they are the label of | 0 |
+| Dialogs and menus that have their actions, or their panel, where a person cannot reach them | 0 |
 | Icons that the table of the icons does not have (desktop only) | 0 |
 
 The Chinese windows are held to the budgets of the layout, and not to the two of the copy (the sentences and the small
@@ -173,9 +180,18 @@ size in every window. What holds text is as wide as the text: where there is no 
 control goes under the text that it was beside (the end of an item of a list, the actions of the
 header of a page and of a dialog), a group of segments gives up its padding and its icons and then
 is a dropdown (the tabs, the theme, the language, the filters, the addresses of the pairing), and a button, a chip,
-a tag, the name of a choice, the title of a group and of a card, and the choice that a dropdown shows go on as many lines as they need, and are
-not cut by an ellipsis. What has a room that does not grow is not read larger than 130 % (the labels of the
-navigation bar).
+a tag, the name of a choice, the title of a group and of a card, the choice that a dropdown shows and an entry of a menu go on as many lines as
+they need, and are not cut by an ellipsis. A text field is as high as its label and its line need (56 dp at 100 %), and the
+label of it is as wide as its line, which a button beside it leaves. What has a room that does not grow is read at 130 % at the
+most, and smaller where the longest of its labels does not fit the room, down to 100 %: the labels of the navigation bar, which
+has a fifth of the window for each, and those of the rail, which has its 96 dp. The bar is as high as its labels, and each item of
+the rail, and the count of a badge is as large as they are.
+
+**Short windows.** A window may be as short as 480 dp, which is less than the dialog of the mirrors or of the pairing is at 100 %.
+A dialog keeps its title and its actions where they can be pressed, and what is between them scrolls; a menu is as tall as the room
+that the side of its button with the most has, and scrolls (`kit.Menu`). The census asks it (`Census.Spilling`): the actions of a
+dialog are drawn, in the dialog and in the window; the panel of a menu is in the window; nothing of a dialog is drawn wholly
+outside it.
 
 **Long words.** A word that has no space to break at, a name, an address, a path or a link, and that is
 longer than its room, breaks at any character (`kit.Breakable`, which an item of a list does for its
@@ -202,8 +218,19 @@ desktops set their interface in (Verdana, DejaVu Sans, Geneva, Inter and the lik
 says how much wider than `sans-serif` each is). Both take the narrowest window at 100 % and 200 %, and the widest. Verdana
 is the widest of the fonts of text that every Windows and every Mac has, 15 % wider than Segoe UI and 10 % wider than the
 system font of macOS, and the test fails on those systems where it is not among the fonts that it tries. The widest of every
-family that the engines list is not the choice: that is Segoe Script, Zapfino and an emoji font, which no screen is set in.
+family that the engines list is not the choice: that is Segoe Script, Zapfino and an emoji font, which no screen is set in. The
+widest of them is drawn in Chinese, too (360 dp at 100 % and at 200 %, and 1280 dp), where what is not Chinese on a screen, the
+names of the SDKs, the versions and the paths, is set in it, and the Han characters in the font that the system chooses for them.
 
+**Text that is wider than any font.** No system sets its interface in a font wider than Verdana, and a translation is wider
+than that: German, Finnish and Russian set the same words in a third to a half more characters than English (the W3C leaves a
+third, and more for what is short). No machine has the font that would show it, so
+`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes the text wider by letter spacing, as the tools of pseudo-localization
+do (`kit.Tracking`, which the labels draw and every layout that measures a text measures with, calibrated on a line of English in the
+font of the machine): by 40 % at 360 dp at 100 % and 150 %, at 700 and at 1280 dp, in English and in Chinese, and by 15 % at 200 %,
+where the text is twice as wide already, which is the width of Verdana. The machines that CI takes are held to the width of a font
+that only some of them have. This is how the labels of the navigation bar and of the rail, a text field and the entries of a menu
+were found not to hold.
 CI takes the census where the text engine and the fonts are not those of Linux, and in more than one version of each, so that
 the layout is held in them and not assumed to hold: on Windows Server 2025, Windows Server 2022 and Windows 11 on ARM, where
 DirectWrite has Segoe UI and Arial for `sans-serif` and Cascadia Mono, Consolas and Courier New for `monospace`, and on macOS
@@ -211,7 +238,10 @@ DirectWrite has Segoe UI and Arial for `sans-serif` and Cascadia Mono, Consolas 
 those, so that the census itself is in the font of the platform. On Linux the job installs the fonts that the desktops set
 their text in (Adwaita Sans, Cantarell, Noto Sans, Inter, Open Sans, Roboto, Lato, Liberation Sans and FreeSans) beside DejaVu
 Sans, which the runners give for `sans-serif` and which found a chip that the others did not. The screens are within the
-budgets in all of them.
+budgets in all of them. What the census trusts is what the text engine measures: `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw`
+draws the labels of the navigation bar, at the weights and sizes that it uses, in the default family and in the widest, once as wide as
+they want and once in a box of the width that the engine measured, and fails when the box cuts one or the width is not the one that
+is drawn.
 
 ## Motion
 
