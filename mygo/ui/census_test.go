@@ -53,6 +53,9 @@ type censusWindow struct {
 	dark          bool
 	// scale is the text scale of the system that the window is drawn with; 0 is 1.
 	scale float32
+	// shrunk is the height that the window is made when the scene has reached its screen, if it is not 0: a scene goes to its
+	// screen in a window that is tall enough to press everything in, and a person who makes the window smaller sees what is left.
+	shrunk int
 	// language is the language that the screen is shown in, when it is not English, which the application starts in and the
 	// scenes are told in: it is changed where the scene has reached the screen.
 	language settings.LanguagePreference
@@ -104,6 +107,12 @@ var (
 	censusNarrowLarge = censusWindow{name: "narrow-200", width: 360, height: 2400, scale: 2}
 	censusMediumLarge = censusWindow{name: "medium-200", width: 700, height: 1800, scale: 2}
 	censusWideLarge   = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
+	// The least window that the application opens in is 360 by 480 dp (MinWidth and MinHeight of its window), and a window may be as
+	// wide as a screen and as short as that. A page that the foot of the window cuts scrolls, so the pages are held to nothing of it;
+	// the dialogs and the menus are, in these windows: their title and their actions are where a person can reach them.
+	censusLeast      = censusWindow{name: "least", width: 360, height: 2400, shrunk: 480}
+	censusLeastLarge = censusWindow{name: "least-200", width: 360, height: 2400, shrunk: 480, scale: 2}
+	censusShallow    = censusWindow{name: "shallow", width: 1280, height: 1600, shrunk: 480}
 	// The Chinese text, in the narrowest window, at 200 % in it, and in the widest: its words are not as long as the English
 	// ones, and it has no spaces to break at, which is another way to be too wide for a room. They are held to the budgets of the
 	// layout, and not to those of the copy, which count the words as English has them (kit.Census.OverLayout).
@@ -138,6 +147,11 @@ type censusScene struct {
 	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
 	// it has below the fold is drawn and counted, too.
 	tall bool
+	// modal says that the scene ends in a dialog or in a menu, which the least windows hold to the budgets.
+	modal bool
+	// toEnd says that the screen has a list that scrolls, whose end is drawn and counted, too: its rows are those that a person
+	// reaches by scrolling, and the last of them is not the first.
+	toEnd bool
 	// endless says that the page has a list that has more rows than any window shows (the versions of Node.js, a thousand of them),
 	// which is as tall as its window by what it is: the census is of the rows that it shows (kit.Census.Scrolls).
 	endless bool
@@ -145,17 +159,24 @@ type censusScene struct {
 	windows []censusWindow
 	// reach goes to the screen.
 	reach func(ta *testApp)
+	// open, if the scene has it, opens the menu that the scene is of, on the screen that reach went to, in the window as it is by
+	// then: a menu is anchored to what opens it, and a person presses what they can reach, scrolling to it first.
+	open func(ta *testApp)
 }
 
 func (s censusScene) in() []censusWindow {
 	if s.windows != nil {
 		return s.windows
 	}
-	return []censusWindow{
+	windows := []censusWindow{
 		censusWide, censusDark, censusMedium, censusCompact, censusNarrow,
 		censusNarrowMid, censusNarrowMore, censusCompactMore, censusNarrowLarge, censusMediumLarge, censusWideLarge,
 		censusNarrowZh, censusNarrowLargeZh, censusWideZh,
 	}
+	if s.modal {
+		windows = append(windows, censusLeast, censusLeastLarge, censusShallow)
+	}
+	return windows
 }
 
 // optionsOf opens the options of a plugin, with the configuration of vfox that its version files need.
@@ -173,27 +194,30 @@ var censusScenes = []censusScene{
 	{name: "home", reach: func(ta *testApp) {}},
 	{name: "sdks", reach: func(ta *testApp) { ta.button("SDKs") }},
 	{name: "installed", reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }},
-	{name: "available", endless: true, reach: func(ta *testApp) { ta.openAvailable("nodejs") }},
+	{name: "available", endless: true, toEnd: true, reach: func(ta *testApp) { ta.openAvailable("nodejs") }},
 	{name: "java-available", java: true, tall: true, reach: func(ta *testApp) { ta.openAvailable("java") }},
-	{name: "java-choose", java: true, reach: func(ta *testApp) { ta.openAvailable("java"); ta.button("Distribution: OpenJDK") }},
-	{name: "java-install-name", java: true, reach: func(ta *testApp) { ta.openAvailable("java"); ta.addMore("Install by name…") }},
-	{name: "link-manual", reach: func(ta *testApp) { ta.openAvailable("nodejs"); ta.addMore("Link existing…") }},
+	{name: "java-choose", java: true, modal: true, toEnd: true, reach: func(ta *testApp) { ta.openAvailable("java"); ta.button("Distribution: OpenJDK") }},
+	{name: "java-install-name", java: true, modal: true, reach: func(ta *testApp) { ta.openAvailable("java"); ta.addMore("Install by name…") }},
+	{name: "link-manual", modal: true, reach: func(ta *testApp) { ta.openAvailable("nodejs"); ta.addMore("Link existing…") }},
 	{name: "options", tall: true, reach: optionsOf("nodejs")},
 	{name: "options-java", java: true, tall: true, reach: optionsOf("java")},
-	{name: "alias-set", reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Name alias…") }},
-	{name: "mirror", reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Change") }},
-	{name: "use-in-project", reach: func(ta *testApp) {
+	{name: "alias-set", modal: true, reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Name alias…") }},
+	{name: "mirror", modal: true, reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Change") }},
+	{name: "use-in-project", modal: true, reach: func(ta *testApp) {
 		ta.button("SDKs")
 		ta.item("nodejs")
 		ta.click(kit.RoleButton, "More ways to use this version")
 		ta.click(kit.RoleMenuItem, "Use in a project…")
 	}},
-	{name: "remove-plugin", reach: func(ta *testApp) {
+	{name: "remove-plugin", modal: true, reach: func(ta *testApp) {
 		ta.button("SDKs")
 		ta.item("nodejs")
 		ta.click(kit.RoleButton, "More actions")
 		ta.click(kit.RoleMenuItem, "Remove plugin")
 	}},
+	{name: "menu-use", modal: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: pressing(kit.RoleButton, "More ways to use this version")},
+	{name: "menu-actions", modal: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: pressing(kit.RoleButton, "More actions")},
+	{name: "menu-add", modal: true, reach: func(ta *testApp) { ta.openAvailable("nodejs") }, open: pressing(kit.RoleButton, "More ways to add")},
 	{name: "plugins", tall: true, reach: func(ta *testApp) {
 		ta.button("Plugins")
 		ta.until("the registry", func() bool { return ta.app.model.Registry.HasValue() })
@@ -251,7 +275,7 @@ var censusScenes = []censusScene{
 		ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 		ta.openSettings()
 	}},
-	{name: "pairing", reach: func(ta *testApp) {
+	{name: "pairing", modal: true, reach: func(ta *testApp) {
 		ta.updateSettings(func(s *settings.AppSettings) {
 			s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(ta.t)
 		})
@@ -300,11 +324,52 @@ func takeScene(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	t.Helper()
 	ta := censusApp(t, scene, window)
 	scene.reach(ta)
+	if window.shrunk > 0 {
+		ta.tester.SetSize(window.width, window.shrunk)
+		ta.settle()
+		ta.settle()
+	}
+	if scene.open != nil {
+		scene.open(ta)
+	}
 	if window.language != "" {
 		ta.updateSettings(func(s *settings.AppSettings) { s.Language = window.language })
 		ta.settle()
 	}
 	return ta
+}
+
+// pressing is what opens a menu: the scene scrolls to the button, as a person does, and presses it.
+func pressing(role kit.Role, name string) func(ta *testApp) {
+	return func(ta *testApp) {
+		ta.t.Helper()
+		ta.reveal(role, name)
+		ta.click(role, name)
+	}
+}
+
+// reveal scrolls the page, by what a wheel does, until the node is wholly in the window.
+func (ta *testApp) reveal(role kit.Role, name string) {
+	ta.t.Helper()
+	img := ta.tester.Image()
+	width, height := float32(img.Bounds().Dx()), float32(img.Bounds().Dy())
+	for range 200 {
+		if n, ok := ta.find(role, name); ok && n.Visible() && n.Rect.Y >= 0 && n.Rect.Y+n.Rect.H <= height {
+			return
+		}
+		ta.tester.Scroll(width/2, height/2, 0, height/4)
+		ta.settle()
+	}
+	ta.t.Fatalf("%s %q is not in the window, however far the page is scrolled (%q)", role, name, ta.texts())
+}
+
+// scrollToEnd scrolls what is under the middle of the window, a list or a dialog, to its end.
+func (ta *testApp) scrollToEnd() {
+	ta.t.Helper()
+	img := ta.tester.Image()
+	ta.tester.Scroll(float32(img.Bounds().Dx())/2, float32(img.Bounds().Dy())/2, 0, 1e6)
+	ta.settle()
+	ta.settle()
 }
 
 // census takes the census of the screen that the window shows.
@@ -333,6 +398,20 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 				t.Logf("%s", censusLine(census))
 				if over := window.over(census); len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+				}
+				if !scene.toEnd {
+					return
+				}
+				// The rows that a person reaches by scrolling are not the rows that the screen starts with: the end of the list is
+				// drawn, and counted, too, and the census of it is of what is shown (kit.Census.Scrolls).
+				ta.scrollToEnd()
+				end := ta.census()
+				end.Scrolls = true
+				ta.snapshot("census." + name + ".end")
+				report[name+".end"] = end
+				t.Logf("at the end: %s", censusLine(end))
+				if over := window.over(end); len(over) > 0 {
+					t.Errorf("at the end of its list, over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
 			})
 		}

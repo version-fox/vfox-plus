@@ -23,6 +23,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -182,7 +183,9 @@ func measureSystemFamilies(t *testing.T) systemFamilies {
 }
 
 // The scenes in the narrowest window at 100 % and at 200 %, and in the widest, in the families that are the widest of those that
-// the system has, with `monospace` beside each. The family that the system gives for `sans-serif` is that of
+// the system has, with `monospace` beside each; and in Chinese, in the widest family of them, where the words of a screen that are
+// not Chinese (the names of the SDKs, the versions, the paths) are set in it, and its Han characters in the font that the system
+// chooses for them. The family that the system gives for `sans-serif` is that of
 // TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses, and is left out here.
 //
 // It takes the time of that test for each family, so a run that asks for it takes it (VFOX_PLUS_CENSUS_SWEEP=1), as CI does on
@@ -217,8 +220,12 @@ func TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas(t *testin
 			interfaceFamilies, monospaceFamilies := kit.UIFamilies, kit.MonoFamilies
 			kit.UIFamilies, kit.MonoFamilies = family.name, "monospace"
 			t.Cleanup(func() { kit.UIFamilies, kit.MonoFamilies = interfaceFamilies, monospaceFamilies })
+			windows := []censusWindow{censusNarrow, censusNarrowLarge, censusWide}
+			if i == 0 {
+				windows = append(windows, censusNarrowZh, censusNarrowLargeZh, censusWideZh)
+			}
 			for _, scene := range censusScenes {
-				for _, window := range []censusWindow{censusNarrow, censusNarrowLarge, censusWide} {
+				for _, window := range windows {
 					t.Run(scene.name+"."+window.name, func(t *testing.T) {
 						ta := takeScene(t, scene, window)
 						census := ta.census()
@@ -233,4 +240,152 @@ func TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas(t *testin
 			}
 		})
 	}
+}
+
+// trackingFor is the tracking, in em, that makes a line of English wider by the share that is asked (0.4 is two fifths), in the font
+// that the interface is set in: the width of the probe at 14 dp, and a character's worth of spacing for every character of it.
+func trackingFor(t *testing.T, share float32) float32 {
+	t.Helper()
+	probe := familyProbes[0]
+	var width float32
+	measured := false
+	tester := mui.NewTester(func(c *mui.Context) {
+		if !measured {
+			measured = true
+			width, _ = c.MeasureText(0, mui.Span{Text: probe, Font: kit.UIFamilies, Size: 14, Weight: 400})
+		}
+	}, 400, 100)
+	tester.Frame()
+	if !measured || width <= 0 {
+		t.Fatal("the text engine measured nothing")
+	}
+	return share * width / (float32(utf8.RuneCountInString(probe)) * 14)
+}
+
+// A text that is wider than the font that the screens are drawn in. A translation is: German, Finnish and Russian set the same
+// words in a third to a half more characters than English does (the W3C's guidance to designers of interfaces is to leave a third,
+// and more for what is short), and a font may be wider than the ones that the other tests draw in. No machine has the widest font
+// there is, so the test makes the text wider by letter spacing (kit.Tracking), as the tools of pseudo-localization do, which the
+// labels draw and the layouts measure; the text of the interface is made wider, whatever it says and in what font. It is wider by
+// two fifths up to 150 % of the size of text, and by 15 % at 200 %, where the text is twice as wide already: that is how much wider
+// Verdana, the widest font that a system sets its interface in, is than Noto Sans, so that every machine is held to the width of the
+// font that only some of them have.
+//
+// It takes the time of the census for each of its windows, so a run that asks for it takes it (VFOX_PLUS_CENSUS_SWEEP=1), as CI does.
+func TestTheScreensAreWithinTheBudgetsInATextThatIsWider(t *testing.T) {
+	if os.Getenv("VFOX_PLUS_CENSUS_SWEEP") == "" {
+		t.Skip("VFOX_PLUS_CENSUS_SWEEP=1 takes the text that is wider than the font of the interface: the time of the census, for its windows")
+	}
+	if raceDetector {
+		t.Skip("the census does not need the race detector, which makes it three times slower")
+	}
+	t.Cleanup(func() { kit.Tracking = 0 })
+	for _, wider := range []struct {
+		window censusWindow
+		share  float32
+	}{
+		{censusNarrow, 0.4}, {censusNarrowMore, 0.4}, {censusNarrowLarge, 0.15},
+		{censusMedium, 0.4}, {censusMediumLarge, 0.15},
+		{censusWide, 0.4}, {censusWideLarge, 0.15},
+		{censusNarrowZh, 0.4}, {censusWideZh, 0.4},
+	} {
+		kit.Tracking = trackingFor(t, wider.share)
+		t.Logf("%s: a tracking of %.3f em makes a line of English %.0f %% wider in %s", wider.window.name, kit.Tracking, wider.share*100, fontOf(kit.UIFamilies))
+		for _, scene := range censusScenes {
+			t.Run(scene.name+"."+wider.window.name, func(t *testing.T) {
+				ta := takeScene(t, scene, wider.window)
+				census := ta.census()
+				ta.snapshot(fmt.Sprintf("wider.%s.%s", scene.name, wider.window.name))
+				if over := wider.window.over(census); len(over) > 0 {
+					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+				}
+			})
+		}
+		kit.Tracking = 0
+	}
+}
+
+// measuredLabel is a label of a navigation bar, as the engine measures it and as it draws it twice: as wide as it wants, and in a box
+// of exactly the width that the engine measured, where it is a single line that an ellipsis ends if the box is too narrow for it.
+type measuredLabel struct {
+	family, text  string
+	weight        int
+	size          float32
+	measured      float32
+	free, boxed   mui.Rect
+	differentInks int
+}
+
+// The census says that a label is cut when it is wider than the room that it has, by the width that the text engine measures it at
+// (kit.Node.Natural), and what it trusts is that a label that has exactly that width is not cut. On macOS, in Verdana, the label of
+// the navigation bar "Settings" was drawn as "Settin…" in a bar that the census said was not cut, and a width of the engine that is
+// less than what the engine draws is how that could be. This draws the labels of the bar, at the weights that it uses and the sizes
+// that it has, in the default family and in the widest that the system has, twice (as wide as they want, and in a box of the
+// measured width), and says which of them the box cuts.
+func TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw(t *testing.T) {
+	if raceDetector {
+		t.Skip("the census does not need the race detector")
+	}
+	system := measureSystemFamilies(t)
+	families := []string{kit.UIFamilies, "sans-serif"}
+	for _, f := range widest(system.all, []measuredFamily{system.sansSerif}, 3) {
+		families = append(families, f.name)
+	}
+	var labels []*measuredLabel
+	for _, family := range families {
+		for _, weight := range []int{400, 500, 700} {
+			for _, size := range []float32{12, 15.6, 24} {
+				for _, text := range []string{"Home", "SDKs", "Plugins", "Tasks", "Settings"} {
+					labels = append(labels, &measuredLabel{family: family, weight: weight, size: size, text: text})
+				}
+			}
+		}
+	}
+	tester := mui.NewTester(func(c *mui.Context) {
+		mui.Column(c).Padding(8).Gap(4).Children(func() {
+			for _, l := range labels {
+				l.measured, _ = c.MeasureText(0, mui.Span{Text: l.text, Font: l.family, Size: l.size, Weight: l.weight})
+				mui.Row(c).Children(func() {
+					mui.Text(c, l.text).Font(l.family).FontSize(l.size).FontWeight(l.weight).SingleLine().
+						DrawOver(func(_ *mui.Painter, r mui.Rect) { l.free = r })
+				})
+				mui.Row(c).Children(func() {
+					mui.Text(c, l.text).Font(l.family).FontSize(l.size).FontWeight(l.weight).SingleLine().Width(l.measured).
+						DrawOver(func(_ *mui.Painter, r mui.Rect) { l.boxed = r })
+				})
+			}
+		})
+	}, 200, 40*len(labels)*2)
+	tester.Frame()
+	img := tester.Image()
+	ink := func(r mui.Rect) []int {
+		var pixels []int
+		for y := int(r.Y); y < int(r.Y+r.H); y++ {
+			for x := 0; x < int(r.W)+8; x++ {
+				red, green, blue, _ := img.At(int(r.X)+x, y).RGBA()
+				pixels = append(pixels, int(red>>8), int(green>>8), int(blue>>8))
+			}
+		}
+		return pixels
+	}
+	narrower, cut := 0, 0
+	for _, l := range labels {
+		free, boxed := l.free, l.boxed
+		// The two boxes are alike in their size: the same line, where the room is the width that the engine measured.
+		a, b := ink(mui.Rect{X: free.X, Y: free.Y, W: l.measured, H: free.H}), ink(mui.Rect{X: boxed.X, Y: boxed.Y, W: l.measured, H: free.H})
+		for i := range a {
+			if d := a[i] - b[i]; d > 24 || d < -24 {
+				l.differentInks++
+			}
+		}
+		if free.W < l.measured-1 || free.W > l.measured+1 {
+			narrower++
+			t.Errorf("%-24s %3d %5.1f %-9s the engine measures %.2f dp, and the label that is as wide as it wants is %.2f dp", l.family, l.weight, l.size, l.text, l.measured, free.W)
+		}
+		if l.differentInks > 0 {
+			cut++
+			t.Errorf("%-24s %3d %5.1f %-9s the label in a box of the width that the engine measured, %.2f dp, is not the label that is as wide as it wants: %d values of pixels differ", l.family, l.weight, l.size, l.text, l.measured, l.differentInks)
+		}
+	}
+	t.Logf("%d labels in %d families, at 3 weights and 3 sizes; the width of %d is not what is drawn, and a box of the measured width cuts %d", len(labels), len(families), narrower, cut)
 }
