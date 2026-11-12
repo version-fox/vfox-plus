@@ -65,7 +65,7 @@ container, see [Development environment](environment.md).
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, Windows (x64 and arm64) and macOS, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
@@ -497,5 +497,11 @@ Two more tests take the scenes in other windows. `TestTheScreensAreWithinTheBudg
 them in the font that the system gives for `sans-serif` and `monospace` (its log says which one that is),
 in three windows, about 12 s; and `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes the sizes of text that the
 census does not, 115, 130, 150 and 175 %, in four widths, 336 screens in about a minute. The second runs only
-when asked, with `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run TestTheScreensAreWithinTheBudgetsAtEverySizeOfText`: run it
-after a change of a layout.
+when asked, with `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run TestTheScreensAreWithinTheBudgetsAtEverySizeOfText`.
+
+CI asks for it. The job `census` of `mygo.yml` takes the census, the fonts and the sweep on Windows Server 2025
+(x64), Windows 11 on ARM (arm64) and macOS, each in the text engine and the fonts of its own platform (DirectWrite and
+Core Text, where Linux has Pango), and the sweep alone on Linux, whose census is a step of the job `build`. It does not wait
+for `build`; it runs the tests of the kit on each platform, too; and it keeps the pictures of the screens as an artifact when
+a screen is over a budget and when the workflow is run by hand (`workflow_dispatch`). The sandbox takes the sweep in its census
+step. Ask for it yourself after a change of a layout, to know before the push.

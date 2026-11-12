@@ -138,11 +138,17 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
 没有一个是拿某种字体量一次就写死的宽度。普查在最窄的窗口、带导航栏的窗口和最宽的窗口取 200 %，这是三种布局，
 并在空间最紧的地方取 130 % 和 150 %。布局并不保证 200 % 下满足的，更小的字号下也满足，所以中间的字号是看出来的，
 不是假设出来的：`VFOX_PLUS_CENSUS_SWEEP=1` 时，`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` 在四种宽度下取 115、130、150
-和 175 %，改了布局之后要跑一遍。
+和 175 %，CI 在每个平台上都会要求它，沙箱也会；改了布局之后自己也要跑一遍，好在推送前就知道。
 
 **字体。** 布局没有哪一处是照 Ubuntu Sans（图是用它拍的）的宽度写的：宽度跟着字体排出来的文字走，而 200 % 的文字
 比 100 % 的宽一倍，比系统里各种字体之间的差别大得多。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif`
 和 `monospace` 的字体画这些场景（日志里写着跑它的机器上那是哪种字体），取最窄窗口的 100 % 和 200 %，以及最宽的窗口。
+
+CI 在文字引擎和字体不是 Linux 那一套的地方取普查，让布局在那里被验证，而不是假设它成立：在 Windows Server 2025 和 ARM 版
+Windows 11 上，DirectWrite 给 `sans-serif` 的是 Segoe UI 和 Arial，给 `monospace` 的是 Cascadia Mono、Consolas 和 Courier New；
+在 macOS 上，Core Text 给的是系统字体及其等宽版本。这几个平台上都没有 Ubuntu Sans，所以普查本身就是用平台自己的字体画的。
+Linux 的运行器给 `sans-serif` 的是 DejaVu Sans，常见字体里最宽的一个，它找出了别的字体没找出的一个芯片。
+各屏幕在所有这些字体里都满足预算。
 
 ## 动效
 

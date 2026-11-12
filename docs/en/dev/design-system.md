@@ -180,13 +180,21 @@ measured once with one font. The census takes 200 % in the narrowest window, in 
 widest, which are the three layouts, and 130 % and 150 % where the room is the least. The layouts do not
 promise that what holds at 200 % holds below it, so the sizes in between are looked at and not assumed:
 `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes 115, 130, 150 and 175 % in four widths when
-`VFOX_PLUS_CENSUS_SWEEP=1` asks for it, and is to be run after a change of a layout.
+`VFOX_PLUS_CENSUS_SWEEP=1` asks for it, which CI does on every platform and the sandbox does; run it after a change of a
+layout to know before the push.
 
 **Fonts.** Nothing of the layout is written for the width of Ubuntu Sans, which the pictures are in: the
 widths follow the text as the font sets it, and text at 200 % is twice as wide as at 100 %, which is
 more than the fonts of a system differ by. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws the scenes in what the system gives
 for `sans-serif` and `monospace` (its log says which font that is on the machine that runs it), in
 the narrowest window at 100 % and 200 %, and in the widest.
+
+CI takes the census where the text engine and the fonts are not those of Linux, so that the layout is held in them and
+not assumed to hold: on Windows Server 2025 and Windows 11 on ARM, where DirectWrite has Segoe UI and Arial for
+`sans-serif` and Cascadia Mono, Consolas and Courier New for `monospace`, and on macOS, where Core Text gives the system
+font and its monospaced kind. There is no Ubuntu Sans on those, so that the census itself is in the font of the platform.
+On Linux the runners give DejaVu Sans for `sans-serif`, the widest of the common fonts, which found a chip that the others
+did not. The screens are within the budgets in all of them.
 
 ## Motion
 
