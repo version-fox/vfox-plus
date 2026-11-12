@@ -612,9 +612,12 @@ jobs:
   census:
     name: Take the census of the screens (${{ matrix.os }})
     # What holds text is as wide as the text, which a platform sets in its own engine and fonts (Pango on Linux,
-    # DirectWrite on Windows, Core Text on macOS), so that each platform draws every screen and holds it to the budgets
-    # of the design system. The census of Linux is a step of the job build; here Linux takes the sizes of text between
-    # the ones that it names (a run of the sweep is what no run of the census is), and the others take it all.
+    # DirectWrite on Windows, Core Text on macOS), and a version of a platform has its own: each draws every screen and
+    # holds it to the budgets of the design system, in English and in Chinese, at every size of text that the sweep
+    # names, and in the widest fonts that the machine has. The census of the newest Ubuntu is a step of the job build;
+    # here it takes the rest, with the fonts that the desktops of Linux set their text in installed, and the others
+    # take it all. Of Windows and of macOS the newest and the oldest that GitHub has are taken (windows-2022 is Windows
+    # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-arm, and macos-15-intel.
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     strategy:
@@ -622,13 +625,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-26.04
-            run: TestTheScreensAreWithinTheBudgetsAtEverySizeOfText
+            run: 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFontsThatTheSystemHas)'
+            fonts: >-
+              fonts-adwaita-sans fonts-cantarell fonts-noto-core fonts-inter fonts-open-sans fonts-roboto fonts-lato
+              fonts-liberation2 fonts-freefont-ttf
           - os: windows-2025
-            run: TestTheScreensAreWithinTheBudgets
+          - os: windows-2022
           - os: windows-11-arm
-            run: TestTheScreensAreWithinTheBudgets
           - os: macos-latest
-            run: TestTheScreensAreWithinTheBudgets
+          - os: macos-15
+          - os: macos-15-intel
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -643,10 +649,20 @@ jobs:
             mygo/go.sum
             shared/tooling/go.sum
       - name: Install the Linux packages
+        # The fonts that the desktops of Linux set their text in are installed beside the ones of the application: the
+        # census takes the widest of the fonts that a machine has.
         if: runner.os == 'Linux'
         uses: ./.github/actions/install-linux-packages
         with:
-          packages: ${{ env.LINUX_PACKAGES }}
+          packages: ${{ env.LINUX_PACKAGES }} ${{ matrix.fonts }}
+      - name: Show the system
+        # What a run is of, in its log: the version of the system that its text engine and its fonts are those of.
+        shell: bash
+        run: |
+          uname -srm
+          if [ "$RUNNER_OS" = Linux ]; then . /etc/os-release && echo "$PRETTY_NAME"; fi
+          if [ "$RUNNER_OS" = macOS ]; then sw_vers; fi
+          if [ "$RUNNER_OS" = Windows ]; then cmd //c ver; fi
       - name: Prepare the embedded assets
         # The icons and the translations: the licenses of the modules are not what a census reads.
         id: prepare
@@ -655,15 +671,17 @@ jobs:
           MYGO_SKIP_LICENSES: '1'
         run: go -C shared/tooling run ./cmd/vfxtool prepare --root "$GITHUB_WORKSPACE/mygo"
       - name: Take the census
-        # The screens of the census, in the fonts that the platform gives for sans-serif and monospace, and the sizes of text
-        # between the ones of the census. The log has the census of each screen.
+        # The screens of the census, in the fonts that the platform gives for sans-serif and monospace and in the widest that
+        # the machine has, and the sizes of text between the ones of the census, in English and in Chinese. The log has the
+        # census of each screen.
         working-directory: mygo
         shell: bash
         env:
           VFOX_PLUS_CENSUS_SWEEP: '1'
           VFOX_PLUS_CENSUS: ${{ runner.temp }}/census
           VFOX_PLUS_SNAPSHOTS: ${{ runner.temp }}/census
-        run: go test ./ui -run ${{ matrix.run }} -count=1 -timeout 40m -v
+          TESTS: ${{ matrix.run || 'TestTheScreensAreWithinTheBudgets' }}
+        run: go test ./ui -run "$TESTS" -count=1 -timeout 40m -v
       - name: Test the kit
         # The components measure the text and wrap by what they measure, whatever it is set in: what their tests hold is the
         # same on every platform. It runs when the census did not pass, too, so that a run says both.
