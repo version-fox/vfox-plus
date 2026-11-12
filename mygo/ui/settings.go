@@ -419,7 +419,7 @@ func (a *App) configSection(k kit.Ctx) {
 			}),
 			a.configText(k, keyPathPreserve, a.T("configPathPreserve"), "", a.T("configPathPreserveHelp"), `["/opt/corp/bin"]`, false),
 			a.configSwitch(k, keyDiagnosticsOnUse, "diagnostics", a.T("configDiagnosticsOnUse"), a.T("configDiagnosticsOnUseHelp")),
-			a.configText(k, keyDiagnosticsIgnore, a.T("configDiagnosticsIgnore"), "", a.T("configDiagnosticsIgnoreHelp"), `["sdk.drift:flutter@3.47.0"]`, false),
+			a.configText(k, keyDiagnosticsIgnore, a.T("configDiagnosticsIgnore"), "", "", `["sdk.drift:flutter@3.47.0"]`, false),
 		).Margin(0, 0, gapL, 0)
 		kit.ListGroup(k,
 			a.configText(k, keyCache, a.T("configCache"), "cache", a.T("configCacheHelp"), "12h", false),

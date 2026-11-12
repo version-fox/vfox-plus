@@ -851,7 +851,7 @@
   },
   "settingsLightweight": "Lightweight mode",
   "@settingsLightweight": { "description": "Title of the switch that keeps the application running without its window." },
-  "settingsLightweightHelp": "Keeps vfox+ running in the background after the window closes; the tray icon, or starting vfox+ again, brings the window back.",
+  "settingsLightweightHelp": "Keeps running in the background when closed.",
   "@settingsLightweightHelp": { "description": "Explains what the lightweight mode does." },
   "settingsNeedsWebInterface": "Turn on the web interface first.",
   "@settingsNeedsWebInterface": { "description": "Says why a switch cannot be flipped: it depends on the web interface." },
@@ -879,13 +879,13 @@
   "@settingsWebPortHelp": { "description": "Explains the port that other devices connect to." },
   "settingsWebPublicAddress": "Public address",
   "@settingsWebPublicAddress": { "description": "Title of the field of the address at which a proxy, a tunnel or the gateway publishes the interface." },
-  "settingsWebPublicAddressHelp": "Where a reverse proxy, a tunnel or the gateway publishes this interface. Pairing links and codes use it.",
+  "settingsWebPublicAddressHelp": "Used in pairing links and codes.",
   "@settingsWebPublicAddressHelp": { "description": "Explains the public address of the web interface." },
   "settingsWebPublicAddressInvalid": "Write the address as https://…",
   "@settingsWebPublicAddressInvalid": { "description": "Tells that the public address is not a URL." },
   "settingsPublish": "Public tunnel",
   "@settingsPublish": { "description": "Title of the switch that publishes the web interface through Cloudflare." },
-  "settingsPublishHelp": "A free Cloudflare quick tunnel: a random address, no account, for as long as it runs.",
+  "settingsPublishHelp": "Cloudflare quick tunnel: random address, no account.",
   "@settingsPublishHelp": { "description": "Explains the public tunnel." },
   "settingsPublishConfirmTitle": "Publish to the internet?",
   "@settingsPublishConfirmTitle": { "description": "Asks before the interface is published through a tunnel." },
@@ -1075,7 +1075,7 @@
   "@configCache": {
     "description": "vfox setting cache.availableHookDuration."
   },
-  "configCacheHelp": "A duration such as 12h. -1 keeps the lists forever, 0 disables the cache.",
+  "configCacheHelp": "-1 keeps lists forever, 0 disables.",
   "@configCacheHelp": {
     "description": "Help text of cache.availableHookDuration."
   },
@@ -1087,7 +1087,7 @@
   "@configDownloadTimeout": {
     "description": "vfox setting plugin.http.downloadTimeout."
   },
-  "configTimeoutHelp": "A duration such as 30s or 10m. 0s uses the default.",
+  "configTimeoutHelp": "0s uses the default.",
   "@configTimeoutHelp": {
     "description": "Help text of the timeout settings."
   },
@@ -1095,7 +1095,7 @@
   "@configGitignore": {
     "description": "vfox setting gitignore.enable."
   },
-  "configGitignoreHelp": "When a version is pinned in a project.",
+  "configGitignoreHelp": "When a project pins a version.",
   "@configGitignoreHelp": {
     "description": "Help text of gitignore.enable."
   },
@@ -1117,7 +1117,7 @@
       }
     }
   },
-  "aboutLicense": "Licensed under the Apache License 2.0.",
+  "aboutLicense": "Apache License 2.0.",
   "@aboutLicense": {
     "description": "License of the application."
   },
@@ -1145,7 +1145,7 @@
   "updateOpenReleases": "Open releases",
   "updateNoAsset": "No package for this system",
   "updateMirror": "Update mirror",
-  "updateMirrorHelp": "Prefix for GitHub downloads, e.g. https://gh-proxy.org/. Empty means direct.",
+  "updateMirrorHelp": "Empty means direct.",
   "@updateCurrent": {
     "description": "Current version of vfox-plus.",
     "placeholders": {
@@ -1295,7 +1295,7 @@
   "@configPathPreserve": {
     "description": "vfox setting path.preserve: directories that stay in front of the vfox directories in PATH."
   },
-  "configPathPreserveHelp": "One JSON list, for example [\"/opt/corp/bin\"]. Only with baseline and aggressive.",
+  "configPathPreserveHelp": "Only with baseline and aggressive.",
   "@configPathPreserveHelp": {
     "description": "Help of the field of path.preserve."
   },
@@ -1310,10 +1310,6 @@
   "configDiagnosticsIgnore": "Checks not to report",
   "@configDiagnosticsIgnore": {
     "description": "vfox setting diagnostics.ignore: the findings of vfox doctor that are not reported."
-  },
-  "configDiagnosticsIgnoreHelp": "One JSON list of finding IDs, for example [\"sdk.drift:flutter@3.47.0\"].",
-  "@configDiagnosticsIgnoreHelp": {
-    "description": "Help of the field of diagnostics.ignore."
   },
   "installUseAfter": "Use after install",
   "@installUseAfter": {
