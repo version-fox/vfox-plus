@@ -138,14 +138,15 @@ person to understand, to judge or to act; what the layout already says is not sa
 
 The census of a screen is taken by `webheap -audit` for the web interface, which the Android
 app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
-([how to take them](contributing.md#auditing-the-interface)). The test draws 24 screens in
+([how to take them](contributing.md#auditing-the-interface)). The test draws 25 screens in
 fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
 150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
 100 % and at 200 %, and 1280 dp wide. The 11 screens that are a dialog or a menu are drawn in three windows more, the
 shortest that the application opens in, 360 by 480 dp, at 100 % and at 200 %, and a window as short and 1280 dp wide: the
 screen is reached in a window as tall as it needs, and the window is made shorter, as a person makes it, and a menu is opened
-from a button that has been scrolled to. It fails when one of them is over a budget. A dp of the desktop is
+from a button that has been scrolled to. What a dialog has below its fold is counted there, too: its content is scrolled to its end,
+as the list of a page is. It fails when one of them is over a budget. A dp of the desktop is
 a px of the web interface. A page that is taller than the windows (the settings, the options of a plugin, the lists of the
 plugins and of the distributions of Java: up to 9 500 dp at 200 %) is drawn in a window as tall as it is, so that what it
 has below the fold is counted, too; a page that has a list with more rows than any window shows (the versions of Node.js)
@@ -163,7 +164,7 @@ drawn at its end, too. A screen is held to:
 | Lists in which three rows or more start with the same icon | 0 |
 | Sentences of eight words or more | 3 |
 | Small lines of four words or more | 3 |
-| Titles and texts of controls that an ellipsis cuts short, in a line or in the lines they may have | 0 |
+| Titles, the texts of controls and of tooltips that an ellipsis cuts short, in a line or in the lines they may have | 0 |
 | Controls and texts that a row of a list holds and that are drawn beyond its padding | 0 |
 | Texts drawn over one another (a field's label is a little over the line that it holds, and its letters do not touch it) | 0 |
 | Texts drawn beyond the control that they are the label of | 0 |
@@ -182,7 +183,11 @@ header of a page and of a dialog), a group of segments gives up its padding and 
 is a dropdown (the tabs, the theme, the language, the filters, the addresses of the pairing), and a button, a chip,
 a tag, the name of a choice, the title of a group and of a card, the choice that a dropdown shows and an entry of a menu go on as many lines as
 they need, and are not cut by an ellipsis. A text field is as high as its label and its line need (56 dp at 100 %), and the
-label of it is as wide as its line, which a button beside it leaves. What has a room that does not grow is read at 130 % at the
+label of it is as wide as its line, which a button beside it leaves; the label is copy, and goes on as many lines as the room of
+the field needs, and the field is as high as they are ("Project directory" wants 252 dp of the 232 that the field of the dialog that
+uses a version in a project has, at 200 % in a text that is wider by two fifths, and is two lines). The title of a group and of a
+card are copy, and the census counts them where it says that a text is cut, as it counts the text of a tooltip, which is the name of
+its button and goes on as many lines as it needs. What has a room that does not grow is read at 130 % at the
 most, and smaller where the longest of its labels does not fit the room, down to 100 %: the labels of the navigation bar, which
 has a fifth of the window for each, and those of the rail, which has its 96 dp. The bar is as high as its labels are, which a font may
 set higher than they ask (Noto Sans, and the font that the Han characters of a Chinese label fall back to, by 2 to 3 dp): it grows by
@@ -229,9 +234,8 @@ than that: German, Finnish and Russian set the same words in a third to a half m
 third, and more for what is short). No machine has the font that would show it, so
 `TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes the text wider by letter spacing, as the tools of pseudo-localization
 do (`kit.Tracking`, which the labels draw and every layout that measures a text measures with, calibrated on a line of English in the
-font of the machine): by 40 % at 360 dp at 100 % and 150 %, at 700 and at 1280 dp, in English and in Chinese, and by 15 % at 200 %,
-where the text is twice as wide already, which is the width of Verdana. The machines that CI takes are held to the width of a font
-that only some of them have. This is how the labels of the navigation bar and of the rail, a text field and the entries of a menu
+font of the machine): by two fifths at every size of text, in 360 dp at 100 % and 150 %, at 700 and at 1280 dp, and at 200 %, in
+English and in Chinese. The machines that CI takes are held to a width of text that no font of theirs has. This is how the labels of the navigation bar and of the rail, a text field and the entries of a menu
 were found not to hold.
 CI takes the census where the text engine and the fonts are not those of Linux, and in more than one version of each, so that
 the layout is held in them and not assumed to hold: on Windows Server 2025, Windows Server 2022 and Windows 11 on ARM, where
@@ -246,7 +250,7 @@ they want and once in a box of the width that the engine measured, and fails whe
 is drawn: it has found no label, on any platform that CI takes, that a box of the measured width cuts. The census holds a text to that
 width to 0.05 dp, as the engine ends a line with an ellipsis for any width that it has less than the text wants. A dp of slack, which
 the census had, hid a label that was short by 0.4 dp: *Settings* drawn as *Settin…* in the bar on macOS, in Verdana (which has a
-regular and a bold, so that the weight of 500 is drawn as bold) at 200 % in 360 dp, where it wants 72.4 dp and its slot had 72.
+regular and a bold, so that the weight of 500 is drawn as bold) at 200 % in 360 dp, where CI measured it at 72.26 dp on the three Macs, and its slot had 72.
 
 ## Motion
 

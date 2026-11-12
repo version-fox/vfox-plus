@@ -480,11 +480,12 @@ have the text scale of the system at 130, 150 and 200 %, and three show the Chin
 English, and the language is changed there). Fourteen windows make 336 screens. The scenes that end in a dialog or a menu (`modal`) are drawn in three windows more, the
 shortest that the application opens in: the scene goes to its screen in a window as tall as it needs, the window is made
 shorter (`censusWindow.shrunk`), and a menu that the scene opens (`open`) is opened from a button that it has scrolled to, as a
-person does. The lists that scroll (`toEnd`) are drawn at their end as well. That is 369 screens and 31 ends of lists, which take
+person does. The lists that scroll (`toEnd`) are drawn at their end as well, and so is the content of a dialog in a window that is
+shorter than it. That is 386 screens and 61 ends, which take
 about two minutes: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
-costs fourteen drawings and a new window twenty-four, so weigh them; they are not worth a thread
+costs fourteen drawings and a new window twenty-five, so weigh them; they are not worth a thread
 more, as the renderer uses the cores already. The addresses that a computer has are told to
 the web interface by the test (`pair.HostOptions.Addresses`), an IPv4 and an IPv6 one of the
 ranges that are kept for documentation, so that the screen of the pairing is the same on every machine.
@@ -505,10 +506,10 @@ them in the font that the system gives for `sans-serif` and `monospace` (its log
 in three windows, about 20 s; `TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` draws them in the same
 three windows in the three widest of the families that systems and desktops set their interface in (Verdana, DejaVu Sans,
 Geneva, Inter and the like, as the text engine measures them), and in Chinese in the widest of them, about a minute and a half;
-`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes every text wider by letter spacing (`kit.Tracking`), by two fifths up to 150 % of
-the size of text and by 15 % at 200 %, in nine windows, 216 screens in about a minute and a half; and
+`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes every text wider by letter spacing (`kit.Tracking`), by two fifths at every
+size of text, in nine windows, 225 screens in about a minute and a half; and
 `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes the sizes of text that the census does not, 115, 130, 150 and 175 %,
-in four widths, in English and in Chinese, 768 screens in about seven minutes. These three run only when asked, with
+in four widths, in English and in Chinese, 800 screens in about seven minutes. These three run only when asked, with
 `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`.
 `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` is quick and always runs: it asks the text engine for the width of the labels of
 the navigation bar and draws them in a box of that width, which the census relies on to say that a label is cut.
