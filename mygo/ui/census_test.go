@@ -57,6 +57,15 @@ type censusWindow struct {
 	language settings.LanguagePreference
 }
 
+// over is what the census of a screen is over, in the budgets that the window is held to: all of them, and for a language that
+// has no spaces those of the layout alone, which count no words (kit.Census.OverLayout).
+func (w censusWindow) over(c kit.Census) []string {
+	if w.language != "" {
+		return c.OverLayout()
+	}
+	return c.Over()
+}
+
 var (
 	censusWide = censusWindow{name: "wide", width: 1280, height: 1600}
 	censusDark = censusWindow{name: "wide-dark", width: 1280, height: 1600, dark: true}
@@ -270,11 +279,7 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 				ta.snapshot("census." + name)
 				report[name] = census
 				t.Logf("%s", censusLine(census))
-				over := census.Over
-				if window.language != "" {
-					over = census.OverLayout
-				}
-				if over := over(); len(over) > 0 {
+				if over := window.over(census); len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
 			})
@@ -283,9 +288,10 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 	writeCensus(t, report)
 }
 
-// The sizes of text between 100 % and 200 % that the census does not take, in the four widths of the windows: what holds at 200 %
-// holds below it is a thing that the layouts do not promise, where a row wraps at one width and a group of segments is a dropdown at
-// another, and this is how it is looked at. It takes about as long as the census does, twice, so only a run that asks for it
+// The sizes of text between 100 % and 200 % that the census does not take, in the four widths of the windows, in English and in
+// Chinese: what holds at 200 % holds below it is a thing that the layouts do not promise, where a row wraps at one width and a
+// group of segments is a dropdown at another, and the Chinese text has its own: no spaces to break at, and a word that is a run of
+// characters. This is how they are looked at. It takes about as long as the census does, four times, so only a run that asks for it
 // (VFOX_PLUS_CENSUS_SWEEP=1) takes it; the census holds the sizes where the room was the least.
 func TestTheScreensAreWithinTheBudgetsAtEverySizeOfText(t *testing.T) {
 	if os.Getenv("VFOX_PLUS_CENSUS_SWEEP") == "" {
@@ -296,15 +302,21 @@ func TestTheScreensAreWithinTheBudgetsAtEverySizeOfText(t *testing.T) {
 	}
 	for _, base := range []censusWindow{censusNarrow, censusCompact, censusMedium, censusWide} {
 		for _, scale := range []float32{1.15, 1.3, 1.5, 1.75} {
-			window := base
-			window.scale, window.name = scale, fmt.Sprintf("%s-%d", base.name, int(scale*100+0.5))
-			for _, scene := range censusScenes {
-				t.Run(scene.name+"."+window.name, func(t *testing.T) {
-					ta := takeScene(t, scene, window)
-					if over := ta.census().Over(); len(over) > 0 {
-						t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
-					}
-				})
+			for _, language := range []settings.LanguagePreference{"", settings.LanguageSimplifiedChinese} {
+				window := base
+				window.scale, window.language = scale, language
+				window.name = fmt.Sprintf("%s-%d", base.name, int(scale*100+0.5))
+				if language != "" {
+					window.name += "-zh"
+				}
+				for _, scene := range censusScenes {
+					t.Run(scene.name+"."+window.name, func(t *testing.T) {
+						ta := takeScene(t, scene, window)
+						if over := window.over(ta.census()); len(over) > 0 {
+							t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+						}
+					})
+				}
 			}
 		}
 	}
