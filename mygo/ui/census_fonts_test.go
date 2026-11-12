@@ -425,6 +425,12 @@ func TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw(t *testing.T) {
 			t.Errorf("%-24s %3d %5.1f %-9s a box that is 2 dp wider than the %.2f dp that the engine measured still cuts the label", l.family, l.weight, l.size, l.text, l.measured)
 		}
 	}
+	// The label that was drawn as "Settin..." on macOS: a fifth of a window of 360 dp is 72, and the bar read its labels at 130 %, 15.6 sp.
+	for _, l := range labels {
+		if l.text == "Settings" && l.size == 15.6 {
+			t.Logf("%q at 15.6 sp, weight %d, in %s: the engine measures %.2f dp, and a destination of the bar of a window of 360 dp has 72", l.text, l.weight, l.family, l.measured)
+		}
+	}
 	t.Logf("%d labels in %d families, at 3 weights and 3 sizes: a label that wants no room is %.2f to %.2f dp wider than the engine measures it (%d by more than a dp); "+
 		"a box of the measured width cuts %d of them, %.1f dp more is the most that one needs, and %d are cut by a box that is 2 dp wider",
 		len(labels), len(families), narrowest, widest, mismatched, cutAtMeasure, most, cutAtTwo)
