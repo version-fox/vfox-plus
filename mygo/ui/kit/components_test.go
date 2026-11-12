@@ -184,7 +184,7 @@ func TestWhatHoldsALabelWrapsItWhereTheRoomIsShort(t *testing.T) {
 				Tag(c, TagSpec{Label: "In use: 21.0.12.1+1-tem"})
 			})
 			ui.Row(c.Context).Width(room).Children(func() {
-				Button(c, ButtonSpec{ID: "two", Label: "Distribution: OpenJDK", Kind: TonalButton, Wraps: true}).Shrink(1)
+				Button(c, ButtonSpec{ID: "two", Label: "Distribution: OpenJDK", Kind: TonalButton}).Shrink(1)
 			})
 			ui.Row(c.Context).Width(room).Children(func() {
 				Button(c, ButtonSpec{ID: "one", Label: "Fits", Kind: TonalButton})

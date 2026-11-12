@@ -57,6 +57,26 @@ type censusWindow struct {
 	language settings.LanguagePreference
 }
 
+// heightFor is the height of the window for a scene: its own, or, for a page that is taller than the windows of the census, as tall
+// as the page is: more, by a fifth or so, than the tallest page needs at the size of text of the window, in the fonts of Linux,
+// of Windows and of macOS (a list of the distributions of Java is 7 000 dp in the narrowest window and 9 000 at 200 %), so that
+// what a page has below the fold is drawn and counted, too. What the census says of a page that is taller than that is
+// kit.Census.Taller. A window as tall as that is much to draw, and no more is made of it than a page needs.
+func (w censusWindow) heightFor(s censusScene) int {
+	if !s.tall {
+		return w.height
+	}
+	scale := float64(max(w.scale, 1))
+	switch {
+	case w.width >= 1000:
+		return int(5500 * scale)
+	case w.width >= 600:
+		return int(8500 + 3000*(scale-1))
+	default:
+		return int(9000 + 3500*(scale-1))
+	}
+}
+
 // over is what the census of a screen is over, in the budgets that the window is held to: all of them, and for a language that
 // has no spaces those of the layout alone, which count no words (kit.Census.OverLayout).
 func (w censusWindow) over(c kit.Census) []string {
@@ -113,6 +133,13 @@ type censusScene struct {
 	name string
 	// java gives the machine Java next to Node.js, and missing takes vfox away.
 	java, missing bool
+	// tall says that the page is taller than the windows of the census are, as the settings are in the narrowest, and the lists of
+	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
+	// it has below the fold is drawn and counted, too.
+	tall bool
+	// endless says that the page has a list that has more rows than any window shows (the versions of Node.js, a thousand of them),
+	// which is as tall as its window by what it is: the census is of the rows that it shows (kit.Census.Scrolls).
+	endless bool
 	// windows are the windows to draw it in; every window of the census by default.
 	windows []censusWindow
 	// reach goes to the screen.
@@ -145,13 +172,13 @@ var censusScenes = []censusScene{
 	{name: "home", reach: func(ta *testApp) {}},
 	{name: "sdks", reach: func(ta *testApp) { ta.button("SDKs") }},
 	{name: "installed", reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }},
-	{name: "available", reach: func(ta *testApp) { ta.openAvailable("nodejs") }},
-	{name: "java-available", java: true, reach: func(ta *testApp) { ta.openAvailable("java") }},
+	{name: "available", endless: true, reach: func(ta *testApp) { ta.openAvailable("nodejs") }},
+	{name: "java-available", java: true, tall: true, reach: func(ta *testApp) { ta.openAvailable("java") }},
 	{name: "java-choose", java: true, reach: func(ta *testApp) { ta.openAvailable("java"); ta.button("Distribution: OpenJDK") }},
 	{name: "java-install-name", java: true, reach: func(ta *testApp) { ta.openAvailable("java"); ta.addMore("Install by name…") }},
 	{name: "link-manual", reach: func(ta *testApp) { ta.openAvailable("nodejs"); ta.addMore("Link existing…") }},
-	{name: "options", reach: optionsOf("nodejs")},
-	{name: "options-java", java: true, reach: optionsOf("java")},
+	{name: "options", tall: true, reach: optionsOf("nodejs")},
+	{name: "options-java", java: true, tall: true, reach: optionsOf("java")},
 	{name: "alias-set", reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Name alias…") }},
 	{name: "mirror", reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Change") }},
 	{name: "use-in-project", reach: func(ta *testApp) {
@@ -166,7 +193,7 @@ var censusScenes = []censusScene{
 		ta.click(kit.RoleButton, "More actions")
 		ta.click(kit.RoleMenuItem, "Remove plugin")
 	}},
-	{name: "plugins", reach: func(ta *testApp) {
+	{name: "plugins", tall: true, reach: func(ta *testApp) {
 		ta.button("Plugins")
 		ta.until("the registry", func() bool { return ta.app.model.Registry.HasValue() })
 		ta.settle()
@@ -195,8 +222,8 @@ var censusScenes = []censusScene{
 		ta.settle()
 		ta.buttonNear("Install maven@3.9.16", "Show output")
 	}},
-	{name: "settings", reach: func(ta *testApp) { ta.button("Settings") }},
-	{name: "settings-web", reach: func(ta *testApp) {
+	{name: "settings", tall: true, reach: func(ta *testApp) { ta.button("Settings") }},
+	{name: "settings-web", tall: true, reach: func(ta *testApp) {
 		ta.updateSettings(func(s *settings.AppSettings) {
 			s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(ta.t)
 		})
@@ -225,11 +252,13 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 		runner = javaRunner()
 	}
 	runner.SetMissingExecutable(scene.missing)
+	window.height = window.heightFor(scene)
 	preferences := settings.DefaultSettings()
 	if window.dark {
 		preferences.Theme = settings.ThemeDark
 	}
 	ta := newTestApp(t, runner, window.width, window.height, settings.NewMemorySettingsStore(preferences))
+	ta.endless = scene.endless
 	ta.setAddresses(censusAddresses...)
 	if window.scale > 0 {
 		ta.tester.SetPreferences(mui.Preferences{ReduceMotion: true, TextScale: window.scale})
@@ -262,7 +291,9 @@ func (ta *testApp) census() kit.Census {
 	ta.t.Helper()
 	ta.settle()
 	img := ta.tester.Image()
-	return kit.TakeCensus(ta.nodes(), mui.Rect{W: float32(img.Bounds().Dx()), H: float32(img.Bounds().Dy())}, img)
+	census := kit.TakeCensus(ta.nodes(), mui.Rect{W: float32(img.Bounds().Dx()), H: float32(img.Bounds().Dy())}, img)
+	census.Scrolls = ta.endless
+	return census
 }
 
 func TestTheScreensAreWithinTheBudgets(t *testing.T) {

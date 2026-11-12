@@ -53,9 +53,6 @@ type ButtonSpec struct {
 	Danger bool
 	// Content overrides the colour of the content when its alpha is not zero.
 	Content ui.Color
-	// Wraps lets the label go on as many lines as it needs, and the button is as high as they are: it has one line by default.
-	// A label that is data, the name of a choice, wraps, so that it is not cut where the room is short.
-	Wraps bool
 }
 
 const (
@@ -119,17 +116,15 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 	})
 	pressed := el.AnimateTo("shape", Flag(in.pressed), c.Env.Theme.Motion.FastSpatial.Anim())
 	radius := Lerp(buttonHeight/2, CornerSmall, pressed)
-	el.MinWidth(buttonMinWidth).PaddingX(buttonPadding).Gap(buttonGap).Radius(radius).Background(container).TextColor(content)
+	// A button is never wider than what holds it: a label that has not the room, because the window is narrow, the text large or
+	// the font wide, goes on as many lines as it needs, and the button is as high as they are, with the padding that makes a line
+	// of it 40 dp high, the border included.
+	el.MinWidth(buttonMinWidth).MaxWidthPercent(100).PaddingX(buttonPadding).Gap(buttonGap).Radius(radius).Background(container).TextColor(content)
 	borderWidth := float32(0)
 	if border.A != 0 {
 		borderWidth = 1
 	}
-	if b.Wraps {
-		// Two lines of the label, with the padding that makes a line of it 40 dp high, the border included.
-		el.MinHeight(buttonHeight).PaddingY((buttonHeight - Type(LabelLarge).Line - 2*borderWidth) / 2)
-	} else {
-		el.Height(buttonHeight)
-	}
+	el.MinHeight(buttonHeight).PaddingY((buttonHeight - Type(LabelLarge).Line - 2*borderWidth) / 2)
 	if border.A != 0 {
 		el.Border(borderWidth, border)
 	}
@@ -138,10 +133,8 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 		if b.Icon != "" {
 			Icon(c, b.Icon, buttonIcon, content, 0)
 		}
-		if b.Label != "" && b.Wraps {
+		if b.Label != "" {
 			Label(c, b.Label, Type(LabelLarge), content, Breakable()).Shrink(1)
-		} else if b.Label != "" {
-			Line(c, b.Label, Type(LabelLarge), content)
 		}
 	})
 }

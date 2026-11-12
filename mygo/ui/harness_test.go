@@ -148,6 +148,8 @@ type testApp struct {
 	settingsDir string
 	// addresses are the addresses that the web interface says this computer has.
 	addresses *atomic.Pointer[[]string]
+	// endless says that the page has a list with more rows than any window shows (censusScene.endless).
+	endless bool
 }
 
 // setAddresses says which addresses this computer has on the networks it is on. Two addresses of the ranges that are kept

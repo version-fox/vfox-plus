@@ -209,7 +209,7 @@ func (a *App) portItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "web-port.field", Hint: itoa(settings.DefaultWebPort), Text: &a.pages.portText, Dense: true,
 				OnSubmit: save, OnBlur: save,
-			}).Width(scaled(k, 120))
+			}).Width(min(scaled(k, 120), a.settingsContentWidth(k)))
 		},
 	}
 }

@@ -64,6 +64,14 @@ type Census struct {
 	// says what.
 	Overflow    bool     `json:"overflow"`
 	Overflowing []string `json:"overflowing"`
+	// Taller says that the page is taller than its window, or as tall as it: what a page has below the fold is not drawn, so
+	// it is not counted, and the census is of a part of the page. A page that has all the room that it needs ends above its
+	// padding; one that is cut ends at the edge, or just short of it, in the space between two of its nodes. TallerBy says
+	// what ends lowest. Scrolls is for whoever takes the census of a page that has a list with more rows than any window
+	// shows, which is as tall as its window by what it is: the census is of the rows that it shows.
+	Taller   bool   `json:"taller"`
+	TallerBy string `json:"tallerBy,omitempty"`
+	Scrolls  bool   `json:"scrolls,omitempty"`
 	// Sticking are the controls and the texts that a row of a list holds and that are drawn beyond its padding, which a
 	// row wide enough for them does not do: they are nearer the edge of the row than anything else in it. A word that is
 	// longer than the room of its row does, and is clipped by the corner of the row, or hangs out of it.
@@ -195,6 +203,9 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 			census.Overflowing = append(census.Overflowing, fmt.Sprintf("%s %q x %.0f to %.0f of %.0f", n.Role, truncate(n.Text+n.Name, 30), n.Rect.X, n.Rect.X+n.Rect.W, window.W))
 		}
 	}
+	if !modal {
+		census.taller(shown, window)
+	}
 	sort.SliceStable(prose, func(i, j int) bool { return proseWords(prose[i].Text) > proseWords(prose[j].Text) })
 	census.Prose.Blocks = len(prose)
 	for _, n := range prose {
@@ -208,6 +219,35 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 	census.rows(shown)
 	sort.Strings(census.MissingIcons)
 	return census
+}
+
+// pageEndRoom is how far above the bottom of its room the last thing of a page ends, in dp, where the page has all the room that
+// it needs: more than its padding at the end, and more than the space between any two of its nodes.
+const pageEndRoom = 48
+
+// taller says whether the page, which is every node of the screen that is not in a dialog, goes beyond its window or up to it.
+// The room of a page is the window, or what the bar of the navigation leaves of it: a button as high as the bar, whose
+// bottom is the bottom of the window.
+func (c *Census) taller(shown []*Node, window ui.Rect) {
+	room := window.Y + window.H
+	for _, n := range shown {
+		if n.Role == RoleButton && math.Abs(float64(n.Rect.H-NavBarHeight)) < 0.5 && math.Abs(float64(n.Rect.Y+n.Rect.H-room)) < 0.5 {
+			room = min(room, n.Rect.Y)
+		}
+	}
+	var lowest *Node
+	for _, n := range shown {
+		if n.Rect.Y >= room-0.5 {
+			continue // the bar of the navigation, and what is in it
+		}
+		if lowest == nil || n.Rect.Y+n.Rect.H > lowest.Rect.Y+lowest.Rect.H {
+			lowest = n
+		}
+	}
+	if lowest != nil && lowest.Rect.Y+lowest.Rect.H > room-pageEndRoom {
+		c.Taller = true
+		c.TallerBy = fmt.Sprintf("%s %q ends at %.0f of the %.0f that the page has", lowest.Role, truncate(lowest.Text+lowest.Name, 30), lowest.Rect.Y+lowest.Rect.H, room)
+	}
 }
 
 // rows takes the census of the rows of the lists: the buttons that each has, and the icon that each starts with.
@@ -418,6 +458,9 @@ func (c Census) over(withCopy bool) []string {
 	}
 	if c.Overflow {
 		add("something is drawn across an edge of the window: %q", c.Overflowing)
+	}
+	if c.Taller && !c.Scrolls {
+		add("the page is taller than its window, and what it has below the fold is not counted: %s", c.TallerBy)
 	}
 	if c.Targets.Under24 > 0 {
 		add("%d controls under 24 dp", c.Targets.Under24)

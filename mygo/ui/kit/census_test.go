@@ -304,8 +304,8 @@ func TestTheCensusFindsATitleOrAControlThatIsCutShort(t *testing.T) {
 			Line(c, "A title that is far too long for the room it has", Type(TitleLarge), cs.OnSurface).Width(100)
 			// As long, in a line of its own that has the room.
 			Line(c, "A title with room", Type(TitleLarge), cs.OnSurface)
-			// The label of a button that is too narrow for it.
-			Button(c, ButtonSpec{ID: "cut", Label: "A label that is far too long", Kind: TonalButton}).Width(90)
+			// A button that is too narrow for its label does not cut it: the label goes on in a second line.
+			Button(c, ButtonSpec{ID: "wraps", Label: "A label that is far too long", Kind: TonalButton}).Width(90)
 			// A button that has the room.
 			Button(c, ButtonSpec{ID: "fits", Label: "Fits", Kind: TonalButton})
 			// A name or a path that is data, in a line of its own, may be cut short.
@@ -317,8 +317,23 @@ func TestTheCensusFindsATitleOrAControlThatIsCutShort(t *testing.T) {
 	h.tester.Frame()
 	h.tester.Advance(time.Second)
 	got := TakeCensus(h.env.Reg.Nodes(), rect(0, 0, 300, 300), nil)
-	if len(got.Cut) != 2 || !strings.Contains(got.Cut[0], "A title that is far too long") || !strings.Contains(got.Cut[1], "A label that is far too long") {
-		t.Errorf("the title and the label of the button are cut: %q", got.Cut)
+	if len(got.Cut) != 1 || !strings.Contains(got.Cut[0], "A title that is far too long") {
+		t.Errorf("the title is cut, and the label of the button is not: %q", got.Cut)
+	}
+	for _, n := range h.env.Reg.Nodes() {
+		if n.Role == RoleButton && n.Name == "A label that is far too long" && (n.Rect.W > 90.5 || n.Rect.H <= buttonHeight) {
+			t.Errorf("a button that is too narrow for its label is as wide as it was made, and has a second line: %+v", n.Rect)
+		}
+	}
+	// The label of a control that cuts it, which no button does now: the text of a control is held to its room, a text of 14 dp
+	// that no control holds is not (it is a sentence, or data).
+	control := &Node{Role: RoleButton, Name: "Item", Rect: rect(0, 0, 90, 40)}
+	label := &Node{Role: RoleText, Text: "A label that is far too long", Rect: rect(16, 10, 58, 20), Size: 14, Natural: 160}
+	if got := TakeCensus([]*Node{control, label}, rect(0, 0, 300, 100), nil); len(got.Cut) != 1 || !strings.Contains(got.Cut[0], "A label that is far too long") {
+		t.Errorf("the label of a control that is cut is found: %q", got.Cut)
+	}
+	if got := TakeCensus([]*Node{label}, rect(0, 0, 300, 100), nil); len(got.Cut) != 0 {
+		t.Errorf("and the same text that no control holds is not: %q", got.Cut)
 	}
 }
 
@@ -455,6 +470,52 @@ func TestTheCensusKnowsTheTextOfAControlThatIsDisabledWhenItsLineIsTallerThanThe
 	beside := &Node{Role: RoleText, Text: "next to it", Rect: rect(230, 113, 60, 42), Size: 14, Color: ui.Color{R: 34, G: 26, B: 20, A: 97}}
 	if got := TakeCensus([]*Node{button, beside}, rect(0, 0, 300, 200), img); got.Contrast.Measured != 1 {
 		t.Errorf("a text that stands by a button is its own: %+v", got.Contrast)
+	}
+}
+
+func TestTheCensusFindsAPageThatIsTallerThanItsWindow(t *testing.T) {
+	// What a page has below the fold is not drawn, and so it is not counted: a census of a page that is cut is of a part of it, and
+	// says nothing of the rest. The nodes are those of a window of 360 by 600 dp, with a bar of the navigation at its bottom (a
+	// button as high as the bar, whose bottom is the bottom of the window), which leaves the page 536 dp.
+	window := rect(0, 0, 360, 600)
+	bar := &Node{Role: RoleButton, Name: "Settings", Rect: rect(270, 536, 90, NavBarHeight)}
+	line := func(y float32) *Node {
+		return &Node{Role: RoleText, Text: "a line of the page", Rect: rect(24, y, 200, 24), Size: 14}
+	}
+	if got := TakeCensus([]*Node{line(100), line(400), bar}, window, nil); got.Taller || len(got.Over()) != 0 {
+		t.Errorf("a page that ends well above its room is not taller than its window: %+v %q", got.TallerBy, got.Over())
+	}
+	// It ends in the space between two nodes, at the edge of the room; or one of its buttons is cut by the edge, and the bar is
+	// drawn over the rest of it (the label of the Save button of the settings, behind the bar, was white on the bar: 1.16).
+	cut := []*Node{line(100), line(490), bar}
+	if got := TakeCensus(cut, window, nil); !got.Taller || !strings.Contains(got.TallerBy, "ends at 514 of the 536") {
+		t.Errorf("a page that ends at the edge of its room is cut: %+v", got)
+	}
+	save := &Node{Role: RoleButton, Name: "Save", Rect: rect(200, 528, 64, 40)}
+	if got := TakeCensus([]*Node{line(100), save, bar}, window, nil); !got.Taller || !strings.Contains(got.TallerBy, `"Save" ends at 568 of the 536`) {
+		t.Errorf("a button that the bar is drawn over is cut: %+v", got)
+	}
+	// Without a bar the window is the room.
+	if got := TakeCensus([]*Node{line(100), line(560)}, window, nil); !got.Taller {
+		t.Errorf("a page that ends at the bottom of its window is cut: %+v", got)
+	}
+	if got := TakeCensus([]*Node{line(100), line(500)}, window, nil); got.Taller {
+		t.Errorf("a page that ends 76 dp above the bottom of its window is not: %+v", got)
+	}
+	// The budget names it, unless the page has a list that has more rows than any window shows.
+	census := TakeCensus(cut, window, nil)
+	if over := census.Over(); len(over) != 1 || !strings.Contains(over[0], "taller than its window") {
+		t.Errorf("a page that is cut is over a budget: %q", over)
+	}
+	census.Scrolls = true
+	if over := census.Over(); len(over) != 0 {
+		t.Errorf("and is not, where its list is what scrolls: %q", over)
+	}
+	// A dialog is as tall as its window where the window is narrow, and has its actions at the end: it is the census of its own
+	// screen, and is not cut by what it is.
+	dialog := []*Node{{Role: RoleDialog, Modal: true, Rect: rect(0, 0, 360, 600)}, {Role: RoleButton, Name: "Close", Modal: true, Rect: rect(250, 540, 90, 40)}}
+	if got := TakeCensus(dialog, window, nil); got.Taller {
+		t.Errorf("a dialog is not a page that is cut: %+v", got)
 	}
 }
 
