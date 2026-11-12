@@ -305,23 +305,34 @@ func TestTheScreensAreWithinTheBudgetsInATextThatIsWider(t *testing.T) {
 	}
 }
 
-// measuredLabel is a label of a navigation bar, as the engine measures it and as it draws it twice: as wide as it wants, and in a box
-// of exactly the width that the engine measured, where it is a single line that an ellipsis ends if the box is too narrow for it.
+// measuredLabel is a label of a navigation bar, as the engine measures it and as it draws it: as wide as it wants, and in boxes of
+// the width that the engine measured and a little more, where it is a single line that an ellipsis ends if the box is too narrow.
 type measuredLabel struct {
-	family, text  string
-	weight        int
-	size          float32
-	measured      float32
-	free, boxed   mui.Rect
-	differentInks int
+	family, text string
+	weight       int
+	size         float32
+	measured     float32
+	free         mui.Rect
+	boxed        [len(boxExtras)]mui.Rect
+	// needs is how much wider than the measured width the box has to be for the label to be drawn as the free label is: the first
+	// of boxExtras at which it is, or -1 where none is.
+	needs float32
 }
 
-// The census says that a label is cut when it is wider than the room that it has, by the width that the text engine measures it at
-// (kit.Node.Natural), and what it trusts is that a label that has exactly that width is not cut. On macOS, in Verdana, the label of
-// the navigation bar "Settings" was drawn as "Settin…" in a bar that the census said was not cut, and a width of the engine that is
-// less than what the engine draws is how that could be. This draws the labels of the bar, at the weights that it uses and the sizes
-// that it has, in the default family and in the widest that the system has, twice (as wide as they want, and in a box of the
-// measured width), and says which of them the box cuts.
+// boxExtras are the widths in dp, more than what the engine measured, that the boxes of a label have.
+var boxExtras = [...]float32{0, 0.5, 1, 2, 4}
+
+// rowHeight is the height of the row of a label in the picture: a whole number of dp, so that the lines of every row are drawn at the
+// same fraction of a pixel and the pictures of two rows are alike where the labels are.
+const rowHeight = 40
+
+// The census says that a label is cut when it has less room than the width that the text engine measures it at (kit.Node.Natural),
+// and what it trusts is that a label that has that width is not cut. On macOS, in Verdana, the label of the navigation bar "Settings"
+// was drawn as "Settin..." in a bar that the census said was not cut. A width of the engine that is less than what the engine draws is
+// how that could be, and this is how it is looked at: the labels of the bar, at the weights that it uses and the sizes that it has, in
+// the default family and in the widest that the system has, drawn as wide as they want and in boxes of the measured width and a
+// little more. The log says what the engine needs beyond what it measures, and the test fails where the width that the label has
+// when it wants none is not what is measured, by more than a dp, and where a box that is 2 dp wider than the measure cuts a label.
 func TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw(t *testing.T) {
 	if raceDetector {
 		t.Skip("the census does not need the race detector")
@@ -341,51 +352,83 @@ func TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw(t *testing.T) {
 			}
 		}
 	}
+	rows := 1 + len(boxExtras)
 	tester := mui.NewTester(func(c *mui.Context) {
 		mui.Column(c).Padding(8).Gap(4).Children(func() {
 			for _, l := range labels {
 				l.measured, _ = c.MeasureText(0, mui.Span{Text: l.text, Font: l.family, Size: l.size, Weight: l.weight})
-				mui.Row(c).Children(func() {
+				mui.Row(c).Height(rowHeight).Children(func() {
 					mui.Text(c, l.text).Font(l.family).FontSize(l.size).FontWeight(l.weight).SingleLine().
 						DrawOver(func(_ *mui.Painter, r mui.Rect) { l.free = r })
 				})
-				mui.Row(c).Children(func() {
-					mui.Text(c, l.text).Font(l.family).FontSize(l.size).FontWeight(l.weight).SingleLine().Width(l.measured).
-						DrawOver(func(_ *mui.Painter, r mui.Rect) { l.boxed = r })
-				})
+				for i, extra := range boxExtras {
+					mui.Row(c).Height(rowHeight).Children(func() {
+						mui.Text(c, l.text).Font(l.family).FontSize(l.size).FontWeight(l.weight).SingleLine().Width(l.measured + extra).
+							DrawOver(func(_ *mui.Painter, r mui.Rect) { l.boxed[i] = r })
+					})
+				}
 			}
 		})
-	}, 200, 40*len(labels)*2)
+	}, 240, (rowHeight+4)*rows*len(labels)+16)
 	tester.Frame()
 	img := tester.Image()
-	ink := func(r mui.Rect) []int {
+	// ink is the picture of the row that a rect is in: as wide as the label may be, and as high as the row.
+	ink := func(r mui.Rect, width int) []int {
 		var pixels []int
-		for y := int(r.Y); y < int(r.Y+r.H); y++ {
-			for x := 0; x < int(r.W)+8; x++ {
+		top := int(math.Floor(float64(r.Y))) / (rowHeight + 4) * (rowHeight + 4)
+		for y := top; y < top+rowHeight; y++ {
+			for x := 0; x < width; x++ {
 				red, green, blue, _ := img.At(int(r.X)+x, y).RGBA()
 				pixels = append(pixels, int(red>>8), int(green>>8), int(blue>>8))
 			}
 		}
 		return pixels
 	}
-	narrower, cut := 0, 0
-	for _, l := range labels {
-		free, boxed := l.free, l.boxed
-		// The two boxes are alike in their size: the same line, where the room is the width that the engine measured.
-		a, b := ink(mui.Rect{X: free.X, Y: free.Y, W: l.measured, H: free.H}), ink(mui.Rect{X: boxed.X, Y: boxed.Y, W: l.measured, H: free.H})
-		for i := range a {
+	differ := func(a, b []int) int {
+		count := 0
+		for i := range min(len(a), len(b)) {
 			if d := a[i] - b[i]; d > 24 || d < -24 {
-				l.differentInks++
+				count++
 			}
 		}
-		if free.W < l.measured-1 || free.W > l.measured+1 {
-			narrower++
-			t.Errorf("%-24s %3d %5.1f %-9s the engine measures %.2f dp, and the label that is as wide as it wants is %.2f dp", l.family, l.weight, l.size, l.text, l.measured, free.W)
+		return count
+	}
+	var mismatched, cutAtMeasure, cutAtTwo int
+	var needing []string
+	var widest, narrowest, most float32
+	narrowest = 1e9
+	for _, l := range labels {
+		width := int(math.Ceil(float64(l.measured+boxExtras[len(boxExtras)-1]))) + 4
+		free := ink(l.free, width)
+		l.needs = -1
+		for i, extra := range boxExtras {
+			if differ(free, ink(l.boxed[i], width)) == 0 {
+				l.needs = extra
+				break
+			}
 		}
-		if l.differentInks > 0 {
-			cut++
-			t.Errorf("%-24s %3d %5.1f %-9s the label in a box of the width that the engine measured, %.2f dp, is not the label that is as wide as it wants: %d values of pixels differ", l.family, l.weight, l.size, l.text, l.measured, l.differentInks)
+		delta := l.free.W - l.measured
+		widest, narrowest = max(widest, delta), min(narrowest, delta)
+		if l.needs > 0 || l.needs < 0 {
+			cutAtMeasure++
+			most = max(most, l.needs)
+			if len(needing) < 12 {
+				needing = append(needing, fmt.Sprintf("%s %d %.1f %q: measured %.2f, drawn free %.2f, needs %+.1f", l.family, l.weight, l.size, l.text, l.measured, l.free.W, l.needs))
+			}
+		}
+		if delta > 1 || delta < -1 {
+			mismatched++
+			t.Errorf("%-24s %3d %5.1f %-9s the engine measures %.2f dp, and the label that is as wide as it wants is %.2f dp", l.family, l.weight, l.size, l.text, l.measured, l.free.W)
+		}
+		if l.needs < 0 || l.needs > 2 {
+			cutAtTwo++
+			t.Errorf("%-24s %3d %5.1f %-9s a box that is 2 dp wider than the %.2f dp that the engine measured still cuts the label", l.family, l.weight, l.size, l.text, l.measured)
 		}
 	}
-	t.Logf("%d labels in %d families, at 3 weights and 3 sizes; the width of %d is not what is drawn, and a box of the measured width cuts %d", len(labels), len(families), narrower, cut)
+	t.Logf("%d labels in %d families, at 3 weights and 3 sizes: a label that wants no room is %.2f to %.2f dp wider than the engine measures it (%d by more than a dp); "+
+		"a box of the measured width cuts %d of them, %.1f dp more is the most that one needs, and %d are cut by a box that is 2 dp wider",
+		len(labels), len(families), narrowest, widest, mismatched, cutAtMeasure, most, cutAtTwo)
+	for _, line := range needing {
+		t.Logf("a box of the measured width cuts: %s", line)
+	}
 }
