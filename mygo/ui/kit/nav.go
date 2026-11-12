@@ -63,14 +63,21 @@ const (
 	NavBarHeight = 64
 )
 
-// BarHeight is the height in dp of the navigation bar: NavBarHeight, which holds the icon and a label of 16 dp, and more where the
-// labels are larger, to the size that they are read at most (barLabelMaxScale).
+// BarHeight is the least height in dp of the navigation bar: NavBarHeight, which holds the icon and a label of 16 dp, and more where the
+// labels are larger, to the size that they are read at most (barLabelMaxScale). The bar is as high as its labels are, too, and a line of
+// text is higher than the one that a label asks for where the font has a higher one, or the one that Han characters fall back to: 18 dp
+// for 16 in Noto Sans CJK, 22 for 20.8 in Noto Sans.
 func BarHeight(c Ctx) float32 {
 	return NavBarHeight + Type(LabelMedium).Line*max(min(c.Env.Theme.TextScale, barLabelMaxScale)-1, 0)
 }
 
-// barGrowth is how much higher than NavBarHeight the bar is at the most.
-func barGrowth() float32 { return Type(LabelMedium).Line * (barLabelMaxScale - 1) }
+// barGrowth is how much higher than NavBarHeight the bar is at the most, with a line that is a few dp higher than the one that a label
+// asks for (barLineSlack) at the size that the labels are read at most.
+func barGrowth() float32 { return Type(LabelMedium).Line*(barLabelMaxScale-1) + barLineSlack }
+
+// barLineSlack is how many dp higher than the line that a label asks for the line of a font may be, in the bar: 6 dp is more than the
+// fonts that were seen need (2 to 3 dp), and the census looks for the bar among the buttons of the window by its height.
+const barLineSlack = 6
 
 // NavRail is the navigation rail; it is as high as the space it is given, and
 // grows and shrinks between its two widths on a spatial spring.
@@ -232,7 +239,7 @@ func NavBar(c Ctx, b NavBarSpec) ui.Element {
 	if hasKey(b.ID) {
 		c.Key(b.ID)
 	}
-	return ui.Row(c.Context).Height(BarHeight(c)).Shrink(0).AlignItems(ui.Stretch).Background(cs.SurfaceContainer).
+	return ui.Row(c.Context).MinHeight(BarHeight(c)).Shrink(0).AlignItems(ui.Stretch).Background(cs.SurfaceContainer).
 		Children(func() {
 			labelScale := barLabelScale(c, b)
 			for i, d := range b.Destinations {

@@ -497,8 +497,10 @@ func TestTheLabelsOfTheNavigationBarShrinkToTheirSlotsAndNotBelowTheSizeOfText(t
 		}
 		for _, n := range h.env.Reg.Nodes() {
 			if n.Role == RoleButton && n.Visible() {
-				if want := NavBarHeight + Type(LabelMedium).Line*(min(c.scale, barLabelMaxScale)-1); c.scale > 1 && math.Abs(float64(n.Rect.H-want)) > 0.5 {
-					t.Errorf("%s: the bar is %.1f dp high where it is %.1f at that size of text", c.name, n.Rect.H, want)
+				// As high as the labels need: not less than the nominal height at that size of text, and a line that is higher than the
+				// one that a label asks for makes it higher (a font that has a higher line, or Han characters, by a few dp).
+				if want := NavBarHeight + Type(LabelMedium).Line*(min(c.scale, barLabelMaxScale)-1); c.scale > 1 && (n.Rect.H < want-0.5 || n.Rect.H > want+barLineSlack) {
+					t.Errorf("%s: the bar is %.1f dp high where it is %.1f to %.1f at that size of text", c.name, n.Rect.H, want, want+barLineSlack)
 				}
 				if n.Rect.Y+n.Rect.H > 200+0.5 {
 					t.Errorf("%s: the bar ends at %.1f, below the window of 200", c.name, n.Rect.Y+n.Rect.H)
