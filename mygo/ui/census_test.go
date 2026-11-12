@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -203,6 +204,26 @@ var censusScenes = []censusScene{
 		ta.item("nodejs")
 		ta.button("Use")
 		ta.until("the use task", func() bool { return len(ta.app.model.Tasks.Tasks()) == 1 })
+		// A task that ends says so in a snack bar, which stays four seconds above the bar of the navigation, and a process of
+		// the fixtures ends when it ends: whether the snack bar was on the page when the census was taken depended on that, and one
+		// run of CI had it (a text 22 dp above the bottom of the room: a page that is cut). The scene waits for the end of the
+		// task and for the snack bar, and lets the clock go past it.
+		ta.until("the use task to end", func() bool {
+			tasks := ta.app.model.Tasks.Tasks()
+			return len(tasks) == 1 && tasks[0].Status() == state.TaskSucceeded
+		})
+		for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); ta.frame() {
+			said := false
+			for _, n := range ta.nodes() {
+				said = said || (n.Role == kit.RoleText && strings.HasSuffix(n.Text, ": done"))
+			}
+			if said {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		ta.tester.Advance(5 * time.Second)
+		ta.settle()
 		ta.button("Tasks")
 	}},
 	{name: "task-output", reach: func(ta *testApp) {
