@@ -178,7 +178,7 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 				prose = append(prose, n)
 			}
 			counted := n.Size >= 22 || within(n, shown, func(o *Node) bool { return controls[o.Role] })
-			if n.Natural > 0 && n.Rect.W < n.Natural-1 && counted {
+			if n.Natural > 0 && n.Rect.W < n.Natural-cutSlack && counted {
 				census.Cut = append(census.Cut, fmt.Sprintf("%q is %.0f dp wide where it has %.0f", truncate(n.Text, 30), n.Natural, n.Rect.W))
 			}
 			if n.Lines > 1 && n.Needs > n.Lines && counted {
@@ -193,8 +193,9 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 				census.Helpers++
 				census.SmallLines = append(census.SmallLines, truncate(n.Text, 60))
 			}
-			// A glyph that the edge of the window cuts is not what a person reads, and what is left of it may be none of its ink.
-			if img != nil && wholly(n.Rect, window) && !within(n, shown, func(o *Node) bool { return controls[o.Role] && !o.Enabled }) {
+			// A glyph that the edge of the window cuts, or a scroll container, is not what a person reads, and what is left of it may be none
+			// of its ink.
+			if img != nil && wholly(n.Rect, window) && !n.Clipped && !within(n, shown, func(o *Node) bool { return controls[o.Role] && !o.Enabled }) {
 				census.measure(n, img)
 			}
 		case RoleIcon:
@@ -263,6 +264,12 @@ func (c *Census) taller(shown []*Node, window ui.Rect) {
 		c.TallerBy = fmt.Sprintf("%s %q ends at %.0f of the %.0f that the page has", lowest.Role, truncate(lowest.Text+lowest.Name, 30), lowest.Rect.Y+lowest.Rect.H, room)
 	}
 }
+
+// cutSlack is how much narrower than the width that the engine measures for a text of a single line its room may be, in dp, before the
+// text is said to be cut: what a float of the layout leaves. The engine ends a line with an ellipsis for any width that it has less
+// than the text wants, and a slack of a dp, which the census had, hid a label that was short by 0.4 dp ("Settin..." on macOS, in Verdana at
+// 200 %, in a slot of 72 dp where the label wants 72.4).
+const cutSlack = 0.05
 
 // lineSlack is how far, in dp, the line of a text may go beyond its control: the engine makes a line as high as a whole dp, and the
 // font that Han characters fall back to has a line a little higher than the one that the label was given (19 dp for 18.4, in a bar at

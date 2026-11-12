@@ -106,6 +106,7 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 		}
 		e.DrawOver(func(p *ui.Painter, r ui.Rect) {
 			node.Rect, node.Seen = r, intersection(r, p.Visible())
+			node.Clipped = node.Seen.W < r.W-0.5 || node.Seen.H < r.H-0.5
 			if node.Lines > 1 {
 				node.Needs = linesNeeded(p, span, r.W)
 			}

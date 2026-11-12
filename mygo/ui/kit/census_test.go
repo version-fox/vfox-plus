@@ -337,6 +337,25 @@ func TestTheCensusFindsATitleOrAControlThatIsCutShort(t *testing.T) {
 	}
 }
 
+func TestTheCensusFindsALabelThatIsShortByLessThanADp(t *testing.T) {
+	// The engine ends a line with an ellipsis for any width that it has less than the text wants. "Settings" in Verdana at 200 % wants
+	// 72.4 dp and had the 72 of its slot on macOS, and was drawn as "Settin...": the census, which let a dp go, said that it was not cut.
+	control := &Node{Role: RoleButton, Name: "Settings", Rect: rect(288, 0, 72, 64)}
+	label := func(width float32) *Node {
+		return &Node{Role: RoleText, Text: "Settings", Rect: rect(288, 40, width, 20), Size: 12, Natural: 72.4}
+	}
+	census := func(n *Node) []string { return TakeCensus([]*Node{control, n}, rect(0, 0, 360, 100), nil).Cut }
+	if got := census(label(72)); len(got) != 1 || !strings.Contains(got[0], "Settings") {
+		t.Errorf("a label that is short by 0.4 dp is cut: %q", got)
+	}
+	if got := census(label(72.4)); len(got) != 0 {
+		t.Errorf("a label that has the width that it wants is not: %q", got)
+	}
+	if got := census(label(72.38)); len(got) != 0 {
+		t.Errorf("nor is one that a float of the layout has taken 0.02 dp from: %q", got)
+	}
+}
+
 func TestTheCensusFindsAControlThatIsDrawnBeyondThePaddingOfItsRow(t *testing.T) {
 	// A window of 360 dp: the row is 312 dp wide, from 24, its padding is 16 dp, and under the title, which starts at 80
 	// after the icon, 240 dp are left up to the padding.
@@ -420,6 +439,24 @@ func TestTheCensusMeasuresTheContrastOfATextThatIsWhollyInTheWindow(t *testing.T
 	cut := TakeCensus([]*Node{{Role: RoleText, Text: "E", Rect: rect(0, 28, 20, 20), Size: 14, Color: white}}, rect(0, 0, 40, 40), img)
 	if cut.Words != 1 || cut.Contrast.Measured != 0 {
 		t.Errorf("a text that the edge of the window cuts is read as words and not measured: %d words, %+v", cut.Words, cut.Contrast)
+	}
+}
+
+func TestTheCensusDoesNotMeasureTheContrastOfATextThatAScrollContainerClips(t *testing.T) {
+	// The last row of a list that has been scrolled to its end is cut by the foot of the page, above the bar of the navigation: its box
+	// is wholly in the window, and its letters are drawn in part. What is under the part that was not drawn is the bar, and the colour
+	// of the text against it is not what a person reads ("npm" was 1.4 on Windows).
+	img := image.NewRGBA(image.Rect(0, 0, 40, 40))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+	white := ui.Color{R: 255, G: 255, B: 255, A: 255}
+	row := func(clipped bool) Census {
+		return TakeCensus([]*Node{{Role: RoleText, Text: "npm", Rect: rect(0, 0, 20, 20), Seen: rect(0, 0, 20, 8), Clipped: clipped, Size: 14, Color: white}}, rect(0, 0, 40, 40), img)
+	}
+	if got := row(true); got.Words != 1 || got.Contrast.Measured != 0 {
+		t.Errorf("a text that a scroll container clips is read as words and not measured: %d words, %+v", got.Words, got.Contrast)
+	}
+	if got := row(false); got.Contrast.Measured != 1 {
+		t.Errorf("a text that nothing clips is measured: %+v", got.Contrast)
 	}
 }
 

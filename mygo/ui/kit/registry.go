@@ -80,8 +80,10 @@ type Node struct {
 	// for a widget that no frame has drawn yet.
 	Rect ui.Rect
 	// Seen is the part of Rect that shows, inside the scroll containers around the widget: what a person can see of a text that is
-	// partly scrolled away. Only texts and the lines of text fields have it.
-	Seen ui.Rect
+	// partly scrolled away. Only texts and the lines of text fields have it. Clipped says that a scroll container cuts the text, in
+	// part or wholly: its letters are drawn in part, and what is in the place of the rest is not theirs.
+	Seen    ui.Rect
+	Clipped bool
 	// Enabled says whether the widget reacts to input.
 	Enabled bool
 	// Selected says whether the widget is selected or switched on.

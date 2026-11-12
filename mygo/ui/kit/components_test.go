@@ -478,7 +478,7 @@ func TestTheLabelsOfTheNavigationBarShrinkToTheirSlotsAndNotBelowTheSizeOfText(t
 		for _, n := range h.env.Reg.Nodes() {
 			if n.Role == RoleText && n.Natural > 0 && n.Visible() {
 				drawn++
-				if n.Rect.W < n.Natural-1 {
+				if n.Rect.W < n.Natural-cutSlack {
 					cut++
 				}
 			}
