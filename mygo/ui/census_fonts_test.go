@@ -266,10 +266,8 @@ func trackingFor(t *testing.T, share float32) float32 {
 // words in a third to a half more characters than English does (the W3C's guidance to designers of interfaces is to leave a third,
 // and more for what is short), and a font may be wider than the ones that the other tests draw in. No machine has the widest font
 // there is, so the test makes the text wider by letter spacing (kit.Tracking), as the tools of pseudo-localization do, which the
-// labels draw and the layouts measure; the text of the interface is made wider, whatever it says and in what font. It is wider by
-// two fifths up to 150 % of the size of text, and by 15 % at 200 %, where the text is twice as wide already: that is how much wider
-// Verdana, the widest font that a system sets its interface in, is than Noto Sans, so that every machine is held to the width of the
-// font that only some of them have.
+// labels draw and the layouts measure; the text of the interface is made wider, whatever it says and in what font, by two fifths at every
+// size of text: the W3C's guidance, and what a label of a field that has not the room at rest needs (it is set at the size that fits).
 //
 // It takes the time of the census for each of its windows, so a run that asks for it takes it (VFOX_PLUS_CENSUS_SWEEP=1), as CI does.
 func TestTheScreensAreWithinTheBudgetsInATextThatIsWider(t *testing.T) {
@@ -284,9 +282,9 @@ func TestTheScreensAreWithinTheBudgetsInATextThatIsWider(t *testing.T) {
 		window censusWindow
 		share  float32
 	}{
-		{censusNarrow, 0.4}, {censusNarrowMore, 0.4}, {censusNarrowLarge, 0.15},
-		{censusMedium, 0.4}, {censusMediumLarge, 0.15},
-		{censusWide, 0.4}, {censusWideLarge, 0.15},
+		{censusNarrow, 0.4}, {censusNarrowMore, 0.4}, {censusNarrowLarge, 0.4},
+		{censusMedium, 0.4}, {censusMediumLarge, 0.4},
+		{censusWide, 0.4}, {censusWideLarge, 0.4},
 		{censusNarrowZh, 0.4}, {censusWideZh, 0.4},
 	} {
 		kit.Tracking = trackingFor(t, wider.share)

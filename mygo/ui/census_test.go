@@ -147,8 +147,11 @@ type censusScene struct {
 	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
 	// it has below the fold is drawn and counted, too.
 	tall bool
-	// modal says that the scene ends in a dialog or in a menu, which the least windows hold to the budgets.
+	// modal says that the scene ends in a dialog or in a menu, which the least windows hold to the budgets, and whose content is drawn at
+	// its end in them, too.
 	modal bool
+	// tooltip says that the scene shows a tooltip, which is an overlay as a menu is: the least windows are drawn, too.
+	tooltip bool
 	// toEnd says that the screen has a list that scrolls, whose end is drawn and counted, too: its rows are those that a person
 	// reaches by scrolling, and the last of them is not the first.
 	toEnd bool
@@ -173,7 +176,7 @@ func (s censusScene) in() []censusWindow {
 		censusNarrowMid, censusNarrowMore, censusCompactMore, censusNarrowLarge, censusMediumLarge, censusWideLarge,
 		censusNarrowZh, censusNarrowLargeZh, censusWideZh,
 	}
-	if s.modal {
+	if s.modal || s.tooltip {
 		windows = append(windows, censusLeast, censusLeastLarge, censusShallow)
 	}
 	return windows
@@ -201,6 +204,9 @@ var censusScenes = []censusScene{
 	{name: "link-manual", modal: true, reach: func(ta *testApp) { ta.openAvailable("nodejs"); ta.addMore("Link existing…") }},
 	{name: "options", tall: true, reach: optionsOf("nodejs")},
 	{name: "options-java", java: true, tall: true, reach: optionsOf("java")},
+	{name: "tooltip", tooltip: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: func(ta *testApp) {
+		ta.hover(kit.RoleButton, "More ways to use this version")
+	}},
 	{name: "alias-set", modal: true, reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Name alias…") }},
 	{name: "mirror", modal: true, reach: func(ta *testApp) { optionsOf("nodejs")(ta); ta.button("Change") }},
 	{name: "use-in-project", modal: true, reach: func(ta *testApp) {
@@ -348,24 +354,53 @@ func pressing(role kit.Role, name string) func(ta *testApp) {
 	}
 }
 
-// reveal scrolls the page, by what a wheel does, until the node is wholly in the window; the pointer is taken away after it, as it is
-// by scrollToEnd.
+// hover rests the pointer on the button, as a person does, and waits for its tooltip.
+func (ta *testApp) hover(role kit.Role, name string) {
+	ta.t.Helper()
+	ta.reveal(role, name)
+	n, ok := ta.find(role, name)
+	if !ok || !n.Visible() {
+		ta.t.Fatalf("%s %q is not drawn, to rest the pointer on it (%q)", role, name, ta.texts())
+	}
+	ta.tester.Move(n.Rect.X+n.Rect.W/2, n.Rect.Y+n.Rect.H/2)
+	ta.settle()
+	ta.settle()
+}
+
+// reveal scrolls the page, by what a wheel does, until the node is wholly in the room of the page, which the bar of the navigation takes
+// the foot of; the pointer is taken away after it, as it is by scrollToEnd. What is not on the screen is not in the registry, so a node
+// that is not found is looked for by a step of a quarter of the window; one that is found is brought into the room by the distance that
+// it is out of it, and no more, where a step would take a row of a list that is built out of it.
 func (ta *testApp) reveal(role kit.Role, name string) {
 	ta.t.Helper()
 	img := ta.tester.Image()
 	width, height := float32(img.Bounds().Dx()), float32(img.Bounds().Dy())
+	room := height
+	if ta.app.env.Compact {
+		room -= float32(kit.NavBarHeight)
+	}
 	defer func() {
 		ta.tester.Move(-1, -1)
 		ta.settle()
 	}()
 	for range 200 {
-		if n, ok := ta.find(role, name); ok && n.Visible() && n.Rect.Y >= 0 && n.Rect.Y+n.Rect.H <= height {
-			return
+		n, ok := ta.find(role, name)
+		if ok && n.Visible() {
+			switch {
+			case n.Rect.Y >= 0 && n.Rect.Y+n.Rect.H <= room:
+				return
+			case n.Rect.Y < 0:
+				ta.tester.Scroll(width/2, height/2, 0, n.Rect.Y-8)
+			default:
+				ta.tester.Scroll(width/2, height/2, 0, n.Rect.Y+n.Rect.H-room+8)
+			}
+			ta.settle()
+			continue
 		}
 		ta.tester.Scroll(width/2, height/2, 0, height/4)
 		ta.settle()
 	}
-	ta.t.Fatalf("%s %q is not in the window, however far the page is scrolled (%q)", role, name, ta.texts())
+	ta.t.Fatalf("%s %q is not in the room of the page, however far it is scrolled (%q)", role, name, ta.texts())
 }
 
 // scrollToEnd scrolls what is under the middle of the window, a list or a dialog, to its end, and takes the pointer away, as a person
@@ -408,11 +443,12 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 				if over := window.over(census); len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
-				if !scene.toEnd {
+				if !scene.toEnd && (!scene.modal || window.shrunk == 0) {
 					return
 				}
-				// The rows that a person reaches by scrolling are not the rows that the screen starts with: the end of the list is
-				// drawn, and counted, too, and the census of it is of what is shown (kit.Census.Scrolls).
+				// The rows that a person reaches by scrolling are not the rows that the screen starts with: the end of the list, or of the
+				// content of a dialog in a window that is shorter than it, is drawn, and counted, too, and the census of it is of what is
+				// shown (kit.Census.Scrolls).
 				ta.scrollToEnd()
 				end := ta.census()
 				end.Scrolls = true
