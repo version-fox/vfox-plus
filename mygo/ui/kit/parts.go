@@ -103,7 +103,7 @@ func PageHeader(c Ctx, title, subtitle string, leading func(), actions ...func()
 func GroupHeader(c Ctx, title string, trailing func()) ui.Element {
 	cs := c.Colors()
 	return ui.Row(c.Context).Padding(24, 4, 8, 16).Children(func() {
-		Label(c, title, Type(TitleSmall), cs.Primary, Breakable()).Grow(1).Shrink(1).Role(ui.RoleHeading).Level(2)
+		Label(c, title, Type(TitleSmall), cs.Primary, Breakable(), Heading()).Grow(1).Shrink(1).Role(ui.RoleHeading).Level(2)
 		if trailing != nil {
 			trailing()
 		}

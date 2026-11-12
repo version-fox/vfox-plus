@@ -639,6 +639,102 @@ func TestTheKeysMoveThroughTheEntriesOfAMenuThatScrolls(t *testing.T) {
 	}
 }
 
+// A label of a field that has not the room at rest goes on as many lines as it needs, and is not cut: "SDK directory" wants 271 dp at 200 % in
+// a text that is wider by two fifths, and the field of the dialog that links a version has 232.
+func TestALabelOfAFieldThatHasNotTheRoomGoesOnAsManyLinesAsItNeeds(t *testing.T) {
+	for _, c := range []struct {
+		width float32
+		lines int
+	}{
+		{300, 1}, // 268 dp of room: the label is one line
+		{200, 2}, // 168 dp: two, and the field is as high as they need
+	} {
+		value := ""
+		h := newTested(t, 400, 300, func(ctx Ctx) {
+			Column(ctx).Padding(24).Children(func() {
+				TextField(ctx, TextFieldSpec{ID: "path", Label: "SDK directory", Text: &value, Monospace: true}).Width(c.width)
+			})
+		})
+		h.env.Theme.TextScale = 2
+		h.tester.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: 2})
+		for range 3 {
+			h.tester.Frame()
+			h.tester.Advance(time.Second)
+		}
+		var label *Node
+		var field *Node
+		for _, n := range h.env.Reg.Nodes() {
+			switch {
+			case n.Role == RoleText && n.Text == "SDK directory":
+				label = n
+			case n.Role == RoleTextField:
+				field = n
+			}
+		}
+		if label == nil || !label.Visible() || field == nil {
+			t.Fatalf("the label and the field at %.0f dp are drawn: %+v, %+v", c.width, label, field)
+		}
+		// A label of one line wants a width (Natural), and one of more says how many lines it may have and needs.
+		if c.lines == 1 && (label.Lines != 0 || label.Natural > label.Rect.W+0.5) {
+			t.Errorf("the label at %.0f dp is one line of %.1f dp in %.1f: %+v", c.width, label.Natural, label.Rect.W, label)
+		}
+		if c.lines > 1 && (label.Lines != c.lines || label.Needs > label.Lines) {
+			t.Errorf("the label at %.0f dp is on %d lines of the %d that it needs, where it should be on %d", c.width, label.Lines, label.Needs, c.lines)
+		}
+		if received := label.Rect.H; received < float32(c.lines)*Type(BodyLarge).Line*2-1 {
+			t.Errorf("the label at %.0f dp is %.1f dp high where %d lines are %.1f", c.width, received, c.lines, float32(c.lines)*Type(BodyLarge).Line*2)
+		}
+		if c.lines > 1 && field.Rect.H < float32(c.lines)*Type(BodyLarge).Line*2 {
+			t.Errorf("the field at %.0f dp is %.1f dp high, where its label needs %d lines", c.width, field.Rect.H, c.lines)
+		}
+		if got := TakeCensus(h.env.Reg.Nodes(), ui.Rect{W: 400, H: 300}, nil); len(got.Cut) != 0 {
+			t.Errorf("the label of a field is not cut: %q", got.Cut)
+		}
+	}
+}
+
+// A tooltip is the name of its button, and goes on as many lines as it needs: at 200 % a name of 240 dp wants three, and the two that it was
+// held to cut it. It is drawn in the window, too.
+func TestATooltipGoesOnAsManyLinesAsItNeedsAndIsDrawnInTheWindow(t *testing.T) {
+	const tip = "More ways to install this version of the SDK, from a plugin or from a link"
+	h := newTested(t, 360, 480, func(c Ctx) {
+		Column(c).Fill().Padding(16).Children(func() {
+			Spacer(c)
+			Row(c).Justify(ui.End).Children(func() {
+				IconButton(c, IconButtonSpec{ID: "more", Icon: "more", Tooltip: tip})
+			})
+		})
+	})
+	h.tester.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: 2})
+	h.env.Theme.TextScale = 2
+	h.tester.Frame()
+	h.tester.Advance(time.Second)
+	button, ok := h.node(RoleButton, tip)
+	if !ok {
+		t.Fatal("the button is drawn")
+	}
+	h.tester.Move(button.Rect.X+button.Rect.W/2, button.Rect.Y+button.Rect.H/2)
+	h.tester.Advance(2 * time.Second)
+	var text *Node
+	for _, n := range h.env.Reg.Nodes() {
+		if n.Role == RoleText && n.Text == tip && n.Scope == "tooltip" {
+			text = n
+		}
+	}
+	if text == nil || !text.Visible() {
+		t.Fatalf("the tooltip is drawn: %+v", text)
+	}
+	if text.Rect.H < 3*Type(BodySmall).Line*2-1 {
+		t.Errorf("the tooltip goes on the three lines that it needs at 200 %%: %.1f dp high", text.Rect.H)
+	}
+	if text.Rect.X < 0 || text.Rect.Y < 0 || text.Rect.X+text.Rect.W > 360.5 || text.Rect.Y+text.Rect.H > 480.5 {
+		t.Errorf("the tooltip is in the window: %+v", text.Rect)
+	}
+	if got := TakeCensus(h.env.Reg.Nodes(), ui.Rect{W: 360, H: 480}, nil); len(got.Cut) != 0 {
+		t.Errorf("the text of a tooltip is not cut: %q", got.Cut)
+	}
+}
+
 // The title of a group is copy, and is not cut where the room is short: it goes on as many lines as it needs, where a name that is
 // data may end with an ellipsis (it was held to two lines, and "Use the versions i…", a title of three at 200 % in a wide font, was cut).
 func TestTheTitleOfAGroupGoesOnAsManyLinesAsItNeeds(t *testing.T) {

@@ -28,6 +28,7 @@ type labelOptions struct {
 	selectable bool
 	scaleCap   float32
 	breakable  bool
+	heading    bool
 }
 
 // LabelOption changes how a label lays out its text.
@@ -52,6 +53,10 @@ func ScaleCap(scale float32) LabelOption { return func(o *labelOptions) { o.scal
 // space still do, and only a word that cannot fit a line of its own is broken. What holds the label has to leave it that room:
 // a container that is a flex item has to be told MinWidth(0), as its least width is that of the longest word.
 func Breakable() LabelOption { return func(o *labelOptions) { o.breakable = true } }
+
+// Heading says that the label is the title of a group or of a card, which is copy and not data: the census counts it where it says that a
+// text is cut, whatever its size, and a name, which a title of a row may be, is not.
+func Heading() LabelOption { return func(o *labelOptions) { o.heading = true } }
 
 // Selectable lets the user select the text and copy it.
 func Selectable() LabelOption { return func(o *labelOptions) { o.selectable = true } }
@@ -93,7 +98,7 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 		e.Selectable()
 	}
 	if c.Env.Reg.CollectText && s != "" {
-		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono})
+		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono, Heading: o.heading})
 		span := ui.Span{Text: s, Size: size, Weight: style.Weight, LetterSpacing: spacing}
 		if o.mono {
 			span.Font = MonoFamilies

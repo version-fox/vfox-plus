@@ -177,7 +177,9 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 			if !n.Mono && proseWords(n.Text) >= 8 {
 				prose = append(prose, n)
 			}
-			counted := n.Size >= 22 || within(n, shown, func(o *Node) bool { return controls[o.Role] })
+			// A title of 22 dp and more, the title of a group or of a card, and the text of a tooltip are copy: a name, which the title of a
+			// row is, may end with an ellipsis.
+			counted := n.Size >= 22 || n.Heading || n.Scope == "tooltip" || within(n, shown, func(o *Node) bool { return controls[o.Role] })
 			if n.Natural > 0 && n.Rect.W < n.Natural-cutSlack && counted {
 				census.Cut = append(census.Cut, fmt.Sprintf("%q is %.0f dp wide where it has %.0f", truncate(n.Text, 30), n.Natural, n.Rect.W))
 			}
@@ -276,19 +278,22 @@ const cutSlack = 0.05
 // 115 %), where the letters of it are far from the edge. A label that was cut by the foot of the window was 5 dp beyond.
 const lineSlack = 1
 
-// outside says which texts of the screen are drawn beyond the control that holds them, which is the control whose box has the centre
+// outside says which texts of the screen are drawn beyond the control that holds them (a tooltip is over what is under it, and is not a
+// label of it), which is the control whose box has the centre
 // of the text in it (within): a text is the label of its control, and is in it, where its line is wide enough for the text, or ends
 // with an ellipsis where it is not.
 func (c *Census) outside(shown []*Node) {
 	for _, n := range shown {
 		// A text that a scroll container clips away entirely is not drawn, and one that shows in part is held by what is under the
 		// part that shows: a row that goes under the bar of the navigation, or under the field of a search, is not in them.
-		if n.Role != RoleText || n.Text == "" || n.Seen.W <= 0 || n.Seen.H <= 0 {
+		if n.Role != RoleText || n.Text == "" || n.Seen.W <= 0 || n.Seen.H <= 0 || n.Scope == "tooltip" {
 			continue
 		}
 		x, y := n.Seen.X+n.Seen.W/2, n.Seen.Y+n.Seen.H/2
 		for _, o := range shown {
-			if o == n || !controls[o.Role] || !o.Visible() || x < o.Rect.X || x > o.Rect.X+o.Rect.W || y < o.Rect.Y || y > o.Rect.Y+o.Rect.H {
+			// The control that the text is the label of is the one that is named by it: a text may be over a control that has another name,
+			// as the title of a dialog is over the field that scrolled under it.
+			if o == n || !controls[o.Role] || !o.Visible() || o.Name != n.Text || x < o.Rect.X || x > o.Rect.X+o.Rect.W || y < o.Rect.Y || y > o.Rect.Y+o.Rect.H {
 				continue
 			}
 			if n.Rect.X < o.Rect.X-0.5 || n.Rect.X+n.Rect.W > o.Rect.X+o.Rect.W+0.5 ||

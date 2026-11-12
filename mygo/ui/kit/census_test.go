@@ -337,6 +337,27 @@ func TestTheCensusFindsATitleOrAControlThatIsCutShort(t *testing.T) {
 	}
 }
 
+func TestTheCensusCountsTheTitleOfAGroupOrOfACardAsCopy(t *testing.T) {
+	// The title of a group is 14 dp and the title of a card 16, and they are copy: an ellipsis at the end of one is found, where the same
+	// text as the title of a row may be a name, which may end with one.
+	window := rect(0, 0, 360, 480)
+	title := func(heading bool) []string {
+		n := &Node{Role: RoleText, Text: "The versions that are in use", Rect: rect(24, 40, 120, 20), Size: 14, Natural: 173, Heading: heading, Enabled: true, Seen: rect(24, 40, 120, 20)}
+		return TakeCensus([]*Node{n}, window, nil).Cut
+	}
+	if got := title(false); len(got) != 0 {
+		t.Errorf("a name of 14 dp that is cut is not counted: %q", got)
+	}
+	if got := title(true); len(got) != 1 || !strings.Contains(got[0], "The versions that are in use") {
+		t.Errorf("the title of a group that is cut is: %q", got)
+	}
+	// A title that has the room that it wants is not cut.
+	n := &Node{Role: RoleText, Text: "Notes", Rect: rect(24, 40, 120, 20), Size: 14, Natural: 40, Heading: true, Enabled: true, Seen: rect(24, 40, 120, 20)}
+	if got := TakeCensus([]*Node{n}, window, nil).Cut; len(got) != 0 {
+		t.Errorf("a title that fits: %q", got)
+	}
+}
+
 func TestTheCensusFindsALabelThatIsShortByLessThanADp(t *testing.T) {
 	// The engine ends a line with an ellipsis for any width that it has less than the text wants. "Settings" in Verdana at 200 % wants
 	// 72.4 dp and had the 72 of its slot on macOS, and was drawn as "Settin...": the census, which let a dp go, said that it was not cut.

@@ -66,6 +66,9 @@ type Node struct {
 	// at the width the label was drawn with: a label that needs more lines than it may have ends with an ellipsis. Both are
 	// 0 for a label that has no limit or is limited to one line, which Natural tells.
 	Lines, Needs int
+	// Heading says that a text is the title of a group or of a card: it is copy, and the census counts it where it says that a text is
+	// cut, whatever its size, where a name that a title of a row may be is not.
+	Heading bool
 	// Choice says that the widget is one of the alternatives of a group, a
 	// segment of a button group or a filter chip, and not an action of its own.
 	Choice bool
@@ -140,7 +143,8 @@ func (r *Registry) Add(n Node) *Node {
 }
 
 // SetModal makes the nodes added from now on modal, until it is called with
-// false. Dialogs and menus call it around their content.
+// false. Dialogs, menus and tooltips call it around their content: a tooltip is
+// what the census of its screen reads, over what it covers.
 func (r *Registry) SetModal(modal bool) { r.modal = modal }
 
 // EnterScope makes the nodes added from now on belong to what is called name, until

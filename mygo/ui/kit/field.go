@@ -15,6 +15,8 @@
 package kit
 
 import (
+	"math"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -69,6 +71,10 @@ type fieldState struct {
 	text     string
 	last     string
 	wasFocus bool
+	// width is the width in dp that the last frame laid out for the line of the field and its label, or 0 before the first one, and lines
+	// how many lines the label of the field takes in it.
+	width float32
+	lines int
 }
 
 // buffer is where the text of the field is: the string the caller gave, or the
@@ -108,16 +114,39 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 	// The label floats over the line, which it is a little over, by 2 dp at 100 %: the room above the line is that of the label, which
 	// is as high as its text is, and not a fixed 22 dp, in which the label of a text of 200 % was drawn over the line.
 	smallLine := Type(BodySmall).Line * scale
+	// The label is copy, and goes on as many lines as it needs in the room of the line of the field: a text that is wider than any font
+	// makes a label wider than the field at 200 % ("Project directory" wants 252 dp of the 232 that the dialog that uses a version in a
+	// project has), and a label that is cut is not read. The room is that of the last frame, as the field is laid out by its parent.
+	labelLines := func(label TextStyle) int {
+		if st.width <= 0 {
+			return 1
+		}
+		natural, _ := c.MeasureText(0, ui.Span{Text: f.Label, Size: label.Size * scale, Weight: label.Weight})
+		if natural <= st.width {
+			return 1
+		}
+		return max(1, int(math.Ceil(float64(natural/st.width))))
+	}
+	floatLines, restLines := 1, 1
+	if hasLabel {
+		floatLines, restLines = labelLines(Type(BodySmall)), labelLines(Type(BodyLarge))
+		if st.lines != floatLines {
+			st.lines = floatLines
+			c.Invalidate()
+		}
+	}
 	switch {
 	case f.Dense:
 		height = 48
 		padding = []float32{12, 16}
 	case hasLabel && single:
-		padding = []float32{6 + smallLine, 16, 10, 16}
+		padding = []float32{6 + smallLine*float32(floatLines), 16, 10, 16}
 		// The field is as high as its label and its line need, which is 56 dp at 100 %.
 		height = max(height, padding[0]+style.Line*scale+padding[2])
+		// The label at rest is set larger, and may take more lines than the floating one.
+		height = max(height, Type(BodyLarge).Line*scale*float32(restLines)+12)
 	case hasLabel:
-		padding = []float32{8 + smallLine, 16, 8, 16}
+		padding = []float32{8 + smallLine*float32(floatLines), 16, 8, 16}
 	case !single:
 		padding = []float32{16, 16}
 	}
@@ -176,6 +205,7 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 					input = ui.TextAreaBase(c.Context, buf).Lines(lines, maxLines)
 				}
 				input.MinWidth(0).Label(firstNonEmpty(f.Label, f.Hint))
+				input.Draw(func(_ *ui.Painter, r ui.Rect) { st.width = r.W })
 				if c.Env.Reg.CollectText {
 					// The line of text is what the label must stay clear of, and the census asks where it is. A field that is empty
 					// has no text for the label to be drawn over, and the hint is the text that the line shows in its place.
@@ -205,11 +235,13 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 					input.OnSubmit(func() { f.OnSubmit(*buf) })
 				}
 				if hasLabel {
-					// The floating label. It is placed from the top of the field, and this room begins below the padding of it.
+					// The floating label. It is placed from the top of the field, and this room begins below the padding of it; at rest it is
+					// centred, and both go on as many lines as they need, which the room of the field leaves.
 					big, small := Type(BodyLarge), Type(BodySmall)
 					label := big.WithSize(Lerp(big.Size, small.Size, labelProgress))
-					centred := (height - label.Line*scale) / 2
-					Line(c, f.Label, label, labelColor).Absolute().Top(Lerp(centred, 8, labelProgress) - padding[0]).
+					taken := labelLines(label)
+					centred := (height - label.Line*scale*float32(taken)) / 2
+					Label(c, f.Label, label, labelColor, Lines(taken), Breakable()).Absolute().Top(Lerp(centred, 8, labelProgress) - padding[0]).
 						Left(0).Right(0).PassThrough()
 				}
 			})
