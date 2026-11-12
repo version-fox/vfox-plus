@@ -408,6 +408,49 @@ func TestTheCensusMeasuresTheContrastOfATextThatIsWhollyInTheWindow(t *testing.T
 	}
 }
 
+func TestTheCensusReadsAThinGlyphAgainstItsBackgroundAndNotAgainstItsOwnStrokes(t *testing.T) {
+	// A Han character at 14 dp: a dozen pixels of the colour of the text, in the middle of strokes that are all blends of it
+	// with the page, in a box that is the page for the most part. The pixels around the dozen are blends, which are not what
+	// the text stands on: the page is.
+	page := color.RGBA{R: 255, G: 241, B: 232, A: 255}
+	blend := color.RGBA{R: 177, G: 136, B: 98, A: 255}
+	img := image.NewRGBA(image.Rect(0, 0, 300, 40))
+	draw.Draw(img, img.Bounds(), &image.Uniform{page}, image.Point{}, draw.Src)
+	draw.Draw(img, image.Rect(100, 6, 124, 26), &image.Uniform{blend}, image.Point{}, draw.Src)
+	text := func(ink color.RGBA) []*Node {
+		for y := 14; y < 17; y++ {
+			for x := 108; x < 112; x++ {
+				img.SetRGBA(x, y, ink)
+			}
+		}
+		return []*Node{{Role: RoleText, Text: "网页界面", Rect: rect(0, 0, 292, 24), Size: 14, Color: ui.Color{R: ink.R, G: ink.G, B: ink.B, A: 255}}}
+	}
+	dark := color.RGBA{R: 136, G: 82, B: 28, A: 255}
+	if got := TakeCensus(text(dark), rect(0, 0, 300, 40), img); got.Contrast.Measured != 1 || got.Contrast.Failing != 0 {
+		t.Errorf("dark brown on the page, whatever blends the strokes have: %+v", got.Contrast)
+	}
+	// A thin text that is nearly the colour of the page is still found out.
+	pale := color.RGBA{R: 240, G: 228, B: 218, A: 255}
+	if got := TakeCensus(text(pale), rect(0, 0, 300, 40), img); got.Contrast.Failing != 1 {
+		t.Errorf("a text that is nearly the colour of the page cannot be read: %+v", got.Contrast)
+	}
+}
+
+func TestTheBudgetsOfTheCopyAreNotThoseOfALanguageWithoutSpaces(t *testing.T) {
+	// Five sentences of eight words and five small lines are over the budgets of the copy; a page that is across the edge
+	// of its window is over a budget of the layout. A language without spaces is held to the second.
+	census := Census{
+		Overflow: true, Overflowing: []string{"a page"},
+		Prose: Prose{Blocks: 5, Texts: []string{"eight words"}}, Helpers: 5, SmallLines: []string{"four words"},
+	}
+	if got := census.Over(); len(got) != 3 {
+		t.Errorf("the page, the sentences and the small lines: %q", got)
+	}
+	if got := census.OverLayout(); len(got) != 1 || !strings.Contains(got[0], "across an edge of the window") {
+		t.Errorf("the page only: %q", got)
+	}
+}
+
 func TestTheCensusFindsALabelThatNeedsMoreLinesThanItMayHave(t *testing.T) {
 	// A word of 48 characters that is broken at characters, in a control whose label may have two lines: where the room has
 	// three lines of it the third is an ellipsis, and where it has two it is not cut. The rooms are those of the width of the

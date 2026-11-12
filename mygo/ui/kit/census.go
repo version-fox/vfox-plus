@@ -299,6 +299,10 @@ func leading(row *Node, shown []*Node) string {
 	return ""
 }
 
+// inkShare is how small a part of the box of a text, one pixel in so many, may be of the colour of the text for those pixels to
+// say where its glyphs are.
+const inkShare = 20
+
 // measure takes the contrast of a text against what stands behind it: the colour that most of the pixels around its ink
 // have in the image, which the colour of the text, with its opacity, is laid over. The ink of an opaque text is the pixels
 // that have the colour of the text itself, and what is behind it is read in the 3 px around them, which is what the glyphs
@@ -315,15 +319,19 @@ func (c *Census) measure(n *Node, img image.Image) {
 	opaque := n.Color.A == 255
 	region := box
 	if opaque {
-		found := image.Rectangle{}
+		found, count := image.Rectangle{}, 0
 		for y := box.Min.Y; y < box.Max.Y; y++ {
 			for x := box.Min.X; x < box.Max.X; x++ {
 				if pixel(img, x, y) == ink {
 					found = found.Union(image.Rect(x, y, x+1, y+1))
+					count++
 				}
 			}
 		}
-		if !found.Empty() {
+		// The pixels of the colour of the text say where its glyphs are when there are enough of them. A thin glyph, a Han
+		// character at 14 dp, has a few of them in the middle of its strokes, all of them blends, and what is around those
+		// is blends, too: its box is read whole, where the background is most of it.
+		if count*inkShare >= box.Dx()*box.Dy() {
 			region = found.Inset(-3).Intersect(box)
 		}
 	}
@@ -395,7 +403,14 @@ func luminance(c [3]float64) float64 {
 
 // Over names the budgets of docs/en/dev/design-system.md#budgets that the census is over, each with its number. A
 // screen within the budgets gives none.
-func (c Census) Over() []string {
+func (c Census) Over() []string { return c.over(true) }
+
+// OverLayout is Over without the budgets of the copy, the sentences and the small lines, which count the words as English
+// has them. A language that has no spaces is held to the rest: a character of Han is a word for the census, and a sentence
+// of eight of them is a short one.
+func (c Census) OverLayout() []string { return c.over(false) }
+
+func (c Census) over(withCopy bool) []string {
 	var over []string
 	add := func(format string, args ...any) { over = append(over, fmt.Sprintf(format, args...)) }
 	if c.Contrast.Failing > 0 {
@@ -416,10 +431,10 @@ func (c Census) Over() []string {
 	if len(c.Wallpaper) > 0 {
 		add("rows that start with the same icon: %v", c.Wallpaper)
 	}
-	if c.Prose.Blocks > 3 {
+	if withCopy && c.Prose.Blocks > 3 {
 		add("%d sentences of eight words or more (at most 3): %q", c.Prose.Blocks, c.Prose.Texts)
 	}
-	if c.Helpers > 3 {
+	if withCopy && c.Helpers > 3 {
 		add("%d small lines of four words or more (at most 3): %q", c.Helpers, c.SmallLines)
 	}
 	if len(c.Sticking) > 0 {

@@ -473,11 +473,12 @@ and, for a text of a single line, the width that it wants, and from the picture 
 window what a text stands on. That gives it what the web census has not: an icon that the
 table of the icons lacks. A screen that has a dialog or a menu open is the dialog or the
 menu. The windows are as tall as a page can be, so that what is below the fold counts as
-well, and six of them have the text scale of the system at 130, 150 and 200 %. Eleven windows make 231
-screens, which take about 40 s: every frame of every screen is drawn by a software
+well, six of them have the text scale of the system at 130, 150 and 200 %, and three show the Chinese text (a scene
+goes to its screen in English, and the language is changed there). Fourteen windows make 294
+screens, which take about a minute: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
-costs eleven drawings and a new window twenty-one, so weigh them; they are not worth a thread
+costs fourteen drawings and a new window twenty-one, so weigh them; they are not worth a thread
 more, as the renderer uses the cores already. The addresses that a computer has are told to
 the web interface by the test (`pair.HostOptions.Addresses`), an IPv4 and an IPv6 one of the
 ranges that are kept for documentation, so that the screen of the pairing is the same on every machine.

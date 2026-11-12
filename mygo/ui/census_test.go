@@ -52,6 +52,9 @@ type censusWindow struct {
 	dark          bool
 	// scale is the text scale of the system that the window is drawn with; 0 is 1.
 	scale float32
+	// language is the language that the screen is shown in, when it is not English, which the application starts in and the
+	// scenes are told in: it is changed where the scene has reached the screen.
+	language settings.LanguagePreference
 }
 
 var (
@@ -71,6 +74,12 @@ var (
 	censusNarrowLarge = censusWindow{name: "narrow-200", width: 360, height: 2400, scale: 2}
 	censusMediumLarge = censusWindow{name: "medium-200", width: 700, height: 1800, scale: 2}
 	censusWideLarge   = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
+	// The Chinese text, in the narrowest window, at 200 % in it, and in the widest: its words are not as long as the English
+	// ones, and it has no spaces to break at, which is another way to be too wide for a room. They are held to the budgets of the
+	// layout, and not to those of the copy, which count the words as English has them (kit.Census.OverLayout).
+	censusNarrowZh      = censusWindow{name: "narrow-zh", width: 360, height: 2400, language: settings.LanguageSimplifiedChinese}
+	censusNarrowLargeZh = censusWindow{name: "narrow-200-zh", width: 360, height: 2400, scale: 2, language: settings.LanguageSimplifiedChinese}
+	censusWideZh        = censusWindow{name: "wide-zh", width: 1280, height: 1600, language: settings.LanguageSimplifiedChinese}
 )
 
 // censusAddresses are the addresses that the computer of the census has on its networks: one of IPv4 and one of IPv6, of the
@@ -108,6 +117,7 @@ func (s censusScene) in() []censusWindow {
 	return []censusWindow{
 		censusWide, censusDark, censusMedium, censusCompact, censusNarrow,
 		censusNarrowMid, censusNarrowMore, censusCompactMore, censusNarrowLarge, censusMediumLarge, censusWideLarge,
+		censusNarrowZh, censusNarrowLargeZh, censusWideZh,
 	}
 }
 
@@ -225,6 +235,19 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	return ta
 }
 
+// takeScene is the application at the screen that a scene goes to, in the window: in the language of the window, which is
+// changed where the scene has reached the screen, as the scenes are told by the words of English.
+func takeScene(t *testing.T, scene censusScene, window censusWindow) *testApp {
+	t.Helper()
+	ta := censusApp(t, scene, window)
+	scene.reach(ta)
+	if window.language != "" {
+		ta.updateSettings(func(s *settings.AppSettings) { s.Language = window.language })
+		ta.settle()
+	}
+	return ta
+}
+
 // census takes the census of the screen that the window shows.
 func (ta *testApp) census() kit.Census {
 	ta.t.Helper()
@@ -242,13 +265,16 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 		for _, window := range scene.in() {
 			name := scene.name + "." + window.name
 			t.Run(name, func(t *testing.T) {
-				ta := censusApp(t, scene, window)
-				scene.reach(ta)
+				ta := takeScene(t, scene, window)
 				census := ta.census()
 				ta.snapshot("census." + name)
 				report[name] = census
 				t.Logf("%s", censusLine(census))
-				if over := census.Over(); len(over) > 0 {
+				over := census.Over
+				if window.language != "" {
+					over = census.OverLayout
+				}
+				if over := over(); len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
 			})
@@ -274,8 +300,7 @@ func TestTheScreensAreWithinTheBudgetsAtEverySizeOfText(t *testing.T) {
 			window.scale, window.name = scale, fmt.Sprintf("%s-%d", base.name, int(scale*100+0.5))
 			for _, scene := range censusScenes {
 				t.Run(scene.name+"."+window.name, func(t *testing.T) {
-					ta := censusApp(t, scene, window)
-					scene.reach(ta)
+					ta := takeScene(t, scene, window)
 					if over := ta.census().Over(); len(over) > 0 {
 						t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 					}
@@ -312,8 +337,7 @@ func TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses(t *testing.
 	for _, scene := range censusScenes {
 		for _, window := range []censusWindow{censusNarrow, censusNarrowLarge, censusWide} {
 			t.Run(scene.name+"."+window.name, func(t *testing.T) {
-				ta := censusApp(t, scene, window)
-				scene.reach(ta)
+				ta := takeScene(t, scene, window)
 				if over := ta.census().Over(); len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}

@@ -139,10 +139,11 @@ person to understand, to judge or to act; what the layout already says is not sa
 The census of a screen is taken by `webheap -audit` for the web interface, which the Android
 app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
 ([how to take them](contributing.md#auditing-the-interface)). The test draws 21 screens in
-eleven windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
-narrowest that the application opens in), and, with the text that the system makes larger, 130 % and
-150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp. It fails when one of them is over
-a budget. A dp of the desktop is a px of the web interface. A screen is held to:
+fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
+narrowest that the application opens in), with the text that the system makes larger, 130 % and
+150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
+100 % and at 200 %, and 1280 dp wide. It fails when one of them is over a budget. A dp of the desktop is
+a px of the web interface. A screen is held to:
 
 | Census | Budget |
 | ------ | -----: |
@@ -157,6 +158,11 @@ a budget. A dp of the desktop is a px of the web interface. A screen is held to:
 | Titles and texts of controls that an ellipsis cuts short, in a line or in the lines they may have | 0 |
 | Controls and texts that a row of a list holds and that are drawn beyond its padding | 0 |
 | Icons that the table of the icons does not have (desktop only) | 0 |
+
+The Chinese windows are held to the budgets of the layout, and not to the two of the copy (the sentences and the small
+lines), which count the words as English has them: a character of Han is a word for the census, and a sentence of eight
+of them is a short one. A language that has no spaces has another way to be too wide for its room, a word that is
+all one run of characters, and what breaks a word at any character (see *Long words* below) is what it breaks by.
 
 **Larger text.** The text of the system may be larger, up to 200 %, and the budgets hold at every
 size in every window. What holds text is as wide as the text: where there is no room for it, a
