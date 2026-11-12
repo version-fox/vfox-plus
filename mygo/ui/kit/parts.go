@@ -98,11 +98,12 @@ func PageHeader(c Ctx, title, subtitle string, leading func(), actions ...func()
 	})
 }
 
-// GroupHeader is the title of a group of a page.
+// GroupHeader is the title of a group of a page. A title is copy and not data: it goes on as many lines as it needs, and is not
+// cut by an ellipsis.
 func GroupHeader(c Ctx, title string, trailing func()) ui.Element {
 	cs := c.Colors()
 	return ui.Row(c.Context).Padding(24, 4, 8, 16).Children(func() {
-		Label(c, title, Type(TitleSmall), cs.Primary, Lines(2)).Grow(1).Shrink(1).Role(ui.RoleHeading).Level(2)
+		Label(c, title, Type(TitleSmall), cs.Primary, Breakable()).Grow(1).Shrink(1).Role(ui.RoleHeading).Level(2)
 		if trailing != nil {
 			trailing()
 		}

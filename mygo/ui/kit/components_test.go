@@ -171,6 +171,28 @@ func TestMenuAndDialogSnapshot(t *testing.T) {
 	}
 }
 
+// The title of a group is copy, and is not cut where the room is short: it goes on as many lines as it needs, where a name that is
+// data may end with an ellipsis (it was held to two lines, and "Use the versions i…", a title of three at 200 % in a wide font, was cut).
+func TestTheTitleOfAGroupGoesOnAsManyLinesAsItNeeds(t *testing.T) {
+	const title = "A title of a group that is far too long for the room that it has"
+	h := newTested(t, 300, 400, func(c Ctx) {
+		ui.Column(c.Context).Background(c.Colors().Surface).Width(120).Children(func() {
+			GroupHeader(c, title, nil)
+		})
+	})
+	h.tester.Frame()
+	h.tester.Advance(time.Second)
+	for _, n := range h.env.Reg.Nodes() {
+		if n.Role == RoleText && n.Text == title {
+			if lines := n.Rect.H / Type(TitleSmall).Line; lines < 3 || n.Rect.W > 120 {
+				t.Errorf("a title that is far too long for 120 dp has as many lines as it needs, in the width of its room: %+v, %.1f lines", n.Rect, lines)
+			}
+			return
+		}
+	}
+	t.Fatalf("the title was not drawn: %q", h.tester.Texts())
+}
+
 // What does not fit in the room that it has wraps, in the components that hold a label: a chip, a tag, and a button that wraps.
 func TestWhatHoldsALabelWrapsItWhereTheRoomIsShort(t *testing.T) {
 	const room = 160
