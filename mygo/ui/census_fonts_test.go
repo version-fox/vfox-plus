@@ -32,7 +32,9 @@ import (
 // The census in the widest fonts that the system has. The layout is not written for a font, but that is a thing to be shown and
 // not to be said: a machine has the fonts that it has, and a font that is wider than the one that the census draws in is wider
 // than a layout that was never tried in it. Nobody can name the widest font of every machine, so the test asks the machine: it
-// measures every family that the text engine lists, in the engine itself, and draws the scenes in the widest.
+// measures the families that systems and desktops set their interface in, in the text engine itself, and draws the scenes in the
+// widest that it has. (A font of handwriting, of symbols or of emoji is a font that no screen of the application is set in: the
+// first draft took the widest of every family that the engines list, and found Segoe Script, Zapfino and Apple Color Emoji.)
 
 // familyProbes are the lines that a family is measured by: a line of English, which is how wide the family sets text, and
 // three of one letter, which tell the wide letters of a font from its narrow ones, and one font from another.
@@ -132,15 +134,22 @@ func TestTheWidestFamiliesAreChosenByWhatTheyMeasure(t *testing.T) {
 	}
 }
 
-// systemFamilies are the families that the text engine lists, measured, and what the engine sets for the names that stand for
-// no family of its own.
-type systemFamilies struct {
-	all []measuredFamily
-	// sansSerif and monospace are what the engine gives for those names, and unknown what it gives for a name that no font has.
-	sansSerif, monospace, unknown measuredFamily
+// uiFamilies are the families that operating systems and desktops set their interface in, and the ones that sans-serif commonly
+// stands for: the fonts that a person's screens are drawn in. Verdana is the widest of them on Windows and on macOS, and DejaVu
+// Sans on Linux.
+var uiFamilies = []string{
+	"Verdana", "Tahoma", "Trebuchet MS", "Segoe UI", "Arial", "Calibri", "Geneva", "Lucida Grande", "Helvetica Neue", "Helvetica",
+	"DejaVu Sans", "Noto Sans", "Open Sans", "Roboto", "Inter", "Adwaita Sans", "Cantarell", "Liberation Sans", "Lato", "FreeSans",
+	"Droid Sans", "Fira Sans", "Source Sans 3", "Oxygen", "Ubuntu Sans", "Ubuntu",
 }
 
-// measureSystemFamilies measures every family that the text engine lists, in the text engine.
+// systemFamilies are the families of uiFamilies that the system has, measured, and what the engine gives for sans-serif.
+type systemFamilies struct {
+	all       []measuredFamily
+	sansSerif measuredFamily
+}
+
+// measureSystemFamilies measures the families of uiFamilies that the text engine lists, in the text engine.
 func measureSystemFamilies(t *testing.T) systemFamilies {
 	t.Helper()
 	var system systemFamilies
@@ -159,13 +168,11 @@ func measureSystemFamilies(t *testing.T) systemFamilies {
 			return f
 		}
 		for _, family := range list {
-			// A name is a list of families to the engine: one that has a comma or a quote in it is not one that it can be told.
-			if !strings.ContainsAny(family.Name, `,"'`) {
+			if slices.Contains(uiFamilies, family.Name) {
 				system.all = append(system.all, measure(family.Name, family.Monospaced))
 			}
 		}
-		system.sansSerif, system.monospace = measure("sans-serif", false), measure("monospace", true)
-		system.unknown = measure("A family that no font has", false)
+		system.sansSerif = measure("sans-serif", false)
 	}, 400, 100)
 	tester.Frame()
 	if !measured {
@@ -173,10 +180,6 @@ func measureSystemFamilies(t *testing.T) systemFamilies {
 	}
 	return system
 }
-
-// knownWide are the widest of the fonts that are common, by name: the test takes them when the system has them, so that a system
-// that has fonts that are wider than they are does not take them out of it.
-var knownWide = []string{"Verdana", "DejaVu Sans"}
 
 // The scenes in the narrowest window at 100 % and at 200 %, and in the widest, in the families that are the widest of those that
 // the system has, with `monospace` beside each. The family that the system gives for `sans-serif` is that of
@@ -192,24 +195,16 @@ func TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas(t *testin
 		t.Skip("the census does not need the race detector, which makes it three times slower")
 	}
 	system := measureSystemFamilies(t)
-	defaults := []measuredFamily{system.sansSerif, system.unknown}
-	proportional := widest(system.all, defaults, 3)
-	for _, name := range knownWide {
-		i := slices.IndexFunc(system.all, func(f measuredFamily) bool { return f.name == name })
-		if i < 0 || !system.all[i].proportional() || slices.ContainsFunc(defaults, system.all[i].alike) ||
-			slices.ContainsFunc(proportional, system.all[i].alike) {
-			continue
-		}
-		proportional = append(proportional, system.all[i])
-	}
+	proportional := widest(system.all, []measuredFamily{system.sansSerif}, 3)
 	if len(proportional) == 0 {
-		t.Fatalf("the system has no family to set the screens in other than the one that it gives for sans-serif: %d families", len(system.all))
+		t.Fatalf("the system has none of the families that screens are set in other than the one that it gives for sans-serif: %d", len(system.all))
 	}
-	// Verdana is on every Windows and every Mac, and is the widest font of them that is of text: a machine that has not got it
-	// is not the one that this test is told of, and the test says so, where it would have drawn the screens in a narrower font.
+	// Verdana is on every Windows and every Mac, and is the widest font of them that is of text: a machine that has not got it, or
+	// that has fonts that are wider, is not the one that this test is told of, and the test says so, where it would have drawn the
+	// screens in narrower fonts.
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
-		if !slices.ContainsFunc(system.all, func(f measuredFamily) bool { return f.name == "Verdana" }) {
-			t.Fatalf("%s has Verdana, and this machine has not: the widest of its fonts is not the one that is tried", runtime.GOOS)
+		if !slices.ContainsFunc(proportional, func(f measuredFamily) bool { return f.name == "Verdana" }) {
+			t.Fatalf("Verdana is the widest font of %s, and is not among those that are tried: %d", runtime.GOOS, len(proportional))
 		}
 	}
 	against := system.sansSerif.width()
