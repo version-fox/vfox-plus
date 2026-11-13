@@ -481,7 +481,7 @@ English, and the language is changed there). Fourteen windows make 336 screens. 
 shortest that the application opens in: the scene goes to its screen in a window as tall as it needs, the window is made
 shorter (`censusWindow.shrunk`), and a menu that the scene opens (`open`) is opened from a button that it has scrolled to, as a
 person does. The lists that scroll (`toEnd`) are drawn at their end as well, and so is the content of a dialog in a window that is
-shorter than it. That is 386 screens and 61 ends, which take
+shorter than it, and to the middle of what it scrolled. That is 386 screens, 61 ends and 30 middles, which take
 about two minutes: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
@@ -507,7 +507,7 @@ in three windows, about 20 s; `TestTheScreensAreWithinTheBudgetsInTheWidestFonts
 three windows in the three widest of the families that systems and desktops set their interface in (Verdana, DejaVu Sans,
 Geneva, Inter and the like, as the text engine measures them), and in Chinese in the widest of them, about a minute and a half;
 `TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes every text wider by letter spacing (`kit.Tracking`), by two fifths at every
-size of text, in nine windows, 225 screens in about a minute and a half; and
+size of text, in ten windows, 250 screens in about a minute and a half; and
 `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes the sizes of text that the census does not, 115, 130, 150 and 175 %,
 in four widths, in English and in Chinese, 800 screens in about seven minutes. These three run only when asked, with
 `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`.

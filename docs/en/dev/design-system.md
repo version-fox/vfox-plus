@@ -146,7 +146,7 @@ narrowest that the application opens in), with the text that the system makes la
 shortest that the application opens in, 360 by 480 dp, at 100 % and at 200 %, and a window as short and 1280 dp wide: the
 screen is reached in a window as tall as it needs, and the window is made shorter, as a person makes it, and a menu is opened
 from a button that has been scrolled to. What a dialog has below its fold is counted there, too: its content is scrolled to its end,
-as the list of a page is. It fails when one of them is over a budget. A dp of the desktop is
+and to the position between its start and its end, as the list of a page is. It fails when one of them is over a budget. A dp of the desktop is
 a px of the web interface. A page that is taller than the windows (the settings, the options of a plugin, the lists of the
 plugins and of the distributions of Java: up to 9 500 dp at 200 %) is drawn in a window as tall as it is, so that what it
 has below the fold is counted, too; a page that has a list with more rows than any window shows (the versions of Node.js)
@@ -176,7 +176,8 @@ lines), which count the words as English has them: a character of Han is a word 
 of them is a short one. A language that has no spaces has another way to be too wide for its room, a word that is
 all one run of characters, and what breaks a word at any character (see *Long words* below) is what it breaks by.
 
-**Larger text.** The text of the system may be larger, up to 200 %, and the budgets hold at every
+**Larger text.** The text of the system may be larger, up to 200 %, which the budgets promise, and the
+largest that a system offers is 225 % (the "Make text bigger" of Windows), where the screens are drawn, too; the budgets hold at every
 size in every window. What holds text is as wide as the text: where there is no room for it, a
 control goes under the text that it was beside (the end of an item of a list, the actions of the
 header of a page and of a dialog), a group of segments gives up its padding and its icons and then
@@ -234,8 +235,8 @@ than that: German, Finnish and Russian set the same words in a third to a half m
 third, and more for what is short). No machine has the font that would show it, so
 `TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes the text wider by letter spacing, as the tools of pseudo-localization
 do (`kit.Tracking`, which the labels draw and every layout that measures a text measures with, calibrated on a line of English in the
-font of the machine): by two fifths at every size of text, in 360 dp at 100 % and 150 %, at 700 and at 1280 dp, and at 200 %, in
-English and in Chinese. The machines that CI takes are held to a width of text that no font of theirs has. This is how the labels of the navigation bar and of the rail, a text field and the entries of a menu
+font of the machine): by two fifths at every size of text, in 360 dp at 100 %, 150 %, 200 % and 225 %, at 700 and at 1280 dp at 100 % and
+200 %, in English and in Chinese. The machines that CI takes are held to a width of text that no font of theirs has. This is how the labels of the navigation bar and of the rail, a text field and the entries of a menu
 were found not to hold.
 CI takes the census where the text engine and the fonts are not those of Linux, and in more than one version of each, so that
 the layout is held in them and not assumed to hold: on Windows Server 2025, Windows Server 2022 and Windows 11 on ARM, where

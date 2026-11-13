@@ -384,7 +384,7 @@ key），替换文档中的链接。curl 以 56 退出是连接断了：重试�
 Node.js 的版本，按它显示出来的行算）。其中六种窗口用系统文字缩放的 130 %、150 % 和 200 %，三种显示中文（场景用英文走到它的屏幕，
 再在那里切换语言）。十四种窗口共 336 个屏幕。以对话框或菜单结尾的场景（`modal`）还要多画在三种窗口里，那是应用能打开的最矮窗口：场景先在够高的窗口里走到
 它的屏幕，再把窗口缩矮（`censusWindow.shrunk`），场景要打开的菜单（`open`）则是从它滚动到了的按钮上打开的，就像人做的那样。会滚动的列表
-（`toEnd`）还要在末尾再画一遍，比它矮的窗口里的对话框内容也滚到末尾再画一遍。一共 386 个屏幕外加 61 个末尾，约两分钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
+（`toEnd`）还要在末尾再画一遍，比它矮的窗口里的对话框内容也滚到末尾、再滚回一个窗口的高度，各画一遍。一共 386 个屏幕、61 个末尾和 30 个中间位置，约两分钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
 所以单元测试在竞态下跳过普查，CI 和沙箱单独用一步来跑。新增一个场景要多画十四次，新增一种窗口要多画二十五次，
 加之前先掂量；也别指望再开线程，渲染器已经在用多个核了。这台电脑有哪些地址，由测试告诉网页界面
 （`pair.HostOptions.Addresses`）：一个 IPv4 和一个 IPv6，都取自专门留作文档示例的地址段，所以配对的屏幕在每台机器上都一样。
@@ -403,7 +403,7 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 `TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` 用系统和桌面拿来排界面的字体族里最宽的三个
 （Verdana、DejaVu Sans、Geneva、Inter 等，由文字引擎量出来）画它们，同样三种窗口，其中最宽的一个再用中文画一遍，约一分半钟；
 `TestTheScreensAreWithinTheBudgetsInATextThatIsWider` 用字距（`kit.Tracking`）把所有文字变宽，每种字号都宽五分之二，
-九种窗口，225 个屏幕，约一分半钟；
+十种窗口，250 个屏幕，约一分半钟；
 `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` 取普查没取的文字大小 115、130、150 和 175 %，四种宽度，英文和中文各一遍，
 800 个屏幕，约七分钟。这三个只在要求时才跑，用
 `VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`。
