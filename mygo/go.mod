@@ -3,8 +3,8 @@ module github.com/version-fox/vfox-plus/mygo
 go 1.27.4
 
 require (
-	github.com/ebitengine/purego v0.11.2
-	github.com/egoist/mygo v0.7.3
+	github.com/ebitengine/purego v0.11.3
+	github.com/egoist/mygo v0.9.0
 	// Encodes the pairing link of the settings as a QR code for the Android
 	// app to scan (MIT; see docs/en/dev/architecture.md#dependencies).
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e

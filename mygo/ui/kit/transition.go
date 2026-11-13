@@ -50,6 +50,12 @@ func SwitchView(c Ctx, kind Transition, side float32, key any, build func()) ui.
 	default:
 		enter, exit = ui.Motion{Scale: c.Env.scaled(0.92)}, ui.Motion{}
 	}
+	if c.Env.Theme.ReducedMotion {
+		// With less motion there is no transition: the view is built where it is, and the layers that a
+		// transition draws its children in are not made (in v0.8 of the toolkit they are, and every
+		// frame of a page of text or of a list composites the whole page).
+		return ui.Column(c.Key(key)).Children(build)
+	}
 	return ui.Column(c.Key(key)).Transition(ui.ElementTransition{
 		Animation: &spring, Enter: &enter, Exit: &exit,
 	}).Children(build)
