@@ -332,7 +332,9 @@ func (a *App) detailHeader(k kit.Ctx, sdk core.InstalledSdk, info core.PluginInf
 
 	textColumn := func() {
 		mui.Column(k.Context).Grow(1).Shrink(1).AlignItems(mui.Start).Children(func() {
-			kit.Line(k, sdk.Name, kit.Emph(kit.HeadlineMedium), cs.OnSurface)
+			// The name of the page is the name of the SDK, and goes on as many lines as it needs: at 225 % "nodejs" wants 258 dp of the 256
+			// that the column of a pane of a phone has, and was cut by an ellipsis.
+			kit.Label(k, sdk.Name, kit.Emph(kit.HeadlineMedium), cs.OnSurface, kit.Breakable())
 			mui.Row(k.Context).Wrap().Gap(gapS).GapY(gapXS).Margin(gapXS, 0, 0, 0).Children(func() {
 				if sdk.HasCurrent {
 					kit.Tag(k, kit.TagSpec{Label: a.T("sdksCurrent", "version", sdk.Current), Icon: "current", Emphasized: true})
