@@ -514,7 +514,7 @@ in four widths, in English and in Chinese, 800 screens in about seven minutes. T
 `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` is quick and always runs: it asks the text engine for the width of the labels of
 the navigation bar and draws them in a box of that width, which the census relies on to say that a label is cut.
 
-CI asks for them. The job `census` of `mygo.yml` takes the census, the fonts, the widest fonts, the wider text and the sweep on Windows Server
+CI asks for them. The job `census` of `mygo.yml` is three jobs on each machine — the screens (the census, the fonts of the system and the wider text), the widest fonts, and the sweep — run at once, so that a run of the census takes as long as the longest of them and not as long as their sum. It takes them on Windows Server
 2025 and Windows Server 2022 (x64), Windows 11 on ARM (arm64), macOS 26 and macOS 15 (arm64) and macOS 15 on Intel, each in
 the text engine and the fonts of its own platform (DirectWrite and Core Text, where Linux has Pango): the newest and the oldest
 Windows and macOS that GitHub has, and the other architecture of each. On Linux it takes the widest fonts, the wider text and the sweep, with the

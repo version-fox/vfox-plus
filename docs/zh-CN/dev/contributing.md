@@ -410,7 +410,7 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` 很快，每次都跑：它向文字引擎问底栏标签的宽度，再把标签画进这个宽度的盒子里，
 普查说一个标签被截断，靠的就是这一点。
 
-CI 会要求它们。`mygo.yml` 的 `census` 任务在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和
+CI 会要求它们。`mygo.yml` 的 `census` 在每台机器上是三个任务——屏幕（普查、系统字体和加宽文字）、最宽字体、字号扫描——同时运行，所以一次普查的时间是其中最长的那个，而不是三者相加。它在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和
 macOS 15（arm64）以及 Intel 上的 macOS 15 上取普查、字体测试、最宽字体测试、加宽文字测试和扫描，每个平台用它自己的文字引擎和字体（Linux 是 Pango，
 这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。在 Linux 上取最宽字体测试、加宽文字测试和扫描，
 并装上桌面用来排文字的字体，Linux 的普查是 `build` 任务的一步。它不等 `build`；每个平台上也跑 `kit` 的测试；打印它所在系统的版本；
