@@ -656,31 +656,32 @@ jobs:
     # take it all. Of Windows and of macOS the newest and the oldest that GitHub has are taken (windows-2022 is Windows
     # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-arm, and macos-15-intel.
     #
-    # The tests are three jobs on each machine, not one: a run of the census is as long as the longest of them, and
-    # not as long as their sum, and the longest, the sweep of the sizes of text, is about half of what it was (45
-    # minutes on macOS 15 on Intel, where it was 44 for all of them). A machine runs the three at once.
+    # The tests are four jobs on each machine, not one, and a run of the census is as long as the longest of them, not as long
+    # as their sum: the screens (the census, the fonts of the system and the wider text), the widest fonts, and the sweep of the
+    # sizes of text in two jobs, the windows of 1280 dp, which take half of the sweep, and the others. A machine runs them at once.
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-26.04, windows-2025, windows-2022, windows-11-arm, macos-latest, macos-15, macos-15-intel]
-        group: [census, widest, sweep]
+        group: [census, widest, sweep-wide, sweep-rest]
         include:
           - group: census
             run: 'TestTheScreensAreWithinTheBudgets$|TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses|TestTheScreensAreWithinTheBudgetsInATextThatIsWider'
           - group: widest
             run: 'TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas'
-          - group: sweep
-            run: 'TestTheScreensAreWithinTheBudgetsAtEverySizeOfText'
+          - group: sweep-wide
+            run: 'TestTheScreensAreWithinTheBudgetsAtEverySizeOfText/\.wide-'
+          - group: sweep-rest
+            run: 'TestTheScreensAreWithinTheBudgetsAtEverySizeOfText/\.(narrow|compact|medium)-'
           - os: ubuntu-26.04
             fonts: >-
               fonts-adwaita-sans fonts-cantarell fonts-noto-core fonts-inter fonts-open-sans fonts-roboto fonts-lato
               fonts-liberation2 fonts-freefont-ttf
     runs-on: ${{ matrix.os }}
-    # The slowest of the machines, macOS 15 on Intel, takes three quarters of an hour of it: 44 minutes on the run at da7d186, where it
-    # took 18 to 20 before the census drew the dialogs and the menus in the short windows, the text made wider, and the widest fonts in
-    # Chinese, and before the toolkit of the interface was 0.9. It has an hour and a quarter, and its tests 65 minutes.
+    # The slowest of the machines, macOS 15 on Intel, took 44 minutes for all of the tests on the run at da7d186, before the sweep was
+    # split in two. The tests of a group have 65 minutes, and the job an hour and a quarter.
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -724,9 +725,18 @@ jobs:
         env:
           VFOX_PLUS_CENSUS_SWEEP: '1'
           VFOX_PLUS_CENSUS: ${{ runner.temp }}/census
-          VFOX_PLUS_SNAPSHOTS: ${{ runner.temp }}/census
+          # Every picture of the screens is kept only by a run that is asked for by hand; a screen that is over a budget keeps its
+          # picture in the census directory, which the last step uploads when the run fails.
+          VFOX_PLUS_SNAPSHOTS: ${{ github.event_name == 'workflow_dispatch' && format('{0}/census', runner.temp) || '' }}
           TESTS: ${{ matrix.run }}
-        run: go test ./ui -run "$TESTS" -count=1 -timeout 65m -v
+        run: |
+          go test ./ui -run "$TESTS" -count=1 -timeout 65m -v 2>&1 | tee "$RUNNER_TEMP/census-output.txt"
+          # A pattern that matches no test, or no subtest of the tests that it matches, passes without a screen: a group that
+          # runs no screen has not taken the census.
+          if ! grep -q -- '=== RUN .*/' "$RUNNER_TEMP/census-output.txt"; then
+            echo "the pattern of the group runs no screen: $TESTS"
+            exit 1
+          fi
       - name: Test the kit
         # The components measure the text and wrap by what they measure, whatever it is set in: what their tests hold is the
         # same on every platform. It runs when the census did not pass, too, so that a run says both.
