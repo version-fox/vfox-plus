@@ -666,8 +666,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-26.04, windows-2025, windows-2022, windows-11-arm, macos-latest, macos-15, macos-15-intel]
-        group: [census, widest, sweep-wide, sweep-rest]
+        # On the macOS runners five jobs ran at once in the run at 3b3bcd7, and the jobs of Intel, which take the longest, waited
+        # behind the others: the matrix lists the longest machine and its longest group first, so that the queue starts with them.
+        os: [macos-15-intel, macos-15, macos-latest, ubuntu-26.04, windows-2025, windows-2022, windows-11-arm]
+        group: [census, sweep-rest, widest, sweep-wide]
         include:
           - group: census
             run: 'TestTheScreensAreWithinTheBudgets$|TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses|TestTheScreensAreWithinTheBudgetsInATextThatIsWider'
