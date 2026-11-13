@@ -450,10 +450,11 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				ta := takeScene(t, scene, window)
 				census := ta.census()
-				ta.snapshot("census." + name)
+				over := window.over(census)
+				ta.snapshotOf("census."+name, over)
 				report[name] = census
 				t.Logf("%s", censusLine(census))
-				if over := window.over(census); len(over) > 0 {
+				if len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
 				if !scene.toEnd && (!scene.modal || window.shrunk == 0) {
@@ -465,22 +466,24 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 				ta.scrollToEnd()
 				end := ta.census()
 				end.Scrolls = true
-				ta.snapshot("census." + name + ".end")
+				endOver := window.over(end)
+				ta.snapshotOf("census."+name+".end", endOver)
 				report[name+".end"] = end
 				t.Logf("at the end: %s", censusLine(end))
-				if over := window.over(end); len(over) > 0 {
-					t.Errorf("at the end of its list, over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+				if len(endOver) > 0 {
+					t.Errorf("at the end of its list, over the budgets of the design system:\n  %s", strings.Join(endOver, "\n  "))
 				}
 				if scene.modal && window.shrunk > 0 && !scene.toEnd {
 					// What is between the start and the end: a dialog whose content is two windows tall has a part that neither shows.
 					ta.scrollBack(float32(window.shrunk))
 					middle := ta.census()
 					middle.Scrolls = true
-					ta.snapshot("census." + name + ".middle")
+					middleOver := window.over(middle)
+					ta.snapshotOf("census."+name+".middle", middleOver)
 					report[name+".middle"] = middle
 					t.Logf("in the middle: %s", censusLine(middle))
-					if over := window.over(middle); len(over) > 0 {
-						t.Errorf("in the middle of its content, over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+					if len(middleOver) > 0 {
+						t.Errorf("in the middle of its content, over the budgets of the design system:\n  %s", strings.Join(middleOver, "\n  "))
 					}
 				}
 			})
@@ -555,6 +558,36 @@ func TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses(t *testing.
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
 			})
+		}
+	}
+}
+
+// A census keeps the picture of a screen that breaks a budget in the directory of its report, which is what CI uploads when a run
+// fails, and keeps the picture of every screen only where every picture is asked for.
+func TestTheCensusKeepsThePicturesThatItNeeds(t *testing.T) {
+	report, all := t.TempDir(), t.TempDir()
+	t.Setenv("VFOX_PLUS_CENSUS", report)
+	ta := takeScene(t, censusScenes[0], censusNarrow)
+	t.Setenv("VFOX_PLUS_SNAPSHOTS", "")
+	ta.snapshotOf("holds", nil)
+	ta.snapshotOf("breaks", []string{"a budget"})
+	t.Setenv("VFOX_PLUS_SNAPSHOTS", all)
+	ta.snapshotOf("holds-all", nil)
+	ta.snapshotOf("breaks-all", []string{"a budget"})
+	for dir, want := range map[string][]string{
+		report: {"breaks-all.png", "breaks.png"},
+		all:    {"breaks-all.png", "holds-all.png"},
+	} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, e := range entries {
+			got = append(got, e.Name())
+		}
+		if strings.Join(got, " ") != strings.Join(want, " ") {
+			t.Errorf("%s has %v, want %v", dir, got, want)
 		}
 	}
 }

@@ -229,10 +229,11 @@ func TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas(t *testin
 					t.Run(scene.name+"."+window.name, func(t *testing.T) {
 						ta := takeScene(t, scene, window)
 						census := ta.census()
-						if i == 0 && window.name == censusNarrowLarge.name {
-							ta.snapshot(fmt.Sprintf("widest.%s.%s", scene.name, window.name))
+						over := window.over(census)
+						if len(over) > 0 || (i == 0 && window.name == censusNarrowLarge.name) {
+							ta.snapshotOf(fmt.Sprintf("widest.%s.%s", scene.name, window.name), over)
 						}
-						if over := window.over(census); len(over) > 0 {
+						if len(over) > 0 {
 							t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 						}
 					})
@@ -293,8 +294,9 @@ func TestTheScreensAreWithinTheBudgetsInATextThatIsWider(t *testing.T) {
 			t.Run(scene.name+"."+wider.window.name, func(t *testing.T) {
 				ta := takeScene(t, scene, wider.window)
 				census := ta.census()
-				ta.snapshot(fmt.Sprintf("wider.%s.%s", scene.name, wider.window.name))
-				if over := wider.window.over(census); len(over) > 0 {
+				over := wider.window.over(census)
+				ta.snapshotOf(fmt.Sprintf("wider.%s.%s", scene.name, wider.window.name), over)
+				if len(over) > 0 {
 					t.Errorf("over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
 				}
 			})

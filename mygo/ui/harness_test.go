@@ -310,12 +310,24 @@ func (ta *testApp) button(name string) { ta.t.Helper(); ta.click(kit.RoleButton,
 // names, if it is set: the way to look at the pages.
 func (ta *testApp) snapshot(name string) {
 	ta.t.Helper()
-	saveSnapshot(ta.t, name, ta.tester.Image())
+	saveSnapshot(ta.t, os.Getenv("VFOX_PLUS_SNAPSHOTS"), name, ta.tester.Image())
 }
 
-func saveSnapshot(t *testing.T, name string, img image.Image) {
+// snapshotOf is snapshot for a screen of the census, which breaks the budgets of the design system where over names them, and
+// holds where over is empty. A screen that breaks them keeps its picture in the directory of the census (VFOX_PLUS_CENSUS), which
+// is what CI uploads when a run fails. The pictures of the screens that hold are encoded only when every picture is asked for
+// (VFOX_PLUS_SNAPSHOTS), since most screens hold and encoding a picture takes time.
+func (ta *testApp) snapshotOf(name string, over []string) {
+	ta.t.Helper()
+	if len(over) > 0 {
+		saveSnapshot(ta.t, os.Getenv("VFOX_PLUS_CENSUS"), name, ta.tester.Image())
+	}
+	ta.snapshot(name)
+}
+
+// saveSnapshot writes img as name.png into dir, if dir is set.
+func saveSnapshot(t *testing.T, dir, name string, img image.Image) {
 	t.Helper()
-	dir := os.Getenv("VFOX_PLUS_SNAPSHOTS")
 	if dir == "" {
 		return
 	}
