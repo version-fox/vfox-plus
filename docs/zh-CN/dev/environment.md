@@ -117,7 +117,7 @@ feature，它让容器成为特权容器。本仓库用到 Docker 的三件事�
 
 ## Go 与本机工具
 
-Go 用它的发布压缩包，并对照 `mygo/versions.env` 固定的校验和（`go.mod` 要求 1.27.3
+Go 用它的发布压缩包，并对照 `mygo/versions.env` 固定的校验和（`go.mod` 要求 1.27.4
 或更高）。在仓库根目录运行：
 
 ```sh

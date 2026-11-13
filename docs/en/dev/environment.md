@@ -152,7 +152,7 @@ application (`screenshots`). Where privileged containers are not allowed, or ghc
 ## Go and the native tools
 
 Go, from its release archive and checked against the checksum that
-`mygo/versions.env` pins (`go.mod` asks for 1.27.3 or later). Run this from the
+`mygo/versions.env` pins (`go.mod` asks for 1.27.4 or later). Run this from the
 root of the repository:
 
 ```sh
