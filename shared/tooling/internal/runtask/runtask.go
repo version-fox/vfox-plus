@@ -71,7 +71,6 @@ var tasks = []string{
 	"print-recommends",
 }
 
-// ValidTask reports whether name is a task runtask knows.
 // CensusGroups are the groups in which the census of the screens is taken, one job each, in this order: CI and the sandbox run them
 // alike. censusTests are their tests, as `go test -run` takes them, the same patterns as the matrix of mygo.yml. Every screen and
 // every size of text of the census has to be in one group, once: TestTheCensusGroupsTakeEachScreenOnce holds that.
@@ -93,6 +92,7 @@ func init() {
 	}
 }
 
+// ValidTask reports whether name is a task runtask knows.
 func ValidTask(name string) bool {
 	for _, task := range tasks {
 		if name == task {
