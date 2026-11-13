@@ -69,7 +69,11 @@ func Menu(c Ctx, anchor ui.Element, open *bool, items []MenuItem, o MenuOptions)
 		bounds := anchor.Bounds()
 		room := max(windowHeight-(bounds.Y+bounds.H), bounds.Y) - 4 - menuEdge
 		panel.Padding(8, 0).Radius(CornerLarge).Background(cs.SurfaceContainer).
-			MinWidth(minWidth).MaxWidth(max(minWidth, 280)).MaxHeight(max(room, menuLeast)).FocusGroup(ui.Vertical)
+			MinWidth(minWidth).MaxWidth(max(minWidth, 280)).MaxHeight(max(room, menuLeast)).FocusGroup(ui.Vertical).
+			// A panel that is wider or taller than the window, or that a font makes taller, stays within its edge: at 200 % in 360 by
+			// 480 dp a menu of the Macs went 18 dp below the window (the toolkit of 0.9 places a panel by its size as it was laid out,
+			// and a panel that it would not fit below the anchor is not always taken above it).
+			AttachEdgeMargin(menuEdge)
 		if o.AlignEnd {
 			panel.AttachTo(anchor, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0)
 			originX = 1
