@@ -18,11 +18,11 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![插件](https://iili.io/nmPmysS.png) | ![设置](https://iili.io/nmihh1n.png) |
+| ![插件](https://iili.io/nmPmysS.png) | ![设置](https://iili.io/nyiMbzQ.png) |
 
 | 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |
-| ![窄窗口主页](https://iili.io/nmsehps.png) | ![窄窗口 SDK 页](https://iili.io/nD3UEbt.png) |
+| ![窄窗口主页](https://iili.io/nmsehps.png) | ![窄窗口 SDK 页](https://iili.io/nyiVOCB.png) |
 
 | 选择要列出的 Java 发行版 | Temurin，用 Chip 筛选长期支持版 |
 | --- | --- |

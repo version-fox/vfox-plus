@@ -17,7 +17,7 @@ like `http://127.0.0.1:41233`, which no other computer can reach. Choose *Open i
 and your browser opens it, paired by a one-time link. The link works once and expires after
 five minutes, and *Copy link* makes another one for the clipboard.
 
-![The settings of the web interface: the switch and the address that serves, the button that opens it in the browser, the lightweight mode and the other devices](https://iili.io/nmZdTWg.png)
+![The settings of the web interface: the switch and the address that serves, the button that opens it in the browser, the lightweight mode and the other devices](https://iili.io/nyiVJrF.png)
 
 The paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
@@ -113,7 +113,7 @@ network, so allow it only in a network that you trust.
 
 | The question that comes first | What the settings show once it is allowed |
 | --- | --- |
-| ![The question that asks whether other devices may connect](https://iili.io/nmQZPt4.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/nmZ359p.png) |
+| ![The question that asks whether other devices may connect](https://iili.io/nyiVCLN.png) | ![The settings of the web interface with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/nyiVRpf.png) |
 
 - vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
   firewall of this computer has to allow it.
@@ -140,7 +140,7 @@ network, so allow it only in a network that you trust.
 
 | The code and the link of *Pair a phone*, on the computer | The same, in a browser that is paired |
 | --- | --- |
-| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nmsBkfs.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nmiAZPI.png) |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nyiVG2e.png) | ![The code that pairs a phone, in the settings of the web interface](https://iili.io/nmiAZPI.png) |
 
 The settings of the web interface show the same switches: from a paired browser or phone
 you can allow other devices, change the port and turn the lightweight mode on or off, and

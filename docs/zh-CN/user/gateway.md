@@ -25,7 +25,7 @@ docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-pl
 
    还没有配对的浏览器看到的是网关的页面，上面也显示这个指纹：
 
-   ![浏览器还没有配对时看到的网关页面，上面有网关证书的指纹](https://iili.io/niyLhua.png)
+   ![浏览器还没有配对时看到的网关页面，上面有网关证书的指纹](https://iili.io/nyiVeEP.png)
 
 2. **把网关与 vfox-plus 配对。** 网关的页面上有一个输入框，用来粘贴 vfox-plus 的配对链接。在 PC 上
    依次选择*设置 → 网页界面 → 配对手机 → 显示二维码 → 复制链接*，再粘贴到那里。网关随后会显示
@@ -37,7 +37,7 @@ docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-pl
    | --- | --- |
    | ![网关还没有配对任何 vfox-plus，页面上有粘贴链接的输入框](https://iili.io/niyLeGp.png) | ![粘贴了 vfox-plus 配对链接的输入框](https://iili.io/niyLbS9.png) |
 
-   ![要求把 vfox-plus 证书的指纹与它设置里的核对的页面](https://iili.io/niyQWf2.png)
+   ![要求把 vfox-plus 证书的指纹与它设置里的核对的页面](https://iili.io/nyiVSYg.png)
 
 3. **使用。** 浏览器会被带到 vfox-plus 的界面：与配对浏览器看到的相同，由那个 vfox-plus 自己提供，
    所以页面总与正在运行的版本相符。在网关的页面上用*配对另一个浏览器*配对更多浏览器；粘贴另一个
@@ -45,7 +45,7 @@ docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-pl
 
    | 通过网关看到的 vfox-plus 界面 | 配对之后的网关页面 |
    | --- | --- |
-   | ![浏览器里通过网关提供的 vfox-plus 界面](https://iili.io/nmi749e.png) | ![配对之后的网关页面：vfox-plus 的地址与它信任的证书](https://iili.io/niyZIee.png) |
+   | ![浏览器里通过网关提供的 vfox-plus 界面](https://iili.io/nmi749e.png) | ![配对之后的网关页面：vfox-plus 的地址与它信任的证书](https://iili.io/nyiVgyJ.png) |
 
 网关在 vfox-plus 那里的会话和手机的一样最长一天，网关运行期间每隔几小时就续期一次。vfox-plus 退出
 或重新启动时，它的会话都会结束：网关页面会这样告诉你，你再粘贴一个新链接。vfox-plus 没有运行时，

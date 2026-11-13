@@ -20,11 +20,11 @@ colour.
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nmPmysS.png) | ![Settings](https://iili.io/nmPpmva.png) |
+| ![Plugins](https://iili.io/nmPmysS.png) | ![Settings](https://iili.io/nyiMQ5b.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |
-| ![Home in a compact window](https://iili.io/nmsehps.png) | ![An SDK in a compact window](https://iili.io/nD3UEbt.png) |
+| ![Home in a compact window](https://iili.io/nmsehps.png) | ![An SDK in a compact window](https://iili.io/nyiVOCB.png) |
 
 | The distribution of Java to list | Temurin, with the chip for long-term support |
 | --- | --- |
