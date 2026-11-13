@@ -497,9 +497,9 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 
 fails with the budgets that a screen is over, each with the texts, rows or controls that
 make it so. `VFOX_PLUS_CENSUS=dir` writes the census of every screen to `dir`, one JSON
-file for each and `summary.txt` with a row for each, and `VFOX_PLUS_SNAPSHOTS=dir` writes
-the picture of every screen too (`census.<screen>.<window>.png`), to look at what the numbers
-are about. A new screen is a new entry of `censusScenes`.
+file for each and `summary.txt` with a row for each, and the picture of each screen that is over a
+budget (`census.<screen>.<window>.png`), to look at what the numbers are about; `VFOX_PLUS_SNAPSHOTS=dir`
+writes the picture of every screen too. A new screen is a new entry of `censusScenes`.
 
 Five more tests take the scenes in other windows, and in other text. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws
 them in the font that the system gives for `sans-serif` and `monospace` (its log says which one that is),
@@ -514,12 +514,4 @@ in four widths, in English and in Chinese, 800 screens in about seven minutes. T
 `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` is quick and always runs: it asks the text engine for the width of the labels of
 the navigation bar and draws them in a box of that width, which the census relies on to say that a label is cut.
 
-CI asks for them. The job `census` of `mygo.yml` is three jobs on each machine — the screens (the census, the fonts of the system and the wider text), the widest fonts, and the sweep — run at once, so that a run of the census takes as long as the longest of them and not as long as their sum. It takes them on Windows Server
-2025 and Windows Server 2022 (x64), Windows 11 on ARM (arm64), macOS 26 and macOS 15 (arm64) and macOS 15 on Intel, each in
-the text engine and the fonts of its own platform (DirectWrite and Core Text, where Linux has Pango): the newest and the oldest
-Windows and macOS that GitHub has, and the other architecture of each. On Linux it takes the widest fonts, the wider text and the sweep, with the
-fonts that the desktops set their text in installed, and the census of Linux is a step of the job `build`. It does not wait
-for `build`; it runs the tests of the kit on each platform, too; it prints the version of the system that it runs on; and it
-keeps the pictures of the screens as an artifact when a screen is over a budget and when the workflow is run by hand
-(`workflow_dispatch`). The sandbox takes the widest fonts, the wider text and the sweep in its census step. Ask for them yourself after a change
-of a layout, to know before the push.
+CI asks for them. The job `census` of `mygo.yml` is four jobs on each machine — the screens (the census, the fonts of the system and the wider text), the widest fonts, and the sweep in two jobs, the windows of 1280 dp and the others — run at once, so that a run of the census takes as long as the longest of them and not as long as their sum. It takes them on Windows Server 2025 and Windows Server 2022 (x64), Windows 11 on ARM (arm64), macOS 26 and macOS 15 (arm64) and macOS 15 on Intel, each in the text engine and the fonts of its own platform (DirectWrite and Core Text, where Linux has Pango): the newest and the oldest Windows and macOS that GitHub has, and the other architecture of each. On Linux the fonts that the desktops set their text in are installed beside the ones of the application; the census of Linux in the fonts of the runner is a step of the job `build`, next to the end-to-end scenarios. The census does not wait for `build`; it runs the tests of the kit on each platform, too; it prints the version of the system that it runs on; a group that runs no screen fails; and it keeps the pictures as an artifact: the pictures of the screens that are over a budget when a run fails, and the pictures of every screen when the workflow is run by hand (`workflow_dispatch`). The sandbox takes the widest fonts, the wider text and the sweep in its census step. Ask for them yourself after a change of a layout, to know before the push.

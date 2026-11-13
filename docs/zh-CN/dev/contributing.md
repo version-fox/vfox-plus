@@ -395,8 +395,9 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 ```
 
 超预算时会失败，并列出超了哪几项，以及造成超标的文字、行或控件。`VFOX_PLUS_CENSUS=目录` 把每个屏幕的普查
-写到该目录：每屏一个 JSON 文件，外加每屏一行的 `summary.txt`；`VFOX_PLUS_SNAPSHOTS=目录` 再把每个屏幕的图也写出来
-（`census.<屏幕>.<窗口>.png`），好看看数字说的是什么。新增一个屏幕，就在 `censusScenes` 里加一项。
+写到该目录：每屏一个 JSON 文件，外加每屏一行的 `summary.txt`，并把超出预算的屏幕的图
+（`census.<屏幕>.<窗口>.png`）也存进去，好看看数字说的是什么；`VFOX_PLUS_SNAPSHOTS=目录` 再把每个屏幕的图都写出来。
+新增一个屏幕，就在 `censusScenes` 里加一项。
 
 另有五个测试用别的窗口、别的文字取这些场景。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和
 `monospace` 的字体画它们（日志里写着那是哪种字体），取三种窗口，约 20 秒；
@@ -410,9 +411,4 @@ go test ./ui -run TestTheScreensAreWithinTheBudgets
 `TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` 很快，每次都跑：它向文字引擎问底栏标签的宽度，再把标签画进这个宽度的盒子里，
 普查说一个标签被截断，靠的就是这一点。
 
-CI 会要求它们。`mygo.yml` 的 `census` 在每台机器上是三个任务——屏幕（普查、系统字体和加宽文字）、最宽字体、字号扫描——同时运行，所以一次普查的时间是其中最长的那个，而不是三者相加。它在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和
-macOS 15（arm64）以及 Intel 上的 macOS 15 上取普查、字体测试、最宽字体测试、加宽文字测试和扫描，每个平台用它自己的文字引擎和字体（Linux 是 Pango，
-这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。在 Linux 上取最宽字体测试、加宽文字测试和扫描，
-并装上桌面用来排文字的字体，Linux 的普查是 `build` 任务的一步。它不等 `build`；每个平台上也跑 `kit` 的测试；打印它所在系统的版本；
-某个屏幕超出预算、或人工触发工作流（`workflow_dispatch`）时，把各屏幕的图作为产物保存。沙箱在它的普查那一步里也取最宽字体测试、加宽文字测试和扫描。
-改了布局之后自己也要跑一遍，好在推送前就知道。
+CI 会要求它们。`mygo.yml` 的 `census` 在每台机器上是四个任务——屏幕（普查、系统字体和加宽文字）、最宽字体，以及字号扫描的两个分片（1280 dp 的窗口一片，其余的窗口一片）——同时运行，所以一次普查的时间是其中最长的那个，而不是四者相加。它在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和 macOS 15（arm64）以及 Intel 上的 macOS 15 上取这些测试，每个平台用它自己的文字引擎和字体（Linux 是 Pango，这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。Linux 上装着桌面用来排文字的字体，与应用自己的字体并排；Linux 在运行器自己的字体里的普查是 `build` 任务的一步，与端到端场景排在一起。普查不等 `build`；每个平台上也跑 `kit` 的测试；打印它所在系统的版本；某一组一个屏幕也没跑时它失败；图则作为产物保存：一次运行失败时保存超出预算的屏幕的图，人工触发工作流（`workflow_dispatch`）时保存每个屏幕的图。沙箱在它的普查那一步里也取最宽字体测试、加宽文字测试和扫描。改了布局之后自己也要跑一遍，好在推送前就知道。
