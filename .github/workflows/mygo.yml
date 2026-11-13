@@ -58,9 +58,10 @@ env:
     xvfb xauth dbus-x11 lintian desktop-file-utils
 
 jobs:
-  build:
-    name: Check, test end to end and package
-    # Forks do not run CI.
+  unit:
+    name: Check and test with the race detector
+    # The checks of the code and its unit tests, with the race detector, which the job that builds the application does not wait
+    # for: the two take about as long as each other. Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     runs-on: ubuntu-26.04
     timeout-minutes: 60
@@ -114,8 +115,6 @@ jobs:
       - name: Prepare the embedded assets
         # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
-      - name: Build the release
-        run: '"$RUNNER_TEMP/vfxtool" build --root mygo mygo/build/vfox-plus'
       - name: Verify the modules
         working-directory: mygo
         run: go mod verify
@@ -131,16 +130,53 @@ jobs:
         working-directory: mygo
         run: |
           go vet ./...
-          # The race detector needs cgo; the application is built without it.
+          # The race detector needs cgo; the application is built without it. The census of the screens is taken by the
+          # job that builds the application, without it: the census does not need the race detector, which makes it three
+          # times slower.
           CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
           "$RUNNER_TEMP/vfxtool" coverage coverage.out 85
-          # The census of the screens does not need the race detector, which makes it three times slower: the tests
-          # above skip it, and it is taken here.
-          go test ./ui -run TestTheScreensAreWithinTheBudgets -count=1
       - name: Test vfxtool
         run: |
           go -C shared/tooling vet ./...
           go -C shared/tooling test ./...
+
+  build:
+    name: Take the census, test end to end and package
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: mygo/go.sum
+      - name: Install the Linux packages
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - name: Prepare the embedded assets
+        # The icons, the translations and the licenses of the Go modules.
+        run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
+      - name: Build the release
+        run: '"$RUNNER_TEMP/vfxtool" build --root mygo mygo/build/vfox-plus'
+      - name: Take the census of the screens
+        # The census of the screens, which the job that checks and tests the code leaves out: it does not need the race
+        # detector, which makes it three times slower. It takes the screens in the fonts that the runner has with the
+        # packages above; the census of the matrix takes the screens of Linux again, with the fonts that the desktops of
+        # Linux set their text in installed.
+        working-directory: mygo
+        run: go test ./ui -run TestTheScreensAreWithinTheBudgets -count=1
       - name: Install vfox
         env:
           GH_TOKEN: ${{ github.token }}
@@ -322,7 +358,7 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
-    needs: [build]
+    needs: [unit, build]
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -582,7 +618,7 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
-    needs: [build]
+    needs: [unit, build]
     steps:
       # The scenarios find the captured output of vfox in the repository.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
