@@ -212,8 +212,10 @@ func SplitButton(c Ctx, b SplitButtonSpec) ui.Element {
 			id: "action", role: RoleButton, name: b.Label, disabled: b.Disabled, onClick: b.OnClick,
 		})
 		pressed := lead.AnimateTo("shape", Flag(in.pressed), motion)
+		// The lead is as high as its label needs, as a button is: at 225 % the line of a label is 45 dp, and a fixed height of 40 cut it top
+		// and bottom. The trailing button is as high as the lead.
 		radii := Radii{full, Lerp(inner, pressedInner, pressed), Lerp(inner, pressedInner, pressed), full}
-		lead.Height(buttonHeight).Padding(0, 12, 0, 16).Gap(8).Background(container).TextColor(content)
+		lead.MinHeight(buttonHeight).Padding(0, 12, 0, 16).Gap(8).Background(container).TextColor(content).AlignSelf(ui.Stretch)
 		radii.Apply(lead)
 		paintPress(c, lead, node, radii, stateLayer(c, lead, in), content, in.keyboard)
 		lead.Children(func() {
@@ -234,7 +236,7 @@ func SplitButton(c Ctx, b SplitButtonSpec) ui.Element {
 		radius := Lerp(Lerp(inner, pressedInner, tpressed), full, state)
 		tradii := Radii{radius, full, full, radius}
 		tnode.Selected = *open
-		trail.Size(44, buttonHeight).Shrink(0).Background(container).TextColor(content)
+		trail.Width(44).Shrink(0).AlignSelf(ui.Stretch).Background(container).TextColor(content)
 		tradii.Apply(trail)
 		paintPress(c, trail, tnode, tradii, stateLayer(c, trail, tin), content, tin.keyboard)
 		trail.Children(func() {

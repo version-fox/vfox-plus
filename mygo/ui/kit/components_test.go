@@ -639,6 +639,38 @@ func TestTheKeysMoveThroughTheEntriesOfAMenuThatScrolls(t *testing.T) {
 	}
 }
 
+// The title of a row is a name, and goes on as many lines as it needs: it is not held to a line, so that a version that is longer than the
+// room is read whole, and the census has nothing to find cut in it.
+func TestTheTitleOfARowGoesOnAsManyLinesAsItNeeds(t *testing.T) {
+	h := newTested(t, 360, 400, func(c Ctx) {
+		Column(c).Padding(16).Children(func() {
+			ListGroup(c, ListItemSpec{ID: "row", Title: "21.0.12.1+1-tem-and-a-long-name", Subtitle: "Temurin"})
+		})
+	})
+	h.env.Theme.TextScale = 2
+	h.tester.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: 2})
+	h.tester.Frame()
+	h.tester.Advance(time.Second)
+	var title *Node
+	for _, n := range h.env.Reg.Nodes() {
+		if n.Role == RoleText && n.Text == "21.0.12.1+1-tem-and-a-long-name" {
+			title = n
+		}
+	}
+	if title == nil || !title.Visible() {
+		t.Fatalf("the title of the row is drawn: %+v", title)
+	}
+	if title.Lines != 0 || title.Needs != 0 {
+		t.Errorf("the title of a row has no limit of lines, which a name would be cut by: %d lines, %d needed", title.Lines, title.Needs)
+	}
+	if title.Rect.H < 2*Type(BodyLarge).Line*2-1 {
+		t.Errorf("the title of the row goes on more than one line at 200 %%: %.1f dp high", title.Rect.H)
+	}
+	if got := TakeCensus(h.env.Reg.Nodes(), ui.Rect{W: 360, H: 400}, nil); len(got.Cut) != 0 {
+		t.Errorf("the title of a row is not cut: %q", got.Cut)
+	}
+}
+
 // A label of a field that has not the room at rest goes on as many lines as it needs, and is not cut: "SDK directory" wants 271 dp at 200 % in
 // a text that is wider by two fifths, and the field of the dialog that links a version has 232.
 func TestALabelOfAFieldThatHasNotTheRoomGoesOnAsManyLinesAsItNeeds(t *testing.T) {
