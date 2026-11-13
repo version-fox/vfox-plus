@@ -256,7 +256,9 @@ func Run(args []string) error {
 			offline("go", "vet", "./..."),
 			// The race detector needs the C compiler; the application is
 			// built without.
-			offline("env", "CGO_ENABLED=1", "go", "test", "-race", "-coverprofile=coverage.out", "./..."),
+			// The race run has half an hour, as CI's does: the tests of the screens ran past ten minutes with the race detector
+			// on a runner of CI, and take seven on a machine of ours.
+			offline("env", "CGO_ENABLED=1", "go", "test", "-race", "-timeout", "30m", "-coverprofile=coverage.out", "./..."),
 			// The census of the screens is taken without the race detector, which it does not need and which makes it
 			// three times slower; the tests above skip it. It takes the sizes of text between those of the census and
 			// the widest fonts, too, as the job census of CI does on Linux: 1 200 screens, some of them as tall as 12 000 dp,

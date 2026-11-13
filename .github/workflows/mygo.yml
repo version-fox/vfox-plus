@@ -132,8 +132,10 @@ jobs:
           go vet ./...
           # The race detector needs cgo; the application is built without it. The census of the screens is taken by the
           # job that builds the application, without it: the census does not need the race detector, which makes it three
-          # times slower.
-          CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
+          # times slower. The race run has half an hour: on the runners, the tests of the package of the screens ran past
+          # the default of ten minutes with the race detector (the run at ff4d63d stopped them there), where a machine of
+          # ours takes seven.
+          CGO_ENABLED=1 go test -race -timeout 30m -coverprofile=coverage.out ./...
           "$RUNNER_TEMP/vfxtool" coverage coverage.out 85
       - name: Test vfxtool
         run: |
