@@ -192,6 +192,7 @@ func optionsOf(plugin string) func(ta *testApp) {
 		ta.item(plugin)
 		ta.openTab("Options")
 		ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+		ta.loaded()
 		ta.settle()
 	}
 }
@@ -298,12 +299,19 @@ var censusScenes = []censusScene{
 	{name: "vfox-missing", missing: true, reach: func(ta *testApp) {}},
 }
 
+// censusSlowDowns are the delays of the commands of a census run (testsupport.FakeProcessRunner.SlowDown), for a test that makes
+// the lists of a screen arrive late.
+var censusSlowDowns map[string]time.Duration
+
 // censusApp is the application in a window, at the screen before the scene goes to it.
 func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	t.Helper()
 	runner := testsupport.FixtureRunner()
 	if scene.java {
 		runner = javaRunner()
+	}
+	for prefix, delay := range censusSlowDowns {
+		runner.SlowDown(prefix, delay)
 	}
 	runner.SetMissingExecutable(scene.missing)
 	window.height = window.heightFor(scene)
@@ -333,6 +341,7 @@ func takeScene(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	t.Helper()
 	ta := censusApp(t, scene, window)
 	scene.reach(ta)
+	ta.loaded()
 	if window.shrunk > 0 {
 		ta.tester.SetSize(window.width, window.shrunk)
 		ta.settle()
@@ -340,6 +349,7 @@ func takeScene(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	}
 	if scene.open != nil {
 		scene.open(ta)
+		ta.loaded()
 	}
 	if window.language != "" {
 		ta.updateSettings(func(s *settings.AppSettings) { s.Language = window.language })
@@ -430,8 +440,48 @@ func (ta *testApp) scrollToEnd() {
 }
 
 // census takes the census of the screen that the window shows.
+// listsLoading reports whether the application has something in progress that its screens show: vfox is being probed (or has not been
+// yet), the installed SDKs, the registry, the health report and the vfox configuration are loading, or the details of the plugin that is
+// open are: its information, its versions and its aliases. The probe reloads the lists when it ends, so a probe in progress is a list
+// in progress too.
+func (ta *testApp) listsLoading() bool {
+	m := ta.app.model
+	if availability := m.Vfox.Availability(); availability == state.VfoxUnknown || availability == state.VfoxChecking {
+		return true
+	}
+	if m.Installed.IsLoading() || m.Registry.IsLoading() || m.Doctor.IsLoading() {
+		return true
+	}
+	if m.VfoxConfig != nil && m.VfoxConfig.IsLoading() {
+		return true
+	}
+	if d := ta.app.pages.detail; d != nil {
+		c := d.controller
+		return c.Info.IsLoading() || c.Versions.IsLoading() || c.Aliases.IsLoading()
+	}
+	return false
+}
+
+// loaded draws frames until nothing in progress is loading, and until two frames in a row have started no load. A list is loaded in
+// the background, and a frame that starts one draws the screen without it: the census takes the screen as it is, so it waits for the
+// lists, as a person does, and the time that a machine takes to load them is not the same on every machine.
+func (ta *testApp) loaded() {
+	ta.t.Helper()
+	quiet := 0
+	ta.until("the lists to be loaded", func() bool {
+		ta.frame()
+		if ta.listsLoading() {
+			quiet = 0
+			return false
+		}
+		quiet++
+		return quiet >= 2
+	})
+}
+
 func (ta *testApp) census() kit.Census {
 	ta.t.Helper()
+	ta.loaded()
 	ta.settle()
 	img := ta.tester.Image()
 	census := kit.TakeCensus(ta.nodes(), mui.Rect{W: float32(img.Bounds().Dx()), H: float32(img.Bounds().Dy())}, img)
@@ -588,6 +638,30 @@ func TestTheCensusKeepsThePicturesThatItNeeds(t *testing.T) {
 		}
 		if strings.Join(got, " ") != strings.Join(want, " ") {
 			t.Errorf("%s has %v, want %v", dir, got, want)
+		}
+	}
+}
+
+// The lists of a screen are loaded in the background, and a machine that is slower than the one that a census was written on sees
+// them arrive late. The census of such a run is taken of the lists as a quick run has them, and not of the ones that have arrived by
+// then: the aliases and the versions of a plugin, in the scenes of its options and of its tooltip.
+func TestTheCensusWaitsForTheListsThatLoadLate(t *testing.T) {
+	scenes := map[string]censusScene{}
+	for _, scene := range censusScenes {
+		scenes[scene.name] = scene
+	}
+	for _, name := range []string{"tooltip", "alias-set"} {
+		for _, window := range []censusWindow{censusLeast, censusWideLarge} {
+			t.Run(name+"."+window.name, func(t *testing.T) {
+				quick := takeScene(t, scenes[name], window)
+				want := censusLine(quick.census())
+				t.Cleanup(func() { censusSlowDowns = nil })
+				censusSlowDowns = map[string]time.Duration{"alias list": 300 * time.Millisecond, "search": 300 * time.Millisecond, "info": 300 * time.Millisecond}
+				late := takeScene(t, scenes[name], window)
+				if got := censusLine(late.census()); got != want {
+					t.Errorf("the lists that arrive late change the screen:\n  quick %s\n  late  %s", want, got)
+				}
+			})
 		}
 	}
 }

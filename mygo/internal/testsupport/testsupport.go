@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
@@ -239,6 +240,8 @@ type FakeProcessRunner struct {
 	failure     error
 	responses   map[string]func() core.ProcessOutput
 	streams     map[string]func() *FakeRunningProcess
+	// slow are the delays of the invocations whose arguments begin with a prefix (SlowDown).
+	slow map[string]time.Duration
 }
 
 // NewFakeProcessRunner creates a scripted runner.
@@ -284,6 +287,17 @@ func (r *FakeProcessRunner) SetFailure(err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.failure = err
+}
+
+// SlowDown makes the invocations whose arguments begin with prefix wait for d before they are answered, as a process that takes that
+// long does: the lists that an application loads in the background arrive late, as they do on a slower machine.
+func (r *FakeProcessRunner) SlowDown(prefix string, d time.Duration) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.slow == nil {
+		r.slow = make(map[string]time.Duration)
+	}
+	r.slow[prefix] = d
 }
 
 // Invocations returns every invocation, in order.
@@ -333,9 +347,19 @@ func (r *FakeProcessRunner) Run(executable string, args []string, options core.P
 	if err := r.record(executable, args, options, false); err != nil {
 		return core.ProcessOutput{}, err
 	}
+	joined := strings.Join(args, " ")
 	r.mu.Lock()
-	respond := r.responses[strings.Join(args, " ")]
+	respond := r.responses[joined]
+	var delay time.Duration
+	for prefix, d := range r.slow {
+		if strings.HasPrefix(joined, prefix) {
+			delay = d
+		}
+	}
 	r.mu.Unlock()
+	if delay > 0 {
+		time.Sleep(delay)
+	}
 	if respond != nil {
 		return respond(), nil
 	}
