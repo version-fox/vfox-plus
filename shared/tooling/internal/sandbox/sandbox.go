@@ -30,9 +30,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
 )
 
 const baseImageName = "vfox-plus-sandbox-base"
@@ -44,7 +47,9 @@ const cleanBaseImage = "ubuntu:26.04"
 const usage = `Usage: sandbox [--impl IMPL] [--repo DIR] <command>
 
   check        gofmt, go vet, golangci-lint and the unit tests with the
-               coverage gate
+               race detector and the coverage gate
+  census       one group of the census of the screens: census, widest,
+               sweep-wide or sweep-rest
   e2e          the end-to-end scenarios, against the fixtures and against
                the real vfox
   package      release build with a smoke test, .deb and .tar.gz checked by
@@ -53,7 +58,7 @@ const usage = `Usage: sandbox [--impl IMPL] [--repo DIR] <command>
   measure      the memory use on the Home page and with the versions of
                Node.js listed
   screenshots  screenshots of every page, against the fixtures
-  all          check, e2e and package
+  all          check, the four groups of the census, e2e and package
   shell        an interactive shell in the sandbox
   image        builds the sandbox images
   clean        deletes the sandbox image, the cache volumes and the results
@@ -187,6 +192,15 @@ func Run(args []string) error {
 			return err
 		}
 		return s.runTask("bridge", "shell", []string{"--interactive", "--tty"})
+	case "census":
+		if len(extra) != 1 || !slices.Contains(runtask.CensusGroups, extra[0]) {
+			usageError()
+			return fmt.Errorf("census takes one of the groups: %s", strings.Join(runtask.CensusGroups, ", "))
+		}
+		if err := s.ensureImage(); err != nil {
+			return err
+		}
+		return s.census(extra[0])
 	case "image":
 		return s.ensureImage()
 	case "image-name":
@@ -593,6 +607,14 @@ func (s *session) e2e() error {
 	return s.runTask("none", "e2e", nil)
 }
 
+// census takes the census of one group of the screens, in a job of its own in CI.
+func (s *session) census(group string) error {
+	if err := s.runTask("bridge", "deps", nil); err != nil {
+		return err
+	}
+	return s.runTask("none", runtask.CensusTask(group), nil)
+}
+
 func (s *session) package_() error {
 	if err := s.runTask("bridge", "deps", nil); err != nil {
 		return err
@@ -607,7 +629,12 @@ func (s *session) all() error {
 	if err := s.runTask("bridge", "deps", nil); err != nil {
 		return err
 	}
-	for _, task := range []string{"check", "e2e", "package"} {
+	// The census takes a task of its own for each group, as CI runs it.
+	tasks := []string{"check"}
+	for _, group := range runtask.CensusGroups {
+		tasks = append(tasks, runtask.CensusTask(group))
+	}
+	for _, task := range append(tasks, "e2e", "package") {
 		if err := s.runTask("none", task, nil); err != nil {
 			return err
 		}

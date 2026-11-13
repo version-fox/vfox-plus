@@ -101,7 +101,8 @@ the Go module and build caches in Docker volumes.
 | `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
 | `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
 | `vfxtool sandbox screenshots` | Screenshots of every page, of Java, Flutter and the options of Node.js, and of the settings of the web interface |
-| `vfxtool sandbox all` | `check`, `e2e` and `package` |
+| `vfxtool sandbox census <group>` | One group of the census of the screens, in the fonts of the container: `census`, `widest`, `sweep-wide` or `sweep-rest`. CI runs each group in a job of its own |
+| `vfxtool sandbox all` | `check`, the four groups of the census, `e2e` and `package` |
 | `vfxtool sandbox shell` | A shell in the sandbox |
 | `vfxtool sandbox clean` | Deletes the image, the cache volumes and the results |
 

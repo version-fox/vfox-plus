@@ -87,7 +87,8 @@ Go 模块与构建缓存。
 | `vfxtool sandbox package` | 发布构建与冒烟测试、`.deb`、`.tar.gz`、`.msix`/`.msixbundle`（lintian 检查），再装入干净 Ubuntu 26.04 容器 |
 | `vfxtool sandbox measure` | Home 页与列出 Node.js 版本时的内存 |
 | `vfxtool sandbox screenshots` | 各页截图，Java、Flutter 与 Node.js 选项的截图，以及网页界面设置的截图 |
-| `vfxtool sandbox all` | `check`、`e2e` 与 `package` |
+| `vfxtool sandbox census <组>` | 普查的一组屏幕，用容器自己的字体：`census`、`widest`、`sweep-wide` 或 `sweep-rest`。CI 每组跑在一个任务里 |
+| `vfxtool sandbox all` | `check`、普查的四组、`e2e` 与 `package` |
 | `vfxtool sandbox shell` | 沙箱内交互 shell |
 | `vfxtool sandbox clean` | 删除镜像、缓存卷与结果 |
 
