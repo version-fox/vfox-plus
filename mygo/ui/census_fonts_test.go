@@ -282,7 +282,7 @@ func TestTheScreensAreWithinTheBudgetsInATextThatIsWider(t *testing.T) {
 		window censusWindow
 		share  float32
 	}{
-		{censusNarrow, 0.4}, {censusNarrowMore, 0.4}, {censusNarrowLarge, 0.4},
+		{censusNarrow, 0.4}, {censusNarrowMore, 0.4}, {censusNarrowLarge, 0.4}, {censusNarrowLargest, 0.4},
 		{censusMedium, 0.4}, {censusMediumLarge, 0.4},
 		{censusWide, 0.4}, {censusWideLarge, 0.4},
 		{censusNarrowZh, 0.4}, {censusWideZh, 0.4},

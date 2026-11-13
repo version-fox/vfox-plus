@@ -105,8 +105,11 @@ var (
 	censusNarrowMore  = censusWindow{name: "narrow-150", width: 360, height: 2400, scale: 1.5}
 	censusCompactMore = censusWindow{name: "compact-150", width: 412, height: 2400, scale: 1.5}
 	censusNarrowLarge = censusWindow{name: "narrow-200", width: 360, height: 2400, scale: 2}
-	censusMediumLarge = censusWindow{name: "medium-200", width: 700, height: 1800, scale: 2}
-	censusWideLarge   = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
+	// The text of the system is held to 200 %, and the largest that a system offers is 225 %, which is the "Make text bigger" of Windows:
+	// the layout is asked to hold that, too.
+	censusNarrowLargest = censusWindow{name: "narrow-225", width: 360, height: 2400, scale: 2.25}
+	censusMediumLarge   = censusWindow{name: "medium-200", width: 700, height: 1800, scale: 2}
+	censusWideLarge     = censusWindow{name: "wide-200", width: 1280, height: 1600, scale: 2}
 	// The least window that the application opens in is 360 by 480 dp (MinWidth and MinHeight of its window), and a window may be as
 	// wide as a screen and as short as that. A page that the foot of the window cuts scrolls, so the pages are held to nothing of it;
 	// the dialogs and the menus are, in these windows: their title and their actions are where a person can reach them.
@@ -403,6 +406,16 @@ func (ta *testApp) reveal(role kit.Role, name string) {
 	ta.t.Fatalf("%s %q is not in the room of the page, however far it is scrolled (%q)", role, name, ta.texts())
 }
 
+// scrollBack scrolls what is under the middle of the window up by the height of the window: one more position of a dialog that is taller
+// than the window.
+func (ta *testApp) scrollBack(height float32) {
+	ta.t.Helper()
+	img := ta.tester.Image()
+	ta.tester.Scroll(float32(img.Bounds().Dx())/2, float32(img.Bounds().Dy())/2, 0, -height)
+	ta.settle()
+	ta.settle()
+}
+
 // scrollToEnd scrolls what is under the middle of the window, a list or a dialog, to its end, and takes the pointer away, as a person
 // does who is done: left where the wheel was, it rests on a button, and the tooltip of the button is drawn over the text that is under
 // it, which is not the text that the census reads (the last row of a list was 1.4 on Windows, against the tooltip that is dark).
@@ -457,6 +470,18 @@ func TestTheScreensAreWithinTheBudgets(t *testing.T) {
 				t.Logf("at the end: %s", censusLine(end))
 				if over := window.over(end); len(over) > 0 {
 					t.Errorf("at the end of its list, over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+				}
+				if scene.modal && window.shrunk > 0 && !scene.toEnd {
+					// What is between the start and the end: a dialog whose content is two windows tall has a part that neither shows.
+					ta.scrollBack(float32(window.shrunk))
+					middle := ta.census()
+					middle.Scrolls = true
+					ta.snapshot("census." + name + ".middle")
+					report[name+".middle"] = middle
+					t.Logf("in the middle: %s", censusLine(middle))
+					if over := window.over(middle); len(over) > 0 {
+						t.Errorf("in the middle of its content, over the budgets of the design system:\n  %s", strings.Join(over, "\n  "))
+					}
 				}
 			})
 		}
