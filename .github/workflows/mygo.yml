@@ -658,9 +658,10 @@ jobs:
     # take it all. Of Windows and of macOS the newest and the oldest that GitHub has are taken (windows-2022 is Windows
     # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-arm, and macos-15-intel.
     #
-    # The tests are four jobs on each machine, not one, and a run of the census is as long as the longest of them, not as long
-    # as their sum: the screens (the census, the fonts of the system and the wider text), the widest fonts, and the sweep of the
-    # sizes of text in two jobs, the windows of 1280 dp, which take half of the sweep, and the others. A machine runs them at once.
+    # The tests are four jobs on each machine, and five on Intel, not one: the screens (the census with the fonts of the system, and on
+    # Intel the text made wider in a job of its own), the widest fonts, and the sweep of the sizes of text in two jobs, the windows of
+    # 1280 dp, which take half of the sweep, and the others. A machine runs them at once, and a run of the census is as long as the
+    # longest of them, not as long as their sum.
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     strategy:
@@ -670,6 +671,11 @@ jobs:
         # behind the others: the matrix lists the longest machine and its longest group first, so that the queue starts with them.
         os: [macos-15-intel, macos-15, macos-latest, ubuntu-26.04, windows-2025, windows-2022, windows-11-arm]
         group: [census, sweep-rest, widest, sweep-wide]
+        # On Intel the census is two jobs, the screens with the fonts of the system and the text made wider: the Intel census was the
+        # longest job of the workflow (30 minutes on the run at d37bec8), and the others of Intel take up to fifteen.
+        exclude:
+          - os: macos-15-intel
+            group: census
         include:
           - group: census
             run: 'TestTheScreensAreWithinTheBudgets$|TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses|TestTheScreensAreWithinTheBudgetsInATextThatIsWider'
@@ -679,6 +685,12 @@ jobs:
             run: 'TestTheScreensAreWithinTheBudgetsAtEverySizeOfText/\.wide-'
           - group: sweep-rest
             run: 'TestTheScreensAreWithinTheBudgetsAtEverySizeOfText/\.(narrow|compact|medium)-'
+          - os: macos-15-intel
+            group: census
+            run: 'TestTheScreensAreWithinTheBudgets$|TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses'
+          - os: macos-15-intel
+            group: wider
+            run: 'TestTheScreensAreWithinTheBudgetsInATextThatIsWider'
           - os: ubuntu-26.04
             fonts: >-
               fonts-adwaita-sans fonts-cantarell fonts-noto-core fonts-inter fonts-open-sans fonts-roboto fonts-lato
