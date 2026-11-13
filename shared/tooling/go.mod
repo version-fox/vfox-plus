@@ -6,14 +6,14 @@ require (
 	// Starts Chrome and speaks the DevTools Protocol for the screenshots of
 	// `vfxtool webheap` (MIT;
 	// see docs/en/dev/architecture.md#dependencies).
-	github.com/chromedp/cdproto v0.158.6
-	github.com/chromedp/chromedp v0.21.0
+	github.com/chromedp/cdproto v0.160.0
+	github.com/chromedp/chromedp v0.23.0
 	github.com/godbus/dbus/v5 v5.2.4
 	github.com/google/go-github/v93 v93.0.0
 	github.com/google/go-licenses/v2 v2.0.1
-	github.com/goreleaser/nfpm/v2 v2.48.0
+	github.com/goreleaser/nfpm/v2 v2.49.0
 	github.com/hashicorp/go-getter/v2 v2.2.6
-	golang.org/x/image v0.47.0
+	golang.org/x/image v0.48.0
 	// The Windows calls of `vfxtool sign-msix`: the token for the elevation, the
 	// certificate store of the machine, the wait for the elevated copy (BSD-3-Clause;
 	// see docs/en/dev/architecture.md#dependencies).
@@ -57,7 +57,7 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
-	github.com/klauspost/compress v1.20.2 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
@@ -72,7 +72,7 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	gitlab.com/digitalxero/go-conventional-commit v1.0.7 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
