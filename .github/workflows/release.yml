@@ -16,8 +16,8 @@
 # https://github.com/version-fox/vfox-java: Actions, Release, Run workflow, on
 # main, and type the version (1.0.0, without the v). That is the whole procedure.
 # The run waits for the approval of a member of @version-fox/vfox-maintainers or
-# @version-fox/vfox-committers: the release key is in the release environment, which
-# only main and the tags v* can use.
+# @version-fox/vfox-committers, unless an administrator of the repository starts it. The
+# release key is in the release environment, which only main and the tags v* can use.
 #
 # The job checks the request first: the version is new and newer than the newest
 # tag, and the last run of mygo on main passed. Then it sets the version in
@@ -64,8 +64,8 @@ jobs:
     if: github.repository == 'version-fox/vfox-plus'
     # The secrets of the release key are in this environment and nowhere else. A run
     # waits for the approval of a member of @version-fox/vfox-maintainers or
-    # @version-fox/vfox-committers, and only main and the tags v* can use it
-    # (docs/en/dev/packaging-android.md#signing-status).
+    # @version-fox/vfox-committers, unless an administrator starts it. Only main and the
+    # tags v* can use the environment (docs/en/dev/packaging-android.md#signing-status).
     environment: release
     permissions:
       # actions: read lets the job see the last run of mygo on main.
