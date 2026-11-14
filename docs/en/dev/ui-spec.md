@@ -31,7 +31,9 @@ The layout follows the Material 3 window size classes of the window width:
   that opens Plugins.
 
 Pages sit on rounded panes, 16 dp from the window edges. Switching destinations
-uses the fade-through transition. The selected destination's icon is filled;
+fades through where the interface draws transitions, and switches at once on the
+desktop (see [the design system](design-system.md#motion)). The selected destination's
+icon is filled;
 the others are outlined.
 
 The minimum window size is 360 × 480 dp. The default size is 1280 × 820 dp.

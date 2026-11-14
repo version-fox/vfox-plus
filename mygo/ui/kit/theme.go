@@ -82,6 +82,14 @@ type Theme struct {
 	// their targets (mygo does that for every animation) and indeterminate
 	// indicators stop.
 	ReducedMotion bool
+	// Transitions says that a view gives way to another one, that a section opens
+	// and that a check mark grows with a transition. The toolkit (egoist/mygo 0.8
+	// and later) draws the children of a transition in a layer of their own and
+	// composites it as a full-window image in every frame, and the memory of the
+	// layers stays allocated after the transition (docs/en/dev/memory.md). So the
+	// desktop has none, and NewTheme sets this to false; the springs of what moves
+	// are not transitions and stay.
+	Transitions bool
 	// TextScale is how many times larger than usual the desktop wants text.
 	TextScale float32
 }
@@ -94,6 +102,8 @@ func NewTheme(seed uint32, dark, reducedMotion bool, textScale float32) *Theme {
 	return &Theme{
 		Colors: PaletteFor(seed, dark), Dark: dark, Motion: Expressive,
 		ReducedMotion: reducedMotion, TextScale: textScale,
+		// No transitions: their layers cost memory (see Theme.Transitions).
+		Transitions: false,
 	}
 }
 

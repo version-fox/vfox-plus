@@ -279,7 +279,7 @@ vfox-plus uses the **expressive** scheme:
 | Navigation rail expanding and collapsing             | default spatial   |
 | Navigation indicator growing, icon fill              | fast spatial / fast effects |
 | Dialogs scaling in                                   | default spatial (scale), default effects (fade) |
-| Page transitions (fade through, shared axis)         | slow effects      |
+| Page transitions (fade through, shared axis)         | slow effects in the web interface and the Android app; none on the desktop |
 | Progress of the wavy indicator, wave amplitude        | default spatial / default effects |
 | Loading indicator morph                              | 0.6 / 200, every 650 ms, plus a 4666 ms rotation |
 
@@ -287,8 +287,10 @@ A spring keeps its velocity when its target changes mid-flight, so interrupted
 animations stay smooth. Where an API only accepts a duration and a curve
 (dialogs), the spring is sampled into a curve over the time it needs to settle;
 page transitions, which bring their own curves, last as long as the slow effects
-spring needs to settle. When the platform asks for reduced motion, springs jump
-to their target and indeterminate indicators stop.
+spring needs to settle. The desktop asks for less motion whatever the platform
+asks: springs jump to their target and indeterminate indicators stop, and its views
+give way at once, since the layers that a transition draws its children in cost memory
+([memory](memory.md#motion-and-memory)).
 
 The web interface is such an API: CSS has durations and curves, no springs. Its
 `--sp-*` variables are the six springs, each as `--sp-NAME-t`, the milliseconds
@@ -310,6 +312,9 @@ they move, so the window is idle when nothing changes.
 
 ### Transitions
 
+On the desktop none of these is drawn, for the memory that the layers cost (see
+above).
+
 - Between top-level destinations: **fade through**.
 - From the SDK list to an SDK on narrow windows: **shared axis**, horizontal.
 - Between SDKs in the detail pane: **fade through**.
@@ -319,11 +324,11 @@ they move, so the window is idle when nothing changes.
 
 A frame has 8.3 ms at 120 Hz, and every client keeps within it:
 
-- mygo: the toolkit draws at the refresh rate of the display. Where the CPU draws
-  the window (no GPU, as in virtual machines and WSL), a transition that scales
-  redraws every pixel of the page in each frame and takes 10 to 40 ms, so pages,
-  dialogs and menus only fade there (`kit.Env.Software`, set from
-  `Painter.Accelerated`).
+- mygo: the toolkit draws at the refresh rate of the display, and the desktop draws a
+  frame when something changes (see Motion). Where the CPU draws the window (no GPU, as
+  in virtual machines and WSL), a transition that scales redraws every pixel of the page
+  in each frame and takes 10 to 40 ms, which is why the toolkit's transitions only fade
+  there (`kit.Env.Software`, set from `Painter.Accelerated`).
 - Web interface and the Android app, which shows it in a WebView: animate
   `transform` and `opacity`, which the compositor runs without the main thread
   of the page, and not `left`, `top` or `height`. A long list sets

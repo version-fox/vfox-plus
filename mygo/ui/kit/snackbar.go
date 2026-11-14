@@ -90,12 +90,14 @@ func (e *Env) LayoutSnackbars(c Ctx) {
 			parts.Root.Row().Gap(8).Padding(6, 8, 6, 16).Radius(CornerMedium).Background(cs.InverseSurface).
 				MinHeight(48).MinWidth(min(480, c.windowWidth()-32)).MaxWidth(480)
 			Elevation(c, parts.Root, 3)
-			slide := c.Env.Theme.Motion.DefaultSpatial.Anim()
-			parts.Root.Transition(ui.ElementTransition{
-				Animation: &slide,
-				Enter:     &ui.Motion{Y: 72},
-				Exit:      &ui.Motion{Y: 72},
-			})
+			if c.Env.Theme.Transitions {
+				slide := c.Env.Theme.Motion.DefaultSpatial.Anim()
+				parts.Root.Transition(ui.ElementTransition{
+					Animation: &slide,
+					Enter:     &ui.Motion{Y: 72},
+					Exit:      &ui.Motion{Y: 72},
+				})
+			}
 			parts.Root.Children(func() {
 				Label(c, t.Title, Type(BodyMedium), cs.InverseOnSurface).Grow(1).Shrink(1)
 				if t.Action != "" {

@@ -215,13 +215,13 @@ vfox-plus 使用 **expressive** 方案：
 | 导航栏展开收起 | default spatial |
 | 导航指示器生长、图标填充 | fast spatial / fast effects |
 | 对话框缩放进入 | default spatial（缩放）、default effects（淡入） |
-| 页面切换（fade through、shared axis） | slow effects |
+| 页面切换（fade through、shared axis） | Web 界面与 Android 应用用 slow effects；桌面没有 |
 | 波浪进度、波幅 | default spatial / default effects |
 | 加载指示器形变 | 0.6 / 200，每 650 ms 一次，加 4666 ms 旋转 |
 
 弹簧中途变目标保持速度， interrupted 动画平滑。只接受时长曲线的 API（对话框）把
 弹簧采样为 settle 时间内的曲线；自带曲线的页面切换持续 slow effects 弹簧 settle
-时长。平台要求减少动态效果时弹簧直达目标，不定指示器静止。
+时长。桌面不论平台要求什么都减少动态效果：弹簧直达目标，不定指示器静止，视图即时切换，因为转场的子元素所在的图层占内存（见[内存](memory.md#动效与内存)）。
 
 Web 界面就是这样的 API：CSS 只有时长和曲线，没有弹簧。它的 `--sp-*` 变量就是六个弹簧：`--sp-NAME-t` 是 settle 所需的毫秒数，
 `--sp-NAME` 是阶跃响应采样成的 `linear()` 曲线，取尽量少的采样点，使折线与曲线相差不超过 0.6 %。每个 `transition` 与
@@ -234,6 +234,8 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 
 ### 转场
 
+桌面上这些转场都不画，因为图层占内存（见上）。
+
 - 顶级目的地之间：**fade through**。
 - 窄窗口 SDK 列表到 SDK：**shared axis** 横向。
 - 详情面板 SDK 之间：**fade through**。
@@ -243,9 +245,9 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 
 120 Hz 下一帧只有 8.3 ms，各端都要在这个预算内：
 
-- mygo：工具包按显示器的刷新率出帧。窗口由 CPU 绘制时（没有 GPU，如虚拟机和 WSL），
-  带缩放的转场每帧要重绘整页的每个像素，耗时 10 到 40 ms，所以页面、对话框和菜单
-  在那里只做淡入淡出（`kit.Env.Software`，由 `Painter.Accelerated` 设置）。
+- mygo：工具包按显示器的刷新率出帧。桌面有变化才出帧（见动效）。窗口由 CPU 绘制时（没有
+  GPU，如虚拟机和 WSL），带缩放的转场每帧要重绘整页的每个像素，耗时 10 到 40 ms，所以工具包的
+  转场在那里只做淡入淡出（`kit.Env.Software`，由 `Painter.Accelerated` 设置）。
 - Web 界面与用 WebView 显示它的 Android 应用：动画用 `transform` 和 `opacity`，由合成器
   执行、不占页面主线程；不要动画 `left`、`top`、`height`。长列表设置
   `content-visibility: auto`，打开页面时只布局屏幕上的部分（插件卡片在比桌面慢六倍的

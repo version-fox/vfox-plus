@@ -229,11 +229,12 @@ pages are built from its components.
   springs of the Material 3 Expressive motion scheme
   ([`motion.go`](../../../mygo/ui/kit/motion.go)), given to mygo's `AnimateTo`: exact
   solutions that keep their velocity when the target changes, drawn only while
-  they move, so the window is idle when nothing changes. Reduced motion from the
-  desktop makes every value jump. Dialogs and menus pop in with a pose spring,
-  and the pages give way on mygo's element transitions (fade through, shared
-  axis). The loading indicator and the wavy progress animate in the painter,
-  without building the view again.
+  they move, so the window is idle when nothing changes. The desktop asks for less
+  motion whatever the platform asks: every value jumps, and the views have no element
+  transitions, whose children are drawn in layers that cost memory (see
+  [memory](memory.md#motion-and-memory)). Dialogs, menus and pages appear at once. The
+  loading indicator and the wavy progress are drawn in the painter without building the
+  view again, and stop while the desktop asks for less motion.
 - **Overlays** — menus, tooltips, dialogs and snack bars — are mygo's popovers,
   tooltips, dialogs and toasts, which take care of the focus, Escape and the press
   outside; the kit styles them.
@@ -306,8 +307,8 @@ take up to 1 MB of PSS).
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 63 MB | 51 MB |
-| Versions of Node.js listed | 73 MB | 59 MB |
+| Home page | 64 MB | 52 MB |
+| Versions of Node.js listed | 72 MB | 57 MB |
 
 mygo draws with the processor, and the application keeps GTK from loading
 OpenGL: a GDK that opens its OpenGL connection maps Mesa, and with the software
@@ -317,7 +318,7 @@ same build took about 78 MB of PSS on the Home page when GDK did, and about
 does not need the GPU, and the memory does not depend on the driver of the
 machine. What is left is mostly the executable with the locale data it embeds,
 the heap of Go, and GTK with the C libraries it loads. The list of versions
-adds 8 MB because only the rows in view are built.
+adds 5 MB because only the rows in view are built.
 
 ## Limits
 
@@ -326,9 +327,8 @@ adds 8 MB because only the rows in view are built.
   LLVM: GDK opens its OpenGL connection when the display opens, and that alone
   maps some 35 MB of PSS. The pages of vfox+ draw on the CPU in a fraction of a
   millisecond, so the application sets `MYGO_GPU=0` and `GDK_GL=disable` before it
-  starts GTK, unless `MYGO_GPU` is set (`MYGO_GPU=1` draws with OpenGL). Dialogs
-  that scale in and a window that is resized are the frames that cost most on the
-  CPU; a machine of today draws them within a frame.
+  starts GTK, unless `MYGO_GPU` is set (`MYGO_GPU=1` draws with OpenGL). A window that is resized is the frame that costs most on the
+  CPU; a machine of today draws it within a frame.
 - **The title bar is the desktop's.** GTK draws the title bar (client-side on
   GNOME's Wayland session, the window manager's on X11) in the style of the
   desktop; mygo can hand the title bar to the application, which this implementation

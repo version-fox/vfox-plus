@@ -766,6 +766,28 @@ func TestSwitchViewKeepsTheViewOfTheKeyAndGivesWayToTheNext(t *testing.T) {
 	shared.mustText("Detail b")
 }
 
+// The desktop has no transitions, so a view that another one replaces is gone at once, also where the
+// platform asks for motion: the layers that a transition draws in cost memory (see Theme.Transitions).
+func TestTheDesktopSwitchesItsViewsAtOnce(t *testing.T) {
+	key := "a"
+	env := testEnv(t, false)
+	tester := ui.NewTester(view(env, func(c Ctx) {
+		Column(c).Fill().Children(func() {
+			SwitchView(c, FadeThrough, 0, key, func() { Label(c, "View "+key, Type(BodyLarge), c.Colors().OnSurface) }).Grow(1)
+		})
+	}), 400, 300)
+	tester.SetPreferences(ui.Preferences{ReduceMotion: false, TextScale: 1})
+	tester.Frame()
+	if !tester.HasText("View a") {
+		t.Fatalf("no view a; there is %q", tester.Texts())
+	}
+	key = "b"
+	tester.Frame()
+	if tester.HasText("View a") || !tester.HasText("View b") {
+		t.Errorf("the view of b takes the place of a at once; there is %q", tester.Texts())
+	}
+}
+
 func TestSpringsReachTheirTargetAndOnlyBounceWhenUnderdamped(t *testing.T) {
 	bouncy := Spring{Damping: 0.5, Stiffness: 400}
 	critical := Spring{Damping: 1, Stiffness: 400}
@@ -828,6 +850,9 @@ func TestTheThemeFollowsTheSchemeAndTheTextScale(t *testing.T) {
 	dark := NewTheme(testSeed, true, true, 1.5)
 	if light.TextScale != 1 || dark.TextScale != 1.5 || !dark.ReducedMotion || light.Dark || !dark.Dark {
 		t.Errorf("got %+v and %+v", light, dark)
+	}
+	if light.Transitions || dark.Transitions {
+		t.Error("the desktop has no transitions, whatever motion the platform asks for")
 	}
 	if light.Colors.Primary == dark.Colors.Primary || light.Colors.Surface == dark.Colors.Surface {
 		t.Error("the schemes differ")

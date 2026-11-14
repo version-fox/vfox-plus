@@ -65,8 +65,12 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 	paintPress(c, el, node, Uniform(radius), stateLayer(c, el, in), content, in.keyboard)
 	return el.Children(func() {
 		// The check mark and the space after it have no width while the filter is
-		// off, and the row grows to its width on the spring that morphs the chip.
-		check := ui.Row(c.Key("check")).ClipX().Transition(ui.ElementTransition{Size: true, Animation: &motion})
+		// off. The row grows to its width on the spring that morphs the chip where
+		// the desktop has transitions (Theme.Transitions); otherwise it has it at once.
+		check := ui.Row(c.Key("check")).ClipX()
+		if c.Env.Theme.Transitions {
+			check = check.Transition(ui.ElementTransition{Size: true, Animation: &motion})
+		}
 		if !s.Selected {
 			check.Width(0)
 		}

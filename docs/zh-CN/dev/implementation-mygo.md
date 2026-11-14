@@ -182,9 +182,9 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   动作回调在帧构建后由 mygo 执行。
 - **动效**是每动画值一阻尼弹簧，Material 3 Expressive 动效方案的 spatial 与 effects
   弹簧（[`motion.go`](../../../mygo/ui/kit/motion.go)），交 mygo `AnimateTo`：精确解，中途变目标保持
-  速度，只在动时绘制，静止窗口空闲。桌面要求减少动态效果则值直达。对话框菜单 pose
-  弹簧弹出，页面让路 mygo 元素转场（fade through、shared axis）。加载与波浪进度在
-  painter 动，不重建视图。
+  速度，只在动时绘制，静止窗口空闲。桌面不论平台要求什么都减少动态效果：值直达，视图不做
+  元素转场（转场的子元素画在图层里，占内存，见[内存](memory.md#动效与内存)）。对话框、菜单与
+  页面即时出现。加载与波浪进度在 painter 中绘制、不重建视图，减少动态效果时静止。
 - **浮层**——菜单、tooltip、对话框、snack bar——是 mygo popover、tooltip、dialog 与
   toast，管焦点、Escape 与外部按压；kit 定样式。
 - **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 877 项。
@@ -236,21 +236,21 @@ CI 在 Linux 交叉编译打包并用 `vfxtool validate-msix` 校验，在 Windo
 
 | 状态 | RSS | PSS |
 | --- | ---: | ---: |
-| Home 页 | 63 MB | 51 MB |
-| 列出 Node.js 版本 | 73 MB | 59 MB |
+| Home 页 | 64 MB | 52 MB |
+| 列出 Node.js 版本 | 72 MB | 57 MB |
 
 mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连接即映射 Mesa，软件驱动
 再加其编译器 LLVM，比应用本身还大（同构建 GDK 打开时 Home 页 PSS 约 78 MB，关闭约
 43 MB，其它相同）。这种体量界面 CPU 绘制每帧零点几毫秒，不需要 GPU，内存不依赖本机
 驱动。剩下主要是带区域数据的可执行文件、Go 堆、GTK 及其 C 库。版本列表只构建可见行，
-增加 8 MB。
+增加 5 MB。
 
 ## 局限
 
 - **OpenGL 故意关闭。**mygo 有 GPU 即走 OpenGL 绘制，加载 Mesa，软件驱动再加其编译器
   LLVM：GDK 打开 OpenGL 连接即映射约 35 MB PSS。vfox+ 页面 CPU 绘制零点几毫秒，故应用
   在启动 GTK 前设 `MYGO_GPU=0` 与 `GDK_GL=disable`，走 CPU，除非用户设 `MYGO_GPU`
-  （`MYGO_GPU=1` 走 OpenGL）。缩放进入的对话框与缩放的窗口是 CPU 最贵的帧；今日机器一帧
+  （`MYGO_GPU=1` 走 OpenGL）。缩放的窗口是 CPU 最贵的帧；今日机器一帧
   内画完。
 - **标题栏是桌面的。**GTK 画标题栏（GNOME Wayland 客户端侧、X11 窗口管理器），随桌面风格；
   mygo 可把标题栏交给应用，本实现暂未用。
