@@ -120,6 +120,8 @@ cp app/build/outputs/apk/release/app-release.apk \
 之丢失），签名也不表明构建者是谁。正式签名的 APK 后续提供；它只改
 `app/build.gradle.kts` 里 release 构建的 `signingConfig`。
 
+GitHub release 也附上这个 APK，名为 `vfox-plus_<版本>.apk`。每个 release 用各自的密钥签名，所以一个 release 不能覆盖升级另一个 release 装上的应用：先卸载应用，这会忘记与 PC 的配对。
+
 ## 维护者注记
 
 - `usesCleartextTraffic` 开着：可信局域网里服务端可能是纯 HTTP（PC 侧非回环

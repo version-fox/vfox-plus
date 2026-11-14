@@ -186,8 +186,9 @@ the **debug key**, which Gradle creates on the first build in
 its own key, and CI discards it with the runner: an APK from another build
 cannot update an installed one (uninstall it first; the pairing is forgotten),
 and the signature does not say who built it. An officially signed APK will be
-provided later; it changes only the `signingConfig` of the release build in
-`app/build.gradle.kts`.
+provided later; it changes only the `signingConfig` of the release build in `app/build.gradle.kts`.
+
+The GitHub release of vfox-plus carries this APK too, as `vfox-plus_<version>.apk`. Each release is signed with a key of its own, so one release cannot update the app installed from another: uninstall the app first, which forgets the pairing with the PC.
 
 ## Notes for maintainers
 

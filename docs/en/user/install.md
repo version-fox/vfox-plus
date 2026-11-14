@@ -18,9 +18,9 @@ vfox-plus shows while it runs without its window (the
 [lightweight mode](remote.md#lightweight-mode)), on GNOME. Without it vfox-plus has no tray icon and
 works as ever. The package of vfox-plus recommends it.
 
-Download the amd64 `.deb` or `.tar.gz` of the
+Download the `.deb` or the `.tar.gz` for your computer, amd64 or arm64, of the
 [latest GitHub release](https://github.com/version-fox/vfox-plus/releases/latest),
-then either install the package (Ubuntu 26.04):
+then either install the package (Ubuntu 26.04; the example is the amd64 one):
 
 ```sh
 sudo apt install ./vfox-plus*_amd64.deb
@@ -29,7 +29,7 @@ vfox-plus
 
 or extract the `.tar.gz` anywhere and run `./vfox-plus`.
 
-A classic snap of the GitHub release installs by hand instead (strict
+A classic snap of the GitHub release (amd64) installs by hand instead (strict
 confinement would fence off the toolchains that vfox-plus drives, so the
 snap is not in the store):
 
@@ -63,8 +63,7 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 
 ## Android
 
-Install the `vfox-plus-android` artifact's `.apk` on your phone and pair it
-with the vfox-plus on your PC. See [The Android app](android.md).
+Download the `.apk` of the latest GitHub release to your phone and install it. Each release is signed with a key of its own, so uninstall the app before you install a newer one: that forgets the pairing with the PC. Then pair it with the vfox-plus on your PC. See [The Android app](android.md).
 
 ## Docker
 

@@ -16,7 +16,7 @@ sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 另有一个可选的包：`libayatana-appindicator3-1`，它画出 vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）
 在 GNOME 的托盘里显示的图标。没有它 vfox-plus 就没有托盘图标，其他照常。vfox-plus 的软件包推荐安装它。
 
-从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载 amd64 的 `.deb` 或 `.tar.gz`，二选一（Ubuntu 26.04 装包）：
+从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载适合你电脑（amd64 或 arm64）的 `.deb` 或 `.tar.gz`，二选一（Ubuntu 26.04 装包，示例为 amd64）：
 
 ```sh
 sudo apt install ./vfox-plus*_amd64.deb
@@ -25,7 +25,7 @@ vfox-plus
 
 或把 `.tar.gz` 解到任意位置，运行 `./vfox-plus`。
 
-GitHub release 的 classic snap 则手动安装（strict 限制会挡住 vfox-plus 所驱动的工具链，
+GitHub release 的 classic snap（amd64）则手动安装（strict 限制会挡住 vfox-plus 所驱动的工具链，
 所以不上架商店）：
 
 ```sh
@@ -53,7 +53,7 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 
 ## 安卓
 
-在手机上安装 `vfox-plus-android` 产物的 `.apk`，再与 PC 上的 vfox-plus 配对。
+从最新的 GitHub release 下载 `.apk` 到手机并安装。每个 release 用各自的密钥签名，所以装新版本前要先卸载旧的应用，这会忘记与 PC 的配对。然后再与 PC 上的 vfox-plus 配对。
 见[安卓 App](android.md)。
 
 ## Docker
