@@ -49,11 +49,11 @@ colour.
 - Edits the vfox configuration (proxy, registry, storage, legacy version
   files, caches, timeouts) and extra environment variables such as download
   mirrors.
-- Offers what vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle and vfox-golang
+- Offers what vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang and vfox-python
   provide beyond a plain list: the distribution of Java to list (31 of them),
-  filter chips (LTS, JavaFX, channels, architectures), installation by name and
+  filter chips (LTS, JavaFX, channels, architectures, GraalPy), installation by name and
   download mirrors, see
-  [Java, Node.js, Flutter, Gradle and Go](using.md#java-nodejs-flutter-gradle-and-go).
+  [Java, Node.js, Flutter, Gradle, Go and Python](using.md#java-nodejs-flutter-gradle-go-and-python).
 - Installs and uses a version in one step, links SDKs that are already on the
   machine, names aliases for versions and checks the health of vfox and the
   installed SDKs, which vfox 1.1.0 can do.

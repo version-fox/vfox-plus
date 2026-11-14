@@ -331,6 +331,9 @@ func Run(args []string) error {
 		if err := inDisplay("VFOX_PLUS_E2E_TIMEOUT=300", exe, "e2e-run", "fake", binary); err != nil {
 			return err
 		}
+		if err := inDisplay("VFOX_PLUS_E2E_TIMEOUT=300", exe, "e2e-run", "python", binary); err != nil {
+			return err
+		}
 		return inDisplay("VFOX_PLUS_E2E_TIMEOUT=300", "VFOX_PLUS_E2E_VFOX=/usr/local/bin/vfox", exe, "e2e-run", "real", binary)
 
 	case "measure":

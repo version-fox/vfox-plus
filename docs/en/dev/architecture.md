@@ -173,7 +173,7 @@ has in common, which is how the web interface of the first version came to show
 the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
 
 A *profile* (`core/profile`) writes it down, as plain data that the three
-interfaces share, for `java`, `nodejs`, `flutter`, `gradle` and `golang`:
+interfaces share, for `java`, `nodejs`, `flutter`, `gradle`, `golang` and `python`:
 
 | Part | What it is |
 | --- | --- |
@@ -573,7 +573,7 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   chooses *Open vfox+*, *Open the web interface* and *Quit vfox+* as the user does, by having the extension send
   the event of the click, and the application does what they say; the shell hides the icon when the window comes
   back, and drops it when the application ends, and is still up after it all.
-- **Windows** by the `run-windows` job, which runs `vfxtool e2e-run fake` and `vfxtool e2e-run tray` on Windows
+- **Windows** by the `run-windows` job, which runs `vfxtool e2e-run fake`, `vfxtool e2e-run python` and `vfxtool e2e-run tray` on Windows
   Server 2025 (x64) and Windows 11 on ARM with the end-to-end build for Windows, on the desktop of the runner
   (`explorer.exe` runs there, with its taskbar). The window comes back and the application ends as the control
   file of the end-to-end build asks, since a click on an icon of the taskbar is not for a program to make. The

@@ -595,6 +595,44 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 		}
 	}
 
+	// vfox-python has a profile too. Its searches list the GraalPy builds with a note, which the
+	// filter of the profile tells apart by, and the machine of the Python screens has Python
+	// installed next to the others, with one version in use. It is added last, so that the
+	// outputs above do not list it. The registry may list an older release than the one the
+	// profile follows, so VFOX_PYTHON_PLUGIN can name a zip of the plugin to install instead.
+	addPython := []string{"add", "python"}
+	if source := os.Getenv("VFOX_PYTHON_PLUGIN"); source != "" {
+		addPython = []string{"add", "--source", source, "python"}
+	}
+	if err := r.retry(addPython...); err != nil {
+		return err
+	}
+	if err := r.capture("search-python", nil, "search", "python"); err != nil {
+		return err
+	}
+	for _, installed := range []struct{ sdk, version string }{
+		{"python", "3.15.2"}, {"python", "3.14.4"},
+	} {
+		if err := r.fakeInstall(installed.sdk, installed.version); err != nil {
+			return err
+		}
+	}
+	if err := r.runCmd([]string{"__VFOX_SHELL=bash"}, io.Discard, errOut, "use", "--global", "python@3.15.2"); err != nil {
+		return err
+	}
+	for _, listing := range []struct {
+		name string
+		args []string
+	}{
+		{"list-python", []string{"list"}},
+		{"current-python", []string{"current"}},
+		{"info-python", []string{"info", "python", "--format", infoFormat}},
+	} {
+		if err := r.capture(listing.name, nil, listing.args...); err != nil {
+			return err
+		}
+	}
+
 	fmt.Fprintf(print, "Fixtures written to %s\n", out)
 	return nil
 }

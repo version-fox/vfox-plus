@@ -14,7 +14,7 @@
 ## SDK
 
 已安装插件列表，标出当前版本。链接版本显示其目录，卸载只删链接；别名当版本用。点一个看详情：描述、主页与两个页签（应用认识的插件有三个页签，
-见 [Java、Node.js、Flutter、Gradle 与 Go](#javanodejsfluttergradle-与-go)）。宽窗口里详情始终是打开的，
+见 [Java、Node.js、Flutter、Gradle、Go 与 Python](#javanodejsfluttergradlego-与-python)）。宽窗口里详情始终是打开的，
 你没选时是在用的那个插件。
 
 **已安装**列出已装版本，最新在前。当前版本有标记，其它版本可设为全局默认。
@@ -27,13 +27,13 @@
 例如用 `24` 安装最新的 Node.js 24，勾选**安装后使用**可一次装好即用；**探测并链接**把机器上已有的纳入管理
 （`vfox link --detect`）；**链接已有…**按你写的目录与版本名链接。
 
-### Java、Node.js、Flutter、Gradle 与 Go
+### Java、Node.js、Flutter、Gradle、Go 与 Python
 
 插件 [vfox-java](https://github.com/version-fox/vfox-java)、
 [vfox-nodejs](https://github.com/version-fox/vfox-nodejs)、
 [vfox-flutter](https://github.com/version-fox/vfox-flutter)、
-[vfox-gradle](https://github.com/version-fox/vfox-gradle) 与
-[vfox-golang](https://github.com/version-fox/vfox-golang) 的功能不止列出版本，vfox-plus
+[vfox-gradle](https://github.com/version-fox/vfox-gradle)、
+[vfox-golang](https://github.com/version-fox/vfox-golang) 与 [vfox-python](https://github.com/version-fox/vfox-python) 的功能不止列出版本，vfox-plus
 把这些功能都提供出来，桌面应用、Web 界面和安卓应用都一样。用别名添加的插件，如
 `vfox add --alias coffee java`，与它所自出的插件提供同样的功能：
 
@@ -43,11 +43,11 @@
   属于哪个发行版。你的选择会被记住，下次打开该插件和重启之后仍然生效；它保存在桌面应用的设置里，所以
   Web 界面和安卓应用显示的是同一个选择。这和 `vfox search java tem` 是一回事。
 - **筛选 Chip。** 列表上方的 Chip 按插件对版本的说明来收窄列表：Java 有 LTS 与 JavaFX，Node.js 有 LTS，
-  Flutter 有通道（stable、beta、dev、OpenHarmony）与架构（x64、arm64）。同一行的 Chip 是“或”的关系，
+  Flutter 有通道（stable、beta、dev、OpenHarmony）与架构（x64、arm64），Python 有 GraalPy 与 GraalPy Community 两种实现。同一行的 Chip 是“或”的关系，
   不同行互相收窄。
 - **按名称安装。** 有些名称由 vfox 在安装时解析：`24` 是最新的 Node.js 24，`latest` 是所有版本中最新的，
   `stable` 与 `beta` 是 Flutter 通道当前指向的版本，`21-tem` 是最新的 Temurin 21，`21-zulu-fx` 是带
-  JavaFX 的 Zulu 21，`28.ea-open` 是抢先体验版的 OpenJDK，`latest` 是最新的 Gradle 或 Go 版本。对话框会为该插件给出这样的名称，并说明
+  JavaFX 的 Zulu 21，`28.ea-open` 是抢先体验版的 OpenJDK，`3.13` 是最新的 Python 3.13，`3.13t` 是它的自由线程版，`latest` 是最新的 Gradle、Go 或标准 CPython 版本。对话框会为该插件给出这样的名称，并说明
   各自的含义。通道会被它指向的版本替换，之后在**已安装**里看到的就是那个版本名。
 - **已安装的名称。** 已安装的 Java 版本会标出发行版（带 JavaFX 时也标出），已安装的 Flutter 版本会标出架构。链接版本保留你起的名称（如 `17-system`）。
 
@@ -58,14 +58,14 @@
 **选项**页签放的是这个插件特有的内容：
 
 - **下载**：插件读取的环境变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
-  下载镜像、Flutter 的存储镜像、Gradle 镜像列表与 Go 镜像，它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
+  下载镜像、Flutter 的存储镜像、Gradle 镜像列表、Go 镜像与 Python 的 python.org 和 uv-build 镜像，它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
   `https://` 开头。
 - **版本文件**：一个开关，下面是该插件读取的文件：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与
-  `.nvmrc`（vfox 1.1.0 上双向生效：离开项目切回全局），Gradle 的 `gradle/wrapper/gradle-wrapper.properties`；
-  Node.js 还有“文件里写的版本怎么选”的选项。
+  `.nvmrc`（vfox 1.1.0 上双向生效：离开项目切回全局），Gradle 的 `gradle/wrapper/gradle-wrapper.properties`，Python 的 `.python-version`；
+  Node.js 与 Python 还有“文件里写的版本怎么选”的选项。
 - **须知**：容易让人意外、又没有按钮能说明的几件事，例如不写发行版的 Java 是 jdk.java.net 上的 OpenJDK，只保留
-  最新的版本；又如 vfox 管理的 Flutter 不能原地升级。名称怎么写、常用的名称，在**按名称安装**对话框里。
-- **纳入、漂移与盖住**：机器上已有 JDK、Gradle、Flutter 或 Go 时，**探测并链接**纳入管理，不必重下；SDK 被原地改动时主页**健康**与 `vfox use` 报告漂移（**重装**，旧安装用**纳入**）；别的工具盖住 vfox 的版本时健康检查指明是谁与做法（`path.mode`、`path.preserve`）。
+  最新的版本；又如 vfox 管理的 Flutter 不能原地升级，又如部分版本号（如 `3.13`）不会选中自由线程版（`3.13t`）或预发布版。名称怎么写、常用的名称，在**按名称安装**对话框里。
+- **纳入、漂移与盖住**：机器上已有 JDK、Gradle、Flutter、Go 或 Python 时，**探测并链接**纳入管理，不必重下；SDK 被原地改动时主页**健康**与 `vfox use` 报告漂移（**重装**，旧安装用**纳入**）；别的工具盖住 vfox 的版本时健康检查指明是谁与做法（`path.mode`、`path.preserve`）。
 - **文档**：该插件讲解自身的页面，使用你的语言。
 
 ## 插件

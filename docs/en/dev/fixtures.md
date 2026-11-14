@@ -133,6 +133,15 @@ themselves. The fake vfox serves them for `list` and `current` when
 `VFOX_PLUS_FAKE_INVENTORY=profiles` is set, which the screenshots of those plugins need; the
 searches and the plugin information it always serves.
 
+`vfxtool capture` adds vfox-python last as well, from the zip that `VFOX_PYTHON_PLUGIN` names: when
+these were captured the registry listed 0.6.3, and the profile follows 0.6.4, which the zip is of.
+`search-python` lists 999 versions on Linux x64, and the GraalPy builds carry the notes `GraalPy` and
+`GraalPy Community`, which the filter of the profile tells apart. `info-python` is what the plugin says
+of itself. `list-python` and `current-python` are the machine of the Python screens: the machine of the
+profiles with Python 3.15.2 and 3.14.4 installed, of which 3.15.2 is in use. The fake vfox serves them
+for `list` and `current` when `VFOX_PLUS_FAKE_INVENTORY=python` is set. `cases.json` lists what the
+parsers must read from them.
+
 ## Updating for a new vfox release
 
 1. Install the new vfox release and run `vfxtool capture`. It needs

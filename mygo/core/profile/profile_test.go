@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -140,8 +140,10 @@ func TestSearchArgumentsAndChoices(t *testing.T) {
 	if _, ok := none.Choice("tem"); ok {
 		t.Error("a nil search has no choices")
 	}
-	if lookup(t, "nodejs").Search != nil || lookup(t, "flutter").Search != nil || lookup(t, "gradle").Search != nil || lookup(t, "golang").Search != nil {
-		t.Error("nodejs, flutter, gradle and golang ignore search arguments")
+	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python"} {
+		if lookup(t, plugin).Search != nil {
+			t.Errorf("%s ignores search arguments", plugin)
+		}
 	}
 }
 
@@ -204,6 +206,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"flutter": {[]string{"FLUTTER_STORAGE_BASE_URL", "VFOX_FLUTTER_GITHUB_MIRROR"}, nil},
 		"gradle":  {[]string{"VFOX_GRADLE_MIRRORS"}, []string{"gradle/wrapper/gradle-wrapper.properties"}},
 		"golang":  {[]string{"VFOX_GOLANG_MIRROR"}, nil},
+		"python":  {[]string{"VFOX_PYTHON_MIRROR", "VFOX_PYTHON_USE_UV_BUILD", "VFOX_PYTHON_UV_BUILD_MIRROR", "VFOX_PYTHON_UV_LIBC"}, []string{".python-version"}},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
@@ -250,8 +253,11 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 			}
 		}
 	}
-	if lookup(t, "nodejs").LegacyStrategy != true || lookup(t, "java").LegacyStrategy {
-		t.Error("only vfox-nodejs reads the strategy of the legacy version files")
+	strategyReaders := map[string]bool{"nodejs": true, "python": true}
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python"} {
+		if got := lookup(t, plugin).LegacyStrategy; got != strategyReaders[plugin] {
+			t.Errorf("%s LegacyStrategy = %v: only vfox-nodejs and vfox-python read the strategy of the legacy version files", plugin, got)
+		}
 	}
 }
 
@@ -393,6 +399,64 @@ func TestJavaAndNodeFiltersReadTheNotes(t *testing.T) {
 	node := lookup(t, "nodejs")
 	if groups := node.Groups([]core.AvailableVersion{{Version: "24.22.0", Note: "LTS", HasNote: true}, {Version: "26.12.0"}}); len(groups) != 1 || groups[0].Chips[0].Count != 1 {
 		t.Errorf("node groups = %+v", groups)
+	}
+}
+
+func TestPythonFiltersReadTheNotes(t *testing.T) {
+	// The releases of CPython carry no note, as vfox-python lists them; only
+	// the GraalPy builds do. So the one filter is the implementation.
+	versions := []core.AvailableVersion{
+		{Version: "3.12.13"},
+		{Version: "3.13.14t"},
+		{Version: "graalpy-24.2.0", Note: "GraalPy", HasNote: true},
+		{Version: "graalpy-community-24.2.0", Note: "GraalPy Community", HasNote: true},
+	}
+	python := lookup(t, "python")
+	groups := python.Groups(versions)
+	if len(groups) != 1 || groups[0].ID != "implementation" || len(groups[0].Chips) != 2 ||
+		groups[0].Chips[0] != (Chip{"GraalPy", 1}) || groups[0].Chips[1] != (Chip{"GraalPy Community", 1}) {
+		t.Fatalf("groups = %+v", groups)
+	}
+	kept := func(selection Selection) []string {
+		var names []string
+		for _, version := range versions {
+			if python.Matches(selection, version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept(Selection{}); len(got) != len(versions) {
+		t.Errorf("an empty selection keeps %v", got)
+	}
+	if got := kept(Selection{}.Toggled("implementation", "GraalPy")); !reflect.DeepEqual(got, []string{"graalpy-24.2.0"}) {
+		t.Errorf("GraalPy = %v", got)
+	}
+	if got := kept(Selection{}.Toggled("implementation", "GraalPy Community")); !reflect.DeepEqual(got, []string{"graalpy-community-24.2.0"}) {
+		t.Errorf("GraalPy Community = %v", got)
+	}
+}
+
+func TestPythonOffersTheVariablesOfItsPlatform(t *testing.T) {
+	shared := []string{"VFOX_PYTHON_MIRROR", "VFOX_PYTHON_USE_UV_BUILD", "VFOX_PYTHON_UV_BUILD_MIRROR"}
+	withExtra := func(extra string) []string { return append(append([]string(nil), shared...), extra) }
+	want := map[string][]string{
+		"linux":   withExtra("VFOX_PYTHON_UV_LIBC"),
+		"darwin":  shared,
+		"windows": withExtra("VFOX_PYTHON_REGISTER_PY_LAUNCHER"),
+	}
+	for goos, expected := range want {
+		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("python")
+		if !ok {
+			t.Fatal("no profile for python")
+		}
+		var keys []string
+		for _, variable := range profile.Variables {
+			keys = append(keys, variable.Key)
+		}
+		if !reflect.DeepEqual(keys, expected) {
+			t.Errorf("%s variables = %v, want %v", goos, keys, expected)
+		}
 	}
 }
 

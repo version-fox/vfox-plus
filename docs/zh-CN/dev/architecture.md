@@ -157,7 +157,7 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
 第一版的 Web 界面就是这样只显示了 Java 的 OpenJDK 列表（[#43](https://github.com/version-fox/vfox-plus/issues/43)）。
 
-*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter` 与 `gradle`：
+*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter`、`gradle`、`golang` 与 `python`：
 
 | 部分 | 内容 |
 | --- | --- |
@@ -468,7 +468,7 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   *打开 vfox+*、*打开网页界面* 和 *退出 vfox+*，做法是让扩展发出点击事件，应用照做；窗口回来时 Shell 隐藏图标，
   应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
 - **Windows**：`run-windows` 任务在 Windows Server 2025（x64）与 Windows 11 ARM 上，用 Windows 的端到端构建，
-  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake` 与 `vfxtool e2e-run tray`。
+  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python` 与 `vfxtool e2e-run tray`。
   窗口回来、应用结束按端到端构建的控制文件的要求发生，因为点击任务栏的图标不是程序该做的事。图标的位置由应用向桌面
   询问（mygo 的 `Tray.Bounds`，即 `Shell_NotifyIconGetRect`），应用为它创建的每个图标把答案写进日志：在
   Windows Server 2025 上，图标两次创建都在通知区域得到了位置。桌面能不能说出图标在哪，由场景自己添加的一个普通图标

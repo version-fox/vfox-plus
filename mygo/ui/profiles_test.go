@@ -85,6 +85,63 @@ func (ta *testApp) openAvailable(plugin string) {
 	ta.settle()
 }
 
+// pythonRunner is the runner of a machine that has Python installed next to the others of the
+// profile plugins (the captures of VFOX_PLUS_FAKE_INVENTORY=python).
+func pythonRunner() *testsupport.FakeProcessRunner {
+	return testsupport.FixtureRunner().
+		On("list", testsupport.FixtureOutput("list-python", 0)).
+		On("current", testsupport.FixtureOutput("current-python", 0))
+}
+
+// pythonApp is the application on that machine.
+func pythonApp(t *testing.T) *testApp {
+	t.Helper()
+	app := newTestApp(t, pythonRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+	app.start()
+	return app
+}
+
+func TestThePythonOptionsSetTheInstallMethodAndShowTheVersionFiles(t *testing.T) {
+	ta := pythonApp(t)
+	ta.button("SDKs")
+	ta.item("python")
+	ta.button("Options")
+	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+	ta.settle()
+	for _, text := range []string{"Downloads", "python.org mirror", "Install method", "uv-build mirror", "Version files", ".python-version", "Notes"} {
+		ta.mustText(text)
+	}
+	ta.snapshot("python-options")
+	// The install method is one of two choices. The row shows the choice that was saved, with its value.
+	ta.buttonNear("Install method", "Change")
+	ta.button("uv-build only")
+	ta.button("Save")
+	ta.mustText("uv-build only · 1")
+	ta.snapshot("python-install-method")
+}
+
+func TestThePythonVersionsFilterOnTheGraalPyBuilds(t *testing.T) {
+	ta := pythonApp(t)
+	ta.openAvailable("python")
+	ta.mustText("999 versions")
+	for _, chip := range []string{"GraalPy", "GraalPy Community"} {
+		if _, ok := ta.find(kit.RoleButton, chip); !ok {
+			t.Fatalf("no chip for %s: %q", chip, ta.texts())
+		}
+	}
+	ta.button("GraalPy Community")
+	if node, _ := ta.find(kit.RoleButton, "GraalPy Community"); !node.Selected {
+		t.Error("the chip is on")
+	}
+	ta.mustText("18 versions")
+	ta.snapshot("python-graalpy-community")
+	// The chips of one row are alternatives: the two builds together are 49 versions.
+	ta.button("GraalPy")
+	ta.mustText("49 versions")
+	ta.button("Clear filters")
+	ta.mustText("999 versions")
+}
+
 func TestTheVersionsOfJavaSayWhichDistributionTheyAreOf(t *testing.T) {
 	ta := javaApp(t)
 	ta.button("SDKs")

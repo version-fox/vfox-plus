@@ -11,7 +11,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 | 目录 | 职责 |
 | --- | --- |
-| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 的特有之处）——无 UI |
+| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang 与 vfox-python 的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
 | [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面与对话框 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
@@ -125,10 +125,11 @@ Go 模块与构建缓存。
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run fake build/vfox-plus-e2e
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run python build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
-  `fake` 对夹具假 vfox，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
+  `fake` 对夹具假 vfox，`python` 对同一个假 vfox，但机器上装着 Python，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
   替身托盘宿主，它需要 `dbus-run-session` 给的会话总线和 `libayatana-appindicator3`（见[托盘](architecture.md#托盘)），
   在 Windows 上对着本机的任务栏。`tray-gnome` 是同一个图标对着一个没有屏幕的真实 GNOME Shell，它在
   `shared/sandbox/gnome.Dockerfile` 的容器里（需要 Docker；构建产物以挂载方式放进去）：

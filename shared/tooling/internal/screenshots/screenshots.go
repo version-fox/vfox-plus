@@ -71,6 +71,8 @@ var runs = []run{
 	{name: "installing", env: []string{"VFOX_PLUS_FAKE_DELAY=4"}, scenario: installing},
 	// The pages of the plugins that have a profile need a machine that has them.
 	{name: "profiles", env: []string{"VFOX_PLUS_FAKE_INVENTORY=profiles"}, scenario: profiles},
+	// Python has a profile too: its options, and the filter of the GraalPy builds, on a machine that has it.
+	{name: "python", env: []string{"VFOX_PLUS_FAKE_INVENTORY=python"}, scenario: pythonPages},
 	// The compact layout is that of a window less than 600 dp wide.
 	{name: "compact pages", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800"}, scenario: compactPages},
 	{name: "compact profiles", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800", "VFOX_PLUS_FAKE_INVENTORY=profiles"}, scenario: compactProfiles},
@@ -340,6 +342,36 @@ func compactPages(s *appsession.Session, c shooter) {
 	s.ClickItem("nodejs")
 	s.WaitForText("Node.js runtime environment.")
 	c.shot(s, "compact-detail")
+}
+
+// pythonPages are the options of Python and its versions on the machine that has Python installed: the dialog of the
+// install method, the filter of the GraalPy builds, and the options in the dark theme, which the settings switch.
+func pythonPages(s *appsession.Session, c shooter) {
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("python")
+	s.WaitForText("Python language support for CPython and GraalPy, https://www.python.org")
+	s.ClickButton("Options")
+	s.WaitForText("Version used from legacy files")
+	c.shot(s, "python-options")
+	s.PressKey("change:VFOX_PYTHON_USE_UV_BUILD")
+	s.ClickButton("uv-build only")
+	c.shot(s, "python-install-method")
+	s.ClickButton("Save")
+	s.WaitForText("uv-build only · 1")
+	s.ClickButton("Available")
+	s.ClickButton("GraalPy Community")
+	s.WaitForText("18 versions")
+	c.shot(s, "python-graalpy-community")
+
+	s.Navigate(appsession.Settings)
+	s.PressKey("dark")
+	s.Navigate(appsession.SDKs)
+	s.ClickItem("python")
+	s.ClickButton("Options")
+	s.WaitForText("Version used from legacy files")
+	c.shot(s, "dark-python-options")
+	s.Navigate(appsession.Settings)
+	s.PressKey("light")
 }
 
 // compactProfiles shows the distributions of Java in a window of the compact layout.

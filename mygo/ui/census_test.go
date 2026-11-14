@@ -146,6 +146,8 @@ type censusScene struct {
 	name string
 	// java gives the machine Java next to Node.js, and missing takes vfox away.
 	java, missing bool
+	// python gives the machine Python next to the others, which the screens of Python need.
+	python bool
 	// tall says that the page is taller than the windows of the census are, as the settings are in the narrowest, and the lists of
 	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
 	// it has below the fold is drawn and counted, too.
@@ -208,6 +210,9 @@ var censusScenes = []censusScene{
 	{name: "link-manual", modal: true, reach: func(ta *testApp) { ta.openAvailable("nodejs"); ta.addMore("Link existing…") }},
 	{name: "options", tall: true, reach: optionsOf("nodejs")},
 	{name: "options-java", java: true, tall: true, reach: optionsOf("java")},
+	{name: "options-python", python: true, tall: true, reach: optionsOf("python")},
+	// The filter of the GraalPy builds is the longest chip of the screens of the profiles: 18 versions are left under it.
+	{name: "python-available", python: true, tall: true, reach: func(ta *testApp) { ta.openAvailable("python"); ta.button("GraalPy Community") }},
 	{name: "tooltip", tooltip: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: func(ta *testApp) {
 		ta.hover(kit.RoleButton, "More ways to use this version")
 	}},
@@ -309,6 +314,9 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	runner := testsupport.FixtureRunner()
 	if scene.java {
 		runner = javaRunner()
+	}
+	if scene.python {
+		runner = pythonRunner()
 	}
 	for prefix, delay := range censusSlowDowns {
 		runner.SlowDown(prefix, delay)

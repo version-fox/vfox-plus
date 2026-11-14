@@ -250,6 +250,7 @@ of mygo, and captures the screen with ImageMagick when the page has settled:
 | plain | every page, in both themes and languages: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | an installation in progress: `installing` |
 | `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `options-aliases`, `alias-set`, `link-manual`, `zh-options`, `zh-java-available` |
+| `VFOX_PLUS_FAKE_INVENTORY=python` | a machine that has Python installed next to the others, and the options of Python with the filter of the GraalPy builds: `python-options`, `python-install-method` and `python-graalpy-community`, and in the dark theme `dark-python-options` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
 | both of the above | the distributions of Java in the compact layout: `compact-java` |
 | the setting `webInterface`, and `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of the web interface, as a person goes through them: the switch that is on with its address, the question that asks before other devices may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
@@ -287,7 +288,7 @@ display, and headless Chrome, in a language pinned for the picture. `vfxtool web
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
 that `--scene` plays: `home`, `connections`, `connections-pair`, `flutter-chips`, `java-available`,
 `java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`,
-`options-legacy`, `settings-languages`, `alias-set` and `link-manual` (see
+`options-legacy`, `settings-languages`, `alias-set`, `link-manual`, `python-options` and `python-available` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
 scenes click against `mygo/pair/webapp.html`). A scene ends by waiting for the page to fit its
 window, so a layout that overflows fails the shot instead of making a picture. Every picture gets
@@ -297,8 +298,9 @@ serves its web interface because its settings say so, and allows other devices, 
 connections and the code that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is
 told the addresses of the documentation (see above); and the end-to-end build writes a pairing link
 to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The
-scenes of Java need a machine that has Java and Flutter installed, and the home page needs one that
-has not, which is why the inventory of the fake vfox is a variable of the call:
+scenes of Java need a machine that has Java and Flutter installed, the scenes of Python one that has
+Python, and the home page needs one that has not, which is why the inventory of the fake vfox is a
+variable of the call:
 
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
@@ -338,6 +340,10 @@ shoot web-connections en 412,915 --scene connections
 shoot web-connections-pair en 412,915 --scene connections-pair
 shoot web-zh-connections zh 412,915 --scene connections
 shoot web-zh-connections-pair zh 412,915 --scene connections-pair
+INVENTORY=python shoot web-python-options en 412,915 --scene python-options
+INVENTORY=python shoot web-python-available en 412,915 --scene python-available
+INVENTORY=python shoot web-zh-python-options zh 412,915 --scene python-options
+INVENTORY=python shoot web-zh-python-available zh 412,915 --scene python-available
 ```
 
 (`PATH` first carries a `vfox` executable — a copy of `vfxtool` acts as the

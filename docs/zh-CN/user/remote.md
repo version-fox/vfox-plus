@@ -15,9 +15,9 @@ vfox-plus 是桌面应用，没有命令行：像其他应用一样启动它，�
 ![网页界面的设置：开关与服务地址、在浏览器中打开的按钮、轻量模式与其他设备](https://iili.io/nyiVKmv.png)
 
 配对后的浏览器得到完整界面：已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时
-进度与日志的任务、以及设置。vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 这五个插件提供的功能一应
+进度与日志的任务、以及设置。vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang 与 vfox-python 这六个插件提供的功能一应
 俱全，和桌面应用一样：Java 要列出的发行版、筛选 Chip、按名称安装、vfox 1.1.0 的链接与别名，以及带下载镜像的选项页（见
-[Java、Node.js、Flutter、Gradle 与 Go](using.md#javanodejsfluttergradle-与-go)）。[安卓 App](android.md) 显示的是同一个界面。
+[Java、Node.js、Flutter、Gradle、Go 与 Python](using.md#javanodejsfluttergradlego-与-python)）。[安卓 App](android.md) 显示的是同一个界面。
 
 | 配对后的 Web 界面 | 其中的 Java：Temurin，长期支持版 |
 | --- | --- |

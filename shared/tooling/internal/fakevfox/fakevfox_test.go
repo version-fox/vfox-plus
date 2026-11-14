@@ -250,7 +250,7 @@ func TestRunCommandContract(t *testing.T) {
 
 func TestRunCommandReplaysTheCapturesOfJavaAndFlutter(t *testing.T) {
 	dir := t.TempDir()
-	for _, name := range []string{"search-java", "search-java-tem", "search-java-all", "search-flutter", "info-java", "info-flutter"} {
+	for _, name := range []string{"search-java", "search-java-tem", "search-java-all", "search-flutter", "info-java", "info-flutter", "search-python", "info-python"} {
 		writeFixture(t, dir, name, name+"\n", "")
 	}
 	fixtureEnv(t, dir)
@@ -262,6 +262,8 @@ func TestRunCommandReplaysTheCapturesOfJavaAndFlutter(t *testing.T) {
 		{"search flutter", "search-flutter\n"},
 		{infoJava, "info-java\n"},
 		{"info flutter --format {{.Name}}", "info-flutter\n"},
+		{"search python", "search-python\n"},
+		{"info python --format {{.Name}}", "info-python\n"},
 	} {
 		var out, errOut strings.Builder
 		if code := runCommand(strings.Fields(c.command), &out, &errOut); code != 0 || out.String() != c.want {
@@ -272,6 +274,31 @@ func TestRunCommandReplaysTheCapturesOfJavaAndFlutter(t *testing.T) {
 	var out, errOut strings.Builder
 	if code := runCommand([]string{"search", "java", "zulu"}, &out, &errOut); code != 0 || !strings.Contains(out.String(), "2.1.0 (LTS)") {
 		t.Errorf("search java zulu: exit %d, stdout %q", code, out.String())
+	}
+}
+
+func TestRunCommandListsTheMachineWithPythonWhenAsked(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "list", "plain list\n", "")
+	writeFixture(t, dir, "current", "plain current\n", "")
+	writeFixture(t, dir, "list-profiles", "profiles list\n", "")
+	writeFixture(t, dir, "current-profiles", "profiles current\n", "")
+	writeFixture(t, dir, "list-python", "python list\n", "")
+	writeFixture(t, dir, "current-python", "python current\n", "")
+	fixtureEnv(t, dir)
+	for _, c := range []struct{ inventory, command, want string }{
+		{"", "list", "plain list\n"},
+		{"", "current", "plain current\n"},
+		{"profiles", "list", "profiles list\n"},
+		{"profiles", "current", "profiles current\n"},
+		{"python", "list", "python list\n"},
+		{"python", "current", "python current\n"},
+	} {
+		t.Setenv("VFOX_PLUS_FAKE_INVENTORY", c.inventory)
+		var out, errOut strings.Builder
+		if code := runCommand([]string{c.command}, &out, &errOut); code != 0 || out.String() != c.want {
+			t.Errorf("inventory %q, %s: exit %d, stdout %q, want %q", c.inventory, c.command, code, out.String(), c.want)
+		}
 	}
 }
 

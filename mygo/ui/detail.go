@@ -331,7 +331,9 @@ func (a *App) detailHeader(k kit.Ctx, sdk core.InstalledSdk, info core.PluginInf
 	updating := a.model.Tasks.ActiveTask(vfox.OperationUpdatePlugin, sdk.Name, "")
 
 	textColumn := func() {
-		mui.Column(k.Context).Grow(1).Shrink(1).AlignItems(mui.Start).Children(func() {
+		// The column is a flex item of the row, and as wide as the longest word in it unless it is told MinWidth(0): the address in the
+		// description would make the header wider than the window.
+		mui.Column(k.Context).Grow(1).Shrink(1).MinWidth(0).AlignItems(mui.Start).Children(func() {
 			// The name of the page is the name of the SDK, and goes on as many lines as it needs: at 225 % "nodejs" wants 258 dp of the 256
 			// that the column of a pane of a phone has, and was cut by an ellipsis.
 			kit.Label(k, sdk.Name, kit.Emph(kit.HeadlineMedium), cs.OnSurface, kit.Breakable())
@@ -346,7 +348,9 @@ func (a *App) detailHeader(k kit.Ctx, sdk core.InstalledSdk, info core.PluginInf
 				}
 			})
 			if hasInfo && info.Description != "" {
-				kit.Label(k, info.Description, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Lines(3)).Margin(gapS, 0, 0, 0)
+				// The description may hold an address, a word that has no space to break at: it goes on as many lines as it needs, as the name does,
+				// or the widest word would make the column of the header wider than the window.
+				kit.Label(k, info.Description, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Lines(3), kit.Breakable()).Margin(gapS, 0, 0, 0)
 			}
 		})
 	}
@@ -539,7 +543,7 @@ func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableV
 		Name: version.Version, Subtitle: strings.Join(additions, " · "),
 		TitleWidget: func(foreground mui.Color) {
 			mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {
-				kit.Label(k, version.Version, kit.Type(kit.BodyLarge), foreground)
+				kit.Label(k, version.Version, kit.Type(kit.BodyLarge), foreground, kit.Breakable())
 				if source != "" {
 					kit.Tag(k, kit.TagSpec{Label: source})
 				}

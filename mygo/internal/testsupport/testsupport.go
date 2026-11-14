@@ -413,6 +413,8 @@ func FixtureRunner() *FakeProcessRunner {
 		On("search java tem", FixtureOutput("search-java-tem", 0)).
 		On("search java all", FixtureOutput("search-java-all", 0)).
 		On("search flutter", FixtureOutput("search-flutter", 0)).
+		On("search python", FixtureOutput("search-python", 0)).
+		On("info python --format "+vfox.PluginInfoTemplate, FixtureOutput("info-python", 0)).
 		On("info nodejs --format "+vfox.PluginInfoTemplate, FixtureOutput("info", 0)).
 		On("doctor --json", FixtureOutput("doctor-json", 0)).
 		On("alias list", FixtureOutput("alias-list", 0)).
@@ -422,6 +424,7 @@ func FixtureRunner() *FakeProcessRunner {
 		On("alias list flutter", FixtureOutput("alias-list", 0)).
 		On("alias list gradle", FixtureOutput("alias-list", 0)).
 		On("alias list golang", FixtureOutput("alias-list", 0)).
+		On("alias list python", FixtureOutput("alias-list", 0)).
 		On("alias list mvn2", FixtureOutput("alias-list", 0)).
 		On("alias list coffee", FixtureOutput("alias-list", 0)).
 		On("info --json nodejs", FixtureOutput("info-json", 0))
