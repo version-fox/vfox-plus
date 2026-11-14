@@ -159,8 +159,7 @@ is slow, configure a download mirror for your user, not for the project; see
 
 The release APK lands at
 `app/build/outputs/apk/release/app-release.apk`
-(about 3.2 MB), signed with the debug key (see [Signing
-status](#signing-status)). Rename it with the version for distribution:
+(about 3.2 MB), signed with the release key when the environment gives one, and with the debug key of the machine otherwise (see [Signing status](#signing-status)). Rename it with the version for distribution:
 
 ```sh
 cp app/build/outputs/apk/release/app-release.apk \
@@ -179,16 +178,41 @@ measure-apk --pair-url`.
 
 ## Signing status
 
-Android installs no APK that has no signature (an unsigned one fails with
-`INSTALL_PARSE_FAILED_NO_CERTIFICATES`), so the release build is signed with
-the **debug key**, which Gradle creates on the first build in
-`~/.android/debug.keystore` (or `$ANDROID_USER_HOME`). Every build machine has
-its own key, and CI discards it with the runner: an APK from another build
-cannot update an installed one (uninstall it first; the pairing is forgotten),
-and the signature does not say who built it. An officially signed APK will be
-provided later; it changes only the `signingConfig` of the release build in `app/build.gradle.kts`.
+Android installs an update only over an app signed with the same key, and refuses
+another one (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). So every release of vfox-plus
+is signed with the **release key**: one key, kept as secrets of the repository, the
+same for every release. A release installs over the one before it, and the data and
+the pairing with the PC stay.
 
-The GitHub release of vfox-plus carries this APK too, as `vfox-plus_<version>.apk`. Each release is signed with a key of its own, so one release cannot update the app installed from another: uninstall the app first, which forgets the pairing with the PC.
+The release job refuses to run without the key. Its four secrets are
+`ANDROID_RELEASE_KEYSTORE_BASE64` (the keystore, in base64),
+`ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS` and
+`ANDROID_RELEASE_KEY_PASSWORD`. The Gradle build (`app/build.gradle.kts`) signs with
+the release key when the environment gives one (`ANDROID_RELEASE_KEYSTORE` and the
+three passwords). Otherwise a local build uses the debug key of the machine, which
+Gradle creates on the first build, so each machine has its own key: an APK of one
+machine cannot update an APK of another, which is why the debug key is for local
+builds only. The job of [`android.yml`](../../../.github/workflows/android.yml) signs
+its artifact with a key that it makes and throws away, so that the release signing is
+built on every change.
+
+To set the release key up, once. Keep the keystore and its passwords in a password
+manager, and a copy somewhere else: without them no later release can update an
+installed app.
+
+```sh
+keytool -genkeypair -v -keystore vfox-plus-release.jks -alias vfox-plus \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 vfox-plus-release.jks | gh secret set ANDROID_RELEASE_KEYSTORE_BASE64 -R version-fox/vfox-plus
+gh secret set ANDROID_RELEASE_STORE_PASSWORD -R version-fox/vfox-plus
+gh secret set ANDROID_RELEASE_KEY_ALIAS -R version-fox/vfox-plus
+gh secret set ANDROID_RELEASE_KEY_PASSWORD -R version-fox/vfox-plus
+```
+
+Keep the `.jks` file out of the repository: `*.jks` and `*.keystore` are ignored. The
+APKs built before this key, with a debug key, cannot be updated by a release: uninstall
+the app once. The version code follows the version (1.2.3 is 10203), because Android
+accepts an update only with a higher one.
 
 ## Notes for maintainers
 

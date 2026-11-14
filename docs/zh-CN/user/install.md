@@ -53,7 +53,7 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 
 ## 安卓
 
-从最新的 GitHub release 下载 `.apk` 到手机并安装。每个 release 用各自的密钥签名，所以装新版本前要先卸载旧的应用，这会忘记与 PC 的配对。然后再与 PC 上的 vfox-plus 配对。
+从最新的 GitHub release 下载 `.apk` 到手机并安装。新版本直接装在旧版本上，与 PC 的配对保留；只有用别的密钥签名的 APK（例如开发构建）需要先卸载，这会忘记与 PC 的配对。然后再与 PC 上的 vfox-plus 配对。
 见[安卓 App](android.md)。
 
 ## Docker

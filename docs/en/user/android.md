@@ -9,7 +9,7 @@ documentation, open in the browser of the phone.
 
 1. On the PC, open vfox-plus, go to *Settings → Web interface* and turn on the web
    interface and *Other devices*. Allow the port in the firewall of the PC.
-2. Download the `.apk` of the latest GitHub release to your phone, install it and open it. Each release is signed with a key of its own: uninstall the app before you install a newer one, which forgets the pairing.
+2. Download the `.apk` of the latest GitHub release to your phone, install it and open it. A newer release installs over the one on the phone and keeps the pairing. Only an APK signed with another key, such as one from a development build, must be uninstalled first, which forgets the pairing.
 3. Choose *Show code* next to *Pair a phone* on the PC, and scan the QR code with the
    app, or copy the link and paste it into the app, and connect. If the PC uses a
    certificate that it made itself, the app shows its fingerprint: compare it with the one

@@ -56,7 +56,7 @@
 | [`memory.yml`](../../../.github/workflows/memory.yml) | 构建工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、在 Linux、Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取桌面应用各屏幕的普查、发布构建与冒烟测试、amd64 的 `.deb` 与 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），arm64 的 `.deb` 与 `.tar.gz`（lintian 校验，并核对程序的机器类型；没有 arm64 机器装它们），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中分别跑各部分（`vfxtool sandbox check`、`e2e`、`package` 与普查的四组），每部分一个任务 |
-| [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（debug 密钥签名）并作为 `vfox-plus-android` 上传 |
+| [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（用任务临时生成并丢弃的密钥签名）并作为 `vfox-plus-android` 上传 |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`android/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、Android 构建，以及用到 Docker 的检查 |
 | [`release.yml`](../../../.github/workflows/release.yml) | 在 `main` 上手动，或 `v*` 标签 | 设定版本并提交到 `main`，打 `v<版本>` 标签，打包（含 Linux arm64 与 APK）并发布 GitHub release，自更新检查读取的就是它 |
 
@@ -82,7 +82,7 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 3. 任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），按 [`android.yml`](../../../.github/workflows/android.yml) 的方式构建 Android APK，外加 `snap/snapcraft.yaml` 的 classic snap。
 4. 全部构建完成后，任务才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64）、每个架构的 `.msix`、Windows 的 `.msixbundle`、供 [`vfxtool sign-msix`](packaging-windows.md#自己签名) 用的 Windows 可执行文件压缩包，以及 `vfxtool.exe`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
 
-APK 用运行器的 debug 密钥签名，与 [`android.yml`](../../../.github/workflows/android.yml) 一样（见[签名状态](packaging-android.md#签名状态)）。每个 release 用各自的密钥，所以一个 release 的 APK 不能覆盖升级另一个 release 装上的应用：先卸载应用，这会忘记与 PC 的配对。
+APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。
 
 版本提交不会在 `main` 上启动 CI 运行：工作流自己的令牌推送的提交，GitHub 不会启动任何工作流。所以那个提交上不跑测试：它之前最近一次 `mygo` 运行才算数，这就是任务要检查它的原因。
 

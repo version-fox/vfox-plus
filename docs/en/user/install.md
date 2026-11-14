@@ -63,7 +63,7 @@ Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFul
 
 ## Android
 
-Download the `.apk` of the latest GitHub release to your phone and install it. Each release is signed with a key of its own, so uninstall the app before you install a newer one: that forgets the pairing with the PC. Then pair it with the vfox-plus on your PC. See [The Android app](android.md).
+Download the `.apk` of the latest GitHub release to your phone and install it. A newer release installs over the one on the phone and keeps the pairing with the PC; only an APK signed with another key, such as a development build, must be uninstalled first. Then pair it with the vfox-plus on your PC. See [The Android app](android.md).
 
 ## Docker
 

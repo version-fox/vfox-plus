@@ -67,7 +67,7 @@ container, see [Development environment](environment.md).
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` for amd64 validated with lintian and installed into a clean Ubuntu container, and the arm64 `.deb` and `.tar.gz` validated with lintian and by the machine type of their program, as no arm64 machine installs them, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
-| [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
+| [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK, signed with a key that the job makes and throws away, and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
 | [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the Android APK and the Linux arm64 packages |
 
@@ -116,10 +116,7 @@ A release is one manual run of the Release workflow:
    `vfxtool.exe`. The self-update check reads the `.deb` or the `.tar.gz` of the
    platform, and the `.msix` or the `.msixbundle`; the rest is for manual use.
 
-The APK is signed with the debug key of the runner, as android.yml signs it (see
-[Signing status](packaging-android.md#signing-status)). Each release has a key of
-its own, so an APK of one release cannot update the app installed from another:
-uninstall the app first, which forgets the pairing with the PC.
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key.
 
 The version commit starts no CI run on `main`, because GitHub starts no workflow
 for a push made with a workflow's own token. So no test runs on that commit: the
