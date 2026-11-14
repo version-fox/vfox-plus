@@ -22,7 +22,7 @@
 # the metainfo, and commits it in the name of the person who started the run. It
 # builds what mygo.yml builds (the .deb and the .tar.gz for Linux, amd64 and
 # arm64; the unsigned .msix and .msixbundle for Windows with the self-sign
-# inputs), the Android APK as android.yml builds it, and the classic snap from
+# inputs), the Android APK, signed with the release key, and the classic snap from
 # snap/snapcraft.yaml. Only then does it push the commit to main, tag
 # v<version> and publish the GitHub release, which is what the self-update check
 # (mygo/core/update) reads.
@@ -178,14 +178,39 @@ jobs:
           # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
           # no wrapper jar to validate.
           validate-wrappers: false
+      - name: Decode the release key
+        # Every release is signed with the same key, from the secrets of the
+        # repository, so that a release can update the app installed from the one
+        # before it (docs/en/dev/packaging-android.md#signing-status). The keystore
+        # goes to the temporary directory of the runner. Without the secrets the
+        # run stops here, before anything is pushed.
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::The Android release key is not in the secrets: add ANDROID_RELEASE_KEYSTORE_BASE64, ANDROID_RELEASE_STORE_PASSWORD, ANDROID_RELEASE_KEY_ALIAS and ANDROID_RELEASE_KEY_PASSWORD (docs/en/dev/packaging-android.md#signing-status)"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/android-release.keystore"
+          echo "ANDROID_RELEASE_KEYSTORE=$RUNNER_TEMP/android-release.keystore" >> "$GITHUB_ENV"
       - name: Build the release APK
         # After Set the version, so the APK carries the version it is released as.
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
         run: ./gradlew :app:assembleRelease
         working-directory: android
       - name: Name the APK with the version
         run: |
           mkdir -p dist-android
           cp android/app/build/outputs/apk/release/app-release.apk "dist-android/vfox-plus_${VERSION}.apk"
+      - name: Remove the release key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/android-release.keystore"
       - name: Install the Linux packages
         uses: ./.github/actions/install-linux-packages
         with:

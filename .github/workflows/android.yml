@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The Android remote client: build the release APK, signed with the debug key
+# The Android remote client: build the release APK, signed with a key that the job
+# makes and throws away
 # (docs/en/dev/packaging-android.md#signing-status), and upload it as the
 # `vfox-plus-android` artifact. The tool versions are in android/versions.env.
 name: android
@@ -69,7 +70,17 @@ jobs:
           # MIT-licensed and built on actions/cache.
           cache-provider: basic
       - name: Build the release APK
-        run: ./gradlew :app:assembleRelease
+        # Signed with a throwaway key, made here, so that the signing of the release
+        # (android/app/build.gradle.kts) is built on every change the way the release
+        # job builds it. The artifact is for testing: no other build can update it.
+        run: |
+          store="$RUNNER_TEMP/throwaway.keystore"
+          password="$(openssl rand -hex 16)"
+          keytool -genkeypair -keystore "$store" -storepass "$password" -keypass "$password" \
+            -alias throwaway -keyalg RSA -keysize 2048 -validity 10 -dname "CN=throwaway" >/dev/null
+          ANDROID_RELEASE_KEYSTORE="$store" ANDROID_RELEASE_STORE_PASSWORD="$password" \
+            ANDROID_RELEASE_KEY_ALIAS=throwaway ANDROID_RELEASE_KEY_PASSWORD="$password" \
+            ./gradlew :app:assembleRelease
         working-directory: android
       - name: Name the APK with the version
         run: |

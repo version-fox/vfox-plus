@@ -14,6 +14,10 @@ Thumbs.db
 # Packaging output (see `vfxtool build-deb`).
 /dist/
 
+# Signing keys never belong to the repository (see docs/en/dev/packaging-android.md#signing-status).
+*.jks
+*.keystore
+
 # Snapcraft inputs and outputs (see snap/snapcraft.yaml).
 snap/*.snap
 snap/vfox-plus.deb
