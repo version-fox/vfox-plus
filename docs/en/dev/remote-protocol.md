@@ -77,7 +77,7 @@ own loading and error state, like the desktop interface:
 
 ```json
 {
-  "vfox": {"availability": "available|missing|broken", "version": "1.0.13", "error": ""},
+  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": ""},
   "installed": {"loading": false, "value": [{"Name": "nodejs", "Versions": ["24.11.1"], "Current": "24.11.1", "HasCurrent": true}]},
   "registry": {"loading": false, "value": [{"Name": "nodejs", "Homepage": "https://…", "Official": true}]},
   "config": {"loading": false, "value": [{"Key": "proxy.enable", "Value": "false"}]},
@@ -97,6 +97,8 @@ within the load timeout (2 minutes).
 | `GET /api/sdks/<name>/versions[?search=<value>]` | Installable versions (`core.AvailableVersion[]`): `{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`. Without `search` the plugin lists the choice that the user made (what `PUT .../search` kept; the default of the plugin when none was made). `search` is the value of a choice of the plugin's [profile](#plugin-profiles) (for `java` the short name of a distribution, or `all`) and becomes the argument of `vfox search` for this request only; an unknown value, and any value for a plugin without such a choice, answer 400. For a plugin with a profile each version also has `parts` (the name taken apart: `{version, source: {value, name: {en, zh}}, flavors}`) and `facets` (`{<facet id>: [values]}`, left out when empty), so that the page needs no rules of its own. Searches may take seconds; timeouts answer 504. |
 | `GET /api/sdks/<name>/profile` | The profile of the plugin, see below. Plugins without one answer 404. |
 | `PUT /api/sdks/<name>/search` | Choose what the plugin lists: `{value}`, the value of a choice of its profile; the default of the plugin is a choice too, and an empty value means it. The application keeps the choice in the settings, so that it is what the plugin lists from now on, in every interface and after a restart. Answers `{value}`, the choice now. An unknown value and a body without a value answer 400, a plugin whose search takes no argument (and one without a profile) 404. |
+| `GET /api/sdks/<name>/aliases` | Version aliases (`vfox.VersionAlias[]`): `{sdk, alias, target, display}`. Timeouts answer 504. |
+| `GET /api/doctor[?sdk=<name>[&version=<version>]]` | Health (`vfox.DoctorReport`): `{ok, findings: [{id, severity, sdk, version, message, hints, fix, ignored}]}`. Timeouts answer 504. |
 | `PUT /api/sdks/<name>/variables` | Set one environment variable that the profile lists: `{key, value}`, an empty value takes it away. A variable the plugin does not read, a value it does not take and a body without a key answer 400 with the reason, a plugin without a profile 404. The value joins the extra environment of the settings. |
 
 ### Plugin profiles
@@ -189,7 +191,7 @@ applications of two users on one vfox data directory still serialize mutations.
 | Method and path | Meaning |
 | --- | --- |
 | `GET /api/tasks` | List tasks, newest first, with the newest 50 log lines each. |
-| `POST /api/tasks` | Start a task: `{operation, sdk?, version?, scope?, source?, alias?}`. Answers 201 with the task. |
+| `POST /api/tasks` | Start a task: `{operation, sdk?, version?, scope?, source?, alias?, path?, force?, yes?, use?, reinstall?}`. Answers 201 with the task. |
 | `GET /api/tasks/<id>` | One task with the newest 500 log lines. |
 | `GET /api/tasks/<id>/log` | The retained full log of a failed task as plain text (404 when none was kept). |
 | `POST /api/tasks/<id>/cancel` | Cancel a queued or running task. |
@@ -209,11 +211,16 @@ forgotten finished task deletes its file with it. A task looks like this:
  "log": ["…"], "droppedLines": 0}
 ```
 
-Operations: `install` (sdk + version), `uninstall` (sdk + version), `use`
+A task of `aliasSet` or `aliasUnset` also has `alias`, the alias that it names, which the
+title of the task says.
+
+Operations: `install` (sdk + version, optional `use` to switch after installing and `reinstall` for a fresh copy), `uninstall` (sdk + version), `use`
 (sdk + version, only the `global` scope — browsers cannot name a directory
 on the machine that runs vfox), `unuse` (sdk), `add` (remote URL `source` +
 optional `alias`; local paths are rejected), `remove` (sdk), `update` (sdk,
-or empty for `--all`). Unknown operations and missing fields answer 400.
+or empty for `--all`), `link` (sdk + version + `path`, optional `force`),
+`linkDetect` (sdk, optional `yes`), `aliasSet` (sdk + alias + version),
+`aliasUnset` (sdk + alias), `doctorAdopt` (optional sdk + version). Unknown operations and missing fields answer 400.
 
 ## Plugins
 

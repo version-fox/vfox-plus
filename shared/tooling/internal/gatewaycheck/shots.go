@@ -205,10 +205,11 @@ func (c *shots) take(remote string) error {
 		p.press(`form[action="/gateway/connect"] button`),
 		p.until("the page that asks to compare the fingerprint", `!!document.querySelector("input[name=fingerprint]") && `+says(c.web.Fingerprint)), p.shot("trust"),
 		// What is trusted is the interface of the application, which a window of a desktop shows whole, in English and then
-		// in Simplified Chinese.
+		// in Simplified Chinese. The home page is whole when its last part, the health of vfox, has been asked for and says
+		// that there is nothing to report.
 		p.press(`form[action="/gateway/trust"] button`),
-		p.size(appWidth, appHeight), p.until("the interface of the application", says("Plugins in use")), p.pause(appSettle), p.window("app"),
-		p.language("zh"), p.reload(), p.until("the interface of the application in Chinese", says("在用的插件")), p.pause(appSettle), p.window("zh-app"),
+		p.size(appWidth, appHeight), p.until("the interface of the application", says("No problems found.")), p.pause(appSettle), p.window("app"),
+		p.language("zh"), p.reload(), p.until("the interface of the application in Chinese", says("未发现问题。")), p.pause(appSettle), p.window("zh-app"),
 		// The page of a gateway that is paired.
 		p.visit("/"), p.until("the page of a gateway that is paired", says("Paired with vfox+ at")+" && "+says(c.web.Fingerprint)), p.shot("paired"),
 	)

@@ -105,7 +105,7 @@ func (a *App) switchItem(k kit.Ctx, id, title, subtitle, iconName string, on, en
 }
 
 func (a *App) webInterfaceItem(k kit.Ctx, current settings.AppSettings, status pair.Status) kit.ListItemSpec {
-	subtitle := a.T("settingsWebInterfaceHelp")
+	subtitle := ""
 	switch {
 	case status.Error != "":
 		subtitle = a.T("webCannotServe", "reason", status.Error)
@@ -120,7 +120,7 @@ func (a *App) webInterfaceItem(k kit.Ctx, current settings.AppSettings, status p
 // link that pairs it.
 func (a *App) webOpenItem(k kit.Ctx) kit.ListItemSpec {
 	return kit.ListItemSpec{
-		ID: "web-open", Title: a.T("webOpen"), Subtitle: a.T("webOpenHelp"), Leading: icon(k, "openInNew"), Wrap: a.wideSettingsWrap(k),
+		ID: "web-open", Title: a.T("webOpen"), Leading: icon(k, "openInNew"), Wrap: a.wideSettingsWrap(k),
 		Trailing: func() {
 			mui.Row(k.Context).Gap(gapXS).Children(func() {
 				kit.IconButton(k, kit.IconButtonSpec{ID: "web-copy", Icon: "copy", Tooltip: a.T("webCopyLink"), OnClick: a.copyWebLink})
@@ -209,7 +209,7 @@ func (a *App) portItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "web-port.field", Hint: itoa(settings.DefaultWebPort), Text: &a.pages.portText, Dense: true,
 				OnSubmit: save, OnBlur: save,
-			}).Width(120)
+			}).Width(min(scaled(k, 120), a.settingsContentWidth(k)))
 		},
 	}
 }
@@ -238,7 +238,7 @@ func (a *App) publicAddressItem(k kit.Ctx, current settings.AppSettings) kit.Lis
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "web-public-address.field", Hint: "https://vfox.example.com", Text: &a.pages.publicAddressText,
 				Dense: true, OnSubmit: save, OnBlur: save,
-			}).Width(260)
+			}).Width(min(scaled(k, 260), a.settingsContentWidth(k)))
 		},
 	}
 }
@@ -373,9 +373,17 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 		// text that can be selected, in lines that fit the item: a line of colons does not break.
 		SubtitleWidget: func(mui.Color) {
 			mui.Column(k.Context).Children(func() {
-				kit.Label(k, kind, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
+				kit.Label(k, kind, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Breakable())
 				kit.Label(k, a.T("webFingerprint"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
-				for _, line := range fingerprintLines(status.Fingerprint, 16) {
+				// Beside the buttons, the lines have what they leave.
+				room := a.settingsContentWidth(k)
+				if !a.wideSettingsWrap(k) {
+					room -= kit.ButtonWidth(k, kit.ButtonSpec{Label: a.T("actionBrowse")}) + gapL
+					if custom {
+						room -= 48 + gapXS
+					}
+				}
+				for _, line := range fingerprintLines(status.Fingerprint, fingerprintBytesPerLine(k, room)) {
 					kit.Label(k, line, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace())
 				}
 			})
@@ -391,6 +399,18 @@ func (a *App) certificateItem(k kit.Ctx, current settings.AppSettings, status pa
 			})
 		},
 	}
+}
+
+// fingerprintBytesPerLine is how many bytes of a fingerprint a line holds in a width of dp, at most sixteen, which is two
+// lines for a SHA-256 fingerprint. A byte is two characters of the monospaced font and a colon; the width of a character
+// is measured, so that the lines follow the text scale.
+func fingerprintBytesPerLine(k kit.Ctx, width float32) int {
+	style := kit.Type(kit.BodySmall)
+	character, _ := k.MeasureText(0, mui.Span{Text: "0", Size: style.Size * k.Env.Theme.TextScale, Weight: style.Weight, Font: kit.MonoFamilies})
+	if character <= 0 {
+		return 16
+	}
+	return max(4, min(16, int((width/character+1)/3)))
 }
 
 // fingerprintLines breaks a fingerprint, the bytes of it in hexadecimal and separated by
@@ -430,6 +450,9 @@ func (a *App) quitItem(k kit.Ctx) kit.ListItemSpec {
 	}
 }
 
+// pairingWidth is the width in dp of the dialog of the pairing at the most.
+const pairingWidth = 440
+
 // showPairing opens the dialog with the code that a phone scans, for host, the address of
 // this computer, or the likeliest one when it is empty.
 func (a *App) showPairing(host string) {
@@ -438,7 +461,7 @@ func (a *App) showPairing(host string) {
 		cs := k.Colors()
 		pairing := a.pages.pairing
 		return kit.DialogSpec{
-			Icon: "qrCode", Title: a.T("webPair"), MaxWidth: 440,
+			Icon: "qrCode", Title: a.T("webPair"), MaxWidth: pairingWidth,
 			Content: func() {
 				mui.Column(k.Context).Gap(gapM).AlignItems(mui.Center).Children(func() {
 					a.pairingContent(k, pairing)
@@ -498,12 +521,15 @@ func (a *App) pairingContent(k kit.Ctx, pairing *pairingState) {
 		for _, choice := range choices {
 			segments = append(segments, kit.Segment{Value: choice.value, Label: choice.label})
 		}
+		// The addresses of a computer are as many as its networks, and an IPv6 one is 39 characters: they are segments while they fit
+		// the dialog, and a dropdown when they do not.
 		kit.ButtonGroup(k, kit.ButtonGroupSpec{
 			ID: "pair-hosts", Selected: selected, Segments: segments,
 			OnSelect: func(address string) { a.makePairing(address) },
+			MaxWidth: kit.DialogContentWidth(k, pairingWidth), Collapse: true,
 		})
 	}
-	kit.Label(k, pairing.link, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace())
+	kit.Label(k, pairing.link, kit.Type(kit.BodySmall), cs.OnSurfaceVariant, kit.Selectable(), kit.Monospace(), kit.Breakable())
 }
 
 // qrCode draws the modules of a QR code, black on white whatever the theme is: a scanner

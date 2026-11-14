@@ -15,7 +15,7 @@ The application has five top-level destinations:
 
 | Destination | Label key     | Icon       | Purpose                                              |
 | ----------- | ------------- | ---------- | ---------------------------------------------------- |
-| Home        | `navHome`     | `home`     | Overview and shortcuts.                              |
+| Home        | `navHome`     | `home`     | What is in use and how healthy it is.                |
 | SDKs        | `navSdks`     | `sdks`     | Installed plugins and their versions.                |
 | Plugins     | `navPlugins`  | `plugins`  | The plugin registry.                                 |
 | Tasks       | `navTasks`    | `tasks`    | Running and finished operations. Shows a badge with the number of queued and running tasks. |
@@ -31,7 +31,9 @@ The layout follows the Material 3 window size classes of the window width:
   that opens Plugins.
 
 Pages sit on rounded panes, 16 dp from the window edges. Switching destinations
-uses the fade-through transition. The selected destination's icon is filled;
+fades through where the interface draws transitions, and switches at once on the
+desktop (see [the design system](design-system.md#motion)). The selected destination's
+icon is filled;
 the others are outlined.
 
 The minimum window size is 360 × 480 dp. The default size is 1280 × 820 dp.
@@ -67,26 +69,35 @@ Settings stay reachable in every case.
 
 - Header: the application name, `vfox <version> · <executable path>`, and a
   refresh button.
-- Three statistic tiles: number of plugins, of installed versions and of
-  plugins with a version in use. Each tile has its own container colour
-  (primary, secondary, tertiary) and a large decorative shape partly hidden
-  behind its edge. Tapping a tile opens SDKs.
 - `homeActiveTitle`: a segmented list of the plugins that have a version in use,
   with their avatar and version. Tapping an item opens it on the SDKs page.
   Without any, the list shows `homeActiveEmpty`.
-- A card explaining how to use the versions in a terminal (`homeShellTitle`,
-  `homeShellBody`) with the line `eval "$(vfox activate bash)"` and a copy
+- `doctorTitle`: the health of vfox and of the installed SDKs, from `vfox doctor --json`
+  (see [the CLI contract](vfox-cli-contract.md#health-aliases-and-linked-versions)).
+  It is there while vfox is available, asks by itself the first time, and asks again
+  when a task finishes. With nothing to report it is one item, `doctorNoProblems`,
+  with `doctorCheck`, which asks again. Otherwise there is one item for each of the
+  first five findings: its message, `<plugin>@<version> · <severity>` and, for
+  `sdk.no-receipt`, `doctorAdopt` (`vfox doctor --adopt <plugin>@<version>`), for
+  `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. A failure to ask
+  shows its message with `doctorCheck`.
+- A card with the line that a terminal needs to use these versions
+  (`homeShellTitle`, `homeShellBody`): `eval "$(vfox activate bash)"` and a copy
   button.
-- Two shortcut cards: `homeExploreTitle` (opens Plugins) and `homeDocsTitle`
-  (opens <https://vfox.dev/>).
+
+The page has no counts of what its lists hold and no shortcut to a page that the
+navigation reaches (Plugins; the vfox documentation is in the settings).
 
 ## SDKs
 
 A list-detail layout. When the page is at least 840 dp wide, the list (360 dp)
-and the detail pane are side by side; the detail pane shows `sdksSelectPrompt`
-until a plugin is selected and fades through when the selection changes. On
-narrower pages the list and the detail replace each other along the horizontal
-shared axis, and the detail has a back button.
+and the detail pane are side by side. The detail pane is never empty: until a
+plugin is selected it shows the first plugin that has a version in use, or else the
+first plugin (the page shows it without making it the selection), and it fades
+through when the selection changes. With no plugin at all the list, which then has
+`sdksEmptyTitle` and its action, takes the whole page. On narrower pages the list
+and the detail replace each other along the horizontal shared axis, and the detail
+has a back button.
 
 ### List
 
@@ -113,10 +124,14 @@ shared axis, and the detail has a back button.
 
 - The current version has a filled `current` icon, an emphasized label and the
   tag `versionInUse`; its menu offers `versionUseInProject`, `versionUnuse`,
-  `versionCopyPath` and `versionUninstall`.
+  `versionCopyPath`, `versionReinstall` (`vfox install --reinstall`), `aliasSet`
+  (the [alias dialog](#choices-and-names)) and `versionUninstall`.
 - Other versions have a split button: `versionUse` makes the version the global
   default; its menu offers `versionUseGlobally` and `versionUseInProject`.
-  Their overflow menu offers `versionCopyPath` and `versionUninstall`.
+  Their overflow menu offers `versionCopyPath`, `versionReinstall`, `aliasSet` and
+  `versionUninstall`.
+- A version that has an alias (`vfox alias`) shows `@<alias>` at the end of its second
+  line. Linked versions keep the name that the user gave them.
 - While a task runs for a version, its actions are replaced by a loading
   indicator.
 - Empty: `sdkInstalledEmpty` with `sdkBrowseVersions`.
@@ -124,8 +139,7 @@ shared axis, and the detail has a back button.
   title: the distribution (`Temurin`, `OpenJDK`) and the flavours (`JavaFX`,
   `x64`, `OpenHarmony`) as a second line.
 
-**Available** runs `vfox search` the first time it is opened. For a plugin that
-has a profile, the first row holds:
+**Available** runs `vfox search` the first time it is opened. The first row holds:
 
 - the **search button** `availableChoiceButton` ("Distribution: Temurin"; the
   label of the choice is the profile's, the icon `registry`), which opens the
@@ -134,11 +148,17 @@ has a profile, the first row holds:
   `vfox search` and is kept in the settings (`searches`) per plugin, so that it
   survives a restart and is the same in the web interface, and the list of the earlier
   choice goes away at once;
-- `availableInstallByName`, an outlined button that opens the
-  [install by name dialog](#choices-and-names). Every plugin has it.
+- at its end, the icon button `availableMoreWays` with the menu of the other ways
+  to add an SDK, which every plugin has:
+  - `availableInstallByName` opens the [install by name dialog](#choices-and-names);
+  - `linkDetect` queues `vfox link --detect --yes <plugin>`: the plugin finds the
+    SDKs that are already on the machine and vfox links them, instead of
+    downloading them again. A plugin that cannot detect says so in the task;
+  - `linkManual` opens the [link dialog](#choices-and-names), for an SDK in a
+    directory that the user names.
 
-The row stays while the list loads or fails, so that another choice can be made.
-Then:
+The row stays while the list loads or fails, so that another choice can be made, and
+an SDK that the list does not have can be added. Then:
 
 - A filter field (`availableSearchHint`) matching versions and notes, a
   connected button group `availableFilterAll` / `availableFilterTagged`
@@ -153,29 +173,33 @@ Then:
   filter field and the button group.
 - A lazily built segmented list. Each version shows its note as a tag and the
   bundled tools (`npm 11.19.1`); for a search that lists several
-  distributions, also a tag with the distribution. The trailing action is
-  `versionInstall`; for an installed version, a disabled `versionInstalled`;
-  while installing, a wavy progress indicator with `taskDownloading` and a
-  cancel button.
+  distributions, also a tag with the distribution. The trailing action is a split
+  button: `versionInstall`, and in its menu `versionInstallUse` (`vfox install
+  --use`: it makes the version the global default once it is installed); for an
+  installed version, a disabled `versionInstalled`; while installing, a wavy
+  progress indicator with `taskDownloading` and a cancel button.
 
-**Options** is built from the profile of the plugin, in segmented lists:
+**Options** is built from the profile of the plugin, in segmented lists. It holds
+settings and what no control says; what a button or a dialog already says is not
+said again (a name is explained in the install by name dialog, the shorthands
+are its chips):
 
-- the guide to the version names of the plugin (`optionsGuideTitle`);
 - `optionsVariables`: one item per environment variable the plugin reads (the
   GitHub mirror of Java and Flutter, the download mirror of Node.js, the
   storage mirror of Flutter, the C library of Node.js, tagged
   `optionsVariableAdvanced`), with the variable name, its value (with the name
-  of the mirror, if it is one that was checked) or `optionsVariableUnset`, and
+  of the mirror, if it is one that was checked) or `optionsVariableUnset` (Default), and
   `optionsVariableChange`, which opens the [variable dialog](#choices-and-names);
-- `optionsLegacy`: the version files the plugin lets vfox read, as tags
-  (`.sdkmanrc`; `.node-version` and `.nvmrc`), or `optionsLegacyNone`; the
-  switch `configLegacyEnable` of the vfox configuration; and, where the strategy
-  matters (Node.js), `configLegacyStrategy`, or `optionsLegacyStrategyIgnored`
-  where it does not (Java);
-- `optionsShorthands`: the names the plugin takes besides the listed versions,
-  each with its meaning and `optionsShorthandTry`, which opens the install by
-  name dialog with that name;
-- `optionsTips`, the notes of the profile;
+- `optionsLegacy`: the switch `configLegacyEnable` of the vfox configuration, with
+  the version files that the plugin lets vfox read as tags under its title
+  (`.sdkmanrc`; `.node-version` and `.nvmrc`), and, where the strategy matters
+  (Node.js), `configLegacyStrategy`. A plugin that reads no version files has no such
+  section, and one that is not affected by the strategy has no choice of it;
+- `aliasTitle`: the aliases of the plugin (`vfox alias list <plugin>`), loaded when
+  the tab opens, each with its target and `aliasUnset`, and `aliasSet`, which opens
+  the [alias dialog](#choices-and-names), with a refresh button that asks again; a plugin
+  without aliases has the button and nothing else;
+- `optionsTips` (Notes), at most a few lines of the profile that no control says;
 - `optionsDocs`: links that open the documentation of the plugin in the
   language of the application.
 
@@ -200,12 +224,25 @@ Dialogs scale in on a spring.
   and `searchChoiceDefault` where it is the one vfox lists without an argument.
   Choosing one closes the dialog and lists it.
 - **Install by name** (`installName…`): a field `installNameField`, which takes
-  what follows `<plugin>@` in `vfox install` (helper `installNameHelp`), and, for
+  what follows `<plugin>@` in `vfox install`, with the guide of the profile of the
+  plugin under it (how a name is written), and, for
   a plugin with a profile, `installNameExamples`, one filter chip for each
   shorthand that fills the field, and the meaning of the shorthand that is
   typed. An empty name (`installNameRequired`) or one that has a space or a dash in
-  front (`installNameInvalid`) is refused. The confirmation queues
-  `vfox install --yes <plugin>@<name>` and shows Tasks.
+  front (`installNameInvalid`) is refused. A switch `installUseAfter`, off at first,
+  adds `--use`. The confirmation queues `vfox install --yes [--use] <plugin>@<name>`
+  and shows Tasks.
+- **Link** (`linkPath…`): the name that vfox lists the version under
+  (`linkVersionField`, with the rules of a version name) and the directory that holds
+  the SDK (`linkPathField`, with a browse button; it is required), and a switch
+  `linkForce`, off at first, that points an already linked version somewhere else
+  (`--force`). The confirmation queues `vfox link [--force] <plugin>@<version> <path>`
+  and shows Tasks.
+- **Alias** (`aliasSet`): the alias (`aliasField`, with `aliasHint` in the empty field) and the version it
+  names (`linkVersionField`, which starts with the version of the row that opened
+  the dialog, or else the current one). Both follow the rules of a version name.
+  The confirmation queues `vfox alias set <plugin> <alias> <version>`; `aliasUnset`
+  queues `vfox alias unset <plugin> <alias>`.
 - **Variable** (`variable…`): the help of the variable and its name; for an
   address, a monospaced field `variableAddress` (an address needs `http://` or
   `https://`, `variableInvalidAddress`); `variablePresets`, a chip for every
@@ -216,7 +253,7 @@ Dialogs scale in on a spring.
 
 ## Plugins
 
-- Header: `pluginsTitle`, `pluginsSubtitle`; actions: update all plugins,
+- Header: `pluginsTitle`; actions: update all plugins,
   refresh, and `pluginsAddCustom`.
 - A search bar (`pluginsSearchHint`, matching name and homepage) and a
   connected button group `pluginsFilterAll` / `pluginsFilterOfficial` /
@@ -283,10 +320,13 @@ Grouped in segmented lists:
   extra environment variables as `KEY=VALUE` lines with validation
   (`settingsEnvironmentInvalid`).
 - **vfox configuration**: an editor for each key listed in
-  [the CLI contract](vfox-cli-contract.md#configuration) — switches for booleans,
-  a menu for `legacyVersionFile.strategy`, text fields (saved on Enter or when
-  leaving the field; clearing a field resets the key) for the rest, and
-  `configOther` for keys the GUI does not know.
+  [the CLI contract](vfox-cli-contract.md#configuration) — switches for booleans
+  (among them `diagnostics.onUse`), a menu for `legacyVersionFile.strategy` and for
+  `path.mode` (`pathModeLegacy`, `pathModeBaseline`, `pathModeAggressive`), text fields
+  (saved on Enter or when leaving the field; clearing a field resets the key) for the
+  rest, `path.preserve` and `diagnostics.ignore` among them, which hold lists in JSON,
+  and `configOther` for keys the GUI does not know. `aliases` is not edited here: the
+  aliases of a plugin are in its options.
 - **About**: application name, version and license, links to the source code
   and the vfox documentation, and the open-source licenses of the dependencies,
   including the bundled Material Symbols icons (Apache-2.0, Google).

@@ -58,7 +58,7 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 
 ```json
 {
-  "vfox": {"availability": "available|missing|broken", "version": "1.0.13", "error": ""},
+  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": ""},
   "installed": {"loading": false, "value": [{"Name": "nodejs", "Versions": ["24.11.1"], "Current": "24.11.1", "HasCurrent": true}]},
   "registry": {"loading": false, "value": [{"Name": "nodejs", "Homepage": "https://…", "Official": true}]},
   "config": {"loading": false, "value": [{"Key": "proxy.enable", "Value": "false"}]},
@@ -77,6 +77,8 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 | `GET /api/sdks/<name>/versions[?search=<value>]` | 可安装版本（`core.AvailableVersion[]`）：`{Version, Note, HasNote, Additions: [{Name, Version}], Installed}`。不带 `search` 时，插件列出用户所做的选择（`PUT .../search` 保存的；没做选择则是插件的默认值）。`search` 是插件[配置档案](#插件配置档案)里某个选择项的值（`java` 是发行版的简称，或 `all`），仅对这一次请求成为 `vfox search` 的参数；未知的值，以及没有此类选择的插件收到任何值，都回答 400。有档案的插件，每个版本还带 `parts`（拆开的名称：`{version, source: {value, name: {en, zh}}, flavors}`）与 `facets`（`{<维度 id>: [值]}`，为空时省略），这样页面不需要自己的规则。搜索可能耗时数秒；超时 504。 |
 | `GET /api/sdks/<name>/profile` | 插件的配置档案，见下。没有档案的插件回答 404。 |
 | `PUT /api/sdks/<name>/search` | 选择插件列出什么：`{value}`，档案里某个选择项的值；插件的默认值也是一个选择，空值即默认值。应用把选择保存在设置里，从此插件列出的就是它，各个界面一致，重启后仍在。回答 `{value}`，即现在的选择。未知的值与没有 value 的请求体回答 400，搜索不带参数的插件（以及没有档案的插件）回答 404。 |
+| `GET /api/sdks/<name>/aliases` | 版本别名（`vfox.VersionAlias[]`）：`{sdk, alias, target, display}`。超时回答 504。 |
+| `GET /api/doctor[?sdk=<name>[&version=<version>]]` | 健康检查（`vfox.DoctorReport`）：`{ok, findings: [{id, severity, sdk, version, message, hints, fix, ignored}]}`。超时回答 504。 |
 | `PUT /api/sdks/<name>/variables` | 设置档案里列出的一个环境变量：`{key, value}`，值为空即取消。插件不读取的变量、它不接受的值与没有 key 的请求体回答 400 并附原因，没有档案的插件回答 404。值会加入设置里的额外环境。 |
 
 ### 插件配置档案
@@ -181,10 +183,14 @@ stateDiagram-v2
  "log": ["…"], "droppedLines": 0}
 ```
 
-操作：`install`（sdk + version）、`uninstall`（sdk + version）、`use`
+`aliasSet` 与 `aliasUnset` 任务还带有 `alias`，即它所指的别名，任务标题会说出它。
+
+操作：`install`（sdk + version，可选 `use` 装后即用、`reinstall` 全新重装）、`uninstall`（sdk + version）、`use`
 （sdk + version，仅 `global` 作用域——浏览器说不出跑 vfox 机器上的目录）、
 `unuse`（sdk）、`add`（远端 URL `source` + 可选 `alias`；本地路径拒绝）、
-`remove`（sdk）、`update`（sdk，空即 `--all`）。未知操作与缺字段返回 400。
+`remove`（sdk）、`update`（sdk，空即 `--all`）、`link`（sdk + version + `path`，可选 `force`）、
+`linkDetect`（sdk，可选 `yes`）、`aliasSet`（sdk + alias + version）、
+`aliasUnset`（sdk + alias）、`doctorAdopt`（可选 sdk + version）。未知操作与缺字段回答 400。
 
 ## 插件
 

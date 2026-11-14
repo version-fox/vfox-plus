@@ -7,7 +7,7 @@
 
 ## Linux
 
-需要 GTK 3、fontconfig 与字体，以及 vfox 1.0.0 或更高：
+需要 GTK 3、fontconfig 与字体，以及 vfox 1.1.0 或更高：
 
 ```sh
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk

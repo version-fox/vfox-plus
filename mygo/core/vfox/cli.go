@@ -133,7 +133,7 @@ func cloneLaunchConfig(config VfoxLaunchConfig) VfoxLaunchConfig {
 	return config
 }
 
-// Version returns the version of vfox, for example `1.0.13`.
+// Version returns the version of vfox, for example `1.1.0`.
 func (c *Client) Version() (string, error) {
 	args := []string{"--version"}
 	output, err := c.query(args, false)
@@ -293,6 +293,20 @@ func (c *Client) UnsetConfig(key string) error {
 
 // Install installs version of name.
 func (c *Client) Install(name, version string) (VfoxCommand, error) {
+	return c.InstallWithOptions(name, version, InstallOptions{})
+}
+
+// InstallOptions selects the variants of `vfox install`.
+type InstallOptions struct {
+	// Use switches to the version just installed, like `vfox use` would.
+	Use bool
+	// Reinstall replaces an installed version with a fresh copy, for example
+	// after the SDK modified itself in place (`flutter upgrade`).
+	Reinstall bool
+}
+
+// InstallWithOptions installs version of name with options.
+func (c *Client) InstallWithOptions(name, version string, options InstallOptions) (VfoxCommand, error) {
 	checkedName, err := checkName(name)
 	if err != nil {
 		return VfoxCommand{}, err
@@ -301,9 +315,21 @@ func (c *Client) Install(name, version string) (VfoxCommand, error) {
 	if err != nil {
 		return VfoxCommand{}, err
 	}
+	args := []string{"install", "--yes"}
+	if options.Reinstall {
+		args = append(args, "--reinstall")
+	}
+	if options.Use {
+		args = append(args, "--use")
+	}
+	args = append(args, checkedName+"@"+checkedVersion)
+	operation := OperationInstall
+	if options.Use {
+		operation = OperationInstallUse
+	}
 	return VfoxCommand{
-		Operation: OperationInstall,
-		Arguments: []string{"install", "--yes", checkedName + "@" + checkedVersion},
+		Operation: operation,
+		Arguments: args,
 		Sdk:       name,
 		Version:   version,
 	}, nil
@@ -430,6 +456,187 @@ func (c *Client) UpdateAllPlugins() VfoxCommand {
 	return VfoxCommand{Operation: OperationUpdateAllPlugins, Arguments: []string{"update", "--all"}}
 }
 
+// DoctorReport runs `vfox doctor --json` and parses the findings.
+//
+// An optional sdk, and an optional version as `sdk@version`, narrow the
+// check to that SDK. An empty sdk checks everything.
+func (c *Client) DoctorReport(sdk, version string) (DoctorReport, error) {
+	args := []string{"doctor", "--json"}
+	if sdk != "" {
+		checked, err := checkName(sdk)
+		if err != nil {
+			return DoctorReport{}, err
+		}
+		target := checked
+		if version != "" {
+			checkedVersion, err := checkVersion(version)
+			if err != nil {
+				return DoctorReport{}, err
+			}
+			target += "@" + checkedVersion
+		}
+		args = append(args, target)
+	} else if version != "" {
+		return DoctorReport{}, errors.New("A plugin name is required with a version") //nolint:staticcheck // Shown to the user as it is.
+	}
+	output, err := c.query(args, false)
+	if err != nil {
+		return DoctorReport{}, err
+	}
+	report, ok := ParseDoctorReport(output.Stdout)
+	if !ok {
+		return DoctorReport{}, &VfoxError{Message: "Unrecognised doctor output", Arguments: args, Stdout: output.Stdout, Stderr: output.Stderr}
+	}
+	return report, nil
+}
+
+// DoctorAdopt records the current state of versions installed before vfox
+// kept receipts, so that later `vfox doctor` can detect drift. An empty sdk
+// adopts every version; otherwise it adopts `sdk[@version]`.
+func (c *Client) DoctorAdopt(sdk, version string) (VfoxCommand, error) {
+	args := []string{"doctor", "--adopt"}
+	if sdk != "" {
+		checked, err := checkName(sdk)
+		if err != nil {
+			return VfoxCommand{}, err
+		}
+		target := checked
+		if version != "" {
+			checkedVersion, err := checkVersion(version)
+			if err != nil {
+				return VfoxCommand{}, err
+			}
+			target += "@" + checkedVersion
+		}
+		args = append(args, target)
+	} else if version != "" {
+		return VfoxCommand{}, errors.New("A plugin name is required with a version") //nolint:staticcheck // Shown to the user as it is.
+	}
+	return VfoxCommand{Operation: OperationDoctorAdopt, Arguments: args, Sdk: sdk, Version: version}, nil
+}
+
+// Aliases returns the aliases of the plugins: `vfox alias list [sdk]`.
+func (c *Client) Aliases(sdk string) ([]VersionAlias, error) {
+	args := []string{"alias", "list"}
+	if sdk != "" {
+		checked, err := checkName(sdk)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, checked)
+	}
+	output, err := c.query(args, false)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAliasList(output.Stdout), nil
+}
+
+// AliasSet names version of sdk alias: `vfox alias set <sdk> <alias> <version>`.
+func (c *Client) AliasSet(sdk, alias, version string) (VfoxCommand, error) {
+	checkedSdk, err := checkName(sdk)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	checkedAlias, err := checkAlias(alias)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	checkedVersion, err := checkVersion(version)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	return VfoxCommand{
+		Operation: OperationAliasSet,
+		Arguments: []string{"alias", "set", checkedSdk, checkedAlias, checkedVersion},
+		Sdk:       sdk,
+		Version:   version,
+	}, nil
+}
+
+// AliasUnset removes alias of sdk: `vfox alias unset <sdk> <alias>`.
+func (c *Client) AliasUnset(sdk, alias string) (VfoxCommand, error) {
+	checkedSdk, err := checkName(sdk)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	checkedAlias, err := checkAlias(alias)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	return VfoxCommand{
+		Operation: OperationAliasUnset,
+		Arguments: []string{"alias", "unset", checkedSdk, checkedAlias},
+		Sdk:       sdk,
+	}, nil
+}
+
+// Link uses the SDK already on the machine at path as version of sdk:
+// `vfox link <sdk>@<version> <path>`. Force repoints an already linked
+// version to a different directory.
+func (c *Client) Link(sdk, version, path string, force bool) (VfoxCommand, error) {
+	checkedSdk, err := checkName(sdk)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	checkedVersion, err := checkVersion(version)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	if strings.TrimSpace(path) == "" {
+		return VfoxCommand{}, errors.New("A directory is required to link") //nolint:staticcheck // Shown to the user as it is.
+	}
+	args := []string{"link"}
+	if force {
+		args = append(args, "--force")
+	}
+	args = append(args, checkedSdk+"@"+checkedVersion, path)
+	return VfoxCommand{Operation: OperationLink, Arguments: args, Sdk: sdk, Version: version}, nil
+}
+
+// LinkDetect lets the plugin look for SDKs on the machine and link what it
+// finds: `vfox link --detect <sdk>`. Yes links everything found without
+// asking.
+func (c *Client) LinkDetect(sdk string, yes bool) (VfoxCommand, error) {
+	checked, err := checkName(sdk)
+	if err != nil {
+		return VfoxCommand{}, err
+	}
+	args := []string{"link", "--detect"}
+	if yes {
+		args = append(args, "--yes")
+	}
+	args = append(args, checked)
+	return VfoxCommand{Operation: OperationLinkDetect, Arguments: args, Sdk: sdk}, nil
+}
+
+// VersionDetail returns what `vfox info --json` says about the plugin, or
+// about one installed version when version is given.
+func (c *Client) VersionDetail(name, version string) (VersionDetail, error) {
+	var detail VersionDetail
+	checked, err := checkName(name)
+	if err != nil {
+		return detail, err
+	}
+	target := checked
+	if version != "" {
+		checkedVersion, err := checkVersion(version)
+		if err != nil {
+			return detail, err
+		}
+		target += "@" + checkedVersion
+	}
+	output, err := c.query([]string{"info", "--json", target}, false)
+	if err != nil {
+		return detail, err
+	}
+	detail, ok := ParseVersionDetailJSON(output.Stdout)
+	if !ok {
+		return detail, &VfoxError{Message: "Unrecognised version information", Arguments: []string{"info", "--json", target}, Stdout: output.Stdout, Stderr: output.Stderr}
+	}
+	return detail, nil
+}
+
 // Start starts command and returns the running process.
 //
 // It returns a *VfoxNotFoundError if vfox cannot be started.
@@ -505,6 +712,16 @@ func checkName(name string) (string, error) {
 		return "", fmt.Errorf("Not a valid plugin name: %s", name) //nolint:staticcheck // Shown to the user as it is.
 	}
 	return name, nil
+}
+
+// checkAlias rejects alias names the same way plugin names are rejected:
+// an alias is used where a version is used (`vfox use java@j17`), so it must
+// not look like a flag or contain separators.
+func checkAlias(alias string) (string, error) {
+	if !IsValidPluginName(alias) {
+		return "", fmt.Errorf("Not a valid alias: %s", alias) //nolint:staticcheck // Shown to the user as it is.
+	}
+	return alias, nil
 }
 
 func checkVersion(version string) (string, error) {

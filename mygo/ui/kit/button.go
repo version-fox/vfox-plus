@@ -58,6 +58,11 @@ type ButtonSpec struct {
 const (
 	buttonHeight = 40
 	buttonIcon   = 20
+	// buttonPadding is the padding in dp at each side of the content of a button; buttonGap the space between its icon
+	// and its label, and buttonMinWidth the least that it is wide.
+	buttonPadding  = 16
+	buttonGap      = 8
+	buttonMinWidth = 48
 )
 
 // colors are the colours of a style: container, content and border.
@@ -90,6 +95,18 @@ func (b ButtonSpec) colors(cs *Palette) (container, content, border ui.Color) {
 	return container, content, border
 }
 
+// ButtonWidth is the width in dp of a button that has the room for its label, as it is measured now: it follows the
+// language, the font and the text scale.
+func ButtonWidth(c Ctx, b ButtonSpec) float32 {
+	style := Type(LabelLarge)
+	text, _ := c.MeasureText(0, ui.Span{Text: b.Label, Size: style.Size * c.Env.Theme.TextScale, Weight: style.Weight})
+	width := 2*buttonPadding + text
+	if b.Icon != "" {
+		width += buttonIcon + buttonGap
+	}
+	return max(width, buttonMinWidth)
+}
+
 // Button is a Material 3 Expressive button: round at rest, and squarer while it
 // is pressed (docs/en/dev/design-system.md#shape-morphing-on-interaction).
 func Button(c Ctx, b ButtonSpec) ui.Element {
@@ -99,9 +116,17 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 	})
 	pressed := el.AnimateTo("shape", Flag(in.pressed), c.Env.Theme.Motion.FastSpatial.Anim())
 	radius := Lerp(buttonHeight/2, CornerSmall, pressed)
-	el.Height(buttonHeight).MinWidth(48).PaddingX(16).Gap(8).Radius(radius).Background(container).TextColor(content)
+	// A button is never wider than what holds it: a label that has not the room, because the window is narrow, the text large or
+	// the font wide, goes on as many lines as it needs, and the button is as high as they are, with the padding that makes a line
+	// of it 40 dp high, the border included.
+	el.MinWidth(buttonMinWidth).MaxWidthPercent(100).PaddingX(buttonPadding).Gap(buttonGap).Radius(radius).Background(container).TextColor(content)
+	borderWidth := float32(0)
 	if border.A != 0 {
-		el.Border(1, border)
+		borderWidth = 1
+	}
+	el.MinHeight(buttonHeight).PaddingY((buttonHeight - Type(LabelLarge).Line - 2*borderWidth) / 2)
+	if border.A != 0 {
+		el.Border(borderWidth, border)
 	}
 	paintPress(c, el, node, Uniform(radius), stateLayer(c, el, in), content, in.keyboard)
 	return el.Children(func() {
@@ -109,7 +134,7 @@ func Button(c Ctx, b ButtonSpec) ui.Element {
 			Icon(c, b.Icon, buttonIcon, content, 0)
 		}
 		if b.Label != "" {
-			Line(c, b.Label, Type(LabelLarge), content)
+			Label(c, b.Label, Type(LabelLarge), content, Breakable()).Shrink(1)
 		}
 	})
 }
@@ -289,10 +314,11 @@ func Tag(c Ctx, t TagSpec) ui.Element {
 	if t.Emphasized {
 		background, foreground = cs.TertiaryContainer, cs.OnTertiaryContainer
 	}
-	return Row(c).Padding(3, 10).Gap(4).Radius(CornerFull).Background(background).Shrink(0).Children(func() {
+	// A tag is as wide as its label, and shrinks when the room is short, where the label goes on as many lines as it needs.
+	return Row(c).Padding(3, 10).Gap(4).Radius(CornerFull).Background(background).Shrink(1).MinWidth(0).Children(func() {
 		if t.Icon != "" {
 			Icon(c, t.Icon, 16, foreground, 1)
 		}
-		Line(c, t.Label, Type(LabelMedium), foreground).Shrink(1)
+		Label(c, t.Label, Type(LabelMedium), foreground, Breakable()).Shrink(1)
 	})
 }

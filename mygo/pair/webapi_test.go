@@ -168,7 +168,39 @@ func TestWebSdkDetail(t *testing.T) {
 	if status != http.StatusOK || !strings.Contains(body, "24") {
 		t.Errorf("got %d: %s", status, body)
 	}
+	status, body = webGet(t, server.BaseURL()+"/api/sdks/nodejs/aliases", session)
+	if status != http.StatusOK || strings.TrimSpace(body) != "[]" {
+		t.Errorf("got %d: %s", status, body)
+	}
 	if status, _ := webGet(t, server.BaseURL()+"/api/sdks/nodejs/nope", session); status != http.StatusNotFound {
+		t.Errorf("got %d", status)
+	}
+}
+
+// The aliases of a plugin reach the page with the names that it reads: sdk, alias, target.
+func TestWebAliasesOfAPlugin(t *testing.T) {
+	runner := testsupport.FixtureRunner().
+		On("alias list nodejs", core.ProcessOutput{Stdout: "nodejs@lts -> nodejs@22.21.0\nnodejs@old -> nodejs@22.21.0\n"})
+	model := testModel(t, runner)
+	server := webServer(t, model)
+	session := webSession(t, server)
+	status, body := webGet(t, server.BaseURL()+"/api/sdks/nodejs/aliases", session)
+	want := `[{"sdk":"nodejs","alias":"lts","target":"nodejs@22.21.0","display":"nodejs@lts -\u003e nodejs@22.21.0"},` +
+		`{"sdk":"nodejs","alias":"old","target":"nodejs@22.21.0","display":"nodejs@old -\u003e nodejs@22.21.0"}]`
+	if status != http.StatusOK || strings.TrimSpace(body) != want {
+		t.Errorf("got %d: %s", status, body)
+	}
+}
+
+func TestWebDoctor(t *testing.T) {
+	model := testModel(t, testsupport.FixtureRunner())
+	server := webServer(t, model)
+	session := webSession(t, server)
+	status, body := webGet(t, server.BaseURL()+"/api/doctor", session)
+	if status != http.StatusOK || !strings.Contains(body, `"ok":true`) {
+		t.Errorf("got %d: %s", status, body)
+	}
+	if status, _ := webGet(t, server.BaseURL()+"/api/doctor", ""); status != http.StatusUnauthorized {
 		t.Errorf("got %d", status)
 	}
 }
@@ -197,6 +229,47 @@ func TestWebTasks(t *testing.T) {
 	}
 	if status, _ := webPost(t, server, session, "/api/tasks", `{"operation":"install","sdk":"go","version":"1"}`, "https://evil.example"); status != http.StatusForbidden {
 		t.Errorf("cross-site requests must be rejected, got %d", status)
+	}
+}
+
+// The tasks that vfox 1.1.0 brought: install and use, a fresh install, the links, the aliases and the adoption of
+// what was installed before vfox kept receipts.
+func TestWebTasksOfVfox110(t *testing.T) {
+	model := testModel(t, testsupport.FixtureRunner())
+	server := webServer(t, model)
+	session := webSession(t, server)
+	for _, c := range []struct{ request, operation, commandLine string }{
+		{`{"operation":"install","sdk":"go","version":"1","use":true}`, "installUse", "vfox install --yes --use go@1"},
+		{`{"operation":"install","sdk":"go","version":"1","reinstall":true}`, "install", "vfox install --yes --reinstall go@1"},
+		{`{"operation":"link","sdk":"java","version":"17-system","path":"/opt/jdk","force":true}`, "link", "vfox link --force java@17-system /opt/jdk"},
+		{`{"operation":"linkDetect","sdk":"java","yes":true}`, "linkDetect", "vfox link --detect --yes java"},
+		{`{"operation":"aliasSet","sdk":"java","alias":"j17","version":"17.0.9-tem"}`, "aliasSet", "vfox alias set java j17 17.0.9-tem"},
+		{`{"operation":"aliasUnset","sdk":"java","alias":"j17"}`, "aliasUnset", "vfox alias unset java j17"},
+		{`{"operation":"doctorAdopt","sdk":"flutter","version":"3.47.0"}`, "doctorAdopt", "vfox doctor --adopt flutter@3.47.0"},
+		{`{"operation":"doctorAdopt"}`, "doctorAdopt", "vfox doctor --adopt"},
+	} {
+		status, body := webPost(t, server, session, "/api/tasks", c.request, "")
+		if status != http.StatusCreated || !strings.Contains(body, `"operation":"`+c.operation+`"`) || !strings.Contains(body, c.commandLine) {
+			t.Errorf("%s: got %d: %s", c.request, status, body)
+			continue
+		}
+		// The title of a task of an alias says which alias it names.
+		if strings.HasPrefix(c.operation, "alias") && !strings.Contains(body, `"alias":"j17"`) {
+			t.Errorf("%s: the task does not name the alias: %s", c.operation, body)
+		}
+		waitTaskStatus(t, server, session, body, `"status":"succeeded"`)
+	}
+	// Each operation refuses a request that lacks what it needs.
+	for _, request := range []string{
+		`{"operation":"link","sdk":"java","version":"17-system"}`,
+		`{"operation":"link","sdk":"java","path":"/opt/jdk"}`,
+		`{"operation":"linkDetect"}`,
+		`{"operation":"aliasSet","sdk":"java","alias":"j17"}`,
+		`{"operation":"aliasUnset","sdk":"java"}`,
+	} {
+		if status, _ := webPost(t, server, session, "/api/tasks", request, ""); status != http.StatusBadRequest {
+			t.Errorf("%s: got %d, want 400", request, status)
+		}
 	}
 }
 

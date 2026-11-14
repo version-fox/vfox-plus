@@ -63,26 +63,49 @@ func Menu(c Ctx, anchor ui.Element, open *bool, items []MenuItem, o MenuOptions)
 		if o.MatchWidth {
 			minWidth = max(minWidth, anchor.Bounds().W)
 		}
+		// The panel goes on the side of the anchor that has more room, and is no taller than that room: what it holds beyond it
+		// scrolls, where it went down the window and past it, and the entries below the edge could not be pressed.
+		_, windowHeight := c.Size()
+		bounds := anchor.Bounds()
+		room := max(windowHeight-(bounds.Y+bounds.H), bounds.Y) - 4 - menuEdge
 		panel.Padding(8, 0).Radius(CornerLarge).Background(cs.SurfaceContainer).
-			MinWidth(minWidth).MaxWidth(max(minWidth, 280)).FocusGroup(ui.Vertical)
+			MinWidth(minWidth).MaxWidth(max(minWidth, 280)).MaxHeight(max(room, menuLeast)).FocusGroup(ui.Vertical).
+			// A panel that is wider or taller than the window, or that a font makes taller, stays within its edge: at 200 % in 360 by
+			// 480 dp a menu of the Macs went 18 dp below the window (the toolkit of 0.9 places a panel by its size as it was laid out,
+			// and a panel that it would not fit below the anchor is not always taken above it).
+			AttachEdgeMargin(menuEdge)
 		if o.AlignEnd {
 			panel.AttachTo(anchor, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0)
 			originX = 1
 		} else {
 			panel.Margin(4, 0, 0, 0)
 		}
+		if reg.CollectText {
+			// Where the menu is what the census asks of it: it is in the window.
+			menu := reg.Add(Node{Role: RoleMenu, Enabled: true, Modal: true})
+			panel.Draw(func(_ *ui.Painter, r ui.Rect) { menu.Rect = r })
+		}
 		Elevation(c, panel, 3)
 		popIn(c, panel, 0.8, originX, 0, c.Env.Theme.Motion.DefaultSpatial)
 		panel.Children(func() {
-			focused := false
-			for _, item := range items {
-				first := !focused && !item.Disabled && (item.Selected || !hasSelected(items))
-				focused = focused || first
-				menuItem(c, open, item, first)
-			}
+			ui.Scroll(c.Context).Shrink(1).Children(func() {
+				focused := false
+				for _, item := range items {
+					first := !focused && !item.Disabled && (item.Selected || !hasSelected(items))
+					focused = focused || first
+					menuItem(c, open, item, first)
+				}
+			})
 		})
 	})
 }
+
+// menuEdge is the room that a menu leaves between itself and the edge of the window, and menuLeast the least height that it has, in
+// dp: three entries.
+const (
+	menuEdge  = 8
+	menuLeast = 144
+)
 
 func hasSelected(items []MenuItem) bool {
 	for _, item := range items {
@@ -115,7 +138,8 @@ func menuItem(c Ctx, open *bool, item MenuItem, focus bool) {
 			}
 		},
 	})
-	el.MinHeight(48).PaddingX(12).Gap(12).Justify(ui.Start).TextColor(foreground)
+	// An entry is 48 dp high, and as high as its lines need where the text is larger, or longer than the menu is wide.
+	el.MinHeight(48).PaddingX(12).PaddingY(4).Gap(12).Justify(ui.Start).TextColor(foreground)
 	if item.Selected {
 		el.Background(cs.SecondaryContainer)
 	}
@@ -127,7 +151,7 @@ func menuItem(c Ctx, open *bool, item MenuItem, focus bool) {
 		if item.Icon != "" {
 			Icon(c, item.Icon, 24, iconColor, 0)
 		}
-		Line(c, item.Label, Type(BodyLarge), foreground).Grow(1)
+		Label(c, item.Label, Type(BodyLarge), foreground, Breakable()).Grow(1).Shrink(1)
 	})
 }
 
@@ -192,14 +216,15 @@ func Dropdown(c Ctx, d DropdownSpec) ui.Element {
 		content = cs.OnSurface.Alpha(0.38)
 	}
 	turn := el.AnimateTo("turn", Flag(*open), c.Env.Theme.Motion.FastSpatial.Anim())
-	el.Width(width).Height(56).PaddingX(16).Gap(8).Justify(ui.Start).Radius(CornerMedium).
+	// The field is 56 dp high, and as high as its label needs when the label goes on more lines than one, or the text is larger.
+	el.Width(width).MinHeight(56).PaddingX(16).PaddingY(4).Gap(8).Justify(ui.Start).Radius(CornerMedium).
 		Background(cs.SurfaceContainerHighest).TextColor(content)
 	if *open || in.keyboard {
 		el.Border(2, cs.Primary)
 	}
 	paintPress(c, el, node, Uniform(CornerMedium), stateLayer(c, el, in), content, false)
 	el.Children(func() {
-		Line(c, label, Type(BodyLarge), content).Grow(1)
+		Label(c, label, Type(BodyLarge), content, Breakable()).Grow(1).Shrink(1)
 		Icon(c, "expandMore", 24, cs.OnSurfaceVariant, 0).Rotate(180 * turn)
 	})
 	Menu(c, el, open, items, MenuOptions{MatchWidth: true})

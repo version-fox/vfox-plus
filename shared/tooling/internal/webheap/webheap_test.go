@@ -47,7 +47,7 @@ const testPage = `<!doctype html><meta charset="utf-8"><title>vfox-plus</title>
   <button data-tab="tasks">Tasks</button><button data-tab="settings">Settings</button>
 </nav>
 <div id="sdkList"><div class="loader"></div></div>
-<div id="detail"></div>
+<div id="sdkDetail"></div>
 <script>
 const note = (what) => navigator.sendBeacon("/note?" + encodeURIComponent(what));
 const dark = matchMedia("(prefers-color-scheme: dark)");
@@ -71,8 +71,10 @@ setTimeout(() => {
 }, 200);
 function openDetail(name) {
   note("sdk=" + name);
-  document.getElementById("detail").innerHTML =
-    '<div id="detailTabs"><button data-tab="installed">Installed</button><button data-tab="options">Options</button></div><div id="body"></div>';
+  // As the page does: the row of the plugin is the current one, and the details are headed with its name.
+  for (const row of document.querySelectorAll("[data-sdk]")) row.setAttribute("aria-current", String(row.dataset.sdk === name));
+  document.getElementById("sdkDetail").innerHTML =
+    '<div class="t-title-l"><code>' + name + '</code></div><div id="detailTabs"><button data-tab="installed">Installed</button><button data-tab="options">Options</button></div><div id="body"></div>';
   for (const button of document.querySelectorAll("#detailTabs [data-tab]")) {
     button.onclick = () => { note("detail=" + button.dataset.tab); if (button.dataset.tab === "options") showOptions(); };
   }
@@ -103,7 +105,26 @@ const (
 	redirects                   // sends /app to the intro page, as for an unpaired browser
 	neverList                   // shows no SDK list, ever
 	noScenes                    // lists no SDK to click
+	clipped                     // has a title and a button whose text does not fit, and some that do not count
 )
+
+// clippedMarkup is what the page of the mode clipped has besides the page of the tests: a title and the label of a button
+// that an ellipsis ends, which the census counts, and a name that is data, a title that wraps and a button that scrolls,
+// which it does not; and a row of a list whose button is inside its padding, and one whose button is 8 px beyond it; and a
+// row whose word is wider than the row, one whose word breaks, and one whose word an ellipsis clips.
+const clippedMarkup = `<h1 style="font-size:24px;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A title that is far too long</h1>
+<button style="width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A label that is far too long</button>
+<div style="font-size:12px;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">version-fox/a-name-that-is-data</div>
+<h2 style="font-size:24px;width:80px">A title that wraps instead of being cut</h2>
+<button style="width:70px;overflow:auto;white-space:nowrap">A label that scrolls</button>
+<button style="width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A label with room</button>
+<div class="list">
+  <div style="display:flex;width:300px;padding:8px 16px"><span>Inside</span><button style="margin-left:auto;width:120px">Fits</button></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span>Beyond</span><button style="margin-left:auto;margin-right:-8px;width:120px">Sticks out</button></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span>A_word_with_no_space_in_it_that_is_wider_than_the_row_that_holds_it</span></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span style="min-width:0;overflow-wrap:anywhere">A_word_with_no_space_in_it_that_breaks_where_the_row_ends_as_it_may</span></div>
+  <div style="display:flex;width:300px;padding:8px 16px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A_word_that_an_ellipsis_clips_which_the_cut_counts_if_it_counts_it_at_all</span></div>
+</div>`
 
 func newServer(t *testing.T, mode serverMode) *server {
 	t.Helper()
@@ -123,6 +144,10 @@ func newServer(t *testing.T, mode serverMode) *server {
 		listed := "true"
 		if mode == neverList || mode == noScenes {
 			listed = "false"
+		}
+		if mode == clipped {
+			_, _ = fmt.Fprint(w, strings.Replace(strings.Replace(testPage, "LISTED", listed, 1), "<script>", clippedMarkup+"\n<script>", 1))
+			return
 		}
 		if mode == noScenes {
 			// The list has rows, but not the ones that the scenes click.
@@ -307,12 +332,89 @@ func TestRunScreenshot(t *testing.T) {
 	if err != nil || image.Bounds().Dx() == 0 || image.Bounds().Dy() == 0 {
 		t.Fatalf("the screenshot is not a picture: %v", err)
 	}
-	// The language is pinned, the colour scheme is dark and the page of the tab is open.
-	notes := s.seen(t, "lang=zh", "dark=true", "tab=plugins")
-	for _, want := range []string{"dark-at-start=false", "lang=zh", "dark=true", "tab=plugins"} {
+	// The language is pinned, the page of the tab is open, and the colour scheme is dark from the first frame: a page
+	// that starts light and turns dark runs the transitions of its colours, which a screenshot catches half way.
+	notes := s.seen(t, "dark-at-start=true", "lang=zh", "tab=plugins")
+	for _, want := range []string{"dark-at-start=true", "lang=zh", "tab=plugins"} {
 		if !contains(notes, want) {
 			t.Errorf("the page did not hear %q: %q", want, notes)
 		}
+	}
+	for _, unwanted := range []string{"dark-at-start=false", "dark=true"} {
+		if contains(notes, unwanted) {
+			t.Errorf("the page heard %q, so it was light before it turned dark: %q", unwanted, notes)
+		}
+	}
+}
+
+func TestRunTakesTheCensusOfThePageThatItShoots(t *testing.T) {
+	s := newServer(t, serving)
+	directory := t.TempDir()
+	shot, census := filepath.Join(directory, "plugins.png"), filepath.Join(directory, "census", "plugins.json")
+	got := runTool(t, s, "-screenshot", shot, "-audit", census, "-tab", "plugins", "-dark", "-window", "412,915")
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	data, err := os.ReadFile(census)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found struct {
+		Dark     bool `json:"dark"`
+		Width    int  `json:"width"`
+		Words    int  `json:"words"`
+		Contrast struct {
+			Measured int `json:"measured"`
+		} `json:"contrast"`
+		Targets struct {
+			Total int `json:"total"`
+		} `json:"targets"`
+		Overflow bool `json:"overflow"`
+	}
+	if err := json.Unmarshal(data, &found); err != nil {
+		t.Fatalf("the census is not JSON: %v\n%s", err, data)
+	}
+	// The page that was shot is the one that was counted: dark, with the words and the buttons of the test page. (Its
+	// width is the one of the window of the Chrome that runs the test, which may not be as narrow as a phone.)
+	if !found.Dark || found.Width == 0 || found.Words < 5 || found.Contrast.Measured == 0 || found.Targets.Total < 5 || found.Overflow {
+		t.Errorf("census: %+v\n%s", found, data)
+	}
+}
+
+func TestTheCensusFindsATitleAndALabelThatAreCutShortAndAControlBeyondThePaddingOfItsRow(t *testing.T) {
+	s := newServer(t, clipped)
+	census := filepath.Join(t.TempDir(), "census.json")
+	if got := runTool(t, s, "-screenshot", filepath.Join(t.TempDir(), "page.png"), "-audit", census, "-window", "412,915"); got.err != nil {
+		t.Fatal(got.err)
+	}
+	data, err := os.ReadFile(census)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found struct {
+		Cut      []string `json:"cut"`
+		Sticking []string `json:"sticking"`
+	}
+	if err := json.Unmarshal(data, &found); err != nil {
+		t.Fatalf("the census is not JSON: %v\n%s", err, data)
+	}
+	if len(found.Cut) != 2 || !strings.HasPrefix(found.Cut[0], "A title that is far too long") || !strings.HasPrefix(found.Cut[1], "A label that is far too long") {
+		t.Errorf("the title and the label of the button are cut, and nothing else: %q", found.Cut)
+	}
+	// The rows are read in the order of the page: the button that is 8 px beyond the padding, then the word that is wider than its row.
+	// The word that breaks and the word that an ellipsis clips are not beyond it.
+	if len(found.Sticking) != 2 || !strings.HasPrefix(found.Sticking[0], "button") || !strings.HasPrefix(found.Sticking[1], "A_word_with_no_space_in_it_tha") {
+		t.Errorf("the button that is 8 px beyond the padding of its row and the word that is wider than its row, and no other: %q", found.Sticking)
+	}
+}
+
+func TestAnAuditGoesWithAScreenshot(t *testing.T) {
+	base := []string{"-server", "http://127.0.0.1:1", "-pairing", "http://127.0.0.1:1/auth/connect/x", "-output", "memory.txt"}
+	if _, err := parseOptions(append(append([]string{}, base...), "-audit", "census.json")); err == nil {
+		t.Error("a census of a page that is not shot is refused")
+	}
+	if _, err := parseOptions(append(append([]string{}, base...), "-audit", "census.json", "-screenshot", "page.png")); err != nil {
+		t.Errorf("a census with a screenshot is taken: %v", err)
 	}
 }
 

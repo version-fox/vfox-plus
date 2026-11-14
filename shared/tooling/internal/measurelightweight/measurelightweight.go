@@ -385,10 +385,10 @@ func resolveFixturesDir(flag, fakeVfox string) (string, error) {
 
 // fixturesDirFromRoot resolves a --fixtures-root value to the directory with
 // the captured outputs: the value itself when it already names a vfox-<version>
-// directory, else its vfox-1.0.13 child.
+// directory, else its vfox-1.1.0 child.
 func fixturesDirFromRoot(root string) string {
 	if strings.HasPrefix(filepath.Base(root), "vfox-") {
 		return root
 	}
-	return filepath.Join(root, "vfox-1.0.13")
+	return filepath.Join(root, "vfox-1.1.0")
 }

@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-nodejs (https://github.com/version-fox/vfox-nodejs),
-// written from its documentation at release 0.5.3.
+// written from its documentation at release 0.5.6.
 
 func nodejsProfile() Profile {
 	return Profile{
@@ -64,21 +64,15 @@ func nodejsProfile() Profile {
 			{ID: "support", Label: text("Support", "支持"), Kind: FacetNote, Values: []string{"LTS"}},
 		},
 		Guide: text(
-			"A version is a release number, or the start of one: 24.21.0, 24.21 or 24 install the newest release of that line, and latest the newest release of any line. There is no lts alias: name the line.",
-			"版本是一个发行版本号，或者它的开头：24.21.0、24.21 或 24 会安装该版本线上最新的版本，latest 则是所有版本线中最新的。没有 lts 别名，请写版本线。"),
+			"24, 24.21 or 24.21.0 install the newest release of that line; latest the newest of any line. There is no lts alias: name the line.",
+			"写 24、24.21 或 24.21.0，安装该系列里最新的版本；latest 是所有系列里最新的。没有 lts 别名，请写系列号。"),
 		Tips: []Text{
 			text(
-				"An installed release keeps its release number, such as 24.22.0. Uninstalling needs the whole number: 22 or 22.23 answer that nothing is installed.",
-				"已安装的版本使用完整的版本号，例如 24.22.0。卸载必须写完整版本号：写 22 或 22.23 会提示未安装。"),
+				"Global npm packages stay with the release that installed them: install them again after switching.",
+				"用 npm install -g 安装的包留在当时的版本里，切换版本后要重新安装。"),
 			text(
-				"Packages installed with npm install -g belong to the release in use. Switching to another release leaves them behind: install them again.",
-				"用 npm install -g 安装的包属于当时使用的版本。切换到别的版本后要重新安装。"),
-			text(
-				"Node.js 25 and later does not ship Corepack. A node that pnpm installs itself can shadow the one of vfox.",
-				"Node.js 25 及更高版本不再自带 Corepack。pnpm 自己安装的 node 可能会盖住 vfox 的。"),
-			text(
-				"The version list is the same on every platform; a release without a package for this machine fails when it is installed.",
-				"版本列表在所有平台上都一样；没有适用于本机的安装包的版本，安装时会失败。"),
+				"Node.js 25 and later does not ship Corepack.",
+				"Node.js 25 及更高版本不再自带 Corepack。"),
 		},
 		Docs: []Link{
 			docs("vfox-nodejs", "versions", text("Versions and names", "版本与命名")),

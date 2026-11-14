@@ -74,6 +74,10 @@ type HostOptions struct {
 	SettingsDir string
 	// Quit ends the application, when a paired device asks for it.
 	Quit func()
+	// Addresses lists the addresses of this computer on the networks it is on, as its interfaces have them when it is nil.
+	// A test, or a build whose screens are shown, names them, so that what says them does not depend on the machine that
+	// runs it: a computer with no network has none to pair a phone with, and one with several has a long list of them.
+	Addresses func() []string
 }
 
 // webConfig is what the servers are started for: the part of the settings that
@@ -228,7 +232,7 @@ func (h *Host) startRemote(config webConfig) (server *Server, fingerprint string
 	case certFile != "" || keyFile != "":
 		return nil, "", false, errors.New("a certificate and its key go together")
 	default:
-		if certFile, keyFile, fingerprint, err = EnsureServerCert(h.options.SettingsDir, LocalAddresses()); err != nil {
+		if certFile, keyFile, fingerprint, err = EnsureServerCert(h.options.SettingsDir, h.localAddresses()); err != nil {
 			return nil, "", false, err
 		}
 		selfSigned = true
@@ -322,7 +326,7 @@ func (h *Host) Status() Status {
 	status := h.status
 	h.mu.Unlock()
 	if status.Remote {
-		status.Addresses = NetworkAddresses()
+		status.Addresses = h.networkAddresses()
 	}
 	return status
 }
@@ -352,7 +356,7 @@ func (h *Host) RemoteLink(host string) (string, error) {
 	h.mu.Lock()
 	tunnelURL := h.status.TunnelURL
 	h.mu.Unlock()
-	addresses := NetworkAddresses()
+	addresses := h.networkAddresses()
 	host = strings.TrimSpace(host)
 	public := h.model.Settings.Settings().EffectiveWebAddress()
 	if tunnelURL != "" {
@@ -395,9 +399,23 @@ func (h *Host) Quit() {
 // on, which other devices can connect to: the IPv4 addresses first, then the IPv6
 // ones, each without brackets. Loopback and link-local addresses are not among
 // them.
-func NetworkAddresses() []string {
+func NetworkAddresses() []string { return networkAddresses(LocalAddresses()) }
+
+// localAddresses are the addresses of this computer that the options name, or those of its interfaces.
+func (h *Host) localAddresses() []string {
+	if h.options.Addresses != nil {
+		return h.options.Addresses()
+	}
+	return LocalAddresses()
+}
+
+// networkAddresses are the ones of them that other devices can connect to.
+func (h *Host) networkAddresses() []string { return networkAddresses(h.localAddresses()) }
+
+// networkAddresses keeps of addresses what NetworkAddresses lists: the IPv4 addresses first, then the IPv6 ones, each once.
+func networkAddresses(addresses []string) []string {
 	var v4, v6 []string
-	for _, address := range LocalAddresses() {
+	for _, address := range addresses {
 		ip := net.ParseIP(address)
 		switch {
 		case ip == nil || slices.Contains(v4, address) || slices.Contains(v6, address):

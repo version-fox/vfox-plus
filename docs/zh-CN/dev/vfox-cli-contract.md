@@ -3,10 +3,11 @@
 > [English](../../en/dev/vfox-cli-contract.md)
 
 本文规定 vfox-plus 如何驱动 vfox 命令行工具：跑哪些命令、什么环境、如何读取输出、
-如何报告错误。描述 **vfox 1.0.13**；捕获输出在
+如何报告错误。描述 **vfox 1.1.0**；捕获输出在
 [`shared/fixtures`](../../../shared/fixtures)，期望解析结果在 `cases.json`。
 
-最低支持 vfox **1.0.13**：命令错误自此走标准错误（见[输出约定](#输出约定）），更早版本不支持。
+最低支持 vfox **1.1.0**：1.1.0 新增 link、doctor、alias、path.mode、install --use
+命令与插件 Detect、Fingerprint 钩子，应用依赖它们，更早版本不支持。
 
 ## 运行 vfox
 
@@ -94,7 +95,7 @@ stack traceback:
 
 ```console
 $ vfox --version
-vfox version 1.0.13
+vfox version 1.1.0
 ```
 
 版本为首个 `\d+.\d+.\d+…` 词。夹具：`version`。
@@ -174,7 +175,7 @@ $ vfox search java all
 简称或全称（`tem`、`temurin`）或 `all`，列出那个发行版，而不是不带参数时列出的 jdk.java.net 上的 OpenJDK
 （Linux loong64 上是 `loongnix`、`lnxabi1` 与 `lnxabi2`）。vfox 按参数列表分别缓存答案。应用传一个参数，取自
 插件[配置档案](architecture.md#插件配置档案)里的选择项，默认项不传参数。每个参数按插件名的方式检查：不能为空、
-不能以 `-` 开头、不含空白与控制字符。`java all` 的列表有 2641 项，备注的形式有 `LTS`、`JavaFX` 与
+不能以 `-` 开头、不含空白与控制字符。`java all` 的列表有 2683 项，备注的形式有 `LTS`、`JavaFX` 与
 `LTS, JavaFX`，版本名带发行版：`21.0.12.1+1-tem`、`25.0.4+9-librca-fx`。夹具：`search-java`、
 `search-java-tem`、`search-java-all`、`search-flutter`（它的备注是通道，附带工具为 `[dart <版本>]`，最早的版本
 是空的 `[dart ]`，分支的构建带 `(OpenHarmony)`）。
@@ -204,7 +205,7 @@ proxy.enable = false
 ```
 
 每行 `<键> = <值>`；值可空。未知键按文本展示编辑，GUI 跨 vfox 版本可用。
-vfox 1.0.13 的键：
+vfox 1.1.0 的键：
 
 | 键 | 类型 | 说明 |
 | --- | --- | --- |
@@ -212,17 +213,30 @@ vfox 1.0.13 的键：
 | `proxy.url` | URL | |
 | `registry.address` | URL | 空为官方仓库。 |
 | `storage.sdkPath` | 目录 | 必须存在可写。 |
-| `legacyVersionFile.enable` | `true` / `false` | `.nvmrc`、`.node-version`、`.sdkmanrc` 等。 |
+| `legacyVersionFile.enable` | `true` / `false` | `.nvmrc`、`.node-version`、`.sdkmanrc`、`gradle/wrapper/gradle-wrapper.properties` 等。 |
 | `legacyVersionFile.strategy` | `specified` / `latest_installed` / `latest_available` | |
 | `cache.availableHookDuration` | 时长（`12h`），`-1` 永久，`0` 关 | |
 | `plugin.http.timeout` | 时长，`0s` 为默认（30 s） | |
 | `plugin.http.downloadTimeout` | 时长，`0s` 为默认（30 min） | |
 | `gitignore.enable` | `true` / `false` | 项目域加 `.vfox/` 到 `.gitignore`。 |
+| `diagnostics.onUse` | `true` / `false` | `vfox use` 时警告被盖住与漂移的 SDK。 |
+| `diagnostics.ignore` | 列表，如 `[]` | 不报告的检查 ID。 |
+| `path.mode` | `legacy` / `baseline` / `aggressive` | 1.1.0 起默认 `baseline`。 |
+| `path.preserve` | 目录列表 | `baseline` 与 `aggressive` 下保留在前的目录。 |
+| `aliases` | 映射，如 `map[]` | 版本别名；经 `vfox alias` 编辑，勿手改。 |
 
 `vfox config <键> <值>` 设值，`vfox config --unset <键>` 重置。
-非法值按 vfox 消息失败，如 `time: invalid duration "notaduration"`（夹具
-`config-set-invalid-duration`）。未知键**静默成功**（exit code 0），故只提供
+1.1.0 起只写被设置的键。非法值按 vfox 消息失败，如 `cache.availableHookDuration: time: invalid duration "notaduration"`（夹具
+`config-set-invalid-duration`）。设 section、列表或表格为键会失败；删不存在的键成功且不重写文件。未知键**静默成功**（exit code 0），故只提供
 `--list` 打印过的键。夹具：`config-list`、`config-set`、`config-get`。
+
+### 健康、别名与链接版本
+
+`vfox doctor [--json] [<sdk>[@<version>]]` 检查问题；`--json` 输出 `{"ok", "findings"}`，仅未忽略的 error 才 exit 1。`--adopt` 记录旧安装以便后查漂移。夹具：`doctor`、`doctor-json`。
+
+`vfox alias list [<sdk>]` 每行 `<sdk>@<别名> -> <sdk>@<版本>`；`set` 命名已安装版本，`unset` 删除。夹具：`alias-list`。
+
+`vfox list` 给链接版本加后缀，解析只取版本号。`vfox info --json` 用 `origin` 与 `target` 区分链接与安装。夹具：`info-json`。详见英文版。
 
 ## 命令
 

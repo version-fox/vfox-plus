@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
@@ -57,7 +58,7 @@ func FreePort(t testing.TB) int {
 
 // FixturesVersion is the captured vfox outputs in shared/fixtures that the
 // tests use by default.
-const FixturesVersion = "1.0.13"
+const FixturesVersion = "1.1.0"
 
 // ReadCapture reads a capture of shared/fixtures, in which control characters
 // are written as `\xHH` and backslashes as `\\`.
@@ -239,6 +240,8 @@ type FakeProcessRunner struct {
 	failure     error
 	responses   map[string]func() core.ProcessOutput
 	streams     map[string]func() *FakeRunningProcess
+	// slow are the delays of the invocations whose arguments begin with a prefix (SlowDown).
+	slow map[string]time.Duration
 }
 
 // NewFakeProcessRunner creates a scripted runner.
@@ -284,6 +287,17 @@ func (r *FakeProcessRunner) SetFailure(err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.failure = err
+}
+
+// SlowDown makes the invocations whose arguments begin with prefix wait for d before they are answered, as a process that takes that
+// long does: the lists that an application loads in the background arrive late, as they do on a slower machine.
+func (r *FakeProcessRunner) SlowDown(prefix string, d time.Duration) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.slow == nil {
+		r.slow = make(map[string]time.Duration)
+	}
+	r.slow[prefix] = d
 }
 
 // Invocations returns every invocation, in order.
@@ -333,9 +347,19 @@ func (r *FakeProcessRunner) Run(executable string, args []string, options core.P
 	if err := r.record(executable, args, options, false); err != nil {
 		return core.ProcessOutput{}, err
 	}
+	joined := strings.Join(args, " ")
 	r.mu.Lock()
-	respond := r.responses[strings.Join(args, " ")]
+	respond := r.responses[joined]
+	var delay time.Duration
+	for prefix, d := range r.slow {
+		if strings.HasPrefix(joined, prefix) {
+			delay = d
+		}
+	}
 	r.mu.Unlock()
+	if delay > 0 {
+		time.Sleep(delay)
+	}
 	if respond != nil {
 		return respond(), nil
 	}
@@ -374,7 +398,8 @@ var errMissing = missingExecutable{}
 // `list` and `current` fixtures: maven 3.9.16 (current) and 3.8.9, mvn2
 // without versions and nodejs 24.11.1 (current) and 22.21.0. It also answers
 // the searches of java (`open` without an argument, `tem` and `all`) and of
-// flutter, which the fixtures hold.
+// flutter, which the fixtures hold, and the doctor, alias and JSON info
+// fixtures of vfox 1.1.0.
 func FixtureRunner() *FakeProcessRunner {
 	return NewFakeProcessRunner().
 		On("--version", FixtureOutput("version", 0)).
@@ -388,5 +413,16 @@ func FixtureRunner() *FakeProcessRunner {
 		On("search java tem", FixtureOutput("search-java-tem", 0)).
 		On("search java all", FixtureOutput("search-java-all", 0)).
 		On("search flutter", FixtureOutput("search-flutter", 0)).
-		On("info nodejs --format "+vfox.PluginInfoTemplate, FixtureOutput("info", 0))
+		On("info nodejs --format "+vfox.PluginInfoTemplate, FixtureOutput("info", 0)).
+		On("doctor --json", FixtureOutput("doctor-json", 0)).
+		On("alias list", FixtureOutput("alias-list", 0)).
+		On("alias list java", FixtureOutput("alias-list", 0)).
+		On("alias list nodejs", FixtureOutput("alias-list", 0)).
+		On("alias list maven", FixtureOutput("alias-list", 0)).
+		On("alias list flutter", FixtureOutput("alias-list", 0)).
+		On("alias list gradle", FixtureOutput("alias-list", 0)).
+		On("alias list golang", FixtureOutput("alias-list", 0)).
+		On("alias list mvn2", FixtureOutput("alias-list", 0)).
+		On("alias list coffee", FixtureOutput("alias-list", 0)).
+		On("info --json nodejs", FixtureOutput("info-json", 0))
 }

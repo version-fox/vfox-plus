@@ -41,7 +41,7 @@ func (a *App) tasksPage(k kit.Ctx) {
 		if len(tasks) == 0 {
 			headerAndBody(k, header, func() {
 				kit.StatusMessage(k, kit.StatusSpec{
-					Icon: "tasks", Shape: shapes.ShapeSunny, Title: a.T("tasksEmptyTitle"), Body: a.T("tasksEmptyBody"),
+					Icon: "tasks", Shape: shapes.ShapeSunny, Title: a.T("tasksEmptyTitle"),
 				})
 			})
 			return
@@ -148,7 +148,7 @@ func (a *App) taskRow(k kit.Ctx, task *state.VfoxTask, position kit.Position) mu
 			Leading: func(mui.Color) { mui.Box(k.Context).Size(32, 32).Shrink(0).Center().Children(leading) },
 			SubtitleWidget: func(mui.Color) {
 				mui.Column(k.Context).Children(func() {
-					kit.Label(k, statusText, kit.Type(kit.BodyMedium), statusColor, kit.Lines(2))
+					kit.Label(k, statusText, kit.Type(kit.BodyMedium), statusColor, kit.Lines(2), kit.Breakable())
 					if status == state.TaskRunning && task.Command.Operation == vfox.OperationInstall {
 						kit.WavyProgress(k, kit.WavySpec{
 							ID: "progress", Value: progress, Indeterminate: !hasProgress, Label: a.taskTitle(task.Command),
@@ -196,7 +196,7 @@ func (a *App) taskOutput(k kit.Ctx, task *state.VfoxTask, isLast bool, scroll *m
 	return kit.Panel(k, cs.SurfaceContainerHighest, kit.CornerExtraSmall, bottom, func() {
 		mui.Row(k.Context).Padding(gapS, gapXS, gapM, gapL).AlignItems(mui.Start).Children(func() {
 			mui.Scroll(k.Context).TrackScroll(scroll).Grow(1).Shrink(1).MaxHeight(320).Children(func() {
-				kit.Label(k, text, style, cs.OnSurface, kit.Selectable(), kit.Monospace())
+				kit.Label(k, text, style, cs.OnSurface, kit.Selectable(), kit.Monospace(), kit.Breakable())
 			})
 			kit.IconButton(k, kit.IconButtonSpec{ID: "copy", Icon: "copy", Tooltip: a.T("taskCopyOutput"), OnClick: func() {
 				a.copy(text)

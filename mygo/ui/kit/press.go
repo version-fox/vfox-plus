@@ -128,7 +128,12 @@ func tooltip(c Ctx, anchor ui.Element, text string) {
 	ui.TooltipBase(c.Context, anchor, func(tip ui.Element) {
 		tip.Margin(6, 0, 6, 0).Padding(4, 8).Radius(CornerExtraSmall).Background(cs.InverseSurface)
 		tip.Children(func() {
-			Label(c, text, Type(BodySmall), cs.InverseOnSurface, Lines(2)).MaxWidth(240)
+			c.Env.Reg.SetModal(true)
+			defer c.Env.Reg.SetModal(false)
+			defer c.Env.Reg.EnterScope("tooltip")()
+			// A tooltip is the name of the button that it is of, and goes on as many lines as it needs in its 240 dp: it was held to two,
+			// and a name of 200 % in a text that is wider by two fifths wants three ("More ways to install this version").
+			Label(c, text, Type(BodySmall), cs.InverseOnSurface).MaxWidth(240)
 		})
 	})
 }

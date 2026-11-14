@@ -156,7 +156,7 @@ func realScenario(s *appsession.Session, server, pluginSource string) {
 	s.Pause(500 * time.Millisecond)
 	// Install it again by its name, which vfox looks up while it installs.
 	s.Step("install by name")
-	s.ClickButton("Install by name…")
+	s.ChooseMenuItem("More ways to add", "Install by name…")
 	s.WaitForText("Install testsdk by name")
 	s.Fill("Version name", "1.0.0", false)
 	s.TapDialog(true)
@@ -191,7 +191,8 @@ func realScenario(s *appsession.Session, server, pluginSource string) {
 	s.WaitForText("Remove localsdk?")
 	s.TapDialog(true)
 	s.WaitForTask("Remove plugin localsdk")
-	s.WaitForText("Select an SDK to manage its versions.")
+	// The details leave the plugin that is gone, and open the one that is in use.
+	s.WaitForText("Installed (1)")
 	s.WaitUntil("the removed plugin to disappear from the list", 30*time.Second, func(t automation.Tree) bool {
 		_, listed := t.Find(func(n automation.Node) bool { return n.KeyText() == "sdk:localsdk" })
 		return !listed
@@ -200,7 +201,9 @@ func realScenario(s *appsession.Session, server, pluginSource string) {
 	// Every task succeeded (the waits above fail on one that did not), the cancelled
 	// one apart, and vfox agrees with what the application shows.
 	s.CheckNoTaskFailed()
-	s.Check(s.Vfoxcmd("current") == "testsdk -> v2.0.0\n", "vfox uses testsdk 2.0.0")
+	// vfox 1.1.0 says the name of the version as the plugin lists it; 1.0.x put a v in front of it.
+	current := s.Vfoxcmd("current")
+	s.Check(current == "testsdk -> 2.0.0\n", fmt.Sprintf("vfox uses testsdk 2.0.0, and says %q", current))
 	s.Check(strings.Contains(s.Vfoxcmd("list", "testsdk"), "2.0.0"), "vfox lists testsdk 2.0.0")
 	// The copy of the local plugin is deleted once its task has finished.
 	entries, _ := os.ReadDir(filepath.Join(home, ".vfox", "tmp"))

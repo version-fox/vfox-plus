@@ -49,8 +49,8 @@
 #   docker build --build-arg UBUNTU_MIRROR=http://mirrors.aliyun.com/ubuntu/ \
 #     --build-arg GOPROXY=https://goproxy.cn,direct -f mygo/Dockerfile -t vfox-plus-gateway mygo
 
-ARG GO_VERSION=1.27.3
-ARG GO_SHA256=65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40
+ARG GO_VERSION=1.27.4
+ARG GO_SHA256=7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840
 
 FROM --platform=linux/amd64 ubuntu:26.04 AS build
 ARG GO_VERSION

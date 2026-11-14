@@ -129,6 +129,12 @@ type App struct {
 
 // themeKey is what the theme depends on: the theme is built again when it
 // changes.
+// lessMotion is the motion that the desktop asks for, whatever the platform asks: every value of the
+// toolkit jumps to its target, and the indicators that animate in the painter stop. Measured with the
+// end-to-end build on the CPU that draws the window, the motion costs memory that stays allocated,
+// most of all the layers of the transitions of toolkit 0.8 and later (docs/en/dev/memory.md).
+const lessMotion = true
+
 type themeKey struct {
 	seed      uint32
 	dark      bool
@@ -383,7 +389,7 @@ func (a *App) view(c *mui.Context) {
 	a.syncTheme(desktopDark, c.Preferences())
 	a.syncLanguage()
 	c.SetTheme(a.uiTheme)
-	if os.Getenv("VFOX_PLUS_REDUCED_MOTION") != "" {
+	if lessMotion {
 		c.DisableAnimations()
 	}
 	k := a.env.Begin(c)
@@ -429,7 +435,7 @@ func (a *App) syncTheme(desktopDark bool, preferences mui.Preferences) {
 	case settings.ThemeSystem:
 		dark = desktopDark
 	}
-	reduced := preferences.ReduceMotion || os.Getenv("VFOX_PLUS_REDUCED_MOTION") != ""
+	reduced := lessMotion
 	key := themeKey{seed: seed, dark: dark, reduced: reduced, textScale: preferences.TextScale}
 	if a.themeKey == key {
 		return

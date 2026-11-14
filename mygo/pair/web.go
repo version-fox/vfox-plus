@@ -43,6 +43,8 @@ var (
 //	/api/inventory        installed SDKs, registry plugins and vfox config
 //	/api/sdks/<name>/info    plugin metadata
 //	/api/sdks/<name>/versions  installable versions
+//	/api/sdks/<name>/aliases   version aliases
+//	/api/doctor             health of vfox and the installed SDKs
 //	/api/tasks            list tasks (GET) and start one (POST)
 //	/api/tasks/finished   forget finished tasks (DELETE)
 //	/api/tasks/<id>       one task with its log tail (GET)

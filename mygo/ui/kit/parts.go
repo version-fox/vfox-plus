@@ -74,12 +74,16 @@ func Card(c Ctx, cd CardSpec) ui.Element {
 // the end.
 func PageHeader(c Ctx, title, subtitle string, leading func(), actions ...func()) ui.Element {
 	cs := c.Colors()
-	return ui.Row(c.Context).Padding(24, 16, 16, 24).Gap(8).Children(func() {
+	style := Emph(HeadlineMedium)
+	// The title is what the actions give way to: it keeps the width that it needs, and the actions go under it when
+	// there is no room for both on a line.
+	room, _ := c.MeasureText(0, ui.Span{Text: title, Size: style.Size * c.Env.Theme.TextScale, Weight: style.Weight})
+	return ui.Row(c.Context).Padding(24, 16, 16, 24).Gap(8).GapY(8).Wrap().Children(func() {
 		if leading != nil {
 			leading()
 		}
-		ui.Column(c.Context).Grow(1).Shrink(1).Gap(4).Children(func() {
-			Line(c, title, Emph(HeadlineMedium), cs.OnSurface).Role(ui.RoleHeading).Level(1)
+		ui.Column(c.Context).Grow(1).Shrink(1).Basis(room).MinWidth(room).Gap(4).Children(func() {
+			Line(c, title, style, cs.OnSurface).Role(ui.RoleHeading).Level(1)
 			if subtitle != "" {
 				Label(c, subtitle, Type(BodyMedium), cs.OnSurfaceVariant, Lines(2))
 			}
@@ -94,11 +98,12 @@ func PageHeader(c Ctx, title, subtitle string, leading func(), actions ...func()
 	})
 }
 
-// GroupHeader is the title of a group of a page.
+// GroupHeader is the title of a group of a page. A title is copy and not data: it goes on as many lines as it needs, and is not
+// cut by an ellipsis.
 func GroupHeader(c Ctx, title string, trailing func()) ui.Element {
 	cs := c.Colors()
 	return ui.Row(c.Context).Padding(24, 4, 8, 16).Children(func() {
-		Line(c, title, Type(TitleSmall), cs.Primary).Grow(1).Role(ui.RoleHeading).Level(2)
+		Label(c, title, Type(TitleSmall), cs.Primary, Breakable(), Heading()).Grow(1).Shrink(1).Role(ui.RoleHeading).Level(2)
 		if trailing != nil {
 			trailing()
 		}

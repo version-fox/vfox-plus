@@ -23,7 +23,7 @@ import (
 )
 
 func TestParseVfoxVersion(t *testing.T) {
-	if got := vfox.ParseVfoxVersion("vfox version 1.0.13\n"); got != "1.0.13" {
+	if got := vfox.ParseVfoxVersion("vfox version 1.1.0\n"); got != "1.1.0" {
 		t.Errorf("got %q", got)
 	}
 	if got := vfox.ParseVfoxVersion("vfox version 2.0.0-beta.1"); got != "2.0.0-beta.1" {
@@ -57,6 +57,73 @@ func TestParseInstalledTree(t *testing.T) {
 	}
 	if got := vfox.ParseInstalledTree("  └──24.11.1\n"); len(got) != 0 {
 		t.Errorf("versions before any plugin must be ignored, got %#v", got)
+	}
+	// vfox 1.1.0 appends link and alias annotations to the version.
+	got = vfox.ParseInstalledTree("All installed sdk versions\n├─┬java\n│ └──17-system (linked → /usr/lib/jvm/java-17) [alias: j17]\n└─┬nodejs\n  └──24.11.1\n")
+	if len(got) != 2 || !reflect.DeepEqual(got[0].Versions, []string{"17-system"}) || !reflect.DeepEqual(got[1].Versions, []string{"24.11.1"}) {
+		t.Errorf("link and alias annotations must be left out, got %#v", got)
+	}
+}
+
+func TestParseInstalledTreeStripsCurrentMarker(t *testing.T) {
+	got := vfox.ParseInstalledTree("-> 17-system (linked → /tmp/jdk) [alias: j17] <— current\n")
+	if len(got) != 0 {
+		t.Errorf("a single-sdk list has no plugin line, got %#v", got)
+	}
+}
+
+func TestCompareVersions(t *testing.T) {
+	for _, tc := range []struct {
+		left, right string
+		want        int
+	}{
+		{"1.1.0", "1.1.0", 0},
+		{"1.10.0", "1.2.0", 1},
+		{"1.0.13", "1.1.0", -1},
+		{"1.1.0-beta.1", "1.1.0", 0},
+		{"", "1.1.0", -1},
+		{"garbage", "1.1.0", -1},
+	} {
+		if got := vfox.CompareVersions(tc.left, tc.right); got != tc.want {
+			t.Errorf("CompareVersions(%q, %q) = %d, want %d", tc.left, tc.right, got, tc.want)
+		}
+	}
+	if !vfox.IsSupportedVersion("1.1.0") || !vfox.IsSupportedVersion("1.2.0") || vfox.IsSupportedVersion("1.0.13") {
+		t.Error("IsSupportedVersion must require 1.1.0")
+	}
+}
+
+func TestParseAliasList(t *testing.T) {
+	got := vfox.ParseAliasList("java@j17 -> java@17.0.9-tem\nnodejs@lts -> nodejs@24.11.1\n")
+	if len(got) != 2 || got[0].Sdk != "java" || got[0].Alias != "j17" || got[0].Target != "java@17.0.9-tem" {
+		t.Errorf("got %#v", got)
+	}
+	if got := vfox.ParseAliasList("No aliases defined. Create one with: vfox alias set <sdk> <alias> <version>\n"); len(got) != 0 {
+		t.Errorf("empty aliases must parse as none, got %#v", got)
+	}
+}
+
+func TestParseDoctorReport(t *testing.T) {
+	report, ok := vfox.ParseDoctorReport("{\n  \"ok\": true,\n  \"findings\": []\n}\n")
+	if !ok || !report.OK || len(report.Findings) != 0 {
+		t.Errorf("got %#v %v", report, ok)
+	}
+	report, ok = vfox.ParseDoctorReport("{\"ok\":false,\"findings\":[{\"id\":\"sdk.drift\",\"severity\":\"warn\",\"sdk\":\"flutter\",\"version\":\"3.47.0\",\"message\":\"drift\",\"fix\":[\"vfox install --reinstall flutter@3.47.0\"]}]}")
+	if !ok || report.OK || len(report.Findings) != 1 || report.Findings[0].ID != "sdk.drift" {
+		t.Errorf("got %#v %v", report, ok)
+	}
+	if _, ok := vfox.ParseDoctorReport("not json"); ok {
+		t.Error("garbage must not parse")
+	}
+}
+
+func TestParseVersionDetailJSON(t *testing.T) {
+	detail, ok := vfox.ParseVersionDetailJSON("{\"name\":\"java\",\"version\":\"17-system\",\"installed\":true,\"origin\":\"linked\",\"target\":\"/opt/jdk\",\"home\":\"/tmp/home/.vfox/cache/java/v-17-system/java-17-system\"}")
+	if !ok || detail.Name != "java" || detail.Origin != "linked" || detail.Target != "/opt/jdk" {
+		t.Errorf("got %#v %v", detail, ok)
+	}
+	if _, ok := vfox.ParseVersionDetailJSON("not json"); ok {
+		t.Error("garbage must not parse")
 	}
 }
 

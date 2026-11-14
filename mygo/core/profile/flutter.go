@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-flutter (https://github.com/version-fox/vfox-flutter),
-// written from its documentation at release 0.2.5.
+// written from its documentation at release 0.2.6.
 
 // flutterArchitectures are the architectures that a release can be asked for
 // with a suffix.
@@ -61,21 +61,18 @@ func flutterProfile() Profile {
 			{ID: "architecture", Label: text("Architecture", "架构"), Kind: FacetSuffix, Values: flutterArchitectures},
 		},
 		Guide: text(
-			"A version is a release as the list shows it: 3.47.4, or a beta such as 3.50.0-0.1.pre. -x64 or -arm64 after it asks for that architecture. stable and beta stand for the release the channel points to. Versions are matched whole: 3.47 does not select the newest 3.47.x.",
-			"版本就是列表里的发行版名称：3.47.4，或者 3.50.0-0.1.pre 这样的 beta 版。后面加 -x64 或 -arm64 可指定架构。stable 和 beta 代表通道当前指向的版本。版本必须完整匹配：3.47 不会选中最新的 3.47.x。"),
+			"A release as the list shows it: 3.47.4, or a beta such as 3.50.0-0.1.pre. -x64 or -arm64 after it asks for that architecture; stable and beta stand for the release their channel points to. Names match whole: 3.47 does not select the newest 3.47.x.",
+			"写列表里的发行版名称：3.47.4，或 3.50.0-0.1.pre 这样的 beta 版。后面加 -x64 或 -arm64 可指定架构；stable 和 beta 代表通道当前指向的版本。名称必须完整匹配：3.47 不会选中最新的 3.47.x。"),
 		Tips: []Text{
 			text(
-				"A channel is replaced by the release it points to while it installs, so afterwards use that version: flutter@stable is not an installed name, and vfox use flutter@stable fails.",
-				"安装时通道会被替换成它指向的版本，之后请使用那个版本：flutter@stable 不是已安装的名称，vfox use flutter@stable 会失败。"),
-			text(
-				"Do not run flutter upgrade inside an SDK that vfox manages: it moves the SDK in place. Install the newer version instead.",
+				"Do not run flutter upgrade inside an SDK that vfox manages: it changes the SDK in place. Install the newer version instead.",
 				"不要在 vfox 管理的 SDK 里运行 flutter upgrade：它会原地改动 SDK。请安装更新的版本。"),
 			text(
-				"3.47.4 and 3.47.4-x64 are two installs of the same Flutter on an x64 machine. Write the suffix always or never.",
-				"在 x64 机器上，3.47.4 和 3.47.4-x64 是同一个 Flutter 的两份安装。要么总是写后缀，要么总是不写。"),
+				"Write the architecture suffix always or never: on an x64 machine 3.47.4 and 3.47.4-x64 are two installs.",
+				"要么总是写架构后缀，要么总是不写：在 x64 机器上 3.47.4 和 3.47.4-x64 是两份安装。"),
 			text(
-				"Linux and Windows for ARM64, and the OpenHarmony builds, install as git checkouts and need git.",
-				"Linux 和 Windows 的 ARM64 版本以及 OpenHarmony 构建是以 git 检出的方式安装的，需要装有 git。"),
+				"ARM64 builds for Linux and Windows, and the OpenHarmony builds, are git checkouts and need git.",
+				"Linux 和 Windows 的 ARM64 版本以及 OpenHarmony 构建以 git 检出的方式安装，需要装有 git。"),
 		},
 		Docs: []Link{
 			docs("vfox-flutter", "versions", text("Versions and names", "版本与命名")),

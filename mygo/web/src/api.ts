@@ -58,6 +58,7 @@ export interface Task {
   operation: string;
   sdk: string;
   version: string;
+  alias?: string;
   progress: number | null;
   errorMessage: string;
   commandLine: string;

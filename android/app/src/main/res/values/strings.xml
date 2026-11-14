@@ -19,7 +19,6 @@
 
     <!-- Pairing -->
     <string name="pair_title">Connect to vfox-plus</string>
-    <string name="pair_body">Pair this phone with your PC to manage your SDK versions from here.</string>
     <string name="where_path">Settings → Web interface → Pair a phone</string>
     <string name="where_label">On your PC, open vfox+</string>
     <string name="scan">Scan QR code</string>
@@ -56,60 +55,6 @@
     <string name="tls_body_unknown">The server certificate cannot be verified. Only continue on a network you trust.</string>
     <string name="trust_once">Trust once</string>
 
-    <!-- The native session of the no-WebView experiment flavor -->
-    <string name="disconnect">Disconnect</string>
-
-    <!-- The native session: the whole /app page in Views -->
-    <string name="tab_home">Home</string>
-    <string name="tab_sdks">SDKs</string>
-    <string name="tab_plugins">Plugins</string>
-    <string name="tab_tasks">Tasks</string>
-    <string name="tab_settings">Settings</string>
-    <string name="retry">Retry</string>
-    <string name="save">Save</string>
+    <!-- Shared -->
     <string name="cancel">Cancel</string>
-    <string name="request_failed">Request failed.</string>
-    <string name="session_plugins">Plugins</string>
-    <string name="session_versions">Versions</string>
-    <string name="session_in_use">In use</string>
-    <string name="session_active">Plugins in use</string>
-    <string name="session_terminal">Use in a terminal</string>
-    <string name="session_terminal_body">Add this line to your shell startup file so terminals pick up the global versions:</string>
-    <string name="session_explore">Plugin registry</string>
-    <string name="session_explore_body">Browse and install plugins.</string>
-    <string name="session_search_sdks">Search SDKs…</string>
-    <string name="session_installed">Installed</string>
-    <string name="session_available">Available</string>
-    <string name="session_options">Options</string>
-    <string name="session_current">current</string>
-    <string name="session_use_globally">Use globally</string>
-    <string name="session_uninstall">Uninstall</string>
-    <string name="session_install">Install…</string>
-    <string name="session_add_plugin">Add a plugin</string>
-    <string name="session_source">Plugin source (URL)</string>
-    <string name="session_alias">Alias (optional)</string>
-    <string name="session_add">Add</string>
-    <string name="session_registry">Registry</string>
-    <string name="session_update_all">Update all</string>
-    <string name="session_tasks_empty">No tasks yet.</string>
-    <string name="session_clear_finished">Clear finished</string>
-    <string name="session_this_phone">This phone</string>
-    <string name="session_connected_to">Connected to</string>
-    <string name="session_pair_new">Pair a new link</string>
-    <string name="session_connections">Connections</string>
-    <string name="session_other_devices">Other devices</string>
-    <string name="session_other_devices_body">Let phones and other computers on your network connect with a pairing link, over HTTPS. Only turn this on in a network you trust.</string>
-    <string name="session_port">Port</string>
-    <string name="session_port_body">Other devices connect to this port. Allow it in the firewall of this computer.</string>
-    <string name="session_pair_phone">Pair a phone</string>
-    <string name="session_reachable">Reachable at</string>
-    <string name="session_lightweight">Lightweight mode</string>
-    <string name="session_lightweight_body">When the window of vfox+ on the computer is closed, keep running in the background without it, so that this page and the tasks go on. Start vfox+ again to bring the window back.</string>
-    <string name="session_quit">Quit vfox+</string>
-    <string name="session_quit_body">Ends vfox+ on the computer, and this page with it. Start it there to use it again.</string>
-    <string name="session_application">Application</string>
-    <string name="session_vfox_config">vfox config</string>
-    <string name="session_copy_link">Copy link</string>
-    <string name="session_close">Close</string>
-    <string name="session_pair_help">Scan the code with the Android app, or open the link on the other device. It works once and expires in a few minutes.</string>
 </resources>

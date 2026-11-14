@@ -48,18 +48,16 @@ func (a *App) sdksPage(k kit.Ctx) {
 		}
 	}
 	width := a.pageWidth(k)
-	if width >= twoPaneWidth {
+	if width >= twoPaneWidth && len(sdks) > 0 {
+		// Next to the list there is always a plugin: the one that the user chose, or else the one that is in use.
+		if selected == "" {
+			selected = defaultSdk(sdks)
+		}
 		a.pages.detailWidth = width - listPaneWidth - gapXL
 		mui.Row(k.Context).Grow(1).AlignItems(mui.Stretch).Gap(gapXL).Children(func() {
 			kit.Pane(k, func() { a.sdkList(k, sdks, selected, false) }).Width(listPaneWidth).Shrink(0)
 			kit.Pane(k, func() {
-				kit.SwitchView(k, kit.FadeThrough, 0, selected, func() {
-					if selected == "" {
-						a.selectPrompt(k)
-					} else {
-						a.detailView(k, selected, nil)
-					}
-				}).Grow(1)
+				kit.SwitchView(k, kit.FadeThrough, 0, selected, func() { a.detailView(k, selected, nil) }).Grow(1)
 			}).Grow(1).Shrink(1)
 		})
 		return
@@ -81,8 +79,15 @@ func (a *App) sdksPage(k kit.Ctx) {
 	}).Grow(1)
 }
 
-func (a *App) selectPrompt(k kit.Ctx) {
-	kit.StatusMessage(k, kit.StatusSpec{Icon: "sdks", Shape: shapes.ShapeGem, Title: a.T("sdksSelectPrompt")})
+// defaultSdk is the plugin that the details show before the user chooses one: the
+// first that has a version in use, or else the first.
+func defaultSdk(sdks []core.InstalledSdk) string {
+	for _, sdk := range sdks {
+		if sdk.HasCurrent {
+			return sdk.Name
+		}
+	}
+	return sdks[0].Name
 }
 
 // sdkList is the list of the installed plugins, with a field that searches it.

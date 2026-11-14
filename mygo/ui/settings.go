@@ -31,21 +31,27 @@ var seedColors = []uint32{
 
 // The keys of the vfox configuration that the settings page edits.
 const (
-	keyProxyEnable     = "proxy.enable"
-	keyProxyURL        = "proxy.url"
-	keyRegistry        = "registry.address"
-	keyStorage         = "storage.sdkPath"
-	keyLegacyEnable    = "legacyVersionFile.enable"
-	keyLegacyStrategy  = "legacyVersionFile.strategy"
-	keyCache           = "cache.availableHookDuration"
-	keyHTTPTimeout     = "plugin.http.timeout"
-	keyDownloadTimeout = "plugin.http.downloadTimeout"
-	keyGitignore       = "gitignore.enable"
+	keyProxyEnable       = "proxy.enable"
+	keyProxyURL          = "proxy.url"
+	keyRegistry          = "registry.address"
+	keyStorage           = "storage.sdkPath"
+	keyLegacyEnable      = "legacyVersionFile.enable"
+	keyLegacyStrategy    = "legacyVersionFile.strategy"
+	keyCache             = "cache.availableHookDuration"
+	keyHTTPTimeout       = "plugin.http.timeout"
+	keyDownloadTimeout   = "plugin.http.downloadTimeout"
+	keyGitignore         = "gitignore.enable"
+	keyDiagnosticsOnUse  = "diagnostics.onUse"
+	keyDiagnosticsIgnore = "diagnostics.ignore"
+	keyPathMode          = "path.mode"
+	keyPathPreserve      = "path.preserve"
+	keyAliases           = "aliases"
 )
 
 var knownConfigKeys = map[string]bool{
 	keyProxyEnable: true, keyProxyURL: true, keyRegistry: true, keyStorage: true, keyLegacyEnable: true,
 	keyLegacyStrategy: true, keyCache: true, keyHTTPTimeout: true, keyDownloadTimeout: true, keyGitignore: true,
+	keyDiagnosticsOnUse: true, keyDiagnosticsIgnore: true, keyPathMode: true, keyPathPreserve: true, keyAliases: true,
 }
 
 // settingsPage holds the preferences of the application and the configuration of
@@ -111,6 +117,7 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						{Value: string(settings.ThemeLight), Label: a.T("themeLight"), Icon: "lightMode"},
 						{Value: string(settings.ThemeDark), Label: a.T("themeDark"), Icon: "darkMode"},
 					},
+					MaxWidth: a.settingsContentWidth(k), Collapse: true,
 				})
 			},
 		},
@@ -156,6 +163,7 @@ func (a *App) appearanceSection(k kit.Ctx) {
 						{Value: string(settings.LanguageEnglish), Label: "English"},
 						{Value: string(settings.LanguageSimplifiedChinese), Label: "简体中文"},
 					},
+					MaxWidth: a.settingsContentWidth(k), Collapse: true,
 				})
 			},
 		},
@@ -164,11 +172,30 @@ func (a *App) appearanceSection(k kit.Ctx) {
 	kit.ListGroup(k, items...)
 }
 
+// scaled is a width in dp that follows the text scale of the system: what holds text is as wide as the text that it
+// holds.
+func scaled(k kit.Ctx, width float32) float32 { return width * k.Env.Theme.TextScale }
+
+// settingsPageWidth is the width in dp of the content of the settings, at most 840, and settingsItemWidth the width of an
+// item in it: the content less the space around the items.
+func (a *App) settingsPageWidth(k kit.Ctx) float32 { return min(a.pageWidth(k), 840) }
+func (a *App) settingsItemWidth(k kit.Ctx) float32 { return a.settingsPageWidth(k) - 2*gapXL }
+
+// settingsContentWidth is the width in dp that what is under the text of an item of the settings can have: the item less
+// its padding and the icon that it starts with.
+func (a *App) settingsContentWidth(k kit.Ctx) float32 {
+	return a.settingsItemWidth(k) - 2*gapL - 40
+}
+
+// environmentWidth is the width in dp of the field of the environment variables and of what is above and under it: the
+// example in it, of 53 characters, is in one line.
+const environmentWidth = 480
+
 // wideSettingsWrap tells whether the buttons at the end of the items of the
-// settings move under their text: the items are as wide as the page less the
-// space around them, at most 840 dp.
+// settings move under their text: the items are as wide as the content of the
+// page less the space around them, and the content is 840 dp at most.
 func (a *App) wideSettingsWrap(k kit.Ctx) bool {
-	return min(a.pageWidth(k)-2*gapXL, 840) < wrapWidth
+	return a.settingsItemWidth(k) < a.wrapItemWidth()
 }
 
 // environmentInitial is the text the environment field starts with.
@@ -219,7 +246,9 @@ func (a *App) vfoxSection(k kit.Ctx) {
 		{
 			ID: "environment", Title: a.T("settingsEnvironment"), Leading: icon(k, "environment"),
 			SubtitleWidget: func(mui.Color) {
-				mui.Column(k.Context).Margin(gapS, 0, 0, 0).Children(func() {
+				// The field has a width of its own: it was as wide as the line of help above it, and got narrower when the
+				// line did.
+				mui.Column(k.Context).Width(min(scaled(k, environmentWidth), a.settingsContentWidth(k))).Margin(gapS, 0, 0, 0).Children(func() {
 					kit.Label(k, a.T("settingsEnvironmentHelp"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 					kit.TextField(k, kit.TextFieldSpec{
 						ID: "environment", Text: &a.pages.environmentText, Lines: 3, MaxLines: 8, Monospace: true,
@@ -270,7 +299,7 @@ func (a *App) updateSection(k kit.Ctx) {
 				ID: "update-mirror-field", Hint: "https://gh-proxy.org/", Text: &a.pages.updateMirrorText,
 				Monospace: true, OnSubmit: func(text string) { a.saveUpdateMirror(text) },
 				OnBlur: func(text string) { a.pages.updateMirrorText = text },
-			}).Width(300)
+			}).Width(min(scaled(k, 300), a.settingsContentWidth(k)))
 		},
 	})
 	kit.GroupHeader(k, a.T("updateTitle"), nil)
@@ -374,13 +403,23 @@ func (a *App) configSection(k kit.Ctx) {
 			a.configText(k, keyStorage, a.T("configStorage"), "storage", "", a.T("configStorageHint"), true),
 		).Margin(0, 0, gapL, 0)
 		kit.ListGroup(k,
-			a.configSwitch(k, keyLegacyEnable, "legacyFiles", a.T("configLegacyEnable"), a.T("configLegacyEnableHelp")),
+			a.configSwitch(k, keyLegacyEnable, "legacyFiles", a.T("configLegacyEnable"), ""),
 			a.configChoice(k, keyLegacyStrategy, a.T("configLegacyStrategy"), []kit.Choice{
 				{Value: "specified", Label: a.T("strategySpecified")},
 				{Value: "latest_installed", Label: a.T("strategyLatestInstalled")},
 				{Value: "latest_available", Label: a.T("strategyLatestAvailable")},
 			}),
 			a.configSwitch(k, keyGitignore, "gitignore", a.T("configGitignore"), a.T("configGitignoreHelp")),
+		).Margin(0, 0, gapL, 0)
+		kit.ListGroup(k,
+			a.configChoice(k, keyPathMode, a.T("configPathMode"), []kit.Choice{
+				{Value: "legacy", Label: a.T("pathModeLegacy")},
+				{Value: "baseline", Label: a.T("pathModeBaseline")},
+				{Value: "aggressive", Label: a.T("pathModeAggressive")},
+			}),
+			a.configText(k, keyPathPreserve, a.T("configPathPreserve"), "", a.T("configPathPreserveHelp"), `["/opt/corp/bin"]`, false),
+			a.configSwitch(k, keyDiagnosticsOnUse, "diagnostics", a.T("configDiagnosticsOnUse"), a.T("configDiagnosticsOnUseHelp")),
+			a.configText(k, keyDiagnosticsIgnore, a.T("configDiagnosticsIgnore"), "", "", `["sdk.drift:flutter@3.47.0"]`, false),
 		).Margin(0, 0, gapL, 0)
 		kit.ListGroup(k,
 			a.configText(k, keyCache, a.T("configCache"), "cache", a.T("configCacheHelp"), "12h", false),
@@ -533,7 +572,7 @@ func (a *App) configText(k kit.Ctx, key, title, iconName, help, hint string, pic
 						}})
 					}
 				},
-			}).Width(300)
+			}).Width(min(scaled(k, 300), a.settingsContentWidth(k)))
 		},
 	}
 }

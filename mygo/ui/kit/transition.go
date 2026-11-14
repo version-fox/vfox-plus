@@ -50,6 +50,12 @@ func SwitchView(c Ctx, kind Transition, side float32, key any, build func()) ui.
 	default:
 		enter, exit = ui.Motion{Scale: c.Env.scaled(0.92)}, ui.Motion{}
 	}
+	if !c.Env.Theme.Transitions || c.Env.Theme.ReducedMotion {
+		// Without a transition the view is built where it is, and the layers that a transition draws its
+		// children in are not made (in v0.8 of the toolkit they are, and every frame of a page of text or
+		// of a list composites the whole page; see Theme.Transitions).
+		return ui.Column(c.Key(key)).Children(build)
+	}
 	return ui.Column(c.Key(key)).Transition(ui.ElementTransition{
 		Animation: &spring, Enter: &enter, Exit: &exit,
 	}).Children(build)
@@ -59,6 +65,15 @@ func SwitchView(c Ctx, kind Transition, side float32, key any, build func()) ui.
 // spring between 0 and the height of the content, so that content appears and
 // disappears by growing. The content is not built while it is closed.
 func Collapsible(c Ctx, id string, open bool, build func()) ui.Element {
+	if !c.Env.Theme.Transitions {
+		// Without a transition the content is built while the section is open, and not while it is shut.
+		el := ui.Column(c.Key(id)).ClipY()
+		if !open {
+			el.Height(0)
+			return el
+		}
+		return el.Children(build)
+	}
 	spring := c.Env.Theme.Motion.DefaultSpatial.Anim()
 	el := ui.Column(c.Key(id)).ClipY().Transition(ui.ElementTransition{Size: true, Animation: &spring})
 	if !open {

@@ -47,6 +47,7 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 	el, in, node := press(c, pressSpec{
 		id: s.ID, role: RoleButton, name: s.Label, selected: s.Selected, disabled: s.Disabled, onClick: s.OnClick,
 	})
+	node.Choice = true
 	motion := c.Env.Theme.Motion.FastSpatial.Anim()
 	selection := el.AnimateTo("selection", Flag(s.Selected), motion)
 	pressed := el.AnimateTo("shape", Flag(in.pressed), motion)
@@ -57,13 +58,19 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 	if s.Disabled {
 		content, border = cs.OnSurface.Alpha(0.38), cs.OnSurface.Alpha(0.12)
 	}
-	el.Height(chipHeight).PaddingX(12).Radius(radius).TextColor(content).
+	// A label that does not fit goes on as many lines as it needs, where the chip is as high as they are, and not cut by an
+	// ellipsis: the label is the name of a choice. A line of it is 32 dp high, with the border that is 1 dp at each side.
+	el.Shrink(1).MinWidth(0).MinHeight(chipHeight).PaddingX(12).PaddingY((chipHeight-Type(LabelLarge).Line-2)/2).Radius(radius).TextColor(content).
 		Background(cs.SecondaryContainer.Alpha(selection)).Border(1, border)
 	paintPress(c, el, node, Uniform(radius), stateLayer(c, el, in), content, in.keyboard)
 	return el.Children(func() {
 		// The check mark and the space after it have no width while the filter is
-		// off, and the row grows to its width on the spring that morphs the chip.
-		check := ui.Row(c.Key("check")).ClipX().Transition(ui.ElementTransition{Size: true, Animation: &motion})
+		// off. The row grows to its width on the spring that morphs the chip where
+		// the desktop has transitions (Theme.Transitions); otherwise it has it at once.
+		check := ui.Row(c.Key("check")).ClipX()
+		if c.Env.Theme.Transitions {
+			check = check.Transition(ui.ElementTransition{Size: true, Animation: &motion})
+		}
 		if !s.Selected {
 			check.Width(0)
 		}
@@ -72,6 +79,6 @@ func FilterChip(c Ctx, s ChipSpec) ui.Element {
 				Icon(c, "check", chipIcon, content, 0).Margin(0, 8, 0, 0)
 			})
 		}
-		Line(c, s.Label, Type(LabelLarge), content).Shrink(1)
+		Label(c, s.Label, Type(LabelLarge), content, Breakable()).Shrink(1)
 	})
 }

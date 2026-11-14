@@ -71,6 +71,27 @@ var tasks = []string{
 	"print-recommends",
 }
 
+// CensusGroups are the groups in which the census of the screens is taken, one job each, in this order: CI and the sandbox run them
+// alike. censusTests are their tests, as `go test -run` takes them, the same patterns as the matrix of mygo.yml. Every screen and
+// every size of text of the census has to be in one group, once: TestTheCensusGroupsTakeEachScreenOnce holds that.
+var CensusGroups = []string{"census", "widest", "sweep-wide", "sweep-rest"}
+
+var censusTests = map[string]string{
+	"census":     `TestTheScreensAreWithinTheBudgets$|TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses|TestTheScreensAreWithinTheBudgetsInATextThatIsWider`,
+	"widest":     `TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas`,
+	"sweep-wide": `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText/\.wide-`,
+	"sweep-rest": `TestTheScreensAreWithinTheBudgetsAtEverySizeOfText/\.(narrow|compact|medium)-`,
+}
+
+// CensusTask is the task that takes the census of a group in the sandbox.
+func CensusTask(group string) string { return "census-" + group }
+
+func init() {
+	for _, group := range CensusGroups {
+		tasks = append(tasks, CensusTask(group))
+	}
+}
+
 // ValidTask reports whether name is a task runtask knows.
 func ValidTask(name string) bool {
 	for _, task := range tasks {
@@ -216,6 +237,14 @@ func Run(args []string) error {
 		return tool(app, offlineEnv, buildArgs[0], append(buildArgs[1:], output)...)
 	}
 
+	if group, ok := strings.CutPrefix(task, "census-"); ok {
+		if err := prepareLight(); err != nil {
+			return err
+		}
+		// The census of one group, without the race detector, as mygo.yml takes it: the sizes of text too (VFOX_PLUS_CENSUS_SWEEP).
+		return asTester(app, append(append([]string{}, goOffline...), "env", "VFOX_PLUS_CENSUS_SWEEP=1", "go", "test", "./ui", "-run", censusTests[group], "-count=1", "-timeout", "40m")...)
+	}
+
 	switch task {
 	case "deps":
 		if err := e.copyRepository("mygo"); err != nil {
@@ -256,7 +285,10 @@ func Run(args []string) error {
 			offline("go", "vet", "./..."),
 			// The race detector needs the C compiler; the application is
 			// built without.
-			offline("env", "CGO_ENABLED=1", "go", "test", "-race", "-coverprofile=coverage.out", "./..."),
+			// The race run has half an hour, as CI's does: the tests of the screens ran past ten minutes with the race detector
+			// on a runner of CI, and take seven on a machine of ours.
+			offline("env", "CGO_ENABLED=1", "go", "test", "-race", "-timeout", "30m", "-coverprofile=coverage.out", "./..."),
+			// The census of the screens is taken by the census tasks, each in a job of its own (see CensusGroups).
 		} {
 			if err := asTester(app, step...); err != nil {
 				return err

@@ -15,7 +15,7 @@ project, in Go:
 
 | Directory | What it does |
 | --- | --- |
-| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs and vfox-flutter) — no UI |
+| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle and vfox-golang) — no UI |
 | [`state/`](../../../mygo/state) | The observable controllers, the task queue (one state-changing command at a time, streamed output, download progress, cancellation, retry) |
 | [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages and the dialogs |
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |
@@ -35,7 +35,7 @@ toolkit, and the parsers pass the [fixtures](../../../shared/fixtures/README.md)
 
 - Go (pinned in [`versions.env`](../../../mygo/versions.env)); mygo needs Go 1.27.
 
-- At run time GTK 3, fontconfig and a font, and vfox 1.0.0 or later:
+- At run time GTK 3, fontconfig and a font, and vfox 1.1.0 or later:
 
   ```sh
   sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
@@ -67,6 +67,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | Format check (CI fails on a difference) | `golangci-lint fmt --diff` |
 | Lint (CI fails on any finding) | `golangci-lint run` and `golangci-lint run --build-tags e2e` |
 | Unit tests | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...` |
+| Census of the screens (the unit tests skip it under `-race`) | `go test ./ui -run TestTheScreensAreWithinTheBudgets` |
 | Coverage gates | `vfxtool coverage coverage.out 85` |
 | `.deb`, `.tar.gz`, `.msix`, `.msixbundle` | see [Packaging](#packaging) |
 
@@ -100,7 +101,8 @@ the Go module and build caches in Docker volumes.
 | `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
 | `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
 | `vfxtool sandbox screenshots` | Screenshots of every page, of Java, Flutter and the options of Node.js, and of the settings of the web interface |
-| `vfxtool sandbox all` | `check`, `e2e` and `package` |
+| `vfxtool sandbox census <group>` | One group of the census of the screens, in the fonts of the container: `census`, `widest`, `sweep-wide` or `sweep-rest`. CI runs each group in a job of its own |
+| `vfxtool sandbox all` | `check`, the four groups of the census, `e2e` and `package` |
 | `vfxtool sandbox shell` | A shell in the sandbox |
 | `vfxtool sandbox clean` | Deletes the image, the cache volumes and the results |
 
@@ -125,6 +127,10 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   settings, the compact layout and the missing vfox. Set
   `VFOX_PLUS_SNAPSHOTS=<directory>` to have the tests write PNGs of the pages
   there.
+- **The census** ([`ui/census_test.go`](../../../mygo/ui/census_test.go)) draws every
+  screen in five windows, from 1280 dp wide to the 360 dp that is the narrowest the
+  application opens in, and fails when one is over a [budget of the design
+  system](design-system.md#budgets) ([how it is taken](contributing.md#auditing-the-interface)).
 - **Golden tests** compare the Go colour scheme and shapes with the JavaScript
   libraries they are ported from. [`ui/mcu/testdata`](../../../mygo/ui/mcu/testdata)
   holds the schemes of 82 seed colours in both modes, bit-exact;
@@ -223,17 +229,18 @@ pages are built from its components.
   springs of the Material 3 Expressive motion scheme
   ([`motion.go`](../../../mygo/ui/kit/motion.go)), given to mygo's `AnimateTo`: exact
   solutions that keep their velocity when the target changes, drawn only while
-  they move, so the window is idle when nothing changes. Reduced motion from the
-  desktop makes every value jump. Dialogs and menus pop in with a pose spring,
-  and the pages give way on mygo's element transitions (fade through, shared
-  axis). The loading indicator and the wavy progress animate in the painter,
-  without building the view again.
+  they move, so the window is idle when nothing changes. The desktop asks for less
+  motion whatever the platform asks: every value jumps, and the views have no element
+  transitions, whose children are drawn in layers that cost memory (see
+  [memory](memory.md#motion-and-memory)). Dialogs, menus and pages appear at once. The
+  loading indicator and the wavy progress are drawn in the painter without building the
+  view again, and stop while the desktop asks for less motion.
 - **Overlays** — menus, tooltips, dialogs and snack bars — are mygo's popovers,
   tooltips, dialogs and toasts, which take care of the focus, Escape and the press
   outside; the kit styles them.
 - **Lists** are virtual: only the rows in view are built, their heights are
   remembered, and a jump of thousands of pixels costs the same as a step. The
-  version list of Node.js has 872 entries.
+  version list of Node.js has 877 entries.
 - **The registry** ([`registry.go`](../../../mygo/ui/kit/registry.go)) is a flat list of the
   nodes the components of a build registered: role, name, state, the list item or
   dialog they are in, and what a click or an input does. The tests of the components
@@ -244,7 +251,7 @@ pages are built from its components.
   colour of the desktop with the Material colour utilities
   ([`ui/mcu`](../../../mygo/ui/mcu), tonal spot 2021). mygo's
   own widgets (text fields, scroll bars, tooltips) follow them through its theme.
-- **Shapes** — the avatars, the stat tiles, the swatches, the loading
+- **Shapes** — the avatars, the swatches, the loading
   indicator — are the polygons and morphs of Material 3 Expressive, drawn as
   paths ([`ui/shapes`](../../../mygo/ui/shapes)).
 - **Text** is laid out and drawn by Pango, in the sans-serif font of the desktop
@@ -300,8 +307,8 @@ take up to 1 MB of PSS).
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Home page | 63 MB | 51 MB |
-| Versions of Node.js listed | 73 MB | 59 MB |
+| Home page | 64 MB | 52 MB |
+| Versions of Node.js listed | 72 MB | 57 MB |
 
 mygo draws with the processor, and the application keeps GTK from loading
 OpenGL: a GDK that opens its OpenGL connection maps Mesa, and with the software
@@ -311,7 +318,7 @@ same build took about 78 MB of PSS on the Home page when GDK did, and about
 does not need the GPU, and the memory does not depend on the driver of the
 machine. What is left is mostly the executable with the locale data it embeds,
 the heap of Go, and GTK with the C libraries it loads. The list of versions
-adds 8 MB because only the rows in view are built.
+adds 5 MB because only the rows in view are built.
 
 ## Limits
 
@@ -320,9 +327,8 @@ adds 8 MB because only the rows in view are built.
   LLVM: GDK opens its OpenGL connection when the display opens, and that alone
   maps some 35 MB of PSS. The pages of vfox+ draw on the CPU in a fraction of a
   millisecond, so the application sets `MYGO_GPU=0` and `GDK_GL=disable` before it
-  starts GTK, unless `MYGO_GPU` is set (`MYGO_GPU=1` draws with OpenGL). Dialogs
-  that scale in and a window that is resized are the frames that cost most on the
-  CPU; a machine of today draws them within a frame.
+  starts GTK, unless `MYGO_GPU` is set (`MYGO_GPU=1` draws with OpenGL). A window that is resized is the frame that costs most on the
+  CPU; a machine of today draws it within a frame.
 - **The title bar is the desktop's.** GTK draws the title bar (client-side on
   GNOME's Wayland session, the window manager's on X11) in the style of the
   desktop; mygo can hand the title bar to the application, which this implementation
@@ -342,7 +348,10 @@ adds 8 MB because only the rows in view are built.
   for Windows and macOS, and the application compiles for them and for Linux on
   arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows 11
   is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI;
-  installing it is sideloading with `Add-AppxPackage -AllowUnsigned`. `core` is
+  installing it is sideloading with `Add-AppxPackage -AllowUnsigned`. The census of
+  the screens is taken on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel) in CI too
+  (the job `census`): what the text
+  engine and the fonts of a platform do to a layout is for a machine of that platform to say. `core` is
   portable: process termination (`SIGTERM` on Unix, kill on Windows), `PATH`
   splitting (`:` vs `;`), vfox lookup (`vfox` vs `vfox.exe` with Windows fallback
   directories) and the settings location (`~/.config` vs `%APPDATA%`) follow the

@@ -20,6 +20,7 @@ import "strings"
 // performs:
 //
 //   - OperationInstall: `vfox install --yes <name>@<version>`
+//   - OperationInstallUse: `vfox install --yes --use <name>@<version>`
 //   - OperationUninstall: `vfox uninstall <name>@<version>`
 //   - OperationUse: `vfox use --global|--project <name>@<version>`
 //   - OperationUnuse: `vfox unuse --global|--project <name>`
@@ -27,11 +28,17 @@ import "strings"
 //   - OperationRemovePlugin: `vfox remove --yes <name>`
 //   - OperationUpdatePlugin: `vfox update <name>`
 //   - OperationUpdateAllPlugins: `vfox update --all`
+//   - OperationLink: `vfox link <name>@<version> <path>`
+//   - OperationLinkDetect: `vfox link --detect <name>`
+//   - OperationAliasSet: `vfox alias set <name> <alias> <version>`
+//   - OperationAliasUnset: `vfox alias unset <name> <alias>`
+//   - OperationDoctorAdopt: `vfox doctor --adopt [<name>[@<version>]]`
 type VfoxOperation string
 
 // The state-changing operations.
 const (
 	OperationInstall          VfoxOperation = "install"
+	OperationInstallUse       VfoxOperation = "installUse"
 	OperationUninstall        VfoxOperation = "uninstall"
 	OperationUse              VfoxOperation = "use"
 	OperationUnuse            VfoxOperation = "unuse"
@@ -39,6 +46,11 @@ const (
 	OperationRemovePlugin     VfoxOperation = "removePlugin"
 	OperationUpdatePlugin     VfoxOperation = "updatePlugin"
 	OperationUpdateAllPlugins VfoxOperation = "updateAllPlugins"
+	OperationLink             VfoxOperation = "link"
+	OperationLinkDetect       VfoxOperation = "linkDetect"
+	OperationAliasSet         VfoxOperation = "aliasSet"
+	OperationAliasUnset       VfoxOperation = "aliasUnset"
+	OperationDoctorAdopt      VfoxOperation = "doctorAdopt"
 )
 
 // VfoxCommand is a state-changing vfox invocation.
@@ -71,6 +83,19 @@ func (c VfoxCommand) Subject() string {
 		return c.Sdk + "@" + c.Version
 	}
 	return c.Sdk
+}
+
+// Alias is the alias that a task of `vfox alias set` or `vfox alias unset` names,
+// and "" for every other command.
+func (c VfoxCommand) Alias() string {
+	if c.Operation != OperationAliasSet && c.Operation != OperationAliasUnset {
+		return ""
+	}
+	// vfox alias set|unset <sdk> <alias> [<version>]
+	if len(c.Arguments) < 4 {
+		return ""
+	}
+	return c.Arguments[3]
 }
 
 // CommandLine is the command line, as shown in the task output.

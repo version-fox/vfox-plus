@@ -92,6 +92,9 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 | `config` | stdout | 每条 `key = value`，按输出顺序。 |
 | `finalProgress` | stderr 行 | 末个下载进度（0–1），无则 `null`。 |
 | `error` | stdout + stderr | 展示给用户的一行错误摘要。 |
+| `doctor` | stdout | `vfox doctor --json` 的 `ok`、`count` 与 `findings`。 |
+| `aliases` | stdout | 每个别名的 `sdk`、`alias` 与 `target`。 |
+| `versionDetail` | stdout | `vfox info --json` 的 `name`、`version`、`installed`、`origin`、`target` 与 `home`。 |
 
 解析器跳过不认识的行，不失败；错误摘要规则见
 [CLI 契约](vfox-cli-contract.md#错误)。
@@ -100,9 +103,12 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 
 `vfxtool capture` 最后才添加 vfox-java 与 vfox-flutter，这样其他用例的输出里就不会列出它们，并捕获它们的
 搜索：`search-java`（OpenJDK，不带参数的列表）、`search-java-tem`（一个发行版）、`search-java-all`
-（全部发行版，2641 个版本）与 `search-flutter`（Linux x64 上 457 个版本：备注是通道，附带工具是 Dart SDK，
-还有架构后缀与 OpenHarmony 构建）。它们用 vfox-java 0.6.3 与 vfox-flutter 0.2.5 捕获，`core/profile` 的
+（全部发行版，2683 个版本）与 `search-flutter`（Linux x64 上 460 个版本：备注是通道，附带工具是 Dart SDK，
+还有架构后缀与 OpenHarmony 构建）。它们用 vfox-java 0.6.5、vfox-flutter 0.2.5 与 vfox-nodejs 0.5.4 捕获，`core/profile` 的
 档案据此测试：`search-java-all` 里每个版本名带的简称，档案都认识。
+
+`doctor`、`doctor-json`（无安装时的 `vfox doctor [--json]`）、`alias-list`（无别名）与 `info-json`
+（`vfox info --json nodejs`）覆盖 vfox 1.1.0 新增只读命令。`vfox list` 带 `(linked → …)` 与 `[alias: …]` 后缀时解析只取版本号。
 
 它们的版本是伪造的，和 `list` 里的 Node.js、Maven 一样：工具为每个版本建一个目录，不下载任何东西。
 `list-profiles` 与 `current-profiles` 是一台装了 Java（正在用 21.0.12.1+1-tem，另有 25.0.4+9-librca-fx 与
@@ -121,7 +127,7 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 
 ## 假 vfox
 
-`vfxtool fake-vfox` 对 GUI 表现得像 vfox 1.0.13：只读命令用 `vfox-1.0.13/`（或
+`vfxtool fake-vfox` 对 GUI 表现得像 vfox 1.1.0：只读命令用 `vfox-1.1.0/`（或
 `VFOX_PLUS_FIXTURES`）捕获回答，假装在标准错误打进度条安装版本，无 hook 环境跑
 `vfox use` 即按 vfox 失败。端到端工具把 vfxtool 二进制复制为 `vfox` 文件安装：
 以该文件名执行即回答 vfox 命令而非跑子命令（见 `cmd/vfxtool`）。它还检查 CLI 契约

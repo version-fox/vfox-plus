@@ -64,16 +64,6 @@
             android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium.Emphasized"
             android:textColor="?attr/colorOnSurface" />
 
-        <TextView
-            android:id="@+id/body"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="@string/pair_body"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnSurfaceVariant" />
-
         <!-- The server of the last pairing: the way back in is the first thing that a returning user needs. -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/reconnectCard"

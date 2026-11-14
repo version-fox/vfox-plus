@@ -12,16 +12,16 @@ vfox-plus 是桌面应用，没有命令行：像其他应用一样启动它，�
 有效，比如 `http://127.0.0.1:41233`，其他电脑连不上。选择*在浏览器中打开*，浏览器就会用一次性
 链接配对并打开它。链接一次性有效，五分钟后过期；*复制链接*另外生成一个放进剪贴板。
 
-![网页界面的设置：开关与服务地址、在浏览器中打开的按钮、轻量模式与其他设备](https://iili.io/nbhBWEg.png)
+![网页界面的设置：开关与服务地址、在浏览器中打开的按钮、轻量模式与其他设备](https://iili.io/nyiVKmv.png)
 
 配对后的浏览器得到完整界面：已安装 SDK 的安装/卸载/使用、插件仓库的添加/更新/移除、带实时
-进度与日志的任务、以及设置。vfox-java、vfox-nodejs 与 vfox-flutter 这三个插件提供的功能一应
-俱全，和桌面应用一样：Java 要列出的发行版、筛选 Chip、按名称安装，以及带下载镜像的选项页（见
-[Java、Node.js 与 Flutter](using.md#javanodejs-与-flutter)）。[安卓 App](android.md) 显示的是同一个界面。
+进度与日志的任务、以及设置。vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 这五个插件提供的功能一应
+俱全，和桌面应用一样：Java 要列出的发行版、筛选 Chip、按名称安装、vfox 1.1.0 的链接与别名，以及带下载镜像的选项页（见
+[Java、Node.js、Flutter、Gradle 与 Go](using.md#javanodejsfluttergradle-与-go)）。[安卓 App](android.md) 显示的是同一个界面。
 
 | 配对后的 Web 界面 | 其中的 Java：Temurin，长期支持版 |
 | --- | --- |
-| ![配对后的 Web 界面](https://iili.io/nbrIyiP.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nbrT3Ja.png) |
+| ![配对后的 Web 界面](https://iili.io/nmiu8kG.png) | ![配对后的 Web 界面里 Java 的发行版与 Chip](https://iili.io/nmiADFt.png) |
 
 Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口和 vfox+ 图标（地址栏里的安装
 按钮，或菜单里的“安装”）。浏览器在本机上、以及在它信任其证书的 HTTPS 下才会提供，vfox-plus
@@ -85,7 +85,7 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
 
 | 先弹出的询问 | 允许之后设置里显示的内容 |
 | --- | --- |
-| ![询问是否允许其他设备连接](https://iili.io/nbhBvjI.png) | ![允许其他设备之后的网页界面设置：端口、给手机配对的二维码与证书](https://iili.io/nbhmzrP.png) |
+| ![询问是否允许其他设备连接](https://iili.io/nyiVT2n.png) | ![允许其他设备之后的网页界面设置：端口、给手机配对的二维码与证书](https://iili.io/nyiVlBS.png) |
 
 - vfox-plus 监听设置里显示的**端口**，默认 8369，可以修改。这台电脑的防火墙需要放行它。
 - 出了自己的网络，界面只有在别处发布时才可达：反向代理、隧道，或者[网关](gateway.md)。
@@ -104,9 +104,9 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
 
 | 在电脑上，*配对手机*显示的二维码与链接 | 在已配对的浏览器里，同样的内容 |
 | --- | --- |
-| ![在 vfox-plus 的窗口里，给手机配对的二维码与链接](https://iili.io/nbhBr4s.png) | ![网页界面的设置里，给手机配对的二维码](https://iili.io/nbrTuJs.png) |
+| ![在 vfox-plus 的窗口里，给手机配对的二维码与链接](https://iili.io/nyiVWpj.png) | ![网页界面的设置里，给手机配对的二维码](https://iili.io/nmiRBSe.png) |
 
 网页界面的设置里有同样的开关：在已配对的浏览器或手机上就能允许其他设备、修改端口、开关轻量
 模式，*配对手机*在那里也会显示二维码——没有窗口的电脑（轻量模式）就是这样给手机配对的。
 
-![已配对的网页界面设置里的连接卡片，在手机上](https://iili.io/nbrTnsI.png)
+![已配对的网页界面设置里的连接卡片，在手机上](https://iili.io/nmDwt5P.png)

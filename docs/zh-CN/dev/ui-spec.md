@@ -14,7 +14,7 @@
 
 | 目的地 | 标签键 | 图标 | 用途 |
 | --- | --- | --- | --- |
-| Home | `navHome` | `home` | 总览与快捷入口。 |
+| Home | `navHome` | `home` | 在用的版本与健康状况。 |
 | SDKs | `navSdks` | `sdks` | 已安装插件及其版本。 |
 | Plugins | `navPlugins` | `plugins` | 插件仓库。 |
 | Tasks | `navTasks` | `tasks` | 运行中与已完成的操作。徽标显示排队与运行数。 |
@@ -56,20 +56,25 @@
 ## Home
 
 - 页眉：应用名、`vfox <版本> · <可执行文件路径>` 与刷新按钮。
-- 三个统计块：插件数、已安装版本数、有使用中版本的插件数。每块自有容器色
-  （primary、secondary、tertiary）与半藏边后的大装饰形。点统计块打开 SDKs。
 - `homeActiveTitle`：有使用中版本的插件分段列表，头像加版本。点项打开 SDKs 页对应项。
   无则显示 `homeActiveEmpty`。
-- 终端使用说明卡（`homeShellTitle`、`homeShellBody`），含
-  `eval "$(vfox activate bash)"` 行与复制按钮。
-- 两个快捷卡：`homeExploreTitle`（打开 Plugins）、`homeDocsTitle`
-  （打开 <https://vfox.dev/>）。
+- `doctorTitle`：vfox 与已安装 SDK 的健康状况，来自 `vfox doctor --json`
+  （见 [CLI 契约](vfox-cli-contract.md#健康别名与链接版本)）。vfox 可用时才有，第一次自己去问，
+  任务结束时再问一次。没有可报告的内容时是一项 `doctorNoProblems` 加 `doctorCheck`（再问一次）；
+  否则前五条结果各一项：其消息、`<插件>@<版本> · <严重程度>`，`sdk.no-receipt` 另有 `doctorAdopt`
+  （`vfox doctor --adopt <插件>@<版本>`），`sdk.drift` 另有 `versionReinstall`；`doctorProblems` 给出总数。
+  询问失败时显示其消息与 `doctorCheck`。
+- 一张卡：终端用这些版本所需的那一行（`homeShellTitle`、`homeShellBody`）：
+  `eval "$(vfox activate bash)"` 与复制按钮。
+
+页面上没有列表里数量的统计，也没有通往导航已能到达的页面的快捷入口（Plugins；vfox 文档在设置里）。
 
 ## SDKs
 
-列表-详情布局。页宽 ≥ 840 dp 时列表（360 dp）与详情并排；详情无选中显示
-`sdksSelectPrompt`，切换选中 fade through。窄页列表与详情沿横向 shared axis 互换，
-详情有返回按钮。
+列表-详情布局。页宽 ≥ 840 dp 时列表（360 dp）与详情并排。详情窗格从不为空：没选插件时显示
+第一个有使用中版本的插件，没有就显示第一个插件（页面只是显示它，并不把它当作选中项），切换选中
+fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它的动作）占满整页。窄页列表与详情沿
+横向 shared axis 互换，详情有返回按钮。
 
 ### 列表
 
@@ -89,22 +94,29 @@
 **已安装**列出已安装版本，新版在前：
 
 - 当前版本有填充 `current` 图标、强调标签与 `versionInUse` 标记；菜单提供
-  `versionUseInProject`、`versionUnuse`、`versionCopyPath` 与 `versionUninstall`。
+  `versionUseInProject`、`versionUnuse`、`versionCopyPath`、`versionReinstall`
+  （`vfox install --reinstall`）、`aliasSet`（[别名对话框](#选择与名称)）与 `versionUninstall`。
 - 其它版本为分割按钮：`versionUse` 设全局默认；菜单提供 `versionUseGlobally` 与
-  `versionUseInProject`。溢出菜单提供 `versionCopyPath` 与 `versionUninstall`。
+  `versionUseInProject`。溢出菜单提供 `versionCopyPath`、`versionReinstall`、`aliasSet` 与
+  `versionUninstall`。
+- 有别名（`vfox alias`）的版本在第二行末尾显示 `@<别名>`。链接版本保留用户起的名称。
 - 版本有任务运行时动作变加载指示器。
 - 空：`sdkInstalledEmpty` 配 `sdkBrowseVersions`。
 - 有配置档案的插件，版本名称会被拆开，标题下第二行显示发行版（`Temurin`、`OpenJDK`）与
   类型（`JavaFX`、`x64`、`OpenHarmony`）。
 
-**可用**首次打开跑 `vfox search`。有配置档案的插件，第一行放：
+**可用**首次打开跑 `vfox search`。第一行放：
 
 - **搜索按钮** `availableChoiceButton`（“发行版：Temurin”；选择项的标签来自档案，图标 `registry`）。
   档案里有这样的搜索时（`java`），它会打开[选择对话框](#选择与名称)来决定搜索列出什么；所选值成为
   `vfox search` 的参数，按插件保存在设置里（`searches`），所以重启后仍在，Web 界面里也一样，之前选择的列表立即消失；
-- `availableInstallByName`，描边按钮，打开[按名称安装对话框](#选择与名称)。每个插件都有。
+- 行尾是图标按钮 `availableMoreWays`，菜单里是列表没有提供的其他添加方式，每个插件都有：
+  - `availableInstallByName` 打开[按名称安装对话框](#选择与名称)；
+  - `linkDetect` 排队 `vfox link --detect --yes <插件>`：由插件找出机器上已有的 SDK，
+    vfox 把它们链接进来，不必再下载一遍。插件不会探测时，任务里会这么说；
+  - `linkManual` 打开[链接对话框](#选择与名称)，用于用户指明目录里的 SDK。
 
-列表加载中或失败时这一行仍在，方便改选。随后是：
+列表加载中或失败时这一行仍在，方便改选，也方便添加列表里没有的 SDK。随后是：
 
 - 过滤框（`availableSearchHint`，匹配版本与备注）、连接按钮组
   `availableFilterAll` / `availableFilterTagged`（有备注如 LTS）/
@@ -114,22 +126,23 @@
   有 Chip 开启时显示 `availableClearFilters`。Chip 是 Material 3 的筛选 Chip
   （见[设计系统](design-system.md#组件)）：同一维度内的值是“或”，维度之间、过滤框与按钮组互相收窄。
 - 懒加载分段列表。每版备注成标签，附带工具（`npm 11.19.1`）；搜索列出多个发行版时，还有一个
-  发行版标签。尾动作为 `versionInstall`；已安装为禁用 `versionInstalled`；安装中为波浪进度配
+  发行版标签。尾动作是一个拆分按钮：`versionInstall`，菜单里是 `versionInstallUse`（`vfox install --use`：
+  装好后把该版本设为全局默认）；已安装为禁用 `versionInstalled`；安装中为波浪进度配
   `taskDownloading` 与取消按钮。
 
-**选项**按插件的档案用分段列表构建：
+**选项**按插件的档案用分段列表构建。这里放设置，以及没有控件能说明的内容；按钮或对话框已经说过的不再重复
+（名称怎么写在“按名称安装”对话框里说明，简写是那里的 Chip）：
 
-- 该插件版本名称的说明（`optionsGuideTitle`）；
 - `optionsVariables`：插件读取的每个环境变量一项（Java 与 Flutter 的 GitHub 镜像、Node.js 的下载镜像、
   Flutter 的存储镜像、Node.js 的 C 库，后者带 `optionsVariableAdvanced` 标签），显示变量名、值（若是
-  已检查过的镜像则带镜像名）或 `optionsVariableUnset`，以及 `optionsVariableChange`，打开
+  已检查过的镜像则带镜像名）或 `optionsVariableUnset`（默认），以及 `optionsVariableChange`，打开
   [变量对话框](#选择与名称)；
-- `optionsLegacy`：插件让 vfox 读取的版本文件，以标签显示（`.sdkmanrc`；`.node-version` 与 `.nvmrc`），
-  没有时为 `optionsLegacyNone`；vfox 配置里的开关 `configLegacyEnable`；策略有影响时（Node.js）
-  显示 `configLegacyStrategy`，没有影响时（Java）显示 `optionsLegacyStrategyIgnored`；
-- `optionsShorthands`：插件除列出的版本外接受的名称，每个带含义与 `optionsShorthandTry`，后者用该名称
-  打开按名称安装对话框；
-- `optionsTips`，档案里的须知；
+- `optionsLegacy`：vfox 配置里的开关 `configLegacyEnable`，标题下以标签显示插件让 vfox 读取的版本文件
+  （`.sdkmanrc`；`.node-version` 与 `.nvmrc`）；策略有影响时（Node.js）再加 `configLegacyStrategy`。
+  不读版本文件的插件没有这一节，不受策略影响的插件没有策略的选项；
+- `aliasTitle`：该插件的别名（`vfox alias list <插件>`），打开页签时加载，每个带目标与 `aliasUnset`，
+  以及 `aliasSet`，打开[别名对话框](#选择与名称)，另有刷新按钮再问一次；没有别名的插件只有这个按钮；
+- `optionsTips`（须知），档案里没有控件能说明的几行；
 - `optionsDocs`：用应用的语言打开该插件文档的链接。
 
 ### 确认与对话框
@@ -150,9 +163,16 @@
   常用的在前；每项显示名称、厂商与简称，当前项带对勾，vfox 不带参数时列出的那一项带 `searchChoiceDefault`。
   选中即关闭对话框并列出该项。
 - **按名称安装**（`installName…`）：字段 `installNameField`，接受 `vfox install` 中 `<插件>@` 后面的部分
-  （辅助文字 `installNameHelp`）；有档案的插件还有 `installNameExamples`，每个简写一个筛选 Chip，点击
+  ，字段下是该插件档案里的指南（名称怎么写）；有档案的插件还有 `installNameExamples`，每个简写一个筛选 Chip，点击
   填入字段，并显示当前所输简写的含义。空名称（`installNameRequired`）、含空格或以短横线开头的名称
-  （`installNameInvalid`）会被拒绝。确认后排队 `vfox install --yes <插件>@<名称>` 并切到任务页。
+  （`installNameInvalid`）会被拒绝。开关 `installUseAfter`（默认关）加上 `--use`。确认后排队
+  `vfox install --yes [--use] <插件>@<名称>` 并切到任务页。
+- **链接**（`linkPath…`）：vfox 列出该版本用的名称（`linkVersionField`，规则同版本名称）与放着 SDK 的目录
+  （`linkPathField`，带浏览按钮，必填），以及开关 `linkForce`（默认关），让已链接的版本指向别处
+  （`--force`）。确认后排队 `vfox link [--force] <插件>@<版本> <路径>` 并切到任务页。
+- **别名**（`aliasSet`）：别名（`aliasField`，空字段里是 `aliasHint`）与它指的版本（`linkVersionField`，初值是打开
+  对话框那一行的版本，否则是当前版本）。两者都遵守版本名称的规则。确认后排队
+  `vfox alias set <插件> <别名> <版本>`；`aliasUnset` 排队 `vfox alias unset <插件> <别名>`。
 - **变量**（`variable…`）：变量的说明与名称；地址类变量有等宽字段 `variableAddress`（地址必须以 `http://`
   或 `https://` 开头，`variableInvalidAddress`）；`variablePresets` 下每个已检查的值一个 Chip，再加一个
   取消变量的 Chip `variableDefaultOption`。选择类变量（`musl`、`glibc`）只能取这些值
@@ -160,7 +180,7 @@
 
 ## Plugins
 
-- 页眉：`pluginsTitle`、`pluginsSubtitle`；动作：更新全部插件、刷新、
+- 页眉：`pluginsTitle`；动作：更新全部插件、刷新、
   `pluginsAddCustom`。
 - 搜索栏（`pluginsSearchHint`，匹配名称与主页）与连接按钮组
   `pluginsFilterAll` / `pluginsFilterOfficial` / `pluginsFilterCommunity`。
@@ -207,9 +227,11 @@
   `settingsExecutableCustom` 或 `settingsExecutableMissing`）与版本、浏览按钮，自定义
   可执行文件配 `settingsExecutableDetect`；额外环境变量 `KEY=VALUE` 行，校验
   （`settingsEnvironmentInvalid`）。
-- **vfox 配置**：[CLI 契约](vfox-cli-contract.md#配置)每键一编辑器——布尔开关、
-  `legacyVersionFile.strategy` 菜单、其余文本框（回车或失焦保存；清空重置），未知键
-  `configOther`。
+- **vfox 配置**：[CLI 契约](vfox-cli-contract.md#配置)每键一编辑器——布尔开关（含
+  `diagnostics.onUse`）、`legacyVersionFile.strategy` 与 `path.mode` 菜单（`pathModeLegacy`、
+  `pathModeBaseline`、`pathModeAggressive`）、其余文本框（回车或失焦保存；清空重置；`path.preserve`
+  与 `diagnostics.ignore` 在其中，它们存的是 JSON 列表），未知键 `configOther`。`aliases` 不在这里编辑：
+  插件的别名在它的选项里。
 - **关于**：应用名、版本与许可证，源码与 vfox 文档链接，依赖开源许可证含打包的
   Material Symbols 图标（Apache-2.0，Google）。
 
@@ -218,5 +240,5 @@
 - 纯图标按钮都有 tooltip，同时作为无障碍名。
 - 选中项、开关、按钮组暴露选中状态。
 - 标题标记为标题。
-- 平台要求减少动态效果时全部动效瞬时或静止。
+- 平台要求减少动态效果时全部动效瞬时或静止；桌面始终如此（见[设计系统](design-system.md#动效)）。
 - 文本跟平台字号；布局换行不裁剪。

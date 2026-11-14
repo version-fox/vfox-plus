@@ -33,7 +33,7 @@ from nothing each time the container is made.
    A browser that is not paired sees the page of the gateway, which shows the fingerprint
    too:
 
-   ![The page of the gateway for a browser that is not paired, with the fingerprint of its certificate](https://iili.io/niyLhua.png)
+   ![The page of the gateway for a browser that is not paired, with the fingerprint of its certificate](https://iili.io/nyiVeEP.png)
 
 2. **Pair the gateway with vfox-plus.** The page of the gateway has a field for the pairing
    link of a vfox-plus. On the PC, choose *Settings → Web interface → Pair a phone → Show
@@ -47,7 +47,7 @@ from nothing each time the container is made.
    | --- | --- |
    | ![The page of a gateway that is paired with no vfox-plus yet, with the field for its link](https://iili.io/niyLeGp.png) | ![The field with the pairing link of vfox-plus pasted in](https://iili.io/niyLbS9.png) |
 
-   ![The page that asks to compare the fingerprint of the certificate of vfox-plus with the one in its settings](https://iili.io/niyQWf2.png)
+   ![The page that asks to compare the fingerprint of the certificate of vfox-plus with the one in its settings](https://iili.io/nyiVSYg.png)
 
 3. **Use it.** The browser is taken to the interface of vfox-plus: the one a paired browser
    has, served by that vfox-plus itself, so the page always fits the version that runs. Pair
@@ -57,7 +57,7 @@ from nothing each time the container is made.
 
    | The interface of vfox-plus, through the gateway | The page of a gateway that is paired |
    | --- | --- |
-   | ![The interface of vfox-plus in a browser, served through the gateway](https://iili.io/nbUaB2t.png) | ![The page of the gateway once it is paired: the address of vfox-plus and the certificate that it trusts](https://iili.io/niyZIee.png) |
+   | ![The interface of vfox-plus in a browser, served through the gateway](https://iili.io/nmi7Cjj.png) | ![The page of the gateway once it is paired: the address of vfox-plus and the certificate that it trusts](https://iili.io/nyiVgyJ.png) |
 
 The session of the gateway at vfox-plus lasts a day, like that of a phone, and the gateway
 renews it every few hours for as long as it runs. When vfox-plus quits or starts again its

@@ -166,8 +166,13 @@ func checkIcon(s *appsession.Session, item *trayhost.Item) trayhost.Properties {
 	s.Check(properties.Menu != "", "the icon has a menu")
 
 	// The picture is the one that was drawn when the application was built, a PNG that the panel
-	// finds by the name of the icon in the directory that the icon names.
-	file := filepath.Join(properties.IconThemePath, properties.IconName+".png")
+	// finds by the name of the icon in the directory that the icon names. The name has the extension
+	// of the file where the application gives the icon by its path (mygo 0.9 does, so that the icon
+	// theme of KDE does not take a name for one of its own), and not where it gives a name.
+	file := filepath.Join(properties.IconThemePath, properties.IconName)
+	if !strings.HasSuffix(file, ".png") {
+		file += ".png"
+	}
 	data, err := os.ReadFile(file) //nolint:gosec // The picture that the application made for its icon.
 	s.Check(err == nil, fmt.Sprintf("the panel can read the picture of the icon at %s (%v)", file, err))
 	picture, err := png.Decode(bytes.NewReader(data))

@@ -209,7 +209,7 @@ func TestSummarisesFailures(t *testing.T) {
 	if task.Status() != state.TaskFailed {
 		t.Fatalf("got %v", task.Status())
 	}
-	// vfox 1.0.13 prints the reason on standard output and the generic
+	// vfox 1.1.0 prints the reason on standard output and the generic
 	// "failed to install maven" on standard error.
 	message, _ := task.ErrorMessage()
 	want := "mark installation in progress: open /tmp/vfox-sb/home/.vfox/cache/maven/.v-3.9.16.installing: permission denied"

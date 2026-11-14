@@ -36,8 +36,10 @@ const (
 
 // The cards of the registry are at most 340 dp wide and 152 dp high.
 const (
-	cardMaxWidth  = 340
-	cardHeight    = 152
+	cardMaxWidth = 340
+	cardHeight   = 152
+	// cardTextLines is the height in dp of the two lines of text of a card, which grow with the text.
+	cardTextLines = 40
 	cardGap       = gapM
 	registryInset = gapXL
 )
@@ -67,7 +69,7 @@ func (a *App) pluginsPage(k kit.Ctx) {
 		}
 
 		header := func() {
-			kit.PageHeader(k, a.T("pluginsTitle"), a.T("pluginsSubtitle"), nil,
+			kit.PageHeader(k, a.T("pluginsTitle"), "", nil,
 				func() {
 					if a.model.Tasks.ActiveTask(vfox.OperationUpdateAllPlugins, "", "") != nil {
 						kit.LoadingIndicator(k, kit.LoadingSpec{ID: "updating-all", Size: 40})
@@ -96,7 +98,7 @@ func (a *App) pluginsPage(k kit.Ctx) {
 			mui.Row(k.Context).Wrap().Gap(gapM).GapY(gapM).Margin(0, registryInset, gapL, registryInset).Children(func() {
 				kit.SearchBar(k, kit.SearchBarSpec{
 					ID: "search", Hint: a.T("pluginsSearchHint"), Text: &a.pages.pluginsQuery, ClearTooltip: a.T("actionClose"),
-				}).Width(420).Shrink(1)
+				}).Width(min(scaled(k, 420), a.pageWidth(k)-2*registryInset))
 				kit.ButtonGroup(k, kit.ButtonGroupSpec{
 					ID: "filter", Selected: selected, OnSelect: func(value string) { a.pages.pluginsFilter = value },
 					Segments: []kit.Segment{
@@ -104,6 +106,7 @@ func (a *App) pluginsPage(k kit.Ctx) {
 						{Value: filterOfficial, Label: a.T("pluginsFilterOfficial"), Icon: "verified"},
 						{Value: filterCommunity, Label: a.T("pluginsFilterCommunity")},
 					},
+					MaxWidth: a.pageWidth(k) - 2*registryInset, Collapse: true,
 				})
 			})
 		}
@@ -124,9 +127,9 @@ func (a *App) pluginsPage(k kit.Ctx) {
 			return
 		}
 
-		// The grid: as many columns as fit, each at most 340 dp wide.
+		// The grid: as many columns as fit, each at most 340 dp wide, or as wide as text that is larger needs.
 		available := a.pageWidth(k) - 2*registryInset
-		columns := max(1, int(math.Ceil(float64(available)/float64(cardMaxWidth+cardGap))))
+		columns := max(1, int(math.Ceil(float64(available)/float64(scaled(k, cardMaxWidth)+cardGap))))
 		rows := (len(visible) + columns - 1) / columns
 		list := &a.pages.pluginsList
 		list.Key = func(i int) any {
@@ -153,7 +156,7 @@ func (a *App) pluginsPage(k kit.Ctx) {
 					}
 					plugin := visible[index]
 					task := a.model.Tasks.ActiveTask(vfox.OperationAddPlugin, plugin.Name, "")
-					a.pluginCard(k, plugin, installed[plugin.Name], task).Grow(1).Basis(0).Height(cardHeight)
+					a.pluginCard(k, plugin, installed[plugin.Name], task).Grow(1).Basis(0).Height(cardHeight + cardTextLines*(k.Env.Theme.TextScale-1))
 				}
 			})
 		}).Grow(1)

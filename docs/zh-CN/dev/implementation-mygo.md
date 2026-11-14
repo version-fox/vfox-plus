@@ -11,7 +11,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 | 目录 | 职责 |
 | --- | --- |
-| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs 与 vfox-flutter 的特有之处）——无 UI |
+| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
 | [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面与对话框 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
@@ -30,7 +30,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 - Go（锁定在 [`versions.env`](../../../mygo/versions.env)）；mygo 需要 Go 1.27。
 
-- 运行时 GTK 3、fontconfig 与字体，以及 vfox 1.0.0 或更高：
+- 运行时 GTK 3、fontconfig 与字体，以及 vfox 1.1.0 或更高：
 
   ```sh
   sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
@@ -59,6 +59,7 @@ go -C ../shared/tooling build -o ~/.local/bin/vfxtool ./cmd/vfxtool
 | 格式检查（CI 有差异即失败） | `golangci-lint fmt --diff` |
 | Lint（CI 有发现即失败） | `golangci-lint run` 与 `golangci-lint run --build-tags e2e` |
 | 单元测试 | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...` |
+| 屏幕普查（单元测试在 `-race` 下跳过它） | `go test ./ui -run TestTheScreensAreWithinTheBudgets` |
 | 覆盖率门禁 | `vfxtool coverage coverage.out 85` |
 | `.deb`、`.tar.gz`、`.msix`、`.msixbundle` | 见[打包](#打包) |
 
@@ -86,7 +87,8 @@ Go 模块与构建缓存。
 | `vfxtool sandbox package` | 发布构建与冒烟测试、`.deb`、`.tar.gz`、`.msix`/`.msixbundle`（lintian 检查），再装入干净 Ubuntu 26.04 容器 |
 | `vfxtool sandbox measure` | Home 页与列出 Node.js 版本时的内存 |
 | `vfxtool sandbox screenshots` | 各页截图，Java、Flutter 与 Node.js 选项的截图，以及网页界面设置的截图 |
-| `vfxtool sandbox all` | `check`、`e2e` 与 `package` |
+| `vfxtool sandbox census <组>` | 普查的一组屏幕，用容器自己的字体：`census`、`widest`、`sweep-wide` 或 `sweep-rest`。CI 每组跑在一个任务里 |
+| `vfxtool sandbox all` | `check`、普查的四组、`e2e` 与 `package` |
 | `vfxtool sandbox shell` | 沙箱内交互 shell |
 | `vfxtool sandbox clean` | 删除镜像、缓存卷与结果 |
 
@@ -104,6 +106,8 @@ Go 模块与构建缓存。
   [`ui/app_test.go`](../../../mygo/ui/app_test.go) 对捕获的 vfox 输出跑完整应用，每流一测：Home、
   导航、SDK 列表与详情、安装、使用、卸载、仓库、任务、设置、窄布局、vfox 缺失。设
   `VFOX_PLUS_SNAPSHOTS=<目录>` 让测试写页面 PNG。
+- **普查**（[`ui/census_test.go`](../../../mygo/ui/census_test.go)）在五种窗口里画每个屏幕，从 1280 dp 宽到应用能打开的
+  最窄 360 dp，任何一个超出[设计系统的预算](design-system.md#预算)就失败（[怎么做](contributing.md#审查界面)）。
 - **Golden 测试**比较 Go 配色形状与移植来源 JavaScript 库。[`ui/mcu/testdata`](../../../mygo/ui/mcu/testdata)
   存 82 种子色双主题配色，bit 一致；[`ui/shapes/testdata`](../../../mygo/ui/shapes/testdata) 存形状轮廓，
   尺寸 2% 内一致。各 `testdata` 说明重生成方法：配色需 Node.js 跑 JS 参考实现，形状
@@ -178,18 +182,18 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   动作回调在帧构建后由 mygo 执行。
 - **动效**是每动画值一阻尼弹簧，Material 3 Expressive 动效方案的 spatial 与 effects
   弹簧（[`motion.go`](../../../mygo/ui/kit/motion.go)），交 mygo `AnimateTo`：精确解，中途变目标保持
-  速度，只在动时绘制，静止窗口空闲。桌面要求减少动态效果则值直达。对话框菜单 pose
-  弹簧弹出，页面让路 mygo 元素转场（fade through、shared axis）。加载与波浪进度在
-  painter 动，不重建视图。
+  速度，只在动时绘制，静止窗口空闲。桌面不论平台要求什么都减少动态效果：值直达，视图不做
+  元素转场（转场的子元素画在图层里，占内存，见[内存](memory.md#动效与内存)）。对话框、菜单与
+  页面即时出现。加载与波浪进度在 painter 中绘制、不重建视图，减少动态效果时静止。
 - **浮层**——菜单、tooltip、对话框、snack bar——是 mygo popover、tooltip、dialog 与
   toast，管焦点、Escape 与外部按压；kit 定样式。
-- **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 872 项。
+- **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 877 项。
 - **registry**（[`registry.go`](../../../mygo/ui/kit/registry.go)）是某次构建组件注册节点的扁平表：
   角色、名称、状态、所在列表项或对话框、点击或输入作用。组件与页面测试用它找操作部件；
   不是无障碍树（mygo 给屏幕阅读器另有一套，端到端场景读的是那一套，见[局限](#局限)）。
 - **颜色**运行时从种子色或桌面强调色按 Material 颜色工具（[`ui/mcu`](../../../mygo/ui/mcu)，
   tonal spot 2021）生成。mygo 自有部件（文本框、滚动条、tooltip）经其主题跟随。
-- **形状**——头像、统计块、swatch、加载指示器——是 Material 3 Expressive 多边形与形变，
+- **形状**——头像、swatch、加载指示器——是 Material 3 Expressive 多边形与形变，
   按路径绘制（[`ui/shapes`](../../../mygo/ui/shapes)）。
 - **文本**由 Pango 用桌面 sans-serif 排版绘制：Ubuntu 上 Ubuntu Sans，中文字体按系统
   选（Noto Sans CJK），字重按 type scale，桌面文本缩放生效。
@@ -232,21 +236,21 @@ CI 在 Linux 交叉编译打包并用 `vfxtool validate-msix` 校验，在 Windo
 
 | 状态 | RSS | PSS |
 | --- | ---: | ---: |
-| Home 页 | 63 MB | 51 MB |
-| 列出 Node.js 版本 | 73 MB | 59 MB |
+| Home 页 | 64 MB | 52 MB |
+| 列出 Node.js 版本 | 72 MB | 57 MB |
 
 mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连接即映射 Mesa，软件驱动
 再加其编译器 LLVM，比应用本身还大（同构建 GDK 打开时 Home 页 PSS 约 78 MB，关闭约
 43 MB，其它相同）。这种体量界面 CPU 绘制每帧零点几毫秒，不需要 GPU，内存不依赖本机
 驱动。剩下主要是带区域数据的可执行文件、Go 堆、GTK 及其 C 库。版本列表只构建可见行，
-增加 8 MB。
+增加 5 MB。
 
 ## 局限
 
 - **OpenGL 故意关闭。**mygo 有 GPU 即走 OpenGL 绘制，加载 Mesa，软件驱动再加其编译器
   LLVM：GDK 打开 OpenGL 连接即映射约 35 MB PSS。vfox+ 页面 CPU 绘制零点几毫秒，故应用
   在启动 GTK 前设 `MYGO_GPU=0` 与 `GDK_GL=disable`，走 CPU，除非用户设 `MYGO_GPU`
-  （`MYGO_GPU=1` 走 OpenGL）。缩放进入的对话框与缩放的窗口是 CPU 最贵的帧；今日机器一帧
+  （`MYGO_GPU=1` 走 OpenGL）。缩放的窗口是 CPU 最贵的帧；今日机器一帧
   内画完。
 - **标题栏是桌面的。**GTK 画标题栏（GNOME Wayland 客户端侧、X11 窗口管理器），随桌面风格；
   mygo 可把标题栏交给应用，本实现暂未用。
@@ -259,7 +263,8 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 11 打包为
   未签名 `.msixbundle`（x64 与 arm64），CI 校验；安装为 `Add-AppxPackage -AllowUnsigned`
-  侧加载。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔
+  侧加载。屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
+  一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。
 - **`.apk` 在 `android/`，不在此。**mygo 无 Android 后端，界面不能是由本代码构建的

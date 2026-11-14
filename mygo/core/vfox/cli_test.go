@@ -65,7 +65,7 @@ func TestQueriesRunInTheNeutralDirectory(t *testing.T) {
 	runner := testsupport.FixtureRunner()
 	cli := vfox.NewClient(runner, testConfig())
 	version, err := cli.Version()
-	if err != nil || version != "1.0.13" {
+	if err != nil || version != "1.1.0" {
 		t.Fatalf("got %q %v", version, err)
 	}
 	if len(runner.Invocations()) != 1 {
@@ -135,7 +135,7 @@ func TestPluginInfo(t *testing.T) {
 	runner := testsupport.FixtureRunner()
 	cli := vfox.NewClient(runner, testConfig())
 	info, err := cli.PluginInfo("nodejs")
-	if err != nil || info.Version != "0.5.1" {
+	if err != nil || info.Version != "0.5.4" {
 		t.Fatalf("got %#v %v", info, err)
 	}
 	call := runner.Invocations()[0]
@@ -164,7 +164,7 @@ func TestSearchAndAvailable(t *testing.T) {
 		t.Errorf("got %#v", versions)
 	}
 	plugins, err := cli.AvailablePlugins()
-	if err != nil || len(plugins) != 43 {
+	if err != nil || len(plugins) != 44 {
 		t.Errorf("got %d %v", len(plugins), err)
 	}
 }
@@ -212,7 +212,7 @@ func TestConfiguration(t *testing.T) {
 		On("config --unset proxy.url", core.ProcessOutput{})
 	cli := vfox.NewClient(runner, testConfig())
 	entries, err := cli.ConfigEntries()
-	if err != nil || len(entries) != 10 {
+	if err != nil || len(entries) != 15 {
 		t.Fatalf("got %d %v", len(entries), err)
 	}
 	if err := cli.SetConfig("proxy.url", "http://proxy:8080"); err != nil {
@@ -296,6 +296,14 @@ func TestInstallCommand(t *testing.T) {
 		command.CommandLine() != "vfox install --yes nodejs@24.11.1" || command.WorkingDirectory != "" {
 		t.Errorf("got %#v", command)
 	}
+	use, err := cli.InstallWithOptions("nodejs", "24.11.1", vfox.InstallOptions{Use: true})
+	if err != nil || use.Operation != vfox.OperationInstallUse || use.CommandLine() != "vfox install --yes --use nodejs@24.11.1" {
+		t.Errorf("got %#v %v", use, err)
+	}
+	reinstall, err := cli.InstallWithOptions("nodejs", "24.11.1", vfox.InstallOptions{Reinstall: true})
+	if err != nil || reinstall.CommandLine() != "vfox install --yes --reinstall nodejs@24.11.1" {
+		t.Errorf("got %#v %v", reinstall, err)
+	}
 }
 
 func TestUseCommands(t *testing.T) {
@@ -339,6 +347,64 @@ func TestOtherCommands(t *testing.T) {
 	}
 	if all := cli.UpdateAllPlugins(); !reflect.DeepEqual(all.Arguments, []string{"update", "--all"}) || all.Subject() != "" {
 		t.Errorf("got %#v", all)
+	}
+}
+
+func TestLinkAliasDoctorCommands(t *testing.T) {
+	cli := vfox.NewClient(testsupport.FixtureRunner(), testConfig())
+	link, err := cli.Link("java", "17-system", "/opt/jdk-17", false)
+	if err != nil || !reflect.DeepEqual(link.Arguments, []string{"link", "java@17-system", "/opt/jdk-17"}) || link.Operation != vfox.OperationLink {
+		t.Errorf("got %#v %v", link, err)
+	}
+	force, err := cli.Link("java", "17-system", "/opt/jdk-17", true)
+	if err != nil || !reflect.DeepEqual(force.Arguments, []string{"link", "--force", "java@17-system", "/opt/jdk-17"}) {
+		t.Errorf("got %#v %v", force, err)
+	}
+	detect, err := cli.LinkDetect("java", false)
+	if err != nil || !reflect.DeepEqual(detect.Arguments, []string{"link", "--detect", "java"}) || detect.Operation != vfox.OperationLinkDetect {
+		t.Errorf("got %#v %v", detect, err)
+	}
+	detectYes, err := cli.LinkDetect("java", true)
+	if err != nil || !reflect.DeepEqual(detectYes.Arguments, []string{"link", "--detect", "--yes", "java"}) {
+		t.Errorf("got %#v %v", detectYes, err)
+	}
+	set, err := cli.AliasSet("java", "j17", "17.0.9-tem")
+	if err != nil || !reflect.DeepEqual(set.Arguments, []string{"alias", "set", "java", "j17", "17.0.9-tem"}) || set.Operation != vfox.OperationAliasSet {
+		t.Errorf("got %#v %v", set, err)
+	}
+	unset, err := cli.AliasUnset("java", "j17")
+	if err != nil || !reflect.DeepEqual(unset.Arguments, []string{"alias", "unset", "java", "j17"}) || unset.Operation != vfox.OperationAliasUnset {
+		t.Errorf("got %#v %v", unset, err)
+	}
+	// The alias of a task is what its title names; no other command has one.
+	if set.Alias() != "j17" || unset.Alias() != "j17" || detect.Alias() != "" || (vfox.VfoxCommand{Operation: vfox.OperationAliasSet}).Alias() != "" {
+		t.Errorf("the alias of the tasks: %q %q %q", set.Alias(), unset.Alias(), detect.Alias())
+	}
+	adopt, err := cli.DoctorAdopt("flutter", "3.47.0")
+	if err != nil || !reflect.DeepEqual(adopt.Arguments, []string{"doctor", "--adopt", "flutter@3.47.0"}) || adopt.Operation != vfox.OperationDoctorAdopt {
+		t.Errorf("got %#v %v", adopt, err)
+	}
+	if _, err := cli.Link("java", "17-system", " ", false); err == nil {
+		t.Error("a directory is required to link")
+	}
+	if _, err := cli.AliasSet("java", "--bad", "1"); err == nil {
+		t.Error("an alias must be a plain name")
+	}
+}
+
+func TestDoctorAliasInfoQueries(t *testing.T) {
+	cli := vfox.NewClient(testsupport.FixtureRunner(), testConfig())
+	report, err := cli.DoctorReport("", "")
+	if err != nil || !report.OK || len(report.Findings) != 0 {
+		t.Errorf("got %#v %v", report, err)
+	}
+	aliases, err := cli.Aliases("")
+	if err != nil || len(aliases) != 0 {
+		t.Errorf("got %#v %v", aliases, err)
+	}
+	detail, err := cli.VersionDetail("nodejs", "")
+	if err != nil || detail.Name != "nodejs" || detail.Version != "0.5.4" {
+		t.Errorf("got %#v %v", detail, err)
 	}
 }
 

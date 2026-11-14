@@ -61,6 +61,7 @@ type TaskDTO struct {
 	Operation    string   `json:"operation"`
 	Sdk          string   `json:"sdk,omitempty"`
 	Version      string   `json:"version,omitempty"`
+	Alias        string   `json:"alias,omitempty"`
 	CommandLine  string   `json:"commandLine"`
 	Status       string   `json:"status"`
 	Progress     *float64 `json:"progress,omitempty"`
@@ -84,6 +85,7 @@ func taskDTO(task *state.VfoxTask, tailLines int) TaskDTO {
 		Operation:   string(task.Command.Operation),
 		Sdk:         task.Command.Sdk,
 		Version:     task.Command.Version,
+		Alias:       task.Command.Alias(),
 		CommandLine: task.Command.CommandLine(),
 		Status:      string(task.Status()),
 		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
@@ -258,9 +260,49 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		writeJSON(writer, annotate(known, hasKnown, versions))
 	case "profile":
 		s.serveProfile(writer, model, detail)
+	case "aliases":
+		if request.Method != http.MethodGet {
+			http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
+			return
+		}
+		if !awaitLoad(detail.Aliases.EnsureLoaded()) {
+			http.Error(writer, "Loading aliases timed out.", http.StatusGatewayTimeout)
+			return
+		}
+		aliases, _ := detail.Aliases.Value()
+		if err := detail.Aliases.Error(); err != nil {
+			writeVfoxError(writer, err)
+			return
+		}
+		if aliases == nil {
+			aliases = []vfox.VersionAlias{}
+		}
+		writeJSON(writer, aliases)
 	default:
 		http.Error(writer, "No such endpoint.", http.StatusNotFound)
 	}
+}
+
+// serveDoctor answers the health of vfox and the installed SDKs:
+// GET /api/doctor[?sdk=<name>[&version=<version>]].
+func (s *Server) serveDoctor(writer http.ResponseWriter, request *http.Request) {
+	if !s.requireSession(writer, request) {
+		return
+	}
+	if request.Method != http.MethodGet {
+		http.Error(writer, "Method not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+	model := s.model
+	model.Vfox.EnsureChecked()
+	sdk := strings.TrimSpace(request.URL.Query().Get("sdk"))
+	version := strings.TrimSpace(request.URL.Query().Get("version"))
+	report, err := model.Cli.DoctorReport(sdk, version)
+	if err != nil {
+		writeVfoxError(writer, err)
+		return
+	}
+	writeJSON(writer, report)
 }
 
 // taskRequest starts a state-changing task from the web interface. Project
@@ -274,6 +316,11 @@ type taskRequest struct {
 	Source    string `json:"source"`
 	Alias     string `json:"alias"`
 	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Force     bool   `json:"force"`
+	Yes       bool   `json:"yes"`
+	Use       bool   `json:"use"`
+	Reinstall bool   `json:"reinstall"`
 }
 
 // serveTasks lists tasks and starts new ones.
@@ -359,6 +406,9 @@ func startTask(model *state.AppModel, req taskRequest) (*state.VfoxTask, error) 
 		if req.Sdk == "" || req.Version == "" {
 			return nil, &userError{"An SDK and a version are required."}
 		}
+		if req.Use || req.Reinstall {
+			return must(cli.InstallWithOptions(req.Sdk, req.Version, vfox.InstallOptions{Use: req.Use, Reinstall: req.Reinstall}))
+		}
 		return must(cli.Install(req.Sdk, req.Version))
 	case "uninstall":
 		if req.Sdk == "" || req.Version == "" {
@@ -396,6 +446,28 @@ func startTask(model *state.AppModel, req taskRequest) (*state.VfoxTask, error) 
 			return model.Run(cli.UpdateAllPlugins()), nil
 		}
 		return must(cli.UpdatePlugin(req.Sdk))
+	case "link":
+		if req.Sdk == "" || req.Version == "" || req.Path == "" {
+			return nil, &userError{"An SDK, a version and a directory are required."}
+		}
+		return must(cli.Link(req.Sdk, req.Version, req.Path, req.Force))
+	case "linkDetect":
+		if req.Sdk == "" {
+			return nil, &userError{"An SDK is required."}
+		}
+		return must(cli.LinkDetect(req.Sdk, req.Yes))
+	case "aliasSet":
+		if req.Sdk == "" || req.Alias == "" || req.Version == "" {
+			return nil, &userError{"An SDK, an alias and a version are required."}
+		}
+		return must(cli.AliasSet(req.Sdk, req.Alias, req.Version))
+	case "aliasUnset":
+		if req.Sdk == "" || req.Alias == "" {
+			return nil, &userError{"An SDK and an alias are required."}
+		}
+		return must(cli.AliasUnset(req.Sdk, req.Alias))
+	case "doctorAdopt":
+		return must(cli.DoctorAdopt(req.Sdk, req.Version))
 	default:
 		return nil, &userError{"Unknown operation."}
 	}

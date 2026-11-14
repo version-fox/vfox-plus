@@ -100,6 +100,9 @@ Expected results by parser:
 | `config`        | stdout           | Every `key = value` entry, in output order.                               |
 | `finalProgress` | stderr lines     | The last download progress (0–1) found, or `null` if there is none.       |
 | `error`         | stdout + stderr  | The one-line error summary shown to users.                                |
+| `doctor`        | stdout           | `ok`, `count` and `findings` of `vfox doctor --json`.                     |
+| `aliases`       | stdout           | Every alias as `sdk`, `alias` and `target`.                               |
+| `versionDetail` | stdout           | `name`, `version`, `installed`, `origin`, `target` and `home` of `vfox info --json`. |
 
 Parsers must skip lines they do not understand instead of failing, and the
 error summary follows the rules in the
@@ -110,11 +113,16 @@ error summary follows the rules in the
 `vfxtool capture` adds vfox-java and vfox-flutter last, so that the outputs of the
 other cases do not list them, and captures their searches: `search-java` (OpenJDK, the
 list without an argument), `search-java-tem` (one distribution), `search-java-all`
-(every distribution, 2,641 versions) and `search-flutter` (457 versions on Linux x64: the
+(every distribution, 2,683 versions) and `search-flutter` (460 versions on Linux x64: the
 channels as notes, the Dart SDK as the bundled tool, the architecture suffixes and the
-OpenHarmony builds). They were captured with vfox-java 0.6.3 and vfox-flutter 0.2.5,
-and the profiles of `core/profile` are tested against them: every version name of
-`search-java-all` carries a short name that the profile knows.
+OpenHarmony builds). They were captured with vfox-java 0.6.5, vfox-flutter 0.2.5 and
+vfox-nodejs 0.5.4, and the profiles of `core/profile` are tested against them: every
+version name of `search-java-all` carries a short name that the profile knows.
+
+`doctor`, `doctor-json` (`vfox doctor [--json]` with nothing installed),
+`alias-list` (no aliases) and `info-json` (`vfox info --json nodejs`) cover the
+new read-only commands of vfox 1.1.0. `vfox list` keeps only the version name
+when it carries `(linked → …)` and `[alias: …]` annotations.
 
 Their versions are faked, like those of Node.js and Maven that `list` shows: the tool
 creates a directory for each version, so that nothing is downloaded. `list-profiles` and
@@ -139,8 +147,8 @@ searches and the plugin information it always serves.
 
 ## The fake vfox
 
-`vfxtool fake-vfox` behaves like vfox 1.0.13 towards a GUI: it
-answers the read-only commands with the captures of `vfox-1.0.13/` (or of
+`vfxtool fake-vfox` behaves like vfox 1.1.0 towards a GUI: it
+answers the read-only commands with the captures of `vfox-1.1.0/` (or of
 `VFOX_PLUS_FIXTURES`), pretends to install versions with a progress bar on
 standard error, and fails like vfox when `vfox use` runs without the hook
 environment. The end-to-end tools install it by copying the vfxtool binary

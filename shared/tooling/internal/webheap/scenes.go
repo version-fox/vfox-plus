@@ -59,9 +59,30 @@ func concat(parts ...[]step) []step {
 	return all
 }
 
-// plugin opens the details of the plugin that the list of the SDKs shows.
+// fitsTheWindow waits until the page is no wider than the window, and what each of the two panes of the SDKs holds is
+// no wider than the pane. The tabs of a plugin that did not fit made the column of the details grow, and with it the
+// page; and a pane can be overrun by its content while the page still fits, when the overflow stays inside the window.
+func fitsTheWindow() step {
+	return until(`(() => {
+		const fits = (element) => !element || element.scrollWidth <= element.clientWidth + 1;
+		return fits(document.documentElement) && ["#sdkGrid", ".pane-detail"].every((selector) => fits(document.querySelector(selector)));
+	})()`)
+}
+
+// plugin opens the details of the plugin that the list of the SDKs shows. In a wide window the details of another plugin
+// are open before the click, so the step waits for the ones of this plugin.
 func plugin(name string) []step {
-	return []step{pick(fmt.Sprintf(`[data-sdk="%s"]`, name)), exists("#detailTabs")}
+	return []step{
+		pick(fmt.Sprintf(`[data-sdk="%s"]`, name)),
+		exists(fmt.Sprintf(`[data-sdk="%s"][aria-current="true"]`, name)),
+		until(fmt.Sprintf(`document.querySelector("#sdkDetail .t-title-l code")?.textContent === %q`, name)),
+		exists("#detailTabs"), fitsTheWindow(),
+	}
+}
+
+// moreWays picks one of the ways to add an SDK that are in the menu next to the choice of the distribution.
+func moreWays(item string) []step {
+	return []step{pick("#addMore"), pick(fmt.Sprintf(`#menu [data-item="%s"]`, item))}
 }
 
 // tab opens a tab of the details: installed, available or options.
@@ -98,7 +119,7 @@ func init() {
 		pick(`#vChips [data-v="LTS"]`), exists(`#vChips [data-v="LTS"][aria-pressed="true"]`),
 	})
 	scenes["java-install-name"] = concat(javaAvailable, []step{
-		pick("#byNameBtn"), pick(`#nameChips [data-name="21-tem"]`),
+		pick("#addMore"), pick(`#menu [data-item="by-name"]`), pick(`#nameChips [data-name="21-tem"]`),
 		until(`document.getElementById("nameMeaning").textContent !== ""`),
 	})
 	scenes["flutter-chips"] = concat(plugin("flutter"), tab("available"), versions, []step{
@@ -108,10 +129,49 @@ func init() {
 	// allow other devices (the setting webRemote) and to have an address to give.
 	scenes["connections"] = concat(connections, []step{scrollTo("#webCard")})
 	scenes["connections-pair"] = concat(connections, []step{pick("#webPair"), exists("#pairBox .qr"), scrollTo("#pairBox")})
+	// The home page, once its lists have come, is still at its own address: a page that is not shown does not move the
+	// address to a plugin, which a reload would take for the page that was asked for.
+	scenes["home"] = []step{
+		until(`document.querySelectorAll("#homeActive .item").length > 0`),
+		until(`!location.hash.startsWith("#/sdk")`),
+		fitsTheWindow(),
+	}
 	scenes["options"] = options
 	scenes["options-mirror"] = concat(options, []step{
 		pick(`[data-var="VFOX_NODEJS_MIRROR"]`), pick(`#varChips [data-value="https://npmmirror.com/mirrors/node"]`),
 	})
+	// What vfox 1.1.0 adds to a plugin: the dialog that links an SDK that is already on the machine, the
+	// aliases of a plugin, and the dialog that names one.
+	scenes["link-manual"] = concat(javaAvailable, moreWays("link-manual"), []step{exists("#linkVer")})
+	scenes["options-aliases"] = concat(options, []step{exists("#aliasAdd"), scrollTo("#aliasHead")})
+	scenes["alias-set"] = concat(options, []step{pick("#aliasAdd"), exists("#aliasIn")})
+	// The rows that have a choice of a few buttons: the version that the version files of a plugin name, and the
+	// languages. The choice did not fit beside its label on a phone, and covered it. The last step of each waits for the
+	// choices to be under their labels, at the same edge, so that a layout that goes back to that does not make a picture.
+	scenes["options-legacy"] = concat(options, []step{exists("#legacyStrategy"), scrollTo("#legacyHead"), underTheirLabels("legacyStrategy")})
+	scenes["settings-languages"] = []step{
+		pick(`[data-tab="settings"]`), exists("#langSeg"), scrollTo("#l-lang"), underTheirLabels("langSeg", "pageLangSeg"),
+	}
+	// A page that does not fit its window is not one to take a picture of, whatever the scene shows.
+	for name, steps := range scenes {
+		scenes[name] = concat(steps, []step{fitsTheWindow()})
+	}
+}
+
+// underTheirLabels waits until each of the choices that the identifiers name is under the label that comes before it,
+// and starts at the same edge. Beside its label a choice starts above the end of the label, which is what it did when
+// it covered it.
+func underTheirLabels(ids ...string) step {
+	list := make([]string, len(ids))
+	for i, id := range ids {
+		list[i] = fmt.Sprintf("%q", id)
+	}
+	return until(fmt.Sprintf(`[%s].every((id) => {
+		const choice = document.getElementById(id);
+		if (!choice) return false;
+		const at = choice.getBoundingClientRect(), label = choice.previousElementSibling.getBoundingClientRect();
+		return at.top >= label.bottom - 1 && Math.abs(at.left - label.left) < 1;
+	})`, strings.Join(list, ", ")))
 }
 
 // sceneNames are the names that -scene takes, in order.

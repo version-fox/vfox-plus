@@ -54,7 +54,6 @@ export function renderChrome(): void {
   // Each page names itself once; the top bar carries the name on phones only.
   setText("homeTitle", "vfox+");
   setText("h-installed", t("sdks"));
-  setText("pickSdk", t("pick"));
   setText("h-add", t("plugins"));
   setText("addPluginLabel", t("addFromSource"));
   setText("h-tasks", t("tasksH"));
@@ -67,6 +66,7 @@ export function renderChrome(): void {
   setText("l-pageLang", t("pageLang"));
   setText("l-env", t("extraEnv"));
   setText("h-active", t("active"));
+  setText("h-doctor", t("doctorTitle"));
   setText("h-phone", t("phone"));
   setText("phoneLead", t("phoneLead"));
   const langSystem = t("langSystem");
@@ -155,8 +155,9 @@ function route(): void {
     switchTab("sdks", false);
     return;
   }
-  if (r.tab === "sdks") showList(false);
+  // The page first, so that the list of the SDKs knows that it is the one that is shown (it opens a plugin beside itself).
   switchTab(r.tab, false);
+  if (r.tab === "sdks") showList(false);
 }
 
 function applyTheme(): void {

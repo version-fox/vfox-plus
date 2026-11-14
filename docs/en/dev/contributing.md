@@ -48,6 +48,7 @@ container, see [Development environment](environment.md).
    golangci-lint fmt --diff
    golangci-lint run && golangci-lint run --build-tags e2e
    CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./... && vfxtool coverage coverage.out 85
+   go test ./ui -run TestTheScreensAreWithinTheBudgets
    ```
 
    To run every check, the end-to-end tests and the packaging without installing
@@ -64,8 +65,8 @@ container, see [Development environment](environment.md).
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
-| [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs `vfxtool sandbox all` in it |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
+| [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
 | [`release.yml`](../../../.github/workflows/release.yml) | by hand or a `v*` tag | Tags `v<version>`, packages and publishes the GitHub release that the self-update check reads |
@@ -248,7 +249,7 @@ of mygo, and captures the screen with ImageMagick when the page has settled:
 | --- | --- |
 | plain | every page, in both themes and languages: `home`, `sdks`, `available`, `tasks`, `plugins`, `dialog`, `settings`, `dark-expanded`, `dark-sdks`, `dark-available`, `zh-home`, `zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | an installation in progress: `installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `zh-options`, `zh-java-available` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | a machine that has Java and Flutter installed next to Node.js, and what vfox-plus offers for these plugins: `java-installed`, `java-available`, `java-choose`, `java-temurin`, `java-install-name`, `java-all`, `flutter-available`, `options`, `options-mirror`, `options-aliases`, `alias-set`, `link-manual`, `zh-options`, `zh-java-available` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
 | both of the above | the distributions of Java in the compact layout: `compact-java` |
 | the setting `webInterface`, and `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of the web interface, as a person goes through them: the switch that is on with its address, the question that asks before other devices may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
@@ -284,18 +285,20 @@ pictures are there to look at when the interface changes; nothing links them.
 **The web interface.** Render it with the end-to-end build of the application, in a virtual
 display, and headless Chrome, in a language pinned for the picture. `vfxtool webheap` takes the screenshot of the page
 that `--tab` opens (`home`, `sdks`, `plugins`, `tasks`, `settings`) or of a scene
-that `--scene` plays: `connections`, `connections-pair`, `flutter-chips`, `java-available`,
-`java-choose`, `java-temurin`, `java-install-name`, `options` and `options-mirror` (see
+that `--scene` plays: `home`, `connections`, `connections-pair`, `flutter-chips`, `java-available`,
+`java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`,
+`options-legacy`, `settings-languages`, `alias-set` and `link-manual` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
-scenes click against `mygo/pair/webapp.html`). Every picture gets an application and a home
-of its own, because choosing a distribution is kept in the settings of the application, and
-a scene that chooses one would change every picture after it. The application serves its web
-interface because its settings say so, and allows other devices, which the connections and the code
-that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is told the addresses of the
-documentation (see above); and the end-to-end build writes a pairing link to the file that
-`VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The scenes of Java need a machine
-that has Java and Flutter installed, and the home page needs one that has not, which is why
-the inventory of the fake vfox is a variable of the call:
+scenes click against `mygo/pair/webapp.html`). A scene ends by waiting for the page to fit its
+window, so a layout that overflows fails the shot instead of making a picture. Every picture gets
+an application and a home of its own, because choosing a distribution is kept in the settings of
+the application, and a scene that chooses one would change every picture after it. The application
+serves its web interface because its settings say so, and allows other devices, which the
+connections and the code that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is
+told the addresses of the documentation (see above); and the end-to-end build writes a pairing link
+to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The
+scenes of Java need a machine that has Java and Flutter installed, and the home page needs one that
+has not, which is why the inventory of the fake vfox is a variable of the call:
 
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
@@ -311,7 +314,7 @@ shoot() {
   echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
-      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.0.13 VFOX_PLUS_E2E_LINK=$home/link.txt \
+      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
       VFOX_PLUS_E2E_ADDRESSES=192.168.1.20
     [ -n "${INVENTORY:-}" ] && export VFOX_PLUS_FAKE_INVENTORY=$INVENTORY
     exec setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >$home/app.log 2>&1
@@ -442,3 +445,73 @@ the documentation. If curl stops with error 56, the connection broke: run it aga
 Every upload gets a new URL, so cached copies of an old image never show. The
 uploader of an anonymous image cannot delete it; upload nothing that must not
 stay public.
+
+### Auditing the interface
+
+`vfxtool webheap` can take the census of the page that it shoots: `-audit census.json`
+next to a `-screenshot` writes, in JSON, what a person reads and what could not be read:
+the words, the sentences of eight words or more and the small lines under a title, the
+texts under the contrast of WCAG AA, the rows of a list that have two buttons with words
+on them, the lists in which three rows start with the same icon, the sizes off the type
+scale, the controls under 24 px, the titles and the texts of controls that an ellipsis cuts
+short, the controls and the texts that a row holds beyond its padding, and whether the page is wider than
+its window (the expression is `shared/tooling/internal/webheap/audit.js`). The budgets that a screen is
+held to are in [the design system](design-system.md#budgets).
+
+To audit the whole interface, shoot every tab (`-tab`) and every scene (`-scene`) as
+described above, in the two colour schemes (`-dark`), on a phone (`-window 412,915`) and
+in a wide window (`-window 1280,800`), each with its own `-audit` file, and read the files
+together: the totals show where the words are, and a screen over a budget shows where to
+look. Look at the pictures too, side by side on one sheet: the census has no number for a
+layout that is bad in a way that nobody has measured yet.
+
+The desktop application has the census in its tests (`mygo/ui/census_test.go`,
+`mygo/ui/kit/census.go`). It draws each screen without a window, in the windows that
+[the design system](design-system.md#budgets) names, and reads from the nodes that every
+text, icon and control registered where it is, how a text is set (size, weight, colour)
+and, for a text of a single line, the width that it wants, and from the picture of the
+window what a text stands on. That gives it what the web census has not: an icon that the
+table of the icons lacks, and where a text is drawn over another, or beyond its control, which the picture does not say
+in numbers. A screen that has a dialog or a menu open is the dialog or the menu. A page that is taller than the windows is drawn in a window as tall as it is (the settings, the options
+of a plugin, the lists of the plugins and of the distributions of Java: `censusWindow.heightFor`), so that what is below the fold
+counts as well, and the census is over a budget when a page is still taller than its window (`Census.Taller`; a page that has a
+list with more rows than any window shows, the versions of Node.js, is counted by the rows that it shows). Six of the windows
+have the text scale of the system at 130, 150 and 200 %, and three show the Chinese text (a scene goes to its screen in
+English, and the language is changed there). Fourteen windows make 336 screens. The scenes that end in a dialog or a menu (`modal`) are drawn in three windows more, the
+shortest that the application opens in: the scene goes to its screen in a window as tall as it needs, the window is made
+shorter (`censusWindow.shrunk`), and a menu that the scene opens (`open`) is opened from a button that it has scrolled to, as a
+person does. The lists that scroll (`toEnd`) are drawn at their end as well, and so is the content of a dialog in a window that is
+shorter than it, and to the middle of what it scrolled. That is 386 screens, 61 ends and 30 middles, which take
+about two minutes: every frame of every screen is drawn by a software
+renderer, and three times slower under the race detector, which the census does not need, so
+the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene
+costs fourteen drawings and a new window twenty-five, so weigh them; they are not worth a thread
+more, as the renderer uses the cores already. The addresses that a computer has are told to
+the web interface by the test (`pair.HostOptions.Addresses`), an IPv4 and an IPv6 one of the
+ranges that are kept for documentation, so that the screen of the pairing is the same on every machine.
+
+```sh
+cd mygo
+go test ./ui -run TestTheScreensAreWithinTheBudgets
+```
+
+fails with the budgets that a screen is over, each with the texts, rows or controls that
+make it so. `VFOX_PLUS_CENSUS=dir` writes the census of every screen to `dir`, one JSON
+file for each and `summary.txt` with a row for each, and the picture of each screen that is over a
+budget (`census.<screen>.<window>.png`), to look at what the numbers are about; `VFOX_PLUS_SNAPSHOTS=dir`
+writes the picture of every screen too. A new screen is a new entry of `censusScenes`.
+
+Five more tests take the scenes in other windows, and in other text. `TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` draws
+them in the font that the system gives for `sans-serif` and `monospace` (its log says which one that is),
+in three windows, about 20 s; `TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` draws them in the same
+three windows in the three widest of the families that systems and desktops set their interface in (Verdana, DejaVu Sans,
+Geneva, Inter and the like, as the text engine measures them), and in Chinese in the widest of them, about a minute and a half;
+`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` makes every text wider by letter spacing (`kit.Tracking`), by two fifths at every
+size of text, in ten windows, 250 screens in about a minute and a half; and
+`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` takes the sizes of text that the census does not, 115, 130, 150 and 175 %,
+in four widths, in English and in Chinese, 800 screens in about seven minutes. These three run only when asked, with
+`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`.
+`TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` is quick and always runs: it asks the text engine for the width of the labels of
+the navigation bar and draws them in a box of that width, which the census relies on to say that a label is cut.
+
+CI asks for them. The job `census` of `mygo.yml` is four jobs on each machine, and five on Intel — the screens (the census and the fonts of the system, and on Intel the wider text in a job of its own), the widest fonts, and the sweep in two jobs, the windows of 1280 dp and the others — run at once, so that a run of the census takes as long as the longest of them and not as long as their sum. It takes them on Windows Server 2025 and Windows Server 2022 (x64), Windows 11 on ARM (arm64), macOS 26 and macOS 15 (arm64) and macOS 15 on Intel, each in the text engine and the fonts of its own platform (DirectWrite and Core Text, where Linux has Pango): the newest and the oldest Windows and macOS that GitHub has, and the other architecture of each. On Linux the fonts that the desktops set their text in are installed beside the ones of the application; the census of Linux in the fonts of the runner is a step of the job `build`, next to the end-to-end scenarios. The census does not wait for `build`; it runs the tests of the kit on each platform, too; it prints the version of the system that it runs on; a group that runs no screen fails; and it keeps the pictures as an artifact: the pictures of the screens that are over a budget when a run fails, and the pictures of every screen when the workflow is run by hand (`workflow_dispatch`). The sandbox takes the same four groups of the census, each in a job of its own, in the fonts of its container. Ask for them yourself after a change of a layout, to know before the push.

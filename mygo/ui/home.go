@@ -18,8 +18,9 @@ import (
 	mui "github.com/egoist/mygo/ui"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/vfox"
+	"github.com/version-fox/vfox-plus/mygo/state"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
-	"github.com/version-fox/vfox-plus/mygo/ui/shapes"
 )
 
 // activationCommand is the line that makes a shell use the versions that vfox+
@@ -33,7 +34,7 @@ const (
 	linkRepository  = "https://github.com/version-fox/vfox-plus"
 )
 
-// homePage is the overview: what is installed, what is in use, and shortcuts.
+// homePage is the overview: what is in use, how healthy it is, and the line that a terminal needs.
 func (a *App) homePage(k kit.Ctx) {
 	kit.Pane(k, func() {
 		sdks, ok := a.model.Installed.Value()
@@ -42,9 +43,7 @@ func (a *App) homePage(k kit.Ctx) {
 			return
 		}
 		var active []core.InstalledSdk
-		versions := 0
 		for _, sdk := range sdks {
-			versions += len(sdk.Versions)
 			if sdk.HasCurrent {
 				active = append(active, sdk)
 			}
@@ -59,10 +58,10 @@ func (a *App) homePage(k kit.Ctx) {
 			})
 			kit.ContentWidth(k, 1080, func() {
 				mui.Column(k.Context).Padding(0, gapXL, gapXL, gapXL).Children(func() {
-					a.stats(k, len(sdks), versions, len(active))
 					kit.GroupHeader(k, a.T("homeActiveTitle"), nil)
 					a.activeList(k, active)
-					a.shortcuts(k).Margin(gapXL, 0, 0, 0)
+					a.doctorCard(k)
+					a.shellCard(k).Margin(gapXL, 0, 0, 0)
 				})
 			})
 		})
@@ -91,77 +90,103 @@ func (a *App) activeList(k kit.Ctx, active []core.InstalledSdk) {
 	kit.ListGroup(k, items...)
 }
 
-// stats are the three tiles with the numbers of plugins, versions and versions
-// in use.
-func (a *App) stats(k kit.Ctx, plugins, versions, active int) {
-	compact := a.pageWidth(k) < 560+2*gapXL
+// doctorCard shows the health of vfox and the installed SDKs.
+func (a *App) doctorCard(k kit.Ctx) {
+	if a.model.Vfox.Availability() != state.VfoxReady {
+		return
+	}
+	doctor := a.model.Doctor
+	if !doctor.HasValue() && doctor.Error() == nil && !doctor.IsLoading() {
+		doctor.EnsureLoaded()
+	}
 	cs := k.Colors()
-	gap := gapM
-	if compact {
-		gap = gapS
-	}
-	mui.Row(k.Context).Gap(gap).AlignItems(mui.Stretch).Children(func() {
-		a.statTile(k, "plugins", compact, plugins, a.T("homeStatPlugins", "count", plugins), "plugins",
-			shapes.ShapeCookie9, cs.PrimaryContainer, cs.OnPrimaryContainer)
-		a.statTile(k, "versions", compact, versions, a.T("homeStatVersions", "count", versions), "versions",
-			shapes.ShapeClover4, cs.SecondaryContainer, cs.OnSecondaryContainer)
-		a.statTile(k, "active", compact, active, a.T("homeStatActive"), "current",
-			shapes.ShapeSunny, cs.TertiaryContainer, cs.OnTertiaryContainer)
-	})
-}
-
-func (a *App) statTile(k kit.Ctx, id string, compact bool, value int, label, icon string, shape *shapes.Polygon,
-	background, foreground mui.Color) {
-	pad := gapXL
-	numberStyle := kit.Emph(kit.DisplaySmall)
-	if compact {
-		pad = gapL
-		numberStyle = kit.Emph(kit.HeadlineLarge)
-	}
-	numberStyle.Line = numberStyle.Size
-	kit.Card(k, kit.CardSpec{
-		ID: "stat:" + id, Color: background, Radius: kit.CornerExtraLarge, Content: foreground, Name: label,
-		OnClick: func() { a.showSdk("") },
-		Children: func() {
-			// A large, partly hidden shape gives the tile its character.
-			kit.Shape(k, shape, 140, foreground.Alpha(0.08), nil).Absolute().Right(-28).Bottom(-36)
-			mui.Column(k.Context).Height(136).Padding(pad).Children(func() {
-				kit.Icon(k, icon, 24, foreground, 1)
-				mui.Spacer(k.Context)
-				kit.Line(k, itoa(value), numberStyle, foreground)
-				kit.Label(k, label, kit.Emph(kit.LabelLarge), foreground, kit.Lines(2)).Margin(gapXS, 0, 0, 0)
+	kit.GroupHeader(k, a.T("doctorTitle"), nil)
+	switch {
+	case doctor.IsLoading():
+		kit.ListGroup(k, kit.ListItemSpec{
+			ID: "doctor-loading", Title: a.T("doctorCheck"), Leading: icon(k, "health"),
+			Trailing: func() { kit.LoadingIndicator(k, kit.LoadingSpec{ID: "doctor-loading", Size: 24}) },
+		})
+	case doctor.Error() != nil:
+		kit.ListGroup(k, kit.ListItemSpec{
+			ID: "doctor-error", Title: a.T("doctorCheck"), Subtitle: describeError(doctor.Error()),
+			Leading: icon(k, "health"),
+			Trailing: func() {
+				kit.Button(k, kit.ButtonSpec{ID: "doctor-retry", Kind: kit.TonalButton, Label: a.T("doctorCheck"), OnClick: func() { doctor.Load() }})
+			},
+		})
+	default:
+		report, _ := doctor.Value()
+		if len(report.Findings) == 0 {
+			kit.ListGroup(k, kit.ListItemSpec{
+				ID: "doctor-ok", Title: a.T("doctorNoProblems"), Leading: icon(k, "health"),
+				Trailing: func() {
+					kit.Button(k, kit.ButtonSpec{ID: "doctor-check", Kind: kit.TextButton, Label: a.T("doctorCheck"), OnClick: func() { doctor.Load() }})
+				},
 			})
-		},
-	}).Grow(1).Basis(0).Shrink(1)
-}
-
-// shortcuts are the cards under the list: how to use the versions in a terminal,
-// and where to find more.
-func (a *App) shortcuts(k kit.Ctx) mui.Element {
-	if a.pageWidth(k) < 760+2*gapXL {
-		return mui.Column(k.Context).Gap(gapM).Children(func() {
-			a.shellCard(k)
-			a.exploreCard(k)
-			a.docsCard(k)
-		})
+			return
+		}
+		var items []kit.ListItemSpec
+		for _, finding := range report.Findings {
+			finding := finding
+			title := finding.Message
+			if title == "" {
+				title = finding.ID
+			}
+			subtitle := finding.ID
+			if finding.Sdk != "" {
+				subtitle = finding.Sdk
+				if finding.Version != "" {
+					subtitle += "@" + finding.Version
+				}
+				subtitle += " · " + finding.Severity
+			}
+			items = append(items, kit.ListItemSpec{
+				ID:    "doctor:" + finding.ID + ":" + finding.Sdk + "@" + finding.Version,
+				Title: title, Subtitle: subtitle, Wrap: a.itemWraps(),
+				Leading: icon(k, "health"),
+				Trailing: func() {
+					mui.Row(k.Context).Gap(gapXS).Children(func() {
+						switch finding.ID {
+						case "sdk.no-receipt":
+							kit.Button(k, kit.ButtonSpec{
+								ID: "adopt:" + finding.Sdk + "@" + finding.Version, Kind: kit.TonalButton, Label: a.T("doctorAdopt"),
+								OnClick: func() {
+									command, err := a.model.Cli.DoctorAdopt(finding.Sdk, finding.Version)
+									if err != nil {
+										a.notify(describeError(err))
+										return
+									}
+									a.run(command, nil)
+								},
+							})
+						case "sdk.drift":
+							kit.Button(k, kit.ButtonSpec{
+								ID: "reinstall:" + finding.Sdk + "@" + finding.Version, Kind: kit.TonalButton, Label: a.T("versionReinstall"),
+								OnClick: func() {
+									command, err := a.model.Cli.InstallWithOptions(finding.Sdk, finding.Version, vfox.InstallOptions{Reinstall: true})
+									if err != nil {
+										a.notify(describeError(err))
+										return
+									}
+									a.run(command, nil)
+								},
+							})
+						}
+						kit.IconButton(k, kit.IconButtonSpec{
+							ID: "doctor-check-one", Icon: "refresh", Tooltip: a.T("actionRefresh"),
+							OnClick: func() { doctor.Load() },
+						})
+					})
+				},
+			})
+			if len(items) >= 5 {
+				break
+			}
+		}
+		kit.ListGroup(k, items...)
+		kit.Label(k, a.T("doctorProblems", "count", len(report.Findings)), kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(gapS, 0, 0, gapL)
 	}
-	return mui.Row(k.Context).Gap(gapM).AlignItems(mui.Stretch).Children(func() {
-		mui.Column(k.Context).Grow(3).Basis(0).Children(func() { a.shellCard(k).Grow(1) })
-		mui.Column(k.Context).Grow(2).Basis(0).Gap(gapM).Children(func() {
-			a.exploreCard(k).Grow(1).Basis(0)
-			a.docsCard(k).Grow(1).Basis(0)
-		})
-	})
-}
-
-func (a *App) exploreCard(k kit.Ctx) mui.Element {
-	return a.shortcutCard(k, "explore", "explore", a.T("homeExploreTitle"), a.T("homeExploreBody"), "chevronRight",
-		func() { a.navigate(destPlugins) })
-}
-
-func (a *App) docsCard(k kit.Ctx) mui.Element {
-	return a.shortcutCard(k, "docs", "docs", a.T("homeDocsTitle"), a.T("homeDocsBody"), "openInNew",
-		func() { a.openURL(linkVfoxDocs) })
 }
 
 func (a *App) shellCard(k kit.Ctx) mui.Element {
@@ -172,7 +197,7 @@ func (a *App) shellCard(k kit.Ctx) mui.Element {
 			mui.Column(k.Context).Padding(gapXL).Children(func() {
 				mui.Row(k.Context).Gap(gapM).Children(func() {
 					kit.Icon(k, "terminal", 24, cs.Primary, 0)
-					kit.Line(k, a.T("homeShellTitle"), kit.Emph(kit.TitleMedium), cs.OnSurface).Grow(1)
+					kit.Label(k, a.T("homeShellTitle"), kit.Emph(kit.TitleMedium), cs.OnSurface, kit.Heading()).Grow(1).Shrink(1)
 				})
 				kit.Label(k, a.T("homeShellBody"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant).Margin(gapS, 0, 0, 0)
 				kit.Card(k, kit.CardSpec{
@@ -188,26 +213,6 @@ func (a *App) shellCard(k kit.Ctx) mui.Element {
 						})
 					},
 				}).Margin(gapM, 0, 0, 0)
-			})
-		},
-	})
-}
-
-func (a *App) shortcutCard(k kit.Ctx, id, icon, title, body, trailing string, onClick func()) mui.Element {
-	cs := k.Colors()
-	return kit.Card(k, kit.CardSpec{
-		ID: "shortcut:" + id, Color: cs.SurfaceContainer, Radius: kit.CornerLarge, Content: cs.OnSurface,
-		Name: title, OnClick: onClick,
-		Children: func() {
-			mui.Row(k.Context).Gap(gapL).Padding(gapL).Children(func() {
-				kit.Shape(k, shapes.ShapeCookie6, 48, cs.SecondaryContainer, func() {
-					kit.Icon(k, icon, 24, cs.OnSecondaryContainer, 0)
-				})
-				mui.Column(k.Context).Grow(1).Shrink(1).Justify(mui.Center).Children(func() {
-					kit.Label(k, title, kit.Emph(kit.TitleSmall), cs.OnSurface)
-					kit.Label(k, body, kit.Type(kit.BodySmall), cs.OnSurfaceVariant).Margin(gapXS, 0, 0, 0)
-				})
-				kit.Icon(k, trailing, 24, cs.OnSurfaceVariant, 0)
 			})
 		},
 	})

@@ -15,7 +15,7 @@
 // Package fakevfox is a stand-in for vfox that replays the captured outputs
 // of shared/fixtures, replacing shared/fixtures/fake-vfox.sh.
 //
-// It answers the read-only commands with the captures of vfox-1.0.13 (or of
+// It answers the read-only commands with the captures of vfox-1.1.0 (or of
 // $VFOX_PLUS_FIXTURES), pretends to install versions with a progress bar on
 // standard error, and fails like vfox when `vfox use` runs without the hook
 // environment. It also checks what the CLI contract requires of the caller:
@@ -32,7 +32,7 @@
 // machine that has Java and Flutter installed next to Node.js, which the
 // screenshots of their pages need.
 //
-// VFOX_PLUS_FIXTURES is the fixture directory, by default the vfox-1.0.13
+// VFOX_PLUS_FIXTURES is the fixture directory, by default the vfox-1.1.0
 // directory next to the running executable.
 package fakevfox
 
@@ -149,6 +149,8 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("info-java")
 	case strings.HasPrefix(joined, "info flutter --format "):
 		return reply("info-flutter")
+	case strings.HasPrefix(joined, "info --json "):
+		return reply("info-json")
 	case isInfoFormat(joined):
 		// Plugin information for plugins without a captured fixture.
 		sdk := args[1]
@@ -157,8 +159,30 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return 0
 	case strings.HasPrefix(joined, "info ") && strings.Contains(joined[len("info "):], "@"):
 		return reply("info-version-path")
+	case joined == "doctor":
+		return reply("doctor")
+	case joined == "doctor --json" || strings.HasPrefix(joined, "doctor --json "):
+		return reply("doctor-json")
+	case joined == "doctor --adopt" || strings.HasPrefix(joined, "doctor --adopt "):
+		fmt.Fprintln(out, "Adopted the current state.")
+		return 0
+	case joined == "alias list" || strings.HasPrefix(joined, "alias list "):
+		return reply("alias-list")
+	case strings.HasPrefix(joined, "alias set ") && len(args) >= 5:
+		fmt.Fprintf(out, "%s@%s now stands for %s@%s.\n", args[2], args[3], args[2], args[4])
+		return 0
+	case strings.HasPrefix(joined, "alias unset ") && len(args) >= 4:
+		fmt.Fprintf(out, "Removed the alias %s@%s.\n", args[2], args[3])
+		return 0
+	case strings.HasPrefix(joined, "link --detect"):
+		fmt.Fprintln(out, "No SDKs found.")
+		return 0
+	case strings.HasPrefix(joined, "link ") && len(args) >= 3:
+		what := args[len(args)-2]
+		fmt.Fprintf(out, "Linked %s -> %s\n", what, args[len(args)-1])
+		return 0
 	case strings.HasPrefix(joined, "install --yes ") && len(args) >= 3:
-		what := args[2]
+		what := args[len(args)-1]
 		fmt.Fprintf(out, "Preinstalling %s...\n", what)
 		for _, percent := range []int{10, 45, 80, 100} {
 			fmt.Fprintf(errOut, "\rDownloading... %3d%% [=====>    ]\r", percent)
@@ -216,19 +240,19 @@ func isInfoFormat(joined string) bool {
 }
 
 // fixturesDir returns the fixture directory: $VFOX_PLUS_FIXTURES, or the
-// vfox-1.0.13 directory next to the running executable.
+// vfox-1.1.0 directory next to the running executable.
 func fixturesDir() string {
 	if dir := os.Getenv("VFOX_PLUS_FIXTURES"); dir != "" {
 		return dir
 	}
 	exe, err := os.Executable()
 	if err != nil {
-		return "vfox-1.0.13"
+		return "vfox-1.1.0"
 	}
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = resolved
 	}
-	return filepath.Join(filepath.Dir(exe), "vfox-1.0.13")
+	return filepath.Join(filepath.Dir(exe), "vfox-1.1.0")
 }
 
 // showFile writes the captured file to w, decoding the \xHH and \\

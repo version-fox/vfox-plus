@@ -14,48 +14,16 @@
  * limitations under the License.
  */
 
-import { copyText } from "./api";
+import { api, copyText } from "./api";
 import type { Inventory } from "./api";
 import { avatar, el, esc, icon } from "./dom";
 import { t } from "./i18n";
 import { refresh } from "./main";
+import { runTask } from "./tasks";
 
 // ---------------- home ----------------
 export function renderHome(inv: Inventory): void {
   const installed = (inv.installed && inv.installed.value) || [];
-  let nVersions = 0,
-    nCurrent = 0;
-  installed.forEach((s) => {
-    nVersions += (s.Versions || []).length;
-    if (s.HasCurrent) nCurrent++;
-  });
-  const stats: [number, string, string, string][] = [
-    [installed.length, t("pluginsN"), "s1", "extension"],
-    [nVersions, t("versionsN"), "s2", "deployed-code"],
-    [nCurrent, t("inUse"), "s3", "check-circle"],
-  ];
-  el("homeStats").innerHTML = stats
-    .map(
-      (s) =>
-        '<button class="stat ' +
-        s[2] +
-        '" data-go="sdks">' +
-        '<span class="ic-row">' +
-        icon(s[3]) +
-        "</span>" +
-        '<span class="n">' +
-        s[0] +
-        "</span>" +
-        '<span class="l">' +
-        esc(s[1]) +
-        "</span>" +
-        '<span class="shape"></span>' +
-        "</button>",
-    )
-    .join("");
-  el("homeStats")
-    .querySelectorAll("[data-go]")
-    .forEach((b) => ((b as HTMLButtonElement).onclick = () => (location.hash = "#/sdks")));
   const active = installed.filter((s) => s.HasCurrent);
   const box = el("homeActive");
   if (!active.length) box.innerHTML = '<p class="muted">' + esc(t("activeEmpty")) + "</p>";
@@ -81,6 +49,58 @@ export function renderHome(inv: Inventory): void {
       ((b as HTMLButtonElement).onclick = () =>
         (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
   );
+  renderDoctor();
+}
+
+async function renderDoctor(): Promise<void> {
+  const box = document.getElementById("homeDoctor");
+  if (!box) return;
+  box.innerHTML = '<p class="muted">' + esc(t("loading")) + "</p>";
+  try {
+    const report = (await api("/api/doctor")) as { ok: boolean; findings: { id: string; severity: string; sdk: string; version: string; message: string }[] };
+    if (!report.findings.length) {
+      box.innerHTML = "<div class='item'>" + icon("verified") + "<span>" + esc(t("doctorNoProblems")) + "</span></div>";
+      return;
+    }
+    box.innerHTML = report.findings
+      .slice(0, 5)
+      .map(
+        (f) =>
+          "<div class='item'><span style='flex:1'><b>" +
+          esc(f.message || f.id) +
+          "</b><br><span class='muted t-label'>" +
+          esc([f.sdk, f.version].filter(Boolean).join("@") + " · " + f.severity) +
+          "</span></span>" +
+          (f.id === "sdk.no-receipt"
+            ? "<button class='btn tonal' data-adopt-sdk='" + esc(f.sdk) + "' data-adopt-ver='" + esc(f.version) + "'>" + esc(t("doctorAdopt")) + "</button>"
+            : f.id === "sdk.drift"
+              ? "<button class='btn tonal' data-reinstall-sdk='" + esc(f.sdk) + "' data-reinstall-ver='" + esc(f.version) + "'>" + esc(t("versionReinstall")) + "</button>"
+              : "") +
+          "</div>",
+      )
+      .join("");
+    box.querySelectorAll("[data-adopt-sdk]").forEach(
+      (b) =>
+        ((b as HTMLButtonElement).onclick = () =>
+          runTask({
+            operation: "doctorAdopt",
+            sdk: (b as HTMLButtonElement).dataset.adoptSdk || "",
+            version: (b as HTMLButtonElement).dataset.adoptVer || "",
+          })),
+    );
+    box.querySelectorAll("[data-reinstall-sdk]").forEach(
+      (b) =>
+        ((b as HTMLButtonElement).onclick = () =>
+          runTask({
+            operation: "install",
+            sdk: (b as HTMLButtonElement).dataset.reinstallSdk || "",
+            version: (b as HTMLButtonElement).dataset.reinstallVer || "",
+            reinstall: true,
+          })),
+    );
+  } catch (e) {
+    box.innerHTML = "<div class='item'><span class='bad'>" + esc(e instanceof Error ? e.message : String(e)) + "</span></div>";
+  }
 }
 
 export function initHome(): void {

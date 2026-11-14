@@ -26,22 +26,53 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// javaApp is the application with Java installed: Temurin 21 in use, Liberica 25 with
-// JavaFX and OpenJDK 25, next to the Node.js of the fixtures.
-func javaApp(t *testing.T) *testApp {
-	t.Helper()
-	runner := testsupport.FixtureRunner().
+// javaRunner is vfox with Java installed: Temurin 21 in use, Liberica 25 with JavaFX and
+// OpenJDK 25, next to the Node.js of the fixtures.
+func javaRunner() *testsupport.FakeProcessRunner {
+	return testsupport.FixtureRunner().
 		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n├─┬java\n│ ├──21.0.12.1+1-tem\n│ ├──25.0.4+9-librca-fx\n│ └──25.0.2+10\n└─┬nodejs\n  ├──24.11.1\n  └──22.21.0\n"}).
 		On("current", core.ProcessOutput{Stdout: "java -> v21.0.12.1+1-tem\nnodejs -> v24.11.1\n"}).
 		On("info java --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
-			Stdout: "java\x1f0.6.3\x1fhttps://github.com/version-fox/vfox-java\x1f/home/u/.vfox/cache/java\x1fSupport for multiple JDK distributions, such as: Oracle, Graalvm, Eclipse & more.",
+			Stdout: "java\x1f0.6.5\x1fhttps://github.com/version-fox/vfox-java\x1f/home/u/.vfox/cache/java\x1fSupport for multiple JDK distributions, such as: Oracle, Graalvm, Eclipse & more.",
 		}).
 		On("info flutter --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
 			Stdout: "flutter\x1f0.2.5\x1fhttps://github.com/version-fox/vfox-flutter\x1f/home/u/.vfox/cache/flutter\x1fFlutter plugin, https://flutter.dev",
 		})
-	app := newTestApp(t, runner, windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+}
+
+// javaApp is the application with Java installed.
+func javaApp(t *testing.T) *testApp {
+	t.Helper()
+	app := newTestApp(t, javaRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
 	app.start()
 	return app
+}
+
+// addMore chooses one of the ways to add an SDK that the list does not offer, in the menu at the end of the row above
+// the available versions.
+func (ta *testApp) addMore(item string) {
+	ta.t.Helper()
+	ta.click(kit.RoleButton, "More ways to add")
+	ta.click(kit.RoleMenuItem, item)
+}
+
+// openTab goes to a tab of the details of a plugin: its button, or, where the room is too short for the tabs and they are a
+// dropdown that shows the tab that is open (the first, Installed, when the details have just been opened), the dropdown and
+// the entry of the tab in its menu.
+func (ta *testApp) openTab(name string) {
+	ta.t.Helper()
+	if _, ok := ta.find(kit.RoleButton, name); ok {
+		ta.button(name)
+		return
+	}
+	for _, n := range ta.nodes() {
+		if n.Role == kit.RoleButton && n.Visible() && strings.HasPrefix(n.Name, "Installed") {
+			ta.click(kit.RoleButton, n.Name)
+			ta.click(kit.RoleMenuItem, name)
+			return
+		}
+	}
+	ta.t.Fatalf("no tab %q and no dropdown of the tabs (on screen: %q)", name, ta.texts())
 }
 
 // openAvailable opens the details of a plugin and its available versions, which it waits for.
@@ -49,7 +80,7 @@ func (ta *testApp) openAvailable(plugin string) {
 	ta.t.Helper()
 	ta.button("SDKs")
 	ta.item(plugin)
-	ta.button("Available")
+	ta.openTab("Available")
 	ta.until("the versions", func() bool { return ta.app.detailFor(plugin).controller.Versions.HasValue() })
 	ta.settle()
 }
@@ -95,7 +126,7 @@ func TestAnotherDistributionOfJavaIsChosenFromAListThatAFieldFilters(t *testing.
 		return len(ta.runner.Calls("search java tem")) == 1 && ta.app.detailFor("java").controller.Versions.HasValue()
 	})
 	ta.settle()
-	ta.mustText("120 versions")
+	ta.mustText("123 versions")
 	if _, ok := ta.find(kit.RoleButton, "Distribution: Temurin"); !ok {
 		t.Errorf("the button names the choice: %q", ta.texts())
 	}
@@ -120,7 +151,7 @@ func TestAnotherDistributionOfJavaIsChosenFromAListThatAFieldFilters(t *testing.
 		t.Fatalf("no Install button: %q", ta.texts())
 	}
 	node.Click()
-	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes java@27+35-tem")) == 1 })
+	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes java@27.0.1-tem")) == 1 })
 }
 
 func TestTheFilterChipsNarrowTheVersionsThatAreListed(t *testing.T) {
@@ -144,13 +175,13 @@ func TestTheFilterChipsNarrowTheVersionsThatAreListed(t *testing.T) {
 		t.Errorf("a button takes the choices back: %q", ta.texts())
 	}
 	for _, text := range ta.texts() {
-		if text == "120 versions" {
+		if text == "123 versions" {
 			t.Fatal("LTS narrows the list")
 		}
 	}
 	ta.snapshot("java-chips-on")
 	ta.button("Clear filters")
-	ta.mustText("120 versions")
+	ta.mustText("123 versions")
 	// A search of every distribution says which one a version is of.
 	ta.button("Distribution: Temurin")
 	field, _ := ta.find(kit.RoleTextField, "Search by name or short name")
@@ -160,7 +191,7 @@ func TestTheFilterChipsNarrowTheVersionsThatAreListed(t *testing.T) {
 		return len(ta.runner.Calls("search java all")) == 1 && ta.app.detailFor("java").controller.Versions.HasValue()
 	})
 	ta.settle()
-	ta.mustText("2,641 versions")
+	ta.mustText("2,683 versions")
 	ta.mustText("OpenJDK") // the tag of the first versions, which are OpenJDK's
 	ta.mustText("Flavor")
 	ta.snapshot("java-all")
@@ -193,9 +224,9 @@ func TestAnErrorOfASearchLeavesTheChoiceOfAnotherOne(t *testing.T) {
 func TestAVersionIsInstalledByTheNameThatTheUserTypes(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openAvailable("nodejs")
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	ta.mustText("Install nodejs by name")
-	ta.mustText("What follows nodejs@ in vfox install")
+	ta.mustText("24, 24.21 or 24.21.0 install the newest release of that line; latest the newest of any line. There is no lts alias: name the line.")
 	ta.snapshot("install-by-name")
 	// Nothing, and a name with a space, are refused with a reason.
 	field, ok := ta.find(kit.RoleTextField, "Version name")
@@ -237,7 +268,7 @@ func TestAPluginWithoutAProfileTakesNamesToo(t *testing.T) {
 	if strings.Contains(strings.Join(ta.texts(), "|"), "Distribution") {
 		t.Error("maven has no distribution to choose")
 	}
-	ta.button("Install by name…")
+	ta.addMore("Install by name…")
 	ta.mustText("Install maven by name")
 	if ta.text("Names to try") {
 		t.Error("maven has no names to suggest")
@@ -253,7 +284,7 @@ func TestAPluginAddedUnderAnAliasHasTheChoicesOfThePluginItWasMadeFrom(t *testin
 		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬coffee\n  └──21.0.12.1+1-tem\n"}).
 		On("current", core.ProcessOutput{Stdout: "coffee -> v21.0.12.1+1-tem\n"}).
 		On("info coffee --format "+vfox.PluginInfoTemplate, core.ProcessOutput{
-			Stdout: "java\x1f0.6.3\x1fhttps://github.com/version-fox/vfox-java\x1f/home/u/.vfox/cache/coffee\x1fSupport for multiple JDK distributions.",
+			Stdout: "java\x1f0.6.5\x1fhttps://github.com/version-fox/vfox-java\x1f/home/u/.vfox/cache/coffee\x1fSupport for multiple JDK distributions.",
 		}).
 		On("search coffee", testsupport.FixtureOutput("search-java", 0)).
 		On("search coffee tem", testsupport.FixtureOutput("search-java-tem", 0))
@@ -267,7 +298,7 @@ func TestAPluginAddedUnderAnAliasHasTheChoicesOfThePluginItWasMadeFrom(t *testin
 	ta.settle()
 	ta.mustText("Temurin")
 	ta.button("Options")
-	ta.mustText("Besides the versions in the list, vfox install accepts these names for coffee.")
+	ta.mustText("GitHub mirror")
 	ta.button("Available")
 	ta.until("the versions", func() bool { return ta.app.detailFor("coffee").controller.Versions.HasValue() })
 	ta.settle()
@@ -294,7 +325,7 @@ func TestTheChannelsAndTheArchitecturesOfFlutterAreFilterChips(t *testing.T) {
 	ta.app.model.Installed.Load()
 	ta.until("flutter", func() bool { _, ok := ta.app.model.InstalledSdk("flutter"); return ok })
 	ta.openAvailable("flutter")
-	ta.mustText("457 versions")
+	ta.mustText("460 versions")
 	for _, chip := range []string{"stable", "beta", "dev", "OpenHarmony", "x64"} {
 		if _, ok := ta.find(kit.RoleButton, chip); !ok {
 			t.Errorf("no chip %q: %q", chip, ta.texts())
@@ -307,7 +338,7 @@ func TestTheChannelsAndTheArchitecturesOfFlutterAreFilterChips(t *testing.T) {
 	ta.mustText("25 versions")
 	ta.button("OpenHarmony")
 	ta.button("x64")
-	ta.mustText("311 versions")
+	ta.mustText("314 versions")
 	ta.snapshot("flutter-chips")
 }
 
@@ -316,14 +347,23 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.button("SDKs")
 	ta.item("nodejs")
 	ta.button("Options")
+	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+	ta.settle()
 	for _, text := range []string{
-		"Version names", "Downloads", "Download mirror", "C library", "Advanced", "Version files",
-		".node-version", ".nvmrc", "Names you can type", "Good to know", "Documentation",
+		"Downloads", "Download mirror", "C library", "Advanced", "Version files", "Read legacy version files",
+		".node-version", ".nvmrc", "Aliases", "Notes", "Documentation",
 	} {
 		ta.mustText(text)
 	}
+	// What the dialog of the names says, or the buttons of the page, is not said again here.
+	for _, text := range []string{"Version names", "Names you can type", "Good to know", "No aliases yet."} {
+		if ta.text(text) {
+			t.Errorf("the options say %q", text)
+		}
+	}
 	ta.snapshot("options")
-	ta.mustText("VFOX_NODEJS_MIRROR\nNot set. The plugin uses its own default.")
+	ta.mustText("VFOX_NODEJS_MIRROR")
+	ta.mustText("Default")
 
 	// An address that is not one is refused, and nothing changes.
 	ta.button("Change")
@@ -346,7 +386,7 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	if got := ta.app.model.PluginVariable("VFOX_NODEJS_MIRROR"); got != "https://npmmirror.com/mirrors/node" {
 		t.Errorf("stored %q", got)
 	}
-	ta.mustText("VFOX_NODEJS_MIRROR\nnpmmirror · https://npmmirror.com/mirrors/node")
+	ta.mustText("npmmirror · https://npmmirror.com/mirrors/node")
 	// vfox runs with it from now on, and the settings page shows it among the other variables.
 	ta.until("vfox to run with the mirror", func() bool {
 		return ta.app.model.Cli.LaunchConfig().ExtraEnvironment["VFOX_NODEJS_MIRROR"] == "https://npmmirror.com/mirrors/node"
@@ -355,7 +395,8 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.button("Change")
 	ta.button("Default (not set)")
 	ta.button("Save")
-	ta.mustText("VFOX_NODEJS_MIRROR\nNot set. The plugin uses its own default.")
+	ta.mustText("VFOX_NODEJS_MIRROR")
+	ta.mustText("Default")
 
 	// A choice takes its values only.
 	nodejs, _ := ta.app.model.Profiles.Lookup("nodejs")
@@ -391,9 +432,8 @@ func TestTheVersionFilesAreReadThroughThePluginIfVfoxReadsThem(t *testing.T) {
 	for _, text := range []string{".sdkmanrc", "GitHub mirror", "Read legacy version files"} {
 		ta.mustText(text)
 	}
-	// Java reads the file as it is: the strategy of vfox makes no difference.
-	ta.mustText("Version used from legacy files has no effect on this plugin: the version in the file is what counts.")
-	if _, ok := ta.find(kit.RoleListItem, "Version used from legacy files"); ok {
+	// Java reads the file as it is: the strategy of vfox makes no difference, so there is none to choose.
+	if _, ok := ta.find(kit.RoleListItem, "Version used from legacy files"); ok || ta.text("Version used from legacy files") {
 		t.Error("there is no strategy to choose for Java")
 	}
 	ta.snapshot("options-java")
@@ -409,19 +449,16 @@ func TestTheVersionFilesAreReadThroughThePluginIfVfoxReadsThem(t *testing.T) {
 	}
 }
 
-func TestAShorthandIsTriedFromTheOptions(t *testing.T) {
+func TestAShorthandFillsTheFieldOfTheNames(t *testing.T) {
 	ta := javaApp(t)
-	ta.button("SDKs")
-	ta.item("java")
-	ta.button("Options")
-	ta.mustText("21-tem")
+	ta.openAvailable("java")
+	ta.addMore("Install by name…")
+	ta.button("21-tem")
 	ta.mustText("The newest Temurin 21")
-	ta.buttonNear("21-tem", "Install…")
 	field, ok := ta.find(kit.RoleTextField, "Version name")
 	if !ok || field.Value() != "21-tem" {
-		t.Fatalf("the dialog starts with the shorthand: %v %q", ok, ta.texts())
+		t.Fatalf("the chip fills the field: %v %q", ok, ta.texts())
 	}
-	ta.mustText("The newest Temurin 21")
 	ta.button("Install")
 	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes java@21-tem")) == 1 })
 }
@@ -433,10 +470,122 @@ func TestTheOptionsFollowTheLanguage(t *testing.T) {
 	ta.button("SDK")
 	ta.item("nodejs")
 	ta.button("选项")
-	for _, text := range []string{"版本名称", "下载", "下载镜像", "版本文件", "可以直接输入的名称", "须知", "文档"} {
+	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
+	ta.settle()
+	for _, text := range []string{"下载", "下载镜像", "版本文件", "别名", "须知", "文档"} {
 		if !ta.text(text) && !strings.Contains(strings.Join(ta.texts(), "\n"), text) {
 			t.Errorf("no %q: %q", text, ta.texts())
 		}
 	}
 	ta.snapshot("options-zh")
+}
+
+func TestInstallByNameOffersUseAfterInstall(t *testing.T) {
+	ta := defaultApp(t)
+	ta.openAvailable("nodejs")
+	ta.addMore("Install by name…")
+	// The switch says what it is for, in the text of the dialog and not only for assistive technology.
+	ta.mustText("Use after install")
+	// Off by default: plain install.
+	field, ok := ta.find(kit.RoleTextField, "Version name")
+	if !ok {
+		t.Fatalf("no field: %q", ta.texts())
+	}
+	ta.fill(field, "24", true)
+	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes nodejs@24")) == 1 })
+	ta.app.showSdk("")
+	ta.settle()
+	// On: install and use.
+	ta.openAvailable("nodejs")
+	ta.addMore("Install by name…")
+	ta.mustText("Use after install")
+	ta.click(kit.RoleSwitch, "Use after install")
+	field, _ = ta.find(kit.RoleTextField, "Version name")
+	ta.fill(field, "24", true)
+	ta.until("the install and use", func() bool { return len(ta.runner.Calls("install --yes --use nodejs@24")) == 1 })
+}
+
+func TestAvailableVersionsOfferInstallAndUseAndLink(t *testing.T) {
+	ta := defaultApp(t)
+	ta.openAvailable("nodejs")
+	ta.click(kit.RoleButton, "More ways to install this version")
+	ta.mustText("Install and use")
+	ta.click(kit.RoleMenuItem, "Install and use")
+	// The other ways to add an SDK are the items of one menu, and not buttons of their own.
+	for _, text := range []string{"Install by name…", "Detect and link", "Link existing…"} {
+		if ta.text(text) {
+			t.Errorf("the row above the list shows %q", text)
+		}
+	}
+	ta.addMore("Detect and link")
+	ta.until("the detection", func() bool { return len(ta.runner.Calls("link --detect")) == 1 })
+}
+
+func TestManualLinkNeedsAVersionAndADirectory(t *testing.T) {
+	ta := defaultApp(t)
+	ta.openAvailable("nodejs")
+	ta.addMore("Link existing…")
+	ta.mustText("Link nodejs at a directory")
+	ta.mustText("Repoint an already linked version")
+	// Submit empty: stays open with errors.
+	ta.button("Link")
+	ta.mustText("Type a version name.")
+	ta.mustText("Link nodejs at a directory")
+}
+
+func TestAnAliasIsNamedForAVersion(t *testing.T) {
+	ta := defaultApp(t)
+	ta.button("SDKs")
+	ta.item("nodejs")
+	ta.button("Options")
+	ta.mustText("Aliases")
+	ta.until("the aliases", func() bool { return ta.text("Name alias…") })
+	ta.button("Name alias…")
+	ta.mustText("Alias")
+	field, ok := ta.find(kit.RoleTextField, "Alias")
+	if !ok {
+		t.Fatalf("no alias field: %q", ta.texts())
+	}
+	ta.fill(field, "lts", false)
+	ver, ok := ta.find(kit.RoleTextField, "Version name")
+	if !ok {
+		t.Fatalf("no version field: %q", ta.texts())
+	}
+	ta.fill(ver, "24.11.1", true)
+	ta.until("the alias", func() bool { return len(ta.runner.Calls("alias set")) == 1 })
+}
+
+func TestAliasesAreListedAndRemoved(t *testing.T) {
+	runner := testsupport.FixtureRunner().
+		On("alias list nodejs", core.ProcessOutput{Stdout: "nodejs@lts -> nodejs@22.21.0\n"})
+	ta := newTestApp(t, runner, windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+	ta.start()
+	ta.button("SDKs")
+	ta.item("nodejs")
+	// An installed version says the alias that names it, after what the plugin says of it.
+	ta.until("the alias of a version", func() bool { return strings.Contains(strings.Join(ta.texts(), "\n"), "@lts") })
+	ta.button("Options")
+	ta.until("the aliases", func() bool { return ta.text("lts") })
+	ta.mustText("nodejs@22.21.0")
+	ta.button("Remove")
+	ta.until("the removal", func() bool { return len(ta.runner.Calls("alias unset nodejs lts")) == 1 })
+	// The task says which alias it removes, and of what.
+	ta.button("Tasks")
+	ta.mustText("Remove alias lts of nodejs")
+}
+
+func TestAvailableRowOffersInstallAndUse(t *testing.T) {
+	ta := defaultApp(t)
+	ta.openAvailable("nodejs")
+	// The first row (26.13.0) has Install, and next to it the menu that has Install and use.
+	ta.click(kit.RoleButton, "More ways to install this version")
+	ta.click(kit.RoleMenuItem, "Install and use")
+	ta.until("the install and use", func() bool {
+		for _, call := range ta.runner.Calls("install") {
+			if len(call.Arguments) >= 4 && call.Arguments[2] == "--use" {
+				return true
+			}
+		}
+		return false
+	})
 }

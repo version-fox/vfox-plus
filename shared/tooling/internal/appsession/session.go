@@ -53,7 +53,7 @@ type Config struct {
 	Vfox string
 	// FakeVfox is the executable to copy as the fake vfox instead of vfxtool.
 	FakeVfox string
-	// Fixtures is the directory of the captured output (shared/fixtures/vfox-1.0.13)
+	// Fixtures is the directory of the captured output (shared/fixtures/vfox-1.1.0)
 	// that the fake vfox replays.
 	Fixtures string
 	// Env adds NAME=value variables to the environment of the application.
@@ -465,7 +465,7 @@ func FindRepoRoot() (string, error) {
 }
 
 // FixturesDir is the directory of the captured output of vfox in a repository.
-func FixturesDir(root string) string { return filepath.Join(root, "shared", "fixtures", "vfox-1.0.13") }
+func FixturesDir(root string) string { return filepath.Join(root, "shared", "fixtures", "vfox-1.1.0") }
 
 // Vfoxcmd runs vfox as the tests see it: in the environment of the application,
 // from the root directory, without colours. It returns what vfox printed.

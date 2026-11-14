@@ -373,12 +373,12 @@ func TestCheckNoTaskFailed(t *testing.T) {
 func TestWaitsSeeWhatTheWindowShowsLater(t *testing.T) {
 	s, app := newSession(t, node("1", "", "text", "Loading"))
 	time.AfterFunc(250*time.Millisecond, func() {
-		app.set(node("1", "", "text", "872 versions"), node("2", "", "text", "Install nodejs@24.11.0 success!"))
+		app.set(node("1", "", "text", "877 versions"), node("2", "", "text", "Install nodejs@24.11.0 success!"))
 	})
-	s.WaitForText("872 versions")
+	s.WaitForText("877 versions")
 	s.WaitForTextContaining("nodejs@24.11.0 success")
 	time.AfterFunc(250*time.Millisecond, func() { app.set(node("1", "", "text", "1 version")) })
-	s.WaitForTextGone("872 versions")
+	s.WaitForTextGone("877 versions")
 	if tree := s.WaitUntil("anything", time.Second, func(automation.Tree) bool { return true }); len(tree.Nodes) != 1 {
 		t.Fatalf("WaitUntil returned %+v, want the tree that satisfied it", tree)
 	}
@@ -388,7 +388,7 @@ func TestWaitsFailAfterTheirTime(t *testing.T) {
 	shortWaits(t)
 	s, _ := newSession(t, node("1", "", "text", "Loading"))
 	for want, wait := range map[string]func(){
-		`the text "872 versions"`:       func() { s.WaitForText("872 versions") },
+		`the text "877 versions"`:       func() { s.WaitForText("877 versions") },
 		`a text with "success"`:         func() { s.WaitForTextContaining("success") },
 		`the text "Loading" to go away`: func() { s.WaitForTextGone("Loading") },
 		"Timed out waiting for the last thing": func() {

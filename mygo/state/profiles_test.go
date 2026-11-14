@@ -69,7 +69,7 @@ func TestSdkDetailListsTheDistributionThatWasChosen(t *testing.T) {
 	close(gate)
 	waitFor(t, "the list of Temurin", func() bool { return controller.Versions.HasValue() })
 	versions, _ := controller.Versions.Value()
-	if len(versions) != 120 || versions[0].Version != "27+35-tem" {
+	if len(versions) != 123 || versions[0].Version != "27.0.1-tem" {
 		t.Fatalf("Temurin lists %d versions, first %v", len(versions), versions[0])
 	}
 	if calls := runner.Calls("search java tem"); len(calls) != 1 {
@@ -379,7 +379,7 @@ func TestSdkDetailOfAnAliasHasTheProfileOfThePluginItWasMadeFrom(t *testing.T) {
 	// list of the default is not the one that they wait for.
 	waitFor(t, "the list of Temurin", func() bool {
 		versions, ok := controller.Versions.Value()
-		return ok && len(versions) == 120
+		return ok && len(versions) == 123
 	})
 	if calls := runner.Calls("search coffee tem"); len(calls) != 1 {
 		t.Errorf("the plugin is searched by its own name: %v", runner.Invocations())

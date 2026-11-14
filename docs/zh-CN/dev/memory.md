@@ -10,14 +10,14 @@
 ## 结果
 
 单位 MB，应用及其全部子进程之和，Docker 内 Ubuntu 26.04，Xvfb（1280×800，无 GPU）。
-"Versions" 是列出 Node.js 872 个可用版本的 SDK 页。
+"Versions" 是列出 Node.js 877 个可用版本的 SDK 页。
 
 | 实现 | 技术 | 进程 | Home PSS | Home RSS | Versions PSS | Versions RSS | 列表增加 (PSS) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| [mygo](../../../mygo/README.zh-CN.md) | mygo 0.7.3、Go 1.27.3、GTK 3（purego）、CPU 渲染 | 1 | 51 | 63 | 59 | 73 | +8 |
+| [mygo](../../../mygo/README.zh-CN.md) | mygo 0.9.0、Go 1.27.4、GTK 3（purego）、CPU 渲染 | 1 | 52 | 64 | 57 | 72 | +5 |
 
-mygo（Home 页 PSS 51 MB，单进程）用处理器从 18 MB 的 Go 可执行文件绘制，从系统加载
-GTK 3。版本列表只构建可见行，增加 8 MB PSS。
+mygo（Home 页 PSS 52 MB，单进程）用处理器从 18 MB 的 Go 可执行文件绘制，从系统加载
+GTK 3。版本列表只构建可见行，增加 5 MB PSS。
 
 被测的是端到端构建：发布构建加原生用户界面的 inspector 与 mygo 的自动化插件（测量借它驱动应用）。
 它们多占至多 1 MB PSS，发布构建没有。
@@ -25,6 +25,10 @@ GTK 3。版本列表只构建可见行，增加 8 MB PSS。
 Android 客户端（`android/`）不在此表：它是包住网页界面的 WebView，内存为系统
 WebView 加页面，在设备上衡量，不用本方法。它的工具包要付出什么，见
 [Android 应用用 View 还是 Compose](#android-应用用-view-还是-compose)。
+
+## 动效与内存
+
+工具包 0.8.0 起，过渡的子元素画在自己的图层里：页面变化的每一帧都把整页合成为一张整窗口图像，过渡结束后图层仍占着内存。在 CI 上（单进程），工具包 0.7.3 时 Home 页 PSS 为 51 MB、版本页为 59 MB；0.9.0 带过渡时分别为 77 MB 与 89 MB。所以桌面不论平台要求什么都减少动态效果：值直达，不定指示器静止，视图不做转场（见[设计系统](design-system.md#动效)）。上表即按此测得。
 
 ## 轻量模式
 
@@ -209,7 +213,7 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
    vfox 用 [`shared/fixtures`](../../../shared/fixtures) 的假 vfox（回放捕获输出，不跑真实 vfox）。
 2. 等 Home 页出现，再等 3 秒沉降，然后从 `/proc/<pid>/smaps_rollup` 累加应用及以下每个进程的
    `Rss` 与 `Pss`。
-3. 经窗口元素（mygo 的自动化插件）打开 Node.js 可用版本，等 872 个版本出现，再等 3 秒，再测一次。
+3. 经窗口元素（mygo 的自动化插件）打开 Node.js 可用版本，等 877 个版本出现，再等 3 秒，再测一次。
 
 大小为 MiB，工具称 MB。沙箱 `measure` 任务在 Docker 中跑全套（`vfxtool sandbox measure`，
 只需 Docker）；上表数字来自 16 逻辑 CPU 的 WSL2 主机。

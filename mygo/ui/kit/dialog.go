@@ -18,6 +18,22 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// A dialog keeps dialogEdge dp from the edges of the window, and has dialogPadding dp of padding.
+const (
+	dialogEdge    = 24
+	dialogPadding = 24
+)
+
+// DialogContentWidth is the width in dp that the content of a dialog has, the dialog being at most maxWidth wide (560 when that
+// is 0): a window leaves it less when it is narrow. What a dialog holds that has to know its room, a group of segments, is told it.
+func DialogContentWidth(c Ctx, maxWidth float32) float32 {
+	if maxWidth == 0 {
+		maxWidth = 560
+	}
+	windowWidth, _ := c.Size()
+	return min(maxWidth, windowWidth-2*dialogEdge) - 2*dialogPadding
+}
+
 // DialogSpec describes a Material 3 dialog: a modal surface with an icon, a title,
 // content and actions. It scales in on a spring and fades in.
 type DialogSpec struct {
@@ -114,13 +130,13 @@ func (d *dialogEntry) layout(c Ctx) bool {
 			maxWidth = 560
 		}
 		windowWidth, windowHeight := c.Size()
-		width := min(maxWidth, windowWidth-48)
+		width := min(maxWidth, windowWidth-2*dialogEdge)
 		node := reg.Add(Node{Role: RoleDialog, Name: spec.Title, Enabled: true, Modal: true})
-		panel.MinWidth(min(width, 280)).MaxWidth(width).Padding(24).Radius(CornerExtraLarge).
-			Background(cs.SurfaceContainerHigh).MaxHeight(windowHeight - 48).Gap(0).Label(spec.Title).
+		panel.MinWidth(min(width, 280)).MaxWidth(width).Padding(dialogPadding).Radius(CornerExtraLarge).
+			Background(cs.SurfaceContainerHigh).MaxHeight(windowHeight - 2*dialogEdge).Gap(0).Label(spec.Title).
 			Draw(func(_ *ui.Painter, r ui.Rect) { node.Rect = r })
 		if spec.Tall {
-			panel.Height(windowHeight - 48)
+			panel.Height(windowHeight - 2*dialogEdge)
 		}
 		Elevation(c, panel, 3)
 		panel.Children(func() {
@@ -139,13 +155,25 @@ func (d *dialogEntry) layout(c Ctx) bool {
 			}
 			Label(c, spec.Title, Type(HeadlineSmall), cs.OnSurface, title...).Role(ui.RoleHeading).Level(2)
 			if spec.Content != nil {
-				content := ui.Column(c.Context).Margin(16, 0, 0, 0).Children(spec.Content)
 				if spec.Tall {
-					content.Grow(1).Shrink(1)
+					ui.Column(c.Context).Margin(16, 0, 0, 0).Children(spec.Content).Grow(1).Shrink(1)
+				} else {
+					// The content scrolls where the window has not the room for it, and the title and the actions stay where a
+					// person can reach them: a window of 480 dp, the least that the application opens in, is shorter than the
+					// dialogs of the mirrors and of the pairing.
+					ui.Scroll(c.Context).Margin(16, 0, 0, 0).Shrink(1).Children(func() {
+						ui.Column(c.Context).Children(spec.Content)
+					})
 				}
 			}
 			if len(spec.Actions) > 0 {
-				ui.Row(c.Context).Justify(ui.End).Gap(8).Margin(24, 0, 0, 0).Children(func() {
+				row := ui.Row(c.Context).Justify(ui.End).Wrap().Gap(8).GapY(8).Margin(24, 0, 0, 0)
+				if reg.CollectText {
+					// Where the actions are is what the census asks of a dialog: they are in it, and in the window.
+					actions := reg.Add(Node{Role: RoleActions, Name: spec.Title, Enabled: true})
+					row.Draw(func(_ *ui.Painter, r ui.Rect) { actions.Rect = r })
+				}
+				row.Children(func() {
 					for _, action := range spec.Actions {
 						action()
 					}

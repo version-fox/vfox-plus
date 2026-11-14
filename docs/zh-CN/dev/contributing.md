@@ -39,6 +39,7 @@
     golangci-lint fmt --diff
     golangci-lint run && golangci-lint run --build-tags e2e
     CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./... && vfxtool coverage coverage.out 85
+    go test ./ui -run TestTheScreensAreWithinTheBudgets
     ```
 
     只有 Docker、又不想动本机 vfox 安装时，用沙箱跑全部检查、端到端测试和打包，
@@ -53,8 +54,8 @@
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、文档语言与链接（`vfxtool docs-check`）、Markdown（markdownlint）、共享 JSON、无二进制文件 |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | 构建工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
-| [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中跑 `vfxtool sandbox all` |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、在 Linux、Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取桌面应用各屏幕的普查、发布构建与冒烟测试、`.deb` 和 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
+| [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中分别跑各部分（`vfxtool sandbox check`、`e2e`、`package` 与普查的四组），每部分一个任务 |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（debug 密钥签名）并作为 `vfox-plus-android` 上传 |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`android/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、Android 构建，以及用到 Docker 的检查 |
 | [`release.yml`](../../../.github/workflows/release.yml) | 手动或 `v*` 标签 | 打 `v<版本>` 标签，打包并发布 GitHub release，自更新检查读取的就是它 |
@@ -202,7 +203,7 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 | --- | --- |
 | 普通 | 每个页面 × 双主题 × 双语言：`home`、`sdks`、`available`、`tasks`、`plugins`、`dialog`、`settings`、`dark-expanded`、`dark-sdks`、`dark-available`、`zh-home`、`zh-settings` |
 | `VFOX_PLUS_FAKE_DELAY=4` | 安装中：`installing` |
-| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`zh-options`、`zh-java-available` |
+| `VFOX_PLUS_FAKE_INVENTORY=profiles` | 一台同时装着 Java、Flutter 与 Node.js 的机器，以及 vfox-plus 为这些插件提供的功能：`java-installed`、`java-available`、`java-choose`、`java-temurin`、`java-install-name`、`java-all`、`flutter-available`、`options`、`options-mirror`、`options-aliases`、`alias-set`、`link-manual`、`zh-options`、`zh-java-available` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | 窄布局（窗口窄于 600 dp）：`compact-home`、`compact-detail` |
 | 上面两个一起 | 窄布局下 Java 的发行版：`compact-java` |
 | 设置 `webInterface`，以及 `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 网页界面的设置，像用户操作那样一步步走：已开启的开关与它的地址、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
@@ -231,9 +232,11 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 
 **Web 界面。** 用应用的端到端构建（在虚拟显示里）与 headless Chrome 渲染，语言为截图固定。`vfxtool webheap`
 可以拍 `--tab` 打开的页面（`home`、`sdks`、`plugins`、`tasks`、`settings`），或 `--scene` 演出的场景：
-`connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
-`java-install-name`、`options` 与 `options-mirror`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
-`mygo/pair/webapp.html` 检查场景点击的元素）。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
+`home`、`connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
+`java-install-name`、`options`、`options-mirror`、`options-aliases`、`options-legacy`、`settings-languages`、
+`alias-set` 与 `link-manual`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
+`mygo/pair/webapp.html` 检查场景点击的元素）。场景的最后一步会等页面不比窗口宽，所以溢出的布局会让截图失败，而不是
+拍出一张图。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
 设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面，并允许其他设备（连接卡片与给
 手机配对的二维码需要它：`{"webInterface":true,"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
 命令行可打印链接，所以把配对链接写进 `VFOX_PLUS_E2E_LINK` 指定的文件。Java 的场景需要一台装着 Java 和 Flutter 的
@@ -253,7 +256,7 @@ shoot() {
   echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
-      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.0.13 VFOX_PLUS_E2E_LINK=$home/link.txt \
+      VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
       VFOX_PLUS_E2E_ADDRESSES=192.168.1.20
     [ -n "${INVENTORY:-}" ] && export VFOX_PLUS_FAKE_INVENTORY=$INVENTORY
     exec setsid xvfb-run -a dbus-run-session -- /tmp/vfox-plus-e2e >$home/app.log 2>&1
@@ -356,3 +359,56 @@ curl -s -F key=6d207e02198a847aa98d0a2a901485a5 -F action=upload -F format=json 
 输出 URL（key 是 freeimage.host 在 [API 页](https://freeimage.host/api) 给所有人的公开
 key），替换文档中的链接。curl 以 56 退出是连接断了：重试。每次上传都有新 URL，
 旧图缓存不会串。匿名图无法删除；不可公开的东西不要传。
+
+### 审查界面
+
+`vfxtool webheap` 可以给它截图的那个页面做普查：`-screenshot` 旁边加 `-audit census.json`，会以 JSON
+写出人读到什么、什么读不到：词数、8 个词以上的句子和标题下的说明小字、对比度低于 WCAG AA 的文字、
+一行里有两个带文字按钮的列表行、三行以同一图标开头的列表、不在字号阶梯上的字号、小于 24 px 的控件，
+被省略号截断的标题和控件文字、画到行内边距之外的控件和文字，以及页面是否比窗口宽
+（表达式在 `shared/tooling/internal/webheap/audit.js`）。一个屏幕要满足的预算在
+[设计系统](design-system.md#预算)里。
+
+要审查整个界面，就按上文把每个页签（`-tab`）和每个场景（`-scene`）都拍一遍，浅色和深色（`-dark`）、
+手机（`-window 412,915`）和宽窗口（`-window 1280,800`）各一遍，每张带自己的 `-audit` 文件，再把这些文件
+放在一起看：总数显示字都在哪里，超预算的屏幕显示该看哪里。图也要看，并排放在一张图上：有的布局差，
+差在还没有人量过的地方，普查里没有对应的数字。
+
+桌面应用的普查在它的测试里（`mygo/ui/census_test.go`、`mygo/ui/kit/census.go`）。它不开窗口地画每个屏幕，
+窗口就是[设计系统](design-system.md#预算)里写的那几种；从节点里读每段文字、每个图标和每个控件登记的位置，
+文字怎么排的（字号、字重、颜色），以及单行文字想要的宽度；从窗口的图里读文字落在什么底色上。所以它能查到
+网页普查查不到的几件事：图标表里没有的图标，以及一段文字画在另一段上面、或画出了它的控件之外，这些图上看得出、数字里说不出。
+开着对话框或菜单的屏幕，就按对话框或菜单算。
+比窗口还高的页面（设置、插件的选项、插件和 Java 发行版的列表：`censusWindow.heightFor`）画在和它一样高的窗口里，
+折叠线以下的内容也算在内；页面仍然比窗口高时，普查就超预算（`Census.Taller`；带着一个比任何窗口能显示的行数都多的列表的页面，
+Node.js 的版本，按它显示出来的行算）。其中六种窗口用系统文字缩放的 130 %、150 % 和 200 %，三种显示中文（场景用英文走到它的屏幕，
+再在那里切换语言）。十四种窗口共 336 个屏幕。以对话框或菜单结尾的场景（`modal`）还要多画在三种窗口里，那是应用能打开的最矮窗口：场景先在够高的窗口里走到
+它的屏幕，再把窗口缩矮（`censusWindow.shrunk`），场景要打开的菜单（`open`）则是从它滚动到了的按钮上打开的，就像人做的那样。会滚动的列表
+（`toEnd`）还要在末尾再画一遍，比它矮的窗口里的对话框内容也滚到末尾、再滚回一个窗口的高度，各画一遍。一共 386 个屏幕、61 个末尾和 30 个中间位置，约两分钟：每个屏幕的每一帧都由软件渲染器绘制，开竞态检测要慢三倍，而普查并不需要它，
+所以单元测试在竞态下跳过普查，CI 和沙箱单独用一步来跑。新增一个场景要多画十四次，新增一种窗口要多画二十五次，
+加之前先掂量；也别指望再开线程，渲染器已经在用多个核了。这台电脑有哪些地址，由测试告诉网页界面
+（`pair.HostOptions.Addresses`）：一个 IPv4 和一个 IPv6，都取自专门留作文档示例的地址段，所以配对的屏幕在每台机器上都一样。
+
+```sh
+cd mygo
+go test ./ui -run TestTheScreensAreWithinTheBudgets
+```
+
+超预算时会失败，并列出超了哪几项，以及造成超标的文字、行或控件。`VFOX_PLUS_CENSUS=目录` 把每个屏幕的普查
+写到该目录：每屏一个 JSON 文件，外加每屏一行的 `summary.txt`，并把超出预算的屏幕的图
+（`census.<屏幕>.<窗口>.png`）也存进去，好看看数字说的是什么；`VFOX_PLUS_SNAPSHOTS=目录` 再把每个屏幕的图都写出来。
+新增一个屏幕，就在 `censusScenes` 里加一项。
+
+另有五个测试用别的窗口、别的文字取这些场景。`TestTheScreensAreWithinTheBudgetsInTheFontsThatTheSystemChooses` 用系统给 `sans-serif` 和
+`monospace` 的字体画它们（日志里写着那是哪种字体），取三种窗口，约 20 秒；
+`TestTheScreensAreWithinTheBudgetsInTheWidestFontsThatTheSystemHas` 用系统和桌面拿来排界面的字体族里最宽的三个
+（Verdana、DejaVu Sans、Geneva、Inter 等，由文字引擎量出来）画它们，同样三种窗口，其中最宽的一个再用中文画一遍，约一分半钟；
+`TestTheScreensAreWithinTheBudgetsInATextThatIsWider` 用字距（`kit.Tracking`）把所有文字变宽，每种字号都宽五分之二，
+十种窗口，250 个屏幕，约一分半钟；
+`TestTheScreensAreWithinTheBudgetsAtEverySizeOfText` 取普查没取的文字大小 115、130、150 和 175 %，四种宽度，英文和中文各一遍，
+800 个屏幕，约七分钟。这三个只在要求时才跑，用
+`VFOX_PLUS_CENSUS_SWEEP=1 go test ./ui -run 'TestTheScreensAreWithinTheBudgets(AtEverySizeOfText|InTheWidestFonts|InATextThatIsWider)'`。
+`TestTheScreensAreWithinTheBudgetsMeasureWhatTheyDraw` 很快，每次都跑：它向文字引擎问底栏标签的宽度，再把标签画进这个宽度的盒子里，
+普查说一个标签被截断，靠的就是这一点。
+
+CI 会要求它们。`mygo.yml` 的 `census` 在每台机器上是四个任务（Intel 上是五个）——屏幕（普查和系统字体；Intel 上的加宽文字另成一个任务）、最宽字体，以及字号扫描的两个分片（1280 dp 的窗口一片，其余的窗口一片）——同时运行，所以一次普查的时间是其中最长的那个，而不是四者相加。它在 Windows Server 2025 和 Windows Server 2022（x64）、ARM 版 Windows 11（arm64）、macOS 26 和 macOS 15（arm64）以及 Intel 上的 macOS 15 上取这些测试，每个平台用它自己的文字引擎和字体（Linux 是 Pango，这几个是 DirectWrite 和 Core Text）：GitHub 提供的最新和最旧的 Windows 与 macOS，以及各自的另一种架构。Linux 上装着桌面用来排文字的字体，与应用自己的字体并排；Linux 在运行器自己的字体里的普查是 `build` 任务的一步，与端到端场景排在一起。普查不等 `build`；每个平台上也跑 `kit` 的测试；打印它所在系统的版本；某一组一个屏幕也没跑时它失败；图则作为产物保存：一次运行失败时保存超出预算的屏幕的图，人工触发工作流（`workflow_dispatch`）时保存每个屏幕的图。沙箱也按同样的四组取普查，每组一个任务，用容器自己的字体。改了布局之后自己也要跑一遍，好在推送前就知道。

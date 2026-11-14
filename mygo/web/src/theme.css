@@ -168,7 +168,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .rail.expanded{width:calc(240px + var(--sai-left))}
 .rail .brand{display:flex;align-items:center;gap:12px;padding:4px 8px 12px}
 .rail .mark{width:44px;height:44px;flex:none;display:block}
-.rail .wordmark{display:none;font-size:18px;font-weight:500;white-space:nowrap}
+.rail .wordmark{display:none;font-size:16px;font-weight:500;white-space:nowrap}
 .rail.expanded .wordmark{display:block}
 .rail .iconbtn{align-self:flex-start}
 .rail nav{display:flex;flex-direction:column;gap:4px;margin-top:8px}
@@ -201,7 +201,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .iconbtn.toggled{color:var(--m3-primary)}
 /* top bar */
 .topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(10px + var(--sai-top)) calc(20px + var(--sai-right)) 10px 20px;background:var(--m3-surface);border-bottom:1px solid var(--m3-outline-variant)}
-.topbar h1{font-size:18px;font-weight:500;margin:0}
+.topbar h1{font-size:16px;font-weight:500;margin:0}
 .topbar .sp{flex:1}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--m3-on-surface-variant)}
 .live .dot{width:9px;height:9px;border-radius:50%;background:var(--m3-outline)}
@@ -229,10 +229,15 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .btn.text{background:transparent;color:var(--m3-primary);padding:0 12px}
 .btn:disabled{opacity:.45;cursor:default}
 /* segmented buttons */
-.seg{display:inline-flex;background:var(--m3-surface-container-highest);border-radius:20px;padding:2px;gap:2px}
-.seg button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:18px;color:var(--m3-on-surface-variant);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+/* A segmented control never outgrows its container: the buttons that do not fit in a line go on to the next one, whole,
+   and those of a line share its width. */
+.seg{display:inline-flex;flex-wrap:wrap;max-width:100%;background:var(--m3-surface-container-highest);border-radius:20px;padding:2px;gap:2px}
+.seg button{display:inline-flex;flex:1 1 auto;justify-content:center;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:18px;color:var(--m3-on-surface-variant);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
 .seg button[aria-pressed="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:18px}
 .seg button:active{border-radius:8px}
+/* A label and its choice in one column: the choice goes under the label and starts at the same edge, at every width. A
+   choice of a few buttons does not fit beside a label on a phone; here it has the column to itself. */
+.stack{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 /* search bar: full pill */
 .search{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:28px;padding:4px 16px 4px 12px;margin-bottom:12px}
 .search input{flex:1;background:none;border:0;padding:10px 0;outline:none;min-width:0}
@@ -250,9 +255,9 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 /* content-visibility: the cards below the screen are not laid out, so that opening the page takes one frame */
 .pcard{background:var(--m3-surface-container);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px;content-visibility:auto;contain-intrinsic-size:auto 150px}
 /* avatars: expressive shapes by hash, 3 tone pairs */
-.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:20px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:22px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
 .avatar:hover{transform:rotate(30deg)}
-.avatar.lg{width:72px;height:72px;font-size:30px}
+.avatar.lg{width:72px;height:72px;font-size:28px}
 .av-p{background:var(--m3-primary-fixed);color:var(--m3-on-primary-fixed)}
 .av-s{background:var(--m3-secondary-fixed);color:var(--m3-on-secondary-fixed)}
 .av-t{background:var(--m3-tertiary-fixed);color:var(--m3-on-tertiary-fixed)}
@@ -296,7 +301,7 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .scrim.open .dialog{animation:scaleIn var(--sp-default-spatial-t) var(--sp-default-spatial),fadeIn var(--sp-default-effects-t) var(--sp-default-effects)}
 @keyframes scaleIn{from{transform:scale(.8)}to{transform:scale(1)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.dialog h3{margin:0 0 8px;font-size:20px;font-weight:500}
+.dialog h3{margin:0 0 8px;font-size:22px;font-weight:500}
 .dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 /* menus */
 .menu{position:fixed;z-index:40;background:var(--m3-surface-container-high);border-radius:12px;padding:8px 0;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none}
@@ -310,13 +315,6 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 @keyframes riseIn{from{transform:translateY(16px)}to{transform:none}}
 .snack button{color:var(--m3-inverse-primary);font-weight:500}
 /* stat tiles: container colour + decorative shape */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
-.stat{position:relative;overflow:hidden;border-radius:28px;padding:16px;min-height:110px}
-.stat.s1{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
-.stat.s2{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
-.stat.s3{background:var(--m3-tertiary-container);color:var(--m3-on-tertiary-container)}
-.stat .n{font-size:32px;font-weight:500;line-height:1.1}
-.stat .shape{position:absolute;right:-30px;bottom:-30px;width:110px;height:110px;opacity:.35}
 /* switch */
 .switch{position:relative;width:52px;height:32px;flex:none;border-radius:16px;background:var(--m3-outline-variant);transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
 .switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--m3-on-surface-variant);transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
@@ -341,17 +339,47 @@ table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--m3-outline-variant);vertical-align:middle}
 pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all}
 @media (prefers-color-scheme:dark){pre.log{background:#000}}
-.sdk-grid{display:grid;grid-template-columns:300px 1fr;gap:12px}
+.sdk-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px}
+/* with no plugin at all there is nothing for a second pane to show: the list has the page */
+#tab-sdks.none .sdk-grid{grid-template-columns:minmax(0,1fr)}
+#tab-sdks.none .pane-detail{display:none}
+#tab-sdks.none .pane-list .search{display:none}
+/* master/detail as two screens where two panes would leave the detail too little room for its tabs and its rows: it has
+   the window less 488 px (the rail, the list and the paddings), which is 412 px at 900 and 213 px at 701 */
+@media (max-width:899px){
+  .sdk-grid{grid-template-columns:minmax(0,1fr)}
+  .pane-detail{display:none}
+  #tab-sdks.detail-open .pane-list{display:none}
+  #tab-sdks.detail-open .pane-detail{display:block;animation:sharedX var(--sp-slow-effects-t) var(--sp-slow-effects)}
+  /* the details are a screen of their own and the bar of the details is its header: the title of the page and the refresh
+     above it are not there */
+  #tab-sdks.detail-open>.pagehead{display:none}
+}
+/* the list is beside the details, so there is nothing to go back to */
+@media (min-width:900px){
+  #detailBack{display:none}
+}
 @keyframes sharedX{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
 .navbar{display:none}
 #error{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + var(--sai-bottom));background:var(--m3-error);color:var(--m3-on-error);padding:10px 18px;border-radius:12px;display:none;max-width:88vw;z-index:60}
 .mfab{display:none}
 /* ---------- plugin profiles: tabs, chips, sheets ---------- */
 .btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+/* a split button: the action, and the way to the others, 2 px apart; the corners that face each other are small */
+.split{display:inline-flex;gap:2px;flex:none}
+.split>.btn{border-radius:4px 999px 999px 4px;padding:0 10px;min-width:40px}
+.split>.btn:first-child{border-radius:999px 4px 4px 999px;padding:0 16px}
 .btn.outline{background:transparent;border:1px solid var(--m3-outline);color:var(--m3-on-surface-variant)}
 .btn.outline:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
 .btn .ic.sm{width:20px;height:20px}
 #detailTabs{margin:8px 0 16px}
+/* the ways to add an SDK besides the list are one menu, at the end of the row of the distribution */
+#addMore{margin-left:auto}
+/* The three tabs of a plugin are 356 px wide with their icons, and a phone leaves 32 px less than its width: on the
+   narrow ones the tabs keep their labels and lose the icons, which fit in a line. */
+@media (max-width:400px){
+  #detailTabs .ic{display:none}
+}
 .tabpane.enter{animation:fadeThrough var(--sp-slow-effects-t) var(--sp-slow-effects)}
 .actions.row,.row.actions{margin-bottom:12px;gap:12px}
 .chips{gap:8px;align-items:center;margin:0 0 8px}
@@ -364,8 +392,6 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 .chip[aria-pressed="true"] .ck{width:18px;opacity:1;margin-right:8px}
 .chip[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
 .chip:active{border-radius:4px}
-.list .item .lead{width:24px;flex:none;display:inline-flex}
-.list .item.guide{align-items:flex-start}
 .list .item .tag{vertical-align:middle}
 .vrow code{overflow-wrap:anywhere}
 .dialog.sheet{max-width:560px;max-height:min(88vh,720px);display:flex;flex-direction:column;overflow:hidden}
@@ -381,12 +407,14 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   /* app bar: flat, large title, status as a dot only */
   .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left));border-bottom:0;background:var(--m3-surface)}
   .topbar h1{font-size:28px;line-height:36px;font-weight:500}
+  body:has(#tab-sdks.active.detail-open) .topbar h1{display:none}
   .live,.ver{display:none}
   .live .dot{width:10px;height:10px}
   main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
   /* navigation bar: 80dp, pill indicator, labels always shown */
   .navbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--m3-surface-container);padding:12px calc(8px + var(--sai-right)) calc(16px + var(--sai-bottom)) calc(8px + var(--sai-left));justify-content:space-around}
-  .navbar .dest{min-height:56px;min-width:64px;padding:0}
+  /* the five destinations share the bar: at 64 px each they needed 336 px, and a phone of 320 px lost the edge of the last */
+  .navbar .dest{min-height:56px;flex:1 1 0;min-width:0;padding:0}
   /* extended FAB above the bar on the pages where adding makes sense */
   .mfab{position:fixed;right:calc(16px + var(--sai-right));bottom:calc(96px + var(--sai-bottom));z-index:9;display:none;align-items:center;gap:12px;height:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.28);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
   .mfab span:last-child{display:none}
@@ -410,17 +438,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   #tab-home>.pane{display:flex;align-items:center;gap:8px;margin-bottom:12px}
   #tab-home>.pane>.row{margin:0 0 0 auto!important}
   #homeSub{font-size:14px}
-  .stats{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
-  .stat{min-height:0;padding:14px 12px 12px;border-radius:20px;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
-  .stat .shape{display:none}
-  .stat .n{font-size:28px}
-  .stat .l,.stat .lbl,.stat div:last-child{font-size:12px}
   /* terminal hint and cards: tonal containers where there is content to group */
-  /* sdks: master/detail as two screens */
-  .sdk-grid{grid-template-columns:1fr}
-  .pane-detail{display:none}
-  #tab-sdks.detail-open .pane-list{display:none}
-  #tab-sdks.detail-open .pane-detail{display:block;animation:sharedX var(--sp-slow-effects-t) var(--sp-slow-effects)}
   #snacks{bottom:calc(176px + var(--sai-bottom))}
   #error{bottom:calc(176px + var(--sai-bottom))}
   /* the keyboard is open (the Android app says so): the bars make room for the field */
@@ -452,12 +470,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .grow{flex:1;min-width:0}
 .hero .t-title-l{line-height:1.2}
 .hero .row{align-items:flex-start}
-.stats .stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;position:relative}
-.stats .stat .ic-row{display:flex;margin-bottom:10px}
-.stats .stat .ic{width:24px;height:24px}
-.stats .stat .n{font-size:34px;line-height:1.05}
-.stats .stat .l{font-size:13px;font-weight:500}
-.stats .stat .shape{position:absolute;right:-26px;bottom:-26px;width:100px;height:100px;border-radius:52% 48% 60% 40%/45% 55% 42% 58%;background:color-mix(in srgb,currentColor 12%,transparent);opacity:1}
 .seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
 .taskrow:first-child{border-radius:20px 20px 4px 4px}
 .taskrow:last-child{border-radius:4px 4px 20px 20px}
@@ -471,8 +483,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .shell .iconbtn{flex:none}
 .shell .iconbtn:active{background:var(--m3-surface-container-high)}
 .list .item:active{background:var(--m3-surface-container-high)}
-.stats .stat{transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
-.stats .stat:active{transform:scale(.97)}
 .spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
 .filterline{display:flex;align-items:center;gap:12px;margin:8px 4px 8px;min-height:32px}
 .filterline #vChips{flex:1;min-width:0;margin:0}
@@ -491,7 +501,7 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .seg button[aria-pressed="true"]{background:var(--m3-primary);color:var(--m3-on-primary)}
 .pcard{justify-content:space-between}
 .pcard .lead{display:flex;align-items:center;gap:12px;min-width:0}
-.pcard .lead .avatar{width:40px;height:40px;font-size:18px}
+.pcard .lead .avatar{width:40px;height:40px;font-size:16px}
 .pcard .lead .names{min-width:0;display:flex;flex-direction:column}
 .pcard .lead .names b{font-weight:500}
 .pcard .lead .names .nameline{display:flex;align-items:center;gap:6px}
@@ -518,7 +528,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .pagehead{margin-bottom:8px}
   .pagehead .grow .t-body{display:none}
   .sectionlabel{margin:12px 4px 4px}
-  .stats .stat .n{font-size:26px}
   .rowitem{flex-wrap:wrap}
 }
 /* ---------- phones: one column, the page title lives in the top bar ---------- */
@@ -529,10 +538,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
   .hero .t-title-l{display:none}
   .hero .iconbtn{margin-left:auto}
-  .stats{margin-bottom:8px}
-  .stats .stat .shape{display:none}
-  .stats .stat .ic-row{margin-bottom:4px}
-  .stats .stat .n{font-size:26px}
   .list .item{padding:14px 14px}
   .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
   .pagehead .grow{display:none}
@@ -541,7 +546,8 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .searchrow{flex-direction:column;align-items:stretch;gap:8px}
   .searchrow .seg{align-self:flex-start}
   .rowitem{padding:12px 0}
-  .rowitem .seg{flex-wrap:wrap}
+  /* the label of a row starts where the control of the row starts; the margin of .t-title-m on a phone is for a heading */
+  .rowitem .t-title-m{margin:0}
 }
 @media (max-width:700px){
   /* the bar already has the plugins destination; the floating button only ate the corner */

@@ -288,7 +288,7 @@ func TestVfoxUsesTheDetectedExecutableAndReadsTheVersion(t *testing.T) {
 	if controller.Availability() != state.VfoxReady {
 		t.Fatalf("got %v", controller.Availability())
 	}
-	if version, ok := controller.Version(); !ok || version != "1.0.13" {
+	if version, ok := controller.Version(); !ok || version != "1.1.0" {
 		t.Errorf("got %q %v", version, ok)
 	}
 	if executable, ok := controller.Executable(); !ok || executable != "/usr/local/bin/vfox" || controller.IsCustomExecutable() {
@@ -366,7 +366,7 @@ func TestSdkDetailFiltersTheAvailableVersionsByTextNoteAndInstallation(t *testin
 		t.Error("loading the versions is announced by the controller")
 	}
 	installed := map[string]bool{"24.11.1": true}
-	if got := controller.VisibleVersions(installed); len(got) != 872 {
+	if got := controller.VisibleVersions(installed); len(got) != 877 {
 		t.Fatalf("got %d", len(got))
 	}
 	controller.SetFilter(state.VersionFilterWithNote)
@@ -413,7 +413,7 @@ func TestSdkDetailLoadsThePluginInformation(t *testing.T) {
 	controller := state.NewSdkDetailController(testClient(testsupport.FixtureRunner()), "nodejs", nil, nil)
 	defer controller.Dispose()
 	<-controller.Info.Load()
-	if info, ok := controller.Info.Value(); !ok || info.Version != "0.5.1" {
+	if info, ok := controller.Info.Value(); !ok || info.Version != "0.5.4" {
 		t.Errorf("got %#v %v", info, ok)
 	}
 }

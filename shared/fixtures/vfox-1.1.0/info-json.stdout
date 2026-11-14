@@ -1,0 +1,7 @@
+{
+  "name": "nodejs",
+  "version": "0.5.4",
+  "homepage": "https://github.com/version-fox/vfox-nodejs",
+  "installPath": "/tmp/vfox-sb/home/.vfox/cache/nodejs",
+  "description": "Node.js runtime environment."
+}

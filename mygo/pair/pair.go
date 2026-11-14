@@ -169,6 +169,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/manifest.webmanifest", server.serveManifest)
 	mux.HandleFunc("/api/inventory", server.serveInventory)
 	mux.HandleFunc("/api/sdks/", server.serveSdks)
+	mux.HandleFunc("/api/doctor", server.serveDoctor)
 	mux.HandleFunc("/api/tasks", server.serveTasks)
 	mux.HandleFunc("/api/tasks/", server.serveTask)
 	mux.HandleFunc("/api/plugins", server.servePlugins)

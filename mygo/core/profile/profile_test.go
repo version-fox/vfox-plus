@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -140,8 +140,8 @@ func TestSearchArgumentsAndChoices(t *testing.T) {
 	if _, ok := none.Choice("tem"); ok {
 		t.Error("a nil search has no choices")
 	}
-	if lookup(t, "nodejs").Search != nil || lookup(t, "flutter").Search != nil || lookup(t, "gradle").Search != nil {
-		t.Error("nodejs, flutter and gradle ignore search arguments")
+	if lookup(t, "nodejs").Search != nil || lookup(t, "flutter").Search != nil || lookup(t, "gradle").Search != nil || lookup(t, "golang").Search != nil {
+		t.Error("nodejs, flutter, gradle and golang ignore search arguments")
 	}
 }
 
@@ -202,7 +202,8 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"java":    {[]string{"VFOX_JAVA_GITHUB_MIRROR"}, []string{".sdkmanrc"}},
 		"nodejs":  {[]string{"VFOX_NODEJS_MIRROR", "VFOX_NODEJS_LIBC"}, []string{".node-version", ".nvmrc"}},
 		"flutter": {[]string{"FLUTTER_STORAGE_BASE_URL", "VFOX_FLUTTER_GITHUB_MIRROR"}, nil},
-		"gradle":  {[]string{"VFOX_GRADLE_MIRRORS"}, nil},
+		"gradle":  {[]string{"VFOX_GRADLE_MIRRORS"}, []string{"gradle/wrapper/gradle-wrapper.properties"}},
+		"golang":  {[]string{"VFOX_GOLANG_MIRROR"}, nil},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)

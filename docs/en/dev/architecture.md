@@ -173,7 +173,7 @@ has in common, which is how the web interface of the first version came to show
 the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
 
 A *profile* (`core/profile`) writes it down, as plain data that the three
-interfaces share, for `java`, `nodejs`, `flutter` and `gradle`:
+interfaces share, for `java`, `nodejs`, `flutter`, `gradle` and `golang`:
 
 | Part | What it is |
 | --- | --- |
@@ -352,8 +352,8 @@ Low memory use is a goal of the project. The application:
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
 - ships only the icons it uses (61 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
-- stops animations that are not visible, and honours the platform's reduced
-  motion setting;
+- stops animations that are not visible, and asks for less motion on the desktop
+  whatever the platform asks (see [the design system](design-system.md#motion));
 - avoids caching data that vfox can produce again cheaply;
 - without its window, tells the system that it does not want the pages of its files for now
   (the resident set falls by 11 MB), and the Go scheduler uses at most four processors, which

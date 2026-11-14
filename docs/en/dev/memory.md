@@ -12,15 +12,15 @@ the Memory section of the [mygo README](implementation-mygo.md#memory).
 
 In MB, for the application and all of its child processes together, in Docker on
 Ubuntu 26.04 with Xvfb (1280 × 800, no GPU). "Versions" is
-the SDKs page with the 872 available versions of Node.js listed.
+the SDKs page with the 877 available versions of Node.js listed.
 
 | Implementation                   | Technology                                                        | Processes | Home PSS | Home RSS | Versions PSS | Versions RSS | The list adds (PSS) |
 | -------------------------------- | ----------------------------------------------------------------- | --------: | -------: | -------: | -----------: | -----------: | ------------------: |
-| [mygo](../../../mygo/README.md) | mygo 0.7.3, Go 1.27.3, GTK 3 (purego), CPU renderer             |         1 |       51 |       63 |           59 |           73 |                  +8 |
+| [mygo](../../../mygo/README.md) | mygo 0.9.0, Go 1.27.4, GTK 3 (purego), CPU renderer | 1 | 52 | 64 | 57 | 72 | +5 |
 
-mygo (51 MB of PSS on the Home page, in one process) draws on the processor from a
+mygo (52 MB of PSS on the Home page, in one process) draws on the processor from a
 Go executable of 18 MB and loads GTK 3 from the system. Showing the list of versions
-adds 8 MB of PSS because only the rows in view are built.
+adds 5 MB of PSS because only the rows in view are built.
 
 The build that is measured is the end-to-end build: the release build with the inspector
 of the native user interface and the automation plugin of mygo, which the measuring drives
@@ -30,6 +30,18 @@ The Android client (`android/`) is not in this table: it is a WebView around
 the web interface, so its memory is the system WebView's plus the page, and it
 is measured on the device, not with this method. What its toolkit costs is in
 [Views or Compose in the Android app](#views-or-compose-in-the-android-app).
+
+## Motion and memory
+
+From version 0.8.0 the toolkit of the desktop, egoist/mygo, draws the children of a
+transition in a layer of its own, and composites a page that changes as a full-window
+image in every frame. The layers stay allocated after the transition. In CI, measured
+with one process, the Home page took 51 MB of PSS and the Versions page 59 MB with
+toolkit 0.7.3, and 77 MB and 89 MB with toolkit 0.9.0 and its transitions. So the
+desktop asks for less motion whatever the platform asks: every value of the toolkit
+jumps to its target, the indicators that animate stop, and the views have no
+transitions (see [the design system](design-system.md#motion)). The table above is
+measured that way.
 
 ## The lightweight mode
 
@@ -281,7 +293,7 @@ interpreted and compiled just in time; "compiled" is after
    settled, and adds up `Rss` and `Pss` from `/proc/<pid>/smaps_rollup` for the
    application and every process below it.
 3. It opens the available versions of Node.js through the elements of the window
-   (the automation plugin of mygo), waits for the 872 versions and for 3 seconds, and
+   (the automation plugin of mygo), waits for the 877 versions and for 3 seconds, and
    measures again.
 
 The sizes are in MiB, which the tool calls MB. The `measure` task of the sandbox runs

@@ -16,7 +16,8 @@
 
 import { api, confirmDlg, openExternal, showError, snack } from "./api";
 import type { VersionEntry } from "./api";
-import { avatar, el, esc, icon, txt } from "./dom";
+import { aliasesOf, avatar, el, esc, icon, txt } from "./dom";
+import type { VersionAlias } from "./dom";
 import { getLang, t } from "./i18n";
 import { refresh } from "./main";
 import { state, type DetailState } from "./state";
@@ -25,6 +26,9 @@ import { runTask } from "./tasks";
 import { chip, openMenu, openSheet, partsLine, section, sectionStatus, spinner, stateBlock, tagList, wireStateRetry } from "./ui";
 
 // ---------------- sdks ----------------
+// The width from which the list and the details are side by side (the style sheet says the same).
+const TWO_PANES = "(min-width: 900px)";
+
 export function renderSdks(): void {
   const inv = state.inventory;
   if (!inv) return;
@@ -36,10 +40,19 @@ export function renderSdks(): void {
     wireStateRetry(box, () => refresh(true));
     return;
   }
+  const all = sec.value || [];
+  // With no plugin at all there is nothing for a second pane to show: the list has the page.
+  document.querySelector("#tab-sdks")?.classList.toggle("none", !all.length);
   const q = ((document.getElementById("sdkSearch") as HTMLInputElement).value || "").toLowerCase();
-  const list = (sec.value || []).filter((s) => !q || s.Name.toLowerCase().includes(q));
+  const list = all.filter((s) => !q || s.Name.toLowerCase().includes(q));
   if (!list.length) {
-    box.innerHTML = stateBlock("empty", "inventory-2", t("noSdks"), "", null);
+    if (all.length) {
+      box.innerHTML = stateBlock("empty", "search-off", t("noSdkMatch"), "", null);
+      return;
+    }
+    box.innerHTML = stateBlock("empty", "inventory-2", t("noSdks"), "", t("add"));
+    const add = box.querySelector("[data-act]");
+    if (add) (add as HTMLButtonElement).onclick = () => (location.hash = "#/plugins");
     return;
   }
   // The version in use goes under the count, not beside the name: the list is narrow, and the
@@ -72,6 +85,13 @@ export function renderSdks(): void {
       ((b as HTMLButtonElement).onclick = () =>
         (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
   );
+  // Beside the list there is always a plugin, once the page of the SDKs is the one that is shown: the one in use, or else the
+  // first. It is a default and not a place that the person went to, so the address stays what it is (#/sdks), and a page
+  // that is not shown does not open anything.
+  if (state.tab === "sdks" && !state.detail && matchMedia(TWO_PANES).matches) {
+    const first = list.find((s) => s.HasCurrent) || list[0];
+    void showDetail(first.Name);
+  }
 }
 
 export function showList(push?: boolean): void {
@@ -255,7 +275,9 @@ function renderInstalled(body: HTMLElement): void {
     const parts = d.profile && d.profile.installed && d.profile.installed[v];
     const line = parts ? partsLine(parts, getLang()) : "";
     h +=
-      "<div class='item'><span style='flex:1;min-width:0'><code>" +
+      "<div class='item'><span style='flex:1;min-width:0' data-alias-of='" +
+      esc(v) +
+      "'><code>" +
       esc(v) +
       "</code>" +
       (isCur ? ' <span class="tag cur">' + esc(t("current")) + "</span>" : "") +
@@ -273,6 +295,7 @@ function renderInstalled(body: HTMLElement): void {
       "</button></div>";
   });
   body.innerHTML = h + "</div>";
+  showAliases(body);
   body.querySelectorAll("[data-use]").forEach(
     (b) =>
       ((b as HTMLButtonElement).onclick = () =>
@@ -283,6 +306,16 @@ function renderInstalled(body: HTMLElement): void {
       ((b as HTMLButtonElement).onclick = (ev) => {
         const v = (b as HTMLButtonElement).dataset.moreVersion || "";
         openMenu(ev.currentTarget as Element, [
+          {
+            icon: "refresh",
+            label: t("versionReinstall"),
+            onclick: () => runTask({ operation: "install", sdk: d.name, version: v, reinstall: true }),
+          },
+          {
+            icon: "label",
+            label: t("aliasSet"),
+            onclick: () => openAliasSet(v),
+          },
           {
             icon: "delete",
             label: t("uninstall"),
@@ -297,6 +330,27 @@ function renderInstalled(body: HTMLElement): void {
   );
 }
 
+
+// An alias is shown after the version that it names, as the desktop does (`@j17`). The list is there before they are:
+// the aliases come from vfox, and a failure to ask for them leaves the list as it is.
+async function showAliases(body: HTMLElement): Promise<void> {
+  const d = state.detail;
+  if (!d) return;
+  const name = d.name;
+  try {
+    const aliases = (await api("/api/sdks/" + encodeURIComponent(name) + "/aliases")) as VersionAlias[];
+    if (!state.detail || state.detail.name !== name) return;
+    body.querySelectorAll<HTMLElement>("[data-alias-of]").forEach((row) => {
+      const named = aliasesOf(aliases, name, row.dataset.aliasOf || "");
+      if (!named) return;
+      const second = row.querySelector(".t-label");
+      if (second) second.textContent = (second.textContent ? second.textContent + " · " : "") + named;
+      else row.insertAdjacentHTML("beforeend", "<br><span class='muted t-label'>" + esc(named) + "</span>");
+    });
+  } catch {
+    /* the aliases are an addition */
+  }
+}
 
 /* ---- available ---- */
 function searchChoice() {
@@ -351,16 +405,22 @@ function renderAvailable(body: HTMLElement): void {
   body.innerHTML =
     '<div class="row actions">' +
     chooseBtn +
-    '<button class="btn outline" id="byNameBtn">' +
-    icon("terminal", "sm") +
-    "<span>" +
-    esc(t("installByName")) +
-    "</span></button>" +
-    "</div>" +
+    '<button class="iconbtn" id="addMore" title="' +
+    esc(t("moreWays")) +
+    '" aria-label="' +
+    esc(t("moreWays")) +
+    '" aria-haspopup="menu">' +
+    icon("add") +
+    "</button></div>" +
     '<div id="availBody"></div>';
   const choose = document.getElementById("chooseBtn");
   if (choose) choose.onclick = () => openChooser();
-  el("byNameBtn").onclick = () => openInstallByName("");
+  el("addMore").onclick = (ev) =>
+    openMenu(ev.currentTarget as Element, [
+      { id: "by-name", icon: "terminal", label: t("installByName"), onclick: () => openInstallByName("") },
+      { id: "link-detect", icon: "link", label: t("linkDetect"), onclick: () => runTask({ operation: "linkDetect", sdk: d.name, yes: true }) },
+      { id: "link-manual", icon: "folder", label: t("linkManual"), onclick: () => openLinkManual() },
+    ]);
   if (d.versions === null && !d.error && !d.loading) loadVersions();
   else drawAvailable();
 }
@@ -500,7 +560,9 @@ function drawVersions(): void {
           "</span>" +
           (inst.has(v.Version)
             ? ""
-            : "<button class='btn text' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>") +
+            : "<span class='split'><button class='btn tonal' data-install='" + esc(v.Version) + "'>" + esc(t("install")) + "</button>" +
+              "<button class='btn tonal' data-install-more='" + esc(v.Version) + "' aria-haspopup='menu' title='" + esc(t("actions")) + "'>" +
+              icon("keyboard-arrow-down", "sm") + "</button></span>") +
           "</div>"
         );
       })
@@ -512,6 +574,15 @@ function drawVersions(): void {
     (b) =>
       ((b as HTMLButtonElement).onclick = () =>
         runTask({ operation: "install", sdk: d.name, version: (b as HTMLButtonElement).dataset.install || "" })),
+  );
+  list.querySelectorAll("[data-install-more]").forEach(
+    (b) =>
+      ((b as HTMLButtonElement).onclick = (ev) => {
+        const v = (b as HTMLButtonElement).dataset.installMore || "";
+        openMenu(ev.currentTarget as Element, [
+          { icon: "check", label: t("installUse"), onclick: () => runTask({ operation: "install", sdk: d.name, version: v, use: true }) },
+        ]);
+      }),
   );
   const more = document.getElementById("showMore");
   if (more)
@@ -596,6 +667,30 @@ function validSpec(v: string): boolean {
   return !!v && !/^[-\s@]/.test(v);
 }
 
+// A switch in a sheet, like the ones of the options: its label, and a button that has the role of a switch.
+// It starts off; wireSwitch makes it turn, and switchOn tells which way it is.
+function switchRow(id: string, label: string): string {
+  return (
+    '<div class="row" style="justify-content:space-between;margin:12px 0 0"><span>' +
+    esc(label) +
+    '</span><button class="switch" role="switch" id="' +
+    id +
+    '" aria-checked="false" aria-label="' +
+    esc(label) +
+    '"></button></div>'
+  );
+}
+
+function wireSwitch(id: string): void {
+  const button = document.getElementById(id);
+  if (button) button.onclick = () => button.setAttribute("aria-checked", String(button.getAttribute("aria-checked") !== "true"));
+}
+
+function switchOn(id: string): boolean {
+  const button = document.getElementById(id);
+  return !!button && button.getAttribute("aria-checked") === "true";
+}
+
 function openInstallByName(initial: string): void {
   const d = state.detail;
   if (!d) return;
@@ -610,9 +705,8 @@ function openInstallByName(initial: string): void {
           esc(t("namesToTry")) +
           '</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>'
         : "") +
-      '<p class="muted t-label" style="margin:12px 0 0">' +
-      esc(t("installNameNote")) +
-      '</p><div class="actions"><button class="btn text" id="nameCancel">' +
+      switchRow("nameUse", t("installUseAfter")) +
+      '<div class="actions"><button class="btn text" id="nameCancel">' +
       esc(t("cancel")) +
       '</button><button class="btn primary" id="nameOk">' +
       icon("download", "sm") +
@@ -621,7 +715,8 @@ function openInstallByName(initial: string): void {
       "</span></button></div>";
     const input = document.getElementById("nameIn") as HTMLInputElement;
     const help = document.getElementById("nameHelp") as HTMLElement;
-    help.textContent = t("installNameHelp").replace("{name}", d.name);
+    const guide = () => (p && (p.guide.en || p.guide.zh) ? txt(p.guide, getLang()) : "");
+    help.textContent = guide();
     input.value = initial || "";
     const sync = () => {
       const cur = input.value.trim();
@@ -633,7 +728,7 @@ function openInstallByName(initial: string): void {
             (b) =>
               ((b as HTMLButtonElement).onclick = () => {
                 input.value = (b as HTMLButtonElement).dataset.name || "";
-                help.textContent = t("installNameHelp").replace("{name}", d.name);
+                help.textContent = guide();
                 help.classList.remove("bad");
                 sync();
               }),
@@ -655,11 +750,12 @@ function openInstallByName(initial: string): void {
         help.classList.add("bad");
         return;
       }
+      const use = switchOn("nameUse");
       close();
-      runTask({ operation: "install", sdk: d.name, version: v });
+      runTask({ operation: "install", sdk: d.name, version: v, use });
     };
     input.oninput = () => {
-      help.textContent = t("installNameHelp").replace("{name}", d.name);
+      help.textContent = guide();
       help.classList.remove("bad");
       sync();
     };
@@ -668,8 +764,53 @@ function openInstallByName(initial: string): void {
     };
     (document.getElementById("nameOk") as HTMLButtonElement).onclick = submit;
     (document.getElementById("nameCancel") as HTMLButtonElement).onclick = close;
+    wireSwitch("nameUse");
     sync();
     window.setTimeout(() => input.focus(), 50);
+  });
+}
+
+function openLinkManual(): void {
+  const d = state.detail;
+  if (!d) return;
+  openSheet(t("linkPathTitle"), "link", (box, close) => {
+    box.innerHTML =
+      '<div class="field"><label for="linkVer">' +
+      esc(t("linkVersionField")) +
+      '</label><input id="linkVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="17-system"></div>' +
+      '<div class="field"><label for="linkPath">' +
+      esc(t("linkPathField")) +
+      '</label><input id="linkPath" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label">' +
+      esc(t("linkPathHelp")) +
+      "</div></div>" +
+      switchRow("linkForce", t("linkForce")) +
+      '<div class="actions"><button class="btn text" id="linkCancel">' +
+      esc(t("cancel")) +
+      '</button><button class="btn primary" id="linkOk">' +
+      icon("link", "sm") +
+      "<span>" +
+      esc(t("linkConfirm")) +
+      "</span></button></div>";
+    const ver = document.getElementById("linkVer") as HTMLInputElement;
+    const path = document.getElementById("linkPath") as HTMLInputElement;
+    const submit = () => {
+      const v = ver.value.trim();
+      const pth = path.value.trim();
+      if (!v || !pth) return;
+      const force = switchOn("linkForce");
+      close();
+      runTask({ operation: "link", sdk: d.name, version: v, path: pth, force });
+    };
+    ver.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    path.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    (document.getElementById("linkOk") as HTMLButtonElement).onclick = submit;
+    (document.getElementById("linkCancel") as HTMLButtonElement).onclick = close;
+    wireSwitch("linkForce");
+    window.setTimeout(() => ver.focus(), 50);
   });
 }
 
@@ -683,27 +824,15 @@ function renderOptions(body: HTMLElement): void {
     return;
   }
   let h = "";
-  if (p.guide && (p.guide.en || p.guide.zh))
-    h +=
-      '<div class="list"><div class="item guide">' +
-      icon("info") +
-      "<span style='flex:1'><b>" +
-      esc(t("guideTitle")) +
-      "</b><br><span class='muted'>" +
-      esc(txt(p.guide, getLang())) +
-      "</span></span></div>";
   if (p.variables.length) {
     h += section(
       t("downloads"),
-      t("downloadsHelp"),
       p.variables
         .map((v) => {
           const preset = (v.presets || []).find((x) => x.value === v.value);
           const sub = v.value ? (preset ? txt(preset.name, getLang()) + " · " : "") + v.value : t("unset");
           return (
-            "<div class='item'>" +
-            icon("download") +
-            "<span style='flex:1;min-width:0'><b>" +
+            "<div class='item'><span style='flex:1;min-width:0'><b>" +
             esc(txt(v.label, getLang())) +
             "</b>" +
             (v.advanced ? " " + tagList([t("advanced")]) : "") +
@@ -721,27 +850,17 @@ function renderOptions(body: HTMLElement): void {
         .join(""),
     );
   }
-  h += '<div class="t-title-m" style="margin-top:20px">' + esc(t("legacyTitle")) + '</div><div class="list">';
-  if (!p.legacyFiles.length)
-    h += "<div class='item'>" + icon("history") + "<span class='muted'>" + esc(t("legacyNone")) + "</span></div>";
-  else {
-    h +=
-      "<div class='item'>" +
-      icon("history") +
-      "<span style='flex:1'><b>" +
-      esc(t("legacyFiles")) +
-      "</b><br><span class='muted t-label'>" +
-      esc(t("legacyFilesHelp")) +
-      "</span><br>" +
-      tagList(p.legacyFiles) +
-      "</span></div>";
+  // The version files: the switch names them, and the choice of the version is there where the plugin has one.
+  if (p.legacyFiles.length) {
     const on = configValue("legacyVersionFile.enable") === "true";
     h +=
-      '<div class="item"><span class="lead"></span><span style="flex:1"><b>' +
+      '<div class="t-title-m" id="legacyHead" style="margin-top:20px">' +
+      esc(t("legacyTitle")) +
+      '</div><div class="list"><div class="item"><span style="flex:1"><b>' +
       esc(t("legacyEnable")) +
-      '</b><br><span class="muted t-label">' +
-      esc(t("legacyEnableHelp")) +
-      '</span></span><button class="switch" role="switch" id="legacySwitch" aria-checked="' +
+      "</b><br>" +
+      tagList(p.legacyFiles) +
+      '</span><button class="switch" role="switch" id="legacySwitch" aria-checked="' +
       on +
       '" aria-label="' +
       esc(t("legacyEnable")) +
@@ -749,9 +868,9 @@ function renderOptions(body: HTMLElement): void {
     if (p.legacyStrategy) {
       const strat = configValue("legacyVersionFile.strategy");
       h +=
-        '<div class="item"><span class="lead"></span><span style="flex:1;min-width:0"><b>' +
+        '<div class="item"><div class="grow stack"><b id="legacyStrategyLabel">' +
         esc(t("legacyStrategy")) +
-        '</b></span><div class="seg" id="legacyStrategy">' +
+        '</b><div class="seg" id="legacyStrategy" role="group" aria-labelledby="legacyStrategyLabel">' +
         (
           [
             ["specified", t("strategySpecified")],
@@ -764,58 +883,25 @@ function renderOptions(body: HTMLElement): void {
               "<button data-s='" + x[0] + "' aria-pressed='" + (strat === x[0]) + "'>" + esc(x[1]) + "</button>",
           )
           .join("") +
-        "</div></div>";
-    } else
-      h +=
-        '<div class="item"><span class="lead"></span><span class="muted">' +
-        esc(t("legacyIgnored").replace("{setting}", t("legacyStrategy"))) +
-        "</span></div>";
+        "</div></div></div>";
+    }
+    h += "</div>";
   }
-  h += "</div>";
-  if (p.shorthands.length) {
-    h += section(
-      t("shorthands"),
-      t("shorthandsHelp").replace("{name}", d.name),
-      p.shorthands
-        .map(
-          (s) =>
-            "<div class='item'>" +
-            icon("terminal") +
-            "<span style='flex:1;min-width:0'><code>" +
-            esc(s.name) +
-            '</code><br><span class="muted t-label">' +
-            esc(txt(s.meaning, getLang())) +
-            "</span></span><button class='btn tonal' data-try='" +
-            esc(s.name) +
-            "'>" +
-            icon("download", "sm") +
-            "<span>" +
-            esc(t("installDots")) +
-            "</span></button></div>",
-        )
-        .join(""),
-    );
-  }
+  h += '<div class="t-title-m" id="aliasHead" style="margin-top:20px">' + esc(t("aliasTitle")) + '</div><div class="list" id="aliasList"><div class="item"><span class="muted">…</span></div></div>';
   if (p.tips.length)
     h += section(
       t("tips"),
-      "",
-      p.tips
-        .map((x) => "<div class='item'>" + icon("info") + "<span style='flex:1'>" + esc(txt(x, getLang())) + "</span></div>")
-        .join(""),
+      p.tips.map((x) => "<div class='item'><span style='flex:1'>" + esc(txt(x, getLang())) + "</span></div>").join(""),
     );
   if (p.docs.length)
     h += section(
       t("docs"),
-      "",
       p.docs
         .map(
           (x) =>
             "<button class='item' data-doc='" +
             esc(txt(x.url, getLang())) +
-            "'>" +
-            icon("menu-book") +
-            "<span style='flex:1'>" +
+            "'><span style='flex:1'>" +
             esc(txt(x.title, getLang())) +
             "</span>" +
             icon("open-in-new", "sm muted") +
@@ -830,9 +916,6 @@ function renderOptions(body: HTMLElement): void {
         const v = p.variables.find((x) => x.key === (b as HTMLButtonElement).dataset.var);
         if (v) openVariable(v);
       }),
-  );
-  body.querySelectorAll("[data-try]").forEach(
-    (b) => ((b as HTMLButtonElement).onclick = () => openInstallByName((b as HTMLButtonElement).dataset.try || "")),
   );
   body.querySelectorAll("[data-doc]").forEach(
     (b) => ((b as HTMLButtonElement).onclick = () => openExternal((b as HTMLButtonElement).dataset.doc || "")),
@@ -860,6 +943,85 @@ function renderOptions(body: HTMLElement): void {
         }
       }),
   );
+  loadAliases();
+}
+
+async function loadAliases(): Promise<void> {
+  const d = state.detail;
+  const host = document.getElementById("aliasList");
+  if (!d || !host) return;
+  try {
+    const aliases = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/aliases")) as { sdk: string; alias: string; target: string }[];
+    host.innerHTML = aliases
+      .map(
+        (x) =>
+          "<div class='item'><span style='flex:1'><code>" +
+          esc(x.alias) +
+          "</code><br><span class='muted t-label'>" +
+          esc(x.target) +
+          "</span></span><button class='btn text' data-unalias='" +
+          esc(x.alias) +
+          "'>" +
+          esc(t("aliasUnset")) +
+          "</button></div>",
+      )
+      .join("");
+    host.innerHTML +=
+      "<div class='item'><span style='flex:1'></span><button class='btn tonal' id='aliasAdd'>" +
+      icon("add", "sm") +
+      "<span>" +
+      esc(t("aliasSet")) +
+      "</span></button></div>";
+    host.querySelectorAll("[data-unalias]").forEach(
+      (b) =>
+        ((b as HTMLButtonElement).onclick = () =>
+          runTask({ operation: "aliasUnset", sdk: d.name, alias: (b as HTMLButtonElement).dataset.unalias || "" })),
+    );
+    (document.getElementById("aliasAdd") as HTMLButtonElement).onclick = () => openAliasSet();
+  } catch (e) {
+    host.innerHTML = "<div class='item'><span class='bad'>" + esc(e instanceof Error ? e.message : String(e)) + "</span></div>";
+  }
+}
+
+function openAliasSet(initialVersion?: string): void {
+  const d = state.detail;
+  if (!d) return;
+  openSheet(t("aliasSet"), "label", (box, close) => {
+    box.innerHTML =
+      '<div class="field"><label for="aliasIn">' +
+      esc(t("aliasField")) +
+      '</label><input id="aliasIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="j17"></div>' +
+      '<div class="field"><label for="aliasVer">' +
+      esc(t("linkVersionField")) +
+      '</label><input id="aliasVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="17-system"></div>' +
+      '<div class="actions"><button class="btn text" id="aliasCancel">' +
+      esc(t("cancel")) +
+      '</button><button class="btn primary" id="aliasOk">' +
+      icon("add", "sm") +
+      "<span>" +
+      esc(t("aliasSet")) +
+      "</span></button></div>";
+    const aliasIn = document.getElementById("aliasIn") as HTMLInputElement;
+    const verIn = document.getElementById("aliasVer") as HTMLInputElement;
+    const sdk = installedOf(d.name);
+    verIn.value = initialVersion || (sdk && sdk.HasCurrent ? sdk.Current : (sdk && sdk.Versions && sdk.Versions[0]) || "");
+    const submit = () => {
+      const a = aliasIn.value.trim();
+      const v = verIn.value.trim();
+      if (!a || !v) return;
+      close();
+      runTask({ operation: "aliasSet", sdk: d.name, alias: a, version: v });
+    };
+    aliasIn.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    verIn.onkeydown = (ev) => {
+      if (ev.key === "Enter") submit();
+    };
+    (document.getElementById("aliasOk") as HTMLButtonElement).onclick = submit;
+    (document.getElementById("aliasCancel") as HTMLButtonElement).onclick = close;
+    window.setTimeout(() => aliasIn.focus(), 50);
+  });
 }
 
 function openVariable(variable: {
@@ -980,4 +1142,5 @@ export function updateDetail(): void {
 export function initSdks(): void {
   (document.getElementById("sdkSearch") as HTMLInputElement).oninput = () => renderSdks();
   el("sdkRefresh").onclick = () => refresh(true);
+  matchMedia(TWO_PANES).addEventListener("change", () => renderSdks());
 }
