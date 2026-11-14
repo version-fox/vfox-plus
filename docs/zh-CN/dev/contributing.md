@@ -78,13 +78,19 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 与 [version-fox/vfox-java](https://github.com/version-fox/vfox-java) 的发布一样，
 发布手动启动：
 
-1. 先在 Pull Request 里定版本：`mygo/VERSION` 与 `mygo/ui/app.go` 的 `Version`
-   常量（有单元测试保证两者一致）。
-2. Actions、Release、Run workflow，输入不带 `v` 的版本号（`0.2.0`）。推送
+1. 先在 Pull Request 里定版本，并合并进 `main`：`mygo/VERSION` 与 `mygo/ui/app.go`
+   的 `Version` 常量（有单元测试保证两者一致）。
+2. 确认 `main` 上最近一次 `mygo` 运行已通过。发布任务只做 `go vet` 和冒烟测试，
+   不跑单元测试，也不跑端到端场景。
+3. Actions、Release、Run workflow，输入不带 `v` 的版本号（`0.2.0`）。推送
    `v*` 标签跑同一个任务。
-3. 任务只接受 `major.minor.patch`、只接受 `mygo/VERSION` 写明的版本，已存在的标签会被拒绝。任务打
+4. 任务只接受 `major.minor.patch`、只接受 `mygo/VERSION` 写明的版本，已存在的标签会被拒绝。任务打
    `v<版本>` 标签，按[持续集成](#持续集成)打包外加 `snap/snapcraft.yaml` 的 classic
    snap，以 `--generate-notes` 发布 GitHub release，其附件就是[自更新检查](architecture.md#自身更新)读取的那些。
+
+任务在打了标签之后失败时，`v<版本>` 标签会留在远端，新的手动运行会拒绝这个版本。先删除标签
+（`git push origin --delete v<版本>`）；若已发布了 release，再删除它（`gh release delete v<版本>`）；
+修好原因后重新运行。
 
 ## 文档语言
 

@@ -21,6 +21,8 @@ audience:
 | --- | --- | --- |
 | User guides | [docs/en/user/index.md](docs/en/user/index.md) | [docs/zh-CN/user/index.md](docs/zh-CN/user/index.md) |
 | Developer specification | [docs/en/dev/architecture.md](docs/en/dev/architecture.md) | [docs/zh-CN/dev/architecture.md](docs/zh-CN/dev/architecture.md) |
+| Contributing | [docs/en/dev/contributing.md](docs/en/dev/contributing.md) | [docs/zh-CN/dev/contributing.md](docs/zh-CN/dev/contributing.md) |
+| Releasing a version | [docs/en/dev/contributing.md#release](docs/en/dev/contributing.md#release) | [docs/zh-CN/dev/contributing.md#发布](docs/zh-CN/dev/contributing.md#发布) |
 
 Start with the [user guide](docs/en/user/index.md) ([简体中文](docs/zh-CN/user/index.md)):
 what it does, [install](docs/en/user/install.md), [use](docs/en/user/using.md),

@@ -19,6 +19,8 @@
 | --- | --- | --- |
 | 用户指南 | [docs/en/user/index.md](docs/en/user/index.md) | [docs/zh-CN/user/index.md](docs/zh-CN/user/index.md) |
 | 开发者规约 | [docs/en/dev/architecture.md](docs/en/dev/architecture.md) | [docs/zh-CN/dev/architecture.md](docs/zh-CN/dev/architecture.md) |
+| 贡献指南 | [docs/en/dev/contributing.md](docs/en/dev/contributing.md) | [docs/zh-CN/dev/contributing.md](docs/zh-CN/dev/contributing.md) |
+| 发布版本 | [docs/en/dev/contributing.md#release](docs/en/dev/contributing.md#release) | [docs/zh-CN/dev/contributing.md#发布](docs/zh-CN/dev/contributing.md#发布) |
 
 从[用户指南](docs/zh-CN/user/index.md)（[English](docs/en/user/index.md)）开始：
 功能、[安装](docs/zh-CN/user/install.md)、[使用](docs/zh-CN/user/using.md)、

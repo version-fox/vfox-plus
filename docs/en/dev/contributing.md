@@ -96,16 +96,25 @@ Like the releases of
 [version-fox/vfox-java](https://github.com/version-fox/vfox-java), a release
 is started by hand:
 
-1. Set the version in a pull request: `mygo/VERSION` and the `Version`
-   constant in `mygo/ui/app.go` (a unit test keeps them in sync).
-2. Actions, Release, Run workflow, and type the version without the `v`
+1. Set the version in a pull request, and merge it into `main`: `mygo/VERSION`
+   and the `Version` constant in `mygo/ui/app.go` (a unit test keeps them in
+   sync).
+2. Check that the last `mygo` run on `main` passed. The release job vets the
+   code and smoke-tests the build, but it runs neither the unit tests nor the
+   end-to-end scenarios.
+3. Actions, Release, Run workflow, and type the version without the `v`
    (`0.2.0`). Pushing a `v*` tag runs the same job.
-3. The job refuses anything but `major.minor.patch`, anything `mygo/VERSION`
+4. The job refuses anything but `major.minor.patch`, anything `mygo/VERSION`
    does not say, and an existing tag. It tags `v<version>`, packages what
    [`mygo.yml`](#continuous-integration) packages plus the classic snap from
    `snap/snapcraft.yaml`, and publishes the GitHub release with
    `--generate-notes`, whose assets are what
    [the self-update check](architecture.md#self-updates) reads.
+
+If a run fails after the job has tagged, the tag `v<version>` stays on the
+remote, and a new run by hand refuses that version. Delete the tag
+(`git push origin --delete v<version>`) and, if one was published, the release
+(`gh release delete v<version>`), fix the cause, and run again.
 
 ## Documentation languages
 
