@@ -197,14 +197,15 @@ its artifact with a key that it makes and throws away, so that the release signi
 built on every change.
 
 The four secrets are in the `release` environment, and nowhere else in the repository.
-Only the release job reads them, after the maintainer approves its run, and only a run
-from `main` or from a tag `v*` can use the environment. GitHub does not show their
-values, and the maintainer does not share them. If you need the actual values of these
-four secrets, contact <https://github.com/linghengqian>.
+Only the release job reads them, after a member of `@version-fox/vfox-maintainers` or
+`@version-fox/vfox-committers` approves its run, and only a run from `main` or from a tag
+`v*` can use the environment. GitHub does not show their values, and the maintainers do
+not share them. If you need the actual values of these four secrets, contact
+<https://github.com/linghengqian>.
 
 To set the release key up, once. Create the `release` environment in the repository
-settings (Environments): the required reviewer is the maintainer, and the deployment
-branches and tags are `main` and `v*`. Keep the keystore and its passwords in a password
+settings (Environments): the required reviewers are the teams `vfox-maintainers` and
+`vfox-committers`, and the deployment branches and tags are `main` and `v*`. Keep the keystore and its passwords in a password
 manager, and a copy somewhere else: without them no later release can update an
 installed app.
 
