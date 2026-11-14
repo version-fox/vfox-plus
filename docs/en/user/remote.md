@@ -22,10 +22,10 @@ five minutes, and *Copy link* makes another one for the clipboard.
 The paired browser gets the full interface: installed SDKs with
 install/uninstall/use, the plugin registry with add/update/remove, tasks with
 live progress and logs, and the settings. The plugins vfox-java, vfox-nodejs,
-vfox-flutter, vfox-gradle and vfox-golang get everything they offer, as in the desktop
+vfox-flutter, vfox-gradle, vfox-golang and vfox-python get everything they offer, as in the desktop
 application: the distribution of Java to list, filter chips, installation by name,
 the links and aliases of vfox 1.1.0 and the options with the download mirrors (see
-[Java, Node.js, Flutter, Gradle and Go](using.md#java-nodejs-flutter-gradle-and-go)).
+[Java, Node.js, Flutter, Gradle, Go and Python](using.md#java-nodejs-flutter-gradle-go-and-python)).
 The [Android app](android.md) shows the same interface.
 
 | The paired web interface | Java in it: Temurin, long-term support |

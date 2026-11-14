@@ -173,7 +173,7 @@ has in common, which is how the web interface of the first version came to show
 the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
 
 A *profile* (`core/profile`) writes it down, as plain data that the three
-interfaces share, for `java`, `nodejs`, `flutter`, `gradle` and `golang`:
+interfaces share, for `java`, `nodejs`, `flutter`, `gradle`, `golang` and `python`:
 
 | Part | What it is |
 | --- | --- |

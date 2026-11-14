@@ -262,7 +262,7 @@ vfox 1.1.0 的键：
 `<版本>` 不只是搜索列表里的名称。插件的 `PreInstall` 钩子把收到的内容变成安装包，而 version-fox 组织的
 插件能理解的不止列出的名称：vfox-nodejs 接受版本的开头（`24`、`24.21`）与 `latest`；vfox-flutter 接受通道
 `stable` 与 `beta`（可带架构后缀），并以通道指向的版本命名安装；vfox-java 接受版本加发行版（`21-tem`、
-`temurin-21`、`21.0.8-tem`、`21-zulu-fx`）或抢先体验版（`28.ea-open`）。所以应用会安装用户输入的任何名称，
+`temurin-21`、`21.0.8-tem`、`21-zulu-fx`）或抢先体验版（`28.ea-open`）；vfox-gradle 接受 `latest`；vfox-golang 接受 `latest` 与 `1.27rc3` 这样的候选版；vfox-python 接受 `latest`、`3.13` 或 `3.13t` 这样的部分版本号，以及 `graalpy-24.2.0` 这样的完整 GraalPy 名称。所以应用会安装用户输入的任何名称，
 按其他版本一样检查（不能为空、不能以 `-` 开头、不含空白、不含 `@`），并在之后从 `vfox list` 取已安装的名称，
 因为通道不是已安装的名称。每个插件的[配置档案](architecture.md#插件配置档案)列出值得推荐的名称。
 
@@ -271,7 +271,7 @@ vfox 1.1.0 的键：
 插件从 vfox 进程的环境里读环境变量，所以应用把设置里的额外环境传给每条 vfox 命令（见[环境](#环境)）：
 `VFOX_JAVA_GITHUB_MIRROR` 与 `VFOX_FLUTTER_GITHUB_MIRROR`（加在 GitHub 地址前面的前缀，必须以 `http://` 或
 `https://` 开头；vfox 会把其他值当成磁盘上的文件）、`VFOX_NODEJS_MIRROR`、`FLUTTER_STORAGE_BASE_URL` 与
-`VFOX_NODEJS_LIBC`（`musl` 或 `glibc`）。vfox 按参数列表把搜索的答案缓存 `cache.availableHookDuration`，
+`VFOX_NODEJS_LIBC`（`musl` 或 `glibc`）、`VFOX_GRADLE_MIRRORS`、`VFOX_GOLANG_MIRROR`（以 `/` 结尾）、`VFOX_PYTHON_MIRROR`、`VFOX_PYTHON_UV_BUILD_MIRROR`、`VFOX_PYTHON_USE_UV_BUILD`（`0` 或 `1`）、`VFOX_PYTHON_UV_LIBC`（`gnu` 或 `musl`）与 `VFOX_PYTHON_REGISTER_PY_LAUNCHER`（Windows 上设为 `0` 则关闭启动器注册）。vfox 按参数列表把搜索的答案缓存 `cache.availableHookDuration`，
 与环境无关，所以更换镜像后，列表要等缓存过期才会反映出来。
 
 ### GUI 不跑的命令

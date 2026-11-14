@@ -214,12 +214,12 @@ type Registry struct {
 }
 
 // NewRegistry creates a registry with the profiles of the plugins of the
-// version-fox organisation: java, nodejs, flutter, gradle and golang. The
-// platform decides what a search of java offers: the Loongnix JDKs on Linux
+// version-fox organisation: java, nodejs, flutter, gradle, golang and python.
+// The platform decides what a search of java offers: the Loongnix JDKs on Linux
 // for loong64, the distributions of Foojay everywhere else.
 func NewRegistry(platform Platform) *Registry {
 	registry := &Registry{profiles: make(map[string]Profile)}
-	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile(), gradleProfile(), golangProfile()} {
+	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile(), gradleProfile(), golangProfile(), pythonProfile(platform)} {
 		registry.profiles[profile.Plugin] = profile
 	}
 	return registry
