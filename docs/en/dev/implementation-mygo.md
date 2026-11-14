@@ -155,10 +155,11 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run fake build/vfox-plus-e2e
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run python build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
-  `fake` runs against the fake vfox of the fixtures, `real` against the real vfox with the offline
+  `fake` runs against the fake vfox of the fixtures, `python` against the same fake vfox on a machine that has Python installed, and `real` against the real vfox with the offline
   test plugin and its server. `tray` is the icon in the tray: on Linux against a stand-in for the host
   of the tray icons that needs the session bus that `dbus-run-session` gives and `libayatana-appindicator3`
   (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine.

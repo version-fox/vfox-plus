@@ -125,10 +125,11 @@ Go 模块与构建缓存。
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run fake build/vfox-plus-e2e
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run python build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
-  `fake` 对夹具假 vfox，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
+  `fake` 对夹具假 vfox，`python` 对同一个假 vfox，但机器上装着 Python，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
   替身托盘宿主，它需要 `dbus-run-session` 给的会话总线和 `libayatana-appindicator3`（见[托盘](architecture.md#托盘)），
   在 Windows 上对着本机的任务栏。`tray-gnome` 是同一个图标对着一个没有屏幕的真实 GNOME Shell，它在
   `shared/sandbox/gnome.Dockerfile` 的容器里（需要 Docker；构建产物以挂载方式放进去）：

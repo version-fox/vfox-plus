@@ -105,27 +105,27 @@ func pythonProfile(platform Platform) Profile {
 			{ID: "implementation", Label: text("Implementation", "实现"), Kind: FacetNote, Values: []string{"GraalPy", "GraalPy Community"}},
 		},
 		Guide: text(
-			"A version is a CPython release as the list shows it: 3.12.2, or a pre-release such as 3.14.0a4. A free-threaded build ends in t, as in 3.14.0a4t. GraalPy is named in full, such as graalpy-24.2.0. A partial name such as 3.12 installs the newest release of that line.",
-			"版本就是列表里显示的名称：正式的 CPython 版本如 3.12.2，预发布版如 3.14.0a4。自由线程版以 t 结尾，如 3.14.0a4t。GraalPy 要写完整名称，如 graalpy-24.2.0。3.12 这样的部分版本号会安装该版本线上最新的版本。"),
+			"A version is a CPython release as the list shows it, such as 3.12.2, 3.14.0a4 or 3.14.0a4t. A partial name such as 3.12 installs the newest release of that line; GraalPy is named in full, such as graalpy-24.2.0.",
+			"版本就是列表里显示的名称，如 3.12.2、3.14.0a4 或 3.14.0a4t。3.12 这样的部分版本号会安装该版本线上最新的版本；GraalPy 要写完整名称，如 graalpy-24.2.0。"),
 		Tips: []Text{
 			text(
-				"On Linux and macOS, a CPython release that the uv-build index lists installs as a prebuilt archive, with no compiler and no build packages. The other releases are built from source, which needs the development packages of the system.",
-				"在 Linux 和 macOS 上，uv-build 索引列出的 CPython 版本直接安装预编译的压缩包，不需要编译器，也不需要构建依赖。其他版本从源码构建，需要系统的开发包。"),
+				"On Linux and macOS, uv-build installs the CPython releases its index lists; others are built from source.",
+				"在 Linux 和 macOS 上，uv-build 直接安装索引列出的 CPython 版本，其他版本从源码构建。"),
 			text(
-				"A partial name without t never selects a free-threaded build or a pre-release: python@3.13 is not python@3.13t. Write 3.13t for the free-threaded line, and a pre-release such as 3.14.0a4 in full.",
-				"不带 t 的部分版本号既不会选中自由线程版，也不会选中预发布版：python@3.13 不是 python@3.13t。自由线程版请写 3.13t，预发布版（如 3.14.0a4）请写完整。"),
+				"A partial name without t never selects a free-threaded build or a pre-release.",
+				"不带 t 的部分版本号既不会选中自由线程版，也不会选中预发布版。"),
 			text(
-				"With the install method set to uv-build only, GraalPy cannot be installed. The default install method and the source build install it from Oracle's archive.",
-				"安装方式设为“仅 uv-build”时无法安装 GraalPy。默认安装方式和源码构建都从 Oracle 的压缩包安装它。"),
+				"With uv-build only, GraalPy cannot be installed.",
+				"选择“仅 uv-build”时无法安装 GraalPy。"),
 			text(
-				"On Windows the installers come from python.org: the EXE, or the MSI for a release that python.org publishes only as one. A release without an installer fails before anything is downloaded.",
-				"在 Windows 上，安装包来自 python.org：有 EXE 就用 EXE，只有 MSI 的版本用 MSI。没有安装包的版本会在下载前失败。"),
+				"On Windows, installers come from python.org.",
+				"在 Windows 上，安装包来自 python.org。"),
 			text(
-				"A linked Python keeps its source in its name, such as 3.12.3-system. Uninstalling a linked version removes only the link.",
-				"链接的 Python 会在名称中保留来源，如 3.12.3-system。卸载链接的版本只会删除链接。"),
+				"A linked Python keeps its source in its name, such as 3.12.3-system.",
+				"链接的 Python 会在名称中保留来源，如 3.12.3-system。"),
 			text(
-				"GraalPy releases are looked up on GitHub. Set GITHUB_TOKEN or GH_TOKEN in the environment to raise GitHub's anonymous rate limit.",
-				"GraalPy 的发行版在 GitHub 上查找。在环境中设置 GITHUB_TOKEN 或 GH_TOKEN，可以提高 GitHub 的匿名访问速率限制。"),
+				"GITHUB_TOKEN raises the GitHub rate limit.",
+				"设置 GITHUB_TOKEN 或 GH_TOKEN 可以提高 GitHub 的访问速率限制。"),
 		},
 		Docs: []Link{
 			docs("vfox-python", "versions", text("Versions and names", "版本与命名")),

@@ -224,6 +224,59 @@ func TestWebProfileDescribesWhatThePluginOffers(t *testing.T) {
 	}
 }
 
+// TestWebProfileOfPythonOffersItsOptionsAndTheGraalPyFilter is the profile of Python as the web
+// interface reads it: the downloads, the version file, and the filter of the GraalPy builds.
+func TestWebProfileOfPythonOffersItsOptionsAndTheGraalPyFilter(t *testing.T) {
+	runner := testsupport.FixtureRunner().
+		On("list", testsupport.FixtureOutput("list-python", 0)).
+		On("current", testsupport.FixtureOutput("current-python", 0))
+	model := testModel(t, runner)
+	server := webServer(t, model)
+	session := webSession(t, server)
+	status, body := webGet(t, server.BaseURL()+"/api/sdks/python/profile", session)
+	if status != http.StatusOK {
+		t.Fatalf("got %d: %s", status, body)
+	}
+	var answer struct {
+		Plugin         string
+		Naming         string
+		LegacyFiles    []string
+		LegacyStrategy bool
+		Shorthands     []struct{ Name string }
+		Variables      []struct{ Key, Kind string }
+		Facets         []struct {
+			ID     string
+			Values []string
+		}
+		Docs []struct{ URL struct{ EN, ZH string } }
+	}
+	decodeJSON(t, body, &answer)
+	if answer.Plugin != "python" || answer.Naming != "plain" || !answer.LegacyStrategy {
+		t.Errorf("got %+v", answer)
+	}
+	if len(answer.LegacyFiles) != 1 || answer.LegacyFiles[0] != ".python-version" {
+		t.Errorf("legacy files = %v", answer.LegacyFiles)
+	}
+	kinds := map[string]string{}
+	for _, variable := range answer.Variables {
+		kinds[variable.Key] = variable.Kind
+	}
+	for key, kind := range map[string]string{
+		"VFOX_PYTHON_MIRROR": "url", "VFOX_PYTHON_USE_UV_BUILD": "choice", "VFOX_PYTHON_UV_BUILD_MIRROR": "url",
+	} {
+		if kinds[key] != kind {
+			t.Errorf("variable %s is %q, want %q (variables %v)", key, kinds[key], kind, kinds)
+		}
+	}
+	if len(answer.Facets) != 1 || answer.Facets[0].ID != "implementation" ||
+		len(answer.Facets[0].Values) != 2 || answer.Facets[0].Values[0] != "GraalPy" || answer.Facets[0].Values[1] != "GraalPy Community" {
+		t.Errorf("facets = %+v", answer.Facets)
+	}
+	if len(answer.Shorthands) == 0 || len(answer.Docs) == 0 || !strings.Contains(answer.Docs[0].URL.ZH, "/docs/zh-CN/") {
+		t.Errorf("shorthands %v, docs %+v", answer.Shorthands, answer.Docs)
+	}
+}
+
 func TestWebVariablesOfAPluginAreSetCheckedAndRemoved(t *testing.T) {
 	runner := javaRunner()
 	model := testModel(t, runner)

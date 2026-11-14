@@ -51,7 +51,7 @@ func TestRunRealNeedsTheRealVfox(t *testing.T) {
 func TestRunFailsWhenTheApplicationCannotBeStarted(t *testing.T) {
 	t.Setenv("TMPDIR", t.TempDir())
 	t.Setenv("VFOX_PLUS_E2E_VFOX", "/bin/true")
-	for _, scenario := range []string{"fake", "real", "measure"} {
+	for _, scenario := range []string{"fake", "real", "python", "measure"} {
 		t.Run(scenario, func(t *testing.T) {
 			if err := Run([]string{scenario, "/nonexistent/application"}); err == nil || !strings.Contains(err.Error(), "start the application") {
 				t.Fatalf("Run(%s) = %v, want a failure to start the application", scenario, err)
@@ -61,7 +61,7 @@ func TestRunFailsWhenTheApplicationCannotBeStarted(t *testing.T) {
 }
 
 func TestIsValidScenario(t *testing.T) {
-	valid := []string{"fake", "real", "measure"}
+	valid := []string{"fake", "real", "python", "measure"}
 	for _, s := range valid {
 		if !IsValidScenario(s) {
 			t.Fatalf("IsValidScenario(%q)=false, want true", s)

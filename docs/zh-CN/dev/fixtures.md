@@ -116,6 +116,13 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 `current`；`info-java` 与 `info-flutter` 是这两个插件对自己的描述。设置了 `VFOX_PLUS_FAKE_INVENTORY=profiles`
 时，假 vfox 用它们回答 `list` 与 `current`，这两个插件的截图需要它；搜索与插件信息则始终由它回答。
 
+`vfxtool capture` 也最后才添加 vfox-python，所用的是 `VFOX_PYTHON_PLUGIN` 指定的插件 zip：采集时注册表列的是
+0.6.3，而配置档案跟随的是 0.6.4，zip 正是它。`search-python` 在 Linux x64 上列出 999 个版本，其中 GraalPy 构建带有
+备注 `GraalPy` 与 `GraalPy Community`，配置档案的筛选靠它们区分。`info-python` 是插件对自己的描述。`list-python`
+与 `current-python` 是 Python 页面所用的机器：装着 Java、Flutter、Node.js 与 Maven 的那台机器，另外装着 Python
+3.15.2 与 3.14.4，其中 3.15.2 正在用。设置了 `VFOX_PLUS_FAKE_INVENTORY=python` 时，假 vfox 为 `list` 与 `current`
+返回它们。`cases.json` 列出了解析器必须从它们读出的内容。
+
 ## 跟进 vfox 新版
 
 1. 装新版 vfox 跑 `vfxtool capture`。需联网，约一分钟，写入 `vfox-<版本>/`。

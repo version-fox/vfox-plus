@@ -25,12 +25,13 @@
 // no state: installing a
 // version does not add it to the output of `vfox list`.
 //
-// It also replays the searches and the plugin information of java and flutter,
-// the plugins that vfox-plus knows more about. Their searches (`search java`,
-// `search java tem`, `search java all`, `search flutter`) are real lists, and
-// VFOX_PLUS_FAKE_INVENTORY=profiles makes `list` and `current` answer for a
-// machine that has Java and Flutter installed next to Node.js, which the
-// screenshots of their pages need.
+// It also replays the searches and the plugin information of java, flutter and
+// python, the plugins that vfox-plus knows more about. Their searches (`search java`,
+// `search java tem`, `search java all`, `search flutter`, `search python`) are real
+// lists, and VFOX_PLUS_FAKE_INVENTORY=profiles makes `list` and `current` answer for a
+// machine that has Java and Flutter installed next to Node.js, which the screenshots of
+// their pages need. VFOX_PLUS_FAKE_INVENTORY=python answers for that machine with Python
+// installed as well, which the screens of Python need.
 //
 // VFOX_PLUS_FIXTURES is the fixture directory, by default the vfox-1.1.0
 // directory next to the running executable.
@@ -110,16 +111,20 @@ func runCommand(args []string, out, errOut io.Writer) int {
 	// The dispatch table mirrors the case statement of fake-vfox.sh, which
 	// matches on "$*" with the arguments joined by spaces.
 	joined := strings.Join(args, " ")
-	profiles := os.Getenv("VFOX_PLUS_FAKE_INVENTORY") == "profiles"
+	inventory := os.Getenv("VFOX_PLUS_FAKE_INVENTORY")
 	switch {
 	case joined == "--version":
 		return reply("version")
-	case joined == "list" && profiles:
+	case joined == "list" && inventory == "profiles":
 		return reply("list-profiles")
+	case joined == "list" && inventory == "python":
+		return reply("list-python")
 	case joined == "list":
 		return reply("list")
-	case joined == "current" && profiles:
+	case joined == "current" && inventory == "profiles":
 		return reply("current-profiles")
+	case joined == "current" && inventory == "python":
+		return reply("current-python")
 	case joined == "current":
 		return reply("current")
 	case joined == "available":
@@ -140,6 +145,8 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("search-java-all")
 	case joined == "search flutter":
 		return reply("search-flutter")
+	case joined == "search python":
+		return reply("search-python")
 	case strings.HasPrefix(joined, "search "):
 		fmt.Fprint(out, "Available versions:\n - 2.1.0 (LTS) [tool 2.1]\n - 2.0.0\n - 1.0.0\n")
 		return 0
@@ -149,6 +156,8 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("info-java")
 	case strings.HasPrefix(joined, "info flutter --format "):
 		return reply("info-flutter")
+	case strings.HasPrefix(joined, "info python --format "):
+		return reply("info-python")
 	case strings.HasPrefix(joined, "info --json "):
 		return reply("info-json")
 	case isInfoFormat(joined):

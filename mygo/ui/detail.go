@@ -539,7 +539,7 @@ func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableV
 		Name: version.Version, Subtitle: strings.Join(additions, " · "),
 		TitleWidget: func(foreground mui.Color) {
 			mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {
-				kit.Label(k, version.Version, kit.Type(kit.BodyLarge), foreground)
+				kit.Label(k, version.Version, kit.Type(kit.BodyLarge), foreground, kit.Breakable())
 				if source != "" {
 					kit.Tag(k, kit.TagSpec{Label: source})
 				}

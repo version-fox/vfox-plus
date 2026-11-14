@@ -127,6 +127,12 @@ func init() {
 	})
 	// The card of the connections, and the code that it shows to pair a phone: they need the application to
 	// allow other devices (the setting webRemote) and to have an address to give.
+	// Python has a profile too: its options, and the filter of the GraalPy builds in its versions. They
+	// need the machine that has Python installed (VFOX_PLUS_FAKE_INVENTORY=python).
+	scenes["python-options"] = concat(plugin("python"), tab("options"), []step{exists("[data-var]")})
+	scenes["python-available"] = concat(plugin("python"), tab("available"), versions, []step{
+		pick(`#vChips [data-v="GraalPy Community"]`), exists(`#vChips [data-v="GraalPy Community"][aria-pressed="true"]`),
+	})
 	scenes["connections"] = concat(connections, []step{scrollTo("#webCard")})
 	scenes["connections-pair"] = concat(connections, []step{pick("#webPair"), exists("#pairBox .qr"), scrollTo("#pairBox")})
 	// The home page, once its lists have come, is still at its own address: a page that is not shown does not move the
