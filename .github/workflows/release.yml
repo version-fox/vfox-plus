@@ -84,44 +84,17 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: mygo/go.sum
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
       - name: Check the version
-        # A manual run takes the version from its input, and the step Set the
-        # version writes it. A tag push takes it from the tag: the commit of the tag
-        # must say the version already.
+        # The version of the run (vfxtool check-version): a manual run takes it from
+        # its input, and the step Set the version writes it into the files. A tag
+        # push takes it from the tag, and the commit of the tag must say it already.
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-              echo "::error::Run the release from main, not from $GITHUB_REF_NAME"
-              exit 1
-            fi
-            version="$INPUT_VERSION"
-          else
-            version="${GITHUB_REF_NAME#v}"
-          fi
-          version="$(printf '%s' "$version" | tr -d '[:space:]')"
-          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::Not a version (major.minor.patch, without v): $version"
-            exit 1
-          fi
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-              echo "::error::Tag v$version exists already"
-              exit 1
-            fi
-            newest="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
-            if [ -n "$newest" ] && [ "$(printf '%s\n%s\n' "${newest#v}" "$version" | sort -V | tail -n 1)" != "$version" ]; then
-              echo "::error::v$version is not newer than $newest"
-              exit 1
-            fi
-          elif [ "$(tr -d '[:space:]' < mygo/VERSION)" != "$version" ] ||
-            ! grep -q "const Version = \"$version\"" mygo/ui/app.go ||
-            ! grep -q "<release version=\"$version\"" shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml; then
-            echo "::error::The commit of v$version must say $version in mygo/VERSION, mygo/ui/app.go and the metainfo"
-            exit 1
-          fi
-          echo "VERSION=$version" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/vfxtool" check-version --event "$GITHUB_EVENT_NAME" --ref "$GITHUB_REF" \
+            --ref-name "$GITHUB_REF_NAME" --input "$INPUT_VERSION" >> "$GITHUB_ENV"
       - name: Check the last mygo run on main
         # The release vets the code and smoke-tests the build, but runs no tests:
         # it starts only when the last run of mygo on main has passed.
@@ -134,37 +107,23 @@ jobs:
             exit 1
           fi
       - name: Set the version
-        # A manual run writes the version into mygo/VERSION, the Version constant of
-        # mygo/ui/app.go and the release list of the metainfo, and commits it in the
-        # name of the person who started the run: the repository wants its commits
-        # to name the people who wrote them. The commit reaches main only after
-        # everything is built (see Push the version commit and tag the release).
+        # A manual run writes the version into the files that carry it (vfxtool
+        # set-version), and commits them in the name of the person who started the
+        # run: the repository wants its commits to name the people who wrote them.
+        # The commit reaches main only after everything is built (see Push the
+        # version commit and tag the release).
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          metainfo=shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml
-          printf '%s\n' "$VERSION" > mygo/VERSION
-          sed -i -E "s|^const Version = \"[^\"]*\"|const Version = \"$VERSION\"|" mygo/ui/app.go
-          if ! grep -q "<release version=\"$VERSION\"" "$metainfo"; then
-            python3 - "$metainfo" "$VERSION" "$(date -u +%F)" <<'PY'
-          import sys
-          path, version, date = sys.argv[1:4]
-          text = open(path, encoding="utf-8").read()
-          text = text.replace("<releases>\n", f'<releases>\n    <release version="{version}" date="{date}"/>\n', 1)
-          open(path, "w", encoding="utf-8").write(text)
-          PY
-          fi
-          grep -q "const Version = \"$VERSION\"" mygo/ui/app.go
-          grep -q "<release version=\"$VERSION\"" "$metainfo"
-          python3 -c 'import sys, xml.dom.minidom; xml.dom.minidom.parse(sys.argv[1])' "$metainfo"
+          "$RUNNER_TEMP/vfxtool" set-version --version "$VERSION"
           id="$(gh api "users/$GITHUB_ACTOR" --jq .id)"
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$id+$GITHUB_ACTOR@users.noreply.github.com"
-          if git diff --quiet -- mygo/VERSION mygo/ui/app.go "$metainfo"; then
+          if git diff --quiet -- mygo/VERSION mygo/ui/app.go shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml; then
             echo "The files say $VERSION already"
           else
-            git add mygo/VERSION mygo/ui/app.go "$metainfo"
+            git add -- mygo/VERSION mygo/ui/app.go shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml
             git commit -q -m "Release v$VERSION"
           fi
       - name: Read the pinned Android versions
@@ -223,8 +182,6 @@ jobs:
         uses: ./.github/actions/install-linux-packages
         with:
           packages: ${{ env.LINUX_PACKAGES }}
-      - name: Build vfxtool
-        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
       - name: Prepare the embedded assets
         # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
@@ -331,21 +288,16 @@ jobs:
           git tag -a "v$VERSION" -m "v$VERSION"
           git push origin "v$VERSION"
       - name: Publish the GitHub release
-        # The self-update check (mygo/core/update) reads the assets of the
-        # newest release: the .deb (preferred) or the .tar.gz on Linux, for
-        # amd64 and arm64, the per-architecture .msix (preferred) or the
-        # .msixbundle on Windows. The APK, the .snap and the archive of the
-        # executables are for manual use: the application does not offer them.
-        # The archive is what vfxtool sign-msix extracts next to the unsigned
-        # bundle and vfxtool.exe (docs/en/dev/packaging-windows.md).
-        run: |
-          gh release create "v$VERSION" --title "v$VERSION" --generate-notes \
-            dist/*.deb dist/*.tar.gz \
-            dist-arm64/*.deb dist-arm64/*.tar.gz \
-            dist-android/*.apk \
-            dist-snap/*.snap \
-            dist-windows/*.msix dist-windows/*.msixbundle \
-            dist-windows/*_windows_executables.zip \
-            dist-windows/vfxtool.exe
+        # The self-update check (mygo/core/update) reads the assets of the newest
+        # release: the .deb (preferred) or the .tar.gz on Linux, for amd64 and arm64,
+        # the per-architecture .msix (preferred) or the .msixbundle on Windows. The
+        # APK, the .snap and the archive of the executables are for manual use. The
+        # archive is what vfxtool sign-msix extracts next to the unsigned bundle and
+        # vfxtool.exe (docs/en/dev/packaging-windows.md). check-assets names the files,
+        # and stops the release when a kind of them is missing or doubled.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          assets="$("$RUNNER_TEMP/vfxtool" check-assets --version "$VERSION")"
+          mapfile -t files <<< "$assets"
+          gh release create "v$VERSION" --title "v$VERSION" --generate-notes "${files[@]}"
