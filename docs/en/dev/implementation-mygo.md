@@ -15,7 +15,7 @@ project, in Go:
 
 | Directory | What it does |
 | --- | --- |
-| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle and vfox-golang) — no UI |
+| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang and vfox-python) — no UI |
 | [`state/`](../../../mygo/state) | The observable controllers, the task queue (one state-changing command at a time, streamed output, download progress, cancellation, retry) |
 | [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages and the dialogs |
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |

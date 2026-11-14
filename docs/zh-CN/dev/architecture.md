@@ -157,7 +157,7 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
 第一版的 Web 界面就是这样只显示了 Java 的 OpenJDK 列表（[#43](https://github.com/version-fox/vfox-plus/issues/43)）。
 
-*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter` 与 `gradle`：
+*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter`、`gradle`、`golang` 与 `python`：
 
 | 部分 | 内容 |
 | --- | --- |

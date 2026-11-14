@@ -44,9 +44,9 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
 - 每次变更都是一条任务，可跟随进度、可取消、可重试。
 - 编辑 vfox 配置（代理、仓库源、存储目录、旧版版本文件、缓存、超时）与下载镜像
   等额外环境变量。
-- 提供 vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle 与 vfox-golang 在普通列表之外的功能：选择要列出的 Java
-  发行版（共 31 个）、筛选 Chip（LTS、JavaFX、通道、架构）、按名称安装与下载镜像，见
-  [Java、Node.js、Flutter、Gradle 与 Go](using.md#javanodejsfluttergradle-与-go)。
+- 提供 vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang 与 vfox-python 在普通列表之外的功能：选择要列出的 Java
+  发行版（共 31 个）、筛选 Chip（LTS、JavaFX、通道、架构、GraalPy）、按名称安装与下载镜像，见
+  [Java、Node.js、Flutter、Gradle、Go 与 Python](using.md#javanodejsfluttergradlego-与-python)。
 - 一步安装并使用某个版本、把机器上已有的 SDK 链接进来、给版本起别名、检查 vfox 与已安装 SDK 的健康状况，
   这些都是 vfox 1.1.0 才有的功能。
 - 把同一个界面提供给浏览器；你允许的话，也提供给同一网络里的手机和其他电脑（走 HTTPS）；还可以

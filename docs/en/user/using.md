@@ -20,7 +20,7 @@ move to the bottom bar.
 
 A list of your installed plugins with their current version. Pick one to see
 its detail: description, homepage, and two tabs (three for the plugins that
-the application knows, see [Java, Node.js, Flutter, Gradle and Go](#java-nodejs-flutter-gradle-and-go)).
+the application knows, see [Java, Node.js, Flutter, Gradle, Go and Python](#java-nodejs-flutter-gradle-go-and-python)).
 On a wide window the detail is always open, the plugin in use until you pick another.
 
 **Installed** lists the installed versions, newest first. The current version
@@ -44,13 +44,13 @@ switch to it at once; **Detect and link** adopts what is already on the machine
 (`vfox link --detect`); **Link existing…** links a directory you name as the version
 you name.
 
-### Java, Node.js, Flutter, Gradle and Go
+### Java, Node.js, Flutter, Gradle, Go and Python
 
 The plugins [vfox-java](https://github.com/version-fox/vfox-java),
 [vfox-nodejs](https://github.com/version-fox/vfox-nodejs),
 [vfox-flutter](https://github.com/version-fox/vfox-flutter),
-[vfox-gradle](https://github.com/version-fox/vfox-gradle) and
-[vfox-golang](https://github.com/version-fox/vfox-golang) do more than list
+[vfox-gradle](https://github.com/version-fox/vfox-gradle),
+[vfox-golang](https://github.com/version-fox/vfox-golang) and [vfox-python](https://github.com/version-fox/vfox-python) do more than list
 versions, and vfox-plus offers all of it, in the desktop application, in the web
 interface and in the Android app alike. A plugin that you added under another
 name, as `vfox add --alias coffee java` does, offers the same as the plugin it was
@@ -66,13 +66,13 @@ made from:
   Android app show the same one. It is the same as `vfox search java tem`.
 - **Filter chips.** Chips above the list narrow it by what the plugin says of its
   versions: LTS and JavaFX for Java, LTS for Node.js, the channels (stable, beta,
-  dev, OpenHarmony) and the architectures (x64, arm64) for Flutter. Chips of one
+  dev, OpenHarmony) and the architectures (x64, arm64) for Flutter, and GraalPy and GraalPy Community for Python. Chips of one
   row are alternatives; rows narrow each other.
 - **Install by name.** vfox resolves some names while it installs: `24` is the
   newest Node.js 24 and `latest` the newest release of all, `stable` and `beta`
   are the releases the Flutter channels point to, `21-tem` is the newest
   Temurin 21, `21-zulu-fx` Zulu 21 with JavaFX, `28.ea-open` an early-access
-  OpenJDK, `latest` the newest Gradle or Go release. The dialog suggests such names for the plugin and says what each one
+  OpenJDK, `3.13` the newest Python 3.13 and `3.13t` its newest free-threaded build, and `latest` the newest Gradle, Go or standard CPython release. The dialog suggests such names for the plugin and says what each one
   stands for. A channel is replaced by the release it points to, which is the
   name that **Installed** shows afterwards.
 - **Installed names.** An installed Java version names its distribution, with
@@ -88,19 +88,19 @@ The **Options** tab holds what is particular to the plugin:
 - **Downloads**: the environment variables that the plugin reads, with the mirrors
   that were checked to choose from: the GitHub mirror of Java and Flutter, the
   download mirror of Node.js, the storage mirror of Flutter, the Gradle mirror
-  list and the Go mirror. They are added to
+  list, the Go mirror and the python.org and uv-build mirrors of Python. They are added to
   every vfox command that the application runs, and the application checks that
   an address starts with `http://` or `https://`.
 - **Version files**: a switch with the files that the plugin reads under it,
   `.sdkmanrc` for Java, `.node-version` and `.nvmrc` for Node.js (which work both
   ways on vfox 1.1.0: leaving a project switches back),
-  `gradle/wrapper/gradle-wrapper.properties` for Gradle, and, for Node.js, the
+  `gradle/wrapper/gradle-wrapper.properties` for Gradle, `.python-version` for Python, and, for Node.js and Python, the
   choice of the version that a file names.
 - **Notes**: the few things that surprise people and that no button says, such as
   that Java without a distribution is OpenJDK from jdk.java.net, which keeps only the
-  newest releases, and that a Flutter that vfox manages is not upgraded in place.
+  newest releases, and that a Flutter that vfox manages is not upgraded in place, and that a partial name such as `3.13` never picks a free-threaded (`3.13t`) or pre-release build.
   How a name is written, and the common names, are in the **Install by name** dialog.
-- **Adopt, drift and shadowing**: when a JDK, Gradle, Flutter or Go is already on
+- **Adopt, drift and shadowing**: when a JDK, Gradle, Flutter, Go or Python is already on
   the machine, **Detect and link** adopts it instead of downloading it again;
   when an SDK changes in place, the **Health** card on Home and `vfox use` report
   drift (**Reinstall** it, **Adopt** older installs); when another
