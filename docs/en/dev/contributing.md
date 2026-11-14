@@ -69,7 +69,7 @@ container, see [Development environment](environment.md).
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
-| [`release.yml`](../../../.github/workflows/release.yml) | by hand or a `v*` tag | Tags `v<version>`, packages and publishes the GitHub release that the self-update check reads |
+| [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
 pinned to commit SHAs.
@@ -92,29 +92,37 @@ one.
 
 ## Release
 
-Like the releases of
-[version-fox/vfox-java](https://github.com/version-fox/vfox-java), a release
-is started by hand:
+A release is one manual run of the Release workflow:
 
-1. Set the version in a pull request, and merge it into `main`: `mygo/VERSION`
-   and the `Version` constant in `mygo/ui/app.go` (a unit test keeps them in
-   sync).
-2. Check that the last `mygo` run on `main` passed. The release job vets the
-   code and smoke-tests the build, but it runs neither the unit tests nor the
-   end-to-end scenarios.
-3. Actions, Release, Run workflow, and type the version without the `v`
-   (`0.2.0`). Pushing a `v*` tag runs the same job.
-4. The job refuses anything but `major.minor.patch`, anything `mygo/VERSION`
-   does not say, and an existing tag. It tags `v<version>`, packages what
-   [`mygo.yml`](#continuous-integration) packages plus the classic snap from
-   `snap/snapcraft.yaml`, and publishes the GitHub release with
-   `--generate-notes`, whose assets are what
-   [the self-update check](architecture.md#self-updates) reads.
+1. Actions, Release, Run workflow. Keep the branch `main`, and type the version
+   without the `v`, for example `0.2.0`.
+2. The job checks the request before it changes anything. The version must have
+   the form `major.minor.patch`, be newer than the newest tag, and have no tag
+   yet. The last `mygo` run on `main` must have passed: the release job vets and
+   smoke-tests the build, but runs no tests.
+3. The job sets the version in `mygo/VERSION`, in the `Version` constant of
+   `mygo/ui/app.go` and in the `<releases>` list of the
+   [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml), and
+   commits that in the name of the person who started the run. It builds what
+   [`mygo.yml`](#continuous-integration) builds, plus the classic snap from
+   `snap/snapcraft.yaml`.
+4. Only when everything is built does it push the commit to `main`, tag
+   `v<version>`, and publish the GitHub release with `--generate-notes`. Its
+   assets are what [the self-update check](architecture.md#self-updates) reads.
 
-If a run fails after the job has tagged, the tag `v<version>` stays on the
-remote, and a new run by hand refuses that version. Delete the tag
-(`git push origin --delete v<version>`) and, if one was published, the release
-(`gh release delete v<version>`), fix the cause, and run again.
+The version commit starts no CI run on `main`: GitHub starts no workflow for a
+push made with the token of a workflow. That is why the job checks the last run
+before it starts.
+
+Pushing a `v*` tag runs the same job without setting the version: the commit of
+the tag must say the version already, or the job refuses it.
+
+If a run fails before the push, nothing has changed: fix the cause and run it
+again. If it fails after the push, the version commit may already be on `main`.
+The next run finds the files saying the version, and does not commit again.
+Delete what the failed run left behind: the tag, with `git push origin --delete
+v<version>`, and the release if one was published, with `gh release delete
+v<version>`. Then run again.
 
 ## Documentation languages
 

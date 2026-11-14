@@ -58,7 +58,7 @@
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中分别跑各部分（`vfxtool sandbox check`、`e2e`、`package` 与普查的四组），每部分一个任务 |
 | [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（debug 密钥签名）并作为 `vfox-plus-android` 上传 |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`android/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、Android 构建，以及用到 Docker 的检查 |
-| [`release.yml`](../../../.github/workflows/release.yml) | 手动或 `v*` 标签 | 打 `v<版本>` 标签，打包并发布 GitHub release，自更新检查读取的就是它 |
+| [`release.yml`](../../../.github/workflows/release.yml) | 在 `main` 上手动，或 `v*` 标签 | 设定版本并提交到 `main`，打 `v<版本>` 标签，打包并发布 GitHub release，自更新检查读取的就是它 |
 
 Dependabot 负责 Go 模块和 GitHub Actions 的更新；action 按提交 SHA 锁定。
 
@@ -75,22 +75,18 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 
 ## 发布
 
-与 [version-fox/vfox-java](https://github.com/version-fox/vfox-java) 的发布一样，
-发布手动启动：
+一次发布就是手动运行一次 Release 工作流：
 
-1. 先在 Pull Request 里定版本，并合并进 `main`：`mygo/VERSION` 与 `mygo/ui/app.go`
-   的 `Version` 常量（有单元测试保证两者一致）。
-2. 确认 `main` 上最近一次 `mygo` 运行已通过。发布任务只做 `go vet` 和冒烟测试，
-   不跑单元测试，也不跑端到端场景。
-3. Actions、Release、Run workflow，输入不带 `v` 的版本号（`0.2.0`）。推送
-   `v*` 标签跑同一个任务。
-4. 任务只接受 `major.minor.patch`、只接受 `mygo/VERSION` 写明的版本，已存在的标签会被拒绝。任务打
-   `v<版本>` 标签，按[持续集成](#持续集成)打包外加 `snap/snapcraft.yaml` 的 classic
-   snap，以 `--generate-notes` 发布 GitHub release，其附件就是[自更新检查](architecture.md#自身更新)读取的那些。
+1. Actions、Release、Run workflow。保持分支为 `main`，输入不带 `v` 的版本号，例如 `0.2.0`。
+2. 任务在改动任何东西之前先检查请求：版本须是 `major.minor.patch` 的形式，比最新的标签新，且还没有对应的标签。`main` 上最近一次 `mygo` 运行必须已通过：发布任务只做 `go vet` 和冒烟测试，不跑测试。
+3. 任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它按[持续集成](#持续集成)构建，外加 `snap/snapcraft.yaml` 的 classic snap。
+4. 全部构建完成后，它才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release，其附件就是[自更新检查](architecture.md#自身更新)读取的那些。
 
-任务在打了标签之后失败时，`v<版本>` 标签会留在远端，新的手动运行会拒绝这个版本。先删除标签
-（`git push origin --delete v<版本>`）；若已发布了 release，再删除它（`gh release delete v<版本>`）；
-修好原因后重新运行。
+版本提交不会在 `main` 上启动 CI 运行：工作流自己的令牌推送的提交，GitHub 不会启动任何工作流。所以任务在开始前检查最近一次运行。
+
+推送 `v*` 标签会跑同一个任务，但不设置版本：标签指向的提交必须已经写明该版本，否则任务拒绝。
+
+任务在推送之前失败，什么都没有改变：修好原因后重新运行。若在推送之后失败，版本提交可能已经在 `main` 上；下一次运行会发现文件已写明版本，不会再提交一次。删除失败运行留下的东西：标签（`git push origin --delete v<版本>`），若已发布了 release 再删除它（`gh release delete v<版本>`），然后重新运行。
 
 ## 文档语言
 

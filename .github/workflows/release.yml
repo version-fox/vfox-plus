@@ -13,17 +13,21 @@
 # limitations under the License.
 
 # A release of vfox-plus, started by hand like the releases of
-# https://github.com/version-fox/vfox-java: Actions, Release, Run workflow,
-# and type the version (0.2.0, without the v). The version is set in a pull
-# request first (mygo/VERSION, and the Version constant of mygo/ui/app.go,
-# which a unit test keeps in sync); the job refuses anything else.
+# https://github.com/version-fox/vfox-java: Actions, Release, Run workflow, on
+# main, and type the version (0.2.0, without the v). That is the whole procedure.
 #
-# The job tags v<version>, builds what mygo.yml builds (the .deb and the
-# .tar.gz for Linux, the unsigned .msix and .msixbundle for Windows with the
-# self-sign inputs) plus the classic snap from snap/snapcraft.yaml, and
-# publishes them on the GitHub release, which is what the self-update check
-# (mygo/core/update) reads. Pushing a tag v* runs the same job without
-# asking for the version.
+# The job checks the request first: the version is new and newer than the newest
+# tag, and the last run of mygo on main passed. Then it sets the version in
+# mygo/VERSION, the Version constant of mygo/ui/app.go and the release list of
+# the metainfo, and commits it in the name of the person who started the run. It
+# builds what mygo.yml builds (the .deb and the .tar.gz for Linux, the unsigned
+# .msix and .msixbundle for Windows with the self-sign inputs) plus the classic
+# snap from snap/snapcraft.yaml. Only then does it push the commit to main, tag
+# v<version> and publish the GitHub release, which is what the self-update check
+# (mygo/core/update) reads.
+#
+# Pushing a tag v* runs the same job without setting the version: the commit of
+# the tag must say the version already.
 name: Release
 
 on:
@@ -51,17 +55,19 @@ env:
 
 jobs:
   release:
-    name: Tag, package and publish
+    name: Set the version, package, tag and publish
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     permissions:
+      # actions: read lets the job see the last run of mygo on main.
+      actions: read
       contents: write
     runs-on: ubuntu-26.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Tags are checked and created below.
+          # The tags are checked and the version commit is pushed below.
           fetch-depth: 0
       - name: Read the pinned versions
         run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
@@ -69,40 +75,89 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: mygo/go.sum
-      - name: Find the version
+      - name: Check the version
+        # A manual run takes the version from its input and sets it in the step
+        # after the next. A tag push takes it from the tag: the commit of the tag
+        # must say the version already.
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            version="${{ inputs.version }}"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "::error::Run the release from main, not from $GITHUB_REF_NAME"
+              exit 1
+            fi
+            version="$INPUT_VERSION"
           else
             version="${GITHUB_REF_NAME#v}"
           fi
           version="$(printf '%s' "$version" | tr -d '[:space:]')"
-          case "$version" in
-            ''|*[!0-9.]*|*..*|.*|*.)
-              echo "::error::Not a version (major.minor.patch, without v): $version"
-              exit 1
-              ;;
-          esac
-          if [ "$(tr -d '[:space:]' < mygo/VERSION)" != "$version" ]; then
-            echo "::error::mygo/VERSION says $(tr -d '[:space:]' < mygo/VERSION), not $version; set the version in a pull request first"
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Not a version (major.minor.patch, without v): $version"
             exit 1
           fi
-          if ! grep -q "const Version = \"$version\"" mygo/ui/app.go; then
-            echo "::error::mygo/ui/app.go does not say const Version = \"$version\""
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+              echo "::error::Tag v$version exists already"
+              exit 1
+            fi
+            newest="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+            if [ -n "$newest" ] && [ "$(printf '%s\n%s\n' "${newest#v}" "$version" | sort -V | tail -n 1)" != "$version" ]; then
+              echo "::error::v$version is not newer than $newest"
+              exit 1
+            fi
+          elif [ "$(tr -d '[:space:]' < mygo/VERSION)" != "$version" ] ||
+            ! grep -q "const Version = \"$version\"" mygo/ui/app.go ||
+            ! grep -q "<release version=\"$version\"" shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml; then
+            echo "::error::The commit of v$version must say $version in mygo/VERSION, mygo/ui/app.go and the metainfo"
             exit 1
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
-      - name: Tag the release
-        if: github.event_name == 'workflow_dispatch'
+      - name: Check the last mygo run on main
+        # The release vets the code and smoke-tests the build, but runs no tests:
+        # it starts only when the last run of mygo on main has passed.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "::error::Tag v$VERSION exists already"
+          state="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow mygo.yml --branch main --limit 1 --json status,conclusion --jq '.[0] | "\(.status) \(.conclusion)"')"
+          if [ "$state" != "completed success" ]; then
+            echo "::error::The last mygo run on main is not a passed run ($state): wait for it, or fix main first"
             exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$VERSION" -m "v$VERSION"
-          git push origin "v$VERSION"
+      - name: Set the version
+        # A manual run writes the version into mygo/VERSION, the Version constant of
+        # mygo/ui/app.go and the release list of the metainfo, and commits it in the
+        # name of the person who started the run: the repository wants its commits
+        # to name the people who wrote them. The commit reaches main only after
+        # everything is built (see Push the version commit and tag the release).
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          metainfo=shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml
+          printf '%s\n' "$VERSION" > mygo/VERSION
+          sed -i -E "s|^const Version = \"[^\"]*\"|const Version = \"$VERSION\"|" mygo/ui/app.go
+          if ! grep -q "<release version=\"$VERSION\"" "$metainfo"; then
+            python3 - "$metainfo" "$VERSION" "$(date -u +%F)" <<'PY'
+          import sys
+          path, version, date = sys.argv[1:4]
+          text = open(path, encoding="utf-8").read()
+          text = text.replace("<releases>\n", f'<releases>\n    <release version="{version}" date="{date}"/>\n', 1)
+          open(path, "w", encoding="utf-8").write(text)
+          PY
+          fi
+          grep -q "const Version = \"$VERSION\"" mygo/ui/app.go
+          grep -q "<release version=\"$VERSION\"" "$metainfo"
+          python3 -c 'import sys, xml.dom.minidom; xml.dom.minidom.parse(sys.argv[1])' "$metainfo"
+          id="$(gh api "users/$GITHUB_ACTOR" --jq .id)"
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$id+$GITHUB_ACTOR@users.noreply.github.com"
+          if git diff --quiet -- mygo/VERSION mygo/ui/app.go "$metainfo"; then
+            echo "The files say $VERSION already"
+          else
+            git add mygo/VERSION mygo/ui/app.go "$metainfo"
+            git commit -q -m "Release v$VERSION"
+          fi
       - name: Install the Linux packages
         uses: ./.github/actions/install-linux-packages
         with:
@@ -187,6 +242,17 @@ jobs:
           mkdir -p dist-snap
           find . -maxdepth 2 -name 'vfox-plus_*.snap' -exec mv {} dist-snap/ \;
           ls dist-snap
+      - name: Push the version commit and tag the release
+        # Nothing has been pushed before this step, so a run that fails while it
+        # builds leaves main and the tags as they were. The push is refused, and
+        # nothing is tagged, when main has moved since the run started.
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            git push origin HEAD:refs/heads/main
+          fi
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
       - name: Publish the GitHub release
         # The self-update check (mygo/core/update) reads the assets of the
         # newest release: the .deb (preferred) or the .tar.gz on Linux, the
