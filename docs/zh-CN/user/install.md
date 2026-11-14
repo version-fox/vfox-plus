@@ -16,7 +16,7 @@ sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 另有一个可选的包：`libayatana-appindicator3-1`，它画出 vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）
 在 GNOME 的托盘里显示的图标。没有它 vfox-plus 就没有托盘图标，其他照常。vfox-plus 的软件包推荐安装它。
 
-下载最新成功构建的 `vfox-plus-linux-x64` 产物，二选一（Ubuntu 26.04 装包）：
+从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载 amd64 的 `.deb` 或 `.tar.gz`，二选一（Ubuntu 26.04 装包）：
 
 ```sh
 sudo apt install ./vfox-plus*_amd64.deb
@@ -39,8 +39,7 @@ vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示�
 
 ## Windows 11
 
-下载 `vfox-plus-windows` 产物并解压，用管理员 PowerShell 安装未签名的
-`.msixbundle`：
+从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载未签名的 `.msixbundle`，用管理员 PowerShell 安装：
 
 ```powershell
 Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned

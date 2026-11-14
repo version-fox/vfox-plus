@@ -54,13 +54,15 @@ See [Signing notes](#signing-notes-for-maintainers) for why.
 
 ## Installing on Windows 11
 
-Extract the `vfox-plus-windows` artifact (it holds the unsigned packages next
-to the staged executables and a Windows `vfxtool.exe`), then install the
-bundle in an elevated PowerShell:
+Download `vfox-plus_<version>.msixbundle` from the GitHub release, then install
+it in an elevated PowerShell:
 
 ```powershell
-Add-AppxPackage -Path .\vfox-plus_0.1.0.msixbundle -AllowUnsigned
+Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned
 ```
+
+The `vfox-plus-windows` artifact of a CI run holds the same bundle, next to the
+staged executables and a Windows `vfxtool.exe`.
 
 The deployment platform picks the slice matching the machine, and the package
 installs for all users. To remove it again:
@@ -84,18 +86,18 @@ An officially signed bundle will be provided later.
 
 `vfxtool sign-msix` signs the bundle with a certificate that it makes and installs
 it, for a machine where the bundle should install without `-AllowUnsigned`, and
-for whoever tests the signed path. It replaces the former `Sign-Msix.ps1`. Run it
-from the extracted `vfox-plus-windows` artifact, which holds `stage-x64/`,
-`stage-arm64/`, `vfxtool.exe` and the unsigned packages:
+for whoever tests the signed path. From the GitHub release, take
+`vfox-plus_<version>.msixbundle`, `vfxtool.exe` and
+`vfox-plus_<version>_windows_executables.zip`. Extract the archive into the same
+folder: it then holds `stage-x64/` and `stage-arm64/` next to the other two files.
+Run the command there:
 
 ```powershell
 .\vfxtool.exe sign-msix
 ```
 
-From the GitHub release, take `vfox-plus_<version>.msixbundle`, `vfxtool.exe` and
-`vfox-plus_<version>_windows_executables.zip`, which holds the two `stage-`
-folders. Extract the archive into the folder of the other two, and run the
-command there.
+The `vfox-plus-windows` artifact of a CI run holds the same files, with the
+executables loose in `stage-x64/` and `stage-arm64/`.
 
 It does this, in this order:
 

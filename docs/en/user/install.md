@@ -18,7 +18,8 @@ vfox-plus shows while it runs without its window (the
 [lightweight mode](remote.md#lightweight-mode)), on GNOME. Without it vfox-plus has no tray icon and
 works as ever. The package of vfox-plus recommends it.
 
-Download the `vfox-plus-linux-x64` artifact of the latest successful build,
+Download the amd64 `.deb` or `.tar.gz` of the
+[latest GitHub release](https://github.com/version-fox/vfox-plus/releases/latest),
 then either install the package (Ubuntu 26.04):
 
 ```sh
@@ -45,8 +46,9 @@ interface in its settings (see [The web interface and other devices](remote.md))
 
 ## Windows 11
 
-Download the `vfox-plus-windows` artifact, extract it and install the
-unsigned `.msixbundle` in an elevated PowerShell:
+Download the unsigned `.msixbundle` of the
+[latest GitHub release](https://github.com/version-fox/vfox-plus/releases/latest),
+and install it in an elevated PowerShell:
 
 ```powershell
 Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned

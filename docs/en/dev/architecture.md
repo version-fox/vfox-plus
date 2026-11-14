@@ -279,15 +279,20 @@ newest tag and its assets, and the download goes to
 `updateMirror` setting such as `https://gh-proxy.org/` where github.com is
 slow. The check itself is direct; the mirror applies to the download, which
 falls back to direct when the mirror fails. Nothing installs itself: the
-`.deb` is left for `dpkg` and the `.msixbundle` for the installer. No release
-exists yet, so the asset names below are the convention the packaging uses,
-locked by `TestPlatformAssetPrefersDebAndFallsBackToTarball`:
+`.deb` is left for `dpkg` and the `.msixbundle` for the installer. The release
+workflow publishes the Linux amd64 and the Windows names below. The Linux arm64
+names are the convention for a build on arm64, which the release does not make
+yet, and `TestPlatformAssetPrefersDebAndFallsBackToTarball` locks the choice
+between a package and its fallback:
 
 | Platform | Preferred | Fallback |
 | --- | --- | --- |
 | Linux amd64 | `vfox-plus_<version>_amd64.deb` | `vfox-plus-<version>-linux-x64.tar.gz` |
 | Linux arm64 | `vfox-plus_<version>_arm64.deb` | `vfox-plus-<version>-linux-arm64.tar.gz` |
 | Windows x64/arm64 | `vfox-plus_<version>_x64.msix` / `vfox-plus_<version>_arm64.msix` | `vfox-plus_<version>.msixbundle` |
+
+The other assets of a release, the snap, the archive of the Windows executables and
+`vfxtool.exe`, are not offered: the check looks only at the names above.
 
 The desktop checks once silently on startup and fills the settings page; the
 update section there (`updateSection`) has the check button, the mirror field,

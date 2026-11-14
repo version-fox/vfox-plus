@@ -237,14 +237,17 @@ vfox 配置（代理、仓库、存储目录等）**不是**这些设置的一�
 https://api.github.com/repos/version-fox/vfox-plus/releases/latest` 给出最新标签与附件，下载走
 `https://github.com/.../releases/download/...`，可按 `updateMirror` 设置（如 `https://gh-proxy.org/`）加前缀，
 github.com 慢的地方走镜像。检查本身直连，镜像只用于下载，镜像失败回退直连。下载不自行安装：`.deb` 留给 `dpkg`，
-`.msixbundle` 留给安装器。尚未发布第一个版本，以下为打包约定的附件名，由
-`TestPlatformAssetPrefersDebAndFallsBackToTarball` 锁定：
+`.msixbundle` 留给安装器。发布工作流发布的是下面的 Linux amd64 与 Windows 附件名。Linux arm64 那一行是
+arm64 构建的命名约定，发布任务只在 amd64 上构建，目前没有这些附件。
+`TestPlatformAssetPrefersDebAndFallsBackToTarball` 锁定首选与回退之间的选择：
 
 | 平台 | 首选 | 回退 |
 | --- | --- | --- |
 | Linux amd64 | `vfox-plus_<版本>_amd64.deb` | `vfox-plus-<版本>-linux-x64.tar.gz` |
 | Linux arm64 | `vfox-plus_<版本>_arm64.deb` | `vfox-plus-<版本>-linux-arm64.tar.gz` |
 | Windows x64/arm64 | `vfox-plus_<版本>_x64.msix` / `vfox-plus_<版本>_arm64.msix` | `vfox-plus_<版本>.msixbundle` |
+
+发布的其他附件（snap、Windows 可执行文件压缩包与 `vfxtool.exe`）不提供下载，检查只认上面的名字。
 
 桌面启动时静默检查一次，结果填入设置页；设置页的更新区（`updateSection`）有检查按钮、镜像输入框、
 下载按钮和旁边的发布页链接。只有比 `ui.Version` 新的版本才显示下载，否则显示已是最新。远端 Web 界面只透传
