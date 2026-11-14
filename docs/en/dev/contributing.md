@@ -116,7 +116,7 @@ A release is one manual run of the Release workflow:
    `vfxtool.exe`. The self-update check reads the `.deb` or the `.tar.gz` of the
    platform, and the `.msix` or the `.msixbundle`; the rest is for manual use.
 
-The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key.
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. Its secrets are in the `release` environment, so each run waits for the maintainer's approval.
 
 The version commit starts no CI run on `main`, because GitHub starts no workflow
 for a push made with a workflow's own token. So no test runs on that commit: the

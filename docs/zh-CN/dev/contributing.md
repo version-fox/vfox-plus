@@ -82,7 +82,7 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 3. 任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），按 [`android.yml`](../../../.github/workflows/android.yml) 的方式构建 Android APK，外加 `snap/snapcraft.yaml` 的 classic snap。
 4. 全部构建完成后，任务才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64）、每个架构的 `.msix`、Windows 的 `.msixbundle`、供 [`vfxtool sign-msix`](packaging-windows.md#自己签名) 用的 Windows 可执行文件压缩包，以及 `vfxtool.exe`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
 
-APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。
+APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。这些 secret 在 `release` 环境里，每次运行都要维护者批准。
 
 版本提交不会在 `main` 上启动 CI 运行：工作流自己的令牌推送的提交，GitHub 不会启动任何工作流。所以那个提交上不跑测试：它之前最近一次 `mygo` 运行才算数，这就是任务要检查它的原因。
 
