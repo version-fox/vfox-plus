@@ -20,9 +20,10 @@
 # tag, and the last run of mygo on main passed. Then it sets the version in
 # mygo/VERSION, the Version constant of mygo/ui/app.go and the release list of
 # the metainfo, and commits it in the name of the person who started the run. It
-# builds what mygo.yml builds (the .deb and the .tar.gz for Linux, the unsigned
-# .msix and .msixbundle for Windows with the self-sign inputs) plus the classic
-# snap from snap/snapcraft.yaml. Only then does it push the commit to main, tag
+# builds what mygo.yml builds (the .deb and the .tar.gz for Linux, amd64 and
+# arm64; the unsigned .msix and .msixbundle for Windows with the self-sign
+# inputs), the Android APK as android.yml builds it, and the classic snap from
+# snap/snapcraft.yaml. Only then does it push the commit to main, tag
 # v<version> and publish the GitHub release, which is what the self-update check
 # (mygo/core/update) reads.
 #
@@ -158,6 +159,33 @@ jobs:
             git add mygo/VERSION mygo/ui/app.go "$metainfo"
             git commit -q -m "Release v$VERSION"
           fi
+      - name: Read the pinned Android versions
+        run: grep -hE '^[A-Z0-9_]+=' android/versions.env >> "$GITHUB_ENV"
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          # The default package list still names the `tools` package, which
+          # Google removed; install only what the build needs.
+          packages: platform-tools
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
+          # no wrapper jar to validate.
+          validate-wrappers: false
+      - name: Build the release APK
+        # After Set the version, so the APK carries the version it is released as.
+        run: ./gradlew :app:assembleRelease
+        working-directory: android
+      - name: Name the APK with the version
+        run: |
+          mkdir -p dist-android
+          cp android/app/build/outputs/apk/release/app-release.apk "dist-android/vfox-plus_${VERSION}.apk"
       - name: Install the Linux packages
         uses: ./.github/actions/install-linux-packages
         with:
@@ -185,12 +213,28 @@ jobs:
             --depends "$("$RUNNER_TEMP/vfxtool" runtask print-depends)" \
             --recommends "$("$RUNNER_TEMP/vfxtool" runtask print-recommends)" \
             --notice mygo/assets/licenses.txt dist
+      - name: Build the Linux arm64 release, its .deb and tarball
+        # The arm64 program is cross-compiled, as the Windows ones are, and
+        # build-deb is told the architecture: it refuses a program of another
+        # one. The packages go to dist-arm64, not dist, because the install test
+        # of mygo.yml installs every .deb of its directory.
+        run: |
+          mkdir -p "$RUNNER_TEMP/stage-linux-arm64" dist-arm64
+          "$RUNNER_TEMP/vfxtool" build --goos linux --goarch arm64 --root mygo "$RUNNER_TEMP/stage-linux-arm64/vfox-plus"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-deb \
+            --package vfox-plus --version "$VERSION" --goarch arm64 \
+            --stage "$RUNNER_TEMP/stage-linux-arm64" --executable vfox-plus --technology mygo \
+            --depends "$("$RUNNER_TEMP/vfxtool" runtask print-depends)" \
+            --recommends "$("$RUNNER_TEMP/vfxtool" runtask print-recommends)" \
+            --notice mygo/assets/licenses.txt dist-arm64
       - name: Validate the packages
         env:
           DEB_MAINTAINER: Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>
         run: |
           desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
-          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb dist-arm64/*.deb
+          test "$(dpkg-deb -f "dist-arm64/vfox-plus_${VERSION}_arm64.deb" Architecture)" = arm64
       - name: Cross-compile the Windows executables
         # mygo needs no C compiler, so the Windows builds run on Linux.
         run: |
@@ -233,7 +277,7 @@ jobs:
       - name: Build the snap package
         # Classic confinement (see snap/snapcraft.yaml): vfox-plus drives the
         # vfox executable and arbitrary SDK toolchains anywhere on the file
-        # system. The snap packs the .deb above and is installed by hand, not
+        # system. The snap packs the amd64 .deb above and is installed by hand, not
         # from the store.
         run: cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
       - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
@@ -255,15 +299,17 @@ jobs:
           git push origin "v$VERSION"
       - name: Publish the GitHub release
         # The self-update check (mygo/core/update) reads the assets of the
-        # newest release: the .deb (preferred) or the .tar.gz on Linux, the
-        # per-architecture .msix (preferred) or the .msixbundle on Windows.
-        # The .snap is for manual installation and is not offered for download
-        # in the application: reinstall it by hand for a new release. The archive
-        # of the executables is what vfxtool sign-msix extracts next to the
-        # unsigned bundle and vfxtool.exe (docs/en/dev/packaging-windows.md).
+        # newest release: the .deb (preferred) or the .tar.gz on Linux, for
+        # amd64 and arm64, the per-architecture .msix (preferred) or the
+        # .msixbundle on Windows. The APK, the .snap and the archive of the
+        # executables are for manual use: the application does not offer them.
+        # The archive is what vfxtool sign-msix extracts next to the unsigned
+        # bundle and vfxtool.exe (docs/en/dev/packaging-windows.md).
         run: |
           gh release create "v$VERSION" --title "v$VERSION" --generate-notes \
             dist/*.deb dist/*.tar.gz \
+            dist-arm64/*.deb dist-arm64/*.tar.gz \
+            dist-android/*.apk \
             dist-snap/*.snap \
             dist-windows/*.msix dist-windows/*.msixbundle \
             dist-windows/*_windows_executables.zip \

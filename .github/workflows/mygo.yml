@@ -233,6 +233,28 @@ jobs:
             --volume "$PWD/dist:/pkg:ro" \
             --volume "$RUNNER_TEMP/vfxtool:/vfxtool:ro" \
             ubuntu:26.04 /vfxtool runtask install-test
+      - name: Build the Linux arm64 .deb and tarball
+        # Like release.yml: the arm64 program is cross-compiled, and build-deb is
+        # told the architecture, which refuses a program of another one. The
+        # packages go to dist-arm64, not dist: the install test above installs
+        # every .deb of dist, and an arm64 package does not install on this runner.
+        run: |
+          mkdir -p "$RUNNER_TEMP/stage-linux-arm64" dist-arm64
+          "$RUNNER_TEMP/vfxtool" build --goos linux --goarch arm64 --root mygo "$RUNNER_TEMP/stage-linux-arm64/vfox-plus"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-deb \
+            --package vfox-plus --version "$(tr -d '[:space:]' < mygo/VERSION)" --goarch arm64 \
+            --stage "$RUNNER_TEMP/stage-linux-arm64" --executable vfox-plus --technology mygo \
+            --depends "$("$RUNNER_TEMP/vfxtool" runtask print-depends)" \
+            --recommends "$("$RUNNER_TEMP/vfxtool" runtask print-recommends)" \
+            --notice mygo/assets/licenses.txt dist-arm64
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist-arm64/*.deb
+          test "$(dpkg-deb -f dist-arm64/vfox-plus_*_arm64.deb Architecture)" = arm64
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-linux-arm64
+          path: dist-arm64/*
+          if-no-files-found: error
       - name: Cross-compile the Windows executables
         # mygo needs no C compiler, so the Windows builds run on Linux.
         run: |
