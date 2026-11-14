@@ -92,6 +92,11 @@ from the extracted `vfox-plus-windows` artifact, which holds `stage-x64/`,
 .\vfxtool.exe sign-msix
 ```
 
+From the GitHub release, take `vfox-plus_<version>.msixbundle`, `vfxtool.exe` and
+`vfox-plus_<version>_windows_executables.zip`, which holds the two `stage-`
+folders. Extract the archive into the folder of the other two, and run the
+command there.
+
 It does this, in this order:
 
 1. It downloads osslsigncode 2.14 into `tools/`, pinned and checked by its SHA-256,

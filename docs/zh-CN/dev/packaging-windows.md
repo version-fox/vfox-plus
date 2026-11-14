@@ -81,6 +81,10 @@ Remove-AppxPackage -Package dev.vfox.VfoxPlus_<版本>_neutral_~_<发布者标�
 .\vfxtool.exe sign-msix
 ```
 
+从 GitHub release 取 `vfox-plus_<版本>.msixbundle`、`vfxtool.exe` 和
+`vfox-plus_<版本>_windows_executables.zip`（内含两个 `stage-` 目录）。把压缩包解压到另外
+两个文件所在的目录，并在那里运行该命令。
+
 它依次做：
 
 1. 把 osslsigncode 2.14 下载到 `tools/`，版本固定并核对 SHA-256，因此不需要
