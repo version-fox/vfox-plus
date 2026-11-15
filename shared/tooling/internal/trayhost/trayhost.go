@@ -20,8 +20,8 @@
 // service that owns org.kde.StatusNotifierWatcher. The panel is that service, and also the
 // one that shows the icon: it reads the properties of the item (its title, its icon, where
 // its menu is), reads the menu, and calls the item and the menu when the user clicks. A CI
-// runner has no panel, and without a watcher libayatana-appindicator3 falls back to an icon of
-// the old kind that nothing shows. Host owns the name on the session bus, as the panel does,
+// runner has no panel, so nothing would show the icon. Host owns the name on the session bus, as
+// the panel does,
 // and does what the panel does with an item, so that the end-to-end tests can see the
 // icon that the application makes and use it, which is all that a person does with it.
 //
@@ -52,9 +52,8 @@ const (
 	menuInterface    = "com.canonical.dbusmenu"
 )
 
-// ErrNoActivation is what an item answers to Activate when it does not take the call: the
-// libayatana-appindicator3 of Ubuntu 26.04 has no activate signal, and then the panel gets
-// UNKNOWN_METHOD and shows the menu instead.
+// ErrNoActivation is what an item answers to Activate when it does not take the call: the panel
+// then gets UNKNOWN_METHOD, and shows the menu of the item instead.
 var ErrNoActivation = errors.New("the item does not take Activate")
 
 // Host is the host of the tray icons on the session bus: this one, or the one of the desktop that
@@ -197,8 +196,8 @@ func splitItem(entry string) (service string, path dbus.ObjectPath, ok bool) {
 type watcher struct{ h *Host }
 
 // RegisterStatusNotifierItem is called by an application with the item that it made: the
-// service is the object path of the item (libayatana-appindicator3), the name of the bus
-// of the application (the spec's way, with /StatusNotifierItem as the path) or both.
+// service is the object path of the item, the name of the bus of the application (the spec's
+// way, with /StatusNotifierItem as the path) or both.
 func (w *watcher) RegisterStatusNotifierItem(sender dbus.Sender, service string) *dbus.Error {
 	service, path := string(sender), dbus.ObjectPath(service)
 	switch {
@@ -410,9 +409,11 @@ type Properties struct {
 	Status   string
 	Category string
 	// IconName and IconThemePath say where the picture is: the panel looks for IconName in
-	// the icons of the desktop and, first, in the directory IconThemePath.
+	// the icons of the desktop and, first, in the directory IconThemePath. Pixmaps are the
+	// pictures in the item itself, which the panel takes when there is no name for one.
 	IconName      string
 	IconThemePath string
+	Pixmaps       []Pixmap
 	// Menu is the object of the menu of the item, which is a dbusmenu.
 	Menu       dbus.ObjectPath
 	ItemIsMenu bool
@@ -433,9 +434,22 @@ func (i *Item) Properties() (Properties, error) {
 		ID: text("Id"), Title: text("Title"), Status: text("Status"), Category: text("Category"),
 		IconName: text("IconName"), IconThemePath: text("IconThemePath"),
 	}
+	if pictures, ok := all["IconPixmap"]; ok {
+		if err := pictures.Store(&p.Pixmaps); err != nil {
+			return Properties{}, fmt.Errorf("read the pictures of %s%s: %w", i.Service, i.Path, err)
+		}
+	}
 	p.Menu, _ = all["Menu"].Value().(dbus.ObjectPath)
 	p.ItemIsMenu, _ = all["ItemIsMenu"].Value().(bool)
 	return p, nil
+}
+
+// Pixmap is a picture of an item: its size, and its pixels from the top left, four bytes each, the
+// alpha first, then red, green and blue.
+type Pixmap struct {
+	Width  int32
+	Height int32
+	Pixels []byte
 }
 
 func (i *Item) object(path dbus.ObjectPath) dbus.BusObject { return i.h.conn.Object(i.Service, path) }

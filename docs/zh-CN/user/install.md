@@ -13,8 +13,8 @@
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 ```
 
-另有一个可选的包：`libayatana-appindicator3-1`，它画出 vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）
-在 GNOME 的托盘里显示的图标。没有它 vfox-plus 就没有托盘图标，其他照常。vfox-plus 的软件包推荐安装它。
+vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）显示的托盘图标不需要单独的包：在 GNOME 上由 Shell 的
+AppIndicator 扩展画出，Ubuntu 默认启用它。桌面不显示托盘图标时，vfox-plus 就没有托盘图标，其他照常。
 
 从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载适合你电脑（amd64 或 arm64）的 `.deb` 或 `.tar.gz`，二选一（Ubuntu 26.04 装包，示例为 amd64）：
 

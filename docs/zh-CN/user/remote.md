@@ -71,9 +71,7 @@ Chrome 和 Edge 可以把配对后的界面安装为应用，有独立的窗口�
 
 - **Windows 11。**在任务栏的通知区域，与其他图标在一起。点击图标恢复窗口，右键打开菜单。
 - **GNOME**，Ubuntu 的桌面。在顶部的面板里，由它的 AppIndicator 扩展显示这类图标：Ubuntu 默认启用它，
-  其他发行版把它做成软件包 `gnome-shell-extension-appindicator`。点击图标显示菜单。它还需要库
-  `libayatana-appindicator3`：vfox-plus 的软件包推荐安装它，所以通常会一并装上；若安装时跳过了推荐包，
-  之后可用 `sudo apt install libayatana-appindicator3-1` 补上。
+  其他发行版把它做成软件包 `gnome-shell-extension-appindicator`。点击图标显示菜单。
 
 其他桌面不受支持。KDE Plasma 和托盘是旧式的桌面，vfox-plus 不保证有图标：请使用 GNOME。没有图标时，其他
 一切照旧：vfox-plus 仍像以前一样无窗口运行，再次启动 vfox-plus 就能恢复窗口，也可以用浏览器。

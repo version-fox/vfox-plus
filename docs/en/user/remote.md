@@ -95,10 +95,7 @@ tested for:
   bring the window back, or right-click it for the menu.
 - **GNOME**, the desktop of Ubuntu. In the panel at the top, which shows such icons through
   its AppIndicator extension: Ubuntu has it on, and other distributions have it as the package
-  `gnome-shell-extension-appindicator`. Click the icon for the menu. It also needs the library
-  `libayatana-appindicator3`: the package of vfox-plus recommends it, so it comes with it
-  unless you install without recommended packages (`sudo apt install libayatana-appindicator3-1`
-  adds it later).
+  `gnome-shell-extension-appindicator`. Click the icon for the menu.
 
 Other desktops are not supported. KDE Plasma and the desktops whose tray is of the old kind get
 no icon that vfox-plus promises: use GNOME. Where there is no icon, nothing else changes: vfox-plus

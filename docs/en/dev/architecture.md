@@ -318,9 +318,9 @@ License 2.0 and the MIT license, and their notices ship with the application
 ([`mygo/NOTICE.txt`](../../../mygo/NOTICE.txt)). The application does not link GTK 3,
 GLib, Pango and Cairo, which are under the LGPL: mygo loads them from the system
 when it starts, and the package depends on them as declared in
-`vfxtool runtask` (`shared/tooling/internal/runtask`). The same goes for
-`libayatana-appindicator3`, which draws the tray icon on Linux: mygo loads it when the system has
-it, and the package recommends it without depending on it. The application
+`vfxtool runtask` (`shared/tooling/internal/runtask`). The tray icon on Linux needs no library:
+the application speaks the protocol of the panels over the session bus (see
+[The tray](#the-tray)). The application
 ships no strong-copyleft (Category X) code; weak-copyleft (Category B)
 dependencies, if any, ship under their own license terms. The build tooling
 in `shared/tooling` (`vfxtool`, never shipped in the application) additionally
@@ -508,81 +508,81 @@ the two desktops that the application is tested on: Windows 11, where it is in t
 and GNOME, where the AppIndicator extension of the shell shows it in the panel (Ubuntu enables the
 extension). Others are not supported: KDE Plasma and the desktops whose tray is of the old kind (XEmbed)
 are for the user to leave for GNOME, or to do without the icon, as the application then runs without
-it. The code does not refuse them (the icon is made wherever a StatusNotifierWatcher is on the session
-bus and the library is there, and on the menu bar of macOS), and nothing of it is tested or promised.
+it. The code does not refuse them (on Linux the icon is made wherever a StatusNotifierWatcher is on the
+session bus, and on macOS it is in the menu bar), and nothing of it is tested or promised.
 Its menu has *Open vfox+*, *Open the web interface* (the browser of this computer, paired
-with a one-time link) and *Quit vfox+*, and activating the icon opens the window. It is the way
-back to the window, and the way to end the application, that a process without a window would
-otherwise lack. The code is `mygo/ui/tray.go`.
+with a one-time link) and *Quit vfox+*. It is the way back to the window, and the way to end the
+application, that a process without a window would otherwise lack. The code is `mygo/ui/tray.go`, with
+the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tray_other.go`.
 
 - **When.** `App.releaseWindow` makes the icon (`showTray`) as it lets go of the window, and
   `App.openWindow` removes it (`hideTray`), so the application has no icon while it has a
   window, and the state in which the memory matters most holds nothing for it.
-- **The identity.** `trayID` names the icon. On Windows and on macOS the name is `ApplicationID`, which
-  keeps the place that the user gave the icon (mygo 0.9.1 honours the ID there). On Linux every
-  appearance is a new icon, with an empty ID that mygo names from the process and a counter. The
-  specification of StatusNotifierItem asks for an `Id` that is consistent between sessions, but the
-  GNOME Shell of Ubuntu 26.04 does not show an icon that registers again under the same `Id`: it keeps
-  the indicator it has, with the state it had (hidden), and the icon stays out of the panel. That is
-  what `vfxtool e2e-run tray-gnome` checks. The price is one hidden entry in the shell for each
-  appearance, which the shell keeps until the application quits. Keeping one icon and changing its
-  status instead would avoid both, and needs the library to offer it.
+- **The identity.** On Linux the icon is an item of the StatusNotifierItem protocol, which the code puts
+  on the session bus itself, with the godbus library, and not through a library of the desktop. The item
+  has the ID of the application, by which a desktop keeps the settings it has for the icon. Each
+  appearance is a new item under a name of its own on the bus, `org.freedesktop.StatusNotifierItem-PID-N`,
+  with a counter. Opening the window gives the name up, so the desktop takes the icon out of its panel and
+  forgets the item; closing the window again makes the next item, under the next name. On Windows and on
+  macOS the ID keeps the place that the user gave the icon, which mygo 0.9.1 honours.
+  This is the protocol's way, and it is the one that GNOME Shell handles. The library that the application
+  loaded before (libayatana-appindicator3) kept one item for the life of the application. GNOME Shell kept
+  the indicator it had for an item that registered again under the same ID, hidden, so the icon stayed out
+  of the panel after its first appearance, and each appearance left a hidden indicator behind (about 1.6 MB
+  of the shell's memory each time). `vfxtool e2e-run tray-gnome` checks both.
 - **A seam, like the window.** `desktop.newTray` takes `trayOptions` (the PNG, the tool tip, the
   entries as label and click, and what activation does) and returns a `trayIcon` (`Update`,
-  `Destroy`). `newNativeTray` is the one that calls `mygo.NewTray`; the tests replace it with a
-  recorder (`fakeTray`) that clicks the entries.
-- **The menu is the way back, not the click.** On Linux a click on the icon shows the menu. The
-  activation that `OnClick` listens to is Windows' left click, and GNOME's double click only
-  where the library has an `activate` signal, which the libayatana-appindicator3 of Ubuntu 26.04
-  (0.5.94) has not: there the panel's `Activate` call fails and the panel shows the menu.
-- **A host is required.** Without a StatusNotifierWatcher on the session bus,
-  libayatana-appindicator3 falls back to `GtkStatusIcon`, which no panel of today shows, and
-  decodes the picture of the icon through the image loaders of the desktop to make it: 7 MB of
-  memory for nothing. `trayHostAvailable` (`platform_linux.go`) asks the session bus first, with
-  a `GDBusProxy` for `org.kde.StatusNotifierWatcher` that is not allowed to start a service, and
-  `newNativeTray` makes no icon when nothing owns the name.
-- **A missing tray is not an error.** No host, no `libayatana-appindicator3`, a failing
-  `NewTray`: one line in the log ("no icon in the tray: ..."), and the application goes on
-  without it. Starting it again, or the web interface, are still the ways back.
-- **Removal.** The icon is removed by a goroutine after the choice that asked for the window
-  returns, because the libraries of the desktop do not expect the owner of a menu item to
-  disappear in the handler of the item (`hideTray`), and at once when the application ends
-  (`OnWillQuit` → `removeTray`), because Windows shows the icon of a program that is gone until
-  the pointer passes over it.
+  `Destroy`). `newNativeTray` puts the item on the bus on Linux, and calls `mygo.NewTray` on Windows and
+  macOS. The tests replace it with a recorder (`fakeTray`) that clicks the entries.
+- **The menu is the way back.** On Linux the item is a menu (`ItemIsMenu`), so a click on the icon shows
+  it, and the panel needs no activation for that. The item also takes `Activate`, which brings the window
+  back, for a desktop that calls it on a click instead of showing the menu.
+- **A host is required.** The icon is shown by the host of the icons on the session bus, the
+  StatusNotifierWatcher. Without one (no session bus, or nothing owns `org.kde.StatusNotifierWatcher`),
+  `newNativeTray` makes no icon, and nothing is loaded for one. The check is `NameHasOwner`, which starts
+  no service.
+- **A missing tray is not an error.** No host, or a registration that fails: one line in the log ("no icon
+  in the tray: ..."), and the application goes on without it. Starting it again, or the web interface, are
+  still the ways back.
+- **Removal.** The icon is removed by a goroutine after the choice that asked for the window returns, because
+  the libraries of the desktop do not expect the owner of a menu item to disappear in the handler of the item
+  (`hideTray`), and at once when the application ends (`OnWillQuit` → `removeTray`), because Windows shows the
+  icon of a program that is gone until the pointer passes over it. On Linux, giving the name up takes the icon
+  away in the same way.
 - **Language.** The labels are in the language of the settings, which the web interface can
   change while there is no window to draw it: a listener on the settings (`refreshTray`) writes
   the menu again when the language changed.
 - **The picture.** `tray.png`, 32 by 32 pixels, is the fox of the application icon without its
   plate (orange shows on a light panel and on a dark one). The repository holds no picture, so
   `vfxtool prepare` draws it with `appicon.RenderFox`, `mygo/assets` embeds it, and it is
-  ignored by git like the other collected assets.
-- **Packaging.** Nothing is linked: mygo opens `libayatana-appindicator3` when it starts, if the
-  system has it (see [Dependencies](#dependencies)). The Debian package recommends
-  `libayatana-appindicator3-1` and does not depend on it, and the installation test, which
-  installs without recommended packages, shows that the application runs without it.
+  ignored by git like the other collected assets. On Linux the item carries its pixels (the
+  protocol's `IconPixmap`, alpha first), so the desktop finds no file for the picture.
+- **Packaging.** Nothing is linked for the icon, and the package names no library for it: the application
+  speaks the protocol over the session bus, and the panel of the desktop draws the icon.
 
 What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tested at four levels:
 
 - **The logic** by the unit tests of `ui`, which replace the tray with a recorder (`fakeTray`) that
-  chooses the entries.
+  chooses the entries, and by the tests of the item of Linux itself (its picture, its menu, its name on the bus).
 - **The protocol** by a stand-in for the host of the tray icons, which a CI runner needs because it
   has no panel: package `trayhost` of the tooling owns `org.kde.StatusNotifierWatcher` on the session
   bus, reads the item and its dbusmenu as the AppIndicator extension of GNOME does, and chooses entries
   (godbus, BSD-2-Clause, is its one dependency). `vfxtool e2e-run tray`, a step of the `build` job,
-  closes the window and checks the icon, its tool tip, its picture (a 32 by 32 PNG of the fox, with no plate)
-  and its menu, chooses *Open vfox+* (the window comes back and the icon goes), chooses
-  *Open the web interface* (a stand-in for the browser of the user, registered as the handler of the
-  links of the web, gets a link that pairs), and quits from the menu (the application ends with the code 0 and
-  the directory of the picture is removed). It then runs the application where there is no host, and checks that
-  it makes no icon and says why, which is what keeps the fallback of the library away.
+  closes the window and checks the icon, its ID, its tool tip, its picture (the pixels that the item carries:
+  a 32 by 32 fox, with no plate) and its menu, chooses *Open vfox+* (the window comes back and the item
+  leaves the bus), chooses *Open the web interface* (a stand-in for the browser of the user, registered as the
+  handler of the links of the web, gets a link that pairs), and quits from the menu (the application ends with
+  the code 0, and its item leaves the bus). It then runs the application where there is no host, and checks that
+  it makes no icon and says why.
 - **The shell** by a real GNOME Shell. `vfxtool gnome-session` runs a command inside Ubuntu's GNOME Shell 50
   without a screen (mutter serves Wayland without a GPU) with the AppIndicator extension enabled, in the container
   of `shared/sandbox/gnome.Dockerfile`, and `vfxtool e2e-run tray-gnome`, which the `tray-gnome` job runs, is the
   scenario against it: the application closes its window, and the shell puts an indicator for it in its panel,
   makes the menu of it (what it makes is read with `org.gnome.Shell.Eval`, which the shell serves in unsafe mode),
   chooses *Open vfox+*, *Open the web interface* and *Quit vfox+* as the user does, by having the extension send
-  the event of the click, and the application does what they say; the shell hides the icon when the window comes
-  back, and drops it when the application ends, and is still up after it all.
+  the event of the click, and the application does what they say. The shell hides the icon when the window comes
+  back. Each time the window closes, the panel shows the one icon of the application, and the indicator of the
+  appearance before is gone. The shell drops the icon when the application ends, and is still up after it all.
 - **Windows** by the `run-windows` job, which runs `vfxtool e2e-run fake`, `vfxtool e2e-run python` and `vfxtool e2e-run tray` on Windows
   Server 2025 (x64) and Windows 11 on ARM with the end-to-end build for Windows, on the desktop of the runner
   (`explorer.exe` runs there, with its taskbar). The window comes back and the application ends as the control

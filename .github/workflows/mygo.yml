@@ -49,12 +49,12 @@ concurrency:
 env:
   # Packages needed to build and run mygo applications on Linux: nothing to
   # build with (mygo needs no C compiler, and only the race detector of the tests
-  # needs one), GTK 3 to run, which mygo loads when it starts, and
-  # libayatana-appindicator3, which it loads for the icon in the tray (without it the
-  # application has no icon, and the scenario of the icon has nothing to test).
+  # needs one), and GTK 3 to run, which mygo loads when it starts. The icon in the
+  # tray needs no library: the application speaks to the panel of the desktop over
+  # the session bus.
   # Fontconfig and the fonts are what the interface looks up.
   LINUX_PACKAGES: >-
-    build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk
+    build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
     xvfb xauth dbus-x11 lintian desktop-file-utils
 
 jobs:
@@ -331,7 +331,7 @@ jobs:
         # the virtual one of xvfb gives, even to have its web interface served.
         uses: ./.github/actions/install-linux-packages
         with:
-          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+          packages: libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # Where vfxtool prepare keeps the npm package that the icons come from.
@@ -478,7 +478,7 @@ jobs:
         # of xvfb gives, even to have its web interface served. The gateway is not: it is the image.
         uses: ./.github/actions/install-linux-packages
         with:
-          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+          packages: libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # Where vfxtool prepare keeps the npm package that the icons come from.

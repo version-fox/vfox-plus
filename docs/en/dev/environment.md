@@ -179,7 +179,7 @@ The Ubuntu packages are the ones that CI installs (`LINUX_PACKAGES` in
 [`mygo.yml`](../../../.github/workflows/mygo.yml)):
 
 ```sh
-sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
+sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11
 ```
 
@@ -187,9 +187,8 @@ sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontco
 compiler; the application is built without one. GTK 3 and the fonts are what the
 application loads when it starts. `xvfb`, `xauth` and `dbus-x11` give the
 end-to-end tests a virtual display. Add `lintian desktop-file-utils` to check a
-`.deb` the way CI does. `libayatana-appindicator3-1` draws the icon that stands in the tray for the application
-while its window is closed, which the end-to-end scenario `tray` needs; it runs with the session bus of
-`dbus-run-session`, for it uses a stand-in for the host of the tray icons (see
+`.deb` the way CI does. The icon that stands in the tray for the application while its window is closed
+needs no library; the end-to-end scenario `tray` needs the session bus of `dbus-run-session`, for it uses a stand-in for the host of the tray icons (see
 [The tray](architecture.md#the-tray)). To see the icon on your own desktop, the desktop has to be GNOME
 (with its AppIndicator extension) or Windows. The scenario `tray-gnome` runs in the container of
 `shared/sandbox/gnome.Dockerfile`, so it needs Docker. The commands to build, test and package are in

@@ -24,8 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/egoist/mygo"
-
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/pair"
 )
@@ -63,20 +61,6 @@ func gone(t *testing.T, tray *fakeTray) {
 			t.Fatal("the icon is still in the tray")
 		}
 		time.Sleep(2 * time.Millisecond)
-	}
-}
-
-// TestTrayIDKeepsThePlaceOnWindowsAndMacOSAndIsAFreshIconOnLinux checks the ID of the icon: Windows
-// and macOS keep the place of the icon under the ID of the application, and Linux names each
-// appearance afresh (see trayID).
-func TestTrayIDKeepsThePlaceOnWindowsAndMacOSAndIsAFreshIconOnLinux(t *testing.T) {
-	for _, goos := range []string{"windows", "darwin"} {
-		if got := trayID(goos); got != ApplicationID {
-			t.Errorf("trayID(%q) = %q, want the ID of the application %q", goos, got, ApplicationID)
-		}
-	}
-	if got := trayID("linux"); got != "" {
-		t.Errorf("trayID(linux) = %q, want an empty ID, so that each appearance is a new icon", got)
 	}
 }
 
@@ -245,7 +229,7 @@ func TestADesktopWithoutATrayStillRunsTheApplicationWithoutItsWindow(t *testing.
 	var logged bytes.Buffer
 	log.SetOutput(&logged)
 	t.Cleanup(func() { log.SetOutput(os.Stderr) })
-	ta.desktop.trayError = errors.New("tray icons need libayatana-appindicator3")
+	ta.desktop.trayError = errors.New("the icon cannot be made")
 
 	a.windowsClosed()
 	if ta.desktop.quits != 0 || a.window() != nil || !a.released {
@@ -254,7 +238,7 @@ func TestADesktopWithoutATrayStillRunsTheApplicationWithoutItsWindow(t *testing.
 	if len(ta.desktop.trays) != 0 || a.tray != nil {
 		t.Error("there is no tray to put an icon in")
 	}
-	if !strings.Contains(logged.String(), "no icon in the tray: tray icons need libayatana-appindicator3") {
+	if !strings.Contains(logged.String(), "no icon in the tray: the icon cannot be made") {
 		t.Errorf("the log says why: %q", logged.String())
 	}
 
@@ -290,28 +274,6 @@ func TestTheWebInterfaceThatCannotBeOpenedFromTheTrayIsLogged(t *testing.T) {
 	}
 	if !strings.Contains(logged.String(), "cannot open the web interface") {
 		t.Errorf("there is no window to say so, the log does: %q", logged.String())
-	}
-}
-
-func TestTheMenuOfTheIconCallsWhatItsEntriesDo(t *testing.T) {
-	var called []string
-	menu := trayMenu([]trayEntry{
-		{label: "A", click: func() { called = append(called, "A") }},
-		{},
-		{label: "B", click: func() { called = append(called, "B") }},
-	})
-	items := menu.Items()
-	if len(items) != 3 || items[0].Label != "A" || items[2].Label != "B" {
-		t.Fatalf("items = %+v", items)
-	}
-	if items[1].Type != mygo.MenuItemSeparator {
-		t.Errorf("the empty entry is a %v, want a separator", items[1].Type)
-	}
-	for _, item := range []*mygo.MenuItem{items[0], items[2], items[0]} {
-		item.Click(item, nil)
-	}
-	if strings.Join(called, "") != "ABA" {
-		t.Errorf("called %v", called)
 	}
 }
 

@@ -128,7 +128,14 @@ The icon in the tray that stands for the application while its window is closed 
 it opens. The rows above are therefore the rows without it where nothing shows an icon, as on a CI
 runner: with a window it holds nothing.
 
-Where there is one, it costs little. Measured on the same host before the pages of files were paged
+The icon is now drawn by the application itself, over the session bus, and loads no library for it, which the
+table below does not show: the table is of the version that loaded `libayatana-appindicator3`, measured on this
+host before it was replaced. The present icon, measured by `vfxtool measure-lightweight --tray` in the devcontainer
+of the repository (WSL2, Ubuntu 26.04), adds 176 KB to 1.4 MB of resident memory and 76 to 256 KB of private
+memory, in three runs. The runs differ by more than the icon costs, which is the noise of the machine, so the
+figure is a range. CI measures the icon on its runner, with the same tool (below).
+
+With the library, where there is one, the icon cost little. Measured on the same host before the pages of files were paged
 out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifierWatcher` (package
 `trayhost` of the tooling), the same build, the window closed, as the mean of five runs. That session reads about
 6 MB above the table above for the same state, so only the differences between its rows count:
@@ -142,13 +149,13 @@ out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifi
 
 - **The icon shown** adds 0.4 MB of RSS and 80 KB of private memory. The 0.4 MB are clean pages of
   the libraries that draw it, and about what two runs of the same build differ by.
-- **The library** is loaded by mygo when it starts, whenever the system has it and whether an
+- **The library** (until this change) is loaded by mygo when it starts, whenever the system has it and whether an
   icon is made or not, which costs about 0.3 MB of RSS and 70 KB of private memory in every
   state. The Debian package recommends it, so a default installation has it.
-- **The fallback** is where memory would go: 7 MB of RSS, 1.8 MB of it private, for the image
+- **The fallback** (until this change) is where memory would go: 7 MB of RSS, 1.8 MB of it private, for the image
   loaders of the desktop that GTK starts to decode the picture of an icon that no panel shows
-  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why `trayHostAvailable` asks the session bus for a host before the
-  application asks for an icon, and why there is no icon without one.
+  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why the application asks the session bus for a host before
+  it asks for an icon, and why there is no icon without one.
 
 With the pages of files paged out and the processors limited, the icon is far inside what the application
 saved. With the icon in the tray, in the session of the stand-in host, the application holds 15.2 MB of private
@@ -158,17 +165,16 @@ CI keeps the cost where it is. `vfxtool measure-lightweight --tray` (the last st
 runs the application twice in the same way, where nothing shows an icon and against the stand-in host, and fails the job
 when the icon costs more than 5 MB of resident or 1.5 MB of private memory: room for the noise of a runner, and
 less than the fallback costs, so that an icon made the way the fallback makes it is caught. It does not use the
-automation plugin, for the glyph atlas above. The fallback itself, which costs its memory where there is no host, is
-guarded by the scenario of the icon (`vfxtool e2e-run tray`), which fails when the application makes an icon where
-there is no host. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
+automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray`) checks that the application makes no
+icon. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
 two above: `malloc_trim` after the window closes changed nothing, `MALLOC_ARENA_MAX=1` saved 0.1 MB, and a
 second `debug.FreeOSMemory` a few seconds after the first saved 0.2 MB of private memory and nothing of
 RSS (the collection that follows the paging out is that call). What stays in the Go heap after the window closes
 is, among other things, the text engine of mygo (its paragraph cache, its glyph atlas and its SVG paths), which
 the application has no way to release.
 
-The runner of CI, Ubuntu 26.04 on GitHub, agrees with these numbers, as two runs of the job on the same code
-show: the lightweight mode settles at 45 MB of RSS and 31 to 32 MB of PSS, and at 47 to 48 MB and 34 to 35 MB
+With the library, the runner of CI, Ubuntu 26.04 on GitHub, agreed with these numbers, as two runs of the job on
+the same code showed: the lightweight mode settles at 45 MB of RSS and 31 to 32 MB of PSS, and at 47 to 48 MB and 34 to 35 MB
 with a browser paired, where the table has 46 and 33, and 50 and 37; and the icon in the tray costs 0.5 MB of RSS and
 0.06 to 0.18 MB of private memory there, where it cost 0.4 MB and 0.08 MB here.
 

@@ -161,7 +161,7 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
 
   `fake` runs against the fake vfox of the fixtures, `python` against the same fake vfox on a machine that has Python installed, and `real` against the real vfox with the offline
   test plugin and its server. `tray` is the icon in the tray: on Linux against a stand-in for the host
-  of the tray icons that needs the session bus that `dbus-run-session` gives and `libayatana-appindicator3`
+  of the tray icons that needs the session bus that `dbus-run-session` gives
   (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine.
   `tray-gnome` is the same icon against a real GNOME Shell with no screen, which the container of
   `shared/sandbox/gnome.Dockerfile` has (Docker; the build is mounted in):
@@ -283,7 +283,7 @@ compatible with the Apache License 2.0).
 The package depends on GTK 3 (which brings GLib, Pango, Cairo and the rest of
 what mygo loads), fontconfig and a font (`fonts-ubuntu` or `fonts-noto-core`),
 and recommends `fonts-noto-cjk` for Chinese, a desktop portal and `xdg-utils` for
-links, and `libayatana-appindicator3-1` for the icon in the tray. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
+links. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
 installs the package into a clean Ubuntu container to prove that it is complete.
 
 On Windows 11, `vfxtool build-msix` packages cross-compiled executables

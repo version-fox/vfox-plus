@@ -15,11 +15,7 @@
 package ui
 
 import (
-	"errors"
 	"log"
-	"runtime"
-
-	"github.com/egoist/mygo"
 
 	"github.com/version-fox/vfox-plus/mygo/assets"
 )
@@ -30,9 +26,9 @@ import (
 // It is made when the window is closed and removed when a window opens again, so that an
 // application with a window has no icon in the tray and holds nothing for one.
 //
-// Not every desktop has a tray, and on Linux the icon needs a library that the desktop may
-// not have installed (libayatana-appindicator3). Without it the application runs as it did:
-// starting it again brings the window back.
+// Not every desktop has a tray. On Linux the icon is shown by the host of the icons on the
+// session bus, which a desktop may not have (tray_linux.go). Without one the application runs
+// as it did: starting it again brings the window back.
 
 // trayEntry is an item of the menu of the tray icon: a label, and what choosing it does.
 // An entry that does nothing is a separator.
@@ -49,9 +45,8 @@ type trayOptions struct {
 	toolTip string
 	// entries are the items of the menu that a click on the icon shows.
 	entries []trayEntry
-	// activate is what the icon does when the desktop activates it, which is a click on
-	// Windows, and a double click on the desktops of Linux that show the menu for a single
-	// one.
+	// activate is what the icon does when the desktop activates it: a click on Windows, and on
+	// Linux the call that a desktop makes to an icon whose menu it does not show.
 	activate func()
 }
 
@@ -61,65 +56,6 @@ type trayIcon interface {
 	Update(toolTip string, entries []trayEntry)
 	// Destroy removes the icon.
 	Destroy()
-}
-
-// nativeTray is the icon in the tray that mygo draws.
-type nativeTray struct{ icon *mygo.Tray }
-
-// errNoTrayHost says that nothing on the desktop shows tray icons.
-var errNoTrayHost = errors.New("nothing on the desktop shows tray icons")
-
-// newNativeTray puts an icon in the tray of the desktop. It fails where the desktop has none,
-// or has no library to draw the icon with.
-func newNativeTray(options trayOptions) (trayIcon, error) {
-	if !trayHostAvailable() {
-		return nil, errNoTrayHost
-	}
-	icon, err := mygo.NewTray(mygo.TrayOptions{
-		ID:      trayID(runtime.GOOS),
-		Icon:    options.icon,
-		ToolTip: options.toolTip,
-		Menu:    trayMenu(options.entries),
-	})
-	if err != nil {
-		return nil, err
-	}
-	icon.OnClick(options.activate)
-	return &nativeTray{icon: icon}, nil
-}
-
-// trayID is the ID that names the icon. On Windows and on macOS the ID keeps the place that the user
-// gave the icon, so the icon is named after the application. On Linux every appearance of the icon is
-// a new one: an empty ID, which gives the name that mygo 0.9.0 gave every icon, because the GNOME Shell
-// of Ubuntu 26.04 keeps what it has for an ID when an application registers an icon under it again,
-// and it does not learn that the icon shows, so the icon would stay out of the panel after its first
-// appearance (vfxtool e2e-run tray-gnome checks it).
-func trayID(goos string) string {
-	if goos == "linux" {
-		return ""
-	}
-	return ApplicationID
-}
-
-func (t *nativeTray) Update(toolTip string, entries []trayEntry) {
-	t.icon.SetToolTip(toolTip)
-	t.icon.SetMenu(trayMenu(entries))
-}
-
-func (t *nativeTray) Destroy() { t.icon.Destroy() }
-
-// trayMenu makes the menu of the icon of the entries.
-func trayMenu(entries []trayEntry) *mygo.Menu {
-	items := make([]*mygo.MenuItem, 0, len(entries))
-	for _, entry := range entries {
-		if entry.click == nil {
-			items = append(items, mygo.Separator())
-			continue
-		}
-		click := entry.click
-		items = append(items, &mygo.MenuItem{Label: entry.label, Click: func(*mygo.MenuItem, *mygo.Window) { click() }})
-	}
-	return mygo.NewMenu(items)
 }
 
 // trayEntries are the items of the menu, in the language of the user interface.

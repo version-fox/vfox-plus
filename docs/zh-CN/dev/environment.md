@@ -144,13 +144,13 @@ Ubuntu 软件包与 CI 安装的相同（[`mygo.yml`](../../../.github/workflows
 `LINUX_PACKAGES`）：
 
 ```sh
-sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
+sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11
 ```
 
 `build-essential` 只为单元测试的竞态检测器，它需要 C 编译器；应用本身构建时不需要。
 GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 给端到端测试一块虚拟显示。
-要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。`libayatana-appindicator3-1` 画出应用没有窗口时代表它的托盘图标，端到端场景 `tray` 需要它，并且要在
+要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。应用没有窗口时代表它的托盘图标不需要库：端到端场景 `tray` 要在
 `dbus-run-session` 给的会话总线里运行，因为它用一个替身托盘宿主（见[托盘](architecture.md#托盘)）。要在自己的桌面上
 看到这个图标，桌面需要是 GNOME（带它的 AppIndicator 扩展）或 Windows。场景 `tray-gnome` 在
 `shared/sandbox/gnome.Dockerfile` 的容器里运行，所以需要 Docker。构建、测试与打包的命令见

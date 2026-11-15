@@ -26,10 +26,11 @@ import (
 )
 
 // What the icon in the tray may cost over the application without it, in KB. The icon adds
-// 0.4 MB of resident memory and 0.08 MB of private memory. An icon made where no host shows it,
-// with the fallback that libayatana-appindicator3 has for that, adds 7 MB and 1.8 MB: that is
-// what the limits are for, and the room that they leave is the noise of the machine, which is
-// that of the file pages that the system takes back from an idle process as it likes.
+// 0.4 MB of resident memory and 0.08 MB of private memory. An icon made where no host shows it
+// cost 7 MB and 1.8 MB with the library that the application used to load for it, which is why
+// the application makes none where there is no host: that is what the limits are for, and the
+// room that they leave is the noise of the machine, which is that of the file pages that the
+// system takes back from an idle process as it likes.
 const (
 	maxIconResident = 5 * 1024
 	maxIconPrivate  = 1536
@@ -123,7 +124,7 @@ func closedWindow(argv []string, fixturesDir, fakeVfox string, settle time.Durat
 		defer cancel()
 		if _, err := host.NextItem(ctx); err != nil {
 			app.stop()
-			return measure.Usage{}, fmt.Errorf("the window is closed and the application made no icon in the tray (is the library of the icon, libayatana-appindicator3, installed?): %w", err)
+			return measure.Usage{}, fmt.Errorf("the window is closed and the application made no icon in the tray (is there a host of the tray icons on the desktop?): %w", err)
 		}
 	}
 	time.Sleep(settle)

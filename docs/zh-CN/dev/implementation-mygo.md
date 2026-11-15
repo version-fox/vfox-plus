@@ -130,7 +130,7 @@ Go 模块与构建缓存。
   ```
 
   `fake` 对夹具假 vfox，`python` 对同一个假 vfox，但机器上装着 Python，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
-  替身托盘宿主，它需要 `dbus-run-session` 给的会话总线和 `libayatana-appindicator3`（见[托盘](architecture.md#托盘)），
+  替身托盘宿主，它需要 `dbus-run-session` 给的会话总线（见[托盘](architecture.md#托盘)），
   在 Windows 上对着本机的任务栏。`tray-gnome` 是同一个图标对着一个没有屏幕的真实 GNOME Shell，它在
   `shared/sandbox/gnome.Dockerfile` 的容器里（需要 Docker；构建产物以挂载方式放进去）：
 
@@ -217,7 +217,7 @@ Linux 上，共享工具 `vfxtool build-deb` 为 amd64 与 arm64（`--goarch`，
 
 包依赖 GTK 3（含 mygo 加载的 GLib、Pango、Cairo 等）、fontconfig 与字体
 （`fonts-ubuntu` 或 `fonts-noto-core`），推荐中文 `fonts-noto-cjk`、桌面门户、打开链接
-的 `xdg-utils`，以及托盘图标用的 `libayatana-appindicator3-1`。列表即 `vfxtool runtask` 的 `Depends`
+的 `xdg-utils`。列表即 `vfxtool runtask` 的 `Depends`
 （`shared/tooling/internal/runtask`），CI 装入干净 Ubuntu 容器证明完备。
 
 Windows 11 上，`vfxtool build-msix` 把交叉编译的可执行文件
