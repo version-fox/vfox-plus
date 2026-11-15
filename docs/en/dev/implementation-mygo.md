@@ -287,14 +287,15 @@ links, and `libayatana-appindicator3-1` for the icon in the tray. The list is th
 installs the package into a clean Ubuntu container to prove that it is complete.
 
 On Windows 11, `vfxtool build-msix` packages cross-compiled executables
-(`vfxtool build --goos windows --goarch amd64|arm64`) as unsigned
+(`vfxtool build --goos windows --goarch amd64|arm64`) as
 `vfox-plus_<version>_<arch>.msix` and a `vfox-plus_<version>.msixbundle`,
 with the manifest, logos and bundle layout of
-[`shared/packaging/windows`](../../../shared/packaging/windows). Users install the
-unsigned bundle in an elevated PowerShell with
-`Add-AppxPackage -AllowUnsigned`; the bundle is not signed yet and an
-officially signed bundle will be provided later. CI cross-compiles and
-packages on Linux, validates with
+[`shared/packaging/windows`](../../../shared/packaging/windows). The release gives
+them the publisher of its certificate and signs them with Artifact Signing
+(`vfxtool rebundle` makes the bundle again from the signed packages, and
+`vfxtool install-check --trusted` installs it); users install the signed bundle
+with `Add-AppxPackage`, see [Windows packaging](packaging-windows.md#signing-the-release).
+CI cross-compiles and packages on Linux, unsigned, validates with
 `vfxtool validate-msix`, and installs/uninstalls the bundle on Windows
 Server 2025 (x64) and Windows 11 on ARM (arm64).
 
@@ -347,8 +348,8 @@ adds 5 MB because only the rows in view are built.
 - **Only Linux on x86-64 is run and tested end to end.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on
   arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows 11
-  is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI;
-  installing it is sideloading with `Add-AppxPackage -AllowUnsigned`. The census of
+  is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI, and
+  the release signs it; a CI package installs with `Add-AppxPackage -AllowUnsigned`. The census of
   the screens is taken on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel) in CI too
   (the job `census`): what the text
   engine and the fonts of a platform do to a layout is for a machine of that platform to say. `core` is

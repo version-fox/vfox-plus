@@ -115,9 +115,9 @@ cp app/build/outputs/apk/release/app-release.apk \
 
 安卓只把更新装在用同一把密钥签名的应用上，遇到别的密钥会拒绝（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。所以 vfox-plus 的每个 release 都用**发布密钥**签名：一把密钥，存为仓库 `release` 环境里的 secret，每次 release 都用它。新版本直接装在旧版本上，应用数据与 PC 的配对都保留。
 
-release 任务没有这把密钥就拒绝运行。它需要的四个 secret 是 `ANDROID_RELEASE_KEYSTORE_BASE64`（base64 编码的 keystore）、`ANDROID_RELEASE_STORE_PASSWORD`、`ANDROID_RELEASE_KEY_ALIAS` 与 `ANDROID_RELEASE_KEY_PASSWORD`。Gradle 构建（`app/build.gradle.kts`）环境里给了发布密钥（`ANDROID_RELEASE_KEYSTORE` 与三个口令）就用它签名；否则本机构建用这台机器的 debug 密钥，Gradle 在首次构建时创建，每台机器各有一把：两台机器构建的 APK 互相不能升级，所以 debug 密钥只用于本机构建。[`android.yml`](../../../.github/workflows/android.yml) 的 APK 用任务临时生成、用完即丢的密钥签名，这样每次改动都会走一遍发布的签名路径。
+发布的 publish 任务没有这把密钥就拒绝运行。它需要的四个 secret 是 `ANDROID_RELEASE_KEYSTORE_BASE64`（base64 编码的 keystore）、`ANDROID_RELEASE_STORE_PASSWORD`、`ANDROID_RELEASE_KEY_ALIAS` 与 `ANDROID_RELEASE_KEY_PASSWORD`。Gradle 构建（`app/build.gradle.kts`）环境里给了发布密钥（`ANDROID_RELEASE_KEYSTORE` 与三个口令）就用它签名；否则本机构建用这台机器的 debug 密钥，Gradle 在首次构建时创建，每台机器各有一把：两台机器构建的 APK 互相不能升级，所以 debug 密钥只用于本机构建。[`android.yml`](../../../.github/workflows/android.yml) 的 APK 用任务临时生成、用完即丢的密钥签名，这样每次改动都会走一遍发布的签名路径。
 
-这四个 secret 只放在 `release` 环境里，仓库里没有。只有 release 任务读取它们。运行要等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准，仓库管理员发起的运行可以跳过审批；环境只允许 `main` 分支与 `v*` 标签使用。secret 的值不对任何人显示，维护者也不分享。如需这四个 secret 的实际值，请联系 <https://github.com/linghengqian>。
+这四个 secret 只放在 `release` 环境里，仓库里没有。只有发布的 publish 任务读取它们。运行要在签名 Windows 包之前和发布之前，两次等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准，仓库管理员发起的运行可以跳过审批；环境只允许 `main` 分支与 `v*` 标签使用。secret 的值不对任何人显示，维护者也不分享。如需这四个 secret 的实际值，请联系 <https://github.com/linghengqian>。
 
 设置发布密钥只需一次。先在仓库设置里建 `release` 环境（Environments）：Required reviewers 选两个团队 `vfox-maintainers` 与 `vfox-committers`，勾选 “Allow administrators to bypass configured protection rules”，Deployment branches and tags 只允许 `main` 与 `v*`。然后把 keystore 与口令放进密码管理器，并另存一份：没有它们，以后的任何 release 都不能升级已装的应用。
 

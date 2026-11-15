@@ -184,7 +184,7 @@ is signed with the **release key**: one key, kept as the secrets of the `release
 environment of the repository, the same for every release. A release installs over
 the one before it, and the data and the pairing with the PC stay.
 
-The release job refuses to run without the key. Its four secrets are
+The publish job of the release refuses to run without the key. Its four secrets are
 `ANDROID_RELEASE_KEYSTORE_BASE64` (the keystore, in base64),
 `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS` and
 `ANDROID_RELEASE_KEY_PASSWORD`. The Gradle build (`app/build.gradle.kts`) signs with
@@ -197,10 +197,11 @@ its artifact with a key that it makes and throws away, so that the release signi
 built on every change.
 
 The four secrets are in the `release` environment, and nowhere else in the repository.
-Only the release job reads them. A run waits for a member of `@version-fox/vfox-maintainers`
-or `@version-fox/vfox-committers` to approve it, unless an administrator of the repository
-starts it: administrators may bypass the approval. Only a run from `main` or from a tag
-`v*` can use the environment. GitHub does not show their values, and the maintainers do
+Only the publish job of the release reads them. A run waits for a member of
+`@version-fox/vfox-maintainers` or `@version-fox/vfox-committers` to approve it before
+the signing of the Windows packages and again before the publishing, unless an
+administrator of the repository starts it: administrators may bypass the approval.
+Only a run from `main` or from a tag `v*` can use the environment. GitHub does not show their values, and the maintainers do
 not share them. If you need the actual values of these four secrets, contact
 <https://github.com/linghengqian>.
 

@@ -15,22 +15,32 @@
 # A release of vfox-plus, started by hand like the releases of
 # https://github.com/version-fox/vfox-java: Actions, Release, Run workflow, on
 # main, and type the version (1.0.0, without the v). That is the whole procedure.
-# The run waits for the approval of a member of @version-fox/vfox-maintainers or
-# @version-fox/vfox-committers, unless an administrator of the repository starts it. The
-# release key is in the release environment, which only main and the tags v* can use.
+# A run waits twice for the approval of a member of @version-fox/vfox-maintainers
+# or @version-fox/vfox-committers: before the Windows packages are signed, and
+# before the release is published. An administrator of the repository may start
+# it without the approval. The release environment holds the secrets and the
+# signing identity, and only main and the tags v* can use it
+# (docs/en/dev/packaging-windows.md#signing-the-release).
 #
-# The job checks the request first: the version is new and newer than the newest
-# tag, and the last run of mygo on main passed. Then it sets the version in
-# mygo/VERSION, the Version constant of mygo/ui/app.go and the release list of
-# the metainfo, and commits it in the name of the person who started the run. It
-# builds what mygo.yml builds (the .deb and the .tar.gz for Linux, amd64 and
-# arm64; the unsigned .msix and .msixbundle for Windows with the self-sign
-# inputs), the Android APK, signed with the release key, and the classic snap from
-# snap/snapcraft.yaml. Only then does it push the commit to main, tag
-# v<version> and publish the GitHub release, which is what the self-update check
-# (mygo/core/update) reads.
+# The build job checks the request first: the version is new and newer than the
+# newest tag, and the last run of mygo on main passed. It sets the version in
+# mygo/VERSION, the Version constant of mygo/ui/app.go and the release list of the
+# metainfo, and commits that in the name of the person who started the run. It
+# builds what mygo.yml builds for Linux (amd64 and arm64) and the classic snap of
+# snap/snapcraft.yaml, and the Windows packages with the publisher of the signing
+# certificate, unsigned. It pushes nothing.
 #
-# Pushing a tag v* runs the same job without setting the version: the commit of
+# The sign-windows job signs the .msix files, then makes the .msixbundle again
+# from them (the signature makes them larger), signs it, and installs the bundle
+# without -AllowUnsigned to check that Windows accepts it.
+#
+# The publish job builds the Android APK, signed with the release key, attests the
+# Linux packages and checks the assets. Only then does it push the version commit
+# to main, tag v<version> and publish the GitHub release, which is what the
+# self-update check (mygo/core/update) reads. A dry run (the dry-run input) does
+# all of it except the push, the tag and the release.
+#
+# Pushing a tag v* runs the same jobs without setting the version: the commit of
 # the tag must say the version already.
 name: Release
 
@@ -43,6 +53,11 @@ on:
         description: 'Version to release, for example 1.0.0 (without v)'
         required: true
         type: string
+      dry-run:
+        description: 'Build and sign everything, but push nothing, tag nothing and publish nothing'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -52,31 +67,31 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # zip makes the archive of the Windows executables.
   LINUX_PACKAGES: >-
     build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
-    xvfb xauth dbus-x11 lintian desktop-file-utils zip
+    xvfb xauth dbus-x11 lintian desktop-file-utils
 
 jobs:
-  release:
-    name: Set the version, package, tag and publish
+  build:
+    name: Check, set the version, build and package
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
-    # The secrets of the release key are in this environment and nowhere else. A run
-    # waits for the approval of a member of @version-fox/vfox-maintainers or
-    # @version-fox/vfox-committers, unless an administrator starts it. Only main and the
-    # tags v* can use the environment (docs/en/dev/packaging-android.md#signing-status).
-    environment: release
+    runs-on: ubuntu-26.04
+    timeout-minutes: 90
     permissions:
       # actions: read lets the job see the last run of mygo on main.
       actions: read
-      contents: write
-    runs-on: ubuntu-26.04
-    timeout-minutes: 90
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      # builddeb names the maintainer of the .deb from this when it builds it: a release
+      # names the project, not the placeholder of the CI packages (mygo.yml).
+      DEB_MAINTAINER: Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The tags are checked and the version commit is pushed below.
+          # The tags are checked, and the version commit is made on this history.
           fetch-depth: 0
       - name: Read the pinned versions
         run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
@@ -95,6 +110,9 @@ jobs:
         run: |
           "$RUNNER_TEMP/vfxtool" check-version --event "$GITHUB_EVENT_NAME" --ref "$GITHUB_REF" \
             --ref-name "$GITHUB_REF_NAME" --input "$INPUT_VERSION" >> "$GITHUB_ENV"
+      - name: Output the version
+        id: version
+        run: echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Check the last mygo run on main
         # The release vets the code and smoke-tests the build, but runs no tests:
         # it starts only when the last run of mygo on main has passed.
@@ -106,12 +124,21 @@ jobs:
             echo "::error::The last mygo run on main is not a passed run ($state): wait for it, or fix main first"
             exit 1
           fi
+      - name: Check the Windows publisher
+        # The packages carry the subject of the signing certificate as their publisher,
+        # so the build needs it (docs/en/dev/packaging-windows.md#signing-the-release).
+        env:
+          WINDOWS_PUBLISHER: ${{ vars.WINDOWS_PUBLISHER }}
+        run: |
+          if [ -z "$WINDOWS_PUBLISHER" ]; then
+            echo "::error::The repository variable WINDOWS_PUBLISHER is empty: set it to the subject of the signing certificate (docs/en/dev/packaging-windows.md#signing-the-release)"
+            exit 1
+          fi
       - name: Set the version
         # A manual run writes the version into the files that carry it (vfxtool
         # set-version), and commits them in the name of the person who started the
         # run: the repository wants its commits to name the people who wrote them.
-        # The commit reaches main only after everything is built (see Push the
-        # version commit and tag the release).
+        # The commit reaches main only in the publish job, after everything is signed.
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -126,58 +153,16 @@ jobs:
             git add -- mygo/VERSION mygo/ui/app.go shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml
             git commit -q -m "Release v$VERSION"
           fi
-      - name: Read the pinned Android versions
-        run: grep -hE '^[A-Z0-9_]+=' android/versions.env >> "$GITHUB_ENV"
-      - name: Set up JDK
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up the Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
-        with:
-          # The default package list still names the `tools` package, which
-          # Google removed; install only what the build needs.
-          packages: platform-tools
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
-        with:
-          # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
-          # no wrapper jar to validate.
-          validate-wrappers: false
-      - name: Decode the release key
-        # Every release is signed with the same key, from the secrets of the release
-        # environment, so that a release can update the app installed from the one
-        # before it (docs/en/dev/packaging-android.md#signing-status). The keystore
-        # goes to the temporary directory of the runner. Without the secrets the
-        # run stops here, before anything is pushed.
-        env:
-          KEYSTORE: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+      - name: Keep the commit for the publish job
+        # The publish job starts from the commit of the run, so the version commit
+        # goes there in a bundle, with the same object name. commit says which commit
+        # the release is; a run that set no new version has no bundle.
         run: |
-          if [ -z "$KEYSTORE" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::The Android release key is not in the secrets of the release environment: add ANDROID_RELEASE_KEYSTORE_BASE64, ANDROID_RELEASE_STORE_PASSWORD, ANDROID_RELEASE_KEY_ALIAS and ANDROID_RELEASE_KEY_PASSWORD (docs/en/dev/packaging-android.md#signing-status)"
-            exit 1
+          mkdir -p "$RUNNER_TEMP/version"
+          git rev-parse HEAD > "$RUNNER_TEMP/version/commit"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            git bundle create "$RUNNER_TEMP/version/version.bundle" HEAD ^origin/main
           fi
-          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/android-release.keystore"
-          echo "ANDROID_RELEASE_KEYSTORE=$RUNNER_TEMP/android-release.keystore" >> "$GITHUB_ENV"
-      - name: Build the release APK
-        # After Set the version, so the APK carries the version it is released as.
-        env:
-          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
-          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
-          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease
-        working-directory: android
-      - name: Name the APK with the version
-        run: |
-          mkdir -p dist-android
-          cp android/app/build/outputs/apk/release/app-release.apk "dist-android/vfox-plus_${VERSION}.apk"
-      - name: Remove the release key
-        if: always()
-        run: rm -f "$RUNNER_TEMP/android-release.keystore"
       - name: Install the Linux packages
         uses: ./.github/actions/install-linux-packages
         with:
@@ -219,56 +204,15 @@ jobs:
             --recommends "$("$RUNNER_TEMP/vfxtool" runtask print-recommends)" \
             --notice mygo/assets/licenses.txt dist-arm64
       - name: Validate the packages
-        env:
-          DEB_MAINTAINER: Han Li and contributors <https://github.com/version-fox/vfox-plus/issues>
         run: |
           desktop-file-validate shared/packaging/linux/dev.vfox.VfoxPlus.desktop
           lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist/*.deb dist-arm64/*.deb
           test "$(dpkg-deb -f "dist-arm64/vfox-plus_${VERSION}_arm64.deb" Architecture)" = arm64
-      - name: Cross-compile the Windows executables
-        # mygo needs no C compiler, so the Windows builds run on Linux.
-        run: |
-          "$RUNNER_TEMP/vfxtool" build --goos windows --goarch amd64 --root mygo "$RUNNER_TEMP/stage-x64/vfox-plus.exe"
-          "$RUNNER_TEMP/vfxtool" build --goos windows --goarch arm64 --root mygo "$RUNNER_TEMP/stage-arm64/vfox-plus.exe"
-      - name: Build the unsigned .msix and .msixbundle
-        run: |
-          mkdir -p dist-windows
-          # Reproducible timestamps in the package metadata.
-          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-msix \
-            --package vfox-plus --version "$VERSION" \
-            --stage-x64 "$RUNNER_TEMP/stage-x64" --stage-arm64 "$RUNNER_TEMP/stage-arm64" \
-            --executable vfox-plus.exe dist-windows
-      - name: Stage the Windows self-sign inputs
-        # `vfxtool sign-msix` rebuilds the packages with the self-signed
-        # publisher and signs them on the user's machine, so the release
-        # carries the executables, in an archive (see Archive the Windows
-        # executables), and a Windows vfxtool next to the unsigned packages.
-        run: |
-          mkdir -p dist-windows/stage-x64 dist-windows/stage-arm64
-          install -m 644 "$RUNNER_TEMP/stage-x64/vfox-plus.exe" dist-windows/stage-x64/vfox-plus.exe
-          install -m 644 "$RUNNER_TEMP/stage-arm64/vfox-plus.exe" dist-windows/stage-arm64/vfox-plus.exe
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go -C shared/tooling build -o "$PWD/dist-windows/vfxtool.exe" ./cmd/vfxtool
-      - name: Validate the MSIX packages
-        # Pure-Go validation without the Windows SDK (vfxtool validate-msix):
-        # ZIP layout, manifests, block maps, bundle offsets, version
-        # consistency and the self-sign inputs.
-        run: |
-          "$RUNNER_TEMP/vfxtool" validate-msix --self-sign dist-windows
-      - name: Archive the Windows executables
-        # Both executables are named vfox-plus.exe, and a release holds one asset
-        # for each name, so they go into one archive that keeps the layout that
-        # `vfxtool sign-msix` looks for: stage-x64/ and stage-arm64/ side by side
-        # in the directory it runs in. The files are dated to the commit, like the
-        # other archives.
-        run: |
-          epoch="$(git log -1 --format=%ct)"
-          touch -d "@$epoch" dist-windows/stage-x64/vfox-plus.exe dist-windows/stage-arm64/vfox-plus.exe
-          (cd dist-windows && zip -X "vfox-plus_${VERSION}_windows_executables.zip" stage-x64/vfox-plus.exe stage-arm64/vfox-plus.exe)
       - name: Build the snap package
         # Classic confinement (see snap/snapcraft.yaml): vfox-plus drives the
         # vfox executable and arbitrary SDK toolchains anywhere on the file
         # system. The snap packs the amd64 .deb above and is installed by hand, not
-        # from the store.
+        # from the store, and it is not signed (docs/en/user/install.md#linux).
         run: cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
       - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
       - name: Collect the snap package
@@ -276,25 +220,357 @@ jobs:
           mkdir -p dist-snap
           find . -maxdepth 2 -name 'vfox-plus_*.snap' -exec mv {} dist-snap/ \;
           ls dist-snap
-      - name: Push the version commit and tag the release
-        # Nothing has been pushed before this step, so a run that fails while it
-        # builds leaves main and the tags as they were. The push is refused, and
-        # nothing is tagged, when main has moved since the run started.
-        if: github.event_name == 'workflow_dispatch'
+      - name: Cross-compile the Windows executables
+        # mygo needs no C compiler, so the Windows builds run on Linux.
         run: |
-          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+          "$RUNNER_TEMP/vfxtool" build --goos windows --goarch amd64 --root mygo "$RUNNER_TEMP/stage-x64/vfox-plus.exe"
+          "$RUNNER_TEMP/vfxtool" build --goos windows --goarch arm64 --root mygo "$RUNNER_TEMP/stage-arm64/vfox-plus.exe"
+      - name: Build the .msix and .msixbundle for signing
+        # The packages carry the subject of the certificate as their publisher from
+        # the start. sign-windows signs them, and makes the bundle again from them
+        # (vfxtool rebundle), so the bundle built here is replaced.
+        env:
+          WINDOWS_PUBLISHER: ${{ vars.WINDOWS_PUBLISHER }}
+        run: |
+          mkdir -p dist-windows
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-msix \
+            --package vfox-plus --version "$VERSION" --publisher "$WINDOWS_PUBLISHER" \
+            --stage-x64 "$RUNNER_TEMP/stage-x64" --stage-arm64 "$RUNNER_TEMP/stage-arm64" \
+            --executable vfox-plus.exe dist-windows
+      - name: Stage vfxtool for the Windows steps
+        # The sign-windows job runs this Windows build of vfxtool to put the signed
+        # packages into the bundle again, and to install it.
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go -C shared/tooling build -o "$PWD/dist-windows/vfxtool.exe" ./cmd/vfxtool
+      - name: Validate the MSIX packages
+        # Pure-Go validation without the Windows SDK (vfxtool validate-msix): ZIP
+        # layout, manifests, block maps, bundle offsets, version consistency, and the
+        # publisher of the certificate on both architectures.
+        env:
+          WINDOWS_PUBLISHER: ${{ vars.WINDOWS_PUBLISHER }}
+        run: |
+          ls -la dist-windows
+          "$RUNNER_TEMP/vfxtool" validate-msix --publisher "$WINDOWS_PUBLISHER" dist-windows
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-linux-x64
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-linux-arm64
+          path: dist-arm64/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-snap
+          path: dist-snap/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-windows
+          path: dist-windows/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-version
+          path: ${{ runner.temp }}/version/*
+          if-no-files-found: error
+
+  sign-windows:
+    name: Sign the Windows packages with Artifact Signing
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    needs: build
+    # The signing identity is in this environment, and a run waits here for an
+    # approval (see the top of this file). The federated credential of Azure is
+    # bound to this environment: no other job can sign.
+    environment: release
+    permissions:
+      # id-token: write lets the job log in to Azure with the identity of the release.
+      contents: read
+      id-token: write
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      WINDOWS_PUBLISHER: ${{ vars.WINDOWS_PUBLISHER }}
+    steps:
+      - name: Check the signing settings
+        # Each of them is named in the failure, so that the fix is clear before the
+        # signing starts (docs/en/dev/packaging-windows.md#signing-the-release).
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARTIFACT_SIGNING_ENDPOINT: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          ARTIFACT_SIGNING_ACCOUNT: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          ARTIFACT_SIGNING_PROFILE: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+        shell: pwsh
+        run: |
+          $missing = @()
+          foreach ($name in "AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID", "ARTIFACT_SIGNING_ENDPOINT", "ARTIFACT_SIGNING_ACCOUNT", "ARTIFACT_SIGNING_PROFILE", "WINDOWS_PUBLISHER") {
+            if (-not [Environment]::GetEnvironmentVariable($name)) { $missing += $name }
+          }
+          if ($missing) { throw "not set in the release environment or the variables: $($missing -join ', ')" }
+      - name: Download the Windows packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-windows
+          path: dist-windows
+      - name: Log in to Azure
+        # The federated credential of the release environment: no secret of the
+        # signing is kept, the job asks Azure for a token of this run.
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign the .msix packages
+        # The packages are signed first: the bundle holds their sizes and offsets,
+        # so it is made again after the signing, and then signed.
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: |
+            ${{ github.workspace }}\dist-windows\vfox-plus_${{ env.VERSION }}_x64.msix
+            ${{ github.workspace }}\dist-windows\vfox-plus_${{ env.VERSION }}_arm64.msix
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          # The Azure CLI login above is the identity: the other sources of credentials stay out.
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: Put the signed packages into the bundle again
+        # vfxtool rebundle refuses a package that is not signed.
+        shell: pwsh
+        run: |
+          $tool = Join-Path $env:GITHUB_WORKSPACE "dist-windows/vfxtool.exe"
+          $arguments = @("rebundle", "--package", "vfox-plus", "--version", $env:VERSION, "--publisher", $env:WINDOWS_PUBLISHER, "dist-windows")
+          & $tool @arguments
+          if ($LASTEXITCODE -ne 0) { throw "rebundle failed with exit code $LASTEXITCODE" }
+      - name: Sign the .msixbundle
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\dist-windows\vfox-plus_${{ env.VERSION }}.msixbundle
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: Show the publisher of the signed bundle
+        # The subject of the certificate is the publisher that WINDOWS_PUBLISHER must
+        # name, exactly. It is printed here, so that the variable can be set from this
+        # log when install-check refuses the bundle for another publisher.
+        shell: pwsh
+        run: |
+          # Information only: the install below is the check, so a cmdlet that does not
+          # read the package does not stop the release here.
+          $bundle = Join-Path $env:GITHUB_WORKSPACE "dist-windows/vfox-plus_$($env:VERSION).msixbundle"
+          try {
+            $signature = Get-AuthenticodeSignature -FilePath $bundle
+            Write-Host "signature: $($signature.Status); certificate subject: $($signature.SignerCertificate.Subject)"
+          } catch {
+            Write-Host "the signature cannot be read here: $_"
+          }
+          Write-Host "WINDOWS_PUBLISHER is: $($env:WINDOWS_PUBLISHER)"
+      - name: Install and uninstall the signed bundle
+        # The check that the release is for: Windows installs the bundle without
+        # -AllowUnsigned, which it accepts only when the signature and the publisher
+        # hold, and the certificates of the machine are left alone. The x64 slice
+        # is the one this runner takes; install-check prints the AppX deployment log
+        # when the install fails.
+        shell: pwsh
+        run: |
+          $tool = Join-Path $env:GITHUB_WORKSPACE "dist-windows/vfxtool.exe"
+          & $tool install-check --directory dist-windows --arch x64 --trusted
+          if ($LASTEXITCODE -ne 0) { throw "install-check failed with exit code $LASTEXITCODE" }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-windows-signed
+          path: |
+            dist-windows/*.msix
+            dist-windows/*.msixbundle
+          if-no-files-found: error
+
+  publish:
+    name: Build the APK, attest, push the version commit and publish
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    needs: [build, sign-windows]
+    # The release key is in this environment, and a run waits here for the second
+    # approval. Only main and the tags v* can use it.
+    environment: release
+    permissions:
+      # attestations and id-token let the job attest the Linux packages.
+      attestations: write
+      contents: write
+      id-token: write
+    runs-on: ubuntu-26.04
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tags are checked, and the version commit is fast-forwarded below.
+          fetch-depth: 0
+      - name: Read the pinned versions
+        run: grep -hE '^[A-Z0-9_]+=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: mygo/go.sum
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - name: Download the Linux packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-linux-x64
+          path: dist
+      - name: Download the arm64 packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-linux-arm64
+          path: dist-arm64
+      - name: Download the snap
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-snap
+          path: dist-snap
+      - name: Download the signed Windows packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-windows-signed
+          path: dist-windows
+      - name: Download the commit of the run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-version
+          path: version
+      - name: Apply the version commit
+        # The commit of the build, from its bundle: the same object, so the tag names
+        # the commit that was built. A run that set no version has no bundle.
+        run: |
+          if [ -f version/version.bundle ]; then
+            git fetch --no-tags "$GITHUB_WORKSPACE/version/version.bundle" HEAD
+            git merge --ff-only FETCH_HEAD
+          fi
+          # The job publishes the commit that the build made, and no other.
+          test "$(git rev-parse HEAD)" = "$(cat version/commit)"
+      - name: Read the pinned Android versions
+        run: grep -hE '^[A-Z0-9_]+=' android/versions.env >> "$GITHUB_ENV"
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          # The default package list still names the `tools` package, which
+          # Google removed; install only what the build needs.
+          packages: platform-tools
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
+          # no wrapper jar to validate.
+          validate-wrappers: false
+      - name: Decode the release key
+        # Every release is signed with the same key, from the secrets of the release
+        # environment, so that a release can update the app installed from the one
+        # before it (docs/en/dev/packaging-android.md#signing-status). The keystore
+        # goes to the temporary directory of the runner. Without the secrets the
+        # run stops here, before anything is pushed.
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::The Android release key is not in the secrets of the release environment: add ANDROID_RELEASE_KEYSTORE_BASE64, ANDROID_RELEASE_STORE_PASSWORD, ANDROID_RELEASE_KEY_ALIAS and ANDROID_RELEASE_KEY_PASSWORD (docs/en/dev/packaging-android.md#signing-status)"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/android-release.keystore"
+          echo "ANDROID_RELEASE_KEYSTORE=$RUNNER_TEMP/android-release.keystore" >> "$GITHUB_ENV"
+      - name: Build the release APK
+        # After Apply the version commit, so the APK carries the version it is released as.
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+        working-directory: android
+      - name: Name the APK with the version
+        run: |
+          mkdir -p dist-android
+          cp android/app/build/outputs/apk/release/app-release.apk "dist-android/vfox-plus_${VERSION}.apk"
+      - name: Remove the release key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/android-release.keystore"
+      - name: Check the assets
+        # check-assets names the files of the release, and stops it before anything is
+        # pushed when a kind of them is missing or doubled.
+        run: '"$RUNNER_TEMP/vfxtool" check-assets --version "$VERSION"'
+      - name: Attest the Linux packages
+        # A build attestation names the workflow that built each file. Check it with
+        # gh attestation verify (docs/en/user/install.md#linux). It is made before
+        # anything is pushed.
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.deb
+            dist/*.tar.gz
+            dist-arm64/*.deb
+            dist-arm64/*.tar.gz
+      - name: Set the identity of the tag
+        # The tag is made in the name of the person who started the run, like the commit.
+        if: github.event_name == 'workflow_dispatch' && inputs.dry-run != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          id="$(gh api "users/$GITHUB_ACTOR" --jq .id)"
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$id+$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Push the version commit and tag the release
+        # Nothing has been pushed before this step, so a run that fails while it builds
+        # leaves main and the tags as they were. The push is refused, and nothing is
+        # tagged, when main has moved since the run started.
+        if: github.event_name == 'workflow_dispatch' && inputs.dry-run != true
+        run: |
+          if [ -f version/version.bundle ]; then
             git push origin HEAD:refs/heads/main
           fi
           git tag -a "v$VERSION" -m "v$VERSION"
           git push origin "v$VERSION"
       - name: Publish the GitHub release
-        # The self-update check (mygo/core/update) reads the assets of the newest
-        # release: the .deb (preferred) or the .tar.gz on Linux, for amd64 and arm64,
-        # the per-architecture .msix (preferred) or the .msixbundle on Windows. The
-        # APK, the .snap and the archive of the executables are for manual use. The
-        # archive is what vfxtool sign-msix extracts next to the unsigned bundle and
-        # vfxtool.exe (docs/en/dev/packaging-windows.md). check-assets names the files,
-        # and stops the release when a kind of them is missing or doubled.
+        # The self-update check (mygo/core/update) reads the .deb (preferred) or the
+        # .tar.gz on Linux, for amd64 and arm64, and the .msix (preferred) or the
+        # .msixbundle on Windows. The APK and the .snap are for manual use.
+        if: inputs.dry-run != true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

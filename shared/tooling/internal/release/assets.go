@@ -31,8 +31,9 @@ type Asset struct {
 
 // Assets are the kinds of file that a release uploads, in the order of the release
 // list: the .deb and the .tar.gz of each Linux architecture, the APK, the snap, and
-// the Windows files. Each architecture has its own .msix, and the bundle holds both.
-// A kind that is missing, or doubled, stops the release before it is published.
+// the Windows packages. Each architecture has its own .msix, and the bundle holds
+// both; the release signs them (Sign the Windows packages). A kind that is missing,
+// or doubled, stops the release before it is published.
 var Assets = []Asset{
 	{Dir: "dist", Pattern: "*.deb", Count: 1, Versioned: true},
 	{Dir: "dist", Pattern: "*.tar.gz", Count: 1, Versioned: true},
@@ -42,8 +43,6 @@ var Assets = []Asset{
 	{Dir: "dist-snap", Pattern: "*.snap", Count: 1, Versioned: true},
 	{Dir: "dist-windows", Pattern: "*.msix", Count: 2, Versioned: true},
 	{Dir: "dist-windows", Pattern: "*.msixbundle", Count: 1, Versioned: true},
-	{Dir: "dist-windows", Pattern: "*_windows_executables.zip", Count: 1, Versioned: true},
-	{Dir: "dist-windows", Pattern: "vfxtool.exe", Count: 1, Versioned: false},
 }
 
 // CheckAssets returns the files that the release of version uploads, in the order
