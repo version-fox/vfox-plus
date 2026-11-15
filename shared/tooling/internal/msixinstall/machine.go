@@ -34,11 +34,9 @@ const (
 	scriptInstall         = `$ErrorActionPreference = 'Stop'; Add-AppxPackage -Path $env:VFXTOOL_ARG`
 	scriptInstallUnsigned = `$ErrorActionPreference = 'Stop'; Add-AppxPackage -Path $env:VFXTOOL_ARG -AllowUnsigned`
 	scriptRemove          = `$ErrorActionPreference = 'Stop'; Remove-AppxPackage -Package $env:VFXTOOL_ARG`
-	scriptRemoveCert      = `$ErrorActionPreference = 'Stop'; Remove-Item -Path ('Cert:\LocalMachine\TrustedPeople\' + $env:VFXTOOL_ARG)`
 	scriptDeploymentLog   = `Get-AppPackageLog | Select-Object -Last 60 | Out-String -Width 200`
 	scriptPackagingLog    = `Get-WinEvent -LogName 'Microsoft-Windows-AppxPackaging/Operational' -MaxEvents 20 -ErrorAction SilentlyContinue | Format-List TimeCreated, Id, Message | Out-String -Width 200`
 	scriptInstalled       = `$list = @(Get-AppxPackage -Name '` + packageName + `' | ForEach-Object { [pscustomobject]@{ PackageFullName = [string]$_.PackageFullName; Architecture = [string]$_.Architecture; SignatureKind = [string]$_.SignatureKind } }); if ($list.Count -eq 0) { '[]' } else { ConvertTo-Json -Compress -InputObject $list }`
-	scriptCertificates    = `$list = @(Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq '` + certSubject + `' } | ForEach-Object { [pscustomobject]@{ Thumbprint = [string]$_.Thumbprint; Subject = [string]$_.Subject } }); if ($list.Count -eq 0) { '[]' } else { ConvertTo-Json -Compress -InputObject $list }`
 )
 
 // windowsMachine is the Windows of this runner: its Appx cmdlets and its certificate
@@ -66,21 +64,6 @@ func (windowsMachine) Installed() ([]Package, error) {
 
 func (windowsMachine) Remove(fullName string) error {
 	_, err := powershell(scriptRemove, fullName)
-	return err
-}
-
-func (windowsMachine) Certificates() ([]Certificate, error) {
-	out, err := powershell(scriptCertificates, "")
-	if err != nil {
-		return nil, err
-	}
-	var certs []Certificate
-	err = parseList(out, &certs)
-	return certs, err
-}
-
-func (windowsMachine) RemoveCertificate(thumbprint string) error {
-	_, err := powershell(scriptRemoveCert, thumbprint)
 	return err
 }
 
