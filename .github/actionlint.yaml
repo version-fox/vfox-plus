@@ -19,3 +19,7 @@ self-hosted-runner:
     # list built into actionlint 1.7.12. The .deb targets Ubuntu 26.04, so it
     # is built there.
     - ubuntu-26.04
+    # The Windows 11 Arm64 image with Visual Studio 2026, pinned by its own label (the README of
+    # actions/runner-images names it with windows-11-arm, which is the same image). Newer than the
+    # label list built into actionlint 1.7.12.
+    - windows-11-vs2026-arm

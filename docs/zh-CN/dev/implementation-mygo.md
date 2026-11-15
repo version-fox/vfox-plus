@@ -131,7 +131,7 @@ Go 模块与构建缓存。
 
   `fake` 对夹具假 vfox，`python` 对同一个假 vfox，但机器上装着 Python，`real` 对带离线测试插件及其服务器的真实 vfox。`tray` 是托盘图标：在 Linux 上对着一个
   替身托盘宿主，它需要 `dbus-run-session` 给的会话总线（见[托盘](architecture.md#托盘)），
-  在 Windows 上对着本机的任务栏。`tray-gnome` 是同一个图标对着一个没有屏幕的真实 GNOME Shell，它在
+  在 Windows 上对着本机的任务栏。在 Linux 上 `tray` 还让宿主重启一次，`tray-late` 让宿主在窗口关闭之后才出现，图标两次都跟着宿主走。`tray-gnome` 是同一个图标对着一个没有屏幕的真实 GNOME Shell，它在
   `shared/sandbox/gnome.Dockerfile` 的容器里（需要 Docker；构建产物以挂载方式放进去）：
 
   ```sh

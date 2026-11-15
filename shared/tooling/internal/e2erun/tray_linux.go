@@ -36,7 +36,8 @@ const trayItemID = "dev.vfox.VfoxPlus"
 
 // runTray runs the application on a desktop that has a tray: the stand-in for the host of the tray
 // icons (package trayhost) owns the name of the watcher on the session bus before the application
-// starts, as the panel does on a real desktop.
+// starts, as the panel does on a real desktop. Then the host is gone, and comes up after the window
+// has closed: the icon waits for it.
 func runTray(command []string) error {
 	config, err := trayConfig(command)
 	if err != nil {
@@ -51,17 +52,18 @@ func runTray(command []string) error {
 	if err := appsession.RunScenario(config, "tray", func(s *appsession.Session) { trayScenario(s, host) }); err != nil {
 		return err
 	}
-	// And where the desktop has no tray: the host leaves the bus, as there is none on a desktop
-	// without one.
+	// The host leaves the bus, as there is none on a desktop that has no panel yet.
 	if err := host.Close(); err != nil {
 		return err
 	}
-	return appsession.RunScenario(config, "no-tray", noTrayScenario)
+	return appsession.RunScenario(config, "tray-late", lateHostScenario)
 }
 
-// trayScenario is the application against the stand-in host: the icon comes with the closing
-// of the window, its ID, its picture and its menu are right, it brings the window back and goes
-// with it, the web interface opens in the browser, and the menu ends the application.
+// trayScenario is the application against the stand-in host: the icon comes with the closing of the
+// window, its ID, its picture and its menu are right, it brings the window back and goes with it, and
+// the host of the tray icons starts again, as a desktop does when its shell restarts: the icon takes
+// its place with the new host. The web interface opens in the browser, and the menu ends the
+// application.
 func trayScenario(s *appsession.Session, host *trayhost.Host) {
 	s.WaitForText("Versions in use")
 	s.Step("home")
@@ -99,32 +101,86 @@ func trayScenario(s *appsession.Session, host *trayhost.Host) {
 	s.Check(secondProperties.ID == properties.ID, "the icon keeps its ID, by which a desktop keeps its settings for it")
 	s.Check(second.Service != first.Service, "the icon that comes back is an item of its own, under a name of its own: "+second.Service)
 
+	s.Step("the host of the tray icons starts again, as a desktop does when its shell restarts")
+	restarted := restartHost(s, host)
+	defer func() { _ = restarted.Close() }()
+	third := nextIcon(s, restarted)
+	thirdProperties := checkIcon(s, third)
+	s.Check(thirdProperties.ID == properties.ID, "the icon that the new host shows keeps its ID")
+	s.Check(restarted.Registered() == 1, "the new host has the icon, which the application registered again")
+
 	s.Step("choose Open the web interface")
-	s.Check(second.Choose(menuWeb) == nil, "Open the web interface is chosen in the menu")
+	s.Check(third.Choose(menuWeb) == nil, "Open the web interface is chosen in the menu")
 	link := waitForTheBrowser(s)
 	s.Check(strings.HasPrefix(link, "http://127.0.0.1:") && strings.Contains(link, "/auth/connect/"), "the browser is told to open a link that pairs it: "+link)
 	checkLink(s, link)
 	s.Check(!s.HasWindow() && s.Alive(), "opening the web interface leaves the application as it is")
 
 	s.Step("choose Quit vfox+")
+	s.Check(third.Choose(menuQuit) == nil, "Quit vfox+ is chosen in the menu")
+	s.Check(s.WaitExit(trayWait), "the application ends")
+	s.Check(s.ExitError() == nil, fmt.Sprintf("it ends with the code 0 (%v)", s.ExitError()))
+	waitGone(s, third)
+}
+
+// lateHostScenario is the application on a desktop whose host of the tray icons comes up after the
+// window has closed, as it does when the session starts before the shell is ready: the icon waits for
+// the host, and the host takes it when it comes up. The application runs on in the meantime.
+func lateHostScenario(s *appsession.Session) {
+	s.WaitForText("Versions in use")
+	s.Step("close the window, with no host of the tray icons on the bus")
+	closeTheWindow(s)
+	s.WaitFor("the application to say that its icon waits for a host", trayWait, func() bool {
+		return strings.Contains(s.LogText(), "the icon waits for a host of the tray icons")
+	})
+	s.Check(s.Alive(), "the application runs on while its icon waits for a host")
+
+	s.Step("the host of the tray icons comes up")
+	host := startHost(s)
+	defer func() { _ = host.Close() }()
+	item := nextIcon(s, host)
+	properties := checkIcon(s, item)
+	s.Step("the icon is in the tray, taken by the host that came up: " + properties.ID)
+	s.Check(host.Registered() == 1, "one icon is in the tray")
+
+	s.Step("choose Open vfox+")
+	s.Check(item.Choose(menuOpen) == nil, "Open vfox+ is chosen in the menu")
+	waitForTheWindow(s)
+	waitPassive(s, item)
+	waitGone(s, item)
+
+	s.Step("close the window again, and quit from the menu")
+	closeTheWindow(s)
+	second := nextIcon(s, host)
+	checkIcon(s, second)
 	s.Check(second.Choose(menuQuit) == nil, "Quit vfox+ is chosen in the menu")
 	s.Check(s.WaitExit(trayWait), "the application ends")
 	s.Check(s.ExitError() == nil, fmt.Sprintf("it ends with the code 0 (%v)", s.ExitError()))
 	waitGone(s, second)
 }
 
-// noTrayScenario is the application on a desktop that has no tray: it makes no icon, says why, and
-// goes on: the window comes back as it is asked to.
-func noTrayScenario(s *appsession.Session) {
-	s.WaitForText("Versions in use")
-	s.Step("close the window, with no host of the tray")
-	closeTheWindow(s)
-	s.WaitFor("the application to say that it makes no icon", trayWait, func() bool {
-		return strings.Contains(s.LogText(), "no icon in the tray: nothing on the desktop shows tray icons")
-	})
-	s.Step("bring the window back, with no icon to bring it")
-	s.Check(s.Tell("show") == nil, "the window is asked to come back")
-	waitForTheWindow(s)
+// startHost starts the stand-in host. The name of the watcher may still belong to a host that has just
+// left the bus, which the bus takes off it a moment later, so the start is tried until it works.
+func startHost(s *appsession.Session) *trayhost.Host {
+	deadline := time.Now().Add(trayWait)
+	for {
+		host, err := trayhost.Start()
+		if err == nil {
+			return host
+		}
+		if time.Now().After(deadline) {
+			s.Fail("start the stand-in for the host of the tray icons: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// restartHost takes the stand-in host off the bus, and starts one again.
+func restartHost(s *appsession.Session, host *trayhost.Host) *trayhost.Host {
+	if err := host.Close(); err != nil {
+		s.Fail("take the stand-in for the host of the tray icons off the bus: %v", err)
+	}
+	return startHost(s)
 }
 
 // nextIcon waits for the application to register its icon with the host.

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"image/color"
 	"image/png"
+	"log"
 	"math"
 	"os"
 	"strconv"
@@ -66,9 +67,9 @@ var sniInstances atomic.Uint64
 // errNoTrayHost says that nothing on the desktop shows tray icons.
 var errNoTrayHost = errors.New("nothing on the desktop shows tray icons")
 
-// newNativeTray puts an icon in the tray of the desktop. It fails where the desktop has no host of
-// the icons, which is a desktop whose session bus cannot be reached, or on which nothing owns the name
-// of the watcher: the application then makes no icon and runs on.
+// newNativeTray puts an icon in the tray of the desktop. It fails where there is no session bus, which
+// is where no host of the icons can be. Where the bus is there, but nothing owns the name of the watcher
+// yet, the icon waits: the watcher takes it when it starts (see watchWatcher).
 func newNativeTray(options trayOptions) (trayIcon, error) {
 	picture, err := sniPixmapOf(options.icon)
 	if err != nil {
@@ -76,12 +77,6 @@ func newNativeTray(options trayOptions) (trayIcon, error) {
 	}
 	conn, err := connectSessionBus()
 	if err != nil {
-		return nil, errNoTrayHost
-	}
-	// The name is asked for, and not started: a host that is not running is not started for an icon.
-	var owned bool
-	if err := conn.BusObject().Call("org.freedesktop.DBus.NameHasOwner", 0, sniWatcherName).Store(&owned); err != nil || !owned {
-		_ = conn.Close()
 		return nil, errNoTrayHost
 	}
 	name := sniBusName(os.Getpid(), sniInstances.Add(1))
@@ -93,17 +88,29 @@ func newNativeTray(options trayOptions) (trayIcon, error) {
 		_ = conn.Close()
 		return nil, fmt.Errorf("take the name %s on the session bus: %w", name, err)
 	}
-	tray := &sniTray{conn: conn, name: name, entries: options.entries}
+	tray := &sniTray{conn: conn, name: name, entries: options.entries, done: make(chan struct{})}
 	if err := tray.export(options, picture); err != nil {
 		tray.Destroy()
 		return nil, fmt.Errorf("put the icon on the bus: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), sniRegisterWait)
-	defer cancel()
-	call := conn.Object(sniWatcherName, sniWatcherPath).CallWithContext(ctx, sniWatcherInterface+".RegisterStatusNotifierItem", 0, name)
-	if call.Err != nil {
+	// The watcher is followed before it is asked, so that a watcher which starts in between is not missed.
+	if err := tray.watchWatcher(); err != nil {
 		tray.Destroy()
-		return nil, fmt.Errorf("register the icon with the watcher: %w", call.Err)
+		return nil, fmt.Errorf("follow the watcher: %w", err)
+	}
+	var owned bool
+	if err := conn.BusObject().Call("org.freedesktop.DBus.NameHasOwner", 0, sniWatcherName).Store(&owned); err != nil {
+		tray.Destroy()
+		return nil, fmt.Errorf("ask the bus for the watcher: %w", err)
+	}
+	if owned {
+		if err := tray.register(); err != nil {
+			tray.Destroy()
+			return nil, err
+		}
+	} else {
+		// The icon is kept, and the watcher takes it when a desktop starts one (see watchWatcher).
+		log.Print("the icon waits for a host of the tray icons: nothing on the desktop shows them yet")
 	}
 	return tray, nil
 }
@@ -139,6 +146,8 @@ type sniTray struct {
 	conn      *dbus.Conn
 	name      string
 	itemProps *prop.Properties
+	// done is closed when the icon is destroyed, which ends the following of the watcher.
+	done chan struct{}
 
 	mu       sync.Mutex
 	entries  []trayEntry
@@ -258,6 +267,7 @@ func (t *sniTray) Destroy() {
 		t.mu.Lock()
 		t.closed = true
 		t.mu.Unlock()
+		close(t.done)
 		if t.itemProps != nil {
 			t.itemProps.SetMust(sniItemInterface, "Status", "Passive")
 		}
@@ -265,6 +275,78 @@ func (t *sniTray) Destroy() {
 		_, _ = t.conn.ReleaseName(t.name)
 		_ = t.conn.Close()
 	})
+}
+
+// register asks the watcher to take the icon, under the name of the icon on the bus.
+func (t *sniTray) register() error {
+	ctx, cancel := context.WithTimeout(context.Background(), sniRegisterWait)
+	defer cancel()
+	call := t.conn.Object(sniWatcherName, sniWatcherPath).CallWithContext(ctx, sniWatcherInterface+".RegisterStatusNotifierItem", 0, t.name)
+	if call.Err != nil {
+		return fmt.Errorf("register the icon with the watcher: %w", call.Err)
+	}
+	return nil
+}
+
+// watchWatcher follows the owner of the watcher on the bus, so that the watcher takes the icon when it
+// starts after the icon was made, and again when it starts over: a shell that restarts has none of the
+// icons that it had, and a desktop that has no watcher yet takes the icon when it gets one.
+func (t *sniTray) watchWatcher() error {
+	if err := t.conn.AddMatchSignal(
+		dbus.WithMatchSender("org.freedesktop.DBus"),
+		dbus.WithMatchInterface("org.freedesktop.DBus"),
+		dbus.WithMatchMember("NameOwnerChanged"),
+		dbus.WithMatchArg(0, sniWatcherName),
+	); err != nil {
+		return err
+	}
+	signals := make(chan *dbus.Signal, 8)
+	t.conn.Signal(signals)
+	go watchOwners(signals, t.done, func() {
+		if t.isClosed() {
+			return
+		}
+		if err := t.register(); err != nil {
+			log.Print(err)
+		}
+	})
+	return nil
+}
+
+// watchOwners calls register for each signal of the bus that says that the watcher has an owner. It
+// returns when done is closed, or when the signals end.
+func watchOwners(signals <-chan *dbus.Signal, done <-chan struct{}, register func()) {
+	for {
+		select {
+		case <-done:
+			return
+		case signal, ok := <-signals:
+			if !ok {
+				return
+			}
+			if sniOwnerTaken(signal) {
+				register()
+			}
+		}
+	}
+}
+
+// sniOwnerTaken says whether a signal of the bus says that the watcher has an owner: the owner of its
+// name has changed to one, from none or from another.
+func sniOwnerTaken(signal *dbus.Signal) bool {
+	if signal == nil || signal.Name != "org.freedesktop.DBus.NameOwnerChanged" || len(signal.Body) != 3 {
+		return false
+	}
+	name, _ := signal.Body[0].(string)
+	owner, _ := signal.Body[2].(string)
+	return name == sniWatcherName && owner != ""
+}
+
+// isClosed says whether the icon is destroyed.
+func (t *sniTray) isClosed() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.closed
 }
 
 // clickOf is what the entry with the id does when a desktop chooses it: nil for a separator, for the

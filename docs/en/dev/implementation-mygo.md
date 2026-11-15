@@ -162,7 +162,9 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   `fake` runs against the fake vfox of the fixtures, `python` against the same fake vfox on a machine that has Python installed, and `real` against the real vfox with the offline
   test plugin and its server. `tray` is the icon in the tray: on Linux against a stand-in for the host
   of the tray icons that needs the session bus that `dbus-run-session` gives
-  (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine.
+  (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine. On Linux `tray` also
+  restarts the host of the tray icons, and `tray-late` brings the host up after the window has closed; the icon follows
+  the host both times.
   `tray-gnome` is the same icon against a real GNOME Shell with no screen, which the container of
   `shared/sandbox/gnome.Dockerfile` has (Docker; the build is mounted in):
 

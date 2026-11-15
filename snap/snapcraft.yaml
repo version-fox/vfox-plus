@@ -31,7 +31,8 @@ description: |
   vfox-plus is a graphical front end for vfox, the cross-platform version
   manager, built with the Material 3 Expressive design language.
   Install vfox first: vfox-plus drives it and cannot work without it.
-base: core24
+# core26 (Ubuntu 26.04) is built by Snapcraft 9: the workflows pin its channel.
+base: core26
 grade: stable
 confinement: classic
 architectures:

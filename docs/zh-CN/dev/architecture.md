@@ -442,9 +442,10 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   测试用一个记录器（`fakeTray`）替换它，并由它点击条目。
 - **回到窗口靠菜单。**Linux 上条目本身就是菜单（`ItemIsMenu`），点击图标即显示菜单，不需要激活。条目也实现了 `Activate`，
   供那些不显示菜单、而是对点击调用 `Activate` 的桌面使用，它同样打开窗口。
-- **必须有宿主。**图标由会话总线上的宿主显示，即 StatusNotifierWatcher。没有宿主（没有会话总线，或没有谁拥有
-  `org.kde.StatusNotifierWatcher`）时，`newNativeTray` 不创建图标，也不为它加载任何东西。检查用的是 `NameHasOwner`，它不会启动服务。
-- **没有托盘不算错误。**没有宿主，或者向 watcher 注册失败：日志里一行（"no icon in the tray: ..."），应用不带图标继续运行。
+- **等待宿主。**图标由会话总线上的宿主显示，即 StatusNotifierWatcher。没有会话总线就没有图标。会话总线在、但上面没有
+  谁拥有 `org.kde.StatusNotifierWatcher` 时，图标照常创建并等着：watcher 启动时接管它，每次重新启动时也再接管一次
+  （外壳重启时，它没有原来的图标）（`watchWatcher`）。检查用的是 `NameHasOwner`，它不会启动服务。等待期间，条目占着它与总线的连接，这就是它的开销。
+- **没有托盘不算错误。**没有会话总线，或者向 watcher 注册失败：日志里一行（"no icon in the tray: ..."），应用不带图标继续运行。
   再次启动它或用网页界面，仍是回到窗口的路。
 - **移除。**图标由一个 goroutine 在请求窗口的那次选择返回之后移除，因为桌面的库不指望菜单项的所有者在该项的处理函数里消失
   （`hideTray`）；应用结束时则立即移除（`OnWillQuit` → `removeTray`），因为 Windows 会一直显示已经退出的程序的图标，直到指针划过。
@@ -463,7 +464,7 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   （godbus，BSD-2-Clause，是它唯一的依赖）。`vfxtool e2e-run tray`（`build` 任务的一步）关闭窗口，检查图标、它的 ID、
   提示文字、图片（条目自己带的像素，32×32 的狐狸，无底板）和菜单；选*打开 vfox+*（窗口回来，条目离开总线）；选*打开网页界面*
   （一个注册为网页链接处理程序的、代替用户浏览器的程序收到一个能配对的链接）；从菜单退出（应用以 0 结束，条目离开总线）。
-  然后在没有宿主的地方再运行一次应用，检查它不创建图标并说明原因。
+  然后宿主重新启动一次，图标跟着新的宿主走；再之后，在窗口关闭时还没有宿主的地方运行应用，宿主出现以后图标由它接管（`tray-late`）。
 - **Shell**：用真正的 GNOME Shell。`vfxtool gnome-session` 在 `shared/sandbox/gnome.Dockerfile` 的容器里，在没有屏幕的 Ubuntu GNOME Shell 50
   （mutter 无需 GPU 就能提供 Wayland）里运行一条命令，并启用 AppIndicator 扩展；`vfxtool e2e-run tray-gnome`（`tray-gnome` 任务运行）
   是对着它的场景：应用关闭窗口，Shell 在面板里为它放一个指示器并为它生成菜单（用 `org.gnome.Shell.Eval` 读取，Shell 在不安全模式下提供它），

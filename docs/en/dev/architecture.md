@@ -537,11 +537,13 @@ the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tr
 - **The menu is the way back.** On Linux the item is a menu (`ItemIsMenu`), so a click on the icon shows
   it, and the panel needs no activation for that. The item also takes `Activate`, which brings the window
   back, for a desktop that calls it on a click instead of showing the menu.
-- **A host is required.** The icon is shown by the host of the icons on the session bus, the
-  StatusNotifierWatcher. Without one (no session bus, or nothing owns `org.kde.StatusNotifierWatcher`),
-  `newNativeTray` makes no icon, and nothing is loaded for one. The check is `NameHasOwner`, which starts
-  no service.
-- **A missing tray is not an error.** No host, or a registration that fails: one line in the log ("no icon
+- **The icon waits for a host.** The icon is shown by the host of the icons on the session bus, the
+  StatusNotifierWatcher. Without a session bus there is no icon. With a session bus, but nothing that owns
+  `org.kde.StatusNotifierWatcher`, the icon is made all the same and waits: the watcher takes it when it starts,
+  and takes it again each time that it starts over, as a shell does when it restarts with none of the icons it
+  had (`watchWatcher`). The check is `NameHasOwner`, which starts no service. While it waits, the item holds
+  its connection to the bus, which is what it costs.
+- **A missing tray is not an error.** No session bus, or a registration that fails: one line in the log ("no icon
   in the tray: ..."), and the application goes on without it. Starting it again, or the web interface, are
   still the ways back.
 - **Removal.** The icon is removed by a goroutine after the choice that asked for the window returns, because
@@ -572,8 +574,9 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   a 32 by 32 fox, with no plate) and its menu, chooses *Open vfox+* (the window comes back and the item
   leaves the bus), chooses *Open the web interface* (a stand-in for the browser of the user, registered as the
   handler of the links of the web, gets a link that pairs), and quits from the menu (the application ends with
-  the code 0, and its item leaves the bus). It then runs the application where there is no host, and checks that
-  it makes no icon and says why.
+  the code 0, and its item leaves the bus). The host also leaves the bus and comes up again, as a shell does when it restarts: the icon takes
+  its place with the new host. Then the application runs where no host has come up yet, and a host that comes up
+  after the window has closed takes the icon (`tray-late`).
 - **The shell** by a real GNOME Shell. `vfxtool gnome-session` runs a command inside Ubuntu's GNOME Shell 50
   without a screen (mutter serves Wayland without a GPU) with the AppIndicator extension enabled, in the container
   of `shared/sandbox/gnome.Dockerfile`, and `vfxtool e2e-run tray-gnome`, which the `tray-gnome` job runs, is the

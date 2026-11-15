@@ -130,10 +130,11 @@ runner: with a window it holds nothing.
 
 The icon is now drawn by the application itself, over the session bus, and loads no library for it, which the
 table below does not show: the table is of the version that loaded `libayatana-appindicator3`, measured on this
-host before it was replaced. The present icon, measured by `vfxtool measure-lightweight --tray` in the devcontainer
-of the repository (WSL2, Ubuntu 26.04), adds 176 KB to 1.4 MB of resident memory and 76 to 256 KB of private
-memory, in three runs. The runs differ by more than the icon costs, which is the noise of the machine, so the
-figure is a range. CI measures the icon on its runner, with the same tool (below).
+host before it was replaced. The present icon, measured by `vfxtool measure-lightweight --tray` in the devcontainer of the repository
+(WSL2, Ubuntu 26.04) in six runs, costs between −0.4 MB and +1.4 MB of resident memory and between 36 and
+256 KB of private memory. The runs differ by more than the icon costs, which is the noise of the machine, so
+the figure is a range. The row without a host holds the item that waits for one, so these figures are the cost
+of the registration. CI measures the icon on its runner, with the same tool (below).
 
 With the library, where there is one, the icon cost little. Measured on the same host before the pages of files were paged
 out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifierWatcher` (package
@@ -154,8 +155,8 @@ out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifi
   state. The Debian package recommends it, so a default installation has it.
 - **The fallback** (until this change) is where memory would go: 7 MB of RSS, 1.8 MB of it private, for the image
   loaders of the desktop that GTK starts to decode the picture of an icon that no panel shows
-  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why the application asks the session bus for a host before
-  it asks for an icon, and why there is no icon without one.
+  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why the application makes its item itself, with no library in between, and why the item waits for
+  a host instead of falling back to that icon.
 
 With the pages of files paged out and the processors limited, the icon is far inside what the application
 saved. With the icon in the tray, in the session of the stand-in host, the application holds 15.2 MB of private
@@ -165,8 +166,8 @@ CI keeps the cost where it is. `vfxtool measure-lightweight --tray` (the last st
 runs the application twice in the same way, where nothing shows an icon and against the stand-in host, and fails the job
 when the icon costs more than 5 MB of resident or 1.5 MB of private memory: room for the noise of a runner, and
 less than the fallback costs, so that an icon made the way the fallback makes it is caught. It does not use the
-automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray`) checks that the application makes no
-icon. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
+automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray-late`) checks that the application runs
+on, and that the icon takes its place when a host comes up. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
 two above: `malloc_trim` after the window closes changed nothing, `MALLOC_ARENA_MAX=1` saved 0.1 MB, and a
 second `debug.FreeOSMemory` a few seconds after the first saved 0.2 MB of private memory and nothing of
 RSS (the collection that follows the paging out is that call). What stays in the Go heap after the window closes

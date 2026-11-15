@@ -233,6 +233,21 @@ jobs:
             --volume "$PWD/dist:/pkg:ro" \
             --volume "$RUNNER_TEMP/vfxtool:/vfxtool:ro" \
             ubuntu:26.04 /vfxtool runtask install-test
+      - name: Build the snap package
+        # The classic snap of the release, packed from this .deb as the release job packs it (see
+        # snap/snapcraft.yaml). It is built for every change, so that its base and its parts are
+        # tested before a release; nothing publishes it.
+        run: cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
+      - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+        id: snap
+        with:
+          snapcraft-channel: 9.x/stable
+      - name: Install the snap and start it
+        # The application starts from the snap, with the libraries of its base, on a virtual display,
+        # and stays up, as the smoke test of the release does for its binary.
+        run: |
+          sudo snap install --dangerous --classic "${{ steps.snap.outputs.snap }}"
+          "$RUNNER_TEMP/vfxtool" smoke-test --log snap.log /snap/bin/vfox-plus
       - name: Build the Linux arm64 .deb and tarball
         # Like release.yml: the arm64 program is cross-compiled, and build-deb is
         # told the architecture, which refuses a program of another one. The
@@ -373,9 +388,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2025
+          - os: windows-2025-vs2026
             arch: x64
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -514,9 +529,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2025
+          - os: windows-2025-vs2026
             arch: amd64
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -564,7 +579,7 @@ jobs:
     # Ubuntu is a step of the job build;
     # here it takes the rest, with the fonts that the desktops of Linux set their text in installed, and the others
     # take it all. Of Windows and of macOS the newest and the oldest that GitHub has are taken (windows-2022 is Windows
-    # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-arm, and macos-15-intel.
+    # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-vs2026-arm, and macos-15-intel.
     #
     # The tests are four jobs on each machine, and five on Intel, not one: the screens (the census with the fonts of the system, and on
     # Intel the text made wider in a job of its own), the widest fonts, and the sweep of the sizes of text in two jobs, the windows of
@@ -577,7 +592,7 @@ jobs:
       matrix:
         # On the macOS runners five jobs ran at once in the run at 3b3bcd7, and the jobs of Intel, which take the longest, waited
         # behind the others: the matrix lists the longest machine and its longest group first, so that the queue starts with them.
-        os: [macos-15-intel, macos-15, macos-latest, ubuntu-26.04, windows-2025, windows-2022, windows-11-arm]
+        os: [macos-15-intel, macos-15, macos-latest, ubuntu-26.04, windows-2025-vs2026, windows-2022, windows-11-vs2026-arm]
         group: [census, sweep-rest, widest, sweep-wide]
         # On Intel the census is two jobs, the screens with the fonts of the system and the text made wider: the Intel census was the
         # longest job of the workflow (30 minutes on the run at d37bec8), and the others of Intel take up to fifteen.

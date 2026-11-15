@@ -48,6 +48,7 @@ snap is not in the store):
 sudo snap install --dangerous --classic vfox-plus_*.snap
 ```
 
+The snap is built on the core26 base (Ubuntu 26.04), which snapd installs with it the first time.
 A sideloaded snap does not refresh itself: download the `.snap` of the new
 release and install it again the same way.
 

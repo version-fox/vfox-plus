@@ -217,6 +217,9 @@ jobs:
         # from the store, and it is not signed (docs/en/user/install.md#linux).
         run: cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
       - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+        with:
+          # core26 is built by Snapcraft 9 (see snap/snapcraft.yaml).
+          snapcraft-channel: 9.x/stable
       - name: Collect the snap package
         run: |
           mkdir -p dist-snap
@@ -329,7 +332,7 @@ jobs:
       # id-token: write lets the job log in to Azure with the identity of the release.
       contents: read
       id-token: write
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     timeout-minutes: 45
     env:
       VERSION: ${{ needs.build.outputs.version }}

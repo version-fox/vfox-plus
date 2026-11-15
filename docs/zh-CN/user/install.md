@@ -41,6 +41,7 @@ GitHub release 的 classic snap（amd64）则手动安装（strict 限制会挡�
 sudo snap install --dangerous --classic vfox-plus_*.snap
 ```
 
+这个 snap 基于 core26 基础（Ubuntu 26.04），第一次安装时 snapd 会把它一并装上。
 旁加载的 snap 不会自动更新：新版本下载新的 `.snap`，同样命令再装一次。
 
 vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示窗口。想同时在浏览器或手机上用，
