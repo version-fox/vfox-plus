@@ -241,7 +241,7 @@ jobs:
         run: |
           sudo snap install --channel=9.x/stable --classic snapcraft
           cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
-          /snap/bin/snapcraft pack --destructive-mode
+          sudo /snap/bin/snapcraft pack --destructive-mode
       - name: Install the snap and start it
         # The application starts from the snap, with the libraries of its base, on a virtual display,
         # and stays up, as the smoke test of the release does for its binary.

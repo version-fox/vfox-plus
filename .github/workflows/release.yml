@@ -217,11 +217,12 @@ jobs:
         # from the store, and it is not signed (docs/en/user/install.md#linux).
         # core26 is packed by Snapcraft 9 (see snap/snapcraft.yaml), on this runner, which runs
         # the Ubuntu of the base: a build in a container of its own would not take the .deb,
-        # which .gitignore leaves out of the project, so it is packed with --destructive-mode.
+        # which .gitignore leaves out of the project, so it is packed with --destructive-mode, as
+        # root, which installs the base snap that the build needs (snapcraft asks for it).
         run: |
           sudo snap install --channel=9.x/stable --classic snapcraft
           cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
-          /snap/bin/snapcraft pack --destructive-mode
+          sudo /snap/bin/snapcraft pack --destructive-mode
       - name: Collect the snap package
         run: |
           mkdir -p dist-snap
