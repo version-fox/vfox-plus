@@ -253,7 +253,7 @@ jobs:
         # ZIP layout, manifests, block maps, bundle offsets, version
         # consistency and the self-sign inputs.
         run: |
-          "$RUNNER_TEMP/vfxtool" validate-msix dist-windows
+          "$RUNNER_TEMP/vfxtool" validate-msix --self-sign dist-windows
       - name: Archive the Windows executables
         # Both executables are named vfox-plus.exe, and a release holds one asset
         # for each name, so they go into one archive that keeps the layout that

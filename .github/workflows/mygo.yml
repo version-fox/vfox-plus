@@ -293,7 +293,7 @@ jobs:
         # consistency and the self-sign inputs of the artifact.
         run: |
           ls -la dist-windows dist-windows/stage-x64 dist-windows/stage-arm64
-          "$RUNNER_TEMP/vfxtool" validate-msix dist-windows
+          "$RUNNER_TEMP/vfxtool" validate-msix --self-sign dist-windows
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vfox-plus-linux-x64
@@ -390,7 +390,7 @@ jobs:
         # downloads: the unsigned bundle with both architectures, and the self-sign inputs.
         shell: pwsh
         run: |
-          & msix/vfxtool.exe validate-msix msix
+          & msix/vfxtool.exe validate-msix --self-sign msix
           if ($LASTEXITCODE -ne 0) { throw "validate-msix failed with exit code $LASTEXITCODE" }
       - name: Install and uninstall the bundle
         # UAC is disabled on GitHub-hosted runners, so the unsigned install for all users runs
