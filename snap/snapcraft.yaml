@@ -16,7 +16,10 @@
 # installed by hand (see docs/en/user/install.md#linux):
 #
 #   cp vfox-plus_<version>_amd64.deb snap/vfox-plus.deb
-#   snapcraft pack
+#   sudo snapcraft pack --destructive-mode
+#
+# The .deb is packed where it lies: the build instance of snapcraft would leave it out,
+# as .gitignore names it, so the pack runs on the Ubuntu of the base (26.04) as root.
 #   sudo snap install --dangerous --classic vfox-plus_*.snap
 #
 # Classic confinement is deliberate: vfox-plus drives the vfox executable and
