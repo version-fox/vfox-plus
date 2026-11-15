@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,6 +51,73 @@ func TestMapDebArch(t *testing.T) {
 		t.Fatal("expected an error for an unsupported architecture")
 	} else if !strings.Contains(err.Error(), "riscv64") {
 		t.Fatalf("error %q does not name the architecture", err)
+	}
+}
+
+func TestMapGoArch(t *testing.T) {
+	debArch, tarArch, err := MapGoArch("arm64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if debArch != "arm64" || tarArch != "arm64" {
+		t.Fatalf("arm64 -> %q/%q, want arm64/arm64", debArch, tarArch)
+	}
+	debArch, tarArch, err = MapGoArch("amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if debArch != "amd64" || tarArch != "x64" {
+		t.Fatalf("amd64 -> %q/%q, want amd64/x64", debArch, tarArch)
+	}
+	if _, _, err := MapGoArch("386"); err == nil {
+		t.Fatal("386 is not a package architecture")
+	}
+}
+
+func TestCheckMachine(t *testing.T) {
+	if runtime.GOOS != "linux" || (runtime.GOARCH != "amd64" && runtime.GOARCH != "arm64") {
+		t.Skip("the test binary is an ELF file of amd64 or arm64 only on Linux")
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := checkMachine(exe, runtime.GOARCH); err != nil {
+		t.Fatalf("the test binary is %s: %v", runtime.GOARCH, err)
+	}
+	other := "arm64"
+	if runtime.GOARCH == "arm64" {
+		other = "amd64"
+	}
+	if err := checkMachine(exe, other); err == nil {
+		t.Fatalf("a %s program was accepted as %s", runtime.GOARCH, other)
+	}
+	script := filepath.Join(t.TempDir(), "script")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkMachine(script, runtime.GOARCH); err == nil {
+		t.Fatal("a script was accepted as an ELF file")
+	}
+}
+
+func TestRunRefusesAnExecutableOfAnotherArchitecture(t *testing.T) {
+	stage, out := fixtureRoot(t)
+	err := Run([]string{
+		"--package", "vfox-plus-test",
+		"--version", "1.2.3",
+		"--goarch", "arm64",
+		"--stage", stage,
+		"--executable", "vfox-plus",
+		"--depends", "libc6",
+		"--technology", "testtech",
+		out,
+	})
+	if err == nil || !strings.Contains(err.Error(), "not an ELF file") {
+		t.Fatalf("a script was packaged as arm64: %v", err)
+	}
+	if matches, _ := filepath.Glob(filepath.Join(out, "*.deb")); len(matches) != 0 {
+		t.Fatalf("a package was written after the refusal: %v", matches)
 	}
 }
 
@@ -151,6 +219,7 @@ func TestParseArgs(t *testing.T) {
 		"--depends", "libc6",
 		"--recommends", "fonts-noto-cjk",
 		"--technology", "mygo",
+		"--goarch", "arm64",
 		"--notice", "/tmp/NOTICE",
 		"--override", "a: b",
 		"--override", "c: d",
@@ -161,7 +230,7 @@ func TestParseArgs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if opts.pkg != "vfox-plus" || !opts.strip || opts.output != "/tmp/out" {
+	if opts.pkg != "vfox-plus" || !opts.strip || opts.output != "/tmp/out" || opts.goarch != "arm64" {
 		t.Fatalf("unexpected options: %+v", opts)
 	}
 	if len(opts.overrides) != 2 || len(opts.setuid) != 1 {

@@ -233,6 +233,28 @@ jobs:
             --volume "$PWD/dist:/pkg:ro" \
             --volume "$RUNNER_TEMP/vfxtool:/vfxtool:ro" \
             ubuntu:26.04 /vfxtool runtask install-test
+      - name: Build the Linux arm64 .deb and tarball
+        # Like release.yml: the arm64 program is cross-compiled, and build-deb is
+        # told the architecture, which refuses a program of another one. The
+        # packages go to dist-arm64, not dist: the install test above installs
+        # every .deb of dist, and an arm64 package does not install on this runner.
+        run: |
+          mkdir -p "$RUNNER_TEMP/stage-linux-arm64" dist-arm64
+          "$RUNNER_TEMP/vfxtool" build --goos linux --goarch arm64 --root mygo "$RUNNER_TEMP/stage-linux-arm64/vfox-plus"
+          # Reproducible timestamps in the package metadata.
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" "$RUNNER_TEMP/vfxtool" build-deb \
+            --package vfox-plus --version "$(tr -d '[:space:]' < mygo/VERSION)" --goarch arm64 \
+            --stage "$RUNNER_TEMP/stage-linux-arm64" --executable vfox-plus --technology mygo \
+            --depends "$("$RUNNER_TEMP/vfxtool" runtask print-depends)" \
+            --recommends "$("$RUNNER_TEMP/vfxtool" runtask print-recommends)" \
+            --notice mygo/assets/licenses.txt dist-arm64
+          lintian --fail-on error --suppress-tags malformed-contact,bogus-mail-host-in-debian-changelog dist-arm64/*.deb
+          test "$(dpkg-deb -f dist-arm64/vfox-plus_*_arm64.deb Architecture)" = arm64
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-linux-arm64
+          path: dist-arm64/*
+          if-no-files-found: error
       - name: Cross-compile the Windows executables
         # mygo needs no C compiler, so the Windows builds run on Linux.
         run: |
@@ -271,10 +293,7 @@ jobs:
         # consistency and the self-sign inputs of the artifact.
         run: |
           ls -la dist-windows dist-windows/stage-x64 dist-windows/stage-arm64
-          for f in dist-windows/stage-x64/vfox-plus.exe dist-windows/stage-arm64/vfox-plus.exe dist-windows/vfxtool.exe; do
-            test -f "$f" || { echo "missing self-sign input: $f"; exit 1; }
-          done
-          "$RUNNER_TEMP/vfxtool" validate-msix dist-windows
+          "$RUNNER_TEMP/vfxtool" validate-msix --self-sign dist-windows
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vfox-plus-linux-x64
@@ -366,150 +385,31 @@ jobs:
         with:
           name: vfox-plus-windows
           path: msix
-      - name: Validate the bundle with PowerShell
+      - name: Validate the bundle
+        # The checks of a release (vfxtool validate-msix), on the packages that this job
+        # downloads: the unsigned bundle with both architectures, and the self-sign inputs.
         shell: pwsh
         run: |
-          Get-ChildItem msix
-          foreach ($want in @("stage-x64/vfox-plus.exe", "stage-arm64/vfox-plus.exe", "vfxtool.exe")) {
-            if (-not (Test-Path "msix/$want")) { throw "msix/ misses $want" }
-          }
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $bundle = Get-ChildItem msix/*.msixbundle | Select-Object -First 1
-          if (-not $bundle) { throw "no .msixbundle in msix/" }
-          $zip = [System.IO.Compression.ZipFile]::OpenRead($bundle.FullName)
-          try {
-            $names = $zip.Entries | ForEach-Object { $_.FullName }
-            foreach ($want in @("AppxMetadata/AppxBundleManifest.xml", "[Content_Types].xml", "AppxBlockMap.xml")) {
-              if ($names -notcontains $want) { throw "$($bundle.Name) misses $want" }
-            }
-            $entry = $zip.GetEntry("AppxMetadata/AppxBundleManifest.xml")
-            $reader = New-Object System.IO.StreamReader($entry.Open())
-            try { [xml]$manifest = $reader.ReadToEnd() }
-            finally { $reader.Close() }
-            if (-not $manifest.Bundle.Identity.Name) { throw "bundle manifest has no identity" }
-            $publisher = $manifest.Bundle.Identity.Publisher
-            if ($publisher -notmatch "OID.2.25.311729368913984317654407730594956997722=1") {
-              throw "unsigned bundle publisher misses the OID: $publisher"
-            }
-            $pkgs = $manifest.Bundle.Packages.Package
-            $archs = $pkgs | ForEach-Object { $_.Architecture }
-            if (($archs -notcontains "x64") -or ($archs -notcontains "arm64")) {
-              throw "bundle must contain x64 and arm64, got $archs"
-            }
-            Write-Host "validated $($bundle.Name): $($pkgs.Count) packages, publisher $publisher"
-          } finally {
-            $zip.Dispose()
-          }
-          foreach ($msix in Get-ChildItem msix/*.msix) {
-            $bytes = [System.IO.File]::ReadAllBytes($msix.FullName)
-            if ($bytes[0] -ne 0x50 -or $bytes[1] -ne 0x4b) { throw "$($msix.Name) is not a ZIP" }
-          }
+          & msix/vfxtool.exe validate-msix --self-sign msix
+          if ($LASTEXITCODE -ne 0) { throw "validate-msix failed with exit code $LASTEXITCODE" }
       - name: Install and uninstall the bundle
-        # UAC is disabled on GitHub-hosted runners, so the unsigned install
-        # for all users runs without a prompt. The deployment platform picks
-        # the slice matching this runner, which proves each architecture.
-        # On failure the AppX deployment log pinpoints the failing check.
+        # UAC is disabled on GitHub-hosted runners, so the unsigned install for all users runs
+        # without a prompt. The deployment platform picks the slice of this runner, which proves
+        # each architecture. install-check prints the AppX deployment log when the install fails.
         shell: pwsh
         run: |
-          $bundle = Get-ChildItem msix/*.msixbundle | Select-Object -First 1
-          try {
-            Add-AppxPackage -Path $bundle.FullName -AllowUnsigned
-          } catch {
-            Write-Host "--- AppX deployment log (tail) ---"
-            Get-AppPackageLog | Select-Object -Last 60
-            throw
-          }
-          $pkg = Get-AppxPackage -Name "dev.vfox.VfoxPlus"
-          if (-not $pkg) { throw "package not registered after install" }
-          if ("$($pkg.Architecture)" -ne "${{ matrix.arch }}") {
-            throw "installed arch $($pkg.Architecture), want ${{ matrix.arch }}"
-          }
-          Write-Host "installed $($pkg.PackageFullName) arch $($pkg.Architecture)"
-          Remove-AppxPackage -Package $pkg.PackageFullName
-          if (Get-AppxPackage -Name "dev.vfox.VfoxPlus") { throw "package still registered after removal" }
-          Write-Host "uninstalled cleanly"
-      - name: Sign, install and uninstall the bundle with vfxtool sign-msix
-        # What a user runs on a Windows machine: sign-msix rebuilds the
-        # packages with the publisher of a certificate that it makes, signs them
-        # with the pinned osslsigncode that it downloads, trusts the certificate
-        # for the machine and installs the bundle without -AllowUnsigned (the
-        # deployment platform checks the signature and the trust). A second run
-        # must replace the certificate of the first, not add another. The runner
-        # is an administrator with UAC off, so there is no elevated copy (-no-relaunch
-        # makes it fail instead of waiting for a prompt that nobody answers).
+          & msix/vfxtool.exe install-check --directory msix --arch ${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { throw "install-check failed with exit code $LASTEXITCODE" }
+      - name: Sign, install and uninstall the bundle with vfxtool install-check --signed
+        # What a user runs on a Windows machine: sign-msix rebuilds the packages with the publisher
+        # of a certificate that it makes, signs them with the pinned osslsigncode that it downloads,
+        # trusts the certificate for the machine and installs the bundle without -AllowUnsigned. A
+        # second run must replace the certificate of the first. install-check does the checks; the
+        # runner is an administrator with UAC off, and sign-msix runs with -no-relaunch.
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          $subject = "CN=vfox-plus"
-          function Get-SigningCertificates {
-            @(Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq $subject })
-          }
-          if ((Get-SigningCertificates).Count -ne 0) { throw "the runner trusts $subject already" }
-
-          & msix/vfxtool.exe sign-msix --directory msix --no-relaunch
-          $code = $LASTEXITCODE
-          if ($code -ne 0) {
-            # The deployment log says that the package could not be opened;
-            # the packaging log says why (a signature, a block map, a manifest).
-            Write-Host "--- AppX deployment log (tail) ---"
-            Get-AppPackageLog | Select-Object -Last 60
-            Write-Host "--- AppxPackaging log (tail) ---"
-            Get-WinEvent -LogName "Microsoft-Windows-AppxPackaging/Operational" -MaxEvents 20 -ErrorAction SilentlyContinue |
-              Format-List TimeCreated, Id, Message
-            # Whether the signed package of this machine installs alone tells a
-            # fault of the package from one of the bundle.
-            Write-Host "--- the signed package of this machine, alone ---"
-            Get-ChildItem msix/signed | Format-Table Name, Length
-            $alone = Get-ChildItem "msix/signed/*_${{ matrix.arch }}.msix" | Select-Object -First 1
-            try {
-              Add-AppxPackage -Path $alone.FullName
-              Write-Host "$($alone.Name) installs"
-              Get-AppxPackage -Name "dev.vfox.VfoxPlus" | Remove-AppxPackage
-            } catch {
-              Write-Host "$($alone.Name) does not install: $_"
-            }
-            # The end of a package shows whether the ZIP64 records are there (the
-            # ZIP64 end record, its locator and the end record: 98 bytes). The
-            # tools of the Windows SDK, which the runner has, check the package
-            # with the code of Windows and name what is wrong with it.
-            Write-Host "--- the last 98 bytes of $($alone.Name) ---"
-            $bytes = [System.IO.File]::ReadAllBytes($alone.FullName)
-            ($bytes[($bytes.Length - 98)..($bytes.Length - 1)] | ForEach-Object { $_.ToString("x2") }) -join " "
-            $kits = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
-            foreach ($name in "signtool.exe", "makeappx.exe") {
-              $tool = Get-ChildItem $kits -Recurse -Filter $name -ErrorAction SilentlyContinue |
-                Where-Object { $_.FullName -match "\\(x64|arm64)\\" } |
-                Sort-Object FullName | Select-Object -Last 1
-              if (-not $tool) { Write-Host "--- $name is not on this runner ---"; continue }
-              Write-Host "--- $($tool.FullName) on $($alone.Name) ---"
-              if ($name -eq "signtool.exe") {
-                & $tool.FullName verify /pa /v $alone.FullName
-              } else {
-                & $tool.FullName unpack /p $alone.FullName /d (Join-Path $env:RUNNER_TEMP "unpacked") /o /v
-              }
-              Write-Host "exit code $LASTEXITCODE"
-            }
-            throw "sign-msix failed with exit code $code"
-          }
-          $pkg = Get-AppxPackage -Name "dev.vfox.VfoxPlus"
-          if (-not $pkg) { throw "package not registered after the signed install" }
-          if ("$($pkg.Architecture)" -ne "${{ matrix.arch }}") {
-            throw "installed arch $($pkg.Architecture), want ${{ matrix.arch }}"
-          }
-          Write-Host "installed $($pkg.PackageFullName) arch $($pkg.Architecture), signature $($pkg.SignatureKind)"
-          if ((Get-SigningCertificates).Count -ne 1) { throw "want one trusted $subject, got $((Get-SigningCertificates).Count)" }
-          Remove-AppxPackage -Package $pkg.PackageFullName
-          if (Get-AppxPackage -Name "dev.vfox.VfoxPlus") { throw "package still registered after removal" }
-
-          & msix/vfxtool.exe sign-msix --directory msix --no-relaunch --skip-install
-          if ($LASTEXITCODE -ne 0) { throw "the second sign-msix failed with exit code $LASTEXITCODE" }
-          $found = Get-SigningCertificates
-          if ($found.Count -ne 1) { throw "want one trusted $subject after two runs, got $($found.Count)" }
-          foreach ($certificate in $found) {
-            Remove-Item -Path "Cert:\LocalMachine\TrustedPeople\$($certificate.Thumbprint)"
-          }
-          Write-Host "signed, installed and uninstalled cleanly"
-
+          & msix/vfxtool.exe install-check --directory msix --arch ${{ matrix.arch }} --signed
+          if ($LASTEXITCODE -ne 0) { throw "install-check --signed failed with exit code $LASTEXITCODE" }
   tray-gnome:
     name: Run the icon in the tray on GNOME
     # Forks do not run CI.

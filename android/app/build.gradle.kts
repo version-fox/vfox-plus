@@ -17,6 +17,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Same version as the desktop application.
+val appVersion = rootDir.resolve("../mygo/VERSION").readText().trim()
+
 android {
     namespace = "dev.vfox.vfoxplus"
     compileSdk = 36
@@ -25,17 +28,37 @@ android {
         applicationId = "dev.vfox.vfoxplus"
         minSdk = 26
         targetSdk = 36
-        // Same version as the desktop application.
-        versionCode = 1
-        versionName = rootDir.resolve("../mygo/VERSION").readText().trim()
+        // Android updates an installed app only to a higher version code, so the
+        // code follows the version: 1.2.3 is 10203. A minor or a patch of 100 or
+        // more would break the order.
+        versionCode = appVersion.split('.').let { (major, minor, patch) ->
+            major.toInt() * 10000 + minor.toInt() * 100 + patch.toInt()
+        }
+        versionName = appVersion
+    }
+
+    signingConfigs {
+        create("release") {
+            // The key of the releases. Android updates an installed app only with
+            // an APK signed by the same key, so every release uses the same one. The
+            // release job gives the keystore and its passwords in the environment,
+            // from its secrets (docs/en/dev/packaging-android.md#signing-status).
+            // Without them this config has no key, and the build below falls back.
+            System.getenv("ANDROID_RELEASE_KEYSTORE")?.let { storeFile = file(it) }
+            storePassword = System.getenv("ANDROID_RELEASE_STORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_RELEASE_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_RELEASE_KEY_PASSWORD")
+        }
     }
 
     buildTypes {
         release {
-            // Android installs no APK without a signature. Until there is an
-            // official key, use the debug key, which Gradle creates on the
-            // first build: each build machine has its own.
-            signingConfig = signingConfigs.getByName("debug")
+            // The release key when the environment gives one. Otherwise the debug
+            // key, which Gradle creates on the first build of a machine: that is for
+            // a local build only, since an APK signed with it cannot update another.
+            signingConfig = signingConfigs.getByName(
+                if (System.getenv("ANDROID_RELEASE_KEYSTORE") != null) "release" else "debug"
+            )
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

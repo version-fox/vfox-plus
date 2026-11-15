@@ -97,7 +97,7 @@ cd android
 README 的 “Configure download mirrors”。
 
 release APK 落在 `app/build/outputs/apk/release/app-release.apk`（约 3.2 MB），
-用 debug 密钥签名（见[签名状态](#签名状态)）。发布时按版本改名：
+环境里给了发布密钥时用它签名，否则用本机的 debug 密钥（见[签名状态](#签名状态)）。发布时按版本改名：
 
 ```sh
 cp app/build/outputs/apk/release/app-release.apk \
@@ -113,12 +113,24 @@ cp app/build/outputs/apk/release/app-release.apk \
 
 ## 签名状态
 
-安卓不安装没有签名的 APK（未签名的会以 `INSTALL_PARSE_FAILED_NO_CERTIFICATES`
-失败），所以 release 构建用 **debug 密钥**签名；Gradle 首次构建时在
-`~/.android/debug.keystore`（或 `$ANDROID_USER_HOME`）创建它。每台构建机器各有
-一把，CI 的随 runner 丢弃：不同构建的 APK 不能互相覆盖更新（要先卸载，配对也随
-之丢失），签名也不表明构建者是谁。正式签名的 APK 后续提供；它只改
-`app/build.gradle.kts` 里 release 构建的 `signingConfig`。
+安卓只把更新装在用同一把密钥签名的应用上，遇到别的密钥会拒绝（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。所以 vfox-plus 的每个 release 都用**发布密钥**签名：一把密钥，存为仓库 `release` 环境里的 secret，每次 release 都用它。新版本直接装在旧版本上，应用数据与 PC 的配对都保留。
+
+release 任务没有这把密钥就拒绝运行。它需要的四个 secret 是 `ANDROID_RELEASE_KEYSTORE_BASE64`（base64 编码的 keystore）、`ANDROID_RELEASE_STORE_PASSWORD`、`ANDROID_RELEASE_KEY_ALIAS` 与 `ANDROID_RELEASE_KEY_PASSWORD`。Gradle 构建（`app/build.gradle.kts`）环境里给了发布密钥（`ANDROID_RELEASE_KEYSTORE` 与三个口令）就用它签名；否则本机构建用这台机器的 debug 密钥，Gradle 在首次构建时创建，每台机器各有一把：两台机器构建的 APK 互相不能升级，所以 debug 密钥只用于本机构建。[`android.yml`](../../../.github/workflows/android.yml) 的 APK 用任务临时生成、用完即丢的密钥签名，这样每次改动都会走一遍发布的签名路径。
+
+这四个 secret 只放在 `release` 环境里，仓库里没有。只有 release 任务读取它们。运行要等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准，仓库管理员发起的运行可以跳过审批；环境只允许 `main` 分支与 `v*` 标签使用。secret 的值不对任何人显示，维护者也不分享。如需这四个 secret 的实际值，请联系 <https://github.com/linghengqian>。
+
+设置发布密钥只需一次。先在仓库设置里建 `release` 环境（Environments）：Required reviewers 选两个团队 `vfox-maintainers` 与 `vfox-committers`，勾选 “Allow administrators to bypass configured protection rules”，Deployment branches and tags 只允许 `main` 与 `v*`。然后把 keystore 与口令放进密码管理器，并另存一份：没有它们，以后的任何 release 都不能升级已装的应用。
+
+```sh
+keytool -genkeypair -v -keystore vfox-plus-release.jks -alias vfox-plus \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 vfox-plus-release.jks | gh secret set ANDROID_RELEASE_KEYSTORE_BASE64 --env release -R version-fox/vfox-plus
+gh secret set ANDROID_RELEASE_STORE_PASSWORD --env release -R version-fox/vfox-plus
+gh secret set ANDROID_RELEASE_KEY_ALIAS --env release -R version-fox/vfox-plus
+gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plus
+```
+
+`.jks` 文件不要放进仓库：`*.jks` 与 `*.keystore` 已被忽略。这把密钥之前，用 debug 密钥签的 APK 不能被 release 升级，要先卸载一次。版本码由版本号推导（1.2.3 为 10203），因为安卓只接受更高版本码的更新。
 
 ## 维护者注记
 

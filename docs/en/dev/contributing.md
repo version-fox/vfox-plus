@@ -65,11 +65,11 @@ container, see [Development environment](environment.md).
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
-| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` validated with lintian and installed into a clean Ubuntu container, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
+| [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` for amd64 validated with lintian and installed into a clean Ubuntu container, and the arm64 `.deb` and `.tar.gz` validated with lintian and by the machine type of their program, as no arm64 machine installs them, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
-| [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK (signed with the debug key) and uploads it as `vfox-plus-android` |
+| [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK, signed with a key that the job makes and throws away, and uploads it as `vfox-plus-android` |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
-| [`release.yml`](../../../.github/workflows/release.yml) | by hand or a `v*` tag | Tags `v<version>`, packages and publishes the GitHub release that the self-update check reads |
+| [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the Android APK and the Linux arm64 packages |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
 pinned to commit SHAs.
@@ -92,20 +92,45 @@ one.
 
 ## Release
 
-Like the releases of
-[version-fox/vfox-java](https://github.com/version-fox/vfox-java), a release
-is started by hand:
+A release is one manual run of the Release workflow:
 
-1. Set the version in a pull request: `mygo/VERSION` and the `Version`
-   constant in `mygo/ui/app.go` (a unit test keeps them in sync).
-2. Actions, Release, Run workflow, and type the version without the `v`
-   (`0.2.0`). Pushing a `v*` tag runs the same job.
-3. The job refuses anything but `major.minor.patch`, anything `mygo/VERSION`
-   does not say, and an existing tag. It tags `v<version>`, packages what
-   [`mygo.yml`](#continuous-integration) packages plus the classic snap from
-   `snap/snapcraft.yaml`, and publishes the GitHub release with
-   `--generate-notes`, whose assets are what
-   [the self-update check](architecture.md#self-updates) reads.
+1. Actions, Release, Run workflow. Keep the branch `main`: the job refuses any
+   other branch. Type the version without the `v`, for example `1.0.0`.
+2. The job checks the request before it changes anything. The version must have
+   the form `major.minor.patch`, be newer than the newest tag, and have no tag
+   yet. The last `mygo` run on `main` must have passed: the release job vets and
+   smoke-tests the build, but runs no tests.
+3. The job sets the version in `mygo/VERSION`, in the `Version` constant of
+   `mygo/ui/app.go` and in the `<releases>` list of the
+   [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml), and
+   commits that in the name of the person who started the run. It builds the
+   packages that [`mygo.yml`](#continuous-integration) builds, for amd64 and for
+   arm64, the Android APK as [`android.yml`](../../../.github/workflows/android.yml)
+   builds it, and the classic snap from `snap/snapcraft.yaml`.
+4. Only when everything is built does it push the commit to `main`, tag
+   `v<version>`, and publish the GitHub release with `--generate-notes`. The
+   release holds the `.deb` and the `.tar.gz` of Linux for amd64 and for arm64,
+   the APK, the snap (amd64), the `.msix` of each architecture, the `.msixbundle`
+   of Windows, the archive of the Windows executables for
+   [`vfxtool sign-msix`](packaging-windows.md#signing-the-packages-yourself), and
+   `vfxtool.exe`. The self-update check reads the `.deb` or the `.tar.gz` of the
+   platform, and the `.msix` or the `.msixbundle`; the rest is for manual use.
+
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. Its secrets are in the `release` environment, so a run waits for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, unless an administrator starts it.
+
+The version commit starts no CI run on `main`, because GitHub starts no workflow
+for a push made with a workflow's own token. So no test runs on that commit: the
+last `mygo` run before it is the one that counts, which is why the job checks it.
+
+Pushing a `v*` tag runs the same job without setting the version: the commit of
+the tag must say the version already, or the job refuses it.
+
+If a run fails before the push, nothing has changed on GitHub: fix the cause and
+run it again. If it fails after the push, the version commit may already be on
+`main`. The next run finds the files saying the version, and does not commit
+again. Delete what the failed run left behind: the tag, with `git push origin
+--delete v<version>`, and the release if one was published, with `gh release
+delete v<version>`. Then run again.
 
 ## Documentation languages
 

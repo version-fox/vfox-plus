@@ -267,8 +267,7 @@ pages are built from its components.
 
 The release binary contains everything.
 
-On Linux, the shared tool `vfxtool build-deb` packages it as
-`vfox-plus_<version>_amd64.deb` and a `.tar.gz`, with the desktop entry,
+On Linux, the shared tool `vfxtool build-deb` packages it for amd64 and for arm64 (`--goarch`, which refuses a program of another architecture) as `vfox-plus_<version>_amd64.deb` and `vfox-plus_<version>_arm64.deb`, each with a `.tar.gz`, with the desktop entry,
 AppStream metadata and icon of [`shared/packaging/linux`](../../../shared/packaging/linux);
 the version is the one in [`VERSION`](../../../mygo/VERSION), which a test keeps equal to the
 one the application shows. The application names its window `dev.vfox.VfoxPlus`

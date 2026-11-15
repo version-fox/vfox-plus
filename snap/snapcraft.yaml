@@ -37,6 +37,13 @@ confinement: classic
 architectures:
   - build-on: [amd64]
     run-on: [amd64]
+apps:
+  vfox-plus:
+    # The executable of the .deb. /usr/bin/vfox-plus points to it, and the
+    # snap names the file itself: without an app the snap has no command and
+    # no desktop entry.
+    command: usr/lib/vfox-plus/vfox-plus
+    desktop: usr/share/applications/dev.vfox.VfoxPlus.desktop
 parts:
   vfox-plus:
     # The release job copies the .deb it just built here; the snap packs the

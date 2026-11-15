@@ -64,6 +64,7 @@ type options struct {
 	depends    string
 	recommends string
 	technology string
+	goarch     string
 	notice     string
 	overrides  []string
 	setuid     []string
@@ -85,6 +86,9 @@ const usage = "Usage: build-deb [options] <output directory>"
 //	--depends LIST    the Depends field (required)
 //	--recommends LIST packages to recommend besides vfox
 //	--technology TEXT the technology, for the description (required)
+//	--goarch ARCH    amd64 or arm64, the architecture of the package; the
+//	                  executable must be an ELF file of that architecture
+//	                  (default: the machine that runs build-deb)
 //	--notice FILE     third-party licenses, installed as
 //	                  /usr/share/doc/<package>/THIRD-PARTY-LICENSES
 //	--override TEXT   a lintian override, may be repeated
@@ -122,9 +126,14 @@ func Run(args []string) error {
 		opts.notice = abs
 	}
 
-	debArch, tarArch, err := MapDebArch(unameMachine())
+	debArch, tarArch, err := packageArch(opts.goarch)
 	if err != nil {
 		return err
+	}
+	if opts.goarch != "" {
+		if err := checkMachine(exePath, opts.goarch); err != nil {
+			return err
+		}
 	}
 
 	packagingDir, err := findPackagingDir()
@@ -275,6 +284,8 @@ func parseArgs(args []string) (options, error) {
 			dest = &opts.recommends
 		case "--technology":
 			dest = &opts.technology
+		case "--goarch":
+			dest = &opts.goarch
 		case "--notice":
 			dest = &opts.notice
 		case "--override":
@@ -325,6 +336,45 @@ func MapDebArch(machine string) (debArch, tarArch string, err error) {
 	default:
 		return "", "", fmt.Errorf("Unsupported architecture: %s", machine)
 	}
+}
+
+// packageArch returns the Debian architecture of the package and the suffix
+// of the tarball: those of goarch when it is given, else those of the machine
+// that runs build-deb.
+func packageArch(goarch string) (debArch, tarArch string, err error) {
+	if goarch == "" {
+		return MapDebArch(unameMachine())
+	}
+	return MapGoArch(goarch)
+}
+
+// MapGoArch maps a Go architecture, as --goarch names it, to the Debian
+// architecture of the .deb and the architecture suffix of the tarball, the
+// same as MapDebArch does for the output of uname -m.
+func MapGoArch(goarch string) (debArch, tarArch string, err error) {
+	switch goarch {
+	case "amd64":
+		return "amd64", "x64", nil
+	case "arm64":
+		return "arm64", "arm64", nil
+	default:
+		return "", "", fmt.Errorf("Unsupported architecture: %s", goarch)
+	}
+}
+
+// checkMachine refuses a program that is not an ELF file of the architecture
+// that the package is labelled with, so that the label and the program agree.
+func checkMachine(path, goarch string) error {
+	machines := map[string]elf.Machine{"amd64": elf.EM_X86_64, "arm64": elf.EM_AARCH64}
+	file, err := elf.Open(path)
+	if err != nil {
+		return fmt.Errorf("%s is not an ELF file: %w", path, err)
+	}
+	defer file.Close()
+	if file.Machine != machines[goarch] {
+		return fmt.Errorf("%s is for %v, but the package is for %s", path, file.Machine, goarch)
+	}
+	return nil
 }
 
 // Control holds the fields of DEBIAN/control.

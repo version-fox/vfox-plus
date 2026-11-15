@@ -24,12 +24,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/fakevfox"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/release"
 )
 
 // isFakeVfox tells whether the program was started as vfox: under that name, with the
@@ -62,7 +64,10 @@ func main() {
 		os.Exit(2)
 	}
 	if err := run(args); err != nil {
-		fmt.Fprintf(os.Stderr, "vfxtool %s: %v\n", cmd, err)
+		// A release command has written its error as an annotation already.
+		if !errors.Is(err, release.ErrReported) {
+			fmt.Fprintf(os.Stderr, "vfxtool %s: %v\n", cmd, err)
+		}
 		os.Exit(1)
 	}
 }
@@ -98,5 +103,9 @@ Commands:
   fetch               fetch one apt archive (replaces .github/actions/install-linux-packages/fetch.sh)
   installpkgs         install Ubuntu packages with a prefetch (replaces .../install-linux-packages/install.sh)
   memory-report       comment the memory use on a pull request (replaces .github/scripts/memory_report.py)
+  check-version       the version of a release run, checked before anything is built (see release.yml)
+  set-version         write the version of a release into the files that carry it
+  check-assets        check the files that a release uploads, and print them
+  install-check       install the packages of a release on Windows and check the install and the removal (replaces the PowerShell steps of mygo.yml)
 `)
 }

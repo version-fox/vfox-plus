@@ -48,12 +48,14 @@ SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" vfxtool build-msix \
 
 ## 在 Windows 11 安装
 
-解压 `vfox-plus-windows` 构件（内含未签名包、暂存可执行文件与 Windows 版
-`vfxtool.exe`），在管理员 PowerShell 安装 bundle：
+从 GitHub release 下载 `vfox-plus_<版本>.msixbundle`，在管理员 PowerShell 中安装它：
 
 ```powershell
-Add-AppxPackage -Path .\vfox-plus_0.1.0.msixbundle -AllowUnsigned
+Add-AppxPackage -Path .\vfox-plus_<版本>.msixbundle -AllowUnsigned
 ```
+
+CI 运行的 `vfox-plus-windows` 构件里有同一个 bundle，旁边是暂存的可执行文件与 Windows 版
+`vfxtool.exe`。
 
 部署平台自动选择与本机匹配的架构切片，包为所有用户安装。卸载：
 
@@ -73,13 +75,15 @@ Remove-AppxPackage -Package dev.vfox.VfoxPlus_<版本>_neutral_~_<发布者标�
 ## 自己签名
 
 `vfxtool sign-msix` 用它自己做的证书给 bundle 签名并安装，适合希望不带 `-AllowUnsigned`
-就能安装的机器，以及测试签名路径的人。它取代了原来的 `Sign-Msix.ps1`。在解压后的
-`vfox-plus-windows` 构件目录里运行，该目录含 `stage-x64/`、`stage-arm64/`、
-`vfxtool.exe` 与未签名包：
+就能安装的机器，以及测试签名路径的人。从 GitHub release 取 `vfox-plus_<版本>.msixbundle`、
+`vfxtool.exe` 和 `vfox-plus_<版本>_windows_executables.zip`，把压缩包解压到同一个目录里：
+该目录随后有 `stage-x64/` 与 `stage-arm64/`，与另外两个文件并排。在那里运行：
 
 ```powershell
 .\vfxtool.exe sign-msix
 ```
+
+CI 运行的 `vfox-plus-windows` 构件含同样的文件，只是可执行文件直接放在 `stage-x64/` 与 `stage-arm64/` 里。
 
 它依次做：
 

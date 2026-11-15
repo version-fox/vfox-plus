@@ -206,8 +206,7 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
 
 发布二进制自包含一切。
 
-Linux 上，共享工具 `vfxtool build-deb` 打包为
-`vfox-plus_<版本>_amd64.deb` 与 `.tar.gz`，含
+Linux 上，共享工具 `vfxtool build-deb` 为 amd64 与 arm64（`--goarch`，拒绝另一种架构的程序）打包为 `vfox-plus_<版本>_amd64.deb` 与 `vfox-plus_<版本>_arm64.deb`，各带一个 `.tar.gz`，含
 [`shared/packaging/linux`](../../../shared/packaging/linux) 的桌面入口、AppStream 元数据与图标；
 版本取 [`VERSION`](../../../mygo/VERSION)，有测试保证与应用显示一致。应用窗口名
 `dev.vfox.VfoxPlus`（Wayland 应用 ID 与 X11 窗口类取自程序名，应用在 mygo 启动 GTK 前

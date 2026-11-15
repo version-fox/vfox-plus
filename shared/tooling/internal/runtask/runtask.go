@@ -517,6 +517,45 @@ func Run(args []string) error {
 		}, debs...)...); err != nil {
 			return err
 		}
+		// The Linux arm64 packages, as release.yml and mygo.yml build them: the
+		// same program cross-compiled, and packaged in directories of their own.
+		// The install test installs every .deb of /home/tester/dist, and an arm64
+		// package does not install in this amd64 container.
+		arm64Stage := "/home/tester/stage-linux-arm64"
+		if err := run("install", "-d", "-o", "tester", "-g", "tester", arm64Stage, "/home/tester/dist-arm64"); err != nil {
+			return err
+		}
+		if err := tool(app, offlineEnv, "build", "--root", app, "--goos", "linux", "--goarch", "arm64", arm64Stage+"/vfox-plus"); err != nil {
+			return err
+		}
+		if err := asTester(app,
+			"SOURCE_DATE_EPOCH="+epoch,
+			exe, "build-deb",
+			"--package", "vfox-plus",
+			"--version", version,
+			"--goarch", "arm64",
+			"--stage", arm64Stage,
+			"--executable", "vfox-plus",
+			"--technology", "mygo",
+			"--depends", Depends,
+			"--recommends", Recommends,
+			"--notice", filepath.Join(app, "assets", "licenses.txt"),
+			"/home/tester/dist-arm64"); err != nil {
+			return err
+		}
+		arm64Debs, err := filepath.Glob("/home/tester/dist-arm64/*.deb")
+		if err != nil {
+			return err
+		}
+		if len(arm64Debs) == 0 {
+			return fmt.Errorf("no arm64 .deb in /home/tester/dist-arm64")
+		}
+		if err := asTester(app, append([]string{
+			"lintian", "--fail-on", "error",
+			"--suppress-tags", "malformed-contact,bogus-mail-host-in-debian-changelog",
+		}, arm64Debs...)...); err != nil {
+			return err
+		}
 		if err := asTester(app,
 			"SOURCE_DATE_EPOCH="+epoch,
 			exe, "build-msix",

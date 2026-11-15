@@ -223,6 +223,20 @@ func ValidateBundle(data []byte, source string) error {
 			return err
 		}
 	}
+	// A release bundle is unsigned, and carries both architectures: a machine installs
+	// the slice of its own architecture.
+	if !strings.Contains(manifest.Identity.Publisher, unsignedPublisherOID) {
+		return fmt.Errorf("%s is not an unsigned bundle: its publisher %q lacks %s", source, manifest.Identity.Publisher, unsignedPublisherOID)
+	}
+	architectures := map[string]bool{}
+	for _, pkg := range manifest.Packages {
+		architectures[pkg.Architecture] = true
+	}
+	for _, want := range []string{"x64", "arm64"} {
+		if !architectures[want] {
+			return fmt.Errorf("%s must contain the %s package", source, want)
+		}
+	}
 	return checkFilenameVersion(source, manifest.Identity.Version, "")
 }
 

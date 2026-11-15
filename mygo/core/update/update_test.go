@@ -82,6 +82,22 @@ func TestPlatformAssetPrefersDebAndFallsBackToTarball(t *testing.T) {
 	}}, "windows", "amd64"); !ok || !strings.HasSuffix(asset.Name, ".msixbundle") {
 		t.Errorf("bundle is the windows fallback: %+v", asset)
 	}
+	// The arm64 files of a release are picked for arm64, and the amd64 ones stay.
+	arm := Release{Tag: "v0.2.0", Assets: []Asset{
+		{Name: "vfox-plus-0.2.0-linux-x64.tar.gz", URL: "https://example.com/a.tar.gz"},
+		{Name: "vfox-plus_0.2.0_amd64.deb", URL: "https://example.com/a.deb"},
+		{Name: "vfox-plus-0.2.0-linux-arm64.tar.gz", URL: "https://example.com/arm.tar.gz"},
+		{Name: "vfox-plus_0.2.0_arm64.deb", URL: "https://example.com/arm.deb"},
+	}}
+	if asset, ok := PlatformAsset(arm, "linux", "arm64"); !ok || asset.Name != "vfox-plus_0.2.0_arm64.deb" {
+		t.Errorf("the arm64 deb is preferred: %+v", asset)
+	}
+	armTarballOnly := Release{Tag: "v0.2.0", Assets: []Asset{
+		{Name: "vfox-plus-0.2.0-linux-arm64.tar.gz", URL: "https://example.com/arm.tar.gz"},
+	}}
+	if asset, ok := PlatformAsset(armTarballOnly, "linux", "arm64"); !ok || asset.Name != "vfox-plus-0.2.0-linux-arm64.tar.gz" {
+		t.Errorf("the arm64 tarball is the fallback: %+v", asset)
+	}
 }
 
 func TestMirrorURL(t *testing.T) {
