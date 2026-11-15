@@ -106,5 +106,6 @@ Commands:
   check-version       the version of a release run, checked before anything is built (see release.yml)
   set-version         write the version of a release into the files that carry it
   check-assets        check the files that a release uploads, and print them
+  install-check       install the packages of a release on Windows and check the install and the removal (replaces the PowerShell steps of mygo.yml)
 `)
 }

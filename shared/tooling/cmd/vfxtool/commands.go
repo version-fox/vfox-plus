@@ -32,6 +32,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measureapk"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/measurelightweight"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/msixinstall"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/phoneframe"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/release"
@@ -75,4 +76,5 @@ func init() {
 	commands["check-version"] = release.CheckVersionRun
 	commands["set-version"] = release.SetVersionRun
 	commands["check-assets"] = release.CheckAssetsRun
+	commands["install-check"] = msixinstall.Run
 }

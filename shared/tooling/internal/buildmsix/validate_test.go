@@ -430,3 +430,42 @@ func TestValidateMsixRefusesStoredContentTypes(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 }
+
+// bundleWith builds an unsigned bundle with the publisher and one package for each architecture.
+func bundleWith(t *testing.T, publisher string, archs ...string) []byte {
+	t.Helper()
+	var packages []BundlePackage
+	for _, arch := range archs {
+		data, err := WriteMsix(testValidateConfig(arch))
+		if err != nil {
+			t.Fatal(err)
+		}
+		packages = append(packages, BundlePackage{Architecture: arch, Filename: "vfox-plus_0.1.0_" + arch + ".msix", Data: data})
+	}
+	data, _, err := WriteBundle(BundleConfig{
+		Package:   "vfox-plus",
+		Version:   "0.1.0",
+		Identity:  "dev.vfox.VfoxPlus",
+		Publisher: publisher,
+		Packages:  packages,
+		MTime:     time.Unix(1234567890, 0).UTC(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestValidateBundleRequiresTheUnsignedPublisher(t *testing.T) {
+	data := bundleWith(t, "CN=vfox-plus", "x64", "arm64")
+	if err := ValidateBundle(data, "signed.msixbundle"); err == nil || !strings.Contains(err.Error(), "is not an unsigned bundle") {
+		t.Fatalf("ValidateBundle = %v, want a bundle without the unsigned publisher refused", err)
+	}
+}
+
+func TestValidateBundleRequiresBothArchitectures(t *testing.T) {
+	data := bundleWith(t, defaultPublisher, "x64")
+	if err := ValidateBundle(data, "one.msixbundle"); err == nil || !strings.Contains(err.Error(), "must contain the arm64 package") {
+		t.Fatalf("ValidateBundle = %v, want the arm64 package required", err)
+	}
+}
