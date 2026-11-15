@@ -273,7 +273,7 @@ interpreted and compiled just in time; "compiled" is after
   system has compiled it.
 - **The Compose screen** used the Compose BOM 2026.06.01 (Compose 1.11.4 and
   Material 3 1.4.0, stable API only), activity-compose 1.13.0 and the Compose
-  compiler plugin of the pinned Kotlin 2.1.20.
+  compiler plugin of Kotlin 2.1.20, which the build pinned then.
 - **The absolute numbers belong to this session**: an earlier one read 30 to 34 MB
   for the Views apps. Compare the rows of the table.
 - **Not measured:** Compose with the Expressive components, which the pinned

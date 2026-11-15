@@ -10,7 +10,7 @@ WSL2 中，或者用装齐了这一切的开发容器。要装什么取决于你
 | 在编辑器里一次拥有全部工具，且不改动你的机器 | Docker，以及能打开开发容器的编辑器（见[开发容器](#开发容器)） |
 | 跑全部检查、端到端测试与打包，且不改动你的机器 | Docker，以及构建 `vfxtool` 用的 Go（见[沙箱](#沙箱)） |
 | 快速编辑并测试 Go 代码 | Go、几个软件包与 golangci-lint（见[Go 与本机工具](#go-与本机工具)） |
-| 构建 Android 客户端 | JDK 17 与 Android SDK（见 [Android](#android)） |
+| 构建 Android 客户端 | JDK 25 与 Android SDK（见 [Android](#android)） |
 | 在模拟器上运行 Android 客户端 | KVM、一台 adb 设备，或 CI（见[模拟器与 KVM](#模拟器与-kvm)） |
 
 固定的版本在 [`mygo/versions.env`](../../../mygo/versions.env) 与
@@ -164,7 +164,7 @@ vfox，所以不会碰你的 `~/.vfox`。
 
 ## Node 与 Web 界面
 
-Web 界面是 TypeScript 加 Vite，源码在 `mygo/web`（Node 20 起；开发容器与 CI 装 Node 24）。
+Web 界面是 TypeScript 加 Vite，源码在 `mygo/web`（Node 22.12 起；开发容器与 CI 装 Node 26）。
 它的构建把页面打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入，所以仓库里的页面是生成物：
 改源码，别改页面。
 
@@ -183,7 +183,7 @@ CI 构建页面、跑它的测试，构建产物与提交的不一致就失败�
 
 ## Android
 
-构建需要 JDK 17（CI 用 Temurin）与带 platform 36 和 build-tools 35.0.0 的 Android SDK，经提交
+构建需要 JDK 25（CI 用 Temurin）与带 platform 37.2 和 build-tools 36.0.0 的 Android SDK，经提交
 进仓库的 wrapper 运行；见 [Android 打包](packaging-android.md#构建)。构建不需要 KVM，
 模拟器需要。
 

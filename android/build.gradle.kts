@@ -15,6 +15,6 @@
 // Top-level build file. Versions are pinned here so the APK reproduces.
 
 plugins {
-    id("com.android.application") version "8.13.2" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.20" apply false
+    // Kotlin is built into the Android Gradle plugin, so the Kotlin Android plugin is not applied.
+    id("com.android.application") version "9.5.1" apply false
 }

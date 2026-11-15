@@ -125,7 +125,7 @@ CI 运行的 `vfox-plus-windows` 构件里是未签名的 bundle，旁边是暂�
 
 它依次做这些：
 
-1. 把 osslsigncode 2.14 下载到 `tools/`，版本固定并核对 SHA-256，因此不需要 Windows SDK。`--osslsigncode PATH`
+1. 把 osslsigncode 2.16 下载到 `tools/`，版本固定并核对 SHA-256，因此不需要 Windows SDK。`--osslsigncode PATH`
    改用你已有的，`--force` 重新下载。
 2. 用发布者 `CN=vfox-plus`（`--publisher-cn`）而不是未签名包的 OID 把包重建到 `signed/`，因为已签名包的发布者必须与证书主题一致。
 3. 为该主题做一张自签名代码签名证书（RSA 2048，有效期五年），给每个 `.msix` 签名，再像 SignTool 那样把签好名的包放回

@@ -11,7 +11,7 @@ depends on what you do:
 | Have every tool in your editor at once, and change nothing on your machine | Docker, and an editor that opens dev containers ([The dev container](#the-dev-container)) |
 | Run every check, the end-to-end tests and the packaging, and change nothing on your machine | Docker, and Go to build `vfxtool` ([The sandbox](#the-sandbox)) |
 | Edit and test the Go code quickly | Go, a few packages and golangci-lint ([Go and the native tools](#go-and-the-native-tools)) |
-| Build the Android client | A JDK 17 and the Android SDK ([Android](#android)) |
+| Build the Android client | A JDK 25 and the Android SDK ([Android](#android)) |
 | Run the Android client on an emulator | KVM, an adb device, or CI ([The emulator and KVM](#the-emulator-and-kvm)) |
 
 The pinned versions live in
@@ -206,8 +206,8 @@ sandbox, which brings its own pinned vfox, so that nothing touches your `~/.vfox
 
 ## Node and the web interface
 
-The web interface is TypeScript built with Vite, in `mygo/web` (Node 20 or
-later; the dev container and CI install Node 24). Its build bundles the page
+The web interface is TypeScript built with Vite, in `mygo/web` (Node 22.12 or
+later; the dev container and CI install Node 26). Its build bundles the page
 into the single `mygo/pair/webapp.html` that the Go server embeds, so the
 checked-in page is generated: edit the sources, not the page.
 
@@ -228,8 +228,8 @@ it together with its sources.
 
 ## Android
 
-The build needs a JDK 17 (CI uses Temurin) and the Android SDK with platform 36 and
-build-tools 35.0.0, and runs through the committed wrapper; see
+The build needs a JDK 25 (CI uses Temurin) and the Android SDK with platform 37.2 and
+build-tools 36.0.0, and runs through the committed wrapper; see
 [Packaging Android](packaging-android.md#building). That needs no KVM. The
 emulator does.
 

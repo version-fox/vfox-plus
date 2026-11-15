@@ -200,7 +200,7 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
 - **比较时只带要运行的东西。**第一个 Compose 构建里还留着从未运行的 View 屏幕，读数比 View 应用多约 3 MB（新装）与
   约 6 MB（已编译）：APK 里的代码一旦被系统编译，就会占内存。
 - **Compose 屏**用的是 Compose BOM 2026.06.01（Compose 1.11.4、Material 3 1.4.0，只用稳定 API）、
-  activity-compose 1.13.0，以及与锁定的 Kotlin 2.1.20 对应的 Compose 编译器插件。
+  activity-compose 1.13.0，以及与当时锁定的 Kotlin 2.1.20 对应的 Compose 编译器插件。
 - **绝对数值属于这一次测量**：更早的一次，View 应用读到 30 到 34 MB。只比较表中各行。
 - **没有测：**带 Expressive 组件的 Compose（锁定的工具链构建不了，见[为什么用 View 而不是
   Compose](packaging-android.md#为什么用-view-而不是-compose)）、带 WebView 的会话屏、真机。

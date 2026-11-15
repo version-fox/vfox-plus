@@ -14,8 +14,8 @@ against the Go code. Users install the `.apk` and pair it with the PC; see
 | --- | --- |
 | `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties` | Project setup; plugin versions are pinned here. |
 | `gradlew`, `gradlew.bat`, `gradlew.ps1`, `gradle/wrapper/` | The Gradle wrapper ([Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)); `gradle-wrapper.properties` pins Gradle with its SHA-256. |
-| `versions.env` | Pinned tool versions that CI and the [dev container](environment.md#the-dev-container) read (Java, the command-line tools and the packages of the Android SDK, AGP, Kotlin, Material). |
-| `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.3 (both Apache-2.0) scan the QR code. The Material Symbols are imported too, from google/material-design-icons (see the [design system](design-system.md#icons)). |
+| `versions.env` | Pinned tool versions that CI and the [dev container](environment.md#the-dev-container) read (Java, the command-line tools and the packages of the Android SDK, AGP, Material). |
+| `app/build.gradle.kts` | Application ID `dev.vfox.vfoxplus`, `minSdk 26`, `targetSdk 36`; `versionName` is read from `mygo/VERSION`, so the phone shows the same version as the desktop. CameraX 1.6.2 and zxing core 3.5.4 (both Apache-2.0) scan the QR code. The Material Symbols are imported too, from google/material-design-icons (see the [design system](design-system.md#icons)). |
 | `app/src/main/` | Kotlin sources (`dev.vfox.vfoxplus`), layouts, the Material 3 Expressive theme with the colours of the [design system](design-system.md#colour) (`values/colors.xml`, `values-night/colors.xml`), strings in English and Simplified Chinese, and the launcher icon (adaptive, with a monochrome layer for themed icons; see the [design system](design-system.md#application-icon)). |
 
 ## What the app does
@@ -119,13 +119,12 @@ app](memory.md#views-or-compose-in-the-android-app)). These did:
 - **Material 3 Expressive works in Views with the pinned toolchain.** Material
   Components 1.14.0 is a stable release with the Expressive theme, the buttons
   with their shape morph, the floating toolbar and the loading and wavy progress
-  indicators, and it builds with AGP 8.13.2 and compileSdk 36. In Compose, as
+  indicators, and it builds with AGP 9.5.1 and compileSdk 37.2. In Compose, as
   checked on 2026-10-30, the stable Material 3 1.4.0 keeps the Expressive theme,
   the motion schemes and the emphasized text styles `internal`, and its shape
   library cannot be used; Material 3 1.5.0-beta02 is a beta that needs AGP 9.1.0,
   compileSdk 37 and Compose 1.12.0, and the latest Compose, 1.12.1, needs the same
-  AGP and compileSdk. Compose would mean a pre-release dependency and a new
-  toolchain.
+  AGP and compileSdk. Compose would mean a pre-release dependency.
 - **The APK is smaller.** Adding Compose makes it 1.2 MB (37 %) larger.
 - **The native part is small.** The app is three screens around a WebView: what the
   user works in is the web interface, which no toolkit changes.
@@ -137,7 +136,7 @@ then be the size of the APK and the cost of the migration, not memory.
 
 ## Building
 
-JDK 17 and the Android SDK (platform 36 and build-tools 35.0.0, the default of
+JDK 25 and the Android SDK (platform 37.2 and build-tools 36.0.0, the default of
 the pinned AGP) are required. CI installs them, and so does the [dev
 container](environment.md#the-dev-container), with `ANDROID_HOME` set; locally point
 `ANDROID_HOME` at an SDK (or write `sdk.dir` into the git-ignored
@@ -236,7 +235,7 @@ accepts an update only with a higher one.
   user may terminate TLS elsewhere). The session cookie is the credential
   either way.
 - The wrapper is [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
-  0.2.0 (Apache-2.0): the stock `gradle-wrapper.jar` is a binary, which the
+  0.4.0 (Apache-2.0): the stock `gradle-wrapper.jar` is a binary, which the
   repository rejects, and Neo does the same job from one Java source file that
   `gradlew` compiles on first use. `gradlew`, `gradlew.bat`, `gradlew.ps1` and
   `GradleWrapperNeo.java` stay as the release publishes them (so
@@ -245,5 +244,5 @@ accepts an update only with a higher one.
   CRLF, which `gradlew.bat` needs on Windows.
 - To change Gradle, edit `distributionUrl` and `distributionSha256Sum` in
   `gradle/wrapper/gradle-wrapper.properties` (checksums:
-  <https://gradle.org/release-checksums/>). It is 9.5.1 because AGP 8.13.2
-  fails on Gradle 9.8.0; raise AGP and Gradle together.
+  <https://gradle.org/release-checksums/>). It is 9.9.1, the version that AGP 9.5.1 builds with
+  here; raise AGP and Gradle together.

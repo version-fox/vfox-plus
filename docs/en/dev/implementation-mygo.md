@@ -141,7 +141,7 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   plain `go run generate.go`, no Node.js required.
 - **End-to-end scenarios** drive the built application from outside, the way
   assistive technology does. `vfxtool build --e2e` builds it with the tag `e2e`, which links the
-  [automation plugin](https://github.com/egoist/mygo/blob/v0.7.3/docs/plugins/automation.md) of
+  [automation plugin](https://github.com/egoist/mygo/blob/v0.9.0/docs/plugins/automation.md) of
   mygo ([`automation_e2e.go`](../../../mygo/automation_e2e.go)): when `MYGO_AUTOMATION` names a Unix
   socket, the application listens on it and answers requests to list the elements of its window
   (the ones it gives screen readers, with the keys that the components set), to press them, to
@@ -336,7 +336,7 @@ adds 5 MB because only the rows in view are built.
   does not use yet.
 - **Scaling** is the one of GTK 3: whole numbers, from `GDK_SCALE` or the
   desktop, and the text scale of the desktop.
-- **mygo is young** (v0.7.3 at the time of writing, with a changing API): the
+- **mygo is young** (v0.9.0 at the time of writing, with a changing API): the
   version is pinned in [`go.mod`](../../../mygo/go.mod), and the pages follow what that
   version offers.
 - **Accessibility** goes through mygo's ATK objects, which GTK bridges to AT-SPI,
