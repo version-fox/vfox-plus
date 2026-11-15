@@ -29,6 +29,17 @@ vfox-plus
 
 or extract the `.tar.gz` anywhere and run `./vfox-plus`.
 
+Each `.deb` and `.tar.gz` of a release has a build attestation, which names the
+release workflow of this repository as the one that built it. To check a
+download, with the [GitHub CLI](https://cli.github.com/):
+
+```sh
+gh attestation verify vfox-plus_<version>_amd64.deb --repo version-fox/vfox-plus
+```
+
+apt and dpkg do not check it: the attestation is what tells that the file is the
+one the workflow built.
+
 A classic snap of the GitHub release (amd64) installs by hand instead (strict
 confinement would fence off the toolchains that vfox-plus drives, so the
 snap is not in the store):
@@ -46,19 +57,22 @@ interface in its settings (see [The web interface and other devices](remote.md))
 
 ## Windows 11
 
-Download the unsigned `.msixbundle` of the
+Download the `.msixbundle` of the
 [latest GitHub release](https://github.com/version-fox/vfox-plus/releases/latest),
 and install it in an elevated PowerShell:
 
 ```powershell
-Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned
+Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle
 ```
 
-The bundle is not signed yet; an officially signed bundle will be provided
-later. To remove it again:
+The bundle is signed with a certificate that Windows trusts, so it installs
+without `-AllowUnsigned`. A version from before the signed release has another
+publisher, so it stays installed beside the new one: remove it first. To see the
+installed packages, and to remove one of them:
 
 ```powershell
-Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFullName
+Get-AppxPackage -Name dev.vfox.VfoxPlus | Select-Object PackageFullName, Publisher
+Remove-AppxPackage -Package <PackageFullName>
 ```
 
 ## Android

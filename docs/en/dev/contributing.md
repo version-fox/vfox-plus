@@ -98,31 +98,39 @@ A release is one manual run of the Release workflow:
    other branch. Type the version without the `v`, for example `1.0.0`.
 2. The job checks the request before it changes anything. The version must have
    the form `major.minor.patch`, be newer than the newest tag, and have no tag
-   yet. The last `mygo` run on `main` must have passed: the release job vets and
+   yet. The last `mygo` run on `main` must have passed: the release vets and
    smoke-tests the build, but runs no tests.
-3. The job sets the version in `mygo/VERSION`, in the `Version` constant of
+3. The build job sets the version in `mygo/VERSION`, in the `Version` constant of
    `mygo/ui/app.go` and in the `<releases>` list of the
    [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml), and
    commits that in the name of the person who started the run. It builds the
    packages that [`mygo.yml`](#continuous-integration) builds, for amd64 and for
-   arm64, the Android APK as [`android.yml`](../../../.github/workflows/android.yml)
-   builds it, and the classic snap from `snap/snapcraft.yaml`.
-4. Only when everything is built does it push the commit to `main`, tag
-   `v<version>`, and publish the GitHub release with `--generate-notes`. The
-   release holds the `.deb` and the `.tar.gz` of Linux for amd64 and for arm64,
-   the APK, the snap (amd64), the `.msix` of each architecture, the `.msixbundle`
-   of Windows, the archive of the Windows executables for
-   [`vfxtool sign-msix`](packaging-windows.md#signing-the-packages-yourself), and
-   `vfxtool.exe`. The self-update check reads the `.deb` or the `.tar.gz` of the
-   platform, and the `.msix` or the `.msixbundle`; the rest is for manual use.
+   arm64, the Windows `.msix` packages with the publisher of their certificate, the
+   Android APK unsigned, and the classic snap from `snap/snapcraft.yaml`. It pushes
+   nothing.
+4. The `sign-windows` job, which waits for the approval, signs the Windows packages
+   with Artifact Signing and installs the bundle to check it ([Signing the
+   release](packaging-windows.md#signing-the-release)). It signs the APK with the
+   release key too ([Signing status](packaging-android.md#signing-status)).
+5. The publish job attests the Linux packages and checks the files of the release.
+   Only then does it push the commit
+   to `main`, tag `v<version>`, and publish the GitHub release with
+   `--generate-notes`. The release holds the `.deb` and the `.tar.gz` of Linux for
+   amd64 and for arm64, the APK, the snap (amd64), and the signed `.msix` of each
+   architecture with the signed `.msixbundle`. The self-update check reads the
+   `.deb` or the `.tar.gz` of the platform, and the `.msix` or the `.msixbundle`;
+   the rest is for manual use.
 
-The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. Its secrets are in the `release` environment, so a run waits for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, unless an administrator starts it.
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before the signing: the publishing follows without a second approval. An administrator may start it without the approval.
+
+Set `dry-run` to build, sign and install everything without pushing, tagging or
+publishing. Start a release that way first when its signing or its secrets change.
 
 The version commit starts no CI run on `main`, because GitHub starts no workflow
 for a push made with a workflow's own token. So no test runs on that commit: the
 last `mygo` run before it is the one that counts, which is why the job checks it.
 
-Pushing a `v*` tag runs the same job without setting the version: the commit of
+Pushing a `v*` tag runs the same jobs without setting the version: the commit of
 the tag must say the version already, or the job refuses it.
 
 If a run fails before the push, nothing has changed on GitHub: fix the cause and

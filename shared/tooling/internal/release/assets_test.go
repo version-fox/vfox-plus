@@ -34,8 +34,6 @@ func releaseFiles(version string) []string {
 		"dist-windows/vfox-plus_" + version + "_x64.msix",
 		"dist-windows/vfox-plus_" + version + "_arm64.msix",
 		"dist-windows/vfox-plus_" + version + ".msixbundle",
-		"dist-windows/vfox-plus_" + version + "_windows_executables.zip",
-		"dist-windows/vfxtool.exe",
 	}
 }
 

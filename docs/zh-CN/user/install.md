@@ -25,6 +25,15 @@ vfox-plus
 
 或把 `.tar.gz` 解到任意位置，运行 `./vfox-plus`。
 
+release 里每个 `.deb` 与 `.tar.gz` 都带有构建证明，它说明是本仓库的发布工作流构建了它。要核对下载的文件，
+用 [GitHub CLI](https://cli.github.com/)：
+
+```sh
+gh attestation verify vfox-plus_<version>_amd64.deb --repo version-fox/vfox-plus
+```
+
+apt 与 dpkg 不检查它：构建证明说明的是，这个文件就是工作流构建出的那一个。
+
 GitHub release 的 classic snap（amd64）则手动安装（strict 限制会挡住 vfox-plus 所驱动的工具链，
 所以不上架商店）：
 
@@ -39,16 +48,18 @@ vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示�
 
 ## Windows 11
 
-从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载未签名的 `.msixbundle`，用管理员 PowerShell 安装：
+从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载 `.msixbundle`，用管理员 PowerShell 安装：
 
 ```powershell
-Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle -AllowUnsigned
+Add-AppxPackage -Path .\vfox-plus_<version>.msixbundle
 ```
 
-安装包暂未签名，正式签名版后续提供。卸载：
+bundle 由 Windows 信任的证书签名，所以不需要 `-AllowUnsigned`。签名发布之前的版本发布者不同，因而是另一个包，
+会与新版本并存：先把它卸载。查看已安装的包，并卸载其中一个：
 
 ```powershell
-Remove-AppxPackage -Package (Get-AppxPackage -Name dev.vfox.VfoxPlus).PackageFullName
+Get-AppxPackage -Name dev.vfox.VfoxPlus | Select-Object PackageFullName, Publisher
+Remove-AppxPackage -Package <PackageFullName>
 ```
 
 ## 安卓

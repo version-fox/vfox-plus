@@ -184,7 +184,7 @@ is signed with the **release key**: one key, kept as the secrets of the `release
 environment of the repository, the same for every release. A release installs over
 the one before it, and the data and the pairing with the PC stay.
 
-The release job refuses to run without the key. Its four secrets are
+The sign-windows job of the release refuses to run without the key. Its four secrets are
 `ANDROID_RELEASE_KEYSTORE_BASE64` (the keystore, in base64),
 `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS` and
 `ANDROID_RELEASE_KEY_PASSWORD`. The Gradle build (`app/build.gradle.kts`) signs with
@@ -194,13 +194,17 @@ Gradle creates on the first build, so each machine has its own key: an APK of on
 machine cannot update an APK of another, which is why the debug key is for local
 builds only. The job of [`android.yml`](../../../.github/workflows/android.yml) signs
 its artifact with a key that it makes and throws away, so that the release signing is
-built on every change.
+built on every change. The release builds the APK unsigned (`ANDROID_RELEASE_UNSIGNED`
+makes the Gradle build leave it so), and the sign-windows job signs it with the same
+key, with `apksigner` after `zipalign`, as the Gradle build would: the key never
+reaches the build job.
 
 The four secrets are in the `release` environment, and nowhere else in the repository.
-Only the release job reads them. A run waits for a member of `@version-fox/vfox-maintainers`
-or `@version-fox/vfox-committers` to approve it, unless an administrator of the repository
-starts it: administrators may bypass the approval. Only a run from `main` or from a tag
-`v*` can use the environment. GitHub does not show their values, and the maintainers do
+Only the sign-windows job of the release reads them. A run waits for a member of
+`@version-fox/vfox-maintainers` or `@version-fox/vfox-committers` to approve it once,
+before the signing of the Windows packages and the APK, unless an administrator of
+the repository starts it: administrators may bypass the approval.
+Only a run from `main` or from a tag `v*` can use the environment. GitHub does not show their values, and the maintainers do
 not share them. If you need the actual values of these four secrets, contact
 <https://github.com/linghengqian>.
 

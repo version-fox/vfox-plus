@@ -19,7 +19,9 @@
 // The signed packages are made the way a user makes them, with sign-msix, which
 // trusts a certificate of this machine and installs the bundle without
 // -AllowUnsigned. A second run must replace that certificate, not add another, and
-// the certificates are taken out again at the end.
+// the certificates are taken out again at the end. The release bundle is signed
+// with a certificate that Windows trusts already (Artifact Signing): --trusted
+// installs that bundle without -AllowUnsigned and leaves the certificates alone.
 //
 // Windows installs packages with the Appx cmdlets of Windows PowerShell, and keeps
 // the certificates of the machine in its stores, so the checks reach them through
@@ -85,17 +87,21 @@ type Machine interface {
 
 // Run is the command `vfxtool install-check`:
 //
-//	install-check [--directory DIR] --arch x64|arm64 [--signed]
+//	install-check [--directory DIR] --arch x64|arm64 [--signed | --trusted]
 func Run(args []string) error {
 	flags := flag.NewFlagSet("install-check", flag.ContinueOnError)
 	directory := flags.String("directory", "msix", "the directory of the release: the bundle, the packages, vfxtool.exe and the stage directories")
 	arch := flags.String("arch", "", "the architecture of this machine: x64 or arm64")
 	signed := flags.Bool("signed", false, "check the signed packages that sign-msix makes, instead of the unsigned bundle")
+	trusted := flags.Bool("trusted", false, "check the bundle that a certificate Windows trusts already signed: it installs without -AllowUnsigned, and the certificates of the machine are left alone")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *arch != "x64" && *arch != "arm64" {
 		return fmt.Errorf("--arch must be x64 or arm64, not %q", *arch)
+	}
+	if *signed && *trusted {
+		return fmt.Errorf("--signed and --trusted are two checks: name one")
 	}
 	machine := windowsMachine{}
 	if *signed {
@@ -116,7 +122,35 @@ func Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if *trusted {
+		return checkTrusted(machine, os.Stdout, bundle, *arch)
+	}
 	return checkUnsigned(machine, os.Stdout, bundle, *arch)
+}
+
+// checkTrusted installs the bundle that a certificate of Windows trusts already
+// signed, without -AllowUnsigned and without touching the certificates of the
+// machine. It checks the one package that Windows registers, that the package has
+// a signature, and removes it again.
+func checkTrusted(m Machine, out io.Writer, bundle, arch string) error {
+	if err := m.Install(bundle, false); err != nil {
+		fmt.Fprintln(out, "--- AppX deployment log (tail) ---")
+		showLog(out, m.DeploymentLog)
+		return fmt.Errorf("Add-AppxPackage failed: %w", err)
+	}
+	pkg, err := registered(m, arch, "install")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "installed %s arch %s, signature %s\n", pkg.FullName, pkg.Architecture, pkg.SignatureKind)
+	if err := remove(m, pkg); err != nil {
+		return err
+	}
+	if pkg.SignatureKind == "" || strings.EqualFold(pkg.SignatureKind, "None") {
+		return fmt.Errorf("the installed package %s has no signature (SignatureKind %q)", pkg.FullName, pkg.SignatureKind)
+	}
+	fmt.Fprintln(out, "uninstalled cleanly")
+	return nil
 }
 
 // checkUnsigned installs the unsigned bundle, checks the one package that Windows

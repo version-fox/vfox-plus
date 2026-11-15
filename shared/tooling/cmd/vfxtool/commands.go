@@ -65,6 +65,7 @@ func init() {
 	commands["fake-vfox"] = fakevfox.Run
 	commands["build-deb"] = builddeb.Run
 	commands["build-msix"] = buildmsix.Run
+	commands["rebundle"] = buildmsix.RunRebundle
 	commands["sign-msix"] = signmsix.Run
 	commands["validate-msix"] = validatemsix.Run
 	commands["docs-check"] = docscheck.Run

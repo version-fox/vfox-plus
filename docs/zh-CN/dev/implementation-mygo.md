@@ -221,13 +221,14 @@ Linux 上，共享工具 `vfxtool build-deb` 为 amd64 与 arm64（`--goarch`，
 （`shared/tooling/internal/runtask`），CI 装入干净 Ubuntu 容器证明完备。
 
 Windows 11 上，`vfxtool build-msix` 把交叉编译的可执行文件
-（`vfxtool build --goos windows --goarch amd64|arm64`）打包为未签名
+（`vfxtool build --goos windows --goarch amd64|arm64`）打包为
 `vfox-plus_<版本>_<架构>.msix` 与
 `vfox-plus_<版本>.msixbundle`，含
 [`shared/packaging/windows`](../../../shared/packaging/windows) 的清单、徽标与 bundle 布局。
-用户在管理员 PowerShell 用 `Add-AppxPackage -AllowUnsigned` 安装未签名 bundle；
-安装包目前尚未签名，日后会提供官方签名的安装包。
-CI 在 Linux 交叉编译打包并用 `vfxtool validate-msix` 校验，在 Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载 bundle。
+发布时它以证书的发布者构建包，并用 Artifact Signing 签名（`vfxtool rebundle` 用签好名的包重新生成 bundle，
+`vfxtool install-check --trusted` 安装它）；用户用 `Add-AppxPackage` 安装已签名的 bundle，见
+[Windows 打包](packaging-windows.md#发布的签名)。
+CI 在 Linux 交叉编译打包（未签名），用 `vfxtool validate-msix` 校验，并在 Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载 bundle。
 
 ## 内存
 
@@ -262,8 +263,8 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 11 打包为
-  未签名 `.msixbundle`（x64 与 arm64），CI 校验；安装为 `Add-AppxPackage -AllowUnsigned`
-  侧加载。屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
+  未签名 `.msixbundle`（x64 与 arm64），CI 校验，发布时签名；CI 的包用 `Add-AppxPackage -AllowUnsigned` 安装
+  屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
   一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。

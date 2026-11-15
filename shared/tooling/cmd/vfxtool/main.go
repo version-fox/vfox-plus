@@ -94,9 +94,10 @@ Commands:
   capture             capture vfox CLI fixtures (replaces shared/fixtures/capture.sh)
   fake-vfox           replay captured vfox output (replaces shared/fixtures/fake-vfox.sh)
   build-deb           package a .deb and .tar.gz (replaces shared/packaging/linux/build-deb.sh)
-  build-msix          package unsigned .msix and .msixbundle for Windows 11 (see shared/packaging/windows)
+  build-msix          package .msix and .msixbundle for Windows 11, unsigned unless --publisher names a certificate (see shared/packaging/windows)
+  rebundle            put signed .msix packages into their .msixbundle again, after the signing
   sign-msix           self-sign the .msix and .msixbundle files and install the bundle on Windows 11 (replaces shared/packaging/windows/Sign-Msix.ps1)
-  validate-msix       validate .msix and .msixbundle files without the Windows SDK
+  validate-msix       validate .msix and .msixbundle files without the Windows SDK (--publisher: the publisher of their certificate)
   docs-check          verify every Markdown document has a Chinese counterpart
   sandbox             host side of the Docker sandbox (replaces mygo/sandbox/sandbox.sh + shared/sandbox/sandbox-lib.sh)
   runtask             one sandbox task in a container (replaces mygo/sandbox/run-task.sh + shared/sandbox/task-lib.sh)

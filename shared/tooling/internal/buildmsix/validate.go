@@ -79,9 +79,15 @@ type blockMapHash struct {
 var versionSuffix = regexp.MustCompile(`_(\d+\.\d+\.\d+)(?:_([^_]+))?\.(?:msix|msixbundle)$`)
 
 // ValidateDir validates every .msix and .msixbundle directly inside dir: ZIP
-// layout, manifests, block maps, bundle offsets and version consistency.
-// It reports the first problem found.
-func ValidateDir(dir string) error {
+// layout, manifests, block maps, bundle offsets and version consistency. The
+// bundle is unsigned, so it carries the unsigned publisher. It reports the first
+// problem found.
+func ValidateDir(dir string) error { return ValidateDirFor(dir, "") }
+
+// ValidateDirFor validates like ValidateDir. A publisher other than empty is the
+// one that the packages must carry: the publisher of a release, which is the
+// subject of the certificate that signs them.
+func ValidateDirFor(dir, publisher string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return err
@@ -117,10 +123,10 @@ func ValidateDir(dir string) error {
 			return err
 		}
 		if strings.HasSuffix(path, ".msixbundle") {
-			if err := ValidateBundle(data, path); err != nil {
+			if err := validateBundleFor(data, path, publisher); err != nil {
 				return err
 			}
-		} else if err := ValidateMsix(data, path); err != nil {
+		} else if err := validateMsixFor(data, path, publisher); err != nil {
 			return err
 		}
 		fmt.Println("validated", path)
@@ -128,8 +134,12 @@ func ValidateDir(dir string) error {
 	return nil
 }
 
-// ValidateMsix validates one .msix package.
-func ValidateMsix(data []byte, source string) error {
+// ValidateMsix validates one .msix package, whatever its publisher.
+func ValidateMsix(data []byte, source string) error { return validateMsixFor(data, source, "") }
+
+// validateMsixFor validates one .msix package. A publisher other than empty must
+// be the publisher of its manifest.
+func validateMsixFor(data []byte, source, publisher string) error {
 	files, err := checkZipLayout(data, source, true)
 	if err != nil {
 		return err
@@ -146,6 +156,9 @@ func ValidateMsix(data []byte, source string) error {
 	id := manifest.Identity
 	if id.Name == "" || id.Publisher == "" || id.Version == "" || id.ProcessorArchitecture == "" {
 		return fmt.Errorf("%s manifest identity is incomplete: %+v", source, id)
+	}
+	if publisher != "" && id.Publisher != publisher {
+		return fmt.Errorf("%s has the publisher %q, want %q", source, id.Publisher, publisher)
 	}
 	switch id.ProcessorArchitecture {
 	case "x64", "x86", "arm", "arm64", "neutral":
@@ -164,8 +177,12 @@ func ValidateMsix(data []byte, source string) error {
 	return checkFilenameVersion(source, id.Version, "")
 }
 
-// ValidateBundle validates one regular .msixbundle.
-func ValidateBundle(data []byte, source string) error {
+// ValidateBundle validates one regular .msixbundle of unsigned packages.
+func ValidateBundle(data []byte, source string) error { return validateBundleFor(data, source, "") }
+
+// validateBundleFor validates one regular .msixbundle. Without a publisher the
+// bundle and its packages are unsigned; with one, they carry that publisher.
+func validateBundleFor(data []byte, source, publisher string) error {
 	files, err := checkZipLayout(data, source, false)
 	if err != nil {
 		return err
@@ -219,14 +236,18 @@ func ValidateBundle(data []byte, source string) error {
 		if !ok {
 			return fmt.Errorf("%s lists %s, which is not in the bundle", source, pkg.FileName)
 		}
-		if err := ValidateMsix(payload, source+": "+pkg.FileName); err != nil {
+		if err := validateMsixFor(payload, source+": "+pkg.FileName, publisher); err != nil {
 			return err
 		}
 	}
-	// A release bundle is unsigned, and carries both architectures: a machine installs
-	// the slice of its own architecture.
-	if !strings.Contains(manifest.Identity.Publisher, unsignedPublisherOID) {
-		return fmt.Errorf("%s is not an unsigned bundle: its publisher %q lacks %s", source, manifest.Identity.Publisher, unsignedPublisherOID)
+	// A release bundle carries both architectures, and its publisher is the unsigned
+	// one, unless the caller names the publisher of the certificate that signs it.
+	if publisher == "" {
+		if !strings.Contains(manifest.Identity.Publisher, unsignedPublisherOID) {
+			return fmt.Errorf("%s is not an unsigned bundle: its publisher %q lacks %s", source, manifest.Identity.Publisher, unsignedPublisherOID)
+		}
+	} else if manifest.Identity.Publisher != publisher {
+		return fmt.Errorf("%s has the publisher %q, want %q", source, manifest.Identity.Publisher, publisher)
 	}
 	architectures := map[string]bool{}
 	for _, pkg := range manifest.Packages {

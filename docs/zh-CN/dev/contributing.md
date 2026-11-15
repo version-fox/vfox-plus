@@ -78,15 +78,18 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 一次发布就是手动运行一次 Release 工作流：
 
 1. Actions、Release、Run workflow。分支保持为 `main`，任务会拒绝其他分支。输入不带 `v` 的版本号，例如 `1.0.0`。
-2. 任务在改动任何东西之前先检查请求：版本须是 `major.minor.patch` 的形式，比最新的标签新，且还没有对应的标签。`main` 上最近一次 `mygo` 运行必须已通过：发布任务只做 `go vet` 和冒烟测试，不跑测试。
-3. 任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），按 [`android.yml`](../../../.github/workflows/android.yml) 的方式构建 Android APK，外加 `snap/snapcraft.yaml` 的 classic snap。
-4. 全部构建完成后，任务才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64）、每个架构的 `.msix`、Windows 的 `.msixbundle`、供 [`vfxtool sign-msix`](packaging-windows.md#自己签名) 用的 Windows 可执行文件压缩包，以及 `vfxtool.exe`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
+2. 任务在改动任何东西之前先检查请求：版本须是 `major.minor.patch` 的形式，比最新的标签新，且还没有对应的标签。`main` 上最近一次 `mygo` 运行必须已通过：发布只做 `go vet` 和冒烟测试，不跑测试。
+3. 构建任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），Windows 的 `.msix` 包以其证书的发布者构建，Android APK 不带密钥构建，外加 `snap/snapcraft.yaml` 的 classic snap。它不推送任何东西。
+4. `sign-windows` 任务等待批准，然后用 Artifact Signing 给 Windows 包签名，并安装 bundle 来检查（见[发布的签名](packaging-windows.md#发布的签名)），再用发布密钥签名 APK（见[签名状态](packaging-android.md#签名状态)）。
+5. 发布任务给 Linux 的包做构建证明，并检查发布的文件。只有这之后，它才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64），以及每个架构已签名的 `.msix` 与已签名的 `.msixbundle`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
 
-APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。这些 secret 在 `release` 环境里，运行要等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准，仓库管理员发起的运行可以跳过审批。
+APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。发布的 secret 与 Windows 签名的身份都在 `release` 环境里。运行要在签名之前等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次；发布紧接着进行，不再等第二次。仓库管理员发起的运行可以跳过审批。
+
+勾选 `dry-run` 则构建、签名并安装全部东西，但不推送、不打标签、不发布。签名或 secret 有改动时，先这样运行一次。
 
 版本提交不会在 `main` 上启动 CI 运行：工作流自己的令牌推送的提交，GitHub 不会启动任何工作流。所以那个提交上不跑测试：它之前最近一次 `mygo` 运行才算数，这就是任务要检查它的原因。
 
-推送 `v*` 标签会跑同一个任务，但不设置版本：标签指向的提交必须已经写明该版本，否则任务拒绝。
+推送 `v*` 标签会跑同样的几个任务，但不设置版本：标签指向的提交必须已经写明该版本，否则任务拒绝。
 
 任务在推送之前失败，GitHub 上什么都没有改变：修好原因后重新运行。若在推送之后失败，版本提交可能已经在 `main` 上；下一次运行会发现文件已写明版本，不会再提交一次。删除失败运行留下的东西：标签（`git push origin --delete v<版本>`），若已发布了 release 再删除它（`gh release delete v<版本>`），然后重新运行。
 

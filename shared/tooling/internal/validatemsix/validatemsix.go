@@ -13,15 +13,19 @@
 // limitations under the License.
 
 // Package validatemsix implements `vfxtool validate-msix`, which checks the
-// unsigned .msix and .msixbundle files without the Windows SDK: ZIP layout,
-// manifests, block maps, bundle offsets, version consistency, the publisher of the
-// unsigned bundle and both of its architectures. With --self-sign it also checks
-// the files that `vfxtool sign-msix` needs next to the bundle, which a release has
-// and a sandbox does not.
+// .msix and .msixbundle files without the Windows SDK: ZIP layout, manifests,
+// block maps, bundle offsets, version consistency, the publisher and both of the
+// architectures of a bundle. Without a --publisher the packages are unsigned and
+// carry the unsigned publisher; with one, they carry that publisher, the subject
+// of the certificate that signs them. With --self-sign it also checks the files
+// that `vfxtool sign-msix` needs next to the bundle, which the CI artifact of
+// mygo.yml has and a release does not.
 package validatemsix
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -29,32 +33,37 @@ import (
 )
 
 // selfSignInputs are the files that sign-msix needs next to the unsigned bundle: the
-// executables of both architectures and vfxtool.exe (release.yml, Stage the Windows
-// self-sign inputs).
+// executables of both architectures and vfxtool.exe (the CI artifact of mygo.yml,
+// Stage the Windows self-sign inputs).
 var selfSignInputs = []string{
 	"stage-x64/vfox-plus.exe",
 	"stage-arm64/vfox-plus.exe",
 	"vfxtool.exe",
 }
 
+const usage = "Usage: validate-msix [--self-sign] [--publisher PUBLISHER] <directory>"
+
 // Run validates the packages in a directory. args are the command line
 // without the program name:
 //
-//	validate-msix [--self-sign] <directory>
+//	validate-msix [--self-sign] [--publisher PUBLISHER] <directory>
 func Run(args []string) error {
-	const usage = "Usage: validate-msix [--self-sign] <directory>"
-	selfSign := len(args) > 0 && args[0] == "--self-sign"
-	if selfSign {
-		args = args[1:]
+	flags := flag.NewFlagSet("validate-msix", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	selfSign := flags.Bool("self-sign", false, "also check the files that sign-msix needs next to the bundle")
+	publisher := flags.String("publisher", "", "the publisher that the packages carry: the subject of their certificate")
+	if err := flags.Parse(args); err != nil {
+		return fmt.Errorf("%s: %w", usage, err)
 	}
-	if len(args) != 1 || args[0] == "" || args[0][0] == '-' {
+	if flags.NArg() != 1 || flags.Arg(0) == "" {
 		return fmt.Errorf("%s", usage)
 	}
-	if err := buildmsix.ValidateDir(args[0]); err != nil {
+	dir := flags.Arg(0)
+	if err := buildmsix.ValidateDirFor(dir, *publisher); err != nil {
 		return err
 	}
-	if selfSign {
-		return checkSelfSignInputs(args[0])
+	if *selfSign {
+		return checkSelfSignInputs(dir)
 	}
 	return nil
 }

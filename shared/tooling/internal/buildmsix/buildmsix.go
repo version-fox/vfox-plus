@@ -21,13 +21,14 @@
 // with AppxMetadata/AppxBundleManifest.xml listing them with their byte
 // offsets and sizes.
 //
-// The packages are unsigned: Windows 11 installs them with
-// Add-AppxPackage -AllowUnsigned (which needs administrator rights for
-// packages with executable content). Unsigned packages must carry the special
-// OID in their Publisher (see the Microsoft documentation on unsigned
-// packages); signed packages remove it and use the certificate subject
-// instead. The tool never signs: to distribute widely, sign the .msix files
-// and the bundle with a trusted certificate.
+// The tool never signs. Unsigned packages carry the special OID in their
+// Publisher (see the Microsoft documentation on unsigned packages), and Windows 11
+// installs them with Add-AppxPackage -AllowUnsigned (which needs administrator
+// rights for packages with executable content). A signed package must carry the
+// subject of its certificate as its publisher: build with --publisher for that,
+// sign the .msix files with a trusted certificate, then RunRebundle puts them
+// into the bundle again, and the bundle is signed too. The release does so
+// (release.yml, Sign the Windows packages).
 //
 // Everything is pure Go with no Windows SDK: the .msix files are built by
 // cross-compiling (GOOS=windows GOARCH=amd64/arm64 CGO_ENABLED=0 go build)
