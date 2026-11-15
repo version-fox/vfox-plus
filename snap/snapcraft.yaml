@@ -57,4 +57,4 @@ parts:
     source-type: deb
     override-pull: |
       craftctl default
-      craftctl set-version "$(tr -d '[:space:]' < "$CRAFT_PROJECT_DIR/mygo/VERSION")"
+      craftctl set version="$(tr -d '[:space:]' < "$CRAFT_PROJECT_DIR/mygo/VERSION")"
