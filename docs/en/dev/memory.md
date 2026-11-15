@@ -130,11 +130,13 @@ runner: with a window it holds nothing.
 
 The icon is now drawn by the application itself, over the session bus, and loads no library for it, which the
 table below does not show: the table is of the version that loaded `libayatana-appindicator3`, measured on this
-host before it was replaced. The present icon, measured by `vfxtool measure-lightweight --tray` in the devcontainer of the repository
-(WSL2, Ubuntu 26.04) in six runs, costs between −0.4 MB and +1.4 MB of resident memory and between 36 and
-256 KB of private memory. The runs differ by more than the icon costs, which is the noise of the machine, so
-the figure is a range. The row without a host holds the item that waits for one, so these figures are the cost
-of the registration. CI measures the icon on its runner, with the same tool (below).
+host before it was replaced. The present icon, measured by `vfxtool measure-lightweight --tray` in the devcontainer
+of the repository (WSL2, Ubuntu 26.04) in six runs, costs between −440 KB and +720 KB of resident memory, which is
+within the noise of the machine (a mean of −73 KB), and between −48 KB and +208 KB of private memory (a mean of
+122 KB): the connection to the bus, the items and the registration of the icon. The runs differ by more than the
+icon costs, so the figures are ranges. Where no host shows the icon, it waits holding no connection (see
+[the architecture](architecture.md#the-tray)), so the rows without a host are the rows without an icon. CI measures
+the icon on its runner, with the same tool (below).
 
 With the library, where there is one, the icon cost little. Measured on the same host before the pages of files were paged
 out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifierWatcher` (package

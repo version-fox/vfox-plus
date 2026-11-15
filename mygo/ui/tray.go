@@ -27,8 +27,10 @@ import (
 // application with a window has no icon in the tray and holds nothing for one.
 //
 // Not every desktop has a tray. On Linux the icon is shown by the host of the icons on the
-// session bus, which a desktop may not have (tray_linux.go). Without one the application runs
-// as it did: starting it again brings the window back.
+// session bus, which a desktop may not have yet, or at all (tray_linux.go): without a session bus
+// there is no icon, and where the bus has no host yet the icon waits for one, holding no connection
+// while it does. Without an icon the application runs as it did: starting it again brings the
+// window back.
 
 // trayEntry is an item of the menu of the tray icon: a label, and what choosing it does.
 // An entry that does nothing is a separator.

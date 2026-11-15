@@ -539,10 +539,12 @@ the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tr
   back, for a desktop that calls it on a click instead of showing the menu.
 - **The icon waits for a host.** The icon is shown by the host of the icons on the session bus, the
   StatusNotifierWatcher. Without a session bus there is no icon. With a session bus, but nothing that owns
-  `org.kde.StatusNotifierWatcher`, the icon is made all the same and waits: the watcher takes it when it starts,
-  and takes it again each time that it starts over, as a shell does when it restarts with none of the icons it
-  had (`watchWatcher`). The check is `NameHasOwner`, which starts no service. While it waits, the item holds
-  its connection to the bus, which is what it costs.
+  `org.kde.StatusNotifierWatcher`, the icon is made all the same and waits, holding no connection to the bus:
+  it keeps its text and its menu. It asks the bus whether the watcher has an owner (`waitForHost`) five seconds
+  after it starts to wait, and then at longer intervals, doubling up to once a minute, each time over a connection
+  that it gives up at once. The check is `NameHasOwner`, which starts no service.
+  When the watcher has an owner, the icon connects and is shown, and from then on it is taken again each time
+  that the watcher starts over, as a shell does when it restarts with none of the icons it had (`watchOwners`).
 - **A missing tray is not an error.** No session bus, or a registration that fails: one line in the log ("no icon
   in the tray: ..."), and the application goes on without it. Starting it again, or the web interface, are
   still the ways back.

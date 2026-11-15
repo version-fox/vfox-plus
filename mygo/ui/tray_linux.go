@@ -57,8 +57,13 @@ const (
 	sniMenuPath         = dbus.ObjectPath("/MenuBar")
 	// sniNamePrefix begins the name of an icon on the bus: org.freedesktop.StatusNotifierItem-PID-N.
 	sniNamePrefix = "org.freedesktop.StatusNotifierItem-"
-	// sniRegisterWait is how long the watcher may take to take an icon.
-	sniRegisterWait = 5 * time.Second
+	// sniCallWait is how long a call to the bus, or to the watcher, may take.
+	sniCallWait = 5 * time.Second
+	// sniWatchInterval is how long an icon that waits for a host waits before it asks the bus whether the
+	// host is there. Each question that finds no host doubles the wait, up to sniWatchMax.
+	sniWatchInterval = 5 * time.Second
+	// sniWatchMax is the longest wait between two questions of an icon that waits for a host.
+	sniWatchMax = time.Minute
 )
 
 // sniInstances numbers the icons that the process makes, so that each one has a name of its own.
@@ -67,9 +72,12 @@ var sniInstances atomic.Uint64
 // errNoTrayHost says that nothing on the desktop shows tray icons.
 var errNoTrayHost = errors.New("nothing on the desktop shows tray icons")
 
+// errIconDestroyed says that the icon was destroyed while it was being put on the bus.
+var errIconDestroyed = errors.New("the icon is destroyed")
+
 // newNativeTray puts an icon in the tray of the desktop. It fails where there is no session bus, which
 // is where no host of the icons can be. Where the bus is there, but nothing owns the name of the watcher
-// yet, the icon waits: the watcher takes it when it starts (see watchWatcher).
+// yet, the icon waits for a host (see waitForHost), and it holds no connection while it does.
 func newNativeTray(options trayOptions) (trayIcon, error) {
 	picture, err := sniPixmapOf(options.icon)
 	if err != nil {
@@ -79,38 +87,20 @@ func newNativeTray(options trayOptions) (trayIcon, error) {
 	if err != nil {
 		return nil, errNoTrayHost
 	}
-	name := sniBusName(os.Getpid(), sniInstances.Add(1))
-	reply, err := conn.RequestName(name, dbus.NameFlagDoNotQueue)
-	if err == nil && reply != dbus.RequestNameReplyPrimaryOwner {
-		err = errors.New("the name is taken")
-	}
+	owned, err := watcherOwned(conn)
 	if err != nil {
 		_ = conn.Close()
-		return nil, fmt.Errorf("take the name %s on the session bus: %w", name, err)
-	}
-	tray := &sniTray{conn: conn, name: name, entries: options.entries, done: make(chan struct{})}
-	if err := tray.export(options, picture); err != nil {
-		tray.Destroy()
-		return nil, fmt.Errorf("put the icon on the bus: %w", err)
-	}
-	// The watcher is followed before it is asked, so that a watcher which starts in between is not missed.
-	if err := tray.watchWatcher(); err != nil {
-		tray.Destroy()
-		return nil, fmt.Errorf("follow the watcher: %w", err)
-	}
-	var owned bool
-	if err := conn.BusObject().Call("org.freedesktop.DBus.NameHasOwner", 0, sniWatcherName).Store(&owned); err != nil {
-		tray.Destroy()
 		return nil, fmt.Errorf("ask the bus for the watcher: %w", err)
 	}
-	if owned {
-		if err := tray.register(); err != nil {
-			tray.Destroy()
-			return nil, err
-		}
-	} else {
-		// The icon is kept, and the watcher takes it when a desktop starts one (see watchWatcher).
+	tray := newSNITray(options, picture)
+	if !owned {
+		_ = conn.Close()
 		log.Print("the icon waits for a host of the tray icons: nothing on the desktop shows them yet")
+		go tray.waitForHost()
+		return tray, nil
+	}
+	if err := tray.show(conn); err != nil {
+		return nil, err
 	}
 	return tray, nil
 }
@@ -141,50 +131,73 @@ func sniBusName(pid int, n uint64) string {
 }
 
 // sniTray is an icon in the tray: an item on the session bus under a name of its own, with its menu.
-// The desktop shows the item while the name is on the bus, and Destroy gives the name up.
+// The desktop shows the item while the name is on the bus, and Destroy gives the name up. While the
+// icon waits for a host it has no connection, and what it is to show (its text and its menu) is kept
+// until it connects.
 type sniTray struct {
+	// picture and activate are what the icon is, as it was made.
+	picture  sniPixmap
+	activate func()
+	// done is closed when the icon is destroyed, which ends the wait for a host and the following of
+	// the watcher.
+	done chan struct{}
+
+	mu sync.Mutex
+	// conn, name and itemProps are the connection of the icon, and nil while it has none.
 	conn      *dbus.Conn
 	name      string
 	itemProps *prop.Properties
-	// done is closed when the icon is destroyed, which ends the following of the watcher.
-	done chan struct{}
-
-	mu       sync.Mutex
-	entries  []trayEntry
-	revision uint32
-	closed   bool
-	once     sync.Once
+	toolTip   string
+	entries   []trayEntry
+	revision  uint32
+	closed    bool
+	once      sync.Once
 }
 
-// export puts the item and its menu on the bus, with what the desktop reads of them.
-func (t *sniTray) export(options trayOptions, picture sniPixmap) error {
-	props, err := prop.Export(t.conn, sniItemPath, sniItemPropertyMap(options.toolTip, picture))
+// newSNITray is an icon that is not on the bus yet.
+func newSNITray(options trayOptions, picture sniPixmap) *sniTray {
+	return &sniTray{
+		picture:  picture,
+		activate: options.activate,
+		done:     make(chan struct{}),
+		toolTip:  options.toolTip,
+		entries:  options.entries,
+	}
+}
+
+// export puts the item and its menu on conn, with the text that the icon has, and returns the properties
+// of the item. The caller holds the lock of the icon, so that the text is the one that the icon has when
+// the item is put on the bus.
+func (t *sniTray) export(conn *dbus.Conn, toolTip string) (*prop.Properties, error) {
+	props, err := prop.Export(conn, sniItemPath, sniItemPropertyMap(toolTip, t.picture))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	t.itemProps = props
-	item := &sniItem{activate: options.activate}
-	if err := t.conn.Export(item, sniItemPath, sniItemInterface); err != nil {
-		return err
+	item := &sniItem{activate: t.activate}
+	if err := conn.Export(item, sniItemPath, sniItemInterface); err != nil {
+		return nil, err
 	}
-	if err := describe(t.conn, sniItemPath, sniItemInterface, item, props, []introspect.Signal{
+	if err := describe(conn, sniItemPath, sniItemInterface, item, props, []introspect.Signal{
 		{Name: "NewTitle"},
 		{Name: "NewToolTip"},
 		{Name: "NewStatus", Args: []introspect.Arg{{Type: "s"}}},
 	}); err != nil {
-		return err
+		return nil, err
 	}
-	menuProps, err := prop.Export(t.conn, sniMenuPath, sniMenuPropertyMap())
+	menuProps, err := prop.Export(conn, sniMenuPath, sniMenuPropertyMap())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	menu := &sniMenu{tray: t}
-	if err := t.conn.Export(menu, sniMenuPath, sniMenuInterface); err != nil {
-		return err
+	if err := conn.Export(menu, sniMenuPath, sniMenuInterface); err != nil {
+		return nil, err
 	}
-	return describe(t.conn, sniMenuPath, sniMenuInterface, menu, menuProps, []introspect.Signal{
+	if err := describe(conn, sniMenuPath, sniMenuInterface, menu, menuProps, []introspect.Signal{
 		{Name: "LayoutUpdated", Args: []introspect.Arg{{Type: "u"}, {Type: "i"}}},
-	})
+	}); err != nil {
+		return nil, err
+	}
+	return props, nil
 }
 
 // describe says what the object at path is, for the tools that ask for it (busctl introspect): its
@@ -241,22 +254,30 @@ func sniMenuPropertyMap() prop.Map {
 	}}
 }
 
-// Update sets the title, the tool tip and the menu again, as when the language changed.
+// Update sets the title, the tool tip and the menu again, as when the language changed. An icon that
+// waits for a host keeps them, and puts them on the bus when it is shown. The state is changed under the
+// lock that publish takes, so an update is either in the text that publish puts on the bus, or put on the
+// bus by this call once the icon is on it.
 func (t *sniTray) Update(toolTip string, entries []trayEntry) {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()
 		return
 	}
+	t.toolTip = toolTip
 	t.entries = entries
 	t.revision++
 	revision := t.revision
+	conn, props := t.conn, t.itemProps
 	t.mu.Unlock()
-	t.itemProps.SetMust(sniItemInterface, "Title", toolTip)
-	t.itemProps.SetMust(sniItemInterface, "ToolTip", sniToolTip{Title: toolTip})
-	_ = t.conn.Emit(sniItemPath, sniItemInterface+".NewTitle")
-	_ = t.conn.Emit(sniItemPath, sniItemInterface+".NewToolTip")
-	_ = t.conn.Emit(sniMenuPath, sniMenuInterface+".LayoutUpdated", revision, int32(0))
+	if conn == nil {
+		return
+	}
+	props.SetMust(sniItemInterface, "Title", toolTip)
+	props.SetMust(sniItemInterface, "ToolTip", sniToolTip{Title: toolTip})
+	_ = conn.Emit(sniItemPath, sniItemInterface+".NewTitle")
+	_ = conn.Emit(sniItemPath, sniItemInterface+".NewToolTip")
+	_ = conn.Emit(sniMenuPath, sniMenuInterface+".LayoutUpdated", revision, int32(0))
 }
 
 // Destroy takes the icon away. The item becomes passive, and then gives its name up, which is how the
@@ -266,51 +287,166 @@ func (t *sniTray) Destroy() {
 	t.once.Do(func() {
 		t.mu.Lock()
 		t.closed = true
+		conn, props, name := t.conn, t.itemProps, t.name
+		t.conn, t.itemProps = nil, nil
 		t.mu.Unlock()
 		close(t.done)
-		if t.itemProps != nil {
-			t.itemProps.SetMust(sniItemInterface, "Status", "Passive")
+		if conn == nil {
+			// The icon waits for a host, and has nothing on the bus to take away.
+			return
 		}
-		_ = t.conn.Emit(sniItemPath, sniItemInterface+".NewStatus", "Passive")
-		_, _ = t.conn.ReleaseName(t.name)
-		_ = t.conn.Close()
+		if props != nil {
+			props.SetMust(sniItemInterface, "Status", "Passive")
+		}
+		_ = conn.Emit(sniItemPath, sniItemInterface+".NewStatus", "Passive")
+		_, _ = conn.ReleaseName(name)
+		_ = conn.Close()
 	})
 }
 
-// register asks the watcher to take the icon, under the name of the icon on the bus.
-func (t *sniTray) register() error {
-	ctx, cancel := context.WithTimeout(context.Background(), sniRegisterWait)
+// show puts the icon on the bus over conn, and has the watcher take it. The bus is followed before the
+// watcher is asked, so that a watcher which starts in between is not missed; the item is exported before
+// the watcher is asked, as the watcher reads it when it takes it. Once the icon is shown, the watcher takes
+// it again each time that it starts over (see watchOwners): a shell that restarts has none of the icons
+// that it had. On failure conn is closed, and the icon is not on the bus.
+func (t *sniTray) show(conn *dbus.Conn) error {
+	signals, err := followWatcher(conn)
+	if err != nil {
+		_ = conn.Close()
+		return fmt.Errorf("follow the watcher: %w", err)
+	}
+	name := sniBusName(os.Getpid(), sniInstances.Add(1))
+	reply, err := conn.RequestName(name, dbus.NameFlagDoNotQueue)
+	if err == nil && reply != dbus.RequestNameReplyPrimaryOwner {
+		err = errors.New("the name is taken")
+	}
+	if err != nil {
+		_ = conn.Close()
+		return fmt.Errorf("take the name %s on the session bus: %w", name, err)
+	}
+	if err := t.publish(conn, name); err != nil {
+		_ = conn.Close()
+		return err
+	}
+	if err := registerIcon(conn, name); err != nil {
+		t.unpublish(conn)
+		return err
+	}
+	go watchOwners(signals, t.done, func() {
+		if t.isClosed() {
+			return
+		}
+		if err := registerIcon(conn, name); err != nil {
+			log.Print(err)
+		}
+	})
+	return nil
+}
+
+// publish makes conn the connection of the icon: the item and its menu are exported on it with the text
+// that the icon has, and the icon is on the bus from then on. It fails when the icon is destroyed.
+func (t *sniTray) publish(conn *dbus.Conn, name string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.closed {
+		return errIconDestroyed
+	}
+	props, err := t.export(conn, t.toolTip)
+	if err != nil {
+		return fmt.Errorf("put the icon on the bus: %w", err)
+	}
+	t.conn, t.name, t.itemProps = conn, name, props
+	return nil
+}
+
+// unpublish gives conn up as the connection of the icon, when the icon could not be registered over it.
+func (t *sniTray) unpublish(conn *dbus.Conn) {
+	t.mu.Lock()
+	if t.conn == conn {
+		t.conn, t.itemProps = nil, nil
+	}
+	t.mu.Unlock()
+	_ = conn.Close()
+}
+
+// followWatcher subscribes conn to the changes of the owner of the watcher, and returns the signals that
+// carry them.
+func followWatcher(conn *dbus.Conn) (chan *dbus.Signal, error) {
+	if err := conn.AddMatchSignal(
+		dbus.WithMatchSender("org.freedesktop.DBus"),
+		dbus.WithMatchInterface("org.freedesktop.DBus"),
+		dbus.WithMatchMember("NameOwnerChanged"),
+		dbus.WithMatchArg(0, sniWatcherName),
+	); err != nil {
+		return nil, err
+	}
+	signals := make(chan *dbus.Signal, 8)
+	conn.Signal(signals)
+	return signals, nil
+}
+
+// registerIcon asks the watcher to take the icon of the name, which conn has on the bus.
+func registerIcon(conn *dbus.Conn, name string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), sniCallWait)
 	defer cancel()
-	call := t.conn.Object(sniWatcherName, sniWatcherPath).CallWithContext(ctx, sniWatcherInterface+".RegisterStatusNotifierItem", 0, t.name)
+	call := conn.Object(sniWatcherName, sniWatcherPath).CallWithContext(ctx, sniWatcherInterface+".RegisterStatusNotifierItem", 0, name)
 	if call.Err != nil {
 		return fmt.Errorf("register the icon with the watcher: %w", call.Err)
 	}
 	return nil
 }
 
-// watchWatcher follows the owner of the watcher on the bus, so that the watcher takes the icon when it
-// starts after the icon was made, and again when it starts over: a shell that restarts has none of the
-// icons that it had, and a desktop that has no watcher yet takes the icon when it gets one.
-func (t *sniTray) watchWatcher() error {
-	if err := t.conn.AddMatchSignal(
-		dbus.WithMatchSender("org.freedesktop.DBus"),
-		dbus.WithMatchInterface("org.freedesktop.DBus"),
-		dbus.WithMatchMember("NameOwnerChanged"),
-		dbus.WithMatchArg(0, sniWatcherName),
-	); err != nil {
-		return err
-	}
-	signals := make(chan *dbus.Signal, 8)
-	t.conn.Signal(signals)
-	go watchOwners(signals, t.done, func() {
-		if t.isClosed() {
+// watcherOwned says whether the watcher has an owner on the bus. It asks the bus, and starts nothing.
+func watcherOwned(conn *dbus.Conn) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), sniCallWait)
+	defer cancel()
+	var owned bool
+	err := conn.BusObject().CallWithContext(ctx, "org.freedesktop.DBus.NameHasOwner", 0, sniWatcherName).Store(&owned)
+	return owned, err
+}
+
+// waitForHost asks the bus whether the watcher has an owner, and shows the icon once it has one. The icon
+// holds no connection while it waits: each question is asked over a connection of its own, which is given
+// up at once, so that an application whose desktop has no host yet costs what an application with no icon
+// costs. The questions come less often while they find no host, down to one in sniWatchMax, so that a
+// desktop without a tray is not asked all the time. It returns when the icon is shown or destroyed.
+func (t *sniTray) waitForHost() {
+	wait := sniWatchInterval
+	for {
+		timer := time.NewTimer(wait)
+		select {
+		case <-t.done:
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+		if t.tryShow() {
 			return
 		}
-		if err := t.register(); err != nil {
-			log.Print(err)
+		wait = min(2*wait, sniWatchMax)
+	}
+}
+
+// tryShow asks the bus once, and shows the icon over a connection of its own when the watcher has an
+// owner. It says whether the wait is over: the icon is shown, or it is destroyed.
+func (t *sniTray) tryShow() bool {
+	conn, err := connectSessionBus()
+	if err != nil {
+		return false
+	}
+	owned, err := watcherOwned(conn)
+	if err != nil || !owned {
+		_ = conn.Close()
+		return false
+	}
+	if err := t.show(conn); err != nil {
+		if t.isClosed() {
+			return true
 		}
-	})
-	return nil
+		log.Print(err)
+		return false
+	}
+	return true
 }
 
 // watchOwners calls register for each signal of the bus that says that the watcher has an owner. It

@@ -86,3 +86,39 @@ func TestTheIconRegistersEachTimeTheWatcherGetsAnOwnerUntilItIsDone(t *testing.T
 		t.Error("the icon registers after it is destroyed")
 	}
 }
+
+// TestAnIconThatWaitsHasNoConnectionAndKeepsTheTextToShow checks that an icon which waits for a host holds
+// no connection to the bus, and keeps the text and the menu that it is given while it waits, for when it
+// is shown.
+func TestAnIconThatWaitsHasNoConnectionAndKeepsTheTextToShow(t *testing.T) {
+	tray := newSNITray(trayOptions{toolTip: "vfox+"}, sniPixmap{})
+	defer tray.Destroy()
+	tray.Update("vfox+ updated", []trayEntry{{label: "Open vfox+", click: func() {}}, {}, {label: "Quit vfox+", click: func() {}}})
+	if tray.conn != nil || tray.itemProps != nil {
+		t.Error("an icon that waits holds a connection to the bus")
+	}
+	if tray.toolTip != "vfox+ updated" || len(tray.entries) != 3 {
+		t.Errorf("the text %q and %d entries, want the text and the menu of the update", tray.toolTip, len(tray.entries))
+	}
+}
+
+// TestAnIconDestroyedWhileItWaitsEndsTheWait checks that destroying an icon which waits for a host ends
+// the wait at once, and that a text given afterwards is not kept.
+func TestAnIconDestroyedWhileItWaitsEndsTheWait(t *testing.T) {
+	tray := newSNITray(trayOptions{toolTip: "vfox+"}, sniPixmap{})
+	finished := make(chan struct{})
+	go func() {
+		tray.waitForHost()
+		close(finished)
+	}()
+	tray.Destroy()
+	select {
+	case <-finished:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the wait goes on after the icon is destroyed")
+	}
+	tray.Update("late", []trayEntry{{label: "Late"}})
+	if tray.toolTip != "vfox+" || len(tray.entries) != 0 {
+		t.Errorf("a destroyed icon took the text %q and %d entries", tray.toolTip, len(tray.entries))
+	}
+}

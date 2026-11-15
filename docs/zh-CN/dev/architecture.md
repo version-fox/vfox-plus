@@ -443,8 +443,11 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 - **回到窗口靠菜单。**Linux 上条目本身就是菜单（`ItemIsMenu`），点击图标即显示菜单，不需要激活。条目也实现了 `Activate`，
   供那些不显示菜单、而是对点击调用 `Activate` 的桌面使用，它同样打开窗口。
 - **等待宿主。**图标由会话总线上的宿主显示，即 StatusNotifierWatcher。没有会话总线就没有图标。会话总线在、但上面没有
-  谁拥有 `org.kde.StatusNotifierWatcher` 时，图标照常创建并等着：watcher 启动时接管它，每次重新启动时也再接管一次
-  （外壳重启时，它没有原来的图标）（`watchWatcher`）。检查用的是 `NameHasOwner`，它不会启动服务。等待期间，条目占着它与总线的连接，这就是它的开销。
+  谁拥有 `org.kde.StatusNotifierWatcher` 时，图标照常创建并等着，等待期间不占用与总线的连接：它保存文字与菜单，
+  先等五秒，之后每次仍没有就加倍等待、最长一分钟（`waitForHost`），每次都用一条随即放掉的连接询问总线 watcher 有没有 owner，
+  检查用的是 `NameHasOwner`，它不会启动服务。
+  watcher 有了 owner 以后，图标才连上总线并显示，之后 watcher 每次重新启动都再接管一次（外壳重启时，它没有原来的图标）
+  （`watchOwners`）。
 - **没有托盘不算错误。**没有会话总线，或者向 watcher 注册失败：日志里一行（"no icon in the tray: ..."），应用不带图标继续运行。
   再次启动它或用网页界面，仍是回到窗口的路。
 - **移除。**图标由一个 goroutine 在请求窗口的那次选择返回之后移除，因为桌面的库不指望菜单项的所有者在该项的处理函数里消失
