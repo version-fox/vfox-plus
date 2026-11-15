@@ -244,10 +244,13 @@ jobs:
           sudo /snap/bin/snapcraft pack --destructive-mode
       - name: Install the snap and start it
         # The application starts from the snap, with the libraries of its base, on a virtual display,
-        # and stays up, as the smoke test of the release does for its binary.
+        # and stays up, as the smoke test of the release does for its binary. snap run tracks an
+        # application of core26 through a systemd session of the user, which the user of a CI runner
+        # does not have (snapd refuses it), so the snap is started as root, which tracks it through
+        # the system bus.
         run: |
           sudo snap install --dangerous --classic vfox-plus_*_amd64.snap
-          "$RUNNER_TEMP/vfxtool" smoke-test --log snap.log /snap/bin/vfox-plus
+          sudo "$RUNNER_TEMP/vfxtool" smoke-test --log snap.log /snap/bin/vfox-plus
       - name: Build the Linux arm64 .deb and tarball
         # Like release.yml: the arm64 program is cross-compiled, and build-deb is
         # told the architecture, which refuses a program of another one. The
