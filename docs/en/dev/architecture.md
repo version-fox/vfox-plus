@@ -518,6 +518,15 @@ otherwise lack. The code is `mygo/ui/tray.go`.
 - **When.** `App.releaseWindow` makes the icon (`showTray`) as it lets go of the window, and
   `App.openWindow` removes it (`hideTray`), so the application has no icon while it has a
   window, and the state in which the memory matters most holds nothing for it.
+- **The identity.** `trayID` names the icon. On Windows and on macOS the name is `ApplicationID`, which
+  keeps the place that the user gave the icon (mygo 0.9.1 honours the ID there). On Linux every
+  appearance is a new icon, with an empty ID that mygo names from the process and a counter. The
+  specification of StatusNotifierItem asks for an `Id` that is consistent between sessions, but the
+  GNOME Shell of Ubuntu 26.04 does not show an icon that registers again under the same `Id`: it keeps
+  the indicator it has, with the state it had (hidden), and the icon stays out of the panel. That is
+  what `vfxtool e2e-run tray-gnome` checks. The price is one hidden entry in the shell for each
+  appearance, which the shell keeps until the application quits. Keeping one icon and changing its
+  status instead would avoid both, and needs the library to offer it.
 - **A seam, like the window.** `desktop.newTray` takes `trayOptions` (the PNG, the tool tip, the
   entries as label and click, and what activation does) and returns a `trayIcon` (`Update`,
   `Destroy`). `newNativeTray` is the one that calls `mygo.NewTray`; the tests replace it with a

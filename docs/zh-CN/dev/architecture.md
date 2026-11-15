@@ -430,6 +430,12 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 
 - **何时。**`App.releaseWindow` 在放掉窗口时创建图标（`showTray`），`App.openWindow` 把它移除
   （`hideTray`），所以应用有窗口时没有图标，内存最要紧的那个状态不为它占用任何东西。
+- **身份。**`trayID` 给图标命名。Windows 与 macOS 上用 `ApplicationID` 命名，它让用户给图标定下的位置保留下来
+  （mygo 0.9.1 在这两个平台上遵守 ID）。Linux 上每次出现都是一个新图标，ID 留空，由 mygo 按进程与计数器命名。
+  StatusNotifierItem 规范要求 `Id` 在不同会话之间保持一致，但 Ubuntu 26.04 的 GNOME Shell 不会显示用同一个
+  `Id` 重新注册的图标：它保留着已有的指示器及其原有的状态（隐藏），图标于是一直不在面板里。这正是
+  `vfxtool e2e-run tray-gnome` 检查的内容。代价是每次出现都在 Shell 里留下一个隐藏的条目，直到应用退出才释放。
+  改为只保留一个图标、通过改变它的状态来显示或隐藏，两个问题都能避开，但需要库提供这种能力。
 - **与窗口一样是一道接缝。**`desktop.newTray` 接收 `trayOptions`（PNG、提示文字、由标签与点击组成的
   条目、以及激活时做什么），返回 `trayIcon`（`Update`、`Destroy`）。`newNativeTray` 才调用
   `mygo.NewTray`；测试用一个记录器（`fakeTray`）替换它，并由它点击条目。

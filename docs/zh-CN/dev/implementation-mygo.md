@@ -113,7 +113,7 @@ Go 模块与构建缓存。
   尺寸 2% 内一致。各 `testdata` 说明重生成方法：配色需 Node.js 跑 JS 参考实现，形状
   `go run generate.go` 即可，无需 Node.js。
 - **端到端场景**从外部驱动构建好的应用，像辅助技术那样。`vfxtool build --e2e` 以标签 `e2e`
-  构建，链接 mygo 的[自动化插件](https://github.com/egoist/mygo/blob/v0.9.0/docs/plugins/automation.md)
+  构建，链接 mygo 的[自动化插件](https://github.com/egoist/mygo/blob/v0.9.1/docs/plugins/automation.md)
   （[`automation_e2e.go`](../../../mygo/automation_e2e.go)）：`MYGO_AUTOMATION` 指定 Unix 套接字时，
   应用在其上监听，应答这些请求：列出窗口元素（给屏幕阅读器的那些，带组件设的 key）、按下元素、
   填写输入框、发送按键、截取窗口。场景在 [`shared/tooling`](../../../shared/tooling)
@@ -256,7 +256,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **标题栏是桌面的。**GTK 画标题栏（GNOME Wayland 客户端侧、X11 窗口管理器），随桌面风格；
   mygo 可把标题栏交给应用，本实现暂未用。
 - **缩放**走 GTK 3：整数倍，来自 `GDK_SCALE` 或桌面，加桌面文本缩放。
-- **mygo 年轻**（写作时 v0.9.0，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
+- **mygo 年轻**（写作时 v0.9.1，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
 - **无障碍**走 mygo ATK 对象，GTK 桥到 AT-SPI，Orca 读窗口。端到端场景经自动化插件读的是同一批
   元素，所以组件给它们命名（图标按钮 tooltip 即其名；任务行说出它的状态）。mygo 读屏支持未在此用
   Orca 试过。

@@ -17,6 +17,7 @@ package ui
 import (
 	"errors"
 	"log"
+	"runtime"
 
 	"github.com/egoist/mygo"
 
@@ -75,8 +76,7 @@ func newNativeTray(options trayOptions) (trayIcon, error) {
 		return nil, errNoTrayHost
 	}
 	icon, err := mygo.NewTray(mygo.TrayOptions{
-		// The name keeps the place that the user gave the icon on Windows, and on macOS.
-		ID:      ApplicationID,
+		ID:      trayID(runtime.GOOS),
 		Icon:    options.icon,
 		ToolTip: options.toolTip,
 		Menu:    trayMenu(options.entries),
@@ -86,6 +86,19 @@ func newNativeTray(options trayOptions) (trayIcon, error) {
 	}
 	icon.OnClick(options.activate)
 	return &nativeTray{icon: icon}, nil
+}
+
+// trayID is the ID that names the icon. On Windows and on macOS the ID keeps the place that the user
+// gave the icon, so the icon is named after the application. On Linux every appearance of the icon is
+// a new one: an empty ID, which gives the name that mygo 0.9.0 gave every icon, because the GNOME Shell
+// of Ubuntu 26.04 keeps what it has for an ID when an application registers an icon under it again,
+// and it does not learn that the icon shows, so the icon would stay out of the panel after its first
+// appearance (vfxtool e2e-run tray-gnome checks it).
+func trayID(goos string) string {
+	if goos == "linux" {
+		return ""
+	}
+	return ApplicationID
 }
 
 func (t *nativeTray) Update(toolTip string, entries []trayEntry) {

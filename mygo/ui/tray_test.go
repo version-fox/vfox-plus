@@ -66,6 +66,20 @@ func gone(t *testing.T, tray *fakeTray) {
 	}
 }
 
+// TestTrayIDKeepsThePlaceOnWindowsAndMacOSAndIsAFreshIconOnLinux checks the ID of the icon: Windows
+// and macOS keep the place of the icon under the ID of the application, and Linux names each
+// appearance afresh (see trayID).
+func TestTrayIDKeepsThePlaceOnWindowsAndMacOSAndIsAFreshIconOnLinux(t *testing.T) {
+	for _, goos := range []string{"windows", "darwin"} {
+		if got := trayID(goos); got != ApplicationID {
+			t.Errorf("trayID(%q) = %q, want the ID of the application %q", goos, got, ApplicationID)
+		}
+	}
+	if got := trayID("linux"); got != "" {
+		t.Errorf("trayID(linux) = %q, want an empty ID, so that each appearance is a new icon", got)
+	}
+}
+
 func TestClosingTheWindowInTheLightweightModeLeavesAnIconInTheTray(t *testing.T) {
 	ta := lightweightApp(t)
 	a := ta.app
