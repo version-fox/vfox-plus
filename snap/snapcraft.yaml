@@ -52,7 +52,8 @@ parts:
     # tested artifact instead of building the application a second time. The
     # desktop entry, the metainfo and the icon travel inside the .deb.
     plugin: dump
-    source: vfox-plus.deb
+    # The path is relative to the directory that snapcraft runs in, which is the project root.
+    source: snap/vfox-plus.deb
     source-type: deb
     override-pull: |
       craftctl default
