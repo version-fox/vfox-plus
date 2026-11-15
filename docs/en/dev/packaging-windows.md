@@ -140,8 +140,9 @@ The setup is done once, by a maintainer with the Azure subscription:
      publisher of the signed bundle"): when the install then refuses the bundle,
      the log shows what to put here.
 
-A release waits for two approvals of the `release` environment: before the
-signing, and before the publishing. Start a **dry run** first, with the `dry-run`
+A release waits for one approval of the `release` environment, before the signing
+of the Windows packages and of the APK: the publishing follows it without a second
+one. Start a **dry run** first, with the `dry-run`
 input of Actions, Release, Run workflow: it builds, signs and installs the
 bundle, and publishes nothing. Only a run without it pushes, tags and publishes.
 

@@ -105,12 +105,15 @@ A release is one manual run of the Release workflow:
    [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml), and
    commits that in the name of the person who started the run. It builds the
    packages that [`mygo.yml`](#continuous-integration) builds, for amd64 and for
-   arm64, the Windows `.msix` packages with the publisher of their certificate, and
-   the classic snap from `snap/snapcraft.yaml`. It pushes nothing.
-4. The `sign-windows` job signs the Windows packages with Artifact Signing, and
-   installs the bundle to check it ([Signing the release](packaging-windows.md#signing-the-release)).
-5. The publish job builds the Android APK with the release key, attests the Linux
-   packages, and checks the files of the release. Only then does it push the commit
+   arm64, the Windows `.msix` packages with the publisher of their certificate, the
+   Android APK unsigned, and the classic snap from `snap/snapcraft.yaml`. It pushes
+   nothing.
+4. The `sign-windows` job, which waits for the approval, signs the Windows packages
+   with Artifact Signing and installs the bundle to check it ([Signing the
+   release](packaging-windows.md#signing-the-release)). It signs the APK with the
+   release key too ([Signing status](packaging-android.md#signing-status)).
+5. The publish job attests the Linux packages and checks the files of the release.
+   Only then does it push the commit
    to `main`, tag `v<version>`, and publish the GitHub release with
    `--generate-notes`. The release holds the `.deb` and the `.tar.gz` of Linux for
    amd64 and for arm64, the APK, the snap (amd64), and the signed `.msix` of each
@@ -118,7 +121,7 @@ A release is one manual run of the Release workflow:
    `.deb` or the `.tar.gz` of the platform, and the `.msix` or the `.msixbundle`;
    the rest is for manual use.
 
-The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, twice: before the signing and before the publishing. An administrator may start it without the approval.
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before the signing: the publishing follows without a second approval. An administrator may start it without the approval.
 
 Set `dry-run` to build, sign and install everything without pushing, tagging or
 publishing. Start a release that way first when its signing or its secrets change.

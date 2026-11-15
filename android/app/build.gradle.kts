@@ -41,8 +41,8 @@ android {
         create("release") {
             // The key of the releases. Android updates an installed app only with
             // an APK signed by the same key, so every release uses the same one. The
-            // release job gives the keystore and its passwords in the environment,
-            // from its secrets (docs/en/dev/packaging-android.md#signing-status).
+            // sign job of a release gives the keystore and its passwords in the
+            // environment, from its secrets (docs/en/dev/packaging-android.md#signing-status).
             // Without them this config has no key, and the build below falls back.
             System.getenv("ANDROID_RELEASE_KEYSTORE")?.let { storeFile = file(it) }
             storePassword = System.getenv("ANDROID_RELEASE_STORE_PASSWORD")
@@ -56,9 +56,15 @@ android {
             // The release key when the environment gives one. Otherwise the debug
             // key, which Gradle creates on the first build of a machine: that is for
             // a local build only, since an APK signed with it cannot update another.
-            signingConfig = signingConfigs.getByName(
-                if (System.getenv("ANDROID_RELEASE_KEYSTORE") != null) "release" else "debug"
-            )
+            // The build job of a release leaves the APK unsigned (ANDROID_RELEASE_UNSIGNED),
+            // and the sign job signs it with the release key itself, with apksigner.
+            signingConfig = if (System.getenv("ANDROID_RELEASE_UNSIGNED") != null) {
+                null
+            } else {
+                signingConfigs.getByName(
+                    if (System.getenv("ANDROID_RELEASE_KEYSTORE") != null) "release" else "debug"
+                )
+            }
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -79,11 +79,11 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 
 1. Actions、Release、Run workflow。分支保持为 `main`，任务会拒绝其他分支。输入不带 `v` 的版本号，例如 `1.0.0`。
 2. 任务在改动任何东西之前先检查请求：版本须是 `major.minor.patch` 的形式，比最新的标签新，且还没有对应的标签。`main` 上最近一次 `mygo` 运行必须已通过：发布只做 `go vet` 和冒烟测试，不跑测试。
-3. 构建任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），Windows 的 `.msix` 包以其证书的发布者构建，外加 `snap/snapcraft.yaml` 的 classic snap。它不推送任何东西。
-4. `sign-windows` 任务用 Artifact Signing 给 Windows 包签名，并安装 bundle 来检查（见[发布的签名](packaging-windows.md#发布的签名)）。
-5. 发布任务用发布密钥构建 Android APK，给 Linux 的包做构建证明，并检查发布的文件。只有这之后，它才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64），以及每个架构已签名的 `.msix` 与已签名的 `.msixbundle`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
+3. 构建任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），Windows 的 `.msix` 包以其证书的发布者构建，Android APK 不带密钥构建，外加 `snap/snapcraft.yaml` 的 classic snap。它不推送任何东西。
+4. `sign-windows` 任务等待批准，然后用 Artifact Signing 给 Windows 包签名，并安装 bundle 来检查（见[发布的签名](packaging-windows.md#发布的签名)），再用发布密钥签名 APK（见[签名状态](packaging-android.md#签名状态)）。
+5. 发布任务给 Linux 的包做构建证明，并检查发布的文件。只有这之后，它才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64），以及每个架构已签名的 `.msix` 与已签名的 `.msixbundle`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
 
-APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。发布的 secret 与 Windows 签名的身份都在 `release` 环境里。运行要在那里等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准两次：签名之前一次，发布之前一次。仓库管理员发起的运行可以跳过审批。
+APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。发布的 secret 与 Windows 签名的身份都在 `release` 环境里。运行要在签名之前等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次；发布紧接着进行，不再等第二次。仓库管理员发起的运行可以跳过审批。
 
 勾选 `dry-run` 则构建、签名并安装全部东西，但不推送、不打标签、不发布。签名或 secret 有改动时，先这样运行一次。
 

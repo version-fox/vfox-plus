@@ -104,7 +104,7 @@ CI 运行的 `vfox-plus-windows` 构件里是未签名的 bundle，旁边是暂�
      `sign-windows` 任务会打印已签名 bundle 的主题（步骤「Show the publisher of the signed bundle」）：安装随后拒绝
      bundle 时，日志会说明该填什么。
 
-一次发布要在 `release` 环境里等两次批准：签名之前一次，发布之前一次。先跑一次**试运行**，即在 Actions 的 Release
+一次发布要在 `release` 环境里等一次批准，在签名 Windows 包与 APK 之前；发布紧接着进行，不再等第二次。先跑一次**试运行**，即在 Actions 的 Release
 工作流里勾选 `dry-run` 输入：它构建、签名、安装 bundle，但不发布任何东西。只有不勾选 `dry-run` 的运行才会推送、
 打标签并发布。
 
