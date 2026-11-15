@@ -235,18 +235,18 @@ jobs:
             ubuntu:26.04 /vfxtool runtask install-test
       - name: Build the snap package
         # The classic snap of the release, packed from this .deb as the release job packs it (see
-        # snap/snapcraft.yaml). It is built for every change, so that its base and its parts are
-        # tested before a release; nothing publishes it.
-        run: cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
-      - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
-        id: snap
-        with:
-          snapcraft-channel: 9.x/stable
+        # snap/snapcraft.yaml), with Snapcraft 9 on this runner (--destructive-mode, see the release
+        # job). It is built for every change, so that its base and its parts are tested before a
+        # release; nothing publishes it.
+        run: |
+          sudo snap install --channel=9.x/stable --classic snapcraft
+          cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
+          /snap/bin/snapcraft pack --destructive-mode
       - name: Install the snap and start it
         # The application starts from the snap, with the libraries of its base, on a virtual display,
         # and stays up, as the smoke test of the release does for its binary.
         run: |
-          sudo snap install --dangerous --classic "${{ steps.snap.outputs.snap }}"
+          sudo snap install --dangerous --classic vfox-plus_*_amd64.snap
           "$RUNNER_TEMP/vfxtool" smoke-test --log snap.log /snap/bin/vfox-plus
       - name: Build the Linux arm64 .deb and tarball
         # Like release.yml: the arm64 program is cross-compiled, and build-deb is
