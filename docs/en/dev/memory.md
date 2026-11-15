@@ -57,6 +57,13 @@ same WSL2 host, on 2026-11-04:
 | Window closed (`lightweight-idle`) | 46 MB | 33 MB |
 | Window closed, a browser paired and past its first inventory (`lightweight-loaded`) | 50 MB | 37 MB |
 
+Each row is one run, and a settled state moves between runs of one build by several megabytes of resident
+memory, because the clean pages of files that the system can take back come and go: the same build measured
+42 MB and 48 MB of RSS on different CI runs, and 45 MB and 51 MB on one host. The private memory (the heap and
+the stacks, which `measure` keeps as `Private`) is what the code makes. In the same kind of runs it moved by under
+a megabyte: 13.7 MB with the icon of the tray waiting for a host, and 13.9 MB before it waited. Judge a change by
+that figure.
+
 Before the application told the system what it does not want, which is described below, the same two
 rows were 57 and 58 MB of RSS and 44 and 45 MB of PSS on the same host, as three runs of each build
 agree to the megabyte.
