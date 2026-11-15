@@ -256,18 +256,18 @@ jobs:
       - name: Read the pinned Android versions
         run: grep -hE '^[A-Z0-9_]+=' android/versions.env >> "$GITHUB_ENV"
       - name: Set up JDK
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - name: Set up the Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           # The default package list still names the `tools` package, which
           # Google removed; install only what the build needs.
           packages: platform-tools
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
           # no wrapper jar to validate.
@@ -463,13 +463,13 @@ jobs:
         run: |
           Get-Content android/versions.env | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^[A-Z0-9_]+=' } | Add-Content -Path $env:GITHUB_ENV
       - name: Set up JDK
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - name: Set up the Android build tools
         # zipalign and apksigner come with the build tools of the pinned version.
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           packages: "build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }}"
       - name: Sign the APK with the release key
