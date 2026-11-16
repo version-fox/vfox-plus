@@ -265,8 +265,8 @@ mygo 为 MIT 许可证，其链接的 Go 模块 purego 为 Apache License 2.0，
 二维码供安卓 App 扫描；`mygo/ui/mcu` 与 `mygo/ui/shapes` 中的移植代码来自 Apache License 2.0 与 MIT 许可证
 的库，声明随应用发布（[`mygo/NOTICE.txt`](../../../mygo/NOTICE.txt)）。应用不链接 LGPL 的
 GTK 3、GLib、Pango 和 Cairo：mygo 启动时从系统加载，包按
-`vfxtool runtask`（`shared/tooling/internal/runtask`）声明依赖。Linux 上画托盘图标的
-`libayatana-appindicator3` 也是如此：系统有它时 mygo 会加载，包只推荐、不依赖它。应用不含 X 类
+`vfxtool runtask`（`shared/tooling/internal/runtask`）声明依赖。托盘图标在 Linux 上不需要库：
+应用通过会话总线说 StatusNotifierItem 协议，由桌面的面板画出图标（见[托盘](#托盘)）。应用不含 X 类
 强 copyleft 代码；若有 B 类弱 copyleft 依赖，按其许可证发布。`shared/tooling`
 中的构建工具（`vfxtool`，不随应用发布）还用 `go-github`（内存报告的 GitHub API）、
 `nfpm`（Debian 打包库）、`go-licenses`（许可证分类）、`go-getter`（带校验和的断点续传，用于包预取与图标的 npm 包）、`chromedp`
@@ -423,52 +423,56 @@ stateDiagram-v2
 应用没有窗口时，由托盘里的一个图标代表它。它在应用测试的两种桌面上受支持：Windows 11，图标在通知区域；
 GNOME，由 Shell 的 AppIndicator 扩展把它显示在面板里（Ubuntu 默认启用这个扩展）。其他桌面不受支持：
 KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或者不用这个图标，没有图标时应用照常运行。
-代码并不拒绝它们（会话总线上有 StatusNotifierWatcher 且库在，就会创建图标；macOS 则是菜单栏），
+代码并不拒绝它们（Linux 上会话总线上有 StatusNotifierWatcher 就会创建图标；macOS 则是菜单栏），
 但这些都没有测试，也不作承诺。菜单有*打开 vfox+*、*打开网页界面*（用一次性链接配对本机浏览器）和
-*退出 vfox+*，激活图标会打开窗口。没有窗口的进程原本缺少的两样东西，回到窗口的路和结束应用的路，
-由它提供。代码在 `mygo/ui/tray.go`。
+*退出 vfox+*。没有窗口的进程原本缺少的两样东西，回到窗口的路和结束应用的路，由它提供。代码在
+`mygo/ui/tray.go`，Linux 的图标在 `mygo/ui/tray_linux.go`，mygo 的图标在 `mygo/ui/tray_other.go`。
 
 - **何时。**`App.releaseWindow` 在放掉窗口时创建图标（`showTray`），`App.openWindow` 把它移除
   （`hideTray`），所以应用有窗口时没有图标，内存最要紧的那个状态不为它占用任何东西。
-- **与窗口一样是一道接缝。**`desktop.newTray` 接收 `trayOptions`（PNG、提示文字、由标签与点击组成的
-  条目、以及激活时做什么），返回 `trayIcon`（`Update`、`Destroy`）。`newNativeTray` 才调用
-  `mygo.NewTray`；测试用一个记录器（`fakeTray`）替换它，并由它点击条目。
-- **回到窗口靠菜单，不靠点击。**Linux 上点击图标显示菜单。`OnClick` 监听的激活，在 Windows 是左键点击，
-  在 GNOME 是双击，且只有库带 `activate` 信号时才有，Ubuntu 26.04 的 libayatana-appindicator3
-  （0.5.94）没有：面板的 `Activate` 调用会失败，面板转而显示菜单。
-- **必须有宿主。**会话总线上没有 StatusNotifierWatcher 时，libayatana-appindicator3 回退到
-  `GtkStatusIcon`，如今没有面板会显示它，还要通过桌面的图像加载器解码图标的图片来创建它：白白花 7 MB
-  内存。`trayHostAvailable`（`platform_linux.go`）先问会话总线，用的是一个不许启动服务的
-  `org.kde.StatusNotifierWatcher` 的 `GDBusProxy`，名字没有主人时 `newNativeTray` 就不创建图标。
-- **没有托盘不算错误。**没有宿主、没有 `libayatana-appindicator3`、`NewTray` 失败：日志里一行
-  （"no icon in the tray: ..."），应用不带图标继续运行。再次启动它或用网页界面，仍是回到窗口的路。
-- **移除。**图标由一个 goroutine 在请求窗口的那次选择返回之后移除，因为桌面的库不指望菜单项的
-  所有者在该项的处理函数里消失（`hideTray`）；应用结束时则立即移除（`OnWillQuit` → `removeTray`），
-  因为 Windows 会一直显示已经退出的程序的图标，直到指针划过。
-- **语言。**标签使用设置里的语言，而网页界面可以在没有窗口可画时修改它：设置上的一个监听
-  （`refreshTray`）在语言变了时重写菜单。
-- **图片。**`tray.png` 32×32 像素，是应用图标的狐狸，不带底板（橙色在浅色和深色面板上都看得清）。
-  仓库里不放图片，所以由 `vfxtool prepare` 用 `appicon.RenderFox` 绘制，`mygo/assets` 内嵌，
-  与其他收集来的资源一样被 git 忽略。
-- **打包。**什么也不链接：系统有 `libayatana-appindicator3` 时，mygo 启动时打开它（见
-  [依赖](#依赖)）。Debian 包推荐 `libayatana-appindicator3-1` 而不依赖它，安装测试不装推荐包，
-  证明没有它应用照常运行。
+- **身份。**Linux 上图标是 StatusNotifierItem 协议的一个条目，由代码自己（用 godbus）放到会话总线上，不通过桌面的库。
+  条目带着应用的 ID，桌面凭它保存对这个图标的设置。每次出现都是会话总线上的一个新条目，用一个名字：
+  `org.freedesktop.StatusNotifierItem-PID-N`，N 是计数器。打开窗口时放掉这个名字，桌面于是把图标从面板里拿掉并忘记该条目；
+  再次关窗时，下一个名字的新条目出现。Windows 与 macOS 上，ID 保留用户给图标定下的位置（mygo 0.9.1 遵守这一点）。
+  这是协议的做法，也是 GNOME Shell 能正确处理的做法。应用以前加载的库（libayatana-appindicator3）在应用的整个生命周期里只保留一个条目：
+  GNOME Shell 对同一 ID 重新注册的条目保留着原来隐藏的指示器，图标在第一次出现之后就留在面板外，而且每次出现都会留下一个隐藏的指示器
+  （每次约 1.6 MB 的 Shell 内存）。`vfxtool e2e-run tray-gnome` 检查这两点。
+- **与窗口一样是一道接缝。**`desktop.newTray` 接收 `trayOptions`（PNG、提示文字、由标签与点击组成的条目、以及激活时做什么），
+  返回 `trayIcon`（`Update`、`Destroy`）。`newNativeTray` 在 Linux 上把条目放到总线上，在 Windows 与 macOS 上调用 `mygo.NewTray`；
+  测试用一个记录器（`fakeTray`）替换它，并由它点击条目。
+- **回到窗口靠菜单。**Linux 上条目本身就是菜单（`ItemIsMenu`），点击图标即显示菜单，不需要激活。条目也实现了 `Activate`，
+  供那些不显示菜单、而是对点击调用 `Activate` 的桌面使用，它同样打开窗口。
+- **等待宿主。**图标由会话总线上的宿主显示，即 StatusNotifierWatcher。没有会话总线就没有图标。会话总线在、但上面没有
+  谁拥有 `org.kde.StatusNotifierWatcher` 时，图标照常创建并等着，等待期间不占用与总线的连接：它保存文字与菜单，
+  先等五秒，之后每次仍没有就加倍等待、最长一分钟（`waitForHost`），每次都用一条随即放掉的连接询问总线 watcher 有没有 owner，
+  检查用的是 `NameHasOwner`，它不会启动服务。
+  watcher 有了 owner 以后，图标才连上总线并显示，之后 watcher 每次重新启动都再接管一次（外壳重启时，它没有原来的图标）
+  （`watchOwners`）。
+- **没有托盘不算错误。**没有会话总线，或者向 watcher 注册失败：日志里一行（"no icon in the tray: ..."），应用不带图标继续运行。
+  再次启动它或用网页界面，仍是回到窗口的路。
+- **移除。**图标由一个 goroutine 在请求窗口的那次选择返回之后移除，因为桌面的库不指望菜单项的所有者在该项的处理函数里消失
+  （`hideTray`）；应用结束时则立即移除（`OnWillQuit` → `removeTray`），因为 Windows 会一直显示已经退出的程序的图标，直到指针划过。
+  在 Linux 上放掉名字同样把图标拿掉。
+- **语言。**标签使用设置里的语言，而网页界面可以在没有窗口可画时修改它：设置上的一个监听（`refreshTray`）在语言变了时重写菜单。
+- **图片。**`tray.png` 32×32 像素，是应用图标的狐狸，不带底板（橙色在浅色和深色面板上都看得清）。仓库里不放图片，所以由
+  `vfxtool prepare` 用 `appicon.RenderFox` 绘制，`mygo/assets` 内嵌，与其他收集来的资源一样被 git 忽略。在 Linux 上，条目自己带着
+  图片的像素（协议的 `IconPixmap`，alpha 在前），桌面不需要找文件。
+- **打包。**图标什么也不链接，包也不为它声明库：应用通过会话总线说协议，图标由桌面的面板画出。
 
 图标的内存开销见[内存页](memory.md#托盘图标)。它在四个层面上测试：
 
-- **逻辑**：`ui` 的单元测试，把托盘换成一个记录器（`fakeTray`），由它选择条目。
+- **逻辑**：`ui` 的单元测试，把托盘换成一个记录器（`fakeTray`），由它选择条目；Linux 上条目本身（图片、菜单、总线上的名字）也有单元测试。
 - **协议**：用一个替身托盘宿主，CI 的运行器需要它，因为运行器没有面板：工具链的 `trayhost` 包在会话总线上拥有
   `org.kde.StatusNotifierWatcher`，像 GNOME 的 AppIndicator 扩展那样读取条目及其 dbusmenu，并选择条目
-  （godbus，BSD-2-Clause，是它唯一的依赖）。`vfxtool e2e-run tray`（`build` 任务的一步）关闭窗口，检查图标、它的
-  提示文字、图片（32×32 的 PNG，狐狸，无底板）和菜单；选*打开 vfox+*（窗口回来，图标消失）；选*打开网页界面*
-  （一个注册为网页链接处理程序的、代替用户浏览器的程序收到一个能配对的链接）；从菜单退出（应用以 0 结束，图片
-  所在目录被删除）。然后在没有宿主的地方再运行一次应用，检查它不创建图标并说明原因，这样库的回退就被挡在外面。
-- **Shell**：用真正的 GNOME Shell。`vfxtool gnome-session` 在 `shared/sandbox/gnome.Dockerfile` 的容器里，在没有
-  屏幕的 Ubuntu GNOME Shell 50（mutter 无需 GPU 就能提供 Wayland）里运行一条命令，并启用 AppIndicator 扩展；
-  `vfxtool e2e-run tray-gnome`（`tray-gnome` 任务运行）是对着它的场景：应用关闭窗口，Shell 在面板里为它放一个
-  指示器并为它生成菜单（用 `org.gnome.Shell.Eval` 读取，Shell 在不安全模式下提供它），像用户那样选择
-  *打开 vfox+*、*打开网页界面* 和 *退出 vfox+*，做法是让扩展发出点击事件，应用照做；窗口回来时 Shell 隐藏图标，
-  应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
+  （godbus，BSD-2-Clause，是它唯一的依赖）。`vfxtool e2e-run tray`（`build` 任务的一步）关闭窗口，检查图标、它的 ID、
+  提示文字、图片（条目自己带的像素，32×32 的狐狸，无底板）和菜单；选*打开 vfox+*（窗口回来，条目离开总线）；选*打开网页界面*
+  （一个注册为网页链接处理程序的、代替用户浏览器的程序收到一个能配对的链接）；从菜单退出（应用以 0 结束，条目离开总线）。
+  然后宿主重新启动一次，图标跟着新的宿主走；再之后，在窗口关闭时还没有宿主的地方运行应用，宿主出现以后图标由它接管（`tray-late`）。
+- **Shell**：用真正的 GNOME Shell。`vfxtool gnome-session` 在 `shared/sandbox/gnome.Dockerfile` 的容器里，在没有屏幕的 Ubuntu GNOME Shell 50
+  （mutter 无需 GPU 就能提供 Wayland）里运行一条命令，并启用 AppIndicator 扩展；`vfxtool e2e-run tray-gnome`（`tray-gnome` 任务运行）
+  是对着它的场景：应用关闭窗口，Shell 在面板里为它放一个指示器并为它生成菜单（用 `org.gnome.Shell.Eval` 读取，Shell 在不安全模式下提供它），
+  像用户那样选择*打开 vfox+*、*打开网页界面* 和 *退出 vfox+*，做法是让扩展发出点击事件，应用照做。窗口回来时 Shell 隐藏图标；
+  每次关窗后，面板里只剩当前的这一个指示器，上一次的已经离开。应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
 - **Windows**：`run-windows` 任务在 Windows Server 2025（x64）与 Windows 11 ARM 上，用 Windows 的端到端构建，
   在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python` 与 `vfxtool e2e-run tray`。
   窗口回来、应用结束按端到端构建的控制文件的要求发生，因为点击任务栏的图标不是程序该做的事。图标的位置由应用向桌面

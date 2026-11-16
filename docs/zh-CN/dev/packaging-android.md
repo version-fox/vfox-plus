@@ -12,8 +12,8 @@ Go 代码。用户装 `.apk` 后与 PC 配对；见[安卓 App](../user/android.
 | --- | --- |
 | `settings.gradle.kts`、`build.gradle.kts`、`gradle.properties` | 工程配置；插件版本 pin 在此。 |
 | `gradlew`、`gradlew.bat`、`gradlew.ps1`、`gradle/wrapper/` | Gradle wrapper（[Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)）；`gradle-wrapper.properties` 连同 SHA-256 pin 住 Gradle。 |
-| `versions.env` | CI 与[开发容器](environment.md#开发容器)读取的工具 pin（Java、Android SDK 的命令行工具与软件包、AGP、Kotlin、Material）。 |
-| `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.3（均为 Apache-2.0）扫二维码。Material Symbols 也是导入的，来自 google/material-design-icons（见[设计系统](design-system.md#图标)）。 |
+| `versions.env` | CI 与[开发容器](environment.md#开发容器)读取的工具 pin（Java、Android SDK 的命令行工具与软件包、AGP、Material）。 |
+| `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.4（均为 Apache-2.0）扫二维码。Material Symbols 也是导入的，来自 google/material-design-icons（见[设计系统](design-system.md#图标)）。 |
 | `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题与[设计系统](design-system.md#颜色)的颜色（`values/colors.xml`、`values-night/colors.xml`）、英/中字符串、启动图标（自适应，含供主题图标用的单色层；见[设计系统](design-system.md#应用图标)）。 |
 
 ## App 行为
@@ -69,10 +69,10 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
 之内（[Android 应用用 View 还是 Compose](memory.md#android-应用用-view-还是-compose)）。起决定作用的是：
 
 - **Material 3 Expressive 在 View 里用锁定的工具链就能做到。**Material Components 1.14.0 是稳定版，带 Expressive 主题、
-  有形状形变的按钮、浮动工具栏、加载指示器与波浪进度指示器，用 AGP 8.13.2 与 compileSdk 36 就能构建。在 Compose 里
+  有形状形变的按钮、浮动工具栏、加载指示器与波浪进度指示器，用 AGP 9.5.1 与 compileSdk 37.2 就能构建。在 Compose 里
   （2026-10-30 核对）：稳定版 Material 3 1.4.0 把 Expressive 主题、动效方案与强调字体样式留作 `internal`，其形状库也用不了；
   Material 3 1.5.0-beta02 是 beta，需要 AGP 9.1.0、compileSdk 37 与 Compose 1.12.0，最新的 Compose 1.12.1 对 AGP 与
-  compileSdk 的要求相同。用 Compose 就要引入预发布依赖并换一套工具链。
+  compileSdk 的要求相同。用 Compose 就要引入预发布依赖。
 - **APK 更小。**加上 Compose 会让 APK 多 1.2 MB（37%）。
 - **原生部分小。**App 是包住 WebView 的三个屏：用户操作的是 Web 界面，任何工具包都不会改变它。
 
@@ -81,7 +81,7 @@ App 与其它界面一样遵循[设计系统](design-system.md)。下面是它�
 
 ## 构建
 
-需要 JDK 17 与 Android SDK（platform 36、build-tools 35.0.0；后者是所 pin AGP
+需要 JDK 25 与 Android SDK（platform 37.2、build-tools 36.0.0；后者是所 pin AGP
 的默认值）。CI 会装，[开发容器](environment.md#开发容器)也会装并设好 `ANDROID_HOME`；本地把
 `ANDROID_HOME` 指向 SDK（或把 `sdk.dir` 写进被 git 忽略的 `local.properties`）；缺少的包要先接受其许可（`sdkmanager --licenses`）
 Gradle 才会安装。wrapper 会下载 `gradle/wrapper/gradle-wrapper.properties` pin
@@ -137,12 +137,12 @@ gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plu
 - `usesCleartextTraffic` 开着：可信局域网里服务端可能是纯 HTTP（PC 侧非回环
   监听一律 HTTPS，但用户可能在别处终结 TLS）。会话 cookie 都是凭证。
 - wrapper 是 [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
-  0.2.0（Apache-2.0）：官方的 `gradle-wrapper.jar` 是二进制，仓库拒绝二进制文件，
+  0.4.0（Apache-2.0）：官方的 `gradle-wrapper.jar` 是二进制，仓库拒绝二进制文件，
   Neo 用一个 Java 源文件做同样的事，由 `gradlew` 首次使用时编译。`gradlew`、
   `gradlew.bat`、`gradlew.ps1` 与 `GradleWrapperNeo.java` 保持发布版原样（所以
   `.licenserc.yaml` 跳过它们的文件头）；升级时按其 README 从新发布版下载这四个
   文件。`.gitattributes` 让 `*.bat` 保持 CRLF，`gradlew.bat` 在 Windows 上需要。
 - 换 Gradle 要改 `gradle/wrapper/gradle-wrapper.properties` 里的
   `distributionUrl` 与 `distributionSha256Sum`（校验值：
-  <https://gradle.org/release-checksums/>）。pin 在 9.5.1 是因为 AGP 8.13.2 在
-  Gradle 9.8.0 上失败；AGP 与 Gradle 一起升。
+  <https://gradle.org/release-checksums/>）。pin 在 9.9.1，是 AGP 9.5.1 构建时用的版本；
+  AGP 与 Gradle 一起升。

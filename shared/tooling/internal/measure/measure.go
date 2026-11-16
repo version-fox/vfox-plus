@@ -37,8 +37,19 @@ import (
 // memory_of in measure.sh. Sizes are read from
 // /proc/<pid>/task/*/children (process tree) and /proc/<pid>/smaps_rollup.
 func MemoryOf(pid int) string {
-	usage := UsageOf(pid)
-	return fmt.Sprintf("RSS %d MB, PSS %d MB in %d processes", usage.RSS/1024, usage.PSS/1024, usage.Processes)
+	return UsageOf(pid).Summary()
+}
+
+// Summary is the usage in the form of the lines of the memory artifacts: the resident and the
+// proportional set in MB, and the number of processes.
+func (u Usage) Summary() string {
+	return fmt.Sprintf("RSS %d MB, PSS %d MB in %d processes", u.RSS/1024, u.PSS/1024, u.Processes)
+}
+
+// PrivateSummary is the usage in the form of the lines of the private memory artifact: the private
+// memory in KB, and the number of processes.
+func (u Usage) PrivateSummary() string {
+	return fmt.Sprintf("private %d KB in %d processes", u.Private, u.Processes)
 }
 
 // Usage is the memory that a process and its descendants occupy, in KB.

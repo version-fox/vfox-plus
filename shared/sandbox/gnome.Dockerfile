@@ -41,7 +41,7 @@ RUN if [ -n "$UBUNTU_MIRROR" ]; then \
       dbus dbus-bin dbus-daemon dbus-user-session dbus-x11 \
       dconf-gsettings-backend dconf-service gsettings-desktop-schemas adwaita-icon-theme accountsservice \
       libgl1-mesa-dri libegl1 libgles2 mesa-vulkan-drivers \
-      libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
+      libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
       xdg-utils ca-certificates procps \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --create-home --shell /bin/bash tester

@@ -92,19 +92,30 @@ func (sh shellOf) flag(script string) (bool, error) {
 	return result == "true", err
 }
 
-// panelKeyOf finds the indicator that the shell made for the icon in the status area of its panel:
-// the extension names it after the item.
-func panelKeyOf(s *appsession.Session, sh shellOf, item *trayhost.Item) string {
-	var key string
-	s.WaitFor("the shell to put the icon in its panel", trayWait, func() bool {
-		keys, err := sh.text("Object.keys(Main.panel.statusArea).filter(k => k.startsWith('appindicator-')).join('|')")
-		if err != nil {
-			s.Fail("%v", err)
+// panelKeys are the keys of the indicators in the status area of the panel: the shell names each
+// indicator after the item that it shows.
+func panelKeys(s *appsession.Session, sh shellOf) []string {
+	keys, err := sh.text("Object.keys(Main.panel.statusArea).filter(k => k.startsWith('appindicator-')).join('|')")
+	if err != nil {
+		s.Fail("%v", err)
+	}
+	var out []string
+	for _, key := range strings.Split(keys, "|") {
+		if key != "" {
+			out = append(out, key)
 		}
-		for _, candidate := range strings.Split(keys, "|") {
-			if candidate != "" && strings.HasSuffix(candidate, string(item.Path)) {
-				key = candidate
-			}
+	}
+	return out
+}
+
+// panelKeyOf waits for the panel to show one indicator that is not the previous one, and returns
+// its key. The shell takes the indicator of an item that has gone away out of the panel, so a panel
+// with one indicator, which is a new one, has no indicator left of the icon that went before.
+func panelKeyOf(s *appsession.Session, sh shellOf, previous string) string {
+	var key string
+	s.WaitFor("the shell to show the icon alone in its panel", trayWait, func() bool {
+		if keys := panelKeys(s, sh); len(keys) == 1 && keys[0] != previous {
+			key = keys[0]
 		}
 		return key != ""
 	})
@@ -124,7 +135,7 @@ func gnomeScenario(s *appsession.Session, host *trayhost.Host, sh shellOf) {
 	closeTheWindow(s)
 	first := nextIcon(s, host)
 	properties := checkIcon(s, first)
-	key := panelKeyOf(s, sh, first)
+	key := panelKeyOf(s, sh, "")
 	s.Step("the icon is in the panel of the shell: " + key)
 	poll(s, "the shell to show the icon", trayWait, func() bool { return visible(s, sh, key) })
 	// The extension fills the menu once it has read it from the application, after the icon is in the panel.
@@ -144,8 +155,12 @@ func gnomeScenario(s *appsession.Session, host *trayhost.Host, sh shellOf) {
 	closeTheWindow(s)
 	second := nextIcon(s, host)
 	secondProperties := checkIcon(s, second)
-	secondKey := panelKeyOf(s, sh, second)
-	s.Check(secondKey != key && secondProperties.ID != properties.ID, "the icon that comes back is a new one, with a place of its own in the panel")
+	s.Check(secondProperties.ID == properties.ID, "the icon keeps its ID, by which the shell keys its settings for it")
+	// The icon is an item of its own under a name of its own, so the shell shows it in a place of its
+	// own in the panel, and the indicator of the icon that went goes out of the panel: the panel shows
+	// one icon of the application, not one more for each time that the window closed.
+	secondKey := panelKeyOf(s, sh, key)
+	s.Check(secondKey != key, "the icon that comes back is an item of its own, with a place of its own in the panel: "+secondKey)
 	poll(s, "the shell to show the new icon", trayWait, func() bool { return visible(s, sh, secondKey) })
 	poll(s, "the shell to make the menu of the new icon", trayWait, func() bool { return menuOf(s, sh, secondKey) == strings.Join(trayMenu, "|") })
 
@@ -161,7 +176,7 @@ func gnomeScenario(s *appsession.Session, host *trayhost.Host, sh shellOf) {
 	s.Check(s.WaitExit(trayWait), "the application ends")
 	s.Check(s.ExitError() == nil, fmt.Sprintf("it ends with the code 0 (%v)", s.ExitError()))
 	// The application is gone: what is waited for is the shell, which learns it from the bus.
-	poll(s, "the shell to take the icon of the application that ended out of its panel", trayWait, func() bool { return !visible(s, sh, secondKey) })
+	poll(s, "the shell to take the icon of the application that ended out of its panel", trayWait, func() bool { return len(panelKeys(s, sh)) == 0 })
 	alive, err := sh.eval("1 + 1")
 	s.Check(err == nil && alive == "2", fmt.Sprintf("the shell is still up after all this (%q, %v)", alive, err))
 }

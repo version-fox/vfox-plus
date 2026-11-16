@@ -49,12 +49,12 @@ concurrency:
 env:
   # Packages needed to build and run mygo applications on Linux: nothing to
   # build with (mygo needs no C compiler, and only the race detector of the tests
-  # needs one), GTK 3 to run, which mygo loads when it starts, and
-  # libayatana-appindicator3, which it loads for the icon in the tray (without it the
-  # application has no icon, and the scenario of the icon has nothing to test).
+  # needs one), and GTK 3 to run, which mygo loads when it starts. The icon in the
+  # tray needs no library: the application speaks to the panel of the desktop over
+  # the session bus.
   # Fontconfig and the fonts are what the interface looks up.
   LINUX_PACKAGES: >-
-    build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk
+    build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
     xvfb xauth dbus-x11 lintian desktop-file-utils
 
 jobs:
@@ -95,9 +95,9 @@ jobs:
           key: icons-${{ hashFiles('shared/icons.json') }}
       - name: Build vfxtool
         run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: mygo/web/package-lock.json
       - name: Build and test the web interface
@@ -233,6 +233,24 @@ jobs:
             --volume "$PWD/dist:/pkg:ro" \
             --volume "$RUNNER_TEMP/vfxtool:/vfxtool:ro" \
             ubuntu:26.04 /vfxtool runtask install-test
+      - name: Build the snap package
+        # The classic snap of the release, packed from this .deb as the release job packs it (see
+        # snap/snapcraft.yaml), with Snapcraft 9 on this runner (--destructive-mode, see the release
+        # job). It is built for every change, so that its base and its parts are tested before a
+        # release; nothing publishes it.
+        run: |
+          sudo snap install --channel=9.x/stable --classic snapcraft
+          cp dist/vfox-plus_*_amd64.deb snap/vfox-plus.deb
+          sudo /snap/bin/snapcraft pack --destructive-mode
+      - name: Install the snap and start it
+        # The application starts from the snap, with the libraries of its base, on a virtual display,
+        # and stays up, as the smoke test of the release does for its binary. snap run tracks an
+        # application of core26 through a systemd session of the user, which the user of a CI runner
+        # does not have (snapd refuses it), so the snap is started as root, which tracks it through
+        # the system bus.
+        run: |
+          sudo snap install --dangerous --classic vfox-plus_*_amd64.snap
+          sudo "$RUNNER_TEMP/vfxtool" smoke-test --log snap.log /snap/bin/vfox-plus
       - name: Build the Linux arm64 .deb and tarball
         # Like release.yml: the arm64 program is cross-compiled, and build-deb is
         # told the architecture, which refuses a program of another one. The
@@ -331,7 +349,7 @@ jobs:
         # the virtual one of xvfb gives, even to have its web interface served.
         uses: ./.github/actions/install-linux-packages
         with:
-          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+          packages: libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # Where vfxtool prepare keeps the npm package that the icons come from.
@@ -343,16 +361,27 @@ jobs:
           "$RUNNER_TEMP/vfxtool" prepare --root mygo
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
       - name: Measure the lightweight mode
+        # The private memory is written to a file of its own, uploaded as memory-lightweight-private. The
+        # artifact memory-lightweight keeps the lines that the report on main has always read: a line that it
+        # does not know would make the comment show the numbers of main for this run, as if it had none.
         env:
           VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory-lightweight/memory.txt
+          VFOX_PLUS_MEASURE_PRIVATE_OUTPUT: ${{ runner.temp }}/memory-lightweight-private/memory.txt
         run: |
           xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
             "$RUNNER_TEMP/vfxtool" measure-lightweight --settle 10 "$RUNNER_TEMP/vfox-plus-e2e"
           cat "${{ runner.temp }}/memory-lightweight/memory.txt"
+          cat "${{ runner.temp }}/memory-lightweight-private/memory.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memory-lightweight
           path: ${{ runner.temp }}/memory-lightweight/memory.txt
+          if-no-files-found: error
+          overwrite: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memory-lightweight-private
+          path: ${{ runner.temp }}/memory-lightweight-private/memory.txt
           if-no-files-found: error
           overwrite: true
       - name: Check what the icon in the tray costs
@@ -373,9 +402,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2025
+          - os: windows-2025-vs2026
             arch: x64
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -478,7 +507,7 @@ jobs:
         # of xvfb gives, even to have its web interface served. The gateway is not: it is the image.
         uses: ./.github/actions/install-linux-packages
         with:
-          packages: libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
+          packages: libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk xvfb xauth dbus-x11
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           # Where vfxtool prepare keeps the npm package that the icons come from.
@@ -514,9 +543,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2025
+          - os: windows-2025-vs2026
             arch: amd64
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -524,7 +553,7 @@ jobs:
     steps:
       # The scenarios find the captured output of vfox in the repository.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vfox-plus-windows-e2e
           path: e2e
@@ -564,7 +593,7 @@ jobs:
     # Ubuntu is a step of the job build;
     # here it takes the rest, with the fonts that the desktops of Linux set their text in installed, and the others
     # take it all. Of Windows and of macOS the newest and the oldest that GitHub has are taken (windows-2022 is Windows
-    # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-arm, and macos-15-intel.
+    # Server 2022, macos-15 is macOS 15), and the other architecture of each: windows-11-vs2026-arm, and macos-15-intel.
     #
     # The tests are four jobs on each machine, and five on Intel, not one: the screens (the census with the fonts of the system, and on
     # Intel the text made wider in a job of its own), the widest fonts, and the sweep of the sizes of text in two jobs, the windows of
@@ -577,7 +606,7 @@ jobs:
       matrix:
         # On the macOS runners five jobs ran at once in the run at 3b3bcd7, and the jobs of Intel, which take the longest, waited
         # behind the others: the matrix lists the longest machine and its longest group first, so that the queue starts with them.
-        os: [macos-15-intel, macos-15, macos-latest, ubuntu-26.04, windows-2025, windows-2022, windows-11-arm]
+        os: [macos-15-intel, macos-15, macos-latest, ubuntu-26.04, windows-2025-vs2026, windows-2022, windows-11-vs2026-arm]
         group: [census, sweep-rest, widest, sweep-wide]
         # On Intel the census is two jobs, the screens with the fonts of the system and the text made wider: the Intel census was the
         # longest job of the workflow (30 minutes on the run at d37bec8), and the others of Intel take up to fifteen.

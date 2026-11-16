@@ -34,12 +34,12 @@ import (
 // that every run uses the same tool, and checked by its SHA-256 (the one of
 // the zip that the release publishes). No Windows SDK (SignTool) is needed.
 const (
-	toolVersion = "2.14"
-	toolSHA256  = "9a1722aaf62a27852c4eb9c35749a0248065052d0ae0a93d4ed6bb49def027f2"
-	toolURL     = "https://github.com/mtrojnar/osslsigncode/releases/download/" + toolVersion + "/osslsigncode-" + toolVersion + "-windows-x64-mingw.zip"
+	toolVersion = "2.16"
+	toolSHA256  = "125903750deb7b633c57a81fe3c6ae945a271c30e382b9413a2af4e4d6248ee3"
+	toolURL     = "https://github.com/mtrojnar/osslsigncode/releases/download/" + toolVersion + "/osslsigncode-" + toolVersion + "-windows-amd64.zip"
 	// toolFallbackURL is the same asset through the GitHub API, which answered
 	// when the release download returned 504.
-	toolFallbackURL = "https://api.github.com/repos/mtrojnar/osslsigncode/releases/assets/483937392"
+	toolFallbackURL = "https://api.github.com/repos/mtrojnar/osslsigncode/releases/assets/744514037"
 
 	toolExecutable = "osslsigncode.exe"
 	// maxDownload and maxUnpacked bound what a download may be, and what a file

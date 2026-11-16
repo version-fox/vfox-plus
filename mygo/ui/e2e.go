@@ -20,7 +20,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -81,19 +80,24 @@ func (a *App) followControlFile() {
 	}()
 }
 
-// reportTray says in the log whether the desktop gave the icon in the tray a place on the screen,
-// which the tools of the end-to-end tests read: it is the one thing that Windows tells the
-// application about its icon. A Linux panel draws the icon itself and tells nothing, so there the
-// tools ask the host of the tray.
+// placedTray is an icon in the tray whose place on the screen the desktop tells, which the tools
+// of the end-to-end tests read: it is the one thing that Windows and macOS tell the application
+// about its icon. A Linux panel draws the icon itself and tells nothing, so the icon of Linux is no
+// placed tray, and there the tools ask the host of the tray.
+type placedTray interface {
+	place() (x, y, width, height int, ok bool)
+}
+
+// reportTray says in the log where the desktop has the icon in the tray, once it has one.
 func (a *App) reportTray(icon trayIcon) {
-	native, ok := icon.(*nativeTray)
-	if !ok || runtime.GOOS == "linux" {
+	native, ok := icon.(placedTray)
+	if !ok {
 		return
 	}
 	go func() {
 		for deadline := time.Now().Add(15 * time.Second); time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
-			if bounds := native.icon.Bounds(); bounds.Width > 0 && bounds.Height > 0 {
-				log.Printf("e2e: the icon is in the tray at %d,%d, %d by %d", bounds.X, bounds.Y, bounds.Width, bounds.Height)
+			if x, y, width, height, placed := native.place(); placed {
+				log.Printf("e2e: the icon is in the tray at %d,%d, %d by %d", x, y, width, height)
 				return
 			}
 		}

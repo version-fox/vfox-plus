@@ -13,10 +13,10 @@ Requirements: GTK 3, fontconfig and a font, plus vfox 1.1.0 or later:
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 ```
 
-One more package is optional: `libayatana-appindicator3-1`, which draws the tray icon that
-vfox-plus shows while it runs without its window (the
-[lightweight mode](remote.md#lightweight-mode)), on GNOME. Without it vfox-plus has no tray icon and
-works as ever. The package of vfox-plus recommends it.
+The tray icon that vfox-plus shows while it runs without its window (the
+[lightweight mode](remote.md#lightweight-mode)) needs no package of its own. On GNOME the AppIndicator
+extension of the shell draws it, which Ubuntu enables. Where the desktop shows no tray icons, vfox-plus has
+no tray icon and works as ever.
 
 Download the `.deb` or the `.tar.gz` for your computer, amd64 or arm64, of the
 [latest GitHub release](https://github.com/version-fox/vfox-plus/releases/latest),
@@ -48,6 +48,7 @@ snap is not in the store):
 sudo snap install --dangerous --classic vfox-plus_*.snap
 ```
 
+The snap is built on the core26 base (Ubuntu 26.04), which snapd installs with it the first time.
 A sideloaded snap does not refresh itself: download the `.snap` of the new
 release and install it again the same way.
 

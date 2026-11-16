@@ -14,7 +14,6 @@
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 // Same version as the desktop application.
@@ -22,7 +21,13 @@ val appVersion = rootDir.resolve("../mygo/VERSION").readText().trim()
 
 android {
     namespace = "dev.vfox.vfoxplus"
-    compileSdk = 36
+    // The API of the compiler: 37.2, which androidx.core 1.19 needs. The target
+    // (targetSdk below) stays at 36, since it changes what the app does at run time.
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
 
     defaultConfig {
         applicationId = "dev.vfox.vfoxplus"
@@ -77,11 +82,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    // kotlinOptions is deprecated in favour of compilerOptions, which needs a
-    // newer Kotlin Gradle plugin than the pinned one; keep it until then.
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         viewBinding = true
@@ -149,22 +149,30 @@ androidComponents.onVariants { variant ->
     variant.sources.res?.addGeneratedSourceDirectory(copy, CopyMaterialSymbols::outputDir)
 }
 
+// Kotlin is built into the Android Gradle plugin (AGP 9), which takes the JVM target from compileOptions
+// above. It is written out here as well, so that the Kotlin and the Java targets cannot drift apart.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 dependencies {
     materialSymbols.forEach { (_, symbol, variant) ->
         symbolFiles("symbols:$symbol:$materialSymbolsCommit${variant?.let { ":$it" } ?: ""}@xml")
     }
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.fragment:fragment-ktx:1.8.9")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.fragment:fragment-ktx:1.9.1")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
     implementation("com.google.android.material:material:1.14.0")
     // What Material 1.14.0 builds on, which the app uses itself: springs and the shape library.
     implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
-    implementation("androidx.graphics:graphics-shapes:1.0.1")
+    implementation("androidx.graphics:graphics-shapes:1.1.0")
     // CameraX scans the terminal QR code; zxing decodes it. Both Apache-2.0.
     implementation("androidx.camera:camera-core:1.6.2")
     implementation("androidx.camera:camera-camera2:1.6.2")
     implementation("androidx.camera:camera-lifecycle:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
-    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:core:3.5.4")
 }

@@ -10,7 +10,7 @@ WSL2 中，或者用装齐了这一切的开发容器。要装什么取决于你
 | 在编辑器里一次拥有全部工具，且不改动你的机器 | Docker，以及能打开开发容器的编辑器（见[开发容器](#开发容器)） |
 | 跑全部检查、端到端测试与打包，且不改动你的机器 | Docker，以及构建 `vfxtool` 用的 Go（见[沙箱](#沙箱)） |
 | 快速编辑并测试 Go 代码 | Go、几个软件包与 golangci-lint（见[Go 与本机工具](#go-与本机工具)） |
-| 构建 Android 客户端 | JDK 17 与 Android SDK（见 [Android](#android)） |
+| 构建 Android 客户端 | JDK 25 与 Android SDK（见 [Android](#android)） |
 | 在模拟器上运行 Android 客户端 | KVM、一台 adb 设备，或 CI（见[模拟器与 KVM](#模拟器与-kvm)） |
 
 固定的版本在 [`mygo/versions.env`](../../../mygo/versions.env) 与
@@ -144,13 +144,13 @@ Ubuntu 软件包与 CI 安装的相同（[`mygo.yml`](../../../.github/workflows
 `LINUX_PACKAGES`）：
 
 ```sh
-sudo apt install build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
+sudo apt install build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11
 ```
 
 `build-essential` 只为单元测试的竞态检测器，它需要 C 编译器；应用本身构建时不需要。
 GTK 3 与字体是应用启动时要加载的。`xvfb`、`xauth` 与 `dbus-x11` 给端到端测试一块虚拟显示。
-要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。`libayatana-appindicator3-1` 画出应用没有窗口时代表它的托盘图标，端到端场景 `tray` 需要它，并且要在
+要像 CI 那样检查 `.deb`，再装 `lintian desktop-file-utils`。应用没有窗口时代表它的托盘图标不需要库：端到端场景 `tray` 要在
 `dbus-run-session` 给的会话总线里运行，因为它用一个替身托盘宿主（见[托盘](architecture.md#托盘)）。要在自己的桌面上
 看到这个图标，桌面需要是 GNOME（带它的 AppIndicator 扩展）或 Windows。场景 `tray-gnome` 在
 `shared/sandbox/gnome.Dockerfile` 的容器里运行，所以需要 Docker。构建、测试与打包的命令见
@@ -164,7 +164,7 @@ vfox，所以不会碰你的 `~/.vfox`。
 
 ## Node 与 Web 界面
 
-Web 界面是 TypeScript 加 Vite，源码在 `mygo/web`（Node 20 起；开发容器与 CI 装 Node 24）。
+Web 界面是 TypeScript 加 Vite，源码在 `mygo/web`（Node 22.12 起；开发容器与 CI 装 Node 26）。
 它的构建把页面打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入，所以仓库里的页面是生成物：
 改源码，别改页面。
 
@@ -183,7 +183,7 @@ CI 构建页面、跑它的测试，构建产物与提交的不一致就失败�
 
 ## Android
 
-构建需要 JDK 17（CI 用 Temurin）与带 platform 36 和 build-tools 35.0.0 的 Android SDK，经提交
+构建需要 JDK 25（CI 用 Temurin）与带 platform 37.2 和 build-tools 36.0.0 的 Android SDK，经提交
 进仓库的 wrapper 运行；见 [Android 打包](packaging-android.md#构建)。构建不需要 KVM，
 模拟器需要。
 

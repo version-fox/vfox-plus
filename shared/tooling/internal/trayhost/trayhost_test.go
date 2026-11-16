@@ -196,7 +196,10 @@ func TestTheHostSeesTheIconThatAnApplicationRegisters(t *testing.T) {
 		ID: "test-1", Title: "A test application", Status: "Active", Category: "ApplicationStatus",
 		IconName: "icon-1", IconThemePath: "/tmp/test-icons", Menu: menuPath,
 	}
-	if properties != want {
+	// The item has no picture of its own in its properties, so none is read.
+	if properties.ID != want.ID || properties.Title != want.Title || properties.Status != want.Status ||
+		properties.Category != want.Category || properties.IconName != want.IconName ||
+		properties.IconThemePath != want.IconThemePath || properties.Menu != want.Menu || properties.Pixmaps != nil {
 		t.Errorf("properties = %+v, want %+v", properties, want)
 	}
 	if host.Registered() != 1 {
@@ -221,7 +224,7 @@ func TestTheHostSeesTheIconThatAnApplicationRegisters(t *testing.T) {
 		t.Fatal(err)
 	}
 	if up, _ := hostRegistered.Value().(bool); !up {
-		t.Error("a host is registered: libayatana-appindicator3 makes an icon of the old kind when there is none")
+		t.Error("no host of the tray icons is registered on the bus, which a desktop with a tray has for the applications that ask for one")
 	}
 }
 

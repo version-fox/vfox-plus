@@ -4,8 +4,8 @@
   "license": "Apache-2.0",
   "source": {
     "package": "@iconify-json/material-symbols",
-    "version": "1.2.97",
-    "sha512": "31b138407ac7e19e1ea1eac116bcc548fa87c36370546c303b0199749ca6e65e4de65a2a1144e18a6950a4af55240ea6be05af8f98e5e376fc6d99eaccec4d45"
+    "version": "1.2.100",
+    "sha512": "968dc9ba5bda0a70826156477e5778910d98364379e710ad2c6a65560113c749fa9d147c2249cca619274aa2291614ffe09deea592662c14d04fa732427f1385"
   },
   "icons": {
     "add": "add",

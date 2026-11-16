@@ -167,7 +167,7 @@ whoever tests the signed path. It takes the `vfox-plus-windows` artifact of a CI
 
 It does this, in this order:
 
-1. It downloads osslsigncode 2.14 into `tools/`, pinned and checked by its SHA-256,
+1. It downloads osslsigncode 2.16 into `tools/`, pinned and checked by its SHA-256,
    so that no Windows SDK is needed. `--osslsigncode PATH` takes one that you have
    instead, and `--force` downloads again.
 2. It rebuilds the packages into `signed/` with the publisher `CN=vfox-plus`

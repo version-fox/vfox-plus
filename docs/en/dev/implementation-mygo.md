@@ -141,7 +141,7 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   plain `go run generate.go`, no Node.js required.
 - **End-to-end scenarios** drive the built application from outside, the way
   assistive technology does. `vfxtool build --e2e` builds it with the tag `e2e`, which links the
-  [automation plugin](https://github.com/egoist/mygo/blob/v0.7.3/docs/plugins/automation.md) of
+  [automation plugin](https://github.com/egoist/mygo/blob/v0.9.1/docs/plugins/automation.md) of
   mygo ([`automation_e2e.go`](../../../mygo/automation_e2e.go)): when `MYGO_AUTOMATION` names a Unix
   socket, the application listens on it and answers requests to list the elements of its window
   (the ones it gives screen readers, with the keys that the components set), to press them, to
@@ -161,8 +161,10 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
 
   `fake` runs against the fake vfox of the fixtures, `python` against the same fake vfox on a machine that has Python installed, and `real` against the real vfox with the offline
   test plugin and its server. `tray` is the icon in the tray: on Linux against a stand-in for the host
-  of the tray icons that needs the session bus that `dbus-run-session` gives and `libayatana-appindicator3`
-  (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine.
+  of the tray icons that needs the session bus that `dbus-run-session` gives
+  (see [The tray](architecture.md#the-tray)), on Windows against the taskbar of the machine. On Linux `tray` also
+  restarts the host of the tray icons, and `tray-late` brings the host up after the window has closed; the icon follows
+  the host both times.
   `tray-gnome` is the same icon against a real GNOME Shell with no screen, which the container of
   `shared/sandbox/gnome.Dockerfile` has (Docker; the build is mounted in):
 
@@ -283,7 +285,7 @@ compatible with the Apache License 2.0).
 The package depends on GTK 3 (which brings GLib, Pango, Cairo and the rest of
 what mygo loads), fontconfig and a font (`fonts-ubuntu` or `fonts-noto-core`),
 and recommends `fonts-noto-cjk` for Chinese, a desktop portal and `xdg-utils` for
-links, and `libayatana-appindicator3-1` for the icon in the tray. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
+links. The list is the `Depends` of `vfxtool runtask` (`shared/tooling/internal/runtask`), and CI
 installs the package into a clean Ubuntu container to prove that it is complete.
 
 On Windows 11, `vfxtool build-msix` packages cross-compiled executables
@@ -336,7 +338,7 @@ adds 5 MB because only the rows in view are built.
   does not use yet.
 - **Scaling** is the one of GTK 3: whole numbers, from `GDK_SCALE` or the
   desktop, and the text scale of the desktop.
-- **mygo is young** (v0.7.3 at the time of writing, with a changing API): the
+- **mygo is young** (v0.9.1 at the time of writing, with a changing API): the
   version is pinned in [`go.mod`](../../../mygo/go.mod), and the pages follow what that
   version offers.
 - **Accessibility** goes through mygo's ATK objects, which GTK bridges to AT-SPI,

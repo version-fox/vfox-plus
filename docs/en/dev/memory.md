@@ -57,6 +57,14 @@ same WSL2 host, on 2026-11-04:
 | Window closed (`lightweight-idle`) | 46 MB | 33 MB |
 | Window closed, a browser paired and past its first inventory (`lightweight-loaded`) | 50 MB | 37 MB |
 
+Each row is one run. The likely cause of the swing in resident memory is how far the window had got when it was
+closed: the lightweight measurement closed the window at once, and CI read the same build at 42 MB for the idle
+state on eight of eleven runs and at 48 or 49 MB on the other three, while the tray measurement, which waits five
+seconds for the window to load before it closes it, read 48 or 49 MB on all eleven. The measurement now waits in the
+same way (see [Beyond the desktop](#beyond-the-desktop)). The private memory (the heap and the stacks, which `measure`
+keeps as `Private`) is what the report judges. Before the wait, between runs of one build on the devcontainer it moved by about 1 MB,
+where the resident memory moved by 6 MB; with the wait, three runs of one build moved by 0.1 MB of private memory.
+
 Before the application told the system what it does not want, which is described below, the same two
 rows were 57 and 58 MB of RSS and 44 and 45 MB of PSS on the same host, as three runs of each build
 agree to the megabyte.
@@ -128,7 +136,17 @@ The icon in the tray that stands for the application while its window is closed 
 it opens. The rows above are therefore the rows without it where nothing shows an icon, as on a CI
 runner: with a window it holds nothing.
 
-Where there is one, it costs little. Measured on the same host before the pages of files were paged
+The icon is now drawn by the application itself, over the session bus, and loads no library for it, which the
+table below does not show: the table is of the version that loaded `libayatana-appindicator3`, measured on this
+host before it was replaced. The present icon, measured by `vfxtool measure-lightweight --tray` in the devcontainer
+of the repository (WSL2, Ubuntu 26.04) in six runs, costs between −440 KB and +720 KB of resident memory, which is
+within the noise of the machine (a mean of −73 KB), and between −48 KB and +208 KB of private memory (a mean of
+122 KB): the connection to the bus, the items and the registration of the icon. The runs differ by more than the
+icon costs, so the figures are ranges. Where no host shows the icon, it waits holding no connection (see
+[the architecture](architecture.md#the-tray)), so the rows without a host are the rows without an icon. CI measures
+the icon on its runner, with the same tool (below).
+
+With the library, where there is one, the icon cost little. Measured on the same host before the pages of files were paged
 out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifierWatcher` (package
 `trayhost` of the tooling), the same build, the window closed, as the mean of five runs. That session reads about
 6 MB above the table above for the same state, so only the differences between its rows count:
@@ -142,13 +160,13 @@ out, with a stand-in StatusNotifier host that registers as `org.kde.StatusNotifi
 
 - **The icon shown** adds 0.4 MB of RSS and 80 KB of private memory. The 0.4 MB are clean pages of
   the libraries that draw it, and about what two runs of the same build differ by.
-- **The library** is loaded by mygo when it starts, whenever the system has it and whether an
+- **The library** (until this change) is loaded by mygo when it starts, whenever the system has it and whether an
   icon is made or not, which costs about 0.3 MB of RSS and 70 KB of private memory in every
   state. The Debian package recommends it, so a default installation has it.
-- **The fallback** is where memory would go: 7 MB of RSS, 1.8 MB of it private, for the image
+- **The fallback** (until this change) is where memory would go: 7 MB of RSS, 1.8 MB of it private, for the image
   loaders of the desktop that GTK starts to decode the picture of an icon that no panel shows
-  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why `trayHostAvailable` asks the session bus for a host before the
-  application asks for an icon, and why there is no icon without one.
+  (on Ubuntu 26.04 `glycin` alone is 3 MB). That is why the application makes its item itself, with no library in between, and why the item waits for
+  a host instead of falling back to that icon.
 
 With the pages of files paged out and the processors limited, the icon is far inside what the application
 saved. With the icon in the tray, in the session of the stand-in host, the application holds 15.2 MB of private
@@ -158,17 +176,16 @@ CI keeps the cost where it is. `vfxtool measure-lightweight --tray` (the last st
 runs the application twice in the same way, where nothing shows an icon and against the stand-in host, and fails the job
 when the icon costs more than 5 MB of resident or 1.5 MB of private memory: room for the noise of a runner, and
 less than the fallback costs, so that an icon made the way the fallback makes it is caught. It does not use the
-automation plugin, for the glyph atlas above. The fallback itself, which costs its memory where there is no host, is
-guarded by the scenario of the icon (`vfxtool e2e-run tray`), which fails when the application makes an icon where
-there is no host. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
+automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray-late`) checks that the application runs
+on, and that the icon takes its place when a host comes up. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
 two above: `malloc_trim` after the window closes changed nothing, `MALLOC_ARENA_MAX=1` saved 0.1 MB, and a
 second `debug.FreeOSMemory` a few seconds after the first saved 0.2 MB of private memory and nothing of
 RSS (the collection that follows the paging out is that call). What stays in the Go heap after the window closes
 is, among other things, the text engine of mygo (its paragraph cache, its glyph atlas and its SVG paths), which
 the application has no way to release.
 
-The runner of CI, Ubuntu 26.04 on GitHub, agrees with these numbers, as two runs of the job on the same code
-show: the lightweight mode settles at 45 MB of RSS and 31 to 32 MB of PSS, and at 47 to 48 MB and 34 to 35 MB
+With the library, the runner of CI, Ubuntu 26.04 on GitHub, agreed with these numbers, as two runs of the job on
+the same code showed: the lightweight mode settles at 45 MB of RSS and 31 to 32 MB of PSS, and at 47 to 48 MB and 34 to 35 MB
 with a browser paired, where the table has 46 and 33, and 50 and 37; and the icon in the tray costs 0.5 MB of RSS and
 0.06 to 0.18 MB of private memory there, where it cost 0.4 MB and 0.08 MB here.
 
@@ -183,17 +200,19 @@ above.
   application under a display (`xvfb-run`) with a fresh home directory, the fake vfox, and
   settings with the web interface and the lightweight mode on. The end-to-end build writes a
   pairing link to the file that `VFOX_PLUS_E2E_LINK` names and closes its window on `SIGUSR1`,
-  which a release build has no code for. The tool prints the RSS and PSS of the process tree
-  at two settled points: `lightweight-idle` with the window closed and no browser, and
-  `lightweight-loaded` with a paired browser past its first inventory over server-sent
-  events. A change counts only past 5 MB and 5%, like the desktop. With `--tray` it measures instead what the icon in the
-  tray costs (see [The tray icon](#the-tray-icon)).
+  which a release build has no code for. The tool closes the window five seconds after the
+  pairing link is written, once the window has loaded what it loads when it starts, and prints
+  the RSS, PSS and private memory of the process tree at two settled points: `lightweight-idle`
+  with the window closed and no browser, and `lightweight-loaded` with a paired browser past its
+  first inventory over server-sent events. Only the private memory is judged (see
+  [Memory in pull requests](#memory-in-pull-requests)). With `--tray` it measures instead what the
+  icon in the tray costs (see [The tray icon](#the-tray-icon)).
 - **Android client.** The `measure` job of `android.yml` installs the release
   APK on an emulator (API 36, x86_64), cold-starts it through the launcher,
   settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary
   more than GitHub runners, so a change counts only past 5 MB and 10%.
 
-In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight`,
+In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and `memory-lightweight-private`,
 the `measure` job of `android.yml` uploads `memory-android`,
 and `memory.yml` reports when either workflow ends, waiting for a still
 running Android run like for the rest. The sections render below the desktop
@@ -273,7 +292,7 @@ interpreted and compiled just in time; "compiled" is after
   system has compiled it.
 - **The Compose screen** used the Compose BOM 2026.06.01 (Compose 1.11.4 and
   Material 3 1.4.0, stable API only), activity-compose 1.13.0 and the Compose
-  compiler plugin of the pinned Kotlin 2.1.20.
+  compiler plugin of Kotlin 2.1.20, which the build pinned then.
 - **The absolute numbers belong to this session**: an earlier one read 30 to 34 MB
   for the Views apps. Compare the rows of the table.
 - **Not measured:** Compose with the Expressive components, which the pinned
@@ -338,7 +357,7 @@ commit replaces that comment instead of adding another one.
   runs `vfxtool measure` ([How it is measured](#how-it-is-measured)) and
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
-  workflow's `measure-remote` job uploads `memory-lightweight`, and the
+  workflow's `measure-remote` job uploads `memory-lightweight` and `memory-lightweight-private`, and the
   `measure` job of [`android.yml`](../../../.github/workflows/android.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.
@@ -349,21 +368,29 @@ commit replaces that comment instead of adding another one.
   is what lets it comment on pull requests of forks, and it reads nothing but two
   lines of numbers from the artifact. If its token cannot write the comment, the
   run only warns, and the report is in its summary.
+- The report is the code of `main`, so a change to `vfxtool memory-report` shows in the comments of the pull
+  requests whose runs end after it is merged; until then a pull request keeps the report of `main`.
 - The numbers are not those of the table above. They come from the runners of GitHub and
   from one run, not from Docker on a WSL2 host. Compare the rows of one comment with each
   other and with `main`, not with this page.
 
 ### The noise
 
-The same code does not use the same memory in every CI run. Comparing runs of
-identical code, the Home and the Versions PSS never differed by more than 1 MB
-(2.4 % of the lowest number on the Home page; 0 MB with the versions listed).
+The same code does not use the same memory in every CI run. The resident and the proportional memory move with
+the state of the window when it closed and with the pages of files that the system takes back, so the report
+judges them as follows:
 
-So the comment calls a difference a change, and prints it in bold, only when it is more
-than 5 MB and more than 5% of the number on `main`. The number of processes never varied,
-so a different number is a change too. The sample is small: if the comment reports a
-change that the commit cannot have caused, measure how much identical code varies again
-and adjust `Tolerances` in `vfxtool memory-report`.
+- The desktop table: a difference counts as a change, and is printed in bold, only when it is more than 5 MB and
+  more than 5% of the number on `main`. Comparing runs of identical code, the Home and the Versions PSS never
+  differed by more than 1 MB (2.4 % of the lowest number on the Home page; 0 MB with the versions listed).
+- The lightweight mode: only the private memory is judged, and a difference counts as a change only when it is more
+  than the larger of 2 MB and 5 % of the number on `main`. The resident and the proportional memory are shown with
+  their difference, without bold. The 2 MB is a first estimate from runs on the devcontainer, where the private
+  memory of one build moved by about 1 MB before the wait; CI has not measured it over several runs yet.
+
+The number of processes never varied, so a different number is a change too. The sample is small: if the comment
+reports a change that the commit cannot have caused, measure how much identical code varies again and adjust
+`Tolerances`, or `MinPrivateChangeKB` and `PrivateTolerance` for the lightweight mode, in `vfxtool memory-report`.
 
 ### Using it
 

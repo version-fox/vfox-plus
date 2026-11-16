@@ -17,11 +17,8 @@
 package e2erun
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"image/png"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -33,9 +30,14 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/trayhost"
 )
 
+// trayItemID is the ID of the icon: the ID of the application, by which a desktop keeps the
+// settings it has for the icon, and which therefore stays the same from one appearance to the next.
+const trayItemID = "dev.vfox.VfoxPlus"
+
 // runTray runs the application on a desktop that has a tray: the stand-in for the host of the tray
 // icons (package trayhost) owns the name of the watcher on the session bus before the application
-// starts, as the panel does on a real desktop.
+// starts, as the panel does on a real desktop. Then the host is gone, and comes up after the window
+// has closed: the icon waits for it.
 func runTray(command []string) error {
 	config, err := trayConfig(command)
 	if err != nil {
@@ -50,17 +52,18 @@ func runTray(command []string) error {
 	if err := appsession.RunScenario(config, "tray", func(s *appsession.Session) { trayScenario(s, host) }); err != nil {
 		return err
 	}
-	// And where the desktop has no tray: the host leaves the bus, as there is none on a desktop
-	// without one.
+	// The host leaves the bus, as there is none on a desktop that has no panel yet.
 	if err := host.Close(); err != nil {
 		return err
 	}
-	return appsession.RunScenario(config, "no-tray", noTrayScenario)
+	return appsession.RunScenario(config, "tray-late", lateHostScenario)
 }
 
-// trayScenario is the application against the stand-in host: the icon comes with the closing
-// of the window, its picture and its menu are right, it brings the window back and goes with it,
-// the web interface opens in the browser, and the menu ends the application.
+// trayScenario is the application against the stand-in host: the icon comes with the closing of the
+// window, its ID, its picture and its menu are right, it brings the window back and goes with it, and
+// the host of the tray icons starts again, as a desktop does when its shell restarts: the icon takes
+// its place with the new host. The web interface opens in the browser, and the menu ends the
+// application.
 func trayScenario(s *appsession.Session, host *trayhost.Host) {
 	s.WaitForText("Versions in use")
 	s.Step("home")
@@ -73,66 +76,111 @@ func trayScenario(s *appsession.Session, host *trayhost.Host) {
 	s.Step("the icon is in the tray: " + properties.ID)
 
 	s.Check(host.Registered() == 1, "one icon is in the tray")
-	// The library of the version of Ubuntu that the application is built for does not take
-	// Activate: the panel shows the menu, which is how the user gets to the window. An older
-	// library does, and then a double click opens the window: both are right.
-	if err := first.Activate(); err != nil {
-		s.Check(errors.Is(err, trayhost.ErrNoActivation), "Activate is taken, or refused as an unknown method")
-		s.Check(!s.HasWindow(), "an activation that is refused opens nothing")
-	} else {
-		waitForTheWindow(s)
-		s.Step("activated: the window is back")
-		waitPassive(s, first)
-		closeTheWindow(s)
-		first = nextIcon(s, host)
-		checkIcon(s, first)
-	}
+	// The item is a menu, so a click on the icon shows the menu, which is how the user gets to the
+	// window. A desktop that activates the icon all the same brings the window back.
+	s.Check(first.Activate() == nil, "Activate brings the window back")
+	waitForTheWindow(s)
+	s.Step("activated: the window is back")
+	waitPassive(s, first)
+	closeTheWindow(s)
+	first = nextIcon(s, host)
+	checkIcon(s, first)
 
 	s.Check(!s.HasWindow(), "the window is closed")
 	s.Step("choose Open vfox+")
 	s.Check(first.Choose(menuOpen) == nil, "Open vfox+ is chosen in the menu")
 	waitForTheWindow(s)
 	waitPassive(s, first)
+	waitGone(s, first)
 	s.Check(host.Registered() == 0, "the icon goes when the window comes back")
 
 	s.Step("close the window again")
 	closeTheWindow(s)
 	second := nextIcon(s, host)
 	secondProperties := checkIcon(s, second)
-	s.Check(secondProperties.ID != properties.ID, "the icon that comes back is a new one, not the one that went")
+	s.Check(secondProperties.ID == properties.ID, "the icon keeps its ID, by which a desktop keeps its settings for it")
+	s.Check(second.Service != first.Service, "the icon that comes back is an item of its own, under a name of its own: "+second.Service)
+
+	s.Step("the host of the tray icons starts again, as a desktop does when its shell restarts")
+	restarted := restartHost(s, host)
+	defer func() { _ = restarted.Close() }()
+	third := nextIcon(s, restarted)
+	thirdProperties := checkIcon(s, third)
+	s.Check(thirdProperties.ID == properties.ID, "the icon that the new host shows keeps its ID")
+	s.Check(restarted.Registered() == 1, "the new host has the icon, which the application registered again")
 
 	s.Step("choose Open the web interface")
-	s.Check(second.Choose(menuWeb) == nil, "Open the web interface is chosen in the menu")
+	s.Check(third.Choose(menuWeb) == nil, "Open the web interface is chosen in the menu")
 	link := waitForTheBrowser(s)
 	s.Check(strings.HasPrefix(link, "http://127.0.0.1:") && strings.Contains(link, "/auth/connect/"), "the browser is told to open a link that pairs it: "+link)
 	checkLink(s, link)
 	s.Check(!s.HasWindow() && s.Alive(), "opening the web interface leaves the application as it is")
 
 	s.Step("choose Quit vfox+")
+	s.Check(third.Choose(menuQuit) == nil, "Quit vfox+ is chosen in the menu")
+	s.Check(s.WaitExit(trayWait), "the application ends")
+	s.Check(s.ExitError() == nil, fmt.Sprintf("it ends with the code 0 (%v)", s.ExitError()))
+	waitGone(s, third)
+}
+
+// lateHostScenario is the application on a desktop whose host of the tray icons comes up after the
+// window has closed, as it does when the session starts before the shell is ready: the icon waits for
+// the host, and the host takes it when it comes up. The application runs on in the meantime.
+func lateHostScenario(s *appsession.Session) {
+	s.WaitForText("Versions in use")
+	s.Step("close the window, with no host of the tray icons on the bus")
+	closeTheWindow(s)
+	s.WaitFor("the application to say that its icon waits for a host", trayWait, func() bool {
+		return strings.Contains(s.LogText(), "the icon waits for a host of the tray icons")
+	})
+	s.Check(s.Alive(), "the application runs on while its icon waits for a host")
+
+	s.Step("the host of the tray icons comes up")
+	host := startHost(s)
+	defer func() { _ = host.Close() }()
+	item := nextIcon(s, host)
+	properties := checkIcon(s, item)
+	s.Step("the icon is in the tray, taken by the host that came up: " + properties.ID)
+	s.Check(host.Registered() == 1, "one icon is in the tray")
+
+	s.Step("choose Open vfox+")
+	s.Check(item.Choose(menuOpen) == nil, "Open vfox+ is chosen in the menu")
+	waitForTheWindow(s)
+	waitPassive(s, item)
+	waitGone(s, item)
+
+	s.Step("close the window again, and quit from the menu")
+	closeTheWindow(s)
+	second := nextIcon(s, host)
+	checkIcon(s, second)
 	s.Check(second.Choose(menuQuit) == nil, "Quit vfox+ is chosen in the menu")
 	s.Check(s.WaitExit(trayWait), "the application ends")
 	s.Check(s.ExitError() == nil, fmt.Sprintf("it ends with the code 0 (%v)", s.ExitError()))
-	ctx, cancel := context.WithTimeout(context.Background(), trayWait)
-	defer cancel()
-	s.Check(second.WaitGone(ctx) == nil, "the application leaves the bus")
-	_, err := os.Stat(secondProperties.IconThemePath)
-	s.Check(os.IsNotExist(err), "the picture of the icon is removed with it: "+secondProperties.IconThemePath)
+	waitGone(s, second)
 }
 
-// noTrayScenario is the application on a desktop that has no tray: libayatana-appindicator3 would
-// make an icon of the old kind that nothing shows, and 7 MB of memory with it, so the application
-// makes none, says why, and goes on: the window comes back as it is asked to.
-func noTrayScenario(s *appsession.Session) {
-	s.WaitForText("Versions in use")
-	s.Step("close the window, with no host of the tray")
-	closeTheWindow(s)
-	s.WaitFor("the application to say that it makes no icon", trayWait, func() bool {
-		return strings.Contains(s.LogText(), "no icon in the tray: nothing on the desktop shows tray icons")
-	})
-	s.Check(!strings.Contains(s.LogText(), "GtkStatusIcon"), "no icon of the old kind is made")
-	s.Step("bring the window back, with no icon to bring it")
-	s.Check(s.Tell("show") == nil, "the window is asked to come back")
-	waitForTheWindow(s)
+// startHost starts the stand-in host. The name of the watcher may still belong to a host that has just
+// left the bus, which the bus takes off it a moment later, so the start is tried until it works.
+func startHost(s *appsession.Session) *trayhost.Host {
+	deadline := time.Now().Add(trayWait)
+	for {
+		host, err := trayhost.Start()
+		if err == nil {
+			return host
+		}
+		if time.Now().After(deadline) {
+			s.Fail("start the stand-in for the host of the tray icons: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// restartHost takes the stand-in host off the bus, and starts one again.
+func restartHost(s *appsession.Session, host *trayhost.Host) *trayhost.Host {
+	if err := host.Close(); err != nil {
+		s.Fail("take the stand-in for the host of the tray icons off the bus: %v", err)
+	}
+	return startHost(s)
 }
 
 // nextIcon waits for the application to register its icon with the host.
@@ -155,33 +203,40 @@ func waitPassive(s *appsession.Session, item *trayhost.Item) {
 	}
 }
 
-// checkIcon checks what the panel reads of the icon: what it says it is, the picture and the menu.
+// waitGone waits for the application to take the item off the bus, which it does with the icon.
+func waitGone(s *appsession.Session, item *trayhost.Item) {
+	ctx, cancel := context.WithTimeout(context.Background(), trayWait)
+	defer cancel()
+	if err := item.WaitGone(ctx); err != nil {
+		s.Fail("%v", err)
+	}
+}
+
+// checkIcon checks what the panel reads of the icon: what it says it is, its picture, and its menu.
 func checkIcon(s *appsession.Session, item *trayhost.Item) trayhost.Properties {
 	properties, err := item.Properties()
 	if err != nil {
 		s.Fail("%v", err)
 	}
+	s.Check(properties.ID == trayItemID, fmt.Sprintf("the icon has the ID of the application: %q", properties.ID))
 	s.Check(properties.Title == trayToolTip, fmt.Sprintf("the icon says what it is: %q", properties.Title))
 	s.Check(properties.Status == "Active" && properties.Category == "ApplicationStatus", fmt.Sprintf("the icon is active: %+v", properties))
 	s.Check(properties.Menu != "", "the icon has a menu")
 
-	// The picture is the one that was drawn when the application was built, a PNG that the panel
-	// finds by the name of the icon in the directory that the icon names. The name has the extension
-	// of the file where the application gives the icon by its path (mygo 0.9 does, so that the icon
-	// theme of KDE does not take a name for one of its own), and not where it gives a name.
-	file := filepath.Join(properties.IconThemePath, properties.IconName)
-	if !strings.HasSuffix(file, ".png") {
-		file += ".png"
+	// The picture is in the item itself: the panel draws the pixels that the item has, and finds no
+	// file or name of the desktop's themes for them.
+	s.Check(properties.IconName == "" && len(properties.Pixmaps) == 1,
+		fmt.Sprintf("the picture is in the item, and no name of a theme: %q, %d pictures", properties.IconName, len(properties.Pixmaps)))
+	if len(properties.Pixmaps) == 1 {
+		picture := properties.Pixmaps[0]
+		s.Check(picture.Width == 32 && picture.Height == 32 && len(picture.Pixels) == 4*32*32,
+			fmt.Sprintf("the picture is 32 by 32 pixels, not %d by %d with %d bytes", picture.Width, picture.Height, len(picture.Pixels)))
+		if len(picture.Pixels) == 4*32*32 {
+			// Each pixel is alpha, then red, green and blue: the fox is opaque at the middle, and the corner is clear.
+			middle := 4 * (16*32 + 16)
+			s.Check(picture.Pixels[middle] == 0xFF && picture.Pixels[0] == 0, "the picture is the fox, with no plate")
+		}
 	}
-	data, err := os.ReadFile(file) //nolint:gosec // The picture that the application made for its icon.
-	s.Check(err == nil, fmt.Sprintf("the panel can read the picture of the icon at %s (%v)", file, err))
-	picture, err := png.Decode(bytes.NewReader(data))
-	s.Check(err == nil, fmt.Sprintf("the picture is a PNG (%v)", err))
-	bounds := picture.Bounds()
-	s.Check(bounds.Dx() == 32 && bounds.Dy() == 32, fmt.Sprintf("the picture is 32 by 32 pixels, not %v", bounds))
-	_, _, _, middle := picture.At(bounds.Dx()/2, bounds.Dy()/2).RGBA()
-	_, _, _, corner := picture.At(0, 0).RGBA()
-	s.Check(middle == 0xFFFF && corner == 0, "the picture is the fox, with no plate")
 
 	entries, err := item.Entries()
 	if err != nil {

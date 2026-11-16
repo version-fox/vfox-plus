@@ -13,8 +13,8 @@
 sudo apt install libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
 ```
 
-另有一个可选的包：`libayatana-appindicator3-1`，它画出 vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）
-在 GNOME 的托盘里显示的图标。没有它 vfox-plus 就没有托盘图标，其他照常。vfox-plus 的软件包推荐安装它。
+vfox-plus 无窗口运行时（[轻量模式](remote.md#轻量模式)）显示的托盘图标不需要单独的包：在 GNOME 上由 Shell 的
+AppIndicator 扩展画出，Ubuntu 默认启用它。桌面不显示托盘图标时，vfox-plus 就没有托盘图标，其他照常。
 
 从[最新的 GitHub release](https://github.com/version-fox/vfox-plus/releases/latest) 下载适合你电脑（amd64 或 arm64）的 `.deb` 或 `.tar.gz`，二选一（Ubuntu 26.04 装包，示例为 amd64）：
 
@@ -41,6 +41,7 @@ GitHub release 的 classic snap（amd64）则手动安装（strict 限制会挡�
 sudo snap install --dangerous --classic vfox-plus_*.snap
 ```
 
+这个 snap 基于 core26 基础（Ubuntu 26.04），第一次安装时 snapd 会把它一并装上。
 旁加载的 snap 不会自动更新：新版本下载新的 `.snap`，同样命令再装一次。
 
 vfox-plus 是桌面应用：不接受任何参数，需要桌面会话来显示窗口。想同时在浏览器或手机上用，

@@ -28,6 +28,22 @@ updates:
     groups:
       go-modules:
         patterns: ["*"]
+  - package-ecosystem: npm
+    # The web interface, which is built into the page that the Go server embeds.
+    directory: /mygo/web
+    schedule:
+      interval: weekly
+    groups:
+      web-interface:
+        patterns: ["*"]
+  - package-ecosystem: gradle
+    # The Android client. Its Gradle wrapper pin comes with it.
+    directory: /android
+    schedule:
+      interval: weekly
+    groups:
+      android:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     # The workflows, and the actions of this repository, which pin actions too.
     directories:

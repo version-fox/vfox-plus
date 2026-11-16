@@ -56,7 +56,7 @@ if [ -n "$UBUNTU_MIRROR" ]; then
 fi
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  build-essential libgtk-3-0t64 libayatana-appindicator3-1 fontconfig fonts-ubuntu fonts-noto-cjk \
+  build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk \
   xvfb xauth dbus-x11 lintian desktop-file-utils \
   ca-certificates curl file git jq less nano openssh-client sudo unzip xz-utils zip
 rm -rf /var/lib/apt/lists/*

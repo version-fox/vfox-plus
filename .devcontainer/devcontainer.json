@@ -15,8 +15,8 @@
       "dockerDashComposeVersion": "none",
       "installDockerBuildx": false
     },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "24"
+    "ghcr.io/devcontainers/features/node:2": {
+      "version": "26"
     }
   },
   "init": true,

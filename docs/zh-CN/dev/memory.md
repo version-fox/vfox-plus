@@ -42,6 +42,11 @@ WebView 加页面，在设备上衡量，不用本方法。它的工具包要付
 | 窗口已关闭（`lightweight-idle`） | 46 MB | 33 MB |
 | 窗口已关闭，一个浏览器已配对并走完首次清单（`lightweight-loaded`） | 50 MB | 37 MB |
 
+每一行是一次运行。常驻内存的波动，最可能的原因是关窗时窗口已经走到了哪一步：轻量测量立刻关窗，CI 上同一份构建空闲时的
+常驻内存在 11 次作业中有 8 次是 42 MB，其余 3 次是 48 或 49 MB；托盘测量会先等窗口加载 5 秒再关窗，它在 11 次作业上都是
+48 或 49 MB。现在轻量测量也这样等待（见[桌面之外](#桌面之外)）。私有内存（堆和栈，即 `measure` 里的 `Private`）才是报告判定的
+数字：等待之前，在开发容器上同一份构建两次运行之间它只差约 1 MB，而常驻内存差了 6 MB；等待之后，同一份构建三次运行的私有内存只差 0.1 MB。
+
 在应用告诉系统它不要什么（见下）之前，同一台主机上这两行是 RSS 57 与 58 MB、PSS 44 与 45 MB，
 每个构建三次测量都一致到 MB。
 
@@ -93,7 +98,14 @@ Go 的调度器最多用四个处理器（`main.go` 的 `limitProcessors`），�
 应用没有窗口时代表它的托盘图标（见[架构](architecture.md#托盘)）在窗口关闭时创建，窗口打开时
 移除。所以上面各行，在没有东西显示图标的地方（如 CI 的运行器），就是没有它的数字：有窗口时它什么也不占。
 
-有托盘的地方，它的开销很小。在同一台主机上、文件页换出之前，用一个注册为
+现在图标由应用自己经会话总线画出，不加载任何库，上表不反映它：上表是加载 `libayatana-appindicator3` 的那个版本，
+在被替换之前于本机测得的。在与上表同类的主机上，`vfxtool measure-lightweight --tray` 在仓库的开发容器里（WSL2，
+Ubuntu 26.04）六次测得现在的图标：常驻内存的变化在 −440 KB 到 +720 KB 之间，在机器的噪声之内（均值 −73 KB），
+私有内存多出 −48 到 +208 KB（均值 122 KB），即图标的连接、条目与注册的开销。各次之间的差别比图标的开销还大，
+所以这是一个范围。没有宿主时图标不占用与总线的连接（见[架构](architecture.md#托盘)），所以没有宿主的那一行就是没有图标的那一行。
+CI 用同一个工具在它的运行器上测量（见下文）。
+
+用库的时候，有托盘的地方图标的开销很小。在同一台主机上、文件页换出之前，用一个注册为
 `org.kde.StatusNotifierWatcher` 的替身 StatusNotifier 宿主（工具链的 `trayhost` 包），同一份构建，窗口已关闭，
 五次的平均值。那次会话对同一状态读出的数字比上表高约 6 MB，所以只有各行之间的差才有意义：
 
@@ -106,11 +118,11 @@ Go 的调度器最多用四个处理器（`main.go` 的 `limitProcessors`），�
 
 - **显示图标**多占 0.4 MB RSS 与 80 KB 私有内存。这 0.4 MB 是画图标的库的干净页，与同一构建两次运行
   之间的差别相当。
-- **这个库**在系统有它时由 mygo 启动时加载，不论是否创建图标，每个状态下约占 0.3 MB RSS 与 70 KB
+- **这个库**（本次改动之前）在系统有它时由 mygo 启动时加载，不论是否创建图标，每个状态下约占 0.3 MB RSS 与 70 KB
   私有内存。Debian 包推荐安装它，所以默认安装会有。
-- **回退**才是内存会流失的地方：7 MB RSS（其中 1.8 MB 是私有内存），是桌面的图像加载器，GTK 为一个
-  没有面板会显示的图标解码图片而启动它们（在 Ubuntu 26.04 上仅 `glycin` 就是 3 MB）。所以
-  `trayHostAvailable` 在应用请求图标之前先问会话总线有没有宿主，没有宿主就没有图标。
+- **回退**（本次改动之前）才是内存会流失的地方：7 MB RSS（其中 1.8 MB 是私有内存），是桌面的图像加载器，GTK 为一个
+  没有面板会显示的图标解码图片而启动它们（在 Ubuntu 26.04 上仅 `glycin` 就是 3 MB）。所以应用自己放条目，
+  不让库来画图标：没有宿主时条目等着，宿主出现后接管它，而不是回退到那种图标。
 
 文件页换出、处理器受限之后，图标远在应用省下的范围之内。托盘里有图标时（在替身宿主的会话里），这台主机上
 应用持有 15.2 MB 私有内存，此前没有图标时是 15.6 MB，常驻内存小 11 MB。
@@ -118,13 +130,12 @@ Go 的调度器最多用四个处理器（`main.go` 的 `limitProcessors`），�
 CI 让这笔开销保持原样。`vfxtool measure-lightweight --tray`（`measure-remote` 任务的最后一步）用同样的方式
 把应用运行两次，一次没有东西显示图标，一次对着替身宿主，图标多占超过 5 MB 常驻内存或 1.5 MB 私有内存就让任务
 失败：这留出了运行器的噪声，又小于回退的开销，所以像回退那样创建的图标会被抓住。它不用自动化插件，原因见上面的字形
-图集。回退本身，也就是没有宿主时它花掉的那些内存，由图标的场景（`vfxtool e2e-run tray`）把关：没有宿主时应用若创建
-了图标，场景就失败。测过的其他把这 0.4 MB 找回来的办法，除了上面两个都不在代码里：窗口关闭后调用 `malloc_trim`
+图集。没有宿主时，图标的场景（`vfxtool e2e-run tray-late`）检查应用照常运行，宿主出现后图标接管它的位置。测过的其他把这 0.4 MB 找回来的办法，除了上面两个都不在代码里：窗口关闭后调用 `malloc_trim`
 没有变化，`MALLOC_ARENA_MAX=1` 省 0.1 MB，第一次 `debug.FreeOSMemory` 几秒后再来一次，私有内存省 0.2 MB，
 RSS 没有变化（换出之后的那次回收就是这个调用）。窗口关闭后 Go 堆里留下的东西，有 mygo 的文字引擎（段落缓存、
 字形图集与 SVG 路径），应用没有办法释放它们。
 
-CI 的运行器，即 GitHub 上的 Ubuntu 26.04，与这些数字吻合，同一份代码的两次任务运行都是如此：轻量模式静置在
+用库的时候，CI 的运行器，即 GitHub 上的 Ubuntu 26.04，与这些数字吻合，同一份代码的两次任务运行都是如此：轻量模式静置在
 RSS 45 MB、PSS 31 到 32 MB，配对浏览器之后是 47 到 48 MB 与 34 到 35 MB，表里是 46 与 33、50 与 37；托盘里的图标在那里
 多占 0.5 MB RSS 与 0.06 到 0.18 MB 私有内存，本机上是 0.4 MB 与 0.08 MB。
 
@@ -134,15 +145,16 @@ Pull Request 评论还跟踪桌面表格没有的两处：轻量模式、Web 客
 
 - **轻量模式。**`vfxtool measure-lightweight` 在显示环境（`xvfb-run`）下启动应用的端到端构建，
   用全新家目录、假 vfox，以及开启网页界面与轻量模式的设置。端到端构建把配对链接写进
-  `VFOX_PLUS_E2E_LINK` 指定的文件，并在 `SIGUSR1` 时关闭窗口，release 构建没有这些代码。工具在两个静置点
-  打印进程树的 RSS 与 PSS：`lightweight-idle` 窗口已关、无浏览器，`lightweight-loaded` 配对浏览器走完首次
-  清单（SSE）。与桌面一样，超过 5 MB 且 5% 才算变化。加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
+  `VFOX_PLUS_E2E_LINK` 指定的文件，并在 `SIGUSR1` 时关闭窗口，release 构建没有这些代码。链接写好五秒后，窗口已加载完
+  启动时要加载的东西，工具才关闭它，然后在两个静置点打印进程树的 RSS、PSS 与私有内存：`lightweight-idle` 窗口已关、无浏览器，
+  `lightweight-loaded` 配对浏览器走完首次清单（SSE）。只有私有内存参与判定（见[Pull Request 中的内存](#pull-request-中的内存)）。
+  加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
 - **Android 客户端。**`android.yml` 的 `measure` 任务把 release APK 装到模拟器
   （API 36，x86_64），经 launcher 冷启动、静置后读 `dumpsys meminfo`：
   `apk-cold`，单位 MB。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
   才算变化。
 
-CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
+CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
 `android.yml` 的 `measure` 任务上传 `memory-android`，`memory.yml`
 在任一工作流结束时报告，Android 仍在跑时与其余一样等待。章节渲染在桌面表格
 下方，Pull Request 数字与 `main` 并列。
@@ -200,7 +212,7 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
 - **比较时只带要运行的东西。**第一个 Compose 构建里还留着从未运行的 View 屏幕，读数比 View 应用多约 3 MB（新装）与
   约 6 MB（已编译）：APK 里的代码一旦被系统编译，就会占内存。
 - **Compose 屏**用的是 Compose BOM 2026.06.01（Compose 1.11.4、Material 3 1.4.0，只用稳定 API）、
-  activity-compose 1.13.0，以及与锁定的 Kotlin 2.1.20 对应的 Compose 编译器插件。
+  activity-compose 1.13.0，以及与当时锁定的 Kotlin 2.1.20 对应的 Compose 编译器插件。
 - **绝对数值属于这一次测量**：更早的一次，View 应用读到 30 到 34 MB。只比较表中各行。
 - **没有测：**带 Expressive 组件的 Compose（锁定的工具链构建不了，见[为什么用 View 而不是
   Compose](packaging-android.md#为什么用-view-而不是-compose)）、带 WebView 的会话屏、真机。
@@ -242,28 +254,33 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
 - 实现的工作流（[`mygo.yml`](../../../.github/workflows/mygo.yml)）
   跑 `vfxtool measure`（[如何测量](#如何测量)），把打印的行作为构件 `memory-mygo` 上传。
   `vfxtool measure` 也把它们写入 `VFOX_PLUS_MEASURE_OUTPUT` 指定文件。同一工作流的
-  `measure-remote` 任务上传 `memory-lightweight`，
+  `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
   [`android.yml`](../../../.github/workflows/android.yml) 的 `measure` 任务上传
   `memory-android`；评论把它们渲染为表格下方的[桌面之外](#桌面之外)章节。
 - [`memory.yml`](../../../.github/workflows/memory.yml) 在该工作流结束时启动，跑
   `vfxtool memory-report`。比较 Pull Request 构件与 `main` 上同工作流最近运行，
   写评论。工作流跑在 `main` 上下文，才能评论 fork 的 Pull Request，只读构件两行数字。
   令牌无评论权限时仅警告，报告进摘要。
+- 报告的代码取自 `main`：`vfxtool memory-report` 的改动要合并后，才在之后结束运行的 Pull Request 评论中生效；在那之前，
+  Pull Request 的评论仍用 `main` 上的报告。
 - 数字不是上表的数字。它们来自 GitHub runners 单次运行，而非 Docker WSL2 主机。比较
   同评论各行之间及与 `main`，不与本页比。
 
 ### 噪声
 
-相同代码每次 CI 内存不完全相同。比较相同代码的运行，Home 与 Versions PSS 相差从未超过
-1 MB（Home 最低值的 2.4%；Versions 列表 0 MB）。
+相同代码每次 CI 内存不完全相同，常驻内存与 PSS 随窗口关闭时的状态和文件页而变。所以报告这样判定：
 
-评论把超过 5 MB 且超过 `main` 上数字 5% 的差异标为变化并加粗；进程数不同也算变化。
-样本小：若提交明显带不动报告的变化，重新测量相同代码的波动并调整 `vfxtool memory-report`
-的 `Tolerances`。
+- 桌面表格：超过 5 MB 且超过 `main` 上数字 5% 的差异才算变化并加粗。比较相同代码的运行，Home 与 Versions PSS 相差
+  从未超过 1 MB（Home 最低值的 2.4%；Versions 列表 0 MB）。
+- 轻量模式：只判定私有内存，超过 2 MB 与 `main` 上数字 5% 中较大者才算变化。常驻内存与 PSS 只显示差值，不加粗。
+  2 MB 是开发容器上的初步估计（等待之前，同一份构建的私有内存只差约 1 MB），CI 上还没有多次运行的数据。
+
+进程数不同也算变化。样本小：若提交明显带不动报告的变化，重新测量相同代码的波动，并调整 `vfxtool memory-report`
+的 `Tolerances`；轻量模式则调整 `MinPrivateChangeKB` 与 `PrivateTolerance`。
 
 ### 使用
 
-- 构件 90 天过期。`main` 上 that long 无运行则报告"无基线"，等工作流在 `main` 上再跑。
+- 构件 90 天过期。`main` 上连续这么久没有运行，报告就是"无基线"，等工作流在 `main` 上再跑。
 - `gh workflow run memory.yml -f pull_request=<编号>` 重写某 open Pull Request 的报告。只看不写加
   `--dry-run`：
 

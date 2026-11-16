@@ -108,17 +108,10 @@ func TestDependsComplete(t *testing.T) {
 	if Recommends == "" {
 		t.Error("Recommends must not be empty")
 	}
-	// The icon in the tray is a recommendation and not a dependency: the application runs
-	// without the library that draws it, and without an icon.
-	recommended := false
-	for _, part := range splitList(Recommends) {
-		recommended = recommended || part == "libayatana-appindicator3-1"
-	}
-	if !recommended {
-		t.Errorf("Recommends %q misses the library of the tray icon", Recommends)
-	}
-	if strings.Contains(Depends, "appindicator") {
-		t.Errorf("Depends %q needs the library of the tray icon, which only recommends it", Depends)
+	// The icon in the tray needs no library of its own: the application speaks the protocol of the
+	// panels over the session bus, so neither list names a library for it.
+	if strings.Contains(Depends, "appindicator") || strings.Contains(Recommends, "appindicator") {
+		t.Errorf("Depends %q or Recommends %q names a library of the tray icon, which the application does not load", Depends, Recommends)
 	}
 }
 

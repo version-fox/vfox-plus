@@ -16,7 +16,10 @@
 # installed by hand (see docs/en/user/install.md#linux):
 #
 #   cp vfox-plus_<version>_amd64.deb snap/vfox-plus.deb
-#   snapcraft pack
+#   sudo snapcraft pack --destructive-mode
+#
+# The .deb is packed where it lies: the build instance of snapcraft would leave it out,
+# as .gitignore names it, so the pack runs on the Ubuntu of the base (26.04) as root.
 #   sudo snap install --dangerous --classic vfox-plus_*.snap
 #
 # Classic confinement is deliberate: vfox-plus drives the vfox executable and
@@ -31,12 +34,14 @@ description: |
   vfox-plus is a graphical front end for vfox, the cross-platform version
   manager, built with the Material 3 Expressive design language.
   Install vfox first: vfox-plus drives it and cannot work without it.
-base: core24
+# core26 (Ubuntu 26.04) is built by Snapcraft 9: the workflows pin its channel.
+base: core26
 grade: stable
 confinement: classic
-architectures:
-  - build-on: [amd64]
-    run-on: [amd64]
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
 apps:
   vfox-plus:
     # The executable of the .deb. /usr/bin/vfox-plus points to it, and the
@@ -50,8 +55,9 @@ parts:
     # tested artifact instead of building the application a second time. The
     # desktop entry, the metainfo and the icon travel inside the .deb.
     plugin: dump
-    source: vfox-plus.deb
+    # The path is relative to the directory that snapcraft runs in, which is the project root.
+    source: snap/vfox-plus.deb
     source-type: deb
     override-pull: |
       craftctl default
-      craftctl set-version "$(tr -d '[:space:]' < "$CRAFT_PROJECT_DIR/mygo/VERSION")"
+      craftctl set version="$(tr -d '[:space:]' < "$CRAFT_PROJECT_DIR/mygo/VERSION")"
