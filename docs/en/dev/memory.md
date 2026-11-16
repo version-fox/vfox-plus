@@ -57,12 +57,13 @@ same WSL2 host, on 2026-11-04:
 | Window closed (`lightweight-idle`) | 46 MB | 33 MB |
 | Window closed, a browser paired and past its first inventory (`lightweight-loaded`) | 50 MB | 37 MB |
 
-Each row is one run, and a settled state moves between runs of one build by several megabytes of resident
-memory, because the clean pages of files that the system can take back come and go: the same build measured
-42 MB and 48 MB of RSS on different CI runs, and 45 MB and 51 MB on one host. The private memory (the heap and
-the stacks, which `measure` keeps as `Private`) is what the code makes. In the same kind of runs it moved by under
-a megabyte: 13.7 MB with the icon of the tray waiting for a host, and 13.9 MB before it waited. Judge a change by
-that figure.
+Each row is one run. The likely cause of the swing in resident memory is how far the window had got when it was
+closed: the lightweight measurement closed the window at once, and CI read the same build at 42 MB for the idle
+state on eight of eleven runs and at 48 or 49 MB on the other three, while the tray measurement, which waits five
+seconds for the window to load before it closes it, read 48 or 49 MB on all eleven. The measurement now waits in the
+same way (see [Beyond the desktop](#beyond-the-desktop)). The private memory (the heap and the stacks, which `measure`
+keeps as `Private`) is what the report judges: between runs of one build on the devcontainer it moved by about 1 MB,
+where the resident memory moved by 6 MB.
 
 Before the application told the system what it does not want, which is described below, the same two
 rows were 57 and 58 MB of RSS and 44 and 45 MB of PSS on the same host, as three runs of each build
@@ -199,17 +200,19 @@ above.
   application under a display (`xvfb-run`) with a fresh home directory, the fake vfox, and
   settings with the web interface and the lightweight mode on. The end-to-end build writes a
   pairing link to the file that `VFOX_PLUS_E2E_LINK` names and closes its window on `SIGUSR1`,
-  which a release build has no code for. The tool prints the RSS and PSS of the process tree
-  at two settled points: `lightweight-idle` with the window closed and no browser, and
-  `lightweight-loaded` with a paired browser past its first inventory over server-sent
-  events. A change counts only past 5 MB and 5%, like the desktop. With `--tray` it measures instead what the icon in the
-  tray costs (see [The tray icon](#the-tray-icon)).
+  which a release build has no code for. The tool closes the window five seconds after the
+  pairing link is written, once the window has loaded what it loads when it starts, and prints
+  the RSS, PSS and private memory of the process tree at two settled points: `lightweight-idle`
+  with the window closed and no browser, and `lightweight-loaded` with a paired browser past its
+  first inventory over server-sent events. Only the private memory is judged (see
+  [Memory in pull requests](#memory-in-pull-requests)). With `--tray` it measures instead what the
+  icon in the tray costs (see [The tray icon](#the-tray-icon)).
 - **Android client.** The `measure` job of `android.yml` installs the release
   APK on an emulator (API 36, x86_64), cold-starts it through the launcher,
   settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary
   more than GitHub runners, so a change counts only past 5 MB and 10%.
 
-In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight`,
+In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and `memory-lightweight-private`,
 the `measure` job of `android.yml` uploads `memory-android`,
 and `memory.yml` reports when either workflow ends, waiting for a still
 running Android run like for the rest. The sections render below the desktop
@@ -354,7 +357,7 @@ commit replaces that comment instead of adding another one.
   runs `vfxtool measure` ([How it is measured](#how-it-is-measured)) and
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
-  workflow's `measure-remote` job uploads `memory-lightweight`, and the
+  workflow's `measure-remote` job uploads `memory-lightweight` and `memory-lightweight-private`, and the
   `measure` job of [`android.yml`](../../../.github/workflows/android.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.
@@ -365,21 +368,29 @@ commit replaces that comment instead of adding another one.
   is what lets it comment on pull requests of forks, and it reads nothing but two
   lines of numbers from the artifact. If its token cannot write the comment, the
   run only warns, and the report is in its summary.
+- The report is the code of `main`, so a change to `vfxtool memory-report` shows in the comments of the pull
+  requests whose runs end after it is merged; until then a pull request keeps the report of `main`.
 - The numbers are not those of the table above. They come from the runners of GitHub and
   from one run, not from Docker on a WSL2 host. Compare the rows of one comment with each
   other and with `main`, not with this page.
 
 ### The noise
 
-The same code does not use the same memory in every CI run. Comparing runs of
-identical code, the Home and the Versions PSS never differed by more than 1 MB
-(2.4 % of the lowest number on the Home page; 0 MB with the versions listed).
+The same code does not use the same memory in every CI run. The resident and the proportional memory move with
+the state of the window when it closed and with the pages of files that the system takes back, so the report
+judges them as follows:
 
-So the comment calls a difference a change, and prints it in bold, only when it is more
-than 5 MB and more than 5% of the number on `main`. The number of processes never varied,
-so a different number is a change too. The sample is small: if the comment reports a
-change that the commit cannot have caused, measure how much identical code varies again
-and adjust `Tolerances` in `vfxtool memory-report`.
+- The desktop table: a difference counts as a change, and is printed in bold, only when it is more than 5 MB and
+  more than 5% of the number on `main`. Comparing runs of identical code, the Home and the Versions PSS never
+  differed by more than 1 MB (2.4 % of the lowest number on the Home page; 0 MB with the versions listed).
+- The lightweight mode: only the private memory is judged, and a difference counts as a change only when it is more
+  than the larger of 2 MB and 5 % of the number on `main`. The resident and the proportional memory are shown with
+  their difference, without bold. The 2 MB is a first estimate from runs on the devcontainer, where the private
+  memory of one build moved by about 1 MB; CI has not measured it over several runs yet.
+
+The number of processes never varied, so a different number is a change too. The sample is small: if the comment
+reports a change that the commit cannot have caused, measure how much identical code varies again and adjust
+`Tolerances`, or `MinPrivateChangeKB` and `PrivateTolerance` for the lightweight mode, in `vfxtool memory-report`.
 
 ### Using it
 

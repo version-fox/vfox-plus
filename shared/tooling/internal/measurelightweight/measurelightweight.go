@@ -67,6 +67,7 @@ const settings = `{"webInterface":true,"lightweight":true}`
 func Run(args []string) error {
 	flags := flag.NewFlagSet("measure-lightweight", flag.ContinueOnError)
 	outputFlag := flags.String("output", "", "file collecting the memory(<point>) lines (also $VFOX_PLUS_MEASURE_OUTPUT)")
+	privateOutputFlag := flags.String("private-output", "", "file collecting the private memory(<point>) lines (also $VFOX_PLUS_MEASURE_PRIVATE_OUTPUT)")
 	settleFlag := flags.Int("settle", 10, "seconds to settle before each measuring point")
 	fixturesRootFlag := flags.String("fixtures-root", "", "shared/fixtures directory (default: found via repository root)")
 	fakeVfoxFlag := flags.String("fake-vfox", "", "explicit fake vfox executable (default: this vfxtool binary, executed as vfox)")
@@ -86,13 +87,20 @@ func Run(args []string) error {
 	if output == "" {
 		output = os.Getenv("VFOX_PLUS_MEASURE_OUTPUT")
 	}
-	if output != "" {
-		if dir := filepath.Dir(output); dir != "" {
+	privateOutput := *privateOutputFlag
+	if privateOutput == "" {
+		privateOutput = os.Getenv("VFOX_PLUS_MEASURE_PRIVATE_OUTPUT")
+	}
+	for _, path := range []string{output, privateOutput} {
+		if path == "" {
+			continue
+		}
+		if dir := filepath.Dir(path); dir != "" {
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return err
 			}
 		}
-		if err := os.WriteFile(output, nil, 0o644); err != nil {
+		if err := os.WriteFile(path, nil, 0o644); err != nil {
 			return err
 		}
 	}
@@ -122,38 +130,53 @@ func Run(args []string) error {
 		stop()
 		return err
 	}
+	// The window is closed once it has loaded what it loads when it starts, as a user closes it. Closed at
+	// once, a window that has not drawn its first page yet leaves less memory behind than one that has, and
+	// the same build read 42 MB and 48 MB of resident memory on CI for that reason (see the memory page).
+	// The tray measurement waits in the same way.
+	time.Sleep(loadWait)
 	// The window goes; the application stays, with the web interface it was asked for.
 	if err := command.Process.Signal(closeSignal); err != nil {
 		stop()
 		return fmt.Errorf("cannot ask the application to close its window: %w", err)
 	}
-	report := func(point string) (string, error) {
+	// report returns the line of the memory and the line of the private memory at the point, once it has settled.
+	report := func(point string) (string, string, error) {
 		time.Sleep(settle)
 		select {
 		case err := <-done:
-			return "", fmt.Errorf("the application exited early: %v", err)
+			return "", "", fmt.Errorf("the application exited early: %v", err)
 		default:
 		}
-		return "memory (" + point + "): " + measure.MemoryOf(command.Process.Pid), nil
+		usage := measure.UsageOf(command.Process.Pid)
+		return "memory (" + point + "): " + usage.Summary(), "memory (" + point + "): " + usage.PrivateSummary(), nil
 	}
-	emit := func(line string) error {
+	// emit prints the line, and appends it to the file of the output when there is one.
+	emit := func(file, line string) error {
 		fmt.Println(line)
-		if output == "" {
+		if file == "" {
 			return nil
 		}
-		file, err := os.OpenFile(output, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+		handle, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
 			return err
 		}
-		_, err = fmt.Fprintln(file, line)
-		return errors.Join(err, file.Close())
+		_, err = fmt.Fprintln(handle, line)
+		return errors.Join(err, handle.Close())
 	}
-	idle, err := report("lightweight-idle")
+	// record writes the line of the memory and the line of the private memory of a point to their outputs.
+	record := func(memory, private string) error {
+		if err := emit(output, memory); err != nil {
+			return err
+		}
+		return emit(privateOutput, private)
+	}
+	idle, idlePrivate, err := report("lightweight-idle")
 	if err != nil {
 		stop()
 		return err
 	}
-	if err := emit(idle); err != nil {
+	if err := record(idle, idlePrivate); err != nil {
 		stop()
 		return err
 	}
@@ -163,13 +186,13 @@ func Run(args []string) error {
 		return err
 	}
 	defer func() { _ = events.Close() }()
-	loaded, err := report("lightweight-loaded")
+	loaded, loadedPrivate, err := report("lightweight-loaded")
 	_ = events.Close()
 	stop()
 	if err != nil {
 		return err
 	}
-	return emit(loaded)
+	return record(loaded, loadedPrivate)
 }
 
 // application is the application that is running, and the way to end it.

@@ -361,16 +361,27 @@ jobs:
           "$RUNNER_TEMP/vfxtool" prepare --root mygo
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
       - name: Measure the lightweight mode
+        # The private memory is written to a file of its own, uploaded as memory-lightweight-private. The
+        # artifact memory-lightweight keeps the lines that the report on main has always read: a line that it
+        # does not know would make the comment show the numbers of main for this run, as if it had none.
         env:
           VFOX_PLUS_MEASURE_OUTPUT: ${{ runner.temp }}/memory-lightweight/memory.txt
+          VFOX_PLUS_MEASURE_PRIVATE_OUTPUT: ${{ runner.temp }}/memory-lightweight-private/memory.txt
         run: |
           xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
             "$RUNNER_TEMP/vfxtool" measure-lightweight --settle 10 "$RUNNER_TEMP/vfox-plus-e2e"
           cat "${{ runner.temp }}/memory-lightweight/memory.txt"
+          cat "${{ runner.temp }}/memory-lightweight-private/memory.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memory-lightweight
           path: ${{ runner.temp }}/memory-lightweight/memory.txt
+          if-no-files-found: error
+          overwrite: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memory-lightweight-private
+          path: ${{ runner.temp }}/memory-lightweight-private/memory.txt
           if-no-files-found: error
           overwrite: true
       - name: Check what the icon in the tray costs

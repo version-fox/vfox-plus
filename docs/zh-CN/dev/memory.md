@@ -42,9 +42,10 @@ WebView 加页面，在设备上衡量，不用本方法。它的工具包要付
 | 窗口已关闭（`lightweight-idle`） | 46 MB | 33 MB |
 | 窗口已关闭，一个浏览器已配对并走完首次清单（`lightweight-loaded`） | 50 MB | 37 MB |
 
-每一行是一次运行。同一份构建在两次运行之间，常驻内存会相差好几兆：同一份构建在 CI 的不同运行上测得 42 MB 与 48 MB，
-在同一台主机上是 45 MB 与 51 MB，因为系统随时能收回的文件干净页时多时少。私有内存（堆和栈，即 `measure` 里的 `Private`）
-才是代码做出来的，同类运行里它的波动不到 1 MB：托盘图标等待宿主时是 13.7 MB，等待之前是 13.9 MB。判断一次改动，看的是它。
+每一行是一次运行。常驻内存的波动，最可能的原因是关窗时窗口已经走到了哪一步：轻量测量立刻关窗，CI 上同一份构建空闲时的
+常驻内存在 11 次作业中有 8 次是 42 MB，其余 3 次是 48 或 49 MB；托盘测量会先等窗口加载 5 秒再关窗，它在 11 次作业上都是
+48 或 49 MB。现在轻量测量也这样等待（见[桌面之外](#桌面之外)）。私有内存（堆和栈，即 `measure` 里的 `Private`）才是报告判定的
+数字：在开发容器上，同一份构建两次运行之间它只差约 1 MB，而常驻内存差了 6 MB。
 
 在应用告诉系统它不要什么（见下）之前，同一台主机上这两行是 RSS 57 与 58 MB、PSS 44 与 45 MB，
 每个构建三次测量都一致到 MB。
@@ -144,15 +145,16 @@ Pull Request 评论还跟踪桌面表格没有的两处：轻量模式、Web 客
 
 - **轻量模式。**`vfxtool measure-lightweight` 在显示环境（`xvfb-run`）下启动应用的端到端构建，
   用全新家目录、假 vfox，以及开启网页界面与轻量模式的设置。端到端构建把配对链接写进
-  `VFOX_PLUS_E2E_LINK` 指定的文件，并在 `SIGUSR1` 时关闭窗口，release 构建没有这些代码。工具在两个静置点
-  打印进程树的 RSS 与 PSS：`lightweight-idle` 窗口已关、无浏览器，`lightweight-loaded` 配对浏览器走完首次
-  清单（SSE）。与桌面一样，超过 5 MB 且 5% 才算变化。加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
+  `VFOX_PLUS_E2E_LINK` 指定的文件，并在 `SIGUSR1` 时关闭窗口，release 构建没有这些代码。链接写好五秒后，窗口已加载完
+  启动时要加载的东西，工具才关闭它，然后在两个静置点打印进程树的 RSS、PSS 与私有内存：`lightweight-idle` 窗口已关、无浏览器，
+  `lightweight-loaded` 配对浏览器走完首次清单（SSE）。只有私有内存参与判定（见[Pull Request 中的内存](#pull-request-中的内存)）。
+  加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
 - **Android 客户端。**`android.yml` 的 `measure` 任务把 release APK 装到模拟器
   （API 36，x86_64），经 launcher 冷启动、静置后读 `dumpsys meminfo`：
   `apk-cold`，单位 MB。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
   才算变化。
 
-CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight`，
+CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
 `android.yml` 的 `measure` 任务上传 `memory-android`，`memory.yml`
 在任一工作流结束时报告，Android 仍在跑时与其余一样等待。章节渲染在桌面表格
 下方，Pull Request 数字与 `main` 并列。
@@ -252,28 +254,33 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
 - 实现的工作流（[`mygo.yml`](../../../.github/workflows/mygo.yml)）
   跑 `vfxtool measure`（[如何测量](#如何测量)），把打印的行作为构件 `memory-mygo` 上传。
   `vfxtool measure` 也把它们写入 `VFOX_PLUS_MEASURE_OUTPUT` 指定文件。同一工作流的
-  `measure-remote` 任务上传 `memory-lightweight`，
+  `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
   [`android.yml`](../../../.github/workflows/android.yml) 的 `measure` 任务上传
   `memory-android`；评论把它们渲染为表格下方的[桌面之外](#桌面之外)章节。
 - [`memory.yml`](../../../.github/workflows/memory.yml) 在该工作流结束时启动，跑
   `vfxtool memory-report`。比较 Pull Request 构件与 `main` 上同工作流最近运行，
   写评论。工作流跑在 `main` 上下文，才能评论 fork 的 Pull Request，只读构件两行数字。
   令牌无评论权限时仅警告，报告进摘要。
+- 报告的代码取自 `main`：`vfxtool memory-report` 的改动要合并后，才在之后结束运行的 Pull Request 评论中生效；在那之前，
+  Pull Request 的评论仍用 `main` 上的报告。
 - 数字不是上表的数字。它们来自 GitHub runners 单次运行，而非 Docker WSL2 主机。比较
   同评论各行之间及与 `main`，不与本页比。
 
 ### 噪声
 
-相同代码每次 CI 内存不完全相同。比较相同代码的运行，Home 与 Versions PSS 相差从未超过
-1 MB（Home 最低值的 2.4%；Versions 列表 0 MB）。
+相同代码每次 CI 内存不完全相同，常驻内存与 PSS 随窗口关闭时的状态和文件页而变。所以报告这样判定：
 
-评论把超过 5 MB 且超过 `main` 上数字 5% 的差异标为变化并加粗；进程数不同也算变化。
-样本小：若提交明显带不动报告的变化，重新测量相同代码的波动并调整 `vfxtool memory-report`
-的 `Tolerances`。
+- 桌面表格：超过 5 MB 且超过 `main` 上数字 5% 的差异才算变化并加粗。比较相同代码的运行，Home 与 Versions PSS 相差
+  从未超过 1 MB（Home 最低值的 2.4%；Versions 列表 0 MB）。
+- 轻量模式：只判定私有内存，超过 2 MB 与 `main` 上数字 5% 中较大者才算变化。常驻内存与 PSS 只显示差值，不加粗。
+  2 MB 是开发容器上的初步估计（同一份构建的私有内存只差约 1 MB），CI 上还没有多次运行的数据。
+
+进程数不同也算变化。样本小：若提交明显带不动报告的变化，重新测量相同代码的波动，并调整 `vfxtool memory-report`
+的 `Tolerances`；轻量模式则调整 `MinPrivateChangeKB` 与 `PrivateTolerance`。
 
 ### 使用
 
-- 构件 90 天过期。`main` 上 that long 无运行则报告"无基线"，等工作流在 `main` 上再跑。
+- 构件 90 天过期。`main` 上连续这么久没有运行，报告就是"无基线"，等工作流在 `main` 上再跑。
 - `gh workflow run memory.yml -f pull_request=<编号>` 重写某 open Pull Request 的报告。只看不写加
   `--dry-run`：
 
