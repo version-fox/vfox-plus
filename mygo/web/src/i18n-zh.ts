@@ -140,7 +140,7 @@ export const zh = {
   namesToTry: "可以试试这些名称",
   nameRequired: "请输入版本名称。",
   nameInvalid: "版本名称不能含空格，也不能以短横线开头。",
-  downloads: "下载",
+  environmentVariables: "环境变量",
   unset: "默认",
   advanced: "高级",
   change: "更改",

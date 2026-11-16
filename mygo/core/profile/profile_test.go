@@ -48,20 +48,20 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
 	}
-	if _, ok := registry.Lookup("maven"); ok {
-		t.Error("maven has no profile")
+	if _, ok := registry.Lookup("ruby"); ok {
+		t.Error("ruby has no profile")
 	}
 	var missing *Registry
 	if _, ok := missing.Lookup("java"); ok {
 		t.Error("a nil registry knows nothing")
 	}
-	registry.Register(Profile{Plugin: "maven", Guide: Text{EN: "x"}})
-	if profile, ok := registry.Lookup("maven"); !ok || profile.Guide.EN != "x" {
+	registry.Register(Profile{Plugin: "ruby", Guide: Text{EN: "x"}})
+	if profile, ok := registry.Lookup("ruby"); !ok || profile.Guide.EN != "x" {
 		t.Error("a registered profile is found")
 	}
 }
@@ -140,7 +140,7 @@ func TestSearchArgumentsAndChoices(t *testing.T) {
 	if _, ok := none.Choice("tem"); ok {
 		t.Error("a nil search has no choices")
 	}
-	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python"} {
+	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
 		if lookup(t, plugin).Search != nil {
 			t.Errorf("%s ignores search arguments", plugin)
 		}
@@ -207,6 +207,8 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"gradle":  {[]string{"VFOX_GRADLE_MIRRORS"}, []string{"gradle/wrapper/gradle-wrapper.properties"}},
 		"golang":  {[]string{"VFOX_GOLANG_MIRROR"}, nil},
 		"python":  {[]string{"VFOX_PYTHON_MIRROR", "VFOX_PYTHON_USE_UV_BUILD", "VFOX_PYTHON_UV_BUILD_MIRROR", "VFOX_PYTHON_UV_LIBC"}, []string{".python-version"}},
+		"maven":   {nil, nil},
+		"php":     {[]string{"PHP_WITHOUT_PEAR", "PHP_WITHOUT_PCRE_JIT"}, nil},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
@@ -254,7 +256,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		}
 	}
 	strategyReaders := map[string]bool{"nodejs": true, "python": true}
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
 		if got := lookup(t, plugin).LegacyStrategy; got != strategyReaders[plugin] {
 			t.Errorf("%s LegacyStrategy = %v: only vfox-nodejs and vfox-python read the strategy of the legacy version files", plugin, got)
 		}
@@ -457,6 +459,82 @@ func TestPythonOffersTheVariablesOfItsPlatform(t *testing.T) {
 		if !reflect.DeepEqual(keys, expected) {
 			t.Errorf("%s variables = %v, want %v", goos, keys, expected)
 		}
+	}
+}
+
+func TestPHPOffersItsBuildOptionsOnUnixOnly(t *testing.T) {
+	// The source builds of Linux and macOS read these; the Windows builds are
+	// unpacked and read none of them.
+	unix := []string{"PHP_WITHOUT_PEAR", "PHP_WITHOUT_PCRE_JIT"}
+	want := map[string][]string{"linux": unix, "darwin": unix, "windows": nil}
+	for goos, expected := range want {
+		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("php")
+		if !ok {
+			t.Fatal("no profile for php")
+		}
+		var keys []string
+		for _, variable := range profile.Variables {
+			keys = append(keys, variable.Key)
+		}
+		if !reflect.DeepEqual(keys, expected) {
+			t.Errorf("%s variables = %v, want %v", goos, keys, expected)
+		}
+		// The build options do nothing on Windows, so no tip names them there,
+		// and the Unix tips do.
+		named := false
+		for _, tip := range profile.Tips {
+			named = named || strings.Contains(tip.EN, "PHP_CONFIGURE_OPTIONS")
+		}
+		if named != (goos != "windows") {
+			t.Errorf("%s: the tips name the build options: %v", goos, named)
+		}
+	}
+	// Both are switches: no and yes, as the plugin reads them. Any other value
+	// is not what the plugin does with it.
+	for _, key := range unix {
+		variable, _ := lookup(t, "php").Variable(key)
+		if variable.Validate("yes") != nil || variable.Validate("no") != nil || variable.Validate("1") == nil {
+			t.Errorf("%s takes yes or no only", key)
+		}
+	}
+}
+
+func TestPHPFiltersTheWindowsBuilds(t *testing.T) {
+	// The Windows list says which build each release is, as TS or NTS. The
+	// Linux and macOS lists say nothing, so the profile offers no filter there.
+	for _, goos := range []string{"linux", "darwin"} {
+		profile, _ := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("php")
+		if len(profile.Facets) != 0 {
+			t.Errorf("%s has no build to filter by: %+v", goos, profile.Facets)
+		}
+	}
+	php, ok := NewRegistry(Platform{OS: "windows", Arch: "amd64"}).Lookup("php")
+	if !ok {
+		t.Fatal("no profile for php")
+	}
+	versions := []core.AvailableVersion{
+		{Version: "8.5.12", Note: "TS", HasNote: true},
+		{Version: "8.5.12-nts", Note: "NTS", HasNote: true},
+		{Version: "8.4.20", Note: "TS", HasNote: true},
+	}
+	groups := php.Groups(versions)
+	if len(groups) != 1 || groups[0].ID != "build" || !reflect.DeepEqual(groups[0].Chips, []Chip{{"TS", 2}, {"NTS", 1}}) {
+		t.Fatalf("groups = %+v", groups)
+	}
+	kept := func(selection Selection) []string {
+		var names []string
+		for _, version := range versions {
+			if php.Matches(selection, version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept(Selection{}.Toggled("build", "NTS")); !reflect.DeepEqual(got, []string{"8.5.12-nts"}) {
+		t.Errorf("NTS = %v", got)
+	}
+	if got := kept(Selection{}.Toggled("build", "TS")); !reflect.DeepEqual(got, []string{"8.5.12", "8.4.20"}) {
+		t.Errorf("TS = %v", got)
 	}
 }
 

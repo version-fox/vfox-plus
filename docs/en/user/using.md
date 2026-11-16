@@ -85,7 +85,7 @@ made from:
 
 The **Options** tab holds what is particular to the plugin:
 
-- **Downloads**: the environment variables that the plugin reads, with the mirrors
+- **Environment variables**: the variables that the plugin reads, with the mirrors
   that were checked to choose from: the GitHub mirror of Java and Flutter, the
   download mirror of Node.js, the storage mirror of Flutter, the Gradle mirror
   list, the Go mirror and the python.org and uv-build mirrors of Python. They are added to
@@ -107,6 +107,39 @@ The **Options** tab holds what is particular to the plugin:
   tool shadows the one of vfox, the health card names it and what to do
   (`path.mode`, `path.preserve`).
 - **Documentation**: the pages of the plugin that explain it, in your language.
+
+### Maven and PHP
+
+The plugins [vfox-maven](https://github.com/version-fox/vfox-maven) and
+[vfox-php](https://github.com/version-fox/vfox-php) do more than list versions too; the
+three interfaces offer it alike:
+
+- **Install by name.** `latest` installs the newest stable release. A pre-release installs
+  by its name, such as `4.0.0-rc-7`. For PHP, `latest` is the newest release, which on
+  Windows is the thread-safe build.
+- **PHP builds.** On Linux and macOS a plain version is the non-thread-safe build; `-zts` names the
+  thread-safe one, as in
+  `8.5.12-zts`, and `vfox search php` does not list `-zts` builds. On Windows a plain
+  version is the thread-safe build, and `-nts` names the non-thread-safe one.
+- **Filter chips.** On Windows, PHP has a **Build** filter with the chips TS and NTS. Linux
+  and macOS have no such filter.
+- **Build options.** On Linux and macOS, the **Options** tab lists PEAR and PCRE JIT, each
+  with **Change**. PEAR sets whether the build includes PEAR and its `pear` and `pecl`
+  commands; PCRE JIT is on by default.
+- **Free-text options.** `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take any text, so the
+  **Options** tab does not offer them. Set them in *Settings → Environment variables* as
+  `KEY=VALUE`: the application passes that list to every vfox command.
+- **Adopt.** **Detect and link** adopts the Mavens that `M2_HOME` and `MAVEN_HOME` name, and
+  those of the system package, Homebrew, SDKMAN, asdf, mise, Scoop and Chocolatey. Maven 1
+  is not found that way; use **Link existing…**. It also adopts a PHP that is already
+  installed, which needs vfox 1.1.0 or later.
+- **Java runtime.** Maven runs on a Java runtime that the plugin does not install: put a JDK
+  on `PATH` or set `JAVA_HOME`. Maven 1.1 runs on JDK 8 only.
+- **Build time.** On Linux and macOS, PHP is compiled from its source, which takes a while.
+  The build checks its dependencies first and names any missing packages, so nothing is
+  compiled before a missing one is reported.
+- **Windows runtime.** On Windows the install adds the Visual C++ 2015-2022 runtime when it
+  is missing, after Windows asks for permission.
 
 ## Plugins
 

@@ -442,9 +442,9 @@
   },
   "sdkTabOptions": "Options",
   "@sdkTabOptions": {
-    "description": "Tab with what is particular to a plugin: its downloads, version files and names."
+    "description": "Tab with what is particular to a plugin: its environment variables, version files and names."
   },
-  "optionsVariables": "Downloads",
+  "optionsVariables": "Environment variables",
   "@optionsVariables": {
     "description": "Heading of the environment variables that a plugin reads, such as its download mirror."
   },

@@ -414,7 +414,7 @@ func TestSdkDetailOfAPluginThatDeclaresAnotherNameKeepsWhatItHas(t *testing.T) {
 		label, alias, declared string
 		wantKnown              bool
 	}{
-		{"a plugin that has no profile", "mine", "maven", false},
+		{"a plugin that has no profile", "mine", "ruby", false},
 		{"a profile of the name is kept", "java", "something-else", true},
 	} {
 		controller := state.NewSdkDetailController(testClient(aliasRunner(c.alias, c.declared)), c.alias, linuxProfiles(), nil)

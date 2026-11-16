@@ -336,7 +336,7 @@ output streamed to the user.
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
 | Stop using       | `vfox unuse --global <name>`                         | `/` or project    | |
 | Link             | `vfox link <name>@<version> <path>`                  | `/`               | Uses the SDK at `path` (its `bin` directory) as `version`; `--force` repoints a linked version. Uninstalling removes the link only. |
-| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang, python) and links them; `-y` links everything without asking. |
+| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang, python, maven, php) and links them; `-y` links everything without asking. |
 | Alias set        | `vfox alias set <sdk> <alias> <version>`             | `/`               | Names an installed version, for example `java@j17`. |
 | Alias unset      | `vfox alias unset <sdk> <alias>`                     | `/`               | Removes the alias. |
 | Doctor adopt     | `vfox doctor --adopt [<sdk>[@<version>]]`            | `/`               | Records pre-receipt installs so drift can be detected later. |
@@ -358,7 +358,9 @@ release (`24`, `24.21`) and `latest`; vfox-flutter takes the channels `stable` a
 under the name of that release; vfox-java takes a version and a distribution
 (`21-tem`, `temurin-21`, `21.0.8-tem`, `21-zulu-fx`) or an early-access build
 (`28.ea-open`); vfox-gradle takes `latest` besides the listed releases;
-vfox-golang takes `latest` and release candidates such as `1.27rc3`; vfox-python takes `latest`, a partial release such as `3.13` or `3.13t`, and the full name of a GraalPy release such as `graalpy-24.2.0`. The
+vfox-golang takes `latest` and release candidates such as `1.27rc3`; vfox-python takes `latest`, a partial release such as `3.13` or `3.13t`, and the full name of a GraalPy release such as `graalpy-24.2.0`. vfox-maven and vfox-php take `latest` besides the listed releases;
+vfox-php takes `-zts` names on Linux and macOS, such as `8.5.12-zts`, and `-nts` names on
+Windows. The
 application therefore installs whatever name the user types,
 checked like any other version (not empty, not starting with `-`, no whitespace, no
 `@`), and takes the installed names from `vfox list` afterwards, since a channel
@@ -374,7 +376,12 @@ vfox command (see [Environment](#environment)): `VFOX_JAVA_GITHUB_MIRROR` and
 has to start with `http://` or `https://`; vfox takes anything else for a file on
 disk), `VFOX_NODEJS_MIRROR`, `FLUTTER_STORAGE_BASE_URL` and `VFOX_NODEJS_LIBC`
 (`musl` or `glibc`), `VFOX_GRADLE_MIRRORS`, `VFOX_GOLANG_MIRROR` (with a trailing
-`/`), `VFOX_PYTHON_MIRROR` and `VFOX_PYTHON_UV_BUILD_MIRROR` (the python.org and uv-build mirrors), `VFOX_PYTHON_USE_UV_BUILD` (`0` or `1`), `VFOX_PYTHON_UV_LIBC` (`gnu` or `musl`), `VFOX_PYTHON_REGISTER_PY_LAUNCHER` (`0` turns the Windows launcher registration off) and `VFOX_JAVA_JDKS_LINKS` (exposes JDKs to Gradle and IDEA). vfox keeps the
+`/`), `VFOX_PYTHON_MIRROR` and `VFOX_PYTHON_UV_BUILD_MIRROR` (the python.org and uv-build mirrors), `VFOX_PYTHON_USE_UV_BUILD` (`0` or `1`), `VFOX_PYTHON_UV_LIBC` (`gnu` or `musl`), `VFOX_PYTHON_REGISTER_PY_LAUNCHER` (`0` turns the Windows launcher registration off) and `VFOX_JAVA_JDKS_LINKS` (exposes JDKs to Gradle and IDEA). `PHP_WITHOUT_PEAR` and `PHP_WITHOUT_PCRE_JIT`
+(`yes` or `no`) are the build options of vfox-php on Linux and macOS, and the Options tab
+of the plugin writes them to that same list. `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take
+free text, so the Options tab does not offer them: they are set in Settings, under
+Environment variables, as `KEY=VALUE`, and the application passes that list to every vfox
+command. vfox keeps the
 answer of a search per list of arguments for
 `cache.availableHookDuration`, whatever the environment says, so a changed mirror
 shows in the list after the cache expires.

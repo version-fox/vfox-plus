@@ -140,7 +140,7 @@ export const en = {
   namesToTry: "Names to try",
   nameRequired: "Type a version name.",
   nameInvalid: "A version name has no spaces and does not start with a dash.",
-  downloads: "Downloads",
+  environmentVariables: "Environment variables",
   unset: "Default",
   advanced: "Advanced",
   change: "Change",

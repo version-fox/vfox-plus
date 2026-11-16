@@ -164,6 +164,12 @@ func TestParseSearch(t *testing.T) {
 	if got := vfox.ParseSearch(" - 1.0 preview\n"); len(got) != 1 || got[0].Note != "preview" {
 		t.Errorf("got %#v", got)
 	}
+	// The builds of PHP on Windows are notes, TS or NTS, and an installed one
+	// keeps its note; an installed Maven has no note at all, so the filter of
+	// the notes never takes `installed` for one.
+	if got := vfox.ParseSearch(" - 8.5.12 (TS) (installed)\n - 8.5.12-nts (NTS)\n - 3.9.16 (installed)\n"); len(got) != 3 || got[0].Note != "TS" || !got[0].Installed || got[1].Note != "NTS" || got[1].Installed || got[2].HasNote || !got[2].Installed {
+		t.Errorf("got %#v", got)
+	}
 	if got := vfox.ParseSearch("Please select a version\n -\n - \n"); len(got) != 0 {
 		t.Errorf("got %#v", got)
 	}

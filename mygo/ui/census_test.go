@@ -148,6 +148,8 @@ type censusScene struct {
 	java, missing bool
 	// python gives the machine Python next to the others, which the screens of Python need.
 	python bool
+	// php gives the machine PHP next to the others, which the screens of PHP need.
+	php bool
 	// tall says that the page is taller than the windows of the census are, as the settings are in the narrowest, and the lists of
 	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
 	// it has below the fold is drawn and counted, too.
@@ -213,6 +215,11 @@ var censusScenes = []censusScene{
 	{name: "options-python", python: true, tall: true, reach: optionsOf("python")},
 	// The filter of the GraalPy builds is the longest chip of the screens of the profiles: 18 versions are left under it.
 	{name: "python-available", python: true, tall: true, reach: func(ta *testApp) { ta.openAvailable("python"); ta.button("GraalPy Community") }},
+	// The options and the install by name of the profiles of Maven and PHP, whose tips and guides are the copy of their profiles.
+	{name: "options-maven", tall: true, reach: optionsOf("maven")},
+	{name: "maven-install-name", modal: true, reach: func(ta *testApp) { ta.openAvailable("maven"); ta.addMore("Install by name…") }},
+	{name: "options-php", php: true, tall: true, reach: optionsOf("php")},
+	{name: "php-install-name", php: true, modal: true, reach: func(ta *testApp) { ta.openAvailable("php"); ta.addMore("Install by name…") }},
 	{name: "tooltip", tooltip: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: func(ta *testApp) {
 		ta.hover(kit.RoleButton, "More ways to use this version")
 	}},
@@ -317,6 +324,9 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	}
 	if scene.python {
 		runner = pythonRunner()
+	}
+	if scene.php {
+		runner = phpRunner()
 	}
 	for prefix, delay := range censusSlowDowns {
 		runner.SlowDown(prefix, delay)
