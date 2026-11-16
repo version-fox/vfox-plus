@@ -62,8 +62,8 @@ closed: the lightweight measurement closed the window at once, and CI read the s
 state on eight of eleven runs and at 48 or 49 MB on the other three, while the tray measurement, which waits five
 seconds for the window to load before it closes it, read 48 or 49 MB on all eleven. The measurement now waits in the
 same way (see [Beyond the desktop](#beyond-the-desktop)). The private memory (the heap and the stacks, which `measure`
-keeps as `Private`) is what the report judges: between runs of one build on the devcontainer it moved by about 1 MB,
-where the resident memory moved by 6 MB.
+keeps as `Private`) is what the report judges. Before the wait, between runs of one build on the devcontainer it moved by about 1 MB,
+where the resident memory moved by 6 MB; with the wait, three runs of one build moved by 0.1 MB of private memory.
 
 Before the application told the system what it does not want, which is described below, the same two
 rows were 57 and 58 MB of RSS and 44 and 45 MB of PSS on the same host, as three runs of each build
@@ -386,7 +386,7 @@ judges them as follows:
 - The lightweight mode: only the private memory is judged, and a difference counts as a change only when it is more
   than the larger of 2 MB and 5 % of the number on `main`. The resident and the proportional memory are shown with
   their difference, without bold. The 2 MB is a first estimate from runs on the devcontainer, where the private
-  memory of one build moved by about 1 MB; CI has not measured it over several runs yet.
+  memory of one build moved by about 1 MB before the wait; CI has not measured it over several runs yet.
 
 The number of processes never varied, so a different number is a change too. The sample is small: if the comment
 reports a change that the commit cannot have caused, measure how much identical code varies again and adjust
