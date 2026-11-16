@@ -158,7 +158,7 @@ export const zh = {
   saved: "已保存",
   pageLang: "页面语言",
   language: "语言",
-  extraEnv: "额外环境变量",
+  extraEnv: "环境变量",
   langSystem: "跟随系统",
 
   addFromSource: "从来源添加",

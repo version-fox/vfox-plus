@@ -158,7 +158,7 @@ export const en = {
   saved: "Saved",
   pageLang: "Page language",
   language: "Language",
-  extraEnv: "Extra environment",
+  extraEnv: "Environment variables",
   langSystem: "system",
 
   addFromSource: "Add from source",
