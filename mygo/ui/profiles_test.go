@@ -120,7 +120,7 @@ func TestThePythonOptionsSetTheInstallMethodAndShowTheVersionFiles(t *testing.T)
 	ta.button("Options")
 	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 	ta.settle()
-	for _, text := range []string{"Environment variables", "python.org mirror", "Install method", "uv-build mirror", "Version files", ".python-version", "Notes"} {
+	for _, text := range []string{"Plugin variables", "python.org mirror", "Install method", "uv-build mirror", "Version files", ".python-version", "Notes"} {
 		ta.mustText(text)
 	}
 	ta.snapshot("python-options")
@@ -425,7 +425,7 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 	ta.settle()
 	for _, text := range []string{
-		"Environment variables", "Download mirror", "C library", "Advanced", "Version files", "Read legacy version files",
+		"Plugin variables", "Download mirror", "C library", "Advanced", "Version files", "Read legacy version files",
 		".node-version", ".nvmrc", "Aliases", "Notes", "Documentation",
 	} {
 		ta.mustText(text)
@@ -547,7 +547,7 @@ func TestTheOptionsFollowTheLanguage(t *testing.T) {
 	ta.button("选项")
 	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 	ta.settle()
-	for _, text := range []string{"环境变量", "下载镜像", "版本文件", "别名", "须知", "文档"} {
+	for _, text := range []string{"插件变量", "下载镜像", "版本文件", "别名", "须知", "文档"} {
 		if !ta.text(text) && !strings.Contains(strings.Join(ta.texts(), "\n"), text) {
 			t.Errorf("no %q: %q", text, ta.texts())
 		}

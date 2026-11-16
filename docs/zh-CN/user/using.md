@@ -57,7 +57,7 @@
 
 **选项**页签放的是这个插件特有的内容：
 
-- **环境变量**：插件读取的变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
+- **插件变量**：插件读取的变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
   下载镜像、Flutter 的存储镜像、Gradle 镜像列表、Go 镜像与 Python 的 python.org 和 uv-build 镜像，它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
   `https://` 开头。
 - **版本文件**：一个开关，下面是该插件读取的文件：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与

@@ -85,7 +85,7 @@ made from:
 
 The **Options** tab holds what is particular to the plugin:
 
-- **Environment variables**: the variables that the plugin reads, with the mirrors
+- **Plugin variables**: the variables that the plugin reads, with the mirrors
   that were checked to choose from: the GitHub mirror of Java and Flutter, the
   download mirror of Node.js, the storage mirror of Flutter, the Gradle mirror
   list, the Go mirror and the python.org and uv-build mirrors of Python. They are added to
