@@ -100,6 +100,9 @@ type Node struct {
 	Scope string
 	// Tooltip is shown when the pointer rests on the widget.
 	Tooltip string
+	// Initial says that a text is the initial of a name in an avatar, not copy: a name may be cut short without
+	// being a budget failure.
+	Initial bool
 	// Click does what a click on the widget does.
 	Click func()
 	// Fill puts text into a text field and, with submit, presses Enter.

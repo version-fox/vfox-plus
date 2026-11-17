@@ -179,7 +179,7 @@ func TakeCensus(nodes []*Node, window ui.Rect, img image.Image) Census {
 			}
 			// A title of 22 dp and more, the title of a group or of a card, and the text of a tooltip are copy: a name, which the title of a
 			// row is, may end with an ellipsis.
-			counted := n.Size >= 22 || n.Heading || n.Scope == "tooltip" || within(n, shown, func(o *Node) bool { return controls[o.Role] })
+			counted := !n.Initial && (n.Size >= 22 || n.Heading || n.Scope == "tooltip" || within(n, shown, func(o *Node) bool { return controls[o.Role] }))
 			if n.Natural > 0 && n.Rect.W < n.Natural-cutSlack && counted {
 				census.Cut = append(census.Cut, fmt.Sprintf("%q is %.0f dp wide where it has %.0f", truncate(n.Text, 30), n.Natural, n.Rect.W))
 			}
