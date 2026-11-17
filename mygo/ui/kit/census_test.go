@@ -335,6 +335,15 @@ func TestTheCensusFindsATitleOrAControlThatIsCutShort(t *testing.T) {
 	if got := TakeCensus([]*Node{label}, rect(0, 0, 300, 100), nil); len(got.Cut) != 0 {
 		t.Errorf("and the same text that no control holds is not: %q", got.Cut)
 	}
+	// The initial of a name in an avatar is a name, not copy: even a large one that a shape cuts short is not counted.
+	initial := &Node{Role: RoleText, Text: "M", Rect: rect(16, 10, 56, 40), Size: 28, Natural: 57, Initial: true}
+	if got := TakeCensus([]*Node{initial}, rect(0, 0, 300, 100), nil); len(got.Cut) != 0 {
+		t.Errorf("the initial of an avatar is not copy to be cut: %q", got.Cut)
+	}
+	initial.Initial = false
+	if got := TakeCensus([]*Node{initial}, rect(0, 0, 300, 100), nil); len(got.Cut) != 1 {
+		t.Errorf("the same text without the initial mark is copy that is cut: %q", got.Cut)
+	}
 }
 
 func TestTheCensusCountsTheTitleOfAGroupOrOfACardAsCopy(t *testing.T) {

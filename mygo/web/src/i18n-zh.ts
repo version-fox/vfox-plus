@@ -140,7 +140,7 @@ export const zh = {
   namesToTry: "可以试试这些名称",
   nameRequired: "请输入版本名称。",
   nameInvalid: "版本名称不能含空格，也不能以短横线开头。",
-  downloads: "下载",
+  pluginVariables: "插件变量",
   unset: "默认",
   advanced: "高级",
   change: "更改",
@@ -158,7 +158,7 @@ export const zh = {
   saved: "已保存",
   pageLang: "页面语言",
   language: "语言",
-  extraEnv: "额外环境变量",
+  extraEnv: "环境变量",
   langSystem: "跟随系统",
 
   addFromSource: "从来源添加",

@@ -140,7 +140,7 @@ export const en = {
   namesToTry: "Names to try",
   nameRequired: "Type a version name.",
   nameInvalid: "A version name has no spaces and does not start with a dash.",
-  downloads: "Downloads",
+  pluginVariables: "Plugin variables",
   unset: "Default",
   advanced: "Advanced",
   change: "Change",
@@ -158,7 +158,7 @@ export const en = {
   saved: "Saved",
   pageLang: "Page language",
   language: "Language",
-  extraEnv: "Extra environment",
+  extraEnv: "Environment variables",
   langSystem: "system",
 
   addFromSource: "Add from source",

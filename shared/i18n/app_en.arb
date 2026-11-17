@@ -442,11 +442,11 @@
   },
   "sdkTabOptions": "Options",
   "@sdkTabOptions": {
-    "description": "Tab with what is particular to a plugin: its downloads, version files and names."
+    "description": "Tab with what is particular to a plugin: its environment variables, version files and names."
   },
-  "optionsVariables": "Downloads",
+  "optionsVariables": "Plugin variables",
   "@optionsVariables": {
-    "description": "Heading of the environment variables that a plugin reads, such as its download mirror."
+    "description": "Heading of the variables that a plugin reads, such as its download mirror or a build switch. Not the name of the Settings section."
   },
   "optionsVariableUnset": "Default",
   "@optionsVariableUnset": {

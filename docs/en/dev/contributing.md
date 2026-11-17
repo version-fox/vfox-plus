@@ -516,11 +516,11 @@ of a plugin, the lists of the plugins and of the distributions of Java: `censusW
 counts as well, and the census is over a budget when a page is still taller than its window (`Census.Taller`; a page that has a
 list with more rows than any window shows, the versions of Node.js, is counted by the rows that it shows). Six of the windows
 have the text scale of the system at 130, 150 and 200 %, and three show the Chinese text (a scene goes to its screen in
-English, and the language is changed there). Fourteen windows make 336 screens. The scenes that end in a dialog or a menu (`modal`) are drawn in three windows more, the
+English, and the language is changed there). Fourteen windows make 434 screens. The scenes that end in a dialog or a menu (`modal`) are drawn in three windows more, the
 shortest that the application opens in: the scene goes to its screen in a window as tall as it needs, the window is made
 shorter (`censusWindow.shrunk`), and a menu that the scene opens (`open`) is opened from a button that it has scrolled to, as a
 person does. The lists that scroll (`toEnd`) are drawn at their end as well, and so is the content of a dialog in a window that is
-shorter than it, and to the middle of what it scrolled. That is 386 screens, 61 ends and 30 middles, which take
+shorter than it, and to the middle of what it scrolled. That is 476 screens, 67 ends and 36 middles, which take
 about two minutes: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene

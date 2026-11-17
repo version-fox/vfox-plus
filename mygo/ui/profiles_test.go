@@ -93,6 +93,18 @@ func pythonRunner() *testsupport.FakeProcessRunner {
 		On("current", testsupport.FixtureOutput("current-python", 0))
 }
 
+// phpRunner is the runner of a machine that has PHP 8.5.12 installed next to the others. Its
+// answers are a few lines that vfox 1.1.0 gives for the plugin php 0.3.4 on Linux, the census
+// needs no more of them.
+func phpRunner() *testsupport.FakeProcessRunner {
+	return testsupport.FixtureRunner().
+		On("info php --format "+vfox.PluginInfoTemplate, core.ProcessOutput{Stdout: "php\x1f0.3.4\x1fhttps://github.com/version-fox/vfox-php\x1f/home/u/.vfox/cache/php\x1fphp plugin"}).
+		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬php\n  └──8.5.12\n"}).
+		On("current", core.ProcessOutput{Stdout: "php -> v8.5.12\n"}).
+		On("alias list php", testsupport.FixtureOutput("alias-list", 0)).
+		On("search php", core.ProcessOutput{Stdout: "Available versions:\n - 8.5.12\n - 8.5.11\n - 8.5.10\n"})
+}
+
 // pythonApp is the application on that machine.
 func pythonApp(t *testing.T) *testApp {
 	t.Helper()
@@ -108,7 +120,7 @@ func TestThePythonOptionsSetTheInstallMethodAndShowTheVersionFiles(t *testing.T)
 	ta.button("Options")
 	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 	ta.settle()
-	for _, text := range []string{"Downloads", "python.org mirror", "Install method", "uv-build mirror", "Version files", ".python-version", "Notes"} {
+	for _, text := range []string{"Plugin variables", "python.org mirror", "Install method", "uv-build mirror", "Version files", ".python-version", "Notes"} {
 		ta.mustText(text)
 	}
 	ta.snapshot("python-options")
@@ -313,26 +325,32 @@ func TestAVersionIsInstalledByTheNameThatTheUserTypes(t *testing.T) {
 }
 
 func TestAPluginWithoutAProfileTakesNamesToo(t *testing.T) {
+	// mvn2 is an alias of a plugin that vfox-plus has no profile for, and its
+	// information does not name the plugin: it gets no options tab and no names
+	// of its own. (maven has a profile now.)
 	ta := defaultApp(t)
+	ta.runner.
+		On("info mvn2 --format "+vfox.PluginInfoTemplate, testsupport.FixtureOutput("info-unknown", 1)).
+		On("search mvn2", testsupport.FixtureOutput("search-maven-installed", 0))
 	ta.button("SDKs")
-	ta.item("maven")
+	ta.item("mvn2")
 	if _, ok := ta.find(kit.RoleButton, "Options"); ok {
-		t.Error("maven has no options tab")
+		t.Error("mvn2 has no options tab")
 	}
 	ta.button("Available")
-	ta.until("the versions", func() bool { return ta.app.detailFor("maven").controller.Versions.HasValue() })
+	ta.until("the versions", func() bool { return ta.app.detailFor("mvn2").controller.Versions.HasValue() })
 	ta.settle()
 	if strings.Contains(strings.Join(ta.texts(), "|"), "Distribution") {
-		t.Error("maven has no distribution to choose")
+		t.Error("mvn2 has no distribution to choose")
 	}
 	ta.addMore("Install by name…")
-	ta.mustText("Install maven by name")
+	ta.mustText("Install mvn2 by name")
 	if ta.text("Names to try") {
-		t.Error("maven has no names to suggest")
+		t.Error("mvn2 has no names to suggest")
 	}
 	field, _ := ta.find(kit.RoleTextField, "Version name")
 	ta.fill(field, "3.9.16", true)
-	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes maven@3.9.16")) == 1 })
+	ta.until("the installation", func() bool { return len(ta.runner.Calls("install --yes mvn2@3.9.16")) == 1 })
 }
 
 func TestAPluginAddedUnderAnAliasHasTheChoicesOfThePluginItWasMadeFrom(t *testing.T) {
@@ -407,7 +425,7 @@ func TestTheOptionsOfNodejsSetTheMirrorAndShowTheVersionFiles(t *testing.T) {
 	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 	ta.settle()
 	for _, text := range []string{
-		"Downloads", "Download mirror", "C library", "Advanced", "Version files", "Read legacy version files",
+		"Plugin variables", "Download mirror", "C library", "Advanced", "Version files", "Read legacy version files",
 		".node-version", ".nvmrc", "Aliases", "Notes", "Documentation",
 	} {
 		ta.mustText(text)
@@ -529,7 +547,7 @@ func TestTheOptionsFollowTheLanguage(t *testing.T) {
 	ta.button("选项")
 	ta.until("the configuration", func() bool { return ta.app.model.VfoxConfig.HasValue() })
 	ta.settle()
-	for _, text := range []string{"下载", "下载镜像", "版本文件", "别名", "须知", "文档"} {
+	for _, text := range []string{"插件变量", "下载镜像", "版本文件", "别名", "须知", "文档"} {
 		if !ta.text(text) && !strings.Contains(strings.Join(ta.texts(), "\n"), text) {
 			t.Errorf("no %q: %q", text, ta.texts())
 		}

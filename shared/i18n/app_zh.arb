@@ -87,7 +87,7 @@
   "installNameRequired": "请输入版本名称。",
   "installNameInvalid": "版本名称不能含空格，也不能以短横线开头。",
   "sdkTabOptions": "选项",
-  "optionsVariables": "下载",
+  "optionsVariables": "插件变量",
   "optionsVariableUnset": "默认",
   "optionsVariableChange": "更改",
   "optionsVariableAdvanced": "高级",

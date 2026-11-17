@@ -57,7 +57,7 @@
 
 **选项**页签放的是这个插件特有的内容：
 
-- **下载**：插件读取的环境变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
+- **插件变量**：插件读取的变量，并提供已检查过的镜像可选：Java 与 Flutter 的 GitHub 镜像、Node.js 的
   下载镜像、Flutter 的存储镜像、Gradle 镜像列表、Go 镜像与 Python 的 python.org 和 uv-build 镜像，它们会加到本应用运行的每条 vfox 命令里，应用会检查地址以 `http://` 或
   `https://` 开头。
 - **版本文件**：一个开关，下面是该插件读取的文件：Java 的 `.sdkmanrc`，Node.js 的 `.node-version` 与
@@ -67,6 +67,20 @@
   最新的版本；又如 vfox 管理的 Flutter 不能原地升级，又如部分版本号（如 `3.13`）不会选中自由线程版（`3.13t`）或预发布版。名称怎么写、常用的名称，在**按名称安装**对话框里。
 - **纳入、漂移与盖住**：机器上已有 JDK、Gradle、Flutter、Go 或 Python 时，**探测并链接**纳入管理，不必重下；SDK 被原地改动时主页**健康**与 `vfox use` 报告漂移（**重装**，旧安装用**纳入**）；别的工具盖住 vfox 的版本时健康检查指明是谁与做法（`path.mode`、`path.preserve`）。
 - **文档**：该插件讲解自身的页面，使用你的语言。
+
+### Maven 与 PHP
+
+插件 [vfox-maven](https://github.com/version-fox/vfox-maven) 与 [vfox-php](https://github.com/version-fox/vfox-php) 的功能同样不止列出版本，桌面应用、Web 界面和安卓应用都一样：
+
+- **按名称安装。** `latest` 安装最新的稳定版；预发布版按名称安装，如 `4.0.0-rc-7`。PHP 的 `latest` 是最新的发行版，在 Windows 上是它的线程安全构建。
+- **PHP 的构建。** 在 Linux 和 macOS 上，不带后缀的版本是非线程安全构建，`-zts` 名称指线程安全构建，如 `8.5.12-zts`；`vfox search php` 不列出 `-zts` 构建。在 Windows 上，不带后缀的版本是线程安全构建，`-nts` 指非线程安全构建。
+- **筛选 Chip。** Windows 上 PHP 有一个“构建”筛选，带 TS 与 NTS 两个 Chip。Linux 和 macOS 没有这个筛选。
+- **构建选项。** 在 Linux 和 macOS 上，**选项**页签列出 PEAR、mhash 与 PCRE JIT，各有一个**更改**按钮。PHP 7.4 及以后默认不包含 PEAR，`PHP_WITH_PEAR=yes` 才会构建 `pear` 与 `pecl`；PHP 8.4 及以后默认不包含 mhash 函数，`PHP_WITH_MHASH=yes` 才会构建。两者设置后 configure 都会打印弃用警告。PCRE JIT 默认开启。
+- **自由文本的选项。** `PHP_CONFIGURE_OPTIONS` 与 `MAKEFLAGS` 接受任意文本，所以**选项**页签不提供它们。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置；应用会把这一列表传给每条 vfox 命令。
+- **探测并链接。** 会纳入 `M2_HOME` 与 `MAVEN_HOME` 指向的 Maven，以及系统软件包、Homebrew、SDKMAN、asdf、mise、Scoop 与 Chocolatey 装的 Maven；Maven 1 探测不到，请用**链接已有…**。PHP 也会纳入机器上已有的 PHP，需要 vfox 1.1.0 或更高版本。
+- **Java 运行时。** Maven 需要 Java 运行时，但插件不会安装它：把 JDK 放进 `PATH` 或设置 `JAVA_HOME`。Maven 1.1 只能在 JDK 8 上运行。
+- **构建耗时。** 在 Linux 和 macOS 上，PHP 从源码编译，需要一段时间。编译前会先检查依赖并列出缺少的软件包，缺少时不会开始编译。
+- **Windows 运行库。** 在 Windows 上，缺少 Visual C++ 2015-2022 运行库时，安装会在 Windows 请求授权后将其添加。
 
 ## 插件
 

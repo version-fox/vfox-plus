@@ -29,6 +29,7 @@ type labelOptions struct {
 	scaleCap   float32
 	breakable  bool
 	heading    bool
+	initial    bool
 }
 
 // LabelOption changes how a label lays out its text.
@@ -57,6 +58,10 @@ func Breakable() LabelOption { return func(o *labelOptions) { o.breakable = true
 // Heading says that the label is the title of a group or of a card, which is copy and not data: the census counts it where it says that a
 // text is cut, whatever its size, and a name, which a title of a row may be, is not.
 func Heading() LabelOption { return func(o *labelOptions) { o.heading = true } }
+
+// InitialText says that the text is the initial of a name in an avatar, not copy: a name may be cut short without being a
+// budget failure, so the census does not hold it to the size of the shape that holds it.
+func InitialText() LabelOption { return func(o *labelOptions) { o.initial = true } }
 
 // Selectable lets the user select the text and copy it.
 func Selectable() LabelOption { return func(o *labelOptions) { o.selectable = true } }
@@ -98,7 +103,7 @@ func Label(c Ctx, s string, style TextStyle, col ui.Color, options ...LabelOptio
 		e.Selectable()
 	}
 	if c.Env.Reg.CollectText && s != "" {
-		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono, Heading: o.heading})
+		node := c.Env.Reg.Add(Node{Role: RoleText, Text: s, Size: style.Size, Weight: style.Weight, Color: col, Mono: o.mono, Heading: o.heading, Initial: o.initial})
 		span := ui.Span{Text: s, Size: size, Weight: style.Weight, LetterSpacing: spacing}
 		if o.mono {
 			span.Font = MonoFamilies

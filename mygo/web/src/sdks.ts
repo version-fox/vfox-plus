@@ -826,7 +826,7 @@ function renderOptions(body: HTMLElement): void {
   let h = "";
   if (p.variables.length) {
     h += section(
-      t("downloads"),
+      t("pluginVariables"),
       p.variables
         .map((v) => {
           const preset = (v.presets || []).find((x) => x.value === v.value);

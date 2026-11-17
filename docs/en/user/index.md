@@ -49,9 +49,10 @@ colour.
 - Edits the vfox configuration (proxy, registry, storage, legacy version
   files, caches, timeouts) and extra environment variables such as download
   mirrors.
-- Offers what vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang and vfox-python
+- Offers what vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang, vfox-python,
+  vfox-maven and vfox-php
   provide beyond a plain list: the distribution of Java to list (31 of them),
-  filter chips (LTS, JavaFX, channels, architectures, GraalPy), installation by name and
+  filter chips (LTS, JavaFX, channels, architectures, GraalPy, and the TS and NTS builds of PHP on Windows), installation by name and
   download mirrors, see
   [Java, Node.js, Flutter, Gradle, Go and Python](using.md#java-nodejs-flutter-gradle-go-and-python).
 - Installs and uses a version in one step, links SDKs that are already on the

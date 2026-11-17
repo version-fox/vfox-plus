@@ -216,8 +216,11 @@ func TestWebProfileDescribesWhatThePluginOffers(t *testing.T) {
 		t.Errorf("the installed names are taken apart: %+v", answer.Installed)
 	}
 
-	if status, _ := webGet(t, server.BaseURL()+"/api/sdks/maven/profile", session); status != http.StatusNotFound {
-		t.Errorf("maven has no profile, got %d", status)
+	if status, body := webGet(t, server.BaseURL()+"/api/sdks/maven/profile", session); status != http.StatusOK || !strings.Contains(body, `"latest"`) {
+		t.Errorf("maven has a profile that names latest, got %d: %s", status, body)
+	}
+	if status, _ := webGet(t, server.BaseURL()+"/api/sdks/ruby/profile", session); status != http.StatusNotFound {
+		t.Errorf("ruby has no profile, got %d", status)
 	}
 	if status, _ := webGet(t, server.BaseURL()+"/api/sdks/java/profile", ""); status != http.StatusUnauthorized {
 		t.Errorf("got %d", status)
@@ -320,8 +323,11 @@ func TestWebVariablesOfAPluginAreSetCheckedAndRemoved(t *testing.T) {
 			t.Errorf("%s %s: got %d: %s", c.method, c.body, status, body)
 		}
 	}
-	if status, _ := webRequest(t, http.MethodPut, server.BaseURL()+"/api/sdks/maven/variables", session, `{"key":"VFOX_NODEJS_MIRROR","value":"`+mirror+`"}`, ""); status != http.StatusNotFound {
-		t.Errorf("maven has no profile, got %d", status)
+	if status, _ := webRequest(t, http.MethodPut, server.BaseURL()+"/api/sdks/maven/variables", session, `{"key":"VFOX_NODEJS_MIRROR","value":"`+mirror+`"}`, ""); status != http.StatusBadRequest {
+		t.Errorf("maven does not read the mirror of Node.js, got %d", status)
+	}
+	if status, _ := webRequest(t, http.MethodPut, server.BaseURL()+"/api/sdks/ruby/variables", session, `{"key":"VFOX_NODEJS_MIRROR","value":"`+mirror+`"}`, ""); status != http.StatusNotFound {
+		t.Errorf("ruby has no profile, got %d", status)
 	}
 	if got := model.PluginVariable("VFOX_NODEJS_MIRROR"); got != mirror {
 		t.Errorf("the refused requests changed nothing: %q", got)
@@ -396,7 +402,7 @@ func TestWebChoiceOfASearchIsKeptAndListedFromThenOn(t *testing.T) {
 		{"a read", "java", `{"value":"tem"}`, http.MethodGet, "", session, http.StatusMethodNotAllowed},
 		{"no session", "java", `{"value":"tem"}`, http.MethodPut, "", "", http.StatusUnauthorized},
 		{"a plugin whose search takes no argument", "nodejs", `{"value":"tem"}`, http.MethodPut, "", session, http.StatusNotFound},
-		{"a plugin without a profile", "maven", `{"value":"tem"}`, http.MethodPut, "", session, http.StatusNotFound},
+		{"a plugin without a profile", "ruby", `{"value":"tem"}`, http.MethodPut, "", session, http.StatusNotFound},
 	} {
 		if status, body := webRequest(t, c.method, server.BaseURL()+"/api/sdks/"+c.path+"/search", c.session, c.body, c.origin); status != c.want {
 			t.Errorf("%s: got %d: %s", c.label, status, body)
