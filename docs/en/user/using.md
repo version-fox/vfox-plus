@@ -123,9 +123,11 @@ three interfaces offer it alike:
   version is the thread-safe build, and `-nts` names the non-thread-safe one.
 - **Filter chips.** On Windows, PHP has a **Build** filter with the chips TS and NTS. Linux
   and macOS have no such filter.
-- **Build options.** On Linux and macOS, the **Options** tab lists PEAR and PCRE JIT, each
-  with **Change**. PEAR sets whether the build includes PEAR and its `pear` and `pecl`
-  commands; PCRE JIT is on by default.
+- **Build options.** On Linux and macOS, the **Options** tab lists PEAR, mhash and PCRE JIT,
+  each with **Change**. From PHP 7.4 PEAR is left out by default, and `PHP_WITH_PEAR=yes` builds
+  with its `pear` and `pecl` commands; from PHP 8.4 the mhash functions are left out by default,
+  and `PHP_WITH_MHASH=yes` builds with them. Both switches print a deprecation warning when set.
+  PCRE JIT is on by default.
 - **Free-text options.** `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take any text, so the
   **Options** tab does not offer them. Set them in *Settings → Environment variables* as
   `KEY=VALUE`: the application passes that list to every vfox command.

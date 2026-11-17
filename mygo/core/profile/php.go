@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-php (https://github.com/version-fox/vfox-php), written
-// from its documentation at release 0.3.3.
+// from its documentation at release 0.3.4.
 
 // phpProfile is the profile of vfox-php. Its platforms differ in what they
 // build. On Linux and macOS PHP is compiled from the source release, so the
@@ -30,15 +30,27 @@ func phpProfile(platform Platform) Profile {
 	case "linux", "darwin":
 		variables = []Variable{
 			{
-				Key:   "PHP_WITHOUT_PEAR",
+				Key:   "PHP_WITH_PEAR",
 				Label: text("PEAR", "PEAR"),
 				Help: text(
-					"Whether a PHP built from source includes PEAR, which provides the pear and pecl commands. Unset or no includes it; yes builds without it.",
-					"从源码构建的 PHP 是否包含 PEAR，即 pear 与 pecl 命令。未设置或为 no 时包含；为 yes 时不包含。"),
+					"PHP 7.4 and later are built without PEAR, which provides the pear and pecl commands. Set this to yes to build with it; configure then prints a deprecation warning. On PHP 5.3 to 7.3, PEAR is built by default and PHP_WITHOUT_PEAR turns it off.",
+					"PHP 7.4 及以后构建时默认不包含 PEAR，即 pear 与 pecl 命令。设为 yes 则包含，configure 随后会打印一条弃用警告。PHP 5.3 至 7.3 默认包含 PEAR，用 PHP_WITHOUT_PEAR 可以关闭。"),
 				Kind: VariableChoice,
 				Presets: []Preset{
-					{Value: "no", Name: text("With PEAR", "包含 PEAR")},
-					{Value: "yes", Name: text("Without PEAR", "不包含 PEAR")},
+					{Value: "no", Name: text("Without PEAR, the default", "不包含 PEAR，即默认值")},
+					{Value: "yes", Name: text("With PEAR", "包含 PEAR")},
+				},
+			},
+			{
+				Key:   "PHP_WITH_MHASH",
+				Label: text("mhash", "mhash"),
+				Help: text(
+					"PHP 8.4 and later are built without the mhash functions by default. Set this to yes to build with them; configure then prints a deprecation warning. The hash_* functions are there either way, and the variable has no effect before PHP 8.4.",
+					"PHP 8.4 及以后构建时默认不包含 mhash 函数。设为 yes 则包含，configure 随后会打印一条弃用警告。hash_* 函数始终可用；此变量在 PHP 8.4 之前不起作用。"),
+				Kind: VariableChoice,
+				Presets: []Preset{
+					{Value: "no", Name: text("Without mhash, the default", "不包含 mhash，即默认值")},
+					{Value: "yes", Name: text("With mhash", "包含 mhash")},
 				},
 			},
 			{

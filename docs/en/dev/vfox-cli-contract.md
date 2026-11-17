@@ -376,9 +376,11 @@ vfox command (see [Environment](#environment)): `VFOX_JAVA_GITHUB_MIRROR` and
 has to start with `http://` or `https://`; vfox takes anything else for a file on
 disk), `VFOX_NODEJS_MIRROR`, `FLUTTER_STORAGE_BASE_URL` and `VFOX_NODEJS_LIBC`
 (`musl` or `glibc`), `VFOX_GRADLE_MIRRORS`, `VFOX_GOLANG_MIRROR` (with a trailing
-`/`), `VFOX_PYTHON_MIRROR` and `VFOX_PYTHON_UV_BUILD_MIRROR` (the python.org and uv-build mirrors), `VFOX_PYTHON_USE_UV_BUILD` (`0` or `1`), `VFOX_PYTHON_UV_LIBC` (`gnu` or `musl`), `VFOX_PYTHON_REGISTER_PY_LAUNCHER` (`0` turns the Windows launcher registration off) and `VFOX_JAVA_JDKS_LINKS` (exposes JDKs to Gradle and IDEA). `PHP_WITHOUT_PEAR` and `PHP_WITHOUT_PCRE_JIT`
-(`yes` or `no`) are the build options of vfox-php on Linux and macOS, and the Options tab
-of the plugin writes them to that same list. `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take
+`/`), `VFOX_PYTHON_MIRROR` and `VFOX_PYTHON_UV_BUILD_MIRROR` (the python.org and uv-build mirrors), `VFOX_PYTHON_USE_UV_BUILD` (`0` or `1`), `VFOX_PYTHON_UV_LIBC` (`gnu` or `musl`), `VFOX_PYTHON_REGISTER_PY_LAUNCHER` (`0` turns the Windows launcher registration off) and `VFOX_JAVA_JDKS_LINKS` (exposes JDKs to Gradle and IDEA). `PHP_WITH_PEAR` (PHP 7.4 and later),
+`PHP_WITH_MHASH` (PHP 8.4 and later) and `PHP_WITHOUT_PCRE_JIT` (`yes` or `no`) are the build
+options of vfox-php on Linux and macOS. Before PHP 7.4, PEAR is built by default and
+`PHP_WITHOUT_PEAR` turns it off. The Options tab of the plugin writes these switches to that
+same list. `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take
 free text, so the Options tab does not offer them: they are set in Settings, under
 Environment variables, as `KEY=VALUE`, and the application passes that list to every vfox
 command. vfox keeps the

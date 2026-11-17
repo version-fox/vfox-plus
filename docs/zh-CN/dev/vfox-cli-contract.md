@@ -271,7 +271,7 @@ vfox 1.1.0 的键：
 插件从 vfox 进程的环境里读环境变量，所以应用把设置里的额外环境传给每条 vfox 命令（见[环境](#环境)）：
 `VFOX_JAVA_GITHUB_MIRROR` 与 `VFOX_FLUTTER_GITHUB_MIRROR`（加在 GitHub 地址前面的前缀，必须以 `http://` 或
 `https://` 开头；vfox 会把其他值当成磁盘上的文件）、`VFOX_NODEJS_MIRROR`、`FLUTTER_STORAGE_BASE_URL` 与
-`VFOX_NODEJS_LIBC`（`musl` 或 `glibc`）、`VFOX_GRADLE_MIRRORS`、`VFOX_GOLANG_MIRROR`（以 `/` 结尾）、`VFOX_PYTHON_MIRROR`、`VFOX_PYTHON_UV_BUILD_MIRROR`、`VFOX_PYTHON_USE_UV_BUILD`（`0` 或 `1`）、`VFOX_PYTHON_UV_LIBC`（`gnu` 或 `musl`）与 `VFOX_PYTHON_REGISTER_PY_LAUNCHER`（Windows 上设为 `0` 则关闭启动器注册）。`PHP_WITHOUT_PEAR` 与 `PHP_WITHOUT_PCRE_JIT`（取 `yes` 或 `no`）是 vfox-php 在 Linux 和 macOS 上的构建选项，插件的选项页签把它们写进同一个列表。`PHP_CONFIGURE_OPTIONS` 与 `MAKEFLAGS` 接受任意文本，所以选项页签不提供它们：在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置，应用会把这一列表传给每条 vfox 命令。vfox 按参数列表把搜索的答案缓存 `cache.availableHookDuration`，
+`VFOX_NODEJS_LIBC`（`musl` 或 `glibc`）、`VFOX_GRADLE_MIRRORS`、`VFOX_GOLANG_MIRROR`（以 `/` 结尾）、`VFOX_PYTHON_MIRROR`、`VFOX_PYTHON_UV_BUILD_MIRROR`、`VFOX_PYTHON_USE_UV_BUILD`（`0` 或 `1`）、`VFOX_PYTHON_UV_LIBC`（`gnu` 或 `musl`）与 `VFOX_PYTHON_REGISTER_PY_LAUNCHER`（Windows 上设为 `0` 则关闭启动器注册）。`PHP_WITH_PEAR`（PHP 7.4 及以后）、`PHP_WITH_MHASH`（PHP 8.4 及以后）与 `PHP_WITHOUT_PCRE_JIT`（取 `yes` 或 `no`）是 vfox-php 在 Linux 和 macOS 上的构建选项；PHP 7.4 之前默认构建 PEAR，用 `PHP_WITHOUT_PEAR` 关闭。插件的选项页签把这些开关写进同一个列表。`PHP_CONFIGURE_OPTIONS` 与 `MAKEFLAGS` 接受任意文本，所以选项页签不提供它们：在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置，应用会把这一列表传给每条 vfox 命令。vfox 按参数列表把搜索的答案缓存 `cache.availableHookDuration`，
 与环境无关，所以更换镜像后，列表要等缓存过期才会反映出来。
 
 ### GUI 不跑的命令

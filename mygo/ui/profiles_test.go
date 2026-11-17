@@ -94,11 +94,11 @@ func pythonRunner() *testsupport.FakeProcessRunner {
 }
 
 // phpRunner is the runner of a machine that has PHP 8.5.12 installed next to the others. Its
-// answers are a few lines that vfox 1.1.0 gives for the plugin php 0.3.3 on Linux, the census
+// answers are a few lines that vfox 1.1.0 gives for the plugin php 0.3.4 on Linux, the census
 // needs no more of them.
 func phpRunner() *testsupport.FakeProcessRunner {
 	return testsupport.FixtureRunner().
-		On("info php --format "+vfox.PluginInfoTemplate, core.ProcessOutput{Stdout: "php\x1f0.3.3\x1fhttps://github.com/version-fox/vfox-php\x1f/home/u/.vfox/cache/php\x1fphp plugin"}).
+		On("info php --format "+vfox.PluginInfoTemplate, core.ProcessOutput{Stdout: "php\x1f0.3.4\x1fhttps://github.com/version-fox/vfox-php\x1f/home/u/.vfox/cache/php\x1fphp plugin"}).
 		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬php\n  └──8.5.12\n"}).
 		On("current", core.ProcessOutput{Stdout: "php -> v8.5.12\n"}).
 		On("alias list php", testsupport.FixtureOutput("alias-list", 0)).

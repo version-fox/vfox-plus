@@ -75,7 +75,7 @@
 - **按名称安装。** `latest` 安装最新的稳定版；预发布版按名称安装，如 `4.0.0-rc-7`。PHP 的 `latest` 是最新的发行版，在 Windows 上是它的线程安全构建。
 - **PHP 的构建。** 在 Linux 和 macOS 上，不带后缀的版本是非线程安全构建，`-zts` 名称指线程安全构建，如 `8.5.12-zts`；`vfox search php` 不列出 `-zts` 构建。在 Windows 上，不带后缀的版本是线程安全构建，`-nts` 指非线程安全构建。
 - **筛选 Chip。** Windows 上 PHP 有一个“构建”筛选，带 TS 与 NTS 两个 Chip。Linux 和 macOS 没有这个筛选。
-- **构建选项。** 在 Linux 和 macOS 上，**选项**页签列出 PEAR 与 PCRE JIT，各有一个**更改**按钮。PEAR 决定构建是否包含 PEAR 及其 `pear` 与 `pecl` 命令；PCRE JIT 默认开启。
+- **构建选项。** 在 Linux 和 macOS 上，**选项**页签列出 PEAR、mhash 与 PCRE JIT，各有一个**更改**按钮。PHP 7.4 及以后默认不包含 PEAR，`PHP_WITH_PEAR=yes` 才会构建 `pear` 与 `pecl`；PHP 8.4 及以后默认不包含 mhash 函数，`PHP_WITH_MHASH=yes` 才会构建。两者设置后 configure 都会打印弃用警告。PCRE JIT 默认开启。
 - **自由文本的选项。** `PHP_CONFIGURE_OPTIONS` 与 `MAKEFLAGS` 接受任意文本，所以**选项**页签不提供它们。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置；应用会把这一列表传给每条 vfox 命令。
 - **探测并链接。** 会纳入 `M2_HOME` 与 `MAVEN_HOME` 指向的 Maven，以及系统软件包、Homebrew、SDKMAN、asdf、mise、Scoop 与 Chocolatey 装的 Maven；Maven 1 探测不到，请用**链接已有…**。PHP 也会纳入机器上已有的 PHP，需要 vfox 1.1.0 或更高版本。
 - **Java 运行时。** Maven 需要 Java 运行时，但插件不会安装它：把 JDK 放进 `PATH` 或设置 `JAVA_HOME`。Maven 1.1 只能在 JDK 8 上运行。

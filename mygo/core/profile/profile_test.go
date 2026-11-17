@@ -208,7 +208,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"golang":  {[]string{"VFOX_GOLANG_MIRROR"}, nil},
 		"python":  {[]string{"VFOX_PYTHON_MIRROR", "VFOX_PYTHON_USE_UV_BUILD", "VFOX_PYTHON_UV_BUILD_MIRROR", "VFOX_PYTHON_UV_LIBC"}, []string{".python-version"}},
 		"maven":   {nil, nil},
-		"php":     {[]string{"PHP_WITHOUT_PEAR", "PHP_WITHOUT_PCRE_JIT"}, nil},
+		"php":     {[]string{"PHP_WITH_PEAR", "PHP_WITH_MHASH", "PHP_WITHOUT_PCRE_JIT"}, nil},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
@@ -465,7 +465,7 @@ func TestPythonOffersTheVariablesOfItsPlatform(t *testing.T) {
 func TestPHPOffersItsBuildOptionsOnUnixOnly(t *testing.T) {
 	// The source builds of Linux and macOS read these; the Windows builds are
 	// unpacked and read none of them.
-	unix := []string{"PHP_WITHOUT_PEAR", "PHP_WITHOUT_PCRE_JIT"}
+	unix := []string{"PHP_WITH_PEAR", "PHP_WITH_MHASH", "PHP_WITHOUT_PCRE_JIT"}
 	want := map[string][]string{"linux": unix, "darwin": unix, "windows": nil}
 	for goos, expected := range want {
 		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("php")
@@ -489,13 +489,23 @@ func TestPHPOffersItsBuildOptionsOnUnixOnly(t *testing.T) {
 			t.Errorf("%s: the tips name the build options: %v", goos, named)
 		}
 	}
-	// Both are switches: no and yes, as the plugin reads them. Any other value
-	// is not what the plugin does with it.
+	// All three are switches: no and yes, as the plugin reads them. Any other
+	// value is not what the plugin does with it.
 	for _, key := range unix {
 		variable, _ := lookup(t, "php").Variable(key)
 		if variable.Validate("yes") != nil || variable.Validate("no") != nil || variable.Validate("1") == nil {
 			t.Errorf("%s takes yes or no only", key)
 		}
+	}
+	// PEAR starts off for PHP 7.4 and later, and so do the mhash functions from
+	// PHP 8.4: the default preset is to leave them out, and the tips say so.
+	pear, _ := lookup(t, "php").Variable("PHP_WITH_PEAR")
+	if preset, ok := pear.PresetFor("no"); !ok || !strings.Contains(preset.Name.EN, "Without PEAR") {
+		t.Errorf("the default preset of PEAR should say it is left out: %+v, %v", preset, ok)
+	}
+	mhash, _ := lookup(t, "php").Variable("PHP_WITH_MHASH")
+	if mhash.Label.EN != "mhash" {
+		t.Errorf("the mhash switch should be offered: %+v", mhash)
 	}
 }
 
