@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -140,7 +140,7 @@ func TestSearchArgumentsAndChoices(t *testing.T) {
 	if _, ok := none.Choice("tem"); ok {
 		t.Error("a nil search has no choices")
 	}
-	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
+	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet"} {
 		if lookup(t, plugin).Search != nil {
 			t.Errorf("%s ignores search arguments", plugin)
 		}
@@ -209,6 +209,9 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"python":  {[]string{"VFOX_PYTHON_MIRROR", "VFOX_PYTHON_USE_UV_BUILD", "VFOX_PYTHON_UV_BUILD_MIRROR", "VFOX_PYTHON_UV_LIBC"}, []string{".python-version"}},
 		"maven":   {nil, nil},
 		"php":     {[]string{"PHP_WITH_PEAR", "PHP_WITH_MHASH", "PHP_WITHOUT_PCRE_JIT"}, nil},
+		"dart":    {nil, nil},
+		"kotlin":  {nil, nil},
+		"dotnet":  {nil, nil},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
@@ -256,7 +259,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		}
 	}
 	strategyReaders := map[string]bool{"nodejs": true, "python": true}
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet"} {
 		if got := lookup(t, plugin).LegacyStrategy; got != strategyReaders[plugin] {
 			t.Errorf("%s LegacyStrategy = %v: only vfox-nodejs and vfox-python read the strategy of the legacy version files", plugin, got)
 		}
@@ -545,6 +548,97 @@ func TestPHPFiltersTheWindowsBuilds(t *testing.T) {
 	}
 	if got := kept(Selection{}.Toggled("build", "TS")); !reflect.DeepEqual(got, []string{"8.5.12", "8.4.20"}) {
 		t.Errorf("TS = %v", got)
+	}
+}
+
+func TestDartFiltersTheChannels(t *testing.T) {
+	// The note of a version is the channel it came from, and a version
+	// published on several channels is listed once for each of them.
+	dart := lookup(t, "dart")
+	versions := []core.AvailableVersion{
+		{Version: "3.14.0", Note: "stable", HasNote: true},
+		{Version: "3.14.0", Note: "dev", HasNote: true},
+		{Version: "3.13.0", Note: "beta", HasNote: true},
+	}
+	groups := dart.Groups(versions)
+	want := []Group{{ID: "channel", Label: dart.Facets[0].Label, Chips: []Chip{{"stable", 1}, {"dev", 1}, {"beta", 1}}}}
+	if !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups = %+v, want %+v", groups, want)
+	}
+	kept := func(value string) []string {
+		var names []string
+		for _, version := range versions {
+			if dart.Matches(Selection{}.Toggled("channel", value), version) {
+				names = append(names, version.Version+"/"+version.Note)
+			}
+		}
+		return names
+	}
+	if got := kept("stable"); !reflect.DeepEqual(got, []string{"3.14.0/stable"}) {
+		t.Errorf("stable = %v", got)
+	}
+	if got := kept("beta"); !reflect.DeepEqual(got, []string{"3.13.0/beta"}) {
+		t.Errorf("beta = %v", got)
+	}
+	// The channels of the install-by-name dialog are the ones the list filters by.
+	for _, channel := range []string{"stable", "dev", "beta"} {
+		found := false
+		for _, shorthand := range dart.Shorthands {
+			found = found || shorthand.Name == channel
+		}
+		if !found {
+			t.Errorf("the profile does not offer %q as a name to install", channel)
+		}
+	}
+}
+
+func TestDotnetFiltersTheDistribution(t *testing.T) {
+	// The distribution is the suffix of the version: a plain release is the
+	// SDK, while -runtime and -aspnetcore install smaller distributions.
+	dotnet := lookup(t, "dotnet")
+	versions := []core.AvailableVersion{
+		{Version: "8.0.34", Note: "LTS", HasNote: true},
+		{Version: "8.0.34-runtime", Note: "Runtime - LTS", HasNote: true},
+		{Version: "8.0.34-aspnetcore", Note: "ASP.NET Core Runtime - LTS", HasNote: true},
+		{Version: "11.0.0-rc.3"},
+	}
+	groups := dotnet.Groups(versions)
+	want := []Group{{ID: "distribution", Label: dotnet.Facets[0].Label, Chips: []Chip{{"runtime", 1}, {"aspnetcore", 1}}}}
+	if !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups = %+v, want %+v", groups, want)
+	}
+	kept := func(value string) []string {
+		var names []string
+		for _, version := range versions {
+			if dotnet.Matches(Selection{}.Toggled("distribution", value), version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept("runtime"); !reflect.DeepEqual(got, []string{"8.0.34-runtime"}) {
+		t.Errorf("runtime = %v", got)
+	}
+	if got := kept("aspnetcore"); !reflect.DeepEqual(got, []string{"8.0.34-aspnetcore"}) {
+		t.Errorf("aspnetcore = %v", got)
+	}
+}
+
+func TestTheNewPluginsOfferNoVariables(t *testing.T) {
+	// Dart, Kotlin and .NET have no mirrors or switches to configure: their
+	// options tab carries the guide, the names and the documentation only.
+	for _, plugin := range []string{"dart", "kotlin", "dotnet"} {
+		profile := lookup(t, plugin)
+		if len(profile.Variables) != 0 {
+			t.Errorf("%s has no variables to set: %+v", plugin, profile.Variables)
+		}
+		found := false
+		for _, shorthand := range profile.Shorthands {
+			found = found || shorthand.Name == "latest"
+		}
+		if !found {
+			t.Errorf("%s should offer latest as a name to install", plugin)
+		}
 	}
 }
 

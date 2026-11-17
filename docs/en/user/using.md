@@ -143,6 +143,36 @@ three interfaces offer it alike:
 - **Windows runtime.** On Windows the install adds the Visual C++ 2015-2022 runtime when it
   is missing, after Windows asks for permission.
 
+### Dart, Kotlin and .NET
+
+The plugins [vfox-dart](https://github.com/version-fox/vfox-dart),
+[vfox-kotlin](https://github.com/version-fox/vfox-kotlin) and
+[vfox-dotnet](https://github.com/version-fox/vfox-dotnet) offer these extras in all
+three interfaces:
+
+- **Dart channels.** `stable`, `dev` and `beta` install the newest version on that
+  channel, resolved when you install. A version published on several channels is
+  listed once for each, so `vfox search dart` can show the same number twice, with
+  the channel in the note; the **Channel** filter picks one. `latest` is the highest
+  number in the list, which may be a dev build; use `stable` for the newest stable
+  SDK. arm64 is not supported on any system.
+- **Kotlin.** A version is a Kotlin release in full, such as `2.1.0`; `latest` is the
+  newest release on the Kotlin release page. Kotlin/Native is bundled on hosts that
+  have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer on
+  `PATH`, which the plugin does not install.
+- **.NET names and variants.** A channel or release such as `8`, `8.0` or `8.0.34`
+  installs the SDK; `-runtime` and `-aspnetcore` install smaller distributions, and
+  the **Distribution** filter narrows the list by them. Use an exact version for a
+  preview such as `11.0.0-rc.3`: a channel selects the newest stable release. The
+  plugin sets `DOTNET_ROOT` and the `PATH`, and on Linux the SDK also needs ICU,
+  libssl and zlib.
+- **Adopt and no variables.** **Detect and link** adopts SDKs already on the machine —
+  Dart SDKs including the one bundled with Flutter, Kotlin compilers from SDKMAN,
+  asdf, mise, Homebrew, IDE bundles and `KOTLIN_HOME`, and .NET SDKs including those
+  named by `DOTNET_ROOT` and `DOTNET_HOME` — and needs vfox 1.1.0 or later. These
+  three plugins read no variables and no legacy version files, so their **Options**
+  tab carries only the guide, the names and the documentation.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.

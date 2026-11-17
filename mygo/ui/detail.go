@@ -224,6 +224,17 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 	}
 }
 
+// availableKey identifies a row of the available list. A plugin such as
+// vfox-dart lists a version once for every channel it is published on, so the
+// note is part of the identity: two rows with the same version but different
+// notes are different installs and must not share one state.
+func availableKey(version core.AvailableVersion) string {
+	if version.HasNote {
+		return "av:" + version.Version + "\x1f" + version.Note
+	}
+	return "av:" + version.Version
+}
+
 func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, installed map[string]bool) detailBody {
 	controller := d.controller
 	actions := func() { a.availableActions(k, d) }
@@ -304,7 +315,7 @@ func (a *App) availableBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk, in
 			if i == 0 {
 				return "toolbar"
 			}
-			return "av:" + visible[i-1].Version
+			return availableKey(visible[i-1])
 		},
 		item: func(i int) {
 			if i == 0 {
@@ -539,7 +550,7 @@ func (a *App) availableVersionRow(k kit.Ctx, sdk string, version core.AvailableV
 		}
 	}
 	return kit.ListItem(k, kit.ListItemSpec{
-		ID: "av:" + version.Version, Position: position, Wrap: a.itemWraps(), Padding: []float32{gapS, gapL}, Trailing: trailing,
+		ID: availableKey(version), Position: position, Wrap: a.itemWraps(), Padding: []float32{gapS, gapL}, Trailing: trailing,
 		Name: version.Version, Subtitle: strings.Join(additions, " · "),
 		TitleWidget: func(foreground mui.Color) {
 			mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {

@@ -50,7 +50,7 @@ colour.
   files, caches, timeouts) and extra environment variables such as download
   mirrors.
 - Offers what vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang, vfox-python,
-  vfox-maven and vfox-php
+  vfox-maven, vfox-php, vfox-dart, vfox-kotlin and vfox-dotnet
   provide beyond a plain list: the distribution of Java to list (31 of them),
   filter chips (LTS, JavaFX, channels, architectures, GraalPy, and the TS and NTS builds of PHP on Windows), installation by name and
   download mirrors, see

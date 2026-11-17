@@ -150,6 +150,8 @@ type censusScene struct {
 	python bool
 	// php gives the machine PHP next to the others, which the screens of PHP need.
 	php bool
+	// profile gives the machine one of the plugins added after PHP, whose screens need it.
+	profile string
 	// tall says that the page is taller than the windows of the census are, as the settings are in the narrowest, and the lists of
 	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
 	// it has below the fold is drawn and counted, too.
@@ -220,6 +222,13 @@ var censusScenes = []censusScene{
 	{name: "maven-install-name", modal: true, reach: func(ta *testApp) { ta.openAvailable("maven"); ta.addMore("Install by name…") }},
 	{name: "options-php", php: true, tall: true, reach: optionsOf("php")},
 	{name: "php-install-name", php: true, modal: true, reach: func(ta *testApp) { ta.openAvailable("php"); ta.addMore("Install by name…") }},
+	// The options and the install by name of the profiles of Dart, Kotlin and .NET, whose tips and guides are the copy of their profiles.
+	{name: "options-dart", profile: "dart", tall: true, reach: optionsOf("dart")},
+	{name: "dart-install-name", profile: "dart", modal: true, reach: func(ta *testApp) { ta.openAvailable("dart"); ta.addMore("Install by name…") }},
+	{name: "options-kotlin", profile: "kotlin", tall: true, reach: optionsOf("kotlin")},
+	{name: "kotlin-install-name", profile: "kotlin", modal: true, reach: func(ta *testApp) { ta.openAvailable("kotlin"); ta.addMore("Install by name…") }},
+	{name: "options-dotnet", profile: "dotnet", tall: true, reach: optionsOf("dotnet")},
+	{name: "dotnet-install-name", profile: "dotnet", modal: true, reach: func(ta *testApp) { ta.openAvailable("dotnet"); ta.addMore("Install by name…") }},
 	{name: "tooltip", tooltip: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: func(ta *testApp) {
 		ta.hover(kit.RoleButton, "More ways to use this version")
 	}},
@@ -327,6 +336,9 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	}
 	if scene.php {
 		runner = phpRunner()
+	}
+	if scene.profile != "" {
+		runner = profileRunner(scene.profile)
 	}
 	for prefix, delay := range censusSlowDowns {
 		runner.SlowDown(prefix, delay)

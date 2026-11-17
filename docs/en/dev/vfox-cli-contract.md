@@ -336,7 +336,7 @@ output streamed to the user.
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
 | Stop using       | `vfox unuse --global <name>`                         | `/` or project    | |
 | Link             | `vfox link <name>@<version> <path>`                  | `/`               | Uses the SDK at `path` (its `bin` directory) as `version`; `--force` repoints a linked version. Uninstalling removes the link only. |
-| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang, python, maven, php) and links them; `-y` links everything without asking. |
+| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang, python, maven, php, dart, kotlin, dotnet) and links them; `-y` links everything without asking. |
 | Alias set        | `vfox alias set <sdk> <alias> <version>`             | `/`               | Names an installed version, for example `java@j17`. |
 | Alias unset      | `vfox alias unset <sdk> <alias>`                     | `/`               | Removes the alias. |
 | Doctor adopt     | `vfox doctor --adopt [<sdk>[@<version>]]`            | `/`               | Records pre-receipt installs so drift can be detected later. |
@@ -360,7 +360,7 @@ under the name of that release; vfox-java takes a version and a distribution
 (`28.ea-open`); vfox-gradle takes `latest` besides the listed releases;
 vfox-golang takes `latest` and release candidates such as `1.27rc3`; vfox-python takes `latest`, a partial release such as `3.13` or `3.13t`, and the full name of a GraalPy release such as `graalpy-24.2.0`. vfox-maven and vfox-php take `latest` besides the listed releases;
 vfox-php takes `-zts` names on Linux and macOS, such as `8.5.12-zts`, and `-nts` names on
-Windows. The
+Windows. vfox-dart takes the channels `stable`, `dev` and `beta`, which resolve to the newest version on that channel, and installs the same version once for every channel it is published on; vfox-kotlin takes `latest`; vfox-dotnet takes a channel or a release (`8`, `8.0`, `8.0.34`) with an optional `-runtime` or `-aspnetcore` suffix, and an exact version for a preview such as `11.0.0-rc.3`. The
 application therefore installs whatever name the user types,
 checked like any other version (not empty, not starting with `-`, no whitespace, no
 `@`), and takes the installed names from `vfox list` afterwards, since a channel
@@ -383,7 +383,8 @@ options of vfox-php on Linux and macOS. Before PHP 7.4, PEAR is built by default
 same list. `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take
 free text, so the Options tab does not offer them: they are set in Settings, under
 Environment variables, as `KEY=VALUE`, and the application passes that list to every vfox
-command. vfox keeps the
+command. vfox-dart, vfox-kotlin and vfox-dotnet read none of these variables: their
+Options tab carries the guide, the names to install and the documentation only. vfox keeps the
 answer of a search per list of arguments for
 `cache.availableHookDuration`, whatever the environment says, so a changed mirror
 shows in the list after the cache expires.
