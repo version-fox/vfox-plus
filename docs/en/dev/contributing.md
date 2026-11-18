@@ -520,7 +520,7 @@ English, and the language is changed there). Fourteen windows make 518 screens. 
 shortest that the application opens in: the scene goes to its screen in a window as tall as it needs, the window is made
 shorter (`censusWindow.shrunk`), and a menu that the scene opens (`open`) is opened from a button that it has scrolled to, as a
 person does. The lists that scroll (`toEnd`) are drawn at their end as well, and so is the content of a dialog in a window that is
-shorter than it, and to the middle of what it scrolled. That is 566 screens, 73 ends and 42 middles, which take
+shorter than it, and to the middle of what it scrolled. That is 569 screens, 76 ends and 45 middles, which take
 about two minutes: every frame of every screen is drawn by a software
 renderer, and three times slower under the race detector, which the census does not need, so
 the unit tests skip it there and CI and the sandbox take it in a step of its own. A new scene

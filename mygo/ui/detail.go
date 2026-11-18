@@ -224,10 +224,12 @@ func (a *App) installedBody(k kit.Ctx, d *detailState, sdk core.InstalledSdk) de
 	}
 }
 
-// availableKey identifies a row of the available list. A plugin such as
-// vfox-dart lists a version once for every channel it is published on, so the
-// note is part of the identity: two rows with the same version but different
-// notes are different installs and must not share one state.
+// availableKey identifies a row of the available list. A plugin may list one
+// version more than once: vfox-dart lists it once for every channel it is
+// published on, with the channel as the note. Rows with the same key share one
+// state, so that the pointer, the focus and the scrolling meant for one go to
+// the other; the note is part of the key to keep such rows apart. They still
+// install the same name, as vfox cannot be told which of them is meant.
 func availableKey(version core.AvailableVersion) string {
 	if version.HasNote {
 		return "av:" + version.Version + "\x1f" + version.Note

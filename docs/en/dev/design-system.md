@@ -142,7 +142,7 @@ app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop ap
 fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
 150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
-100 % and at 200 %, and 1280 dp wide. The 16 screens that are a dialog, a menu or a tooltip are drawn in three windows more, the
+100 % and at 200 %, and 1280 dp wide. The 17 screens that are a dialog, a menu or a tooltip are drawn in three windows more, the
 shortest that the application opens in, 360 by 480 dp, at 100 % and at 200 %, and a window as short and 1280 dp wide: the
 screen is reached in a window as tall as it needs, and the window is made shorter, as a person makes it, and a menu is opened
 from a button that has been scrolled to. What a dialog has below its fold is counted there, too: its content is scrolled to its end,
