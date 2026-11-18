@@ -690,6 +690,24 @@ func TestCMakeFiltersTheReleaseCandidates(t *testing.T) {
 	}
 }
 
+func TestKotlinSaysThatLatestCanBeALineThatIsNoRelease(t *testing.T) {
+	// The first line of the list of vfox-kotlin is 2.4, which the plugin cannot
+	// install, and vfox resolves latest to the first line: the name to install
+	// and the guide say so, in both languages, rather than promise a release.
+	kotlin := lookup(t, "kotlin")
+	var meaning Text
+	for _, shorthand := range kotlin.Shorthands {
+		if shorthand.Name == "latest" {
+			meaning = shorthand.Meaning
+		}
+	}
+	for label, text := range map[string]Text{"the name": meaning, "the guide": kotlin.Guide} {
+		if !strings.Contains(text.EN, "2.4") || !strings.Contains(text.EN, "no release") || !strings.Contains(text.ZH, "2.4") || !strings.Contains(text.ZH, "不是发行版") {
+			t.Errorf("%s should say that latest can be a line such as 2.4 that is no release: %+v", label, text)
+		}
+	}
+}
+
 func TestCMakeSaysThatLatestCanBeAReleaseCandidate(t *testing.T) {
 	// vfox resolves latest to the first line of the list, and the list of the
 	// plugin has a release candidate before its release at the top of it. The

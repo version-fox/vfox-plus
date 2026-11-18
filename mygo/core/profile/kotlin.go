@@ -15,17 +15,24 @@
 package profile
 
 // The profile of vfox-kotlin (https://github.com/version-fox/vfox-kotlin),
-// written from its documentation at release 0.1.2.
+// written from its documentation at release 0.1.2, and checked against the list
+// that the release gives and the archives that its PreInstall finds.
 
+// kotlinProfile is the profile of vfox-kotlin. The plugin lists the rows of the
+// release table of the Kotlin site, and at release 0.1.2 the first of them is
+// 2.4, a line that is no release: latest, which vfox resolves to the first line
+// of the list, fails with "Current version information not detected", as 2.4
+// does, while 2.4.0 and 2.4.21 find their archives. The profile says so where
+// latest is offered.
 func kotlinProfile() Profile {
 	return Profile{
 		Plugin: "kotlin",
 		Shorthands: []Shorthand{
-			{Name: "latest", Meaning: text("The newest release on the Kotlin release page", "Kotlin 发布页面上最新的版本")},
+			{Name: "latest", Meaning: text("The first line of the list, which can be a line such as 2.4 that is no release", "列表的第一行，可能是 2.4 这样不是发行版的行")},
 		},
 		Guide: text(
-			"Write a Kotlin release in full, such as 2.1.0 or 1.9.24. There are no distributions or suffixes: the version you type is the compiler you get. latest installs the first release on the Kotlin release page; if that page cannot be reached, the install fails rather than guesses a version.",
-			"完整写出 Kotlin 的发行版号，如 2.1.0 或 1.9.24。没有发行版，也没有后缀：输入什么版本就得到什么编译器。latest 安装 Kotlin 发布页面上的第一个版本；若该页面无法访问，安装会失败，而不会猜测版本。"),
+			"Write a Kotlin release in full, such as 2.1.0 or 1.9.24. There are no distributions or suffixes: the version you type is the compiler you get. A line such as 2.4 is no release, and latest takes the first line of the list, which can be one: the install then fails, so write the release.",
+			"完整写出 Kotlin 的发行版号，如 2.1.0 或 1.9.24。没有发行版，也没有后缀：输入什么版本就得到什么编译器。2.4 这样的行不是发行版，而 latest 取列表的第一行，它可能正是这样的行：此时安装会失败，请改写发行版号。"),
 		Tips: []Text{
 			text(
 				"kotlinc and kotlinc-native are JVM launchers: a Java runtime 17 or newer must be on PATH. The plugin does not install Java.",

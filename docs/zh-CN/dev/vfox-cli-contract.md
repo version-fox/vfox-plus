@@ -262,7 +262,7 @@ vfox 1.1.0 的键：
 `<版本>` 不只是搜索列表里的名称。插件的 `PreInstall` 钩子把收到的内容变成安装包，而 version-fox 组织的
 插件能理解的不止列出的名称：vfox-nodejs 接受版本的开头（`24`、`24.21`）与 `latest`；vfox-flutter 接受通道
 `stable` 与 `beta`（可带架构后缀），并以通道指向的版本命名安装；vfox-java 接受版本加发行版（`21-tem`、
-`temurin-21`、`21.0.8-tem`、`21-zulu-fx`）或抢先体验版（`28.ea-open`）；vfox-gradle 接受 `latest`；vfox-golang 接受 `latest` 与 `1.27rc3` 这样的候选版；vfox-python 接受 `latest`、`3.13` 或 `3.13t` 这样的部分版本号，以及 `graalpy-24.2.0` 这样的完整 GraalPy 名称。vfox-maven 与 vfox-php 接受 `latest`；vfox-php 在 Linux 和 macOS 上还接受 `-zts` 名称，如 `8.5.12-zts`，在 Windows 上接受 `-nts` 名称。vfox-dart 接受 `stable`、`dev` 与 `beta` 通道，它们解析为该通道上最新的版本，而一个发布在多个通道上的版本会为每个通道各列一次；vfox-kotlin 接受 `latest`；vfox-dotnet 接受通道或发行版（`8`、`8.0`、`8.0.34`），可带 `-runtime` 或 `-aspnetcore` 后缀，预览版要用完整版本如 `11.0.0-rc.3`；vfox-cmake 接受 `latest`（它是列表的第一行，所以可能是候选版：`4.5.0-rc3` 排在 `4.5.0` 之前）与完整的版本名，不接受 `3.31` 这样的版本线。所以应用会安装用户输入的任何名称，
+`temurin-21`、`21.0.8-tem`、`21-zulu-fx`）或抢先体验版（`28.ea-open`）；vfox-gradle 接受 `latest`；vfox-golang 接受 `latest` 与 `1.27rc3` 这样的候选版；vfox-python 接受 `latest`、`3.13` 或 `3.13t` 这样的部分版本号，以及 `graalpy-24.2.0` 这样的完整 GraalPy 名称。vfox-maven 与 vfox-php 接受 `latest`；vfox-php 在 Linux 和 macOS 上还接受 `-zts` 名称，如 `8.5.12-zts`，在 Windows 上接受 `-nts` 名称。vfox-dart 接受 `stable`、`dev` 与 `beta` 通道，它们解析为该通道上最新的版本，而一个发布在多个通道上的版本会为每个通道各列一次；vfox-kotlin 接受 `latest`（它是列表的第一行，可能是 `2.4` 这样没有对应发行版的行）与完整的版本名；vfox-dotnet 接受通道或发行版（`8`、`8.0`、`8.0.34`），可带 `-runtime` 或 `-aspnetcore` 后缀，预览版要用完整版本如 `11.0.0-rc.3`；vfox-cmake 接受 `latest`（它是列表的第一行，所以可能是候选版：`4.5.0-rc3` 排在 `4.5.0` 之前）与完整的版本名，不接受 `3.31` 这样的版本线。所以应用会安装用户输入的任何名称，
 按其他版本一样检查（不能为空、不能以 `-` 开头、不含空白、不含 `@`），并在之后从 `vfox list` 取已安装的名称，
 因为通道不是已安装的名称。每个插件的[配置档案](architecture.md#插件配置档案)列出值得推荐的名称。
 
