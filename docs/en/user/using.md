@@ -162,8 +162,8 @@ three interfaces:
   `PATH`, which the plugin does not install.
 - **.NET names and variants.** A channel or release such as `8`, `8.0` or `8.0.34`
   installs the SDK; `-runtime` and `-aspnetcore` install smaller distributions, and
-  the **Distribution** filter narrows the list by them. Use an exact version for a
-  preview such as `11.0.0-rc.3`: a channel selects the newest stable release. The
+  the **Distribution** filter narrows the list by them. A channel and `latest` select the newest stable release, and a preview only when there
+  is none; an exact version such as `11.0.0-rc.3` names a preview. The
   plugin sets `DOTNET_ROOT` and the `PATH`, and on Linux the SDK also needs ICU,
   libssl and zlib.
 - **Adopt and no variables.** **Detect and link** adopts SDKs already on the machine —

@@ -625,6 +625,25 @@ func TestDotnetFiltersTheDistribution(t *testing.T) {
 	}
 }
 
+func TestDotnetLatestIsTheNewestStableRelease(t *testing.T) {
+	// A preview can be listed above the stable release of its channel. latest
+	// and a channel pick the newest stable release, and a preview only when
+	// there is none, as the name to install and the guide say, in both
+	// languages.
+	dotnet := lookup(t, "dotnet")
+	var meaning Text
+	for _, shorthand := range dotnet.Shorthands {
+		if shorthand.Name == "latest" {
+			meaning = shorthand.Meaning
+		}
+	}
+	for label, text := range map[string]Text{"the name": meaning, "the guide": dotnet.Guide} {
+		if !strings.Contains(text.EN, "stable") || !strings.Contains(text.ZH, "稳定") {
+			t.Errorf("%s should say that latest is the newest stable release: %+v", label, text)
+		}
+	}
+}
+
 func TestTheNewPluginsOfferNoVariables(t *testing.T) {
 	// Dart, Kotlin, .NET and CMake have no mirrors or switches to configure:
 	// their options tab carries the guide, the names and the documentation only.

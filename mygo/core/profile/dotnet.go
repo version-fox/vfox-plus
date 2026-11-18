@@ -15,21 +15,21 @@
 package profile
 
 // The profile of vfox-dotnet (https://github.com/version-fox/vfox-dotnet),
-// written from its documentation at release 0.3.3.
+// written from its documentation at release 0.3.4.
 
 func dotnetProfile() Profile {
 	return Profile{
 		Plugin: "dotnet",
 		Shorthands: []Shorthand{
-			{Name: "latest", Meaning: text("The newest release in Microsoft's metadata", "Microsoft 元数据中最新的发行版")},
+			{Name: "latest", Meaning: text("The newest stable release; a preview only when no stable release is listed", "最新的稳定版；只有列表里没有稳定版时才是预览版")},
 			{Name: "8.0.34-runtime", Meaning: text("A release with -runtime installs .NET Runtime only; -aspnetcore installs ASP.NET Core Runtime", "带 -runtime 的版本只安装 .NET Runtime；-aspnetcore 安装 ASP.NET Core Runtime")},
 		},
 		Facets: []Facet{
 			{ID: "distribution", Label: text("Distribution", "发行版"), Kind: FacetSuffix, Values: []string{"runtime", "aspnetcore"}},
 		},
 		Guide: text(
-			"Write a channel or a release: 8, 8.0 or 8.0.34, with -runtime or -aspnetcore for a smaller distribution. vfox search lists every installable variant and puts the distribution and SDK version in the note. Use an exact version for a preview such as 11.0.0-rc.3: a channel picks the newest stable release.",
-			"写通道或发行版：8、8.0 或 8.0.34，加 -runtime 或 -aspnetcore 可安装较小的发行版。vfox search 列出每一个可安装的变体，并在注记里写出发行版和 SDK 版本。预览版如 11.0.0-rc.3 要用完整版本：通道选的是最新的稳定版。"),
+			"Write a channel or a release: 8, 8.0 or 8.0.34, with -runtime or -aspnetcore for a smaller distribution. vfox search lists every installable variant, with its distribution and the version of its component in brackets. Use an exact version for a preview such as 11.0.0-rc.3: a channel picks its newest stable release, and a preview only when it has none.",
+			"写通道或发行版：8、8.0 或 8.0.34，加 -runtime 或 -aspnetcore 可安装较小的发行版。vfox search 列出每一个可安装的变体，并在方括号里写出发行版和组件版本。预览版如 11.0.0-rc.3 要用完整版本：通道选的是它最新的稳定版，只有通道里没有稳定版时才选预览版。"),
 		Tips: []Text{
 			text(
 				"The plugin sets DOTNET_ROOT and puts the SDK directory on PATH; activate vfox in a script before running dotnet.",
