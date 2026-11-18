@@ -50,9 +50,10 @@ colour.
   files, caches, timeouts) and extra environment variables such as download
   mirrors.
 - Offers what vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang, vfox-python,
-  vfox-maven, vfox-php, vfox-dart, vfox-kotlin and vfox-dotnet
+  vfox-maven, vfox-php, vfox-dart, vfox-kotlin, vfox-dotnet and vfox-cmake
   provide beyond a plain list: the distribution of Java to list (31 of them),
-  filter chips (LTS, JavaFX, channels, architectures, GraalPy, and the TS and NTS builds of PHP on Windows), installation by name and
+  filter chips (LTS, JavaFX, channels, architectures, GraalPy, the TS and NTS builds of PHP on Windows,
+  the distributions of .NET and the release candidates of CMake), installation by name and
   download mirrors, see
   [Java, Node.js, Flutter, Gradle, Go and Python](using.md#java-nodejs-flutter-gradle-go-and-python).
 - Installs and uses a version in one step, links SDKs that are already on the

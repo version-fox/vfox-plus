@@ -173,6 +173,28 @@ three interfaces:
   three plugins read no variables and no legacy version files, so their **Options**
   tab carries only the guide, the names and the documentation.
 
+### CMake
+
+The plugin [vfox-cmake](https://github.com/version-fox/vfox-cmake) offers these extras in
+all three interfaces:
+
+- **Names.** Write a release in full, such as `3.31.6`, or a release candidate such as
+  `4.5.0-rc1`. A line such as `3.31` is no release, and the install fails. `latest`
+  installs the first line of the list.
+- **Release candidates.** The plugin lists the candidates among the releases, in no fixed
+  order against the release they belong to, so `latest` can install a candidate such as
+  `4.5.0-rc3` although `4.5.0` is listed. To install a release, write its version. The
+  **Release candidate** filter has a chip for each number, `rc1` to `rc6`, and keeps the
+  versions that end in it.
+- **Adopt.** **Detect and link** adopts a CMake that is on `PATH`, in `CMAKE_HOME`, in the
+  usual system places, or installed by Homebrew, Scoop or Chocolatey. Set `CMAKE_HOME` in
+  *Settings → Environment variables* as `KEY=VALUE`: the application passes that list to
+  every vfox command.
+- **Needs.** The plugin needs vfox 1.1.0 or later, and reaches jsDelivr for the list and
+  cmake.org for the archives; it has no mirror to set. It reads no variables and no legacy
+  version files, so its **Options** tab carries only the guide, the names and the
+  documentation.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.

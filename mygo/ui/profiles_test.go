@@ -120,6 +120,10 @@ func profileRunner(plugin string) *testsupport.FakeProcessRunner {
 	case "dotnet":
 		version, pluginVersion, description = "8.0.34", "0.3.2", ".NET SDK"
 		search = "Available versions:\n - 8.0.34 (LTS)\n - 8.0.34-runtime (Runtime - LTS)\n - 8.0.34-aspnetcore (ASP.NET Core Runtime - LTS)\n - 11.0.0-rc.3\n"
+	case "cmake":
+		// The head of the list as vfox 1.1.0 prints it for the plugin 0.1.8 on Linux: the candidates of 4.5.0 before it.
+		version, pluginVersion, description = "4.5.0", "0.1.8", "Cmake plugin, https://cmake.org/"
+		search = "Available versions:\n - 4.5.0-rc3\n - 4.5.0-rc2\n - 4.5.0-rc1\n - 4.5.0\n - 4.4.5\n - 3.31.6\n"
 	default:
 		panic("no profile machine for " + plugin)
 	}

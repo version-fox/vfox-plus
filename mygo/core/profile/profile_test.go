@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -140,7 +140,7 @@ func TestSearchArgumentsAndChoices(t *testing.T) {
 	if _, ok := none.Choice("tem"); ok {
 		t.Error("a nil search has no choices")
 	}
-	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet"} {
+	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
 		if lookup(t, plugin).Search != nil {
 			t.Errorf("%s ignores search arguments", plugin)
 		}
@@ -212,6 +212,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"dart":    {nil, nil},
 		"kotlin":  {nil, nil},
 		"dotnet":  {nil, nil},
+		"cmake":   {nil, nil},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
@@ -259,7 +260,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		}
 	}
 	strategyReaders := map[string]bool{"nodejs": true, "python": true}
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
 		if got := lookup(t, plugin).LegacyStrategy; got != strategyReaders[plugin] {
 			t.Errorf("%s LegacyStrategy = %v: only vfox-nodejs and vfox-python read the strategy of the legacy version files", plugin, got)
 		}
@@ -625,9 +626,9 @@ func TestDotnetFiltersTheDistribution(t *testing.T) {
 }
 
 func TestTheNewPluginsOfferNoVariables(t *testing.T) {
-	// Dart, Kotlin and .NET have no mirrors or switches to configure: their
-	// options tab carries the guide, the names and the documentation only.
-	for _, plugin := range []string{"dart", "kotlin", "dotnet"} {
+	// Dart, Kotlin, .NET and CMake have no mirrors or switches to configure:
+	// their options tab carries the guide, the names and the documentation only.
+	for _, plugin := range []string{"dart", "kotlin", "dotnet", "cmake"} {
 		profile := lookup(t, plugin)
 		if len(profile.Variables) != 0 {
 			t.Errorf("%s has no variables to set: %+v", plugin, profile.Variables)
@@ -638,6 +639,82 @@ func TestTheNewPluginsOfferNoVariables(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("%s should offer latest as a name to install", plugin)
+		}
+	}
+}
+
+func TestCMakeFiltersTheReleaseCandidates(t *testing.T) {
+	// The plugin gives no note to a version: a release candidate is told by the
+	// last part of its name, 4.5.0-rc1, and the plugin lists it before its
+	// release or after it, in no fixed order.
+	cmake := lookup(t, "cmake")
+	versions := []core.AvailableVersion{
+		{Version: "4.5.0-rc3"}, {Version: "4.5.0-rc2"}, {Version: "4.5.0-rc1"}, {Version: "4.5.0"},
+		{Version: "4.4.5"}, {Version: "4.4.0"}, {Version: "4.4.0-rc2"}, {Version: "4.4.0-rc1"},
+	}
+	want := []Group{{ID: "candidate", Label: cmake.Facets[0].Label, Chips: []Chip{{"rc1", 2}, {"rc2", 2}, {"rc3", 1}}}}
+	if groups := cmake.Groups(versions); !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups = %+v, want %+v", groups, want)
+	}
+	kept := func(selection Selection) []string {
+		var names []string
+		for _, version := range versions {
+			if cmake.Matches(selection, version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept(Selection{}.Toggled("candidate", "rc2")); !reflect.DeepEqual(got, []string{"4.5.0-rc2", "4.4.0-rc2"}) {
+		t.Errorf("rc2 = %v", got)
+	}
+	if got := kept(Selection{}.Toggled("candidate", "rc3").Toggled("candidate", "rc1")); !reflect.DeepEqual(got, []string{"4.5.0-rc3", "4.5.0-rc1", "4.4.0-rc1"}) {
+		t.Errorf("rc1 and rc3 = %v", got)
+	}
+	if got := kept(Selection{}); len(got) != len(versions) {
+		t.Errorf("nothing chosen keeps every version, kept %v", got)
+	}
+	// A release has no value of the filter, and the plugin's own facet is the
+	// one that the interfaces use, not the variant that a list of suffixes
+	// infers.
+	if values := cmake.Values(core.AvailableVersion{Version: "4.5.0"}); values != nil {
+		t.Errorf("a release is no candidate: %v", values)
+	}
+	if facets := EffectiveFacets(cmake, true, versions); len(facets) != 1 || facets[0].ID != "candidate" {
+		t.Errorf("effective facets = %+v", facets)
+	}
+	// Every candidate that the list has had is a value: CMake has not had a
+	// seventh, and a value that no listed version has is left out of the chips.
+	if !reflect.DeepEqual(cmake.Facets[0].Values, []string{"rc1", "rc2", "rc3", "rc4", "rc5", "rc6"}) {
+		t.Errorf("values = %v", cmake.Facets[0].Values)
+	}
+}
+
+func TestCMakeSaysThatLatestCanBeAReleaseCandidate(t *testing.T) {
+	// vfox resolves latest to the first line of the list, and the list of the
+	// plugin has a release candidate before its release at the top of it. The
+	// profile says so wherever it offers latest: the name to install, the guide
+	// and the first of the tips, in both languages.
+	cmake := lookup(t, "cmake")
+	var meaning Text
+	for _, shorthand := range cmake.Shorthands {
+		if shorthand.Name == "latest" {
+			meaning = shorthand.Meaning
+		}
+	}
+	for label, text := range map[string]Text{"the name": meaning, "the guide": cmake.Guide, "the first tip": cmake.Tips[0]} {
+		if !strings.Contains(text.EN, "release candidate") || !strings.Contains(text.ZH, "候选版") {
+			t.Errorf("%s should say that latest can be a release candidate: %+v", label, text)
+		}
+	}
+	// A partial name is no release: the plugin matches the whole name, so a line
+	// such as 3.31 fails, and the guide says so rather than suggest one.
+	if !strings.Contains(cmake.Guide.EN, "3.31 is no release") {
+		t.Errorf("the guide should say that a line is no release: %q", cmake.Guide.EN)
+	}
+	for _, shorthand := range cmake.Shorthands {
+		if strings.Count(shorthand.Name, ".") == 1 {
+			t.Errorf("%q is a line, not a release, and the plugin does not install it", shorthand.Name)
 		}
 	}
 }

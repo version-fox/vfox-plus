@@ -174,7 +174,7 @@ the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/
 
 A *profile* (`core/profile`) writes it down, as plain data that the three
 interfaces share, for `java`, `nodejs`, `flutter`, `gradle`, `golang`, `python`,
-`maven`, `php`, `dart`, `kotlin` and `dotnet`:
+`maven`, `php`, `dart`, `kotlin`, `dotnet` and `cmake`:
 
 | Part | What it is |
 | --- | --- |

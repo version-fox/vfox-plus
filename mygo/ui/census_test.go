@@ -222,13 +222,15 @@ var censusScenes = []censusScene{
 	{name: "maven-install-name", modal: true, reach: func(ta *testApp) { ta.openAvailable("maven"); ta.addMore("Install by name…") }},
 	{name: "options-php", php: true, tall: true, reach: optionsOf("php")},
 	{name: "php-install-name", php: true, modal: true, reach: func(ta *testApp) { ta.openAvailable("php"); ta.addMore("Install by name…") }},
-	// The options and the install by name of the profiles of Dart, Kotlin and .NET, whose tips and guides are the copy of their profiles.
+	// The options and the install by name of the profiles of Dart, Kotlin, .NET and CMake, whose tips and guides are the copy of their profiles.
 	{name: "options-dart", profile: "dart", tall: true, reach: optionsOf("dart")},
 	{name: "dart-install-name", profile: "dart", modal: true, reach: func(ta *testApp) { ta.openAvailable("dart"); ta.addMore("Install by name…") }},
 	{name: "options-kotlin", profile: "kotlin", tall: true, reach: optionsOf("kotlin")},
 	{name: "kotlin-install-name", profile: "kotlin", modal: true, reach: func(ta *testApp) { ta.openAvailable("kotlin"); ta.addMore("Install by name…") }},
 	{name: "options-dotnet", profile: "dotnet", tall: true, reach: optionsOf("dotnet")},
 	{name: "dotnet-install-name", profile: "dotnet", modal: true, reach: func(ta *testApp) { ta.openAvailable("dotnet"); ta.addMore("Install by name…") }},
+	{name: "options-cmake", profile: "cmake", tall: true, reach: optionsOf("cmake")},
+	{name: "cmake-install-name", profile: "cmake", modal: true, reach: func(ta *testApp) { ta.openAvailable("cmake"); ta.addMore("Install by name…") }},
 	{name: "tooltip", tooltip: true, reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }, open: func(ta *testApp) {
 		ta.hover(kit.RoleButton, "More ways to use this version")
 	}},
