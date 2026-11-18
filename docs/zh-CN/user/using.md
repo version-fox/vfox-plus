@@ -89,8 +89,8 @@
 [vfox-dotnet](https://github.com/version-fox/vfox-dotnet) 在三个界面里也提供这些功能：
 
 - **Dart 的通道。** `stable`、`dev` 与 `beta` 安装该通道上最新的版本，在安装时解析。同时发布在多个通道上的版本会为每个通道各列一次，所以 `vfox search dart` 可能出现两个相同的版本号，注记里写有通道；**通道**筛选可以选择其一。`latest` 是列表中版本号最大的版本，可能是 dev 构建；最新的稳定版请用 `stable`。插件不安装 arm64 构建，尽管 Dart 的官方归档里有 Linux、macOS 和 Windows 的 arm64 SDK。
-- **Kotlin。** 版本要完整写出，如 `2.1.0`；`latest` 是 Kotlin 发布页面上最新的版本。有预编译包的平台会一并安装 Kotlin/Native。`kotlinc` 与 `kotlinc-native` 需要 PATH 上有 Java 17 或更高版本，插件不会安装。
-- **.NET 的名称与变体。** 通道或发行版如 `8`、`8.0` 或 `8.0.34` 会安装 SDK；`-runtime` 与 `-aspnetcore` 安装较小的发行版，**发行版**筛选可以按它们收窄列表。通道与 `latest` 选的是最新稳定版，只有通道里没有稳定版时才选预览版；`11.0.0-rc.3` 这样的完整版本号直接指定预览版。插件会设置 `DOTNET_ROOT` 与 `PATH`；Linux 上的 SDK 还需要 ICU、libssl 与 zlib。
+- **Kotlin。** 版本要完整写出，如 `2.1.0`；`latest` 是 Kotlin 发布页面上最新的版本。若该页面无法读取，搜索与安装会报出原因，而不会猜测版本。有预编译包的平台会一并安装 Kotlin/Native。`kotlinc` 与 `kotlinc-native` 需要 PATH 上有 Java 17 或更高版本，插件不会安装。
+- **.NET 的名称与变体。** 通道或发行版如 `8`、`8.0` 或 `8.0.34` 会安装 SDK；`-runtime` 与 `-aspnetcore` 安装较小的发行版，**发行版**筛选可以按它们收窄列表。通道与 `latest` 选的是最新稳定版，只有通道里没有稳定版时才选预览版；`11.0.0-rc.3` 这样的完整版本号直接指定预览版。找不到适用于本机平台的匹配版本时，安装会报错并指出该版本，且不安装任何东西。插件会设置 `DOTNET_ROOT` 与 `PATH`；Linux 上的 SDK 还需要 ICU、libssl 与 zlib。
 - **纳入与变量。** **探测并链接**可纳入机器上已有的 SDK —— Dart SDK（包括 Flutter 自带的）、来自 SDKMAN、asdf、mise、Homebrew、IDE 自带与 `KOTLIN_HOME` 的 Kotlin 编译器，以及 `DOTNET_ROOT` 与 `DOTNET_HOME` 指向的 .NET SDK —— 需要 vfox 1.1.0 或更高版本。这三个插件不读取变量，也没有旧版版本文件，所以**选项**页签只有说明、可安装的名称与文档。
 
 ### CMake

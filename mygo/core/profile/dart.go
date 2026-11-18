@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-dart (https://github.com/version-fox/vfox-dart),
-// written from its documentation at release 0.1.2.
+// written from its documentation at release 0.1.3.
 
 func dartProfile() Profile {
 	return Profile{

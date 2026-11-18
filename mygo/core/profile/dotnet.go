@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-dotnet (https://github.com/version-fox/vfox-dotnet),
-// written from its documentation at release 0.3.4.
+// written from its documentation at release 0.3.5.
 
 func dotnetProfile() Profile {
 	return Profile{
@@ -28,8 +28,8 @@ func dotnetProfile() Profile {
 			{ID: "distribution", Label: text("Distribution", "发行版"), Kind: FacetSuffix, Values: []string{"runtime", "aspnetcore"}},
 		},
 		Guide: text(
-			"Write a channel or a release: 8, 8.0 or 8.0.34, with -runtime or -aspnetcore for a smaller distribution. vfox search lists every installable variant, with its distribution and the version of its component in brackets. Use an exact version for a preview such as 11.0.0-rc.3: a channel picks its newest stable release, and a preview only when it has none.",
-			"写通道或发行版：8、8.0 或 8.0.34，加 -runtime 或 -aspnetcore 可安装较小的发行版。vfox search 列出每一个可安装的变体，并在方括号里写出发行版和组件版本。预览版如 11.0.0-rc.3 要用完整版本：通道选的是它最新的稳定版，只有通道里没有稳定版时才选预览版。"),
+			"Write a channel or a release: 8, 8.0 or 8.0.34, with -runtime or -aspnetcore for a smaller distribution. vfox search lists every installable variant, with its distribution and the version of its component in brackets. Use an exact version for a preview such as 11.0.0-rc.3: a channel picks its newest stable release, and a preview only when it has none. A version that matches no release for your platform fails the install with an error that names it, and installs nothing.",
+			"写通道或发行版：8、8.0 或 8.0.34，加 -runtime 或 -aspnetcore 可安装较小的发行版。vfox search 列出每一个可安装的变体，并在方括号里写出发行版和组件版本。预览版如 11.0.0-rc.3 要用完整版本：通道选的是它最新的稳定版，只有通道里没有稳定版时才选预览版。找不到适用于本机平台的匹配版本时，安装会报错并指出该版本，且不安装任何东西。"),
 		Tips: []Text{
 			text(
 				"The plugin sets DOTNET_ROOT and puts the SDK directory on PATH; activate vfox in a script before running dotnet.",

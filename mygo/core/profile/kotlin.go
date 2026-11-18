@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-kotlin (https://github.com/version-fox/vfox-kotlin),
-// written from its documentation at release 0.1.3, and checked against the list
+// written from its documentation at release 0.1.4, and checked against the list
 // that the release gives and the archives that its PreInstall finds.
 
 // kotlinProfile is the profile of vfox-kotlin. Its list holds releases only, so
@@ -28,8 +28,8 @@ func kotlinProfile() Profile {
 			{Name: "latest", Meaning: text("The newest release on the Kotlin release page", "Kotlin 发布页面上最新的版本")},
 		},
 		Guide: text(
-			"Write a Kotlin release in full, such as 2.1.0 or 1.9.24. There are no distributions or suffixes: the version you type is the compiler you get. latest installs the newest release on the Kotlin release page; if that page cannot be reached, the install fails rather than guesses a version.",
-			"完整写出 Kotlin 的发行版号，如 2.1.0 或 1.9.24。没有发行版，也没有后缀：输入什么版本就得到什么编译器。latest 安装 Kotlin 发布页面上最新的版本；若该页面无法访问，安装会失败，而不会猜测版本。"),
+			"Write a Kotlin release in full, such as 2.1.0 or 1.9.24. There are no distributions or suffixes: the version you type is the compiler you get. latest installs the newest release on the Kotlin release page; if that page cannot be read, search and install say why instead of guessing a version.",
+			"完整写出 Kotlin 的发行版号，如 2.1.0 或 1.9.24。没有发行版，也没有后缀：输入什么版本就得到什么编译器。latest 安装 Kotlin 发布页面上最新的版本；若该页面无法读取，搜索与安装会报出原因，而不会猜测版本。"),
 		Tips: []Text{
 			text(
 				"kotlinc and kotlinc-native are JVM launchers: a Java runtime 17 or newer must be on PATH. The plugin does not install Java.",

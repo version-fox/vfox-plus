@@ -155,15 +155,19 @@ three interfaces:
   listed once for each, so `vfox search dart` can show the same number twice, with
   the channel in the note; the **Channel** filter picks one. `latest` is the highest
   number in the list, which may be a dev build; use `stable` for the newest stable
-  SDK. The plugin does not install arm64 builds, although the official Dart archive has arm64 SDKs for Linux, macOS and Windows.
+  SDK. The plugin does not install arm64 builds, although the official Dart archive
+  has arm64 SDKs for Linux, macOS and Windows.
 - **Kotlin.** A version is a Kotlin release in full, such as `2.1.0`; `latest` is the
-  newest release on the Kotlin release page. Kotlin/Native is bundled on hosts that
-  have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer on
-  `PATH`, which the plugin does not install.
+  newest release on the Kotlin release page. If that page cannot be read, search and
+  install say why instead of guessing a version. Kotlin/Native is bundled on hosts
+  that have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer
+  on `PATH`, which the plugin does not install.
 - **.NET names and variants.** A channel or release such as `8`, `8.0` or `8.0.34`
   installs the SDK; `-runtime` and `-aspnetcore` install smaller distributions, and
-  the **Distribution** filter narrows the list by them. A channel and `latest` select the newest stable release, and a preview only when there
-  is none; an exact version such as `11.0.0-rc.3` names a preview. The
+  the **Distribution** filter narrows the list by them. A channel and `latest` select
+  the newest stable release, and a preview only when there is none; an exact version
+  such as `11.0.0-rc.3` names a preview. A version that matches no release for your
+  platform fails the install with an error that names it, and installs nothing. The
   plugin sets `DOTNET_ROOT` and the `PATH`, and on Linux the SDK also needs ICU,
   libssl and zlib.
 - **Adopt and no variables.** **Detect and link** adopts SDKs already on the machine —
