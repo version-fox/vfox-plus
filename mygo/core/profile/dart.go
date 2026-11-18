@@ -37,8 +37,8 @@ func dartProfile() Profile {
 				"A channel is resolved at install time: installing stable again later can pick up a newer version.",
 				"通道在安装时解析：以后再次安装 stable 可能得到更新的版本。"),
 			text(
-				"arm64 is unsupported; the plugin errors instead of installing a mismatched SDK.",
-				"不支持 arm64；插件会报错，而不安装不匹配的 SDK。"),
+				"The plugin does not install arm64 builds, although the official Dart archive has arm64 SDKs for Linux, macOS and Windows; it errors instead of installing a mismatched SDK.",
+				"插件不安装 arm64 构建，尽管 Dart 的官方归档里有 Linux、macOS 和 Windows 的 arm64 SDK；插件会报错，而不安装不匹配的 SDK。"),
 			text(
 				"Detect and link finds Flutter's bundled SDK.",
 				"探测并链接可找到 Flutter 自带的 SDK。"),

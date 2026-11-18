@@ -155,7 +155,7 @@ three interfaces:
   listed once for each, so `vfox search dart` can show the same number twice, with
   the channel in the note; the **Channel** filter picks one. `latest` is the highest
   number in the list, which may be a dev build; use `stable` for the newest stable
-  SDK. arm64 is not supported on any system.
+  SDK. The plugin does not install arm64 builds, although the official Dart archive has arm64 SDKs for Linux, macOS and Windows.
 - **Kotlin.** A version is a Kotlin release in full, such as `2.1.0`; `latest` is the
   newest release on the Kotlin release page. Kotlin/Native is bundled on hosts that
   have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer on
