@@ -156,10 +156,9 @@ three interfaces:
   the channel in the note; the **Channel** filter picks one. `latest` is the highest
   number in the list, which may be a dev build; use `stable` for the newest stable
   SDK. arm64 is not supported on any system.
-- **Kotlin.** A version is a Kotlin release in full, such as `2.1.0`. `latest` takes the
-  first line of the list, which can be a line such as `2.4` that is no release: the
-  install then fails, so write the release, such as `2.4.21`. Kotlin/Native is bundled
-  on hosts that have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer on
+- **Kotlin.** A version is a Kotlin release in full, such as `2.1.0`; `latest` is the
+  newest release on the Kotlin release page. Kotlin/Native is bundled on hosts that
+  have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer on
   `PATH`, which the plugin does not install.
 - **.NET names and variants.** A channel or release such as `8`, `8.0` or `8.0.34`
   installs the SDK; `-runtime` and `-aspnetcore` install smaller distributions, and
@@ -181,12 +180,11 @@ all three interfaces:
 
 - **Names.** Write a release in full, such as `3.31.6`, or a release candidate such as
   `4.5.0-rc1`. A line such as `3.31` is no release, and the install fails. `latest`
-  installs the first line of the list.
-- **Release candidates.** The plugin lists the candidates among the releases, in no fixed
-  order against the release they belong to, so `latest` can install a candidate such as
-  `4.5.0-rc3` although `4.5.0` is listed. To install a release, write its version. The
-  **Release candidate** filter has a chip for each number, `rc1` to `rc6`, and keeps the
-  versions that end in it.
+  installs the newest release.
+- **Release candidates.** The plugin lists a candidate directly below the release it
+  belongs to, and a candidate whose release is not out yet goes last, so `latest` is a
+  release as long as the list has one. The **Release candidate** filter has a chip for
+  each number, `rc1` to `rc6`, and keeps the versions that end in it.
 - **Adopt.** **Detect and link** adopts a CMake that is on `PATH`, in `CMAKE_HOME`, in the
   usual system places, or installed by Homebrew, Scoop or Chocolatey. Set `CMAKE_HOME` in
   *Settings → Environment variables* as `KEY=VALUE`: the application passes that list to

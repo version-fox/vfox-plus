@@ -645,8 +645,7 @@ func TestTheNewPluginsOfferNoVariables(t *testing.T) {
 
 func TestCMakeFiltersTheReleaseCandidates(t *testing.T) {
 	// The plugin gives no note to a version: a release candidate is told by the
-	// last part of its name, 4.5.0-rc1, and the plugin lists it before its
-	// release or after it, in no fixed order.
+	// last part of its name, 4.5.0-rc1, and the plugin lists it below its release.
 	cmake := lookup(t, "cmake")
 	versions := []core.AvailableVersion{
 		{Version: "4.5.0-rc3"}, {Version: "4.5.0-rc2"}, {Version: "4.5.0-rc1"}, {Version: "4.5.0"},
@@ -690,10 +689,10 @@ func TestCMakeFiltersTheReleaseCandidates(t *testing.T) {
 	}
 }
 
-func TestKotlinSaysThatLatestCanBeALineThatIsNoRelease(t *testing.T) {
-	// The first line of the list of vfox-kotlin is 2.4, which the plugin cannot
-	// install, and vfox resolves latest to the first line: the name to install
-	// and the guide say so, in both languages, rather than promise a release.
+func TestKotlinLatestIsTheNewestRelease(t *testing.T) {
+	// The list of vfox-kotlin holds releases only, so latest, which vfox
+	// resolves to the first line of the list, is the newest release. The name
+	// and the guide say so, in both languages.
 	kotlin := lookup(t, "kotlin")
 	var meaning Text
 	for _, shorthand := range kotlin.Shorthands {
@@ -702,17 +701,17 @@ func TestKotlinSaysThatLatestCanBeALineThatIsNoRelease(t *testing.T) {
 		}
 	}
 	for label, text := range map[string]Text{"the name": meaning, "the guide": kotlin.Guide} {
-		if !strings.Contains(text.EN, "2.4") || !strings.Contains(text.EN, "no release") || !strings.Contains(text.ZH, "2.4") || !strings.Contains(text.ZH, "不是发行版") {
-			t.Errorf("%s should say that latest can be a line such as 2.4 that is no release: %+v", label, text)
+		if !strings.Contains(text.EN, "newest release") || !strings.Contains(text.ZH, "最新") {
+			t.Errorf("%s should say that latest is the newest release: %+v", label, text)
 		}
 	}
 }
 
-func TestCMakeSaysThatLatestCanBeAReleaseCandidate(t *testing.T) {
+func TestCMakeLatestIsTheNewestRelease(t *testing.T) {
 	// vfox resolves latest to the first line of the list, and the list of the
-	// plugin has a release candidate before its release at the top of it. The
-	// profile says so wherever it offers latest: the name to install, the guide
-	// and the first of the tips, in both languages.
+	// plugin puts each release before its candidates. The name to install, the
+	// guide and the first tip say that latest is the newest release, in both
+	// languages.
 	cmake := lookup(t, "cmake")
 	var meaning Text
 	for _, shorthand := range cmake.Shorthands {
@@ -721,8 +720,8 @@ func TestCMakeSaysThatLatestCanBeAReleaseCandidate(t *testing.T) {
 		}
 	}
 	for label, text := range map[string]Text{"the name": meaning, "the guide": cmake.Guide, "the first tip": cmake.Tips[0]} {
-		if !strings.Contains(text.EN, "release candidate") || !strings.Contains(text.ZH, "候选版") {
-			t.Errorf("%s should say that latest can be a release candidate: %+v", label, text)
+		if !strings.Contains(text.EN, "newest release") || !strings.Contains(text.ZH, "最新") {
+			t.Errorf("%s should say that latest is the newest release: %+v", label, text)
 		}
 	}
 	// A partial name is no release: the plugin matches the whole name, so a line

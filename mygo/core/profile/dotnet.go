@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-dotnet (https://github.com/version-fox/vfox-dotnet),
-// written from its documentation at release 0.3.2.
+// written from its documentation at release 0.3.3.
 
 func dotnetProfile() Profile {
 	return Profile{

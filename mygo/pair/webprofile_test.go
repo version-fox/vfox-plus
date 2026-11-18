@@ -283,8 +283,7 @@ func TestWebProfileOfPythonOffersItsOptionsAndTheGraalPyFilter(t *testing.T) {
 
 // TestWebProfilesOfDartKotlinDotnetAndCMakeOfferTheirFilters is what the web interface reads of the plugins that came after
 // PHP: no variable to set, a filter where the plugin gives the notes or the names for one (the channels of Dart, the
-// distributions of .NET, the release candidates of CMake), and latest among the names to install, which for CMake says that
-// it can be a release candidate.
+// distributions of .NET, the release candidates of CMake), and latest among the names to install, which is never a release candidate.
 func TestWebProfilesOfDartKotlinDotnetAndCMakeOfferTheirFilters(t *testing.T) {
 	model := testModel(t, testsupport.FixtureRunner())
 	server := webServer(t, model)
@@ -327,8 +326,8 @@ func TestWebProfilesOfDartKotlinDotnetAndCMakeOfferTheirFilters(t *testing.T) {
 		if latest.EN == "" || latest.ZH == "" {
 			t.Errorf("%s offers latest to install, in both languages: %+v", plugin, answer.Shorthands)
 		}
-		if candidate := strings.Contains(latest.EN, "release candidate"); candidate != (plugin == "cmake") {
-			t.Errorf("%s: latest says %q; only that of CMake can be a release candidate", plugin, latest.EN)
+		if strings.Contains(latest.EN, "candidate") {
+			t.Errorf("%s: latest is the newest release, not a candidate: %q", plugin, latest.EN)
 		}
 	}
 }

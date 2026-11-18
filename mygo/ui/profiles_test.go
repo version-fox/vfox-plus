@@ -115,15 +115,15 @@ func profileRunner(plugin string) *testsupport.FakeProcessRunner {
 		version, pluginVersion, description = "3.14.0", "0.1.2", "Dart SDK"
 		search = "Available versions:\n - 3.14.0 (stable)\n - 3.14.0 (dev)\n - 3.13.0 (beta)\n"
 	case "kotlin":
-		version, pluginVersion, description = "2.1.0", "0.1.2", "Kotlin compiler"
-		search = "Available versions:\n - 2.1.0\n - 2.0.0\n - 1.9.24\n"
+		version, pluginVersion, description = "2.4.21", "0.1.3", "Kotlin compiler"
+		search = "Available versions:\n - 2.4.21\n - 2.4.20\n - 2.4.10\n - 2.4.0\n - 2.3.21\n"
 	case "dotnet":
-		version, pluginVersion, description = "8.0.34", "0.3.2", ".NET SDK"
+		version, pluginVersion, description = "8.0.34", "0.3.3", ".NET SDK"
 		search = "Available versions:\n - 8.0.34 (LTS)\n - 8.0.34-runtime (Runtime - LTS)\n - 8.0.34-aspnetcore (ASP.NET Core Runtime - LTS)\n - 11.0.0-rc.3\n"
 	case "cmake":
-		// The head of the list as vfox 1.1.0 prints it for the plugin 0.1.8 on Linux: the candidates of 4.5.0 before it.
-		version, pluginVersion, description = "4.5.0", "0.1.8", "Cmake plugin, https://cmake.org/"
-		search = "Available versions:\n - 4.5.0-rc3\n - 4.5.0-rc2\n - 4.5.0-rc1\n - 4.5.0\n - 4.4.5\n - 3.31.6\n"
+		// The head of the list as vfox 1.1.0 prints it for the plugin 0.1.9 on Linux: each candidate of 4.5.0 after it.
+		version, pluginVersion, description = "4.5.0", "0.1.9", "Cmake plugin, https://cmake.org/"
+		search = "Available versions:\n - 4.5.0\n - 4.5.0-rc3\n - 4.5.0-rc2\n - 4.5.0-rc1\n - 4.4.5\n - 3.31.6\n"
 	default:
 		panic("no profile machine for " + plugin)
 	}

@@ -15,8 +15,8 @@
 package profile
 
 // The profile of vfox-cmake (https://github.com/version-fox/vfox-cmake),
-// written from its documentation at release 0.1.8 and checked against what that
-// release lists and installs, on every platform that its data has.
+// written from its documentation at release 0.1.9, and checked against the list
+// that the release gives on every platform that its data has.
 
 // cmakeCandidates are the release candidates that the list of CMake has had, as
 // the last part of a version: 4.5.0-rc1 is the first candidate of 4.5.0.
@@ -26,29 +26,26 @@ var cmakeCandidates = []string{"rc1", "rc2", "rc3", "rc4", "rc5", "rc6"}
 // version, and takes no variable: it adds the bin directory to PATH, and its
 // Detect hook reads CMAKE_HOME to find a CMake that is already installed.
 //
-// At release 0.1.8 its sort does not tell a release candidate from its
-// release: the comparison drops the part of a version that is not a number, so
-// 4.5.0-rc3, 4.5.0-rc2 and 4.5.0 are equal to it, and they are listed in no
-// fixed order (on Linux for amd64 141 of the 142 candidates come before their
-// release, on Linux for x86 14 of 35). vfox resolves latest to the first line of
-// the list, which is 4.5.0-rc3 on every platform that has CMake 4.5. The
-// profile says so where latest is offered.
+// Its list puts each release candidate directly below its release, and a
+// candidate whose release is not out yet last, so latest, which vfox resolves
+// to the first line of the list, is the newest release whenever the list has
+// one.
 func cmakeProfile() Profile {
 	return Profile{
 		Plugin: "cmake",
 		Shorthands: []Shorthand{
-			{Name: "latest", Meaning: text("The first line of the list, which can be a release candidate", "列表的第一行，可能是候选版")},
+			{Name: "latest", Meaning: text("The newest release in the list", "列表中最新的正式版")},
 		},
 		Facets: []Facet{
 			{ID: "candidate", Label: text("Release candidate", "候选版"), Kind: FacetSuffix, Values: cmakeCandidates},
 		},
 		Guide: text(
-			"Write the release in full as vfox search cmake lists it, such as 3.31.6, or 4.5.0-rc1 for a release candidate. A line such as 3.31 is no release. latest installs the first line of the list, and a release candidate can come before its release there: write the release to be sure of it.",
-			"按 vfox search cmake 的列表完整写出版本，如 3.31.6；候选版写成 4.5.0-rc1。3.31 这样的版本线不是发行版。latest 安装列表的第一行，而候选版可能排在它的正式版之前：要装正式版，请写出它的版本号。"),
+			"Write the release in full as vfox search cmake lists it, such as 3.31.6, or 4.5.0-rc1 for a release candidate. A line such as 3.31 is no release. latest installs the newest release.",
+			"按 vfox search cmake 的列表完整写出版本，如 3.31.6；候选版写成 4.5.0-rc1。3.31 这样的版本线不是发行版。latest 安装最新的正式版。"),
 		Tips: []Text{
 			text(
-				"latest is the first line of the list, and a release candidate can come before its release.",
-				"latest 是列表的第一行，而候选版可能排在它的正式版之前。"),
+				"latest is the newest release, and a candidate is listed below its release.",
+				"latest 是最新的正式版；候选版排在它的正式版之后。"),
 			text(
 				"Detect and link finds CMake on PATH and in CMAKE_HOME, which you set in Settings, under Environment variables.",
 				"探测并链接会在 PATH 和 CMAKE_HOME 中找已有的 CMake；CMAKE_HOME 在“设置”的“环境变量”中设置。"),
