@@ -14,7 +14,10 @@
 
 package measureapk
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestApplicationID(t *testing.T) {
 	id, ok := ApplicationID("android {\n    defaultConfig {\n        applicationId = \"dev.vfox.vfoxplus\"\n        minSdk = 26\n    }\n}")
@@ -65,6 +68,19 @@ func TestLine(t *testing.T) {
 func TestRunUsage(t *testing.T) {
 	if err := Run([]string{}); err == nil {
 		t.Fatal("want a usage error")
+	}
+}
+
+// The pairing link goes to the debuggable app through run-as, and the launcher then takes
+// it from the files directory of the app.
+func TestPairedStart(t *testing.T) {
+	got := strings.Join(pairingLinkArgs("dev.vfox.vfoxplus"), " ")
+	if want := "shell run-as dev.vfox.vfoxplus sh -c 'mkdir -p files/measurement && cat > files/measurement/pairing-link'"; got != want {
+		t.Errorf("pairingLinkArgs = %q, want %q", got, want)
+	}
+	got = strings.Join(pairedStart("dev.vfox.vfoxplus"), " ")
+	if want := "shell am start -n dev.vfox.vfoxplus/.MainActivity"; got != want {
+		t.Errorf("pairedStart = %q, want %q", got, want)
 	}
 }
 

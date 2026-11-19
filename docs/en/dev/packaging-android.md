@@ -240,11 +240,11 @@ accepts an update only with a higher one.
 - The WebView refuses every request to another site (`shouldInterceptRequest`, with a 403): the
   bridge is exposed to every frame, so a frame or a script of another site would have it. The page
   of another site opened by a link goes to the browser instead.
-- The `VIEW` intent that `vfxtool measure-apk --pair-url` sends to `MainActivity` is
-  taken only by a debuggable build (`MainActivity.firstScreen`). The launcher activity is
-  exported, so a release build would open any page that another application names.
-- A debuggable build takes that intent from any application too, so install a debug build only
-  from a source you trust. `vfxtool measure-apk --pair-url` refuses an APK that is not debuggable.
+- `vfxtool measure-apk --pair-url` leaves the pairing link in the private files directory of the
+  app with `run-as`, which only a debuggable build allows, and then starts the launcher, which takes
+  the link and deletes the file. No other application can write there, and no exported component
+  takes a link, so no page named by another application is opened inside the app. A release build
+  refuses `run-as`, and `vfxtool measure-apk --pair-url` refuses an APK that is not debuggable.
 - The wrapper is [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
   0.4.0 (Apache-2.0): the stock `gradle-wrapper.jar` is a binary, which the
   repository rejects, and Neo does the same job from one Java source file that

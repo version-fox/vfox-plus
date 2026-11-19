@@ -228,11 +228,12 @@ numbers do not stand for the browser or the Android client.
 
 The client is a WebView around `/app`: the whole session is the shared web
 frontend, so there is exactly one implementation to measure. `vfxtool
-measure-apk --pair-url` opens the paired session through an explicit `VIEW`
-intent (the measurement entry point of `MainActivity`, the same session as
-pasting the link and tapping connect), settles again, and appends the
-`memory (apk-paired)` line. Only a debuggable build takes that intent: the release APK
-that CI measures ignores it, so the paired line needs a debug APK (`./gradlew assembleDebug`).
+measure-apk --pair-url` hands the one-time link to the debuggable app with
+`run-as` (the app's own files, which only a debuggable build allows), starts the launcher,
+which opens the same session as pasting the link and tapping connect, settles again, and
+appends the `memory (apk-paired)` line. No other application can write there, and no exported
+component takes the link. The release APK that CI measures refuses `run-as`, so the paired
+line needs a debug APK (`./gradlew assembleDebug`).
 Pair against the end-to-end build of the
 application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, which
 makes its certificate and its pairing link name the address where the emulator

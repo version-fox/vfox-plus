@@ -93,6 +93,34 @@ func IsDebuggable(report string) bool {
 	return false
 }
 
+// pairingLinkArgs is the adb command that writes the one-time pairing link into the
+// private files directory of the debuggable app, through run-as: only a debuggable
+// application allows it, and no other application can write there. adb joins its
+// arguments into one command for the device's shell, so the whole script is a single
+// argument, quoted for that shell. The link comes on standard input and never
+// reaches the command line.
+func pairingLinkArgs(pkg string) []string {
+	return []string{"shell", "run-as " + pkg + " sh -c 'mkdir -p files/measurement && cat > files/measurement/pairing-link'"}
+}
+
+// pairedStart is the adb command that starts the launcher activity, which takes the
+// pairing link that pairingLinkArgs wrote and opens its session.
+func pairedStart(pkg string) []string {
+	return []string{"shell", "am", "start", "-n", pkg + "/.MainActivity"}
+}
+
+// adbInput runs adb with input on its standard input.
+func adbInput(input string, args ...string) error {
+	command := exec.Command("adb", args...)
+	command.Stdin = strings.NewReader(input)
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("adb %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
+
 func adb(args ...string) ([]byte, error) {
 	command := exec.Command("adb", args...)
 	var stderr bytes.Buffer
@@ -107,9 +135,10 @@ func adb(args ...string) ([]byte, error) {
 // Run implements `measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS] [--pair-url URL]`.
 // Without --pair-url it does what CI does: install, cold-start through the
 // launcher, settle, and write the memory(apk-cold) line. With --pair-url it
-// then opens the paired session through an explicit VIEW intent (the
-// measurement entry point of MainActivity, which only a debuggable APK takes:
-// the same session as pasting the link and tapping connect), settles again,
+// then leaves the one-time link for the debuggable app with run-as (no other
+// application can write there, and no exported component takes a link), starts
+// its launcher, which opens the same session as pasting the link and tapping
+// connect, settles again,
 // and appends the memory(apk-paired) line: the native session with its tabs
 // loaded, next to the unpaired screen. The paired line is for local
 // diagnosis only: pair it against a loopback `vfox-plus-serve serve` with
@@ -141,15 +170,15 @@ func Run(args []string) error {
 		return err
 	}
 	if *pairURL != "" {
-		// Only a debuggable build takes the pairing link: a release build shows its
-		// pairing screen instead, and the paired line would measure that screen.
+		// Only a debuggable build lets run-as leave the pairing link for the app: a release
+		// build refuses it, so the paired line would have no session to measure.
 		// The check comes before any measurement, so nothing is written for it.
 		info, err := adb("shell", "dumpsys", "package", pkg)
 		if err != nil {
 			return err
 		}
 		if !IsDebuggable(string(info)) {
-			return fmt.Errorf("--pair-url needs a debuggable APK: a release build ignores the pairing link, so %s would measure its pairing screen (build the debug variant with ./gradlew assembleDebug in android/, or leave out --pair-url)", *apk)
+			return fmt.Errorf("--pair-url needs a debuggable APK: run-as leaves the pairing link for the app only in a debuggable build, and %s is not one (build the debug variant with ./gradlew assembleDebug in android/, or leave out --pair-url)", *apk)
 		}
 	}
 	// Cold start through the launcher, like a user tapping the icon.
@@ -187,8 +216,10 @@ func Run(args []string) error {
 	}
 	// The paired session: the same native session a user gets after connecting,
 	// with the inventory loaded and live events streaming.
-	if _, err := adb("shell", "am", "start", "-a", "android.intent.action.VIEW",
-		"-d", *pairURL, pkg+"/.MainActivity"); err != nil {
+	if err := adbInput(*pairURL, pairingLinkArgs(pkg)...); err != nil {
+		return err
+	}
+	if _, err := adb(pairedStart(pkg)...); err != nil {
 		return err
 	}
 	time.Sleep(time.Duration(*settle) * time.Second)
