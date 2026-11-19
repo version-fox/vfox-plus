@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-dotnet (https://github.com/version-fox/vfox-dotnet),
-// written from its documentation at release 0.3.5.
+// written from its documentation at release 0.3.7.
 
 func dotnetProfile() Profile {
 	return Profile{
@@ -41,8 +41,8 @@ func dotnetProfile() Profile {
 				"Linux needs ICU, libssl and zlib.",
 				"Linux 上需要 ICU、libssl 和 zlib。"),
 			text(
-				"Detect and link adopts .NET SDKs already on the machine, including those under DOTNET_ROOT and DOTNET_HOME, and needs vfox 1.1.0 or later.",
-				"探测并链接可纳入机器上已有的 .NET SDK，包括 DOTNET_ROOT 与 DOTNET_HOME 指向的，需要 vfox 1.1.0 或更高版本。"),
+				"Detect and link adopts .NET SDKs already on the machine: those under DOTNET_ROOT (or DOTNET_HOME when DOTNET_ROOT is not set), the Homebrew formulae, and the default directories of dotnet-install.sh and dotnet-install.ps1. It needs vfox 1.1.0 or later.",
+				"探测并链接可纳入机器上已有的 .NET SDK：DOTNET_ROOT 指向的（未设置时为 DOTNET_HOME）、Homebrew 的公式，以及 dotnet-install.sh 与 dotnet-install.ps1 的默认目录。需要 vfox 1.1.0 或更高版本。"),
 		},
 		Docs: []Link{
 			docs("vfox-dotnet", "versions", text("Versions and names", "版本与命名")),

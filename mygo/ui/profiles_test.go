@@ -115,10 +115,10 @@ func profileRunner(plugin string) *testsupport.FakeProcessRunner {
 		version, pluginVersion, description = "3.14.0", "0.1.3", "Dart SDK"
 		search = "Available versions:\n - 3.14.0 (stable)\n - 3.14.0 (dev)\n - 3.13.0 (beta)\n"
 	case "kotlin":
-		version, pluginVersion, description = "2.4.21", "0.1.4", "Kotlin compiler"
+		version, pluginVersion, description = "2.4.21", "0.1.5", "Kotlin compiler"
 		search = "Available versions:\n - 2.4.21\n - 2.4.20\n - 2.4.10\n - 2.4.0\n - 2.3.21\n"
 	case "dotnet":
-		version, pluginVersion, description = "8.0.34", "0.3.5", ".NET SDK"
+		version, pluginVersion, description = "8.0.34", "0.3.7", ".NET SDK"
 		search = "Available versions:\n - 8.0.34 (LTS)\n - 8.0.34-runtime (Runtime - LTS)\n - 8.0.34-aspnetcore (ASP.NET Core Runtime - LTS)\n - 11.0.0-rc.3\n"
 	case "cmake":
 		// The head of the list as vfox 1.1.0 prints it for the plugin 0.1.9 on Linux: each candidate of 4.5.0 after it.

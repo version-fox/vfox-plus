@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-kotlin (https://github.com/version-fox/vfox-kotlin),
-// written from its documentation at release 0.1.4, and checked against the list
+// written from its documentation at release 0.1.5, and checked against the list
 // that the release gives and the archives that its PreInstall finds.
 
 // kotlinProfile is the profile of vfox-kotlin. Its list holds releases only, so
@@ -38,8 +38,8 @@ func kotlinProfile() Profile {
 				"Kotlin/Native is bundled on hosts JetBrains publishes a prebuilt compiler for; other hosts, such as Linux arm64, get the JVM compiler only.",
 				"在 JetBrains 提供预编译编译器的平台上会一并安装 Kotlin/Native；其他平台（如 Linux arm64）只安装 JVM 编译器。"),
 			text(
-				"Old releases have no checksum.",
-				"1.9.0 之前的版本没有校验和，vfox 会提示跳过。"),
+				"Releases before 1.9.0-RC have no checksum.",
+				"1.9.0-RC 之前的版本没有校验和，vfox 无法校验，安装仍会成功。"),
 			text(
 				"Detect and link adopts compilers from SDKMAN, asdf, mise, Homebrew, IDE bundles, system directories and KOTLIN_HOME, and needs vfox 1.1.0 or later.",
 				"探测并链接可纳入 SDKMAN、asdf、mise、Homebrew、IDE 自带、系统目录以及 KOTLIN_HOME 中的编译器，需要 vfox 1.1.0 或更高版本。"),
