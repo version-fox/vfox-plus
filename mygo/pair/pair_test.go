@@ -214,7 +214,7 @@ func TestTheIntroPageSaysWhereToGetALink(t *testing.T) {
 	if status != http.StatusOK {
 		t.Fatalf("got %d", status)
 	}
-	for _, want := range []string{"Settings", "Open in browser", "设置", "在浏览器中打开"} {
+	for _, want := range []string{"Settings", "other devices", "Pair a phone", "设置", "其他设备", "配对手机"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the intro page names %q, so that people find the link: %s", want, body)
 		}

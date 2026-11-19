@@ -824,24 +824,6 @@
   },
   "settingsVfox": "vfox",
   "@settingsVfox": { "description": "Heading of the settings about the vfox executable." },
-  "settingsWeb": "Web interface",
-  "@settingsWeb": { "description": "Heading of the settings about the web interface." },
-  "settingsWebInterface": "Web interface",
-  "@settingsWebInterface": { "description": "Title of the switch that serves the web interface of the application." },
-  "webServing": "Serving at {address}",
-  "@webServing": {
-    "description": "Says where the web interface is served on this computer.",
-    "placeholders": { "address": { "type": "String", "example": "http://127.0.0.1:41233" } }
-  },
-  "webCannotServe": "Cannot serve the web interface: {reason}",
-  "@webCannotServe": {
-    "description": "Says why the web interface could not start.",
-    "placeholders": { "reason": { "type": "String", "example": "address already in use" } }
-  },
-  "webOpen": "Open in browser",
-  "@webOpen": { "description": "Title of the item that opens the web interface in the browser of this computer." },
-  "webOpenAction": "Open",
-  "@webOpenAction": { "description": "Button that opens the web interface in the browser." },
   "webCopyLink": "Copy link",
   "@webCopyLink": { "description": "Copies a one-time pairing link to the clipboard." },
   "webLinkFailed": "Cannot make a link: {reason}",
@@ -853,8 +835,8 @@
   "@settingsLightweight": { "description": "Title of the switch that keeps the application running without its window." },
   "settingsLightweightHelp": "Keeps running in the background when closed.",
   "@settingsLightweightHelp": { "description": "Explains what the lightweight mode does." },
-  "settingsNeedsWebInterface": "Turn on the web interface first.",
-  "@settingsNeedsWebInterface": { "description": "Says why a switch cannot be flipped: it depends on the web interface." },
+  "settingsNeedsOtherDevices": "Turn on other devices first.",
+  "@settingsNeedsOtherDevices": { "description": "Says why a switch cannot be flipped: it depends on other devices being allowed." },
   "settingsRemote": "Other devices",
   "@settingsRemote": { "description": "Title of the switch that lets phones and other computers connect to the web interface." },
   "webRemoteListening": "Listening on port {port}",
@@ -957,8 +939,6 @@
   "@trayToolTip": { "description": "Hover text of the icon in the tray, which stands for the application while its window is closed." },
   "trayOpen": "Open vfox+",
   "@trayOpen": { "description": "Item of the menu of the tray icon that brings the window of the application back." },
-  "trayOpenWeb": "Open the web interface",
-  "@trayOpenWeb": { "description": "Item of the menu of the tray icon that opens the web interface in the browser." },
   "settingsExecutable": "Executable",
   "@settingsExecutable": {
     "description": "Path of the vfox executable."

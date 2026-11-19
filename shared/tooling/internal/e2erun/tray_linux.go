@@ -19,7 +19,6 @@ package e2erun
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -62,8 +61,7 @@ func runTray(command []string) error {
 // trayScenario is the application against the stand-in host: the icon comes with the closing of the
 // window, its ID, its picture and its menu are right, it brings the window back and goes with it, and
 // the host of the tray icons starts again, as a desktop does when its shell restarts: the icon takes
-// its place with the new host. The web interface opens in the browser, and the menu ends the
-// application.
+// its place with the new host. The menu has no item for a web interface, and it ends the application.
 func trayScenario(s *appsession.Session, host *trayhost.Host) {
 	s.WaitForText("Versions in use")
 	s.Step("home")
@@ -109,12 +107,9 @@ func trayScenario(s *appsession.Session, host *trayhost.Host) {
 	s.Check(thirdProperties.ID == properties.ID, "the icon that the new host shows keeps its ID")
 	s.Check(restarted.Registered() == 1, "the new host has the icon, which the application registered again")
 
-	s.Step("choose Open the web interface")
-	s.Check(third.Choose(menuWeb) == nil, "Open the web interface is chosen in the menu")
-	link := waitForTheBrowser(s)
-	s.Check(strings.HasPrefix(link, "http://127.0.0.1:") && strings.Contains(link, "/auth/connect/"), "the browser is told to open a link that pairs it: "+link)
-	checkLink(s, link)
-	s.Check(!s.HasWindow() && s.Alive(), "opening the web interface leaves the application as it is")
+	s.Step("the application opens no browser of this computer")
+	expectNoBrowser(s)
+	s.Check(!s.HasWindow() && s.Alive(), "the application is as it was")
 
 	s.Step("choose Quit vfox+")
 	s.Check(third.Choose(menuQuit) == nil, "Quit vfox+ is chosen in the menu")
@@ -247,7 +242,7 @@ func checkIcon(s *appsession.Session, item *trayhost.Item) trayhost.Properties {
 		labels = append(labels, entry.Label)
 	}
 	s.Check(slices.Equal(labels, trayMenu), fmt.Sprintf("the menu is %q, not %q", trayMenu, labels))
-	s.Check(len(entries) == len(trayMenu) && entries[2].Separator, "the third entry is the separator")
+	s.Check(len(entries) == len(trayMenu) && entries[1].Separator, "the second entry is the separator")
 	return properties
 }
 
@@ -277,31 +272,10 @@ func browser(home string) ([]string, error) {
 	return []string{"XDG_DATA_HOME=" + data}, nil
 }
 
-// waitForTheBrowser waits for the application to ask the desktop to open a link, and returns it.
-func waitForTheBrowser(s *appsession.Session) string {
-	record := filepath.Join(s.Home, "opened.txt")
-	var link string
-	s.WaitFor("the desktop to open the link of the web interface", trayWait, func() bool {
-		data, err := os.ReadFile(record) //nolint:gosec // The file of the test browser.
-		link = strings.TrimSpace(string(data))
-		return err == nil && link != ""
-	})
-	return link
-}
-
-// checkLink uses the link as the browser does: it pairs, with a session and a redirect to the page.
-func checkLink(s *appsession.Session, link string) {
-	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	response, err := client.Get(link) //nolint:noctx // A request of a test, with a timeout.
-	if err != nil {
-		s.Fail("open the link of the web interface: %v", err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	s.Check(response.StatusCode == http.StatusSeeOther && response.Header.Get("Location") == "/app",
-		fmt.Sprintf("the link pairs the browser and sends it to the page: %s %s", response.Status, response.Header.Get("Location")))
-	var session bool
-	for _, cookie := range response.Cookies() {
-		session = session || (cookie.Name == "vfox-plus-session" && cookie.Value != "")
-	}
-	s.Check(session, "the link gives the browser a session")
+// expectNoBrowser lets a moment pass, and checks that the desktop was asked to open no link: the test browser writes
+// each link that it is given to a file, and no link is written when the application opens none.
+func expectNoBrowser(s *appsession.Session) {
+	time.Sleep(time.Second)
+	_, err := os.Stat(filepath.Join(s.Home, "opened.txt"))
+	s.Check(os.IsNotExist(err), "the desktop is asked to open no link")
 }

@@ -58,9 +58,9 @@ func sessionCookieValue(header string) (string, bool) {
 	return "", false
 }
 
-// settings are the settings of the measured application: the web interface is on, and
+// settings are the settings of the measured application: other devices may connect, and
 // the lightweight mode keeps the application running when its window is closed.
-const settings = `{"webInterface":true,"lightweight":true}`
+const settings = `{"webRemote":true,"lightweight":true}`
 
 // Run implements `measure-lightweight [--output FILE] [--settle SECONDS] [--fixtures-root DIR] [--fake-vfox FILE] <application command...>`.
 // The application command usually is the end-to-end build of the application.

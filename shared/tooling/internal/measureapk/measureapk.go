@@ -141,8 +141,8 @@ func adb(args ...string) ([]byte, error) {
 // connect, settles again,
 // and appends the memory(apk-paired) line: the native session with its tabs
 // loaded, next to the unpaired screen. The paired line is for local
-// diagnosis only: pair it against a loopback `vfox-plus-serve serve` with
-// `adb reverse` carrying the port, and never upload a two-line file, which
+// diagnosis only: pair it against a loopback instance of the application (with other
+// devices allowed) with `adb reverse` carrying the port, and never upload a two-line file, which
 // the memory report would refuse to parse.
 func Run(args []string) error {
 	flags := flag.NewFlagSet("measure-apk", flag.ContinueOnError)

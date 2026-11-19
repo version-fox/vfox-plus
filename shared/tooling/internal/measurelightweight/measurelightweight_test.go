@@ -81,7 +81,7 @@ func TestTheEnvironmentIsAHomeOfItsOwnWithTheSettingsOfTheLightweightMode(t *tes
 		t.Errorf("the fake vfox is there: %v", err)
 	}
 	stored, err := os.ReadFile(filepath.Join(home, ".config", "vfox-plus", "settings.json"))
-	if err != nil || string(stored) != settings || !strings.Contains(settings, `"webInterface":true`) || !strings.Contains(settings, `"lightweight":true`) {
+	if err != nil || string(stored) != settings || !strings.Contains(settings, `"webRemote":true`) || !strings.Contains(settings, `"lightweight":true`) {
 		t.Errorf("the settings of the run: %q, %v", stored, err)
 	}
 	if info, err := os.Stat(filepath.Join(home, "run")); err != nil || info.Mode().Perm() != 0o700 {

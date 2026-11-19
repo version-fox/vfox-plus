@@ -42,12 +42,12 @@ const DefaultBind = "127.0.0.1"
 // paired. Zero means the session lives as long as the server.
 const DefaultSessionTTL = 24 * time.Hour
 
-// Control is what the web interface asks of the application besides vfox: how
+// Control is what the server asks of the application besides vfox: how
 // the other devices can connect, and the end of the application. The Host
 // implements it. Its listeners are told when the status may have changed.
 type Control interface {
 	state.Listenable
-	// Status describes the servers of the web interface.
+	// Status describes the server for other devices.
 	Status() Status
 	// RemoteLink mints a pairing link for a device on the network, with host as
 	// the address of this computer in it, or the most likely one when host is
@@ -75,7 +75,7 @@ type Options struct {
 	// session lives as long as the server. Expired sessions answer 401 and
 	// must pair again.
 	SessionTTL time.Duration
-	// Model is the application state behind the web interface.
+	// Model is the application state behind the server.
 	Model *state.AppModel
 	// TLSCertFile and TLSKeyFile switch the server to HTTPS. Empty means
 	// plain HTTP, which only loopback binds use.
@@ -84,7 +84,7 @@ type Options struct {
 	// Fingerprint is the SHA-256 fingerprint of the TLS certificate, shown
 	// on the intro page for comparison with the browser.
 	Fingerprint string
-	// Control answers what the web interface asks of the application besides
+	// Control answers what the server asks of the application besides
 	// vfox. Nil leaves those routes unavailable.
 	Control Control
 }
@@ -338,7 +338,7 @@ func (s *Server) serveIntro(writer http.ResponseWriter, request *http.Request) {
 }
 
 // serveConnect pairs a browser holding a one-time link, and takes it to the
-// web interface.
+// interface.
 func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request) {
 	token := strings.TrimPrefix(request.URL.Path, "/auth/connect/")
 	if token == "" || strings.Contains(token, "/") || !s.takeToken(token) {
@@ -385,9 +385,9 @@ var introTemplate = template.Must(template.New("intro").Parse(withFavicon(`<!doc
 <body>
 <h1>vfox+</h1>
 <p>This is the web interface of vfox+. To use it, pair this browser with a one-time link from the computer that runs vfox+.</p>
-<p>On that computer, open vfox+, go to Settings and choose <em>Open in browser</em>. For a phone, scan the pairing code of the same page with the Android app. Links work once and expire after a few minutes.</p>
+<p>On that computer, open vfox+, go to Settings, allow other devices, then choose Pair a phone and Show code, and copy the link. Links work once and expire after a few minutes.</p>
 <p>这是 vfox+ 的网页界面。要使用它，请先用运行 vfox+ 的电脑上的一次性链接配对此浏览器。</p>
-<p>在那台电脑上打开 vfox+，进入“设置”，选择“在浏览器中打开”。手机请用安卓应用扫描同一页面上的配对二维码。链接一次性有效，几分钟后过期。</p>
+<p>在那台电脑上打开 vfox+，进入“设置”，允许其他设备，再选择“配对手机”和“显示二维码”，然后复制链接。链接一次性有效，几分钟后过期。</p>
 {{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code></p>
 <p>证书指纹：<code>{{.Fingerprint}}</code>（信任自签名证书前请核对）。</p>{{end}}
 </body>

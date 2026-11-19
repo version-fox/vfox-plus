@@ -100,8 +100,8 @@ form{margin:0}
 <form method="post" action="/gateway/connect">
 <p><label for="link"><strong>Pairing link of vfox+ · vfox+ 的配对链接</strong></label></p>
 <input type="text" id="link" name="link" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://192.168.1.20:8369/auth/connect/…">
-<p>On the computer that runs vfox+: Settings → Web interface → Other devices (allow them), then Pair a phone → Show code → Copy link. It works once and expires after five minutes.</p>
-<p class="zh">在运行 vfox+ 的电脑上：设置 → 网页界面 → 其他设备（允许），再点 配对手机 → 显示二维码 → 复制链接。链接一次性有效，五分钟后过期。</p>
+<p>On the computer that runs vfox+: Settings → Other devices (allow them), then Pair a phone → Show code → Copy link. It works once and expires after five minutes.</p>
+<p class="zh">在运行 vfox+ 的电脑上：设置 → 其他设备（允许），再点 配对手机 → 显示二维码 → 复制链接。链接一次性有效，五分钟后过期。</p>
 <div class="row"><button class="primary" type="submit">Pair · 配对</button></div>
 </form>
 </div>
@@ -115,8 +115,8 @@ form{margin:0}
 <div class="card {{if .Changed}}warn{{end}}">
 {{if .Changed}}<p><strong>The certificate at this address is not the one you trusted before.</strong> If you did not change the certificate of vfox+, someone else answers here.</p>
 <p class="zh"><strong>此地址上的证书与你之前信任的不是同一个。</strong>如果你没有更换 vfox+ 的证书，说明有别的主机在应答。</p>{{end}}
-<p>The certificate of vfox+ at <code>{{.Address}}</code> is not signed by an authority, as the one that vfox+ makes for itself is not. Before the gateway trusts it, compare its fingerprint with the one in the settings of vfox+ (Settings → Web interface → Certificate):</p>
-<p class="zh"><code>{{.Address}}</code> 上 vfox+ 的证书没有机构签名，vfox+ 为自己生成的证书都是这样。信任它之前，请把它的指纹与 vfox+ 设置里的核对（设置 → 网页界面 → 证书）：</p>
+<p>The certificate of vfox+ at <code>{{.Address}}</code> is not signed by an authority, as the one that vfox+ makes for itself is not. Before the gateway trusts it, compare its fingerprint with the one in the settings of vfox+ (Settings → Other devices → Certificate):</p>
+<p class="zh"><code>{{.Address}}</code> 上 vfox+ 的证书没有机构签名，vfox+ 为自己生成的证书都是这样。信任它之前，请把它的指纹与 vfox+ 设置里的核对（设置 → 其他设备 → 证书）：</p>
 <p><code>{{.Fingerprint}}</code></p>
 <p>If they are the same, trust it. If they are not, do not: someone else answers at this address.</p>
 <p class="zh">一致就信任它；不一致就不要信任，说明有别的主机在这个地址上应答。</p>

@@ -28,20 +28,17 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// Web is the web interface of the application, which the settings of the window
-// switch on and off: the browsers of this computer, and the phones and the other
-// computers of the network if the user allows them, connect to it. The Host of
-// package pair is the one.
+// Web is the server that other devices connect to, the Docker gateway and the
+// phones among them, as the settings of the window allow. The application shows no
+// web interface on this computer. The Host of package pair is the one.
 type Web interface {
 	state.Listenable
-	// Start serves the web interface as the settings say, and follows them.
+	// Start serves other devices as the settings say, and follows them.
 	Start()
-	// Close stops serving it, and ends the connections.
+	// Close stops serving them, and ends the connections.
 	Close()
-	// Status describes how it is served.
+	// Status describes the server for other devices.
 	Status() pair.Status
-	// LocalLink makes a pairing link for a browser on this computer.
-	LocalLink() (string, error)
 	// RemoteLink makes a pairing link for a device on the network, with host as
 	// the address of this computer, or the likeliest one when it is empty.
 	RemoteLink(host string) (string, error)
@@ -66,26 +63,24 @@ type pairingState struct {
 	err    error
 }
 
-// webSection holds what the web interface asks of the user: whether it is served, whether
-// the application stays when the window is closed, and whether other devices connect.
+// webSection holds what the application asks of the user about other devices: whether they may connect,
+// the port and the addresses they reach it at, and whether the application stays running for them when the
+// window is closed.
 func (a *App) webSection(k kit.Ctx) {
 	current := a.model.Settings.Settings()
 	status := a.web.Status()
-	items := []kit.ListItemSpec{a.webInterfaceItem(k, current, status)}
-	if status.Running {
-		items = append(items, a.webOpenItem(k))
-	}
-	items = append(items, a.lightweightItem(k, current), a.remoteItem(k, current, status))
-	if current.WebInterface && current.WebRemote {
+	items := []kit.ListItemSpec{a.remoteItem(k, current, status)}
+	if current.WebRemote {
 		items = append(items, a.portItem(k, current), a.publicAddressItem(k, current), a.publishItem(k, status))
 		if status.Remote {
 			items = append(items, a.pairItem(k, status), a.certificateItem(k, current, status))
 		}
 	}
-	if current.Lightweight && status.Running {
+	items = append(items, a.lightweightItem(k, current))
+	if current.Lightweight && status.Remote {
 		items = append(items, a.quitItem(k))
 	}
-	kit.GroupHeader(k, a.T("settingsWeb"), nil)
+	kit.GroupHeader(k, a.T("settingsRemote"), nil)
 	kit.ListGroup(k, items...)
 }
 
@@ -104,73 +99,23 @@ func (a *App) switchItem(k kit.Ctx, id, title, subtitle, iconName string, on, en
 	return item
 }
 
-func (a *App) webInterfaceItem(k kit.Ctx, current settings.AppSettings, status pair.Status) kit.ListItemSpec {
-	subtitle := ""
-	switch {
-	case status.Error != "":
-		subtitle = a.T("webCannotServe", "reason", status.Error)
-	case status.Running:
-		subtitle = a.T("webServing", "address", status.LocalURL)
-	}
-	return a.switchItem(k, "web-interface", a.T("settingsWebInterface"), subtitle, "webInterface", current.WebInterface, true,
-		func(on bool) { a.updateSettings(func(s *settings.AppSettings) { s.WebInterface = on }) })
-}
-
-// webOpenItem opens the web interface in the browser of this computer, through a
-// link that pairs it.
-func (a *App) webOpenItem(k kit.Ctx) kit.ListItemSpec {
-	return kit.ListItemSpec{
-		ID: "web-open", Title: a.T("webOpen"), Leading: icon(k, "openInNew"), Wrap: a.wideSettingsWrap(k),
-		Trailing: func() {
-			mui.Row(k.Context).Gap(gapXS).Children(func() {
-				kit.IconButton(k, kit.IconButtonSpec{ID: "web-copy", Icon: "copy", Tooltip: a.T("webCopyLink"), OnClick: a.copyWebLink})
-				kit.Button(k, kit.ButtonSpec{ID: "web-open-button", Kind: kit.TonalButton, Label: a.T("webOpenAction"), OnClick: a.openWeb})
-			})
-		},
-	}
-}
-
-// openWeb opens the web interface in the browser, paired.
-func (a *App) openWeb() {
-	link, err := a.web.LocalLink()
-	if err != nil {
-		a.notify(a.T("webLinkFailed", "reason", describeError(err)))
-		return
-	}
-	a.openURL(link)
-}
-
-// copyWebLink puts a link that pairs a browser of this computer on the clipboard.
-func (a *App) copyWebLink() {
-	link, err := a.web.LocalLink()
-	if err != nil {
-		a.notify(a.T("webLinkFailed", "reason", describeError(err)))
-		return
-	}
-	a.copy(link)
-	a.notify(a.T("actionCopied"))
-}
-
 func (a *App) lightweightItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec {
 	subtitle := a.T("settingsLightweightHelp")
-	if !current.WebInterface {
-		subtitle += " " + a.T("settingsNeedsWebInterface")
+	if !current.WebRemote {
+		subtitle += " " + a.T("settingsNeedsOtherDevices")
 	}
-	return a.switchItem(k, "lightweight", a.T("settingsLightweight"), subtitle, "lightweight", current.Lightweight, current.WebInterface,
+	return a.switchItem(k, "lightweight", a.T("settingsLightweight"), subtitle, "lightweight", current.Lightweight, current.WebRemote,
 		func(on bool) { a.updateSettings(func(s *settings.AppSettings) { s.Lightweight = on }) })
 }
-
 func (a *App) remoteItem(k kit.Ctx, current settings.AppSettings, status pair.Status) kit.ListItemSpec {
 	subtitle := ""
 	switch {
-	case !current.WebInterface:
-		subtitle = a.T("settingsNeedsWebInterface")
 	case status.RemoteError != "":
 		subtitle = a.T("webRemoteFailed", "reason", status.RemoteError)
 	case status.Remote:
 		subtitle = a.T("webRemoteListening", "port", itoa(status.Port))
 	}
-	return a.switchItem(k, "web-remote", a.T("settingsRemote"), subtitle, "otherDevices", current.WebRemote, current.WebInterface, a.allowOtherDevices)
+	return a.switchItem(k, "web-remote", a.T("settingsRemote"), subtitle, "otherDevices", current.WebRemote, true, a.allowOtherDevices)
 }
 
 // allowOtherDevices lets other devices connect, after the user has confirmed, or stops them.
@@ -190,7 +135,7 @@ func (a *App) allowOtherDevices(allow bool) {
 
 // portItem is the port that other devices connect to.
 func (a *App) portItem(k kit.Ctx, current settings.AppSettings) kit.ListItemSpec {
-	// The field shows the port of the settings, also when a page of the web interface changed it.
+	// The field shows the port of the settings, also when another device changed it.
 	if effective := current.EffectiveWebPort(); !a.pages.portReady || effective != a.pages.portSeen {
 		a.pages.portReady, a.pages.portSeen, a.pages.portText = true, effective, itoa(effective)
 	}

@@ -42,7 +42,6 @@ func TestSettingsRoundTrip(t *testing.T) {
 		VfoxExecutable:   "/opt/vfox",
 		ExtraEnvironment: map[string]string{"A": "1"},
 		RailExpanded:     true,
-		WebInterface:     true,
 		Lightweight:      true,
 		WebRemote:        true,
 		WebPort:          9000,
@@ -69,7 +68,7 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"webInterface"`, `"lightweight"`, `"webRemote"`, `"searches"`, `"updateMirror"`}
+	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"lightweight"`, `"webRemote"`, `"searches"`, `"updateMirror"`}
 	previous := -1
 	for _, key := range keys {
 		index := strings.Index(text, key)
@@ -78,7 +77,7 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		}
 		previous = index
 	}
-	for _, absent := range []string{"vfoxExecutable", "webPort", "webCertificate", "webKey", "remoteAccess"} {
+	for _, absent := range []string{"vfoxExecutable", "webInterface", "webPort", "webCertificate", "webKey", "remoteAccess"} {
 		if strings.Contains(text, absent) {
 			t.Errorf("%s must be omitted while it is not set: %s", absent, text)
 		}
@@ -93,7 +92,7 @@ func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 	if parsed.Theme != settings.ThemeSystem || !parsed.UseSystemColor ||
 		parsed.SeedColor != settings.DefaultSeedColor || parsed.Language != settings.LanguageSystem ||
 		parsed.VfoxExecutable != "" || !reflect.DeepEqual(parsed.ExtraEnvironment, map[string]string{"A": "1"}) ||
-		parsed.RailExpanded || parsed.WebInterface || parsed.Lightweight || parsed.WebRemote ||
+		parsed.RailExpanded || parsed.Lightweight || parsed.WebRemote ||
 		parsed.WebPort != 0 || parsed.WebCertificate != "" {
 		t.Errorf("got %#v", parsed)
 	}
@@ -152,8 +151,8 @@ func TestSettingsKeepTheSearchOfEachPlugin(t *testing.T) {
 
 func TestSettingsCompareByValue(t *testing.T) {
 	base := settings.DefaultSettings()
-	if base.WebInterface || base.Lightweight || base.WebRemote {
-		t.Error("the web interface, the lightweight mode and the access of other devices are off by default")
+	if base.Lightweight || base.WebRemote {
+		t.Error("the lightweight mode and the access of other devices are off by default")
 	}
 	other := base
 	other.ExtraEnvironment = map[string]string{}
@@ -165,7 +164,6 @@ func TestSettingsCompareByValue(t *testing.T) {
 		t.Error("expected a difference")
 	}
 	for name, change := range map[string]func(*settings.AppSettings){
-		"the web interface":           func(s *settings.AppSettings) { s.WebInterface = true },
 		"the lightweight mode":        func(s *settings.AppSettings) { s.Lightweight = true },
 		"the access of other devices": func(s *settings.AppSettings) { s.WebRemote = true },
 		"the port":                    func(s *settings.AppSettings) { s.WebPort = 9000 },
@@ -187,25 +185,24 @@ func TestSettingsCompareByValue(t *testing.T) {
 	}
 }
 
-func TestTheWebInterfaceKeepsTheNameOfTheOldRemoteAccessSwitch(t *testing.T) {
-	// The switch of the first versions was called remoteAccess: whoever turned it on keeps the
-	// web interface, but nothing more (it never reached the network).
-	parsed := settings.SettingsFromJSON(decode(t, `{"remoteAccess":true}`))
-	if !parsed.WebInterface || parsed.WebRemote || parsed.Lightweight {
-		t.Errorf("the old switch is the web interface and nothing else: %#v", parsed)
-	}
-	raw, err := json.Marshal(parsed)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(raw), "remoteAccess") || !strings.Contains(string(raw), `"webInterface":true`) {
-		t.Errorf("the old key is read and not written again: %s", raw)
-	}
-	if parsed := settings.SettingsFromJSON(decode(t, `{"remoteAccess":true,"webInterface":false}`)); parsed.WebInterface {
-		t.Error("the new key wins over the old one")
-	}
-	if _, kept := settings.SettingsFromJSON(decode(t, `{"remoteAccess":true}`)).Unknown["remoteAccess"]; kept {
-		t.Error("the old key is known, so it is not kept as an unknown one")
+func TestTheRetiredWebInterfaceSwitchIsReadAndNeverWritten(t *testing.T) {
+	// The switches of the first versions, webInterface and remoteAccess, turned on a server on this computer. Neither
+	// does any more: they are not kept as unknown keys, and what was written before is not written again.
+	for _, text := range []string{`{"webInterface":true}`, `{"remoteAccess":true}`} {
+		parsed := settings.SettingsFromJSON(decode(t, text))
+		if parsed.WebRemote || parsed.Lightweight {
+			t.Errorf("%s changes no other setting: %#v", text, parsed)
+		}
+		raw, err := json.Marshal(parsed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(raw), "webInterface") || strings.Contains(string(raw), "remoteAccess") {
+			t.Errorf("%s is written again: %s", text, raw)
+		}
+		if _, kept := parsed.Unknown[strings.Trim(strings.Split(text, ":")[0], `{"`)]; kept {
+			t.Errorf("%s is kept as an unknown key", text)
+		}
 	}
 }
 

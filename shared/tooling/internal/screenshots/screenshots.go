@@ -76,12 +76,13 @@ var runs = []run{
 	// The compact layout is that of a window less than 600 dp wide.
 	{name: "compact pages", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800"}, scenario: compactPages},
 	{name: "compact profiles", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800", "VFOX_PLUS_FAKE_INVENTORY=profiles"}, scenario: compactProfiles},
-	// The settings of the web interface: it is on, as a person turns it on, and the computer has an address to pair a phone with.
-	// The pictures for the guide in Simplified Chinese are the same in that language, which the run chooses first, as a person does.
+	// The settings of other devices: they are off at first, as a person finds them, and the computer has an address to pair
+	// a phone with. The pictures for the guide in Simplified Chinese are the same in that language, which the run chooses first,
+	// as a person does.
 	{name: "web interface", env: []string{"VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
-		settings: map[string]any{"webInterface": true}, scenario: webInterface(english)},
+		scenario: webInterface(english)},
 	{name: "web interface in Simplified Chinese", env: []string{"VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
-		settings: map[string]any{"webInterface": true}, scenario: webInterface(chinese)},
+		scenario: webInterface(chinese)},
 }
 
 // Run implements `screenshots <output-dir> <app command...>`,
@@ -194,8 +195,8 @@ type words struct {
 }
 
 var (
-	english = words{"", "", "Web interface", "Allow other devices?", "Pair a phone", "Show code", "New code"}
-	chinese = words{"zh-", "simplifiedChinese", "网页界面", "允许其他设备？", "配对手机", "显示二维码", "换一个二维码"}
+	english = words{"", "", "Other devices", "Allow other devices?", "Pair a phone", "Show code", "New code"}
+	chinese = words{"zh-", "simplifiedChinese", "其他设备", "允许其他设备？", "配对手机", "显示二维码", "换一个二维码"}
 )
 
 // webInterface shows what the settings say of the web interface, as a person goes through it: the

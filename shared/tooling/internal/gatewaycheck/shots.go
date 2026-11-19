@@ -141,9 +141,9 @@ func Shots(args []string) error {
 	}
 	return appsession.RunScenario(appsession.Config{
 		Name: "gateway-shots", Command: command, Fixtures: appsession.FixturesDir(root),
-		// The settings that a person switches on: the web interface and other devices, on the port that vfox-plus
-		// has until it is changed, which the pictures show.
-		Settings: map[string]any{"webInterface": true, "webRemote": true},
+		// The settings that a person switches on: other devices, on the port that vfox-plus has until it is
+		// changed, which the pictures show.
+		Settings: map[string]any{"webRemote": true},
 		Env:      []string{"VFOX_PLUS_E2E_LINK=" + taker.linkFile, "VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
 	}, "gateway-shots", taker.scenario)
 }

@@ -89,8 +89,8 @@ func Run(args []string) error {
 	check := &check{program: gateways, linkFile: filepath.Join(dir, "link.txt")}
 	return appsession.RunScenario(appsession.Config{
 		Name: "gateway", Command: command, Fixtures: appsession.FixturesDir(root),
-		// The settings that a person switches on: the web interface, and other devices on a port of their own.
-		Settings: map[string]any{"webInterface": true, "webRemote": true, "webPort": port},
+		// The settings that a person switches on: other devices, on a port of their own.
+		Settings: map[string]any{"webRemote": true, "webPort": port},
 		Env:      []string{"VFOX_PLUS_E2E_LINK=" + check.linkFile},
 	}, "gateway", check.scenario)
 }
