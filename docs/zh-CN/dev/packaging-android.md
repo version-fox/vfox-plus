@@ -143,6 +143,8 @@ gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plu
 - `vfxtool measure-apk --pair-url` 发给 `MainActivity` 的 `VIEW` intent 只有可调试的构建
   会接受（`MainActivity.firstScreen`）。启动器 activity 是导出的，发布版若接受它，任何应用
   都能让应用打开它指定的页面。
+- 调试版同样会接受任何应用发来的这个 intent，所以只安装来源可信的调试版。`vfxtool measure-apk --pair-url`
+  遇到非调试版的 APK 会直接报错。
 - wrapper 是 [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
   0.4.0（Apache-2.0）：官方的 `gradle-wrapper.jar` 是二进制，仓库拒绝二进制文件，
   Neo 用一个 Java 源文件做同样的事，由 `gradlew` 首次使用时编译。`gradlew`、

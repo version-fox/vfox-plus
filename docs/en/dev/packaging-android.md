@@ -243,6 +243,8 @@ accepts an update only with a higher one.
 - The `VIEW` intent that `vfxtool measure-apk --pair-url` sends to `MainActivity` is
   taken only by a debuggable build (`MainActivity.firstScreen`). The launcher activity is
   exported, so a release build would open any page that another application names.
+- A debuggable build takes that intent from any application too, so install a debug build only
+  from a source you trust. `vfxtool measure-apk --pair-url` refuses an APK that is not debuggable.
 - The wrapper is [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
   0.4.0 (Apache-2.0): the stock `gradle-wrapper.jar` is a binary, which the
   repository rejects, and Neo does the same job from one Java source file that
