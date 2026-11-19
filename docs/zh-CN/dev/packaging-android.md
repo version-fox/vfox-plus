@@ -134,8 +134,15 @@ gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plu
 
 ## 维护者注记
 
-- `usesCleartextTraffic` 开着：可信局域网里服务端可能是纯 HTTP（PC 侧非回环
-  监听一律 HTTPS，但用户可能在别处终结 TLS）。会话 cookie 都是凭证。
+- 明文 HTTP 只允许 `127.0.0.1` 与 `localhost`（`res/xml/network_security_config.xml`），
+  用于调试版经 `adb reverse` 的配对会话。其他地方一律 HTTPS：PC 侧在非回环监听上只提供
+  HTTPS，会话 cookie 带 `Secure`，浏览器与 WebView 不会在纯 HTTP 的其他主机上保存它。
+  备份已关闭（`allowBackup="false"`）：会话 cookie 是凭证，恢复备份不能把它带到另一台设备上。
+- WebView 拒绝一切发往其他站点的请求（`shouldInterceptRequest`，返回 403）：桥对每个框架都可见，
+  其他站点的框架或脚本就能拿到它。链接指向的其他站点页面改由系统浏览器打开。
+- `vfxtool measure-apk --pair-url` 发给 `MainActivity` 的 `VIEW` intent 只有可调试的构建
+  会接受（`MainActivity.firstScreen`）。启动器 activity 是导出的，发布版若接受它，任何应用
+  都能让应用打开它指定的页面。
 - wrapper 是 [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
   0.4.0（Apache-2.0）：官方的 `gradle-wrapper.jar` 是二进制，仓库拒绝二进制文件，
   Neo 用一个 Java 源文件做同样的事，由 `gradlew` 首次使用时编译。`gradlew`、

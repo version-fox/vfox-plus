@@ -231,7 +231,9 @@ frontend, so there is exactly one implementation to measure. `vfxtool
 measure-apk --pair-url` opens the paired session through an explicit `VIEW`
 intent (the measurement entry point of `MainActivity`, the same session as
 pasting the link and tapping connect), settles again, and appends the
-`memory (apk-paired)` line. Pair against the end-to-end build of the
+`memory (apk-paired)` line. Only a debuggable build takes that intent: the release APK
+that CI measures ignores it, so the paired line needs a debug APK (`./gradlew assembleDebug`).
+Pair against the end-to-end build of the
 application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, which
 makes its certificate and its pairing link name the address where the emulator
 reaches the computer; read the link from the file that `VFOX_PLUS_E2E_LINK`

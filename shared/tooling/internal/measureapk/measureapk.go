@@ -90,10 +90,10 @@ func adb(args ...string) ([]byte, error) {
 // Without --pair-url it does what CI does: install, cold-start through the
 // launcher, settle, and write the memory(apk-cold) line. With --pair-url it
 // then opens the paired session through an explicit VIEW intent (the
-// measurement entry point of MainActivity: the same session as pasting the
-// link and tapping connect), settles again, and appends the
-// memory(apk-paired) line: the native session with its tabs loaded, next to
-// the unpaired screen. The paired line is for local
+// measurement entry point of MainActivity, which only a debuggable APK takes:
+// the same session as pasting the link and tapping connect), settles again,
+// and appends the memory(apk-paired) line: the native session with its tabs
+// loaded, next to the unpaired screen. The paired line is for local
 // diagnosis only: pair it against a loopback `vfox-plus-serve serve` with
 // `adb reverse` carrying the port, and never upload a two-line file, which
 // the memory report would refuse to parse.
@@ -104,7 +104,7 @@ func Run(args []string) error {
 	gradle := flags.String("gradle", "android/app/build.gradle.kts", "build file holding the applicationId")
 	screenshot := flags.String("screenshot", "", "PNG file for a screenshot of the cold start")
 	settle := flags.Int("settle", 20, "seconds to settle after the start")
-	pairURL := flags.String("pair-url", "", "one-time pairing link of a reachable server, to also measure the paired session")
+	pairURL := flags.String("pair-url", "", "one-time pairing link of a reachable server, to also measure the paired session (a debuggable APK only)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}

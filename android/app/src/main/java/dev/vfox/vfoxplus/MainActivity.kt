@@ -15,6 +15,7 @@
 package dev.vfox.vfoxplus
 
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         if (savedInstanceState == null) {
-            val first = firstScreen(intent)
+            val first = firstScreen(intent, debuggable = isDebuggable())
             if (first is ViewerFragment) {
                 // Like a pasted link, a link that opens the app remembers
                 // the server for reconnecting.
@@ -56,26 +57,32 @@ class MainActivity : AppCompatActivity() {
         // A fresh pairing link while the app runs opens its session on top,
         // like pasting the link and tapping connect.
         val data = intent.dataString.orEmpty()
-        if (firstScreen(intent) is ViewerFragment) {
+        val screen = firstScreen(intent, debuggable = isDebuggable())
+        if (screen is ViewerFragment) {
             // Pasted links remember the server for reconnecting; a link that
             // opens the app does the same.
             PairingFragment.pairingBase(data)?.let { ServerStore(this).lastPairingUrl = it }
             supportFragmentManager.beginTransaction()
                 .setReorderingAllowed(true)
-                .replace(R.id.container, firstScreen(intent))
+                .replace(R.id.container, screen)
                 .addToBackStack(null)
                 .commit()
         }
     }
 
+    private fun isDebuggable(): Boolean = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+
     companion object {
-        // The measurement entry point of `vfxtool measure-apk --pair-url` (and
-        // of anyone holding a pairing link): an explicit VIEW intent whose
-        // data is a one-time pairing link or a bare server address opens the
-        // session directly, exactly as if the link had been pasted and
-        // connected. It grants nothing that the link itself does not grant.
-        fun firstScreen(intent: Intent?) =
-            if (intent?.action == Intent.ACTION_VIEW &&
+        // The measurement entry point of `vfxtool measure-apk --pair-url` and of
+        // local diagnosis: an explicit VIEW intent whose data is a one-time
+        // pairing link or a bare server address opens the session directly, as
+        // if the link had been pasted and connected. Only a debuggable build
+        // takes it. The launcher activity is exported, so in a release build any
+        // application could send this intent and open a page of its choosing
+        // inside the app, which has the bridge to the computer; there the
+        // intent is ignored and the app opens on its pairing screen.
+        fun firstScreen(intent: Intent?, debuggable: Boolean) =
+            if (debuggable && intent?.action == Intent.ACTION_VIEW &&
                 PairingFragment.pairingBase(intent.dataString.orEmpty()) != null
             ) {
                 PairingFragment.viewerFor(intent.dataString!!.trim())
