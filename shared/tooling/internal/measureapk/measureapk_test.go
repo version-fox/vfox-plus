@@ -67,3 +67,24 @@ func TestRunUsage(t *testing.T) {
 		t.Fatal("want a usage error")
 	}
 }
+
+// The reports follow the layout of `dumpsys package`. The release report puts
+// DEBUGGABLE on its pkgFlags line (a real release build does not), so a reader that
+// matches the flags case-insensitively would take that line for the flags.
+func TestIsDebuggable(t *testing.T) {
+	debug := "Packages:\n  Package [dev.vfox.vfoxplus] (1a2b3c):\n    userId=10123\n    pkgFlags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]\n    flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]\n"
+	release := "Packages:\n  Package [dev.vfox.vfoxplus] (1a2b3c):\n    userId=10123\n    pkgFlags=[ DEBUGGABLE HAS_CODE ]\n    flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]\n"
+	for _, c := range []struct {
+		name, report string
+		want         bool
+	}{
+		{"debug build", debug, true},
+		{"release build", release, false},
+		{"no flags line", "Unable to find package\n", false},
+		{"empty report", "", false},
+	} {
+		if got := IsDebuggable(c.report); got != c.want {
+			t.Errorf("%s: IsDebuggable = %v, want %v", c.name, got, c.want)
+		}
+	}
+}

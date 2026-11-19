@@ -38,6 +38,9 @@ var (
 	applicationID = regexp.MustCompile(`applicationId\s*=\s*"([^"]+)"`)
 	totalLine     = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
 	rssField      = regexp.MustCompile(`\bRSS:\s*(\d+)K?`)
+	// The flags of the package in `dumpsys package`: the line starts with flags=[ ... ],
+	// not with pkgFlags= or privateFlags=.
+	packageFlags = regexp.MustCompile(`(?m)^\s*flags=\[([^\]]*)\]`)
 )
 
 // ApplicationID reads the applicationId out of a build.gradle.kts.
@@ -73,6 +76,21 @@ func Line(pssKB, rssKB int) string {
 // system WebView and the /app page loaded.
 func PairedLine(pssKB, rssKB int) string {
 	return fmt.Sprintf("memory (apk-paired): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
+}
+
+// IsDebuggable reports whether the report of `dumpsys package` for an installed
+// app lists the DEBUGGABLE flag, which only a debuggable build has.
+func IsDebuggable(report string) bool {
+	match := packageFlags.FindStringSubmatch(report)
+	if match == nil {
+		return false
+	}
+	for _, flag := range strings.Fields(match[1]) {
+		if flag == "DEBUGGABLE" {
+			return true
+		}
+	}
+	return false
 }
 
 func adb(args ...string) ([]byte, error) {
@@ -121,6 +139,18 @@ func Run(args []string) error {
 	}
 	if _, err := adb("install", *apk); err != nil {
 		return err
+	}
+	if *pairURL != "" {
+		// Only a debuggable build takes the pairing link: a release build shows its
+		// pairing screen instead, and the paired line would measure that screen.
+		// The check comes before any measurement, so nothing is written for it.
+		info, err := adb("shell", "dumpsys", "package", pkg)
+		if err != nil {
+			return err
+		}
+		if !IsDebuggable(string(info)) {
+			return fmt.Errorf("--pair-url needs a debuggable APK: a release build ignores the pairing link, so %s would measure its pairing screen (build the debug variant with ./gradlew assembleDebug in android/, or leave out --pair-url)", *apk)
+		}
 	}
 	// Cold start through the launcher, like a user tapping the icon.
 	if _, err := adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1"); err != nil {
