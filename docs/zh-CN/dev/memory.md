@@ -166,9 +166,10 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `me
 ### 配对后的会话
 
 客户端就是套在 `/app` 外面的 WebView：整个会话是共用的 Web 前端，只有一个
-实现可测。`vfxtool measure-apk --pair-url` 经显式 `VIEW` intent 打开配对
-会话（`MainActivity` 的测量入口，与粘贴链接后点连接是同一个会话），再沉降一次，
-追加 `memory (apk-paired)` 行。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
+实现可测。`vfxtool measure-apk --pair-url` 用 `run-as`（只有可调试的构建允许）把一次性配对链接交给应用，再启动启动器，由它打开
+与粘贴链接后点连接相同的会话，再沉降一次，
+追加 `memory (apk-paired)` 行。其他应用无法写入这个目录，也没有导出的组件接受链接。CI 测量的发布版 APK 拒绝 `run-as`，
+所以配对那一行要用调试版 APK（`./gradlew assembleDebug`）。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
 它生成的证书与配对链接用的就是模拟器访问本机的地址；从 `VFOX_PLUS_E2E_LINK`
 指定的文件里读链接，每轮重启应用领一条新链接。配对行只做本地诊断：两行的文件不要上传，
 CI 只测冷启动。

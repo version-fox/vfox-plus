@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -140,7 +140,7 @@ func TestSearchArgumentsAndChoices(t *testing.T) {
 	if _, ok := none.Choice("tem"); ok {
 		t.Error("a nil search has no choices")
 	}
-	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
+	for _, plugin := range []string{"nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
 		if lookup(t, plugin).Search != nil {
 			t.Errorf("%s ignores search arguments", plugin)
 		}
@@ -209,6 +209,10 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"python":  {[]string{"VFOX_PYTHON_MIRROR", "VFOX_PYTHON_USE_UV_BUILD", "VFOX_PYTHON_UV_BUILD_MIRROR", "VFOX_PYTHON_UV_LIBC"}, []string{".python-version"}},
 		"maven":   {nil, nil},
 		"php":     {[]string{"PHP_WITH_PEAR", "PHP_WITH_MHASH", "PHP_WITHOUT_PCRE_JIT"}, nil},
+		"dart":    {nil, nil},
+		"kotlin":  {nil, nil},
+		"dotnet":  {nil, nil},
+		"cmake":   {nil, nil},
 	}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
@@ -256,7 +260,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		}
 	}
 	strategyReaders := map[string]bool{"nodejs": true, "python": true}
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
 		if got := lookup(t, plugin).LegacyStrategy; got != strategyReaders[plugin] {
 			t.Errorf("%s LegacyStrategy = %v: only vfox-nodejs and vfox-python read the strategy of the legacy version files", plugin, got)
 		}
@@ -545,6 +549,209 @@ func TestPHPFiltersTheWindowsBuilds(t *testing.T) {
 	}
 	if got := kept(Selection{}.Toggled("build", "TS")); !reflect.DeepEqual(got, []string{"8.5.12", "8.4.20"}) {
 		t.Errorf("TS = %v", got)
+	}
+}
+
+func TestDartFiltersTheChannels(t *testing.T) {
+	// The note of a version is the channel it came from, and a version
+	// published on several channels is listed once for each of them.
+	dart := lookup(t, "dart")
+	versions := []core.AvailableVersion{
+		{Version: "3.14.0", Note: "stable", HasNote: true},
+		{Version: "3.14.0", Note: "dev", HasNote: true},
+		{Version: "3.13.0", Note: "beta", HasNote: true},
+	}
+	groups := dart.Groups(versions)
+	want := []Group{{ID: "channel", Label: dart.Facets[0].Label, Chips: []Chip{{"stable", 1}, {"dev", 1}, {"beta", 1}}}}
+	if !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups = %+v, want %+v", groups, want)
+	}
+	kept := func(value string) []string {
+		var names []string
+		for _, version := range versions {
+			if dart.Matches(Selection{}.Toggled("channel", value), version) {
+				names = append(names, version.Version+"/"+version.Note)
+			}
+		}
+		return names
+	}
+	if got := kept("stable"); !reflect.DeepEqual(got, []string{"3.14.0/stable"}) {
+		t.Errorf("stable = %v", got)
+	}
+	if got := kept("beta"); !reflect.DeepEqual(got, []string{"3.13.0/beta"}) {
+		t.Errorf("beta = %v", got)
+	}
+	// The channels of the install-by-name dialog are the ones the list filters by.
+	for _, channel := range []string{"stable", "dev", "beta"} {
+		found := false
+		for _, shorthand := range dart.Shorthands {
+			found = found || shorthand.Name == channel
+		}
+		if !found {
+			t.Errorf("the profile does not offer %q as a name to install", channel)
+		}
+	}
+}
+
+func TestDotnetFiltersTheDistribution(t *testing.T) {
+	// The distribution is the suffix of the version: a plain release is the
+	// SDK, while -runtime and -aspnetcore install smaller distributions.
+	dotnet := lookup(t, "dotnet")
+	versions := []core.AvailableVersion{
+		{Version: "8.0.34", Note: "LTS", HasNote: true},
+		{Version: "8.0.34-runtime", Note: "Runtime - LTS", HasNote: true},
+		{Version: "8.0.34-aspnetcore", Note: "ASP.NET Core Runtime - LTS", HasNote: true},
+		{Version: "11.0.0-rc.3"},
+	}
+	groups := dotnet.Groups(versions)
+	want := []Group{{ID: "distribution", Label: dotnet.Facets[0].Label, Chips: []Chip{{"runtime", 1}, {"aspnetcore", 1}}}}
+	if !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups = %+v, want %+v", groups, want)
+	}
+	kept := func(value string) []string {
+		var names []string
+		for _, version := range versions {
+			if dotnet.Matches(Selection{}.Toggled("distribution", value), version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept("runtime"); !reflect.DeepEqual(got, []string{"8.0.34-runtime"}) {
+		t.Errorf("runtime = %v", got)
+	}
+	if got := kept("aspnetcore"); !reflect.DeepEqual(got, []string{"8.0.34-aspnetcore"}) {
+		t.Errorf("aspnetcore = %v", got)
+	}
+}
+
+func TestDotnetLatestIsTheNewestStableRelease(t *testing.T) {
+	// A preview can be listed above the stable release of its channel. latest
+	// and a channel pick the newest stable release, and a preview only when
+	// there is none, as the name to install and the guide say, in both
+	// languages.
+	dotnet := lookup(t, "dotnet")
+	var meaning Text
+	for _, shorthand := range dotnet.Shorthands {
+		if shorthand.Name == "latest" {
+			meaning = shorthand.Meaning
+		}
+	}
+	for label, text := range map[string]Text{"the name": meaning, "the guide": dotnet.Guide} {
+		if !strings.Contains(text.EN, "stable") || !strings.Contains(text.ZH, "稳定") {
+			t.Errorf("%s should say that latest is the newest stable release: %+v", label, text)
+		}
+	}
+}
+
+func TestTheNewPluginsOfferNoVariables(t *testing.T) {
+	// Dart, Kotlin, .NET and CMake have no mirrors or switches to configure:
+	// their options tab carries the guide, the names and the documentation only.
+	for _, plugin := range []string{"dart", "kotlin", "dotnet", "cmake"} {
+		profile := lookup(t, plugin)
+		if len(profile.Variables) != 0 {
+			t.Errorf("%s has no variables to set: %+v", plugin, profile.Variables)
+		}
+		found := false
+		for _, shorthand := range profile.Shorthands {
+			found = found || shorthand.Name == "latest"
+		}
+		if !found {
+			t.Errorf("%s should offer latest as a name to install", plugin)
+		}
+	}
+}
+
+func TestCMakeFiltersTheReleaseCandidates(t *testing.T) {
+	// The plugin gives no note to a version: a release candidate is told by the
+	// last part of its name, 4.5.0-rc1, and the plugin lists it below its release.
+	cmake := lookup(t, "cmake")
+	versions := []core.AvailableVersion{
+		{Version: "4.5.0-rc3"}, {Version: "4.5.0-rc2"}, {Version: "4.5.0-rc1"}, {Version: "4.5.0"},
+		{Version: "4.4.5"}, {Version: "4.4.0"}, {Version: "4.4.0-rc2"}, {Version: "4.4.0-rc1"},
+	}
+	want := []Group{{ID: "candidate", Label: cmake.Facets[0].Label, Chips: []Chip{{"rc1", 2}, {"rc2", 2}, {"rc3", 1}}}}
+	if groups := cmake.Groups(versions); !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups = %+v, want %+v", groups, want)
+	}
+	kept := func(selection Selection) []string {
+		var names []string
+		for _, version := range versions {
+			if cmake.Matches(selection, version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept(Selection{}.Toggled("candidate", "rc2")); !reflect.DeepEqual(got, []string{"4.5.0-rc2", "4.4.0-rc2"}) {
+		t.Errorf("rc2 = %v", got)
+	}
+	if got := kept(Selection{}.Toggled("candidate", "rc3").Toggled("candidate", "rc1")); !reflect.DeepEqual(got, []string{"4.5.0-rc3", "4.5.0-rc1", "4.4.0-rc1"}) {
+		t.Errorf("rc1 and rc3 = %v", got)
+	}
+	if got := kept(Selection{}); len(got) != len(versions) {
+		t.Errorf("nothing chosen keeps every version, kept %v", got)
+	}
+	// A release has no value of the filter, and the plugin's own facet is the
+	// one that the interfaces use, not the variant that a list of suffixes
+	// infers.
+	if values := cmake.Values(core.AvailableVersion{Version: "4.5.0"}); values != nil {
+		t.Errorf("a release is no candidate: %v", values)
+	}
+	if facets := EffectiveFacets(cmake, true, versions); len(facets) != 1 || facets[0].ID != "candidate" {
+		t.Errorf("effective facets = %+v", facets)
+	}
+	// Every candidate that the list has had is a value: CMake has not had a
+	// seventh, and a value that no listed version has is left out of the chips.
+	if !reflect.DeepEqual(cmake.Facets[0].Values, []string{"rc1", "rc2", "rc3", "rc4", "rc5", "rc6"}) {
+		t.Errorf("values = %v", cmake.Facets[0].Values)
+	}
+}
+
+func TestKotlinLatestIsTheNewestRelease(t *testing.T) {
+	// The list of vfox-kotlin holds releases only, so latest, which vfox
+	// resolves to the first line of the list, is the newest release. The name
+	// and the guide say so, in both languages.
+	kotlin := lookup(t, "kotlin")
+	var meaning Text
+	for _, shorthand := range kotlin.Shorthands {
+		if shorthand.Name == "latest" {
+			meaning = shorthand.Meaning
+		}
+	}
+	for label, text := range map[string]Text{"the name": meaning, "the guide": kotlin.Guide} {
+		if !strings.Contains(text.EN, "newest release") || !strings.Contains(text.ZH, "最新") {
+			t.Errorf("%s should say that latest is the newest release: %+v", label, text)
+		}
+	}
+}
+
+func TestCMakeLatestIsTheNewestRelease(t *testing.T) {
+	// vfox resolves latest to the first line of the list, and the list of the
+	// plugin puts each release before its candidates. The name to install, the
+	// guide and the first tip say that latest is the newest release, in both
+	// languages.
+	cmake := lookup(t, "cmake")
+	var meaning Text
+	for _, shorthand := range cmake.Shorthands {
+		if shorthand.Name == "latest" {
+			meaning = shorthand.Meaning
+		}
+	}
+	for label, text := range map[string]Text{"the name": meaning, "the guide": cmake.Guide, "the first tip": cmake.Tips[0]} {
+		if !strings.Contains(text.EN, "newest release") || !strings.Contains(text.ZH, "最新") {
+			t.Errorf("%s should say that latest is the newest release: %+v", label, text)
+		}
+	}
+	// A partial name is no release: the plugin matches the whole name, so a line
+	// such as 3.31 fails, and the guide says so rather than suggest one.
+	if !strings.Contains(cmake.Guide.EN, "3.31 is no release") {
+		t.Errorf("the guide should say that a line is no release: %q", cmake.Guide.EN)
+	}
+	for _, shorthand := range cmake.Shorthands {
+		if strings.Count(shorthand.Name, ".") == 1 {
+			t.Errorf("%q is a line, not a release, and the plugin does not install it", shorthand.Name)
+		}
 	}
 }
 

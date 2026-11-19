@@ -17,6 +17,7 @@ package pair_test
 import (
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -277,6 +278,57 @@ func TestWebProfileOfPythonOffersItsOptionsAndTheGraalPyFilter(t *testing.T) {
 	}
 	if len(answer.Shorthands) == 0 || len(answer.Docs) == 0 || !strings.Contains(answer.Docs[0].URL.ZH, "/docs/zh-CN/") {
 		t.Errorf("shorthands %v, docs %+v", answer.Shorthands, answer.Docs)
+	}
+}
+
+// TestWebProfilesOfDartKotlinDotnetAndCMakeOfferTheirFilters is what the web interface reads of the plugins that came after
+// PHP: no variable to set, a filter where the plugin gives the notes or the names for one (the channels of Dart, the
+// distributions of .NET, the release candidates of CMake), and latest among the names to install, which is never a release candidate.
+func TestWebProfilesOfDartKotlinDotnetAndCMakeOfferTheirFilters(t *testing.T) {
+	model := testModel(t, testsupport.FixtureRunner())
+	server := webServer(t, model)
+	session := webSession(t, server)
+	for plugin, facets := range map[string][]string{"dart": {"channel"}, "kotlin": nil, "dotnet": {"distribution"}, "cmake": {"candidate"}} {
+		status, body := webGet(t, server.BaseURL()+"/api/sdks/"+plugin+"/profile", session)
+		if status != http.StatusOK {
+			t.Errorf("%s: got %d: %s", plugin, status, body)
+			continue
+		}
+		var answer struct {
+			Plugin     string
+			Variables  []struct{ Key string }
+			Facets     []struct{ ID string }
+			Shorthands []struct {
+				Name    string
+				Meaning struct{ EN, ZH string }
+			}
+			Guide struct{ EN, ZH string }
+			Tips  []struct{ EN, ZH string }
+			Docs  []struct{ URL struct{ EN, ZH string } }
+		}
+		decodeJSON(t, body, &answer)
+		if answer.Plugin != plugin || len(answer.Variables) != 0 || len(answer.Tips) == 0 || len(answer.Docs) == 0 || answer.Guide.EN == "" || answer.Guide.ZH == "" {
+			t.Errorf("%s: got %+v", plugin, answer)
+		}
+		var ids []string
+		for _, facet := range answer.Facets {
+			ids = append(ids, facet.ID)
+		}
+		if !reflect.DeepEqual(ids, facets) {
+			t.Errorf("%s: filters %v, want %v", plugin, ids, facets)
+		}
+		var latest struct{ EN, ZH string }
+		for _, shorthand := range answer.Shorthands {
+			if shorthand.Name == "latest" {
+				latest = shorthand.Meaning
+			}
+		}
+		if latest.EN == "" || latest.ZH == "" {
+			t.Errorf("%s offers latest to install, in both languages: %+v", plugin, answer.Shorthands)
+		}
+		if strings.Contains(latest.EN, "candidate") {
+			t.Errorf("%s: latest is the newest release, not a candidate: %q", plugin, latest.EN)
+		}
 	}
 }
 

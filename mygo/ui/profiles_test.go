@@ -105,6 +105,36 @@ func phpRunner() *testsupport.FakeProcessRunner {
 		On("search php", core.ProcessOutput{Stdout: "Available versions:\n - 8.5.12\n - 8.5.11\n - 8.5.10\n"})
 }
 
+// profileRunner is vfox with one of the plugins added after Maven and PHP
+// installed on the machine. Its answers are the few lines the census needs to
+// reach the options of the plugin and its install-by-name dialog.
+func profileRunner(plugin string) *testsupport.FakeProcessRunner {
+	var version, pluginVersion, description, search string
+	switch plugin {
+	case "dart":
+		version, pluginVersion, description = "3.14.0", "0.1.3", "Dart SDK"
+		search = "Available versions:\n - 3.14.0 (stable)\n - 3.14.0 (dev)\n - 3.13.0 (beta)\n"
+	case "kotlin":
+		version, pluginVersion, description = "2.4.21", "0.1.5", "Kotlin compiler"
+		search = "Available versions:\n - 2.4.21\n - 2.4.20\n - 2.4.10\n - 2.4.0\n - 2.3.21\n"
+	case "dotnet":
+		version, pluginVersion, description = "8.0.34", "0.3.7", ".NET SDK"
+		search = "Available versions:\n - 8.0.34 (LTS)\n - 8.0.34-runtime (Runtime - LTS)\n - 8.0.34-aspnetcore (ASP.NET Core Runtime - LTS)\n - 11.0.0-rc.3\n"
+	case "cmake":
+		// The head of the list as vfox 1.1.0 prints it for the plugin 0.1.9 on Linux: each candidate of 4.5.0 after it.
+		version, pluginVersion, description = "4.5.0", "0.1.9", "Cmake plugin, https://cmake.org/"
+		search = "Available versions:\n - 4.5.0\n - 4.5.0-rc3\n - 4.5.0-rc2\n - 4.5.0-rc1\n - 4.4.5\n - 3.31.6\n"
+	default:
+		panic("no profile machine for " + plugin)
+	}
+	return testsupport.FixtureRunner().
+		On("info "+plugin+" --format "+vfox.PluginInfoTemplate, core.ProcessOutput{Stdout: plugin + "\x1f" + pluginVersion + "\x1fhttps://github.com/version-fox/vfox-" + plugin + "\x1f/home/u/.vfox/cache/" + plugin + "\x1f" + description}).
+		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬" + plugin + "\n  └──" + version + "\n"}).
+		On("current", core.ProcessOutput{Stdout: plugin + " -> v" + version + "\n"}).
+		On("alias list "+plugin, testsupport.FixtureOutput("alias-list", 0)).
+		On("search "+plugin, core.ProcessOutput{Stdout: search})
+}
+
 // pythonApp is the application on that machine.
 func pythonApp(t *testing.T) *testApp {
 	t.Helper()
@@ -578,6 +608,24 @@ func TestInstallByNameOffersUseAfterInstall(t *testing.T) {
 	field, _ = ta.find(kit.RoleTextField, "Version name")
 	ta.fill(field, "24", true)
 	ta.until("the install and use", func() bool { return len(ta.runner.Calls("install --yes --use nodejs@24")) == 1 })
+}
+
+func TestVersionsListedOncePerChannelGetTheirOwnRows(t *testing.T) {
+	// vfox-dart lists a version once for every channel it is published on;
+	// the rows share a version but are different entries of the list.
+	ta := newTestApp(t, profileRunner("dart"), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+	ta.start()
+	ta.openAvailable("dart")
+	ta.settle()
+	rows := 0
+	for _, n := range ta.nodes() {
+		if n.Role == kit.RoleListItem && n.Name == "3.14.0" {
+			rows++
+		}
+	}
+	if rows != 2 {
+		t.Errorf("3.14.0 is listed once for stable and once for dev, got %d rows: %q", rows, ta.texts())
+	}
 }
 
 func TestAvailableVersionsOfferInstallAndUseAndLink(t *testing.T) {

@@ -16,6 +16,7 @@
 
 import { esc } from "./dom";
 import { t } from "./i18n";
+import { webAddress } from "./links";
 
 // Typed shapes of the JSON the application serves. Only the fields the page
 // reads are listed; the server may send more.
@@ -189,8 +190,13 @@ export function showError(msg: string): void {
 // the navigation of a link to its shell, which hands the address to the
 // browser of the phone.
 export function openExternal(url: string): void {
+  const address = webAddress(url);
+  if (address === null) {
+    snack(t("linkRefused"));
+    return;
+  }
   const a = document.createElement("a");
-  a.href = url;
+  a.href = address;
   a.target = "_blank";
   a.rel = "noopener noreferrer";
   document.body.appendChild(a);

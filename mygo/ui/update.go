@@ -34,10 +34,11 @@ var checkRelease = func(ctx context.Context) (update.Release, error) {
 	return update.Check(ctx, nil, "")
 }
 
-// downloadRelease fetches url through the mirror. It is a variable so that
-// tests can stub the network.
-var downloadRelease = func(ctx context.Context, url, mirror string, progress func(float64)) (string, error) {
-	return update.Download(ctx, nil, url, mirror, "", progress)
+// downloadRelease fetches the asset through the mirror and keeps it only when it
+// matches the digest GitHub publishes for it. It is a variable so that tests can
+// stub the network.
+var downloadRelease = func(ctx context.Context, asset update.Asset, mirror string, progress func(float64)) (string, error) {
+	return update.Download(ctx, nil, asset, mirror, "", progress)
 }
 
 func (a *App) updateMirrorInitial() {
@@ -122,7 +123,7 @@ func (a *App) downloadUpdate() {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
-		path, err := downloadRelease(ctx, asset.URL, mirror, func(fraction float64) {
+		path, err := downloadRelease(ctx, asset, mirror, func(fraction float64) {
 			a.post(func() {
 				a.pages.updateProgress = fraction
 			})

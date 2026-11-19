@@ -29,6 +29,7 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
@@ -42,6 +43,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dev.vfox.vfoxplus.databinding.DialogTlsBinding
 import dev.vfox.vfoxplus.databinding.FragmentViewerBinding
+import java.io.ByteArrayInputStream
 import java.util.Locale
 
 // The paired session itself: a WebView of the server's /app interface, which
@@ -108,6 +110,9 @@ class ViewerFragment : Fragment(), WebBridge.Host {
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
+        // The pages are the server's, over the network: no files or content of the phone.
+        web.settings.allowFileAccess = false
+        web.settings.allowContentAccess = false
         // No white flash in the dark theme before the page paints.
         web.setBackgroundColor(
             MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorSurface, 0),
@@ -238,14 +243,31 @@ class ViewerFragment : Fragment(), WebBridge.Host {
     // link sets the session cookie, move to /app. Surfaces TLS problems with
     // the certificate fingerprint for comparison with the one on the PC. Keeps the
     // window on the paired server: what the page links to elsewhere (the
-    // homepage of a plugin, its documentation) opens in the browser instead.
+    // homepage of a plugin, its documentation) opens in the browser instead. A
+    // frame of another site never loads here, because the bridge is for the
+    // server's pages only.
     private inner class PairingWebClient(val startUrl: String) : WebViewClient() {
-        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            if (!request.isForMainFrame) return false
+        // Whether the address is the paired server itself. Without a server, nothing is.
+        private fun isServer(address: String): Boolean {
             val server = PairingFragment.pairingBase(startUrl) ?: return false
-            if (PairingFragment.pairingBase(request.url.toString()).equals(server, ignoreCase = true)) return false
-            openInBrowser(request.url)
+            return PairingFragment.pairingBase(address).equals(server, ignoreCase = true)
+        }
+
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (isServer(request.url.toString())) return false
+            if (request.isForMainFrame) openInBrowser(request.url)
             return true
+        }
+
+        // A frame or a script of another site would run in this WebView, where the bridge
+        // is exposed to every frame, so its request is refused before it leaves the phone.
+        // Navigation of the page to another site is handled above, and the server's own
+        // requests are not touched.
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (request.isForMainFrame || isServer(request.url.toString())) return null
+            return WebResourceResponse(
+                "text/plain", "utf-8", 403, "Forbidden", emptyMap(), ByteArrayInputStream(ByteArray(0)),
+            )
         }
 
         override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {

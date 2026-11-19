@@ -143,6 +143,61 @@ three interfaces offer it alike:
 - **Windows runtime.** On Windows the install adds the Visual C++ 2015-2022 runtime when it
   is missing, after Windows asks for permission.
 
+### Dart, Kotlin and .NET
+
+The plugins [vfox-dart](https://github.com/version-fox/vfox-dart),
+[vfox-kotlin](https://github.com/version-fox/vfox-kotlin) and
+[vfox-dotnet](https://github.com/version-fox/vfox-dotnet) offer these extras in all
+three interfaces:
+
+- **Dart channels.** `stable`, `dev` and `beta` install the newest version on that
+  channel, resolved when you install. A version published on several channels is
+  listed once for each, so `vfox search dart` can show the same number twice, with
+  the channel in the note; the **Channel** filter picks one. `latest` is the highest
+  number in the list, which may be a dev build; use `stable` for the newest stable
+  SDK. The plugin does not install arm64 builds, although the official Dart archive
+  has arm64 SDKs for Linux, macOS and Windows.
+- **Kotlin.** A version is a Kotlin release in full, such as `2.1.0`; `latest` is the
+  newest release on the Kotlin release page. If that page cannot be read, search and
+  install say why instead of guessing a version. Kotlin/Native is bundled on hosts
+  that have a prebuilt archive. `kotlinc` and `kotlinc-native` need Java 17 or newer
+  on `PATH`, which the plugin does not install.
+- **.NET names and variants.** A channel or release such as `8`, `8.0` or `8.0.34`
+  installs the SDK; `-runtime` and `-aspnetcore` install smaller distributions, and
+  the **Distribution** filter narrows the list by them. A channel and `latest` select
+  the newest stable release, and a preview only when there is none; an exact version
+  such as `11.0.0-rc.3` names a preview. A version that matches no release for your
+  platform fails the install with an error that names it, and installs nothing. The
+  plugin sets `DOTNET_ROOT` and the `PATH`, and on Linux the SDK also needs ICU,
+  libssl and zlib.
+- **Adopt and no variables.** **Detect and link** adopts SDKs already on the machine —
+  Dart SDKs including the one bundled with Flutter, Kotlin compilers from SDKMAN,
+  asdf, mise, Homebrew, IDE bundles and `KOTLIN_HOME`, and .NET SDKs including those
+  named by `DOTNET_ROOT` and `DOTNET_HOME` — and needs vfox 1.1.0 or later. These
+  three plugins read no variables and no legacy version files, so their **Options**
+  tab carries only the guide, the names and the documentation.
+
+### CMake
+
+The plugin [vfox-cmake](https://github.com/version-fox/vfox-cmake) offers these extras in
+all three interfaces:
+
+- **Names.** Write a release in full, such as `3.31.6`, or a release candidate such as
+  `4.5.0-rc1`. A line such as `3.31` is no release, and the install fails. `latest`
+  installs the newest release.
+- **Release candidates.** The plugin lists a candidate directly below the release it
+  belongs to, and a candidate whose release is not out yet goes last, so `latest` is a
+  release as long as the list has one. The **Release candidate** filter has a chip for
+  each number, `rc1` to `rc6`, and keeps the versions that end in it.
+- **Adopt.** **Detect and link** adopts a CMake that is on `PATH`, in `CMAKE_HOME`, in the
+  usual system places, or installed by Homebrew, Scoop or Chocolatey. Set `CMAKE_HOME` in
+  *Settings → Environment variables* as `KEY=VALUE`: the application passes that list to
+  every vfox command.
+- **Needs.** The plugin needs vfox 1.1.0 or later, and reaches jsDelivr for the list and
+  cmake.org for the archives; it has no mirror to set. It reads no variables and no legacy
+  version files, so its **Options** tab carries only the guide, the names and the
+  documentation.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.

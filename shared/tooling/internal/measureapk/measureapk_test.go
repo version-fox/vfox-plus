@@ -14,7 +14,10 @@
 
 package measureapk
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestApplicationID(t *testing.T) {
 	id, ok := ApplicationID("android {\n    defaultConfig {\n        applicationId = \"dev.vfox.vfoxplus\"\n        minSdk = 26\n    }\n}")
@@ -65,5 +68,39 @@ func TestLine(t *testing.T) {
 func TestRunUsage(t *testing.T) {
 	if err := Run([]string{}); err == nil {
 		t.Fatal("want a usage error")
+	}
+}
+
+// The pairing link goes to the debuggable app through run-as, and the launcher then takes
+// it from the files directory of the app.
+func TestPairedStart(t *testing.T) {
+	got := strings.Join(pairingLinkArgs("dev.vfox.vfoxplus"), " ")
+	if want := "shell run-as dev.vfox.vfoxplus sh -c 'mkdir -p files/measurement && cat > files/measurement/pairing-link'"; got != want {
+		t.Errorf("pairingLinkArgs = %q, want %q", got, want)
+	}
+	got = strings.Join(pairedStart("dev.vfox.vfoxplus"), " ")
+	if want := "shell am start -n dev.vfox.vfoxplus/.MainActivity"; got != want {
+		t.Errorf("pairedStart = %q, want %q", got, want)
+	}
+}
+
+// The reports follow the layout of `dumpsys package`. The release report puts
+// DEBUGGABLE on its pkgFlags line (a real release build does not), so a reader that
+// matches the flags case-insensitively would take that line for the flags.
+func TestIsDebuggable(t *testing.T) {
+	debug := "Packages:\n  Package [dev.vfox.vfoxplus] (1a2b3c):\n    userId=10123\n    pkgFlags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]\n    flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]\n"
+	release := "Packages:\n  Package [dev.vfox.vfoxplus] (1a2b3c):\n    userId=10123\n    pkgFlags=[ DEBUGGABLE HAS_CODE ]\n    flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]\n"
+	for _, c := range []struct {
+		name, report string
+		want         bool
+	}{
+		{"debug build", debug, true},
+		{"release build", release, false},
+		{"no flags line", "Unable to find package\n", false},
+		{"empty report", "", false},
+	} {
+		if got := IsDebuggable(c.report); got != c.want {
+			t.Errorf("%s: IsDebuggable = %v, want %v", c.name, got, c.want)
+		}
 	}
 }

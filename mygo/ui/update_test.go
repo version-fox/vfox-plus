@@ -35,7 +35,7 @@ func TestUpdateCheckDownloadAndMirror(t *testing.T) {
 			},
 		}, nil
 	}
-	downloadRelease = func(context.Context, string, string, func(float64)) (string, error) {
+	downloadRelease = func(context.Context, update.Asset, string, func(float64)) (string, error) {
 		return "/tmp/vfox-plus_9.9.9_amd64.deb", nil
 	}
 	ta := newTestApp(t, testsupport.FixtureRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))

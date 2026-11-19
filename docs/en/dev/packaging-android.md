@@ -230,10 +230,21 @@ accepts an update only with a higher one.
 
 ## Notes for maintainers
 
-- `usesCleartextTraffic` is on: the server may be plain HTTP on a trusted
-  local network (the PC side only speaks HTTPS on non-loopback binds, but the
-  user may terminate TLS elsewhere). The session cookie is the credential
-  either way.
+- Plain HTTP is allowed only to `127.0.0.1` and `localhost`
+  (`res/xml/network_security_config.xml`), for the paired session of a debuggable
+  build through `adb reverse`. Everything else is HTTPS: the PC side serves HTTPS on
+  every non-loopback bind, and the session cookie is `Secure`, which a browser or a
+  WebView does not keep over plain HTTP to another host. Backups are off
+  (`allowBackup="false"`): the session cookie is the credential, and a restore must not
+  carry it to another device.
+- The WebView refuses every request to another site (`shouldInterceptRequest`, with a 403): the
+  bridge is exposed to every frame, so a frame or a script of another site would have it. The page
+  of another site opened by a link goes to the browser instead.
+- `vfxtool measure-apk --pair-url` leaves the pairing link in the private files directory of the
+  app with `run-as`, which only a debuggable build allows, and then starts the launcher, which takes
+  the link and deletes the file. No other application can write there, and no exported component
+  takes a link, so no page named by another application is opened inside the app. A release build
+  refuses `run-as`, and `vfxtool measure-apk --pair-url` refuses an APK that is not debuggable.
 - The wrapper is [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
   0.4.0 (Apache-2.0): the stock `gradle-wrapper.jar` is a binary, which the
   repository rejects, and Neo does the same job from one Java source file that

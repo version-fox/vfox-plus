@@ -16,11 +16,14 @@ package update
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -110,6 +113,12 @@ func TestMirrorURL(t *testing.T) {
 	}
 }
 
+// payloadDigest is the digest GitHub publishes for a file whose content is "payload".
+var payloadDigest = func() string {
+	sum := sha256.Sum256([]byte("payload"))
+	return "sha256:" + hex.EncodeToString(sum[:])
+}()
+
 func TestDownloadFallsBackToDirect(t *testing.T) {
 	direct := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("payload"))
@@ -121,7 +130,8 @@ func TestDownloadFallsBackToDirect(t *testing.T) {
 	defer mirror.Close()
 	// The mirror prefix points at a failing server; download falls back to direct.
 	directory := t.TempDir()
-	path, err := Download(context.Background(), direct.Client(), direct.URL+"/file.deb", mirror.URL+"/", directory, nil)
+	asset := Asset{Name: "file.deb", URL: direct.URL + "/file.deb", Digest: payloadDigest}
+	path, err := Download(context.Background(), direct.Client(), asset, mirror.URL+"/", directory, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,5 +141,97 @@ func TestDownloadFallsBackToDirect(t *testing.T) {
 	}
 	if !strings.HasPrefix(filepath.Base(path), "file.deb") {
 		t.Errorf("keeps the file name: %q", path)
+	}
+}
+
+func TestDownloadWithoutMirrorAsksOnce(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		http.Error(w, "gone", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+	asset := Asset{Name: "file.deb", URL: server.URL + "/file.deb", Digest: payloadDigest}
+	if _, err := Download(context.Background(), server.Client(), asset, "", t.TempDir(), nil); err == nil {
+		t.Fatal("a failing server downloaded a file")
+	}
+	if n := requests.Load(); n != 1 {
+		t.Fatalf("the server was asked %d times with no mirror, want once", n)
+	}
+}
+
+func TestDownloadRefusesAnAssetWithoutAUsableDigest(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		_, _ = w.Write([]byte("payload"))
+	}))
+	defer server.Close()
+	for _, digest := range []string{"", "md5:0123", "sha256:xyz", "sha256:" + strings.Repeat("0", 63)} {
+		asset := Asset{Name: "file.deb", URL: server.URL + "/file.deb", Digest: digest}
+		if path, err := Download(context.Background(), server.Client(), asset, "", t.TempDir(), nil); err == nil {
+			t.Errorf("digest %q: downloaded %s, want a refusal", digest, path)
+		}
+	}
+	if n := requests.Load(); n != 0 {
+		t.Fatalf("the server was asked %d times for assets without a digest, want none", n)
+	}
+}
+
+func TestDownloadKeepsOnlyAFileThatMatchesTheDigest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("tampered"))
+	}))
+	defer server.Close()
+	directory := t.TempDir()
+	asset := Asset{Name: "file.deb", URL: server.URL + "/file.deb", Digest: payloadDigest}
+	if path, err := Download(context.Background(), server.Client(), asset, "", directory, nil); err == nil {
+		t.Fatalf("downloaded %s from a server that serves other bytes", path)
+	}
+	entries, err := os.ReadDir(directory)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("the file that did not match was kept: %v, %v", entries, err)
+	}
+}
+
+func TestDownloadDoesNotKeepATamperedMirror(t *testing.T) {
+	direct := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("payload"))
+	}))
+	defer direct.Close()
+	mirror := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A mirror that answers 200 with other bytes must not be kept.
+		_, _ = w.Write([]byte("tampered"))
+	}))
+	defer mirror.Close()
+	directory := t.TempDir()
+	asset := Asset{Name: "file.deb", URL: direct.URL + "/file.deb", Digest: payloadDigest}
+	path, err := Download(context.Background(), direct.Client(), asset, mirror.URL+"/", directory, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(path) //nolint:gosec // The path is the downloaded file.
+	if err != nil || string(content) != "payload" {
+		t.Fatalf("got %q, %v; want the direct download", content, err)
+	}
+	if entries, _ := os.ReadDir(directory); len(entries) != 1 {
+		t.Fatalf("%d files are left in the directory, want the one download", len(entries))
+	}
+}
+
+func TestCheckReadsTheDigestOfEachAsset(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v0.2.0","assets":[{"name":"vfox-plus_0.2.0_amd64.deb",` +
+			`"browser_download_url":"https://github.com/version-fox/vfox-plus/releases/download/v0.2.0/vfox-plus_0.2.0_amd64.deb",` +
+			`"size":12,"digest":"sha256:` + strings.Repeat("ab", 32) + `"}]}`))
+	}))
+	defer server.Close()
+	release, err := Check(context.Background(), server.Client(), server.URL)
+	if err != nil || len(release.Assets) != 1 {
+		t.Fatalf("got %+v, %v", release, err)
+	}
+	if got, want := release.Assets[0].Digest, "sha256:"+strings.Repeat("ab", 32); got != want {
+		t.Fatalf("digest = %q, want %q", got, want)
 	}
 }

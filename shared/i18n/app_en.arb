@@ -1144,6 +1144,7 @@
   "updateDownloaded": "Downloaded to {path}",
   "updateOpenReleases": "Open releases",
   "updateNoAsset": "No package for this system",
+  "openLinkRefused": "This address is not a web address, so it is not opened.",
   "updateMirror": "Update mirror",
   "updateMirrorHelp": "Empty means direct.",
   "@updateCurrent": {
@@ -1196,6 +1197,9 @@
   },
   "@updateNoAsset": {
     "description": "No package of the release fits this system."
+  },
+  "@openLinkRefused": {
+    "description": "Shown when a link, such as a plugin homepage, is not an http or https address and is not opened."
   },
   "@updateMirror": {
     "description": "Mirror prefix for GitHub downloads."

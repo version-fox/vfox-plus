@@ -503,6 +503,10 @@ func TestModelStartsWithoutProbingVfox(t *testing.T) {
 	if model.Vfox.Availability() != state.VfoxReady {
 		t.Fatalf("got %v, want ready", model.Vfox.Availability())
 	}
+	// The first probe also starts loading the installed SDKs in the background,
+	// and that load runs vfox too. Wait for it, so that its calls are not
+	// counted below.
+	waitFor(t, "the installed SDKs", func() bool { return model.Installed.HasValue() })
 	// A second call probes nothing more.
 	calls := len(runner.Invocations())
 	model.Vfox.EnsureChecked()

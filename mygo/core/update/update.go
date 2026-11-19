@@ -37,7 +37,10 @@ package update
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,6 +64,10 @@ type Asset struct {
 	URL string
 	// Size in bytes, when the API reports one.
 	Size int64
+	// Digest is the sha256 that GitHub publishes for the file: "sha256:" and 64
+	// hex digits. A file is downloaded only when it has one, and kept only when
+	// its bytes match it.
+	Digest string
 }
 
 // Release is the newest release the API reports.
@@ -193,6 +200,7 @@ func Check(ctx context.Context, client *http.Client, apiURL string) (Release, er
 			Name               string `json:"name"`
 			BrowserDownloadURL string `json:"browser_download_url"`
 			Size               int64  `json:"size"`
+			Digest             string `json:"digest"`
 		} `json:"assets"`
 	}
 	if err := json.Unmarshal(body, &raw); err != nil {
@@ -206,7 +214,7 @@ func Check(ctx context.Context, client *http.Client, apiURL string) (Release, er
 		if asset.Name == "" || asset.BrowserDownloadURL == "" {
 			continue
 		}
-		release.Assets = append(release.Assets, Asset{Name: asset.Name, URL: asset.BrowserDownloadURL, Size: asset.Size})
+		release.Assets = append(release.Assets, Asset{Name: asset.Name, URL: asset.BrowserDownloadURL, Size: asset.Size, Digest: asset.Digest})
 	}
 	return release, nil
 }
@@ -273,24 +281,51 @@ func PlatformAsset(release Release, goos, goarch string) (Asset, bool) {
 	return Asset{}, false
 }
 
-// Download fetches url (optionally through mirrorPrefix) into a temporary
-// file in directory and returns its path. Progress reports the fraction
-// downloaded when the size is known, -1 otherwise; it may be nil.
-func Download(ctx context.Context, client *http.Client, url, mirrorPrefix, directory string, progress func(float64)) (string, error) {
+// errNoDigest refuses a file that GitHub publishes no usable sha256 for.
+var errNoDigest = errors.New("the release publishes no sha256 digest for this file, so the file is not downloaded")
+
+// Download fetches the asset into a temporary file in directory and returns its
+// path. The file must match the digest GitHub publishes for the asset: a mirror
+// is trusted with the transfer, never with the bytes. A mirror that fails, or
+// serves bytes that do not match, is followed by the direct download, and a file
+// that does not match is removed. An asset without a digest is not downloaded at
+// all. Progress reports the fraction downloaded when the size is known, -1
+// otherwise; it may be nil.
+func Download(ctx context.Context, client *http.Client, asset Asset, mirrorPrefix, directory string, progress func(float64)) (string, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	target := url
-	if mirrored := MirrorURL(mirrorPrefix, url); mirrored != "" {
-		// Try the mirror first when one is configured; fall back to direct.
-		if path, err := downloadOne(ctx, client, mirrored, directory, progress); err == nil {
+	want, err := parseDigest(asset.Digest)
+	if err != nil {
+		return "", err
+	}
+	// The mirror is tried first when one is configured, and direct otherwise.
+	// MirrorURL returns the address unchanged without a prefix, so the prefix is
+	// checked here: a direct download is never requested twice.
+	if strings.TrimSpace(mirrorPrefix) != "" {
+		if path, err := downloadOne(ctx, client, MirrorURL(mirrorPrefix, asset.URL), directory, want, progress); err == nil {
 			return path, nil
 		}
 	}
-	return downloadOne(ctx, client, target, directory, progress)
+	return downloadOne(ctx, client, asset.URL, directory, want, progress)
 }
 
-func downloadOne(ctx context.Context, client *http.Client, url, directory string, progress func(float64)) (string, error) {
+// parseDigest returns the hex part of a "sha256:" digest in lowercase. Anything
+// else means the file cannot be verified, so it is refused.
+func parseDigest(digest string) (string, error) {
+	hexPart, ok := strings.CutPrefix(strings.TrimSpace(digest), "sha256:")
+	if !ok || len(hexPart) != sha256.Size*2 {
+		return "", errNoDigest
+	}
+	if _, err := hex.DecodeString(hexPart); err != nil {
+		return "", errNoDigest
+	}
+	return strings.ToLower(hexPart), nil
+}
+
+// downloadOne downloads url into a new file in directory, hashing the bytes as
+// they are written, and keeps the file only when its sha256 is want.
+func downloadOne(ctx context.Context, client *http.Client, url, directory, want string, progress func(float64)) (string, error) {
 	if strings.TrimSpace(url) == "" {
 		return "", fmt.Errorf("empty download url")
 	}
@@ -321,6 +356,8 @@ func downloadOne(ctx context.Context, client *http.Client, url, directory string
 		return "", err
 	}
 	name := file.Name()
+	digest := sha256.New()
+	writer := io.MultiWriter(file, digest)
 	total := response.ContentLength
 	var done int64
 	buffer := make([]byte, 128*1024)
@@ -329,7 +366,7 @@ func downloadOne(ctx context.Context, client *http.Client, url, directory string
 		for {
 			n, readErr := response.Body.Read(buffer)
 			if n > 0 {
-				if _, writeErr := file.Write(buffer[:n]); writeErr != nil {
+				if _, writeErr := writer.Write(buffer[:n]); writeErr != nil {
 					return done, writeErr
 				}
 				done += int64(n)
@@ -352,6 +389,10 @@ func downloadOne(ctx context.Context, client *http.Client, url, directory string
 	if err != nil {
 		_ = os.Remove(name)
 		return "", err
+	}
+	if got := hex.EncodeToString(digest.Sum(nil)); got != want {
+		_ = os.Remove(name)
+		return "", fmt.Errorf("the download does not match the sha256 GitHub publishes: got %s, want %s", got, want)
 	}
 	return name, nil
 }
