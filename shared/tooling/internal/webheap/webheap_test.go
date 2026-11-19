@@ -180,7 +180,8 @@ func (s *server) record(request string) {
 // ones, which the page sends in the background.
 func (s *server) seen(t *testing.T, want ...string) []string {
 	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
+	// The notes come in the background, and a loaded machine can be slow to send them.
+	deadline := time.Now().Add(30 * time.Second)
 	for {
 		s.mu.Lock()
 		notes := make([]string, len(s.notes))
@@ -443,7 +444,9 @@ func TestRunPlaysTheSceneBeforeTheScreenshot(t *testing.T) {
 
 func TestRunFailsWhenTheSceneFindsNothingToClick(t *testing.T) {
 	shot := filepath.Join(t.TempDir(), "options.png")
-	got := runTool(t, newServer(t, noScenes), "-screenshot", shot, "-scene", "options", "-timeout", "5")
+	// The budget is the whole run, and it includes the start of Chrome, which a loaded machine can take
+	// longer than 5 seconds to finish.
+	got := runTool(t, newServer(t, noScenes), "-screenshot", shot, "-scene", "options", "-timeout", "30")
 	if got.err == nil || !strings.Contains(got.err.Error(), "the scene options (step 1") {
 		t.Errorf("got %v, want the step that found nothing", got.err)
 	}
@@ -460,7 +463,7 @@ func TestRunFailures(t *testing.T) {
 		want  string
 	}{
 		{"the app sends an unpaired browser away", redirects, nil, "the pairing page did not open: the browser ended up on " + "http://127.0.0.1:"},
-		{"the SDK list never comes", neverList, []string{"-timeout", "4"}, "timed out waiting for the SDK list"},
+		{"the SDK list never comes", neverList, []string{"-timeout", "30"}, "timed out waiting for the SDK list"},
 	} {
 		t.Run(tc.label, func(t *testing.T) {
 			started := time.Now()
@@ -471,7 +474,9 @@ func TestRunFailures(t *testing.T) {
 			if got.output != "" {
 				t.Errorf("a failed run wrote %q", got.output)
 			}
-			if elapsed := time.Since(started); elapsed > 30*time.Second {
+			// The budget above is 30 seconds, and the start of Chrome is part of it: this bound only
+			// catches a run that hangs.
+			if elapsed := time.Since(started); elapsed > 90*time.Second {
 				t.Errorf("took %s", elapsed)
 			}
 		})

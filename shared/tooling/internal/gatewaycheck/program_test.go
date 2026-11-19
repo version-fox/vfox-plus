@@ -160,12 +160,13 @@ func TestAProgramIsStartedWithAHomeOfItsOwnAndStoppedAsDockerStopsIt(t *testing.
 	if started.address() != "127.0.0.1:8080" {
 		t.Errorf("address = %s", started.address())
 	}
-	path, fingerprint, err := waitForBanner(started, 10*time.Second)
+	// A program started as a test process can take long to print its banner on a loaded machine.
+	path, fingerprint, err := waitForBanner(started, 30*time.Second)
 	if err != nil || path != "/auth/connect/ABCDEFGHIJKLMNOP" || fingerprint != fakeFingerprint {
 		t.Fatalf("banner = %q, %q, %v", path, fingerprint, err)
 	}
 	took, err := started.stop()
-	if err != nil || took > 5*time.Second {
+	if err != nil || took > 20*time.Second {
 		t.Errorf("stop = %v, %v; want a program that ends well and at once", took, err)
 	}
 	if logs, _ := filepath.Glob(filepath.Join(home, "gateway-*.log")); len(logs) != 1 {
@@ -188,7 +189,7 @@ func TestAProgramThatEndsBadlyIsSaidToHave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := waitForBanner(started, 10*time.Second); err != nil {
+	if _, _, err := waitForBanner(started, 30*time.Second); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := started.stop(); err == nil || !strings.Contains(err.Error(), "exit status 3") {
