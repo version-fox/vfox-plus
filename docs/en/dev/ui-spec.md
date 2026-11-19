@@ -296,23 +296,22 @@ Grouped in segmented lists:
   (choosing one turns the desktop colour off; the selected swatch morphs into a
   flower shape), and the language (`languageSystem` / `English` / `简体中文`;
   language names are always written in their own language).
-- **Web interface**: a switch that serves the interface to the browsers of this computer
-  (`settingsWebInterface`; its subtitle says where, `webServing`, or why it cannot,
-  `webCannotServe`), with *Open in browser* (`webOpen`: a button that opens the link in the browser
-  and one that copies it) once it is up; the lightweight mode (`settingsLightweight`, a switch that
-  keeps the application running without its window; needs the web interface, which its subtitle says
-  when it is off); other devices (`settingsRemote`, a switch that asks for a confirmation first, since
-  it opens the computer to the network; needs the web interface). While other devices are allowed,
-  the list adds the port (`settingsWebPort`, a text field saved on Enter or when leaving the field,
+- **Other devices**: a section whose first switch lets the Docker gateway, phones and other
+  computers connect (`settingsRemote`, a switch that asks for a confirmation first, since it opens
+  the computer to the network; its subtitle says why it cannot, `webRemoteFailed`, when the port is
+  taken). The application shows no web interface on its own computer, so there is no switch for one.
+  The lightweight mode (`settingsLightweight`, a switch that keeps the application running without
+  its window for the other devices; needs other devices, which its subtitle says when they are off,
+  `settingsNeedsOtherDevices`). While other devices are allowed, the list adds the port (`settingsWebPort`, a text field saved on Enter or when leaving the field,
   and refused when it is not a port from 1024 to 65535), *Pair a phone* (`webPair`: the addresses of
   the computer, and a dialog with the QR code of a pairing link, the link, the choice among the
   addresses when there are several, and `webPairNew`) and the certificate (`webCertificate`: made by
   the application, or the files of the user, with the SHA-256 fingerprint in lines that can be
-  selected). While the lightweight mode is on and the web interface is up, *Quit vfox+* (`webQuit`,
+  selected). While the lightweight mode is on and other devices are allowed, *Quit vfox+* (`webQuit`,
   after a confirmation) ends the application, which closing the window no longer does. With no
   window, the application has an icon in the tray (`trayToolTip` says what it is) whose menu has
-  *Open vfox+* (`trayOpen`), *Open the web interface* (`trayOpenWeb`) and *Quit vfox+* (`webQuit`,
-  without a confirmation: there is no window to ask in). The icon is the fox of the application
+  *Open vfox+* (`trayOpen`) and *Quit vfox+* (`webQuit`, without a confirmation: there is no window
+  to ask in). The icon is the fox of the application
   icon without its plate; see [the architecture](architecture.md#the-tray).
 - **vfox**: the executable with its origin (`settingsExecutableDetected`,
   `settingsExecutableCustom` or `settingsExecutableMissing`) and version, a

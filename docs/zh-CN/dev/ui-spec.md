@@ -211,17 +211,15 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - **外观**：主题（`themeSystem` / `themeLight` / `themeDark` 连接按钮组）、
   `settingsSystemColor`（开关）、8 个颜色 swatch（选其一即关桌面色；选中 swatch 变成
   花形）与语言（`languageSystem` / `English` / `简体中文`；语言名永远用本语言书写）。
-- **网页界面**：向本机浏览器提供界面的开关（`settingsWebInterface`；副标题说明在哪里，
-  `webServing`，或为何不能，`webCannotServe`），开启后有*在浏览器中打开*（`webOpen`：一个用浏览器打开链接的按钮
-  和一个复制链接的按钮）；轻量模式（`settingsLightweight`，让应用在没有窗口时继续运行的开关；
-  需要网页界面，关闭时副标题会这么说）；其他设备（`settingsRemote`，开关，先要求确认，因为它把电脑开放给
-  网络；需要网页界面）。允许其他设备时，列表增加端口（`settingsWebPort`，文本框，按 Enter 或离开文本框时保存，
+- **其他设备**：一个分区，其第一项开关让 Docker 网关、手机与其他电脑连接（`settingsRemote`，开关，先要求确认，
+  因为它把电脑开放给网络；端口被占用时副标题会说明原因，`webRemoteFailed`）。应用不在自己的电脑上提供
+  网页界面，所以没有给它的开关。轻量模式（`settingsLightweight`，让应用在没有窗口时为其他设备继续运行的开关；
+  需要其他设备，关闭时副标题会这么说，`settingsNeedsOtherDevices`）。允许其他设备时，列表增加端口（`settingsWebPort`，文本框，按 Enter 或离开文本框时保存，
   不是 1024 到 65535 的端口会被拒绝）、*配对手机*（`webPair`：本机的地址，以及一个对话框，里面有配对链接的
   二维码、链接本身、本机有多个地址时的地址选择，和 `webPairNew`），以及证书（`webCertificate`：
-  由应用生成，或用户自己的文件，SHA-256 指纹分行显示且可选中）。轻量模式开启且网页界面在线时，
+  由应用生成，或用户自己的文件，SHA-256 指纹分行显示且可选中）。轻量模式开启且其他设备已允许时，
   *退出 vfox+*（`webQuit`，先确认）结束应用，因为关闭窗口不再退出它。没有窗口时，应用在托盘里有一个
-  图标（`trayToolTip` 说明它是什么），菜单有*打开 vfox+*（`trayOpen`）、*打开网页界面*（`trayOpenWeb`）和
-  *退出 vfox+*（`webQuit`，不再确认：没有窗口可以问）。图标是应用图标的狐狸，不带底板；见
+  图标（`trayToolTip` 说明它是什么），菜单有*打开 vfox+*（`trayOpen`）和*退出 vfox+*（`webQuit`，不再确认：没有窗口可以问）。图标是应用图标的狐狸，不带底板；见
   [架构](architecture.md#托盘)。
 - **vfox**：可执行文件及其来源（`settingsExecutableDetected`、
   `settingsExecutableCustom` 或 `settingsExecutableMissing`）与版本、浏览按钮，自定义

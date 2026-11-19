@@ -18,8 +18,8 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`ui/mcu/`](../../../mygo/ui/mcu) | 配色：Material 颜色工具的 Go 移植（HCT、CAM16、tonal spot） |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
 | [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标、翻译与许可证（构建时收集） |
-| [`pair/`](../../../mygo/pair) | 网页界面：按设置运行服务器的 `Host`（给本机浏览器的回环服务器，以及允许其他设备时的第二个 HTTPS 服务器）、一次性配对链接及其二维码，以及配对后的浏览器得到的完整 Web 界面（`/app`：SDK、仓库、带实时日志的任务、设置） |
-| [`main.go`](../../../mygo/main.go) | 组装模型、网页界面与窗口。应用不接受任何参数 |
+| [`pair/`](../../../mygo/pair) | 给其他设备用的服务器：按设置通过 HTTPS 运行它的 `Host`、一次性配对链接及其二维码，以及配对后的设备得到的界面（`/app`：SDK、仓库、带实时日志的任务、设置），由 Docker 网关在浏览器里显示 |
+| [`main.go`](../../../mygo/main.go) | 组装模型、给其他设备用的服务器与窗口。应用不接受任何参数 |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | 仅在构建标签 `e2e` 下链接 mygo 的自动化插件：端到端测试、内存测量与截图经它驱动应用 |
 
 分层见[架构](architecture.md)：`core` 不知道其它层，`state` 只知道
@@ -142,8 +142,7 @@ Go 模块与构建缓存。
     vfxtool gnome-session vfxtool e2e-run tray-gnome /usr/local/bin/vfox-plus-e2e
   ```
 
-  Docker 镜像的网关（[网关](architecture.md#网关)）由 `vfxtool gateway-check` 对着应用检查。它启动开启了网页界面和
-  其他设备的端到端构建，把镜像作为带独立卷的容器运行（或用 `--binary` 运行程序，它监听本机 8080 端口），并做
+  Docker 镜像的网关（[网关](architecture.md#网关)）由 `vfxtool gateway-check` 对着应用检查。它启动允许了其他设备的端到端构建，把镜像作为带独立卷的容器运行（或用 `--binary` 运行程序，它监听本机 8080 端口），并做
   人在浏览器前做的事：用网关日志里的链接配对浏览器，粘贴应用的链接，核对指纹，再通过网关使用应用（它的页面、
   API、事件、一个任务）。它在界面打开时用 `docker stop` 停掉容器，再启动，看它是否仍然配对，最后退出应用，
   看网关此时怎么说。`gateway` 任务运行它：
@@ -269,7 +268,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。
 - **`.apk` 在 `android/`，不在此。**mygo 无 Android 后端，界面不能是由本代码构建的
-  原生 Android 应用。Android 客户端是包住应用网页界面的
+  原生 Android 应用。Android 客户端是包住应用界面的
   WebView：手机经[远端协议](remote-protocol.md)驱动 PC 上的 vfox-plus 实例，
   所示 Web 界面遵循[设计系统](design-system.md)（见
   [远端前端](architecture.md#远端前端)）。

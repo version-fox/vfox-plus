@@ -2,7 +2,7 @@
 
 > [English](../../en/dev/remote-protocol.md)
 
-本文规定网页界面的服务器（`mygo/pair`，应用在设置要求时运行）的 HTTP 接口：Web 界面
+本文规定给其他设备用的服务器（`mygo/pair`，应用在设置要求时运行）的 HTTP 接口：Docker 网关提供的 Web 界面
 （`mygo/pair/webapp.html`）与 Android 客户端（`android/`）都按它编程。实现在
 `mygo/pair/pair.go`（`Server`）、`host.go`（`Host`）、`web.go` 与 `webapi.go`。
 
@@ -10,20 +10,17 @@
 
 - **配对链接**是一次性 URL `/auth/connect/<token>`。令牌一次性有效，5 分钟后过期。
   打开即配对：服务返回 `Set-Cookie: vfox-plus-session=<session>`（`Secure`、`HttpOnly`、
-  `SameSite=Lax`）和到 `/app` 的重定向（`303`）。链接由应用生成：设置里的*在浏览器中打开*与
-  *复制链接*给本机的浏览器，*配对手机*给网络中的设备。
-- **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。给其他设备的
-  服务器的会话 24 小时后过期；本机服务器的会话与应用运行同长。过期会话返回 401，需重新配对。
+  `SameSite=Lax`）和到 `/app` 的重定向（`303`）。链接由应用生成：设置里的*配对手机*给网络中的设备，
+  设备把链接交给网关，或扫描它的二维码。
+- **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。会话 24 小时后过期。过期会话返回 401，需重新配对。
 - 写操作路由另外拒绝浏览器的跨源请求，用 `net/http` 的跨源保护：`Sec-Fetch-Site`
   不是 `same-origin`（或 `none`），或没有该头时 `Origin` 的主机与所请求的主机不同，
   返回 403。两个头都不带（如 curl）的请求凭会话 cookie 直接放行。
-- 两个**服务器**共用同一份应用状态，各有各的令牌与会话（见[架构](architecture.md#远端前端)）。
-  **本机服务器**在设置 `webInterface` 开启时监听 `127.0.0.1` 的空闲端口，明文 HTTP。
-  **远端服务器**在 `webRemote` 也开启时监听 `0.0.0.0` 和设置 `webPort`（默认 8369）的端口，
-  仅 HTTPS。关闭一项设置会关掉对应服务器和它持有的所有连接；该服务器的会话随之结束。
-  重启应用后配对不保留。
-- 网页界面的页面可以读取并修改其他设备如何连接、应用在没有窗口时是否继续运行，也可以退出应用
-  （`/api/web`、`/api/quit`）；它们不能关掉网页界面本身。
+- **远端服务器**是唯一的服务器，它的应用状态只与应用共享（见[架构](architecture.md#远端前端)）。它在 `webRemote`
+  开启时监听 `0.0.0.0` 和设置 `webPort`（默认 8369）的端口，仅 HTTPS。关闭该设置会关掉服务器和它持有的所有连接；
+  会话随之结束。重启应用后配对不保留。
+- 界面的页面可以读取并修改其他设备如何连接、应用在没有窗口时是否继续运行，也可以退出应用
+  （`/api/web`、`/api/quit`）。
 
 ## 配对
 

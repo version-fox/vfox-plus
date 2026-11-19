@@ -22,8 +22,8 @@ project, in Go:
 | [`ui/mcu/`](../../../mygo/ui/mcu) | The colour scheme: a Go port of the Material colour utilities (HCT, CAM16, tonal spot) |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
 | [`assets/`](../../../mygo/assets) | What the binary embeds: the icons, the translations and the licenses (all collected at build time) |
-| [`pair/`](../../../mygo/pair) | The web interface: the `Host` that runs its servers as the settings say (a loopback server for the browsers of this computer, and a second one over HTTPS for other devices when they are allowed), one-time pairing links and their QR codes, and the full web interface that a paired browser gets (`/app`: SDKs, registry, tasks with live logs, settings) |
-| [`main.go`](../../../mygo/main.go) | Assembles the model, the web interface and the window. The application takes no arguments |
+| [`pair/`](../../../mygo/pair) | The server for other devices: the `Host` that runs it over HTTPS as the settings say, one-time pairing links and their QR codes, and the interface that a paired device gets (`/app`: SDKs, registry, tasks with live logs, settings), which the Docker gateway shows in a browser |
+| [`main.go`](../../../mygo/main.go) | Assembles the model, the server for other devices and the window. The application takes no arguments |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | Links the automation plugin of mygo, only with the build tag `e2e`: the end-to-end tests, the memory measurement and the screenshots drive the application through it |
 
 The layers follow [the architecture](architecture.md): `core` knows
@@ -177,8 +177,7 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   ```
 
   The Docker image of the gateway ([The gateway](architecture.md#the-gateway)) is checked against the
-  application by `vfxtool gateway-check`. It starts the end-to-end build with the web interface and other
-  devices on, runs the image as a container with a volume of its own (or the program, with `--binary`, which
+  application by `vfxtool gateway-check`. It starts the end-to-end build with other devices allowed, runs the image as a container with a volume of its own (or the program, with `--binary`, which
   listens on port 8080 of the machine), and does what a person does at a browser: it pairs the browser with the
   link in the log of the gateway, pastes a link of the application, compares the fingerprint and uses the
   application through the gateway (its page, its API, its events, a task). It stops the container with
@@ -361,8 +360,8 @@ adds 5 MB because only the rows in view are built.
   platform.
 - **`.apk` lives in `android/`, not here.** mygo has no Android backend, so the
   interface cannot be a native Android app built from this code. The Android
-  client is a WebView around the web interface of the application: the phone
+  client is a WebView around the interface of the application: the phone
   drives the vfox-plus instance on the PC over the
-  [remote protocol](remote-protocol.md), and the web interface it shows follows
+  [remote protocol](remote-protocol.md), and the interface it shows follows
   the [design system](design-system.md) (see
   [Remote front ends](architecture.md#remote-front-ends)).

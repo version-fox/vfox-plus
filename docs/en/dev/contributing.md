@@ -286,7 +286,7 @@ of mygo, and captures the screen with ImageMagick when the page has settled:
 | `VFOX_PLUS_FAKE_INVENTORY=python` | a machine that has Python installed next to the others, and the options of Python with the filter of the GraalPy builds: `python-options`, `python-install-method` and `python-graalpy-community`, and in the dark theme `dark-python-options` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
 | both of the above | the distributions of Java in the compact layout: `compact-java` |
-| the setting `webInterface`, and `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of the web interface, as a person goes through them: the switch that is on with its address, the question that asks before other devices may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
+| `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of other devices, as a person goes through them: the section while other devices are not allowed, the question that asks before they may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
 | the same, with the language chosen first | the same four in Simplified Chinese: `zh-web-interface`, `zh-web-allow`, `zh-web-remote`, `zh-web-pair` |
 
 The end-to-end build can be told the addresses of the computer with `VFOX_PLUS_E2E_ADDRESSES`, a list
@@ -296,7 +296,7 @@ a sandbox that has no network, and so no address of its own, still has one to pa
 
 To take another picture, add a `c.shot(s, "name")` to the function of the run in
 `shared/tooling/internal/screenshots/screenshots.go` (`pages`, `installing`, `profiles`,
-`compactPages`, `compactProfiles` or `webInterface`). The steps before it click and wait the way a
+`compactPages` or `compactProfiles`). The steps before it click and wait the way a
 person with a screen reader does, through the names that the user sees (the label
 of a button, the key that a component gave it), so a renamed button fails the
 scenario instead of taking a wrong picture.
@@ -308,7 +308,7 @@ the web interface on a phone, `webapp-en` and `web-phone-java-temurin` (`webapp-
 `web-phone-zh-java-temurin` in Simplified Chinese; see below). The
 [usage guide](../user/using.md) links `java-install-name` and `options-mirror`,
 and `zh-java-available` and `zh-options` in Simplified Chinese. The
-[guide to the web interface](../user/remote.md) links `web-interface`, `web-allow`, `web-remote` and
+[guide to other devices](../user/remote.md) links `web-interface`, `web-allow`, `web-remote` and
 `web-pair` (with the prefix `zh-` in Simplified Chinese), and the web interface on a phone:
 `webapp-en`, `web-phone-java-temurin`, `web-connections` and `web-connections-pair` (`webapp-zh`,
 `web-phone-zh-java-temurin`, `web-zh-connections` and `web-zh-connections-pair` in Simplified Chinese).
@@ -327,8 +327,8 @@ scenes click against `mygo/pair/webapp.html`). A scene ends by waiting for the p
 window, so a layout that overflows fails the shot instead of making a picture. Every picture gets
 an application and a home of its own, because choosing a distribution is kept in the settings of
 the application, and a scene that chooses one would change every picture after it. The application
-serves its web interface because its settings say so, and allows other devices, which the
-connections and the code that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is
+allows other devices, which the connections and the code that pairs a phone need
+(`{"webRemote":true}`); it is
 told the addresses of the documentation (see above); and the end-to-end build writes a pairing link
 to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The
 scenes of Java need a machine that has Java and Flutter installed, the scenes of Python one that has
@@ -346,7 +346,7 @@ shoot() {
   home=/tmp/shot-home
   rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
   cp /tmp/vfxtool $home/bin/vfox
-  echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
+  echo '{"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
       VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \

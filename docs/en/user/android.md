@@ -3,12 +3,11 @@
 > [简体中文](../../zh-CN/user/android.md)
 
 The Android app drives the vfox-plus on your PC from your phone: it shows the
-same interface as the paired browser (see [The web interface and other
-devices](remote.md)). Links to other sites, such as the homepage of a plugin or its
+same interface as the gateway does (see [Other devices and the lightweight mode](remote.md)). Links to other sites, such as the homepage of a plugin or its
 documentation, open in the browser of the phone.
 
-1. On the PC, open vfox-plus, go to *Settings → Web interface* and turn on the web
-   interface and *Other devices*. Allow the port in the firewall of the PC.
+1. On the PC, open vfox-plus, go to *Settings → Other devices* and turn it on, then allow it.
+   Allow the port in the firewall of the PC.
 2. Download the `.apk` of the latest GitHub release to your phone, install it and open it. A newer release installs over the one on the phone and keeps the pairing. Only an APK signed with another key, such as one from a development build, must be uninstalled first, which forgets the pairing.
 3. Choose *Show code* next to *Pair a phone* on the PC, and scan the QR code with the
    app, or copy the link and paste it into the app, and connect. If the PC uses a
@@ -18,7 +17,7 @@ documentation, open in the browser of the phone.
    pairing expires, or vfox-plus on the PC was restarted, scan a fresh code.
 
 The app opens on the pairing screen, which says where to find the code on the PC
-(*Settings → Web interface → Pair a phone*): scan the QR code of the PC (Android
+(*Settings → Other devices → Pair a phone*): scan the QR code of the PC (Android
 asks for the camera once) or paste the link. A self-signed certificate shows its
 fingerprint first, to compare with the one on the PC.
 
@@ -45,6 +44,6 @@ so and offers to try again or to pair a new link.
 | ![The pairing screen of the Android app in the dark theme](https://iili.io/nmsl6ap.png) | ![The home page in the Android app in the dark theme](https://iili.io/nmi7SFS.png) | ![The Android app when the PC cannot be reached](https://iili.io/nDQwkml.png) |
 
 The app needs your PC reachable from the phone (same Wi-Fi or another network
-route) and the port of the web interface (8369 by default) allowed through the PC
+route) and the port of other devices (8369 by default) allowed through the PC
 firewall. Browsers can only set the global version; pinning versions to a
 project stays in the desktop application.

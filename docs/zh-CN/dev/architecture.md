@@ -44,7 +44,7 @@ flowchart TB
     end
     subgraph code["<b>应用</b>与<b>自动化</b>"]
         direction LR
-        m("<b>mygo/</b><br/>桌面应用及其网页界面（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（网页界面的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
+        m("<b>mygo/</b><br/>桌面应用及其远程服务器（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（远程服务器的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
     end
     docs ~~~ shared ~~~ code
 
@@ -206,9 +206,9 @@ GUI 自身设置存为 JSON：
 | `vfoxExecutable` | string | 无 | vfox 路径；无表示自动探测。 |
 | `extraEnvironment` | object | `{}` | 给 vfox 的额外环境变量，如镜像。 |
 | `railExpanded` | boolean | `false` | 导航栏是否显示标签。 |
-| `webInterface` | boolean | `false` | 应用运行期间，在回环服务器上向本机浏览器提供 Web 界面。缺省时读它的旧名 `remoteAccess`。 |
-| `lightweight` | boolean | `false` | Web 界面在线时，关闭窗口后应用不退出，继续无窗口运行。 |
-| `webRemote` | boolean | `false` | 同时允许网络中的其他设备通过 HTTPS 连接。仅在 `webInterface` 开启时有意义。 |
+| `lightweight` | boolean | `false` | 其他设备可以连接时，关闭窗口后应用不退出，继续无窗口运行。 |
+| `webRemote` | boolean | `false` | 允许网络中的其他设备通过 HTTPS 连接：Docker 网关、手机与其他电脑。 |
+| `webInterface`、`remoteAccess` | boolean | 无 | 已退役：应用不在自己的电脑上提供 Web 界面。只读，用来让它们从文件中被丢弃，且从不写入。 |
 | `webPort` | integer | 无 | 其他设备连接的端口，1024 到 65535；无表示 8369。 |
 | `webCertificate`、`webKey` | string | 无 | 其他设备得到的证书与私钥的 PEM 文件；无表示由应用自己生成证书。 |
 | `searches` | object | `{}` | 为某个插件选择的搜索列表，以插件名为键：`{"java": "tem"}`。默认值没有条目。 |
@@ -297,8 +297,9 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 
 ## 远端前端
 
-应用是桌面应用，没有命令行：不接受任何参数，它还做什么由设置决定。网页界面是其中一项。
-`mygo/pair` 包放着它的服务器，由 `Host` 按设置运行；窗口和网页界面自己的页面都会改写这些设置。
+应用是桌面应用，没有命令行：不接受任何参数，它还做什么由设置决定。其中之一是是否允许其他设备连接。
+`mygo/pair` 包放着给它们用的服务器，由 `Host` 按设置运行；窗口和已配对页面都会改写这些设置。应用不在它所在的电脑上提供
+Web 界面：Docker 网关提供界面，安卓 App 则向与服务器配对的设备显示它。
 
 ```mermaid
 ---
@@ -322,44 +323,34 @@ config:
       bottom: 8
 ---
 flowchart TB
-    accTitle: 设置如何决定运行哪些服务器
-    accDescr: Host 读取设置 webInterface、webRemote、webPort 与 lightweight。webInterface 开启时，它为本机浏览器运行一个回环服务器；webRemote 也开启时，再为手机与其他电脑运行第二个 HTTPS 服务器。两个服务器共用同一份应用状态。窗口为两者生成链接，网页界面的页面则修改设置。
-    set(["<b>设置</b><br/>webInterface · webRemote<br/>webPort · lightweight"]) --> host("<b>pair.Host</b><br/>跟随设置，<br/>立即启动与停止")
-    subgraph servers["<b>服务器</b> · 共用同一份应用状态（<code>AppModel</code>）"]
-        loc("<b>本机服务器</b><br/>127.0.0.1，任意空闲端口，<br/>明文 HTTP，<br/>会话与运行同长")
-        rem("<b>远端服务器</b><br/>0.0.0.0，设置里的端口，<br/>仅 HTTPS，<br/>会话 24 小时")
-    end
-    host -->|webInterface| loc
-    host -->|"webInterface 与 webRemote"| rem
-    loc --> b1(["<b>浏览器</b><br/>在本机"])
-    rem --> b2(["<b>手机、其他电脑</b><br/>与安卓 App"])
-    win(["<b>窗口</b><br/>在浏览器中打开 · 配对手机"]) -->|"LocalLink · RemoteLink"| host
-    web(["<b>网页界面</b><br/>其他设备 · 轻量模式 · 退出"]) -->|"PUT /api/web · POST /api/quit"| set
+    accTitle: 设置如何决定其他设备能否连接
+    accDescr: Host 读取设置 webRemote、webPort 与证书。webRemote 开启时，它为 Docker 网关、手机与其他电脑运行一个 HTTPS 服务器。窗口生成配对链接，已配对的页面则修改设置。
+    set(["<b>设置</b><br/>webRemote · webPort<br/>webCertificate · lightweight"]) --> host("<b>pair.Host</b><br/>跟随设置，<br/>立即启动与停止")
+    rem("<b>远程服务器</b><br/>0.0.0.0，设置里的端口，<br/>只讲 HTTPS，<br/>会话 24 小时")
+    host -->|webRemote| rem
+    rem --> b2(["<b>网关、手机<br/>与其他电脑</b>"])
+    win(["<b>窗口</b><br/>配对手机"]) -->|"RemoteLink"| host
+    web(["<b>已配对的页面</b><br/>其他设备 · 轻量模式 · 退出"]) -->|"PUT /api/web · POST /api/quit"| set
 
     classDef cfg fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
     classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
     class set,win,web cfg
-    class host,loc,rem own
-    class b1,b2 client
-    style servers fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    class host,rem own
+    class b2 client
     linkStyle default stroke-width:2px
 ```
 
-- **网页界面**（`webInterface`）在回环接口的空闲端口上启动本机服务器，明文 HTTP：浏览器把回环源
-  视为可信，所以始终带 `Secure` 的会话 cookie 在那里照样保留。窗口的*在浏览器中打开*在进程内
-  为它生成一次性链接（`Host.LocalLink`）并用浏览器打开；链接应答会话 cookie 和到 `/app` 的重定向。
-- **其他设备**（`webRemote`）在 `0.0.0.0` 和设置里的端口上起第二个服务器，只讲 HTTPS，没有
-  证书 `pair.NewServer` 拒绝启动。证书是 `webCertificate` 与 `webKey` 指定的那一份，或由应用在设置旁
-  为自己生成的（`EnsureServerCert`），设置里显示它的指纹供核对。*配对手机*为它生成链接
-  （`Host.RemoteLink`），链接里带用户选的本机地址，并画成二维码（`pair.QRMatrix`）。关闭它会关掉
-  服务器和它持有的所有连接，已配对页面的 server-sent events 也在内，会话随之结束。端口被占用，
-  或证书加载失败，都不会停掉本机服务器：设置会说明其他设备为何连不上。
-- **设置立即生效。**`Host` 监听设置并应用差异（`Host.Apply`）；它再通知自己的监听者，窗口据此
-  重绘，网页界面的页面通过 `web` 事件得知。
-- **两个服务器是两个安全域**：各有各的一次性令牌与会话，所以给本机浏览器的链接配不了手机，反之亦然。
-  网页界面的页面可以改变其他设备如何连接并退出应用（`PUT /api/web`、`POST /api/quit`，仅限同源
-  且已配对），但不能关掉网页界面本身，那会切断它正在用的连接。
+- **其他设备**（`webRemote`）在 `0.0.0.0` 和设置里的端口上起服务器，只讲 HTTPS，没有证书 `pair.NewServer`
+  拒绝启动。证书是 `webCertificate` 与 `webKey` 指定的那一份，或由应用在设置旁为自己生成的（`EnsureServerCert`），
+  设置里显示它的指纹供核对。*配对手机*为它生成链接（`Host.RemoteLink`），链接里带用户选的本机地址，并画成二维码
+  （`pair.QRMatrix`）。关闭它会关掉服务器和它持有的所有连接，已配对页面的 server-sent events 也在内，会话随之结束。
+  端口被占用，或证书加载失败，设置会用 `Status.RemoteError` 说明。
+- **设置立即生效。**`Host` 监听设置并应用差异（`Host.Apply`）；它再通知自己的监听者，窗口据此重绘，已配对的页面通过
+  `web` 事件得知。
+- **已配对的页面**可以改变其他设备如何连接，并退出应用（`PUT /api/web`、`POST /api/quit`，仅限同源且已配对）。
+- **端到端构建**（`e2e` 标签）还会启动一个回环服务器（`LocalLink`），供给画面与测量界面的工具用。发布的构建没有它
+  （`mygo/pair/loopback_e2e.go` 与 `loopback_off.go`）。
 
 ### 窗口与轻量模式
 
@@ -390,11 +381,11 @@ config:
 ---
 stateDiagram-v2
     accTitle: 窗口与轻量模式
-    accDescr: 应用带着窗口启动。关闭窗口时应用退出，除非轻量模式开启且网页界面在线，此时它无窗口继续运行，释放窗口占用的东西，并在托盘里放一个图标。在图标的菜单里选打开，或再次启动应用，会重新打开窗口；从图标的菜单、设置、已配对的页面退出，或收到信号，应用结束。
+    accDescr: 应用带着窗口启动。关闭窗口时应用退出，除非轻量模式开启且其他设备可以连接，此时它无窗口继续运行，释放窗口占用的东西，并在托盘里放一个图标。在图标的菜单里选打开，或再次启动应用，会重新打开窗口；从图标的菜单、设置、已配对的页面退出，或收到信号，应用结束。
     direction LR
     [*] --> window: 启动
-    window --> quit: 关闭窗口，<br/>轻量模式关闭<br/>或没有网页界面
-    window --> background: 关闭窗口，<br/>轻量模式开启且<br/>网页界面在线
+    window --> quit: 关闭窗口，<br/>轻量模式关闭<br/>或没有其他设备
+    window --> background: 关闭窗口，<br/>轻量模式开启且<br/>其他设备已允许
     background --> window: 托盘图标 ·<br/>再次启动
     background --> quit: 退出 · 信号
     window --> quit: 退出
@@ -408,10 +399,10 @@ stateDiagram-v2
 ```
 
 关闭最后一个窗口（`OnWindowAllClosed`）会让应用退出，除非 `Settings.Lightweight` 开启且
-`Host.Status().Running`。此时 `App.releaseWindow` 放掉窗口占用的全部东西（控件、页面、列表、任务上的监听、
+`Host.Status().Remote`。此时 `App.releaseWindow` 放掉窗口占用的全部东西（控件、页面、列表、任务上的监听、
 本为窗口准备的工作），在托盘里放上图标（见[托盘](#托盘)），并把 Go 的内存还给系统，两秒后如果窗口仍关着，
 再告诉系统它暂时不要自己文件的页（`App.scheduleTrim`，见
-[内存页](memory.md#应用对文件页做了什么)）；之后打开的窗口从干净状态开始。任务、网页界面及其会话继续，因为它们不属于窗口。mygo 的界面库（GTK 3 及其库）仍留在内存里，所以轻量模式
+[内存页](memory.md#应用对文件页做了什么)）；之后打开的窗口从干净状态开始。任务、给其他设备的服务器及其会话继续，因为它们不属于窗口。mygo 的界面库（GTK 3 及其库）仍留在内存里，所以轻量模式
 只省几 MB，而不是大部分内存（见[内存页](memory.md#轻量模式)）。
 
 即使两个模型同机并存（如两个用户的应用共用一个 vfox 数据目录，或端到端测试），变更命令依然
@@ -424,8 +415,7 @@ stateDiagram-v2
 GNOME，由 Shell 的 AppIndicator 扩展把它显示在面板里（Ubuntu 默认启用这个扩展）。其他桌面不受支持：
 KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或者不用这个图标，没有图标时应用照常运行。
 代码并不拒绝它们（Linux 上会话总线上有 StatusNotifierWatcher 就会创建图标；macOS 则是菜单栏），
-但这些都没有测试，也不作承诺。菜单有*打开 vfox+*、*打开网页界面*（用一次性链接配对本机浏览器）和
-*退出 vfox+*。没有窗口的进程原本缺少的两样东西，回到窗口的路和结束应用的路，由它提供。代码在
+但这些都没有测试，也不作承诺。菜单有*打开 vfox+*和*退出 vfox+*。没有窗口的进程原本缺少的两样东西，回到窗口的路和结束应用的路，由它提供。代码在
 `mygo/ui/tray.go`，Linux 的图标在 `mygo/ui/tray_linux.go`，mygo 的图标在 `mygo/ui/tray_other.go`。
 
 - **何时。**`App.releaseWindow` 在放掉窗口时创建图标（`showTray`），`App.openWindow` 把它移除
@@ -449,11 +439,11 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   watcher 有了 owner 以后，图标才连上总线并显示，之后 watcher 每次重新启动都再接管一次（外壳重启时，它没有原来的图标）
   （`watchOwners`）。
 - **没有托盘不算错误。**没有会话总线，或者向 watcher 注册失败：日志里一行（"no icon in the tray: ..."），应用不带图标继续运行。
-  再次启动它或用网页界面，仍是回到窗口的路。
+  再次启动它，仍是回到窗口的路。
 - **移除。**图标由一个 goroutine 在请求窗口的那次选择返回之后移除，因为桌面的库不指望菜单项的所有者在该项的处理函数里消失
   （`hideTray`）；应用结束时则立即移除（`OnWillQuit` → `removeTray`），因为 Windows 会一直显示已经退出的程序的图标，直到指针划过。
   在 Linux 上放掉名字同样把图标拿掉。
-- **语言。**标签使用设置里的语言，而网页界面可以在没有窗口可画时修改它：设置上的一个监听（`refreshTray`）在语言变了时重写菜单。
+- **语言。**标签使用设置里的语言，而别的设备可以在没有窗口可画时修改它：设置上的一个监听（`refreshTray`）在语言变了时重写菜单。
 - **图片。**`tray.png` 32×32 像素，是应用图标的狐狸，不带底板（橙色在浅色和深色面板上都看得清）。仓库里不放图片，所以由
   `vfxtool prepare` 用 `appicon.RenderFox` 绘制，`mygo/assets` 内嵌，与其他收集来的资源一样被 git 忽略。在 Linux 上，条目自己带着
   图片的像素（协议的 `IconPixmap`，alpha 在前），桌面不需要找文件。
@@ -465,13 +455,13 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 - **协议**：用一个替身托盘宿主，CI 的运行器需要它，因为运行器没有面板：工具链的 `trayhost` 包在会话总线上拥有
   `org.kde.StatusNotifierWatcher`，像 GNOME 的 AppIndicator 扩展那样读取条目及其 dbusmenu，并选择条目
   （godbus，BSD-2-Clause，是它唯一的依赖）。`vfxtool e2e-run tray`（`build` 任务的一步）关闭窗口，检查图标、它的 ID、
-  提示文字、图片（条目自己带的像素，32×32 的狐狸，无底板）和菜单；选*打开 vfox+*（窗口回来，条目离开总线）；选*打开网页界面*
-  （一个注册为网页链接处理程序的、代替用户浏览器的程序收到一个能配对的链接）；从菜单退出（应用以 0 结束，条目离开总线）。
+  提示文字、图片（条目自己带的像素，32×32 的狐狸，无底板）和菜单；选*打开 vfox+*（窗口回来，条目离开总线）；并确认应用不打开任何链接
+  （一个注册为链接处理程序的、代替用户浏览器的程序什么也不会收到）；从菜单退出（应用以 0 结束，条目离开总线）。
   然后宿主重新启动一次，图标跟着新的宿主走；再之后，在窗口关闭时还没有宿主的地方运行应用，宿主出现以后图标由它接管（`tray-late`）。
 - **Shell**：用真正的 GNOME Shell。`vfxtool gnome-session` 在 `shared/sandbox/gnome.Dockerfile` 的容器里，在没有屏幕的 Ubuntu GNOME Shell 50
   （mutter 无需 GPU 就能提供 Wayland）里运行一条命令，并启用 AppIndicator 扩展；`vfxtool e2e-run tray-gnome`（`tray-gnome` 任务运行）
   是对着它的场景：应用关闭窗口，Shell 在面板里为它放一个指示器并为它生成菜单（用 `org.gnome.Shell.Eval` 读取，Shell 在不安全模式下提供它），
-  像用户那样选择*打开 vfox+*、*打开网页界面* 和 *退出 vfox+*，做法是让扩展发出点击事件，应用照做。窗口回来时 Shell 隐藏图标；
+  像用户那样选择*打开 vfox+*和*退出 vfox+*，做法是让扩展发出点击事件，应用照做。窗口回来时 Shell 隐藏图标；
   每次关窗后，面板里只剩当前的这一个指示器，上一次的已经离开。应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
 - **Windows**：`run-windows` 任务在 Windows Server 2025（x64）与 Windows 11 ARM 上，用 Windows 的端到端构建，
   在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python` 与 `vfxtool e2e-run tray`。
@@ -486,11 +476,11 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 控制文件是端到端构建的 `VFOX_PLUS_E2E_CONTROL`：工具往里写 `close`、`show` 或 `quit`，应用就做用户用关闭按钮和
 菜单的两个条目所做的事，并把文件删掉。mygo 的自动化插件没有关闭窗口的办法，Windows 也没有可发的信号。
 
-### 网页界面与安卓客户端
+### 服务器与安卓客户端
 
-服务器（`mygo/pair` 包）提供一次性链接与会过期的会话。配对后的浏览器在
-`/app` 得到完整 Web 界面：已安装 SDK 的安装/使用/卸载、插件仓库的添加/更新/
-删除、带 server-sent events 实时进度与日志的任务、以及设置。Web 界面使用的 HTTP 接口见
+给其他设备用的服务器（`mygo/pair` 包）提供一次性链接与会过期的会话。配对后的设备在
+`/app` 得到界面：已安装 SDK 的安装/使用/卸载、插件仓库的添加/更新/
+删除、带 server-sent events 实时进度与日志的任务、以及设置。界面使用的 HTTP 接口见
 [远端协议](remote-protocol.md)。
 
 Android 客户端（`android/`）连同一个服务器：它是包住 `/app` 的 WebView，
@@ -551,7 +541,7 @@ flowchart LR
   有对方出示的证书；被固定的证书保存在网关的状态里，并成为连到那个实例的连接的唯一根证书，所以它像任何证书
   一样被校验，有效期和用途也在内，所用的名字是它自己有的（应用把这台电脑的各个地址写进了证书，而网关可能用
   另一个地址到达这台电脑）。被信任的就是展示过的那个证书：人同意时会再看一次，不同的会被拒绝。之后证书若
-  变了，就不会带着网关的会话去连，并带着警告再次询问。明文 HTTP 只用于应用提供它的回环地址。粘贴的链接里的地址会检查形式
+  变了，就不会带着网关的会话去连，并带着警告再次询问。明文 HTTP 只用于回环地址，仅供端到端测试使用。粘贴的链接里的地址会检查形式
   （`hostPattern`、`checkAddress`）：主机名或 IP 地址，加上 1 到 65535 的端口；解析器会当作另一种写法的地址的数字
   （`127.1`、`2130706433`、`0x7f.1`）既不是主机名也不是地址，主机名用不到的字符同样不行。关于地址，说的仅此而已。
   人可以指定哪些主机并不受限制，因为实例可能在任何地方，而与网关配对的人被信任可以这样做（用户指南里这么说）；

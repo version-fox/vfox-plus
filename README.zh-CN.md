@@ -24,7 +24,7 @@
 
 从[用户指南](docs/zh-CN/user/index.md)（[English](docs/en/user/index.md)）开始：
 功能、[安装](docs/zh-CN/user/install.md)、[使用](docs/zh-CN/user/using.md)、
-[网页界面](docs/zh-CN/user/remote.md)、[安卓 App](docs/zh-CN/user/android.md) 与
+[其他设备](docs/zh-CN/user/remote.md)、[安卓 App](docs/zh-CN/user/android.md) 与
 [网关](docs/zh-CN/user/gateway.md)（Docker）。
 
 ## 截图

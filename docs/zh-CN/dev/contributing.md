@@ -214,7 +214,7 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 | `VFOX_PLUS_FAKE_INVENTORY=python` | 一台装着 Python 与其他插件的机器，以及 Python 的选项与 GraalPy 构建的筛选：`python-options`、`python-install-method` 与 `python-graalpy-community`，深色主题下为 `dark-python-options` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | 窄布局（窗口窄于 600 dp）：`compact-home`、`compact-detail` |
 | 上面两个一起 | 窄布局下 Java 的发行版：`compact-java` |
-| 设置 `webInterface`，以及 `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 网页界面的设置，像用户操作那样一步步走：已开启的开关与它的地址、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
+| `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 其他设备的设置，像用户操作那样一步步走：尚未允许时的分区、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
 | 同上，先选好语言 | 同样四张的简体中文版：`zh-web-interface`、`zh-web-allow`、`zh-web-remote`、`zh-web-pair` |
 
 端到端构建可以用 `VFOX_PLUS_E2E_ADDRESSES`（逗号分隔的列表）被告知这台电脑的地址，而不是从网卡上读。图里
@@ -222,7 +222,7 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 自己地址的沙箱，也就有了一个可以给手机配对的地址。
 
 要多拍一张，就在 `shared/tooling/internal/screenshots/screenshots.go` 里该运行的函数
-（`pages`、`installing`、`profiles`、`compactPages`、`compactProfiles` 或 `webInterface`）加一句
+（`pages`、`installing`、`profiles`、`compactPages` 或 `compactProfiles`）加一句
 `c.shot(s, "名称")`。它之前的步骤像用屏幕阅读器的人一样点击、等待，靠用户看到的名字
 （按钮的标签，或组件给它的 key）找控件，所以改了名的按钮会让场景失败，而不是拍出一张错的图。
 
@@ -231,7 +231,7 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 `java-temurin`、`flutter-available` 与 `options`，以及手机上的网页界面 `webapp-en` 与
 `web-phone-java-temurin`（简体中文是 `webapp-zh` 与 `web-phone-zh-java-temurin`，见下）。
 [使用说明](../user/using.md)引用 `java-install-name` 与 `options-mirror`，中文版引用
-`zh-java-available` 与 `zh-options`。[网页界面指南](../user/remote.md)引用 `web-interface`、`web-allow`、
+`zh-java-available` 与 `zh-options`。[其他设备指南](../user/remote.md)引用 `web-interface`、`web-allow`、
 `web-remote` 与 `web-pair`（简体中文加前缀 `zh-`），以及手机上的网页界面：`webapp-en`、
 `web-phone-java-temurin`、`web-connections` 与 `web-connections-pair`（简体中文是 `webapp-zh`、
 `web-phone-zh-java-temurin`、`web-zh-connections` 与 `web-zh-connections-pair`）。
@@ -245,8 +245,8 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 `alias-set`、`link-manual`、`python-options` 与 `python-available`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
 `mygo/pair/webapp.html` 检查场景点击的元素）。场景的最后一步会等页面不比窗口宽，所以溢出的布局会让截图失败，而不是
 拍出一张图。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
-设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面，并允许其他设备（连接卡片与给
-手机配对的二维码需要它：`{"webInterface":true,"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
+设置里，选了发行版的场景会改变它之后的每一张图。应用允许其他设备（连接卡片与给
+手机配对的二维码需要它：`{"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
 命令行可打印链接，所以把配对链接写进 `VFOX_PLUS_E2E_LINK` 指定的文件。Java 的场景需要一台装着 Java 和 Flutter 的
 机器，Python 的场景需要一台装着 Python 的机器，主页需要一台没装的，所以假 vfox 的库存是调用时给的变量：
 
@@ -261,7 +261,7 @@ shoot() {
   home=/tmp/shot-home
   rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
   cp /tmp/vfxtool $home/bin/vfox
-  echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
+  echo '{"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
       VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
@@ -328,7 +328,7 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 `vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[安卓 App 指南](../user/android.md)里的
 九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），
 用 CI 构建出来的 release APK（它的构件 `vfox-plus-android`），以及[运行 App](environment.md#运行-app)里描述的 PC 端应用：
-对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，开启网页界面和其他设备，端口为 8080，并设
+对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，允许其他设备，端口为 8080，并设
 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问这台电脑用的地址。配对屏、链接和证书就都写着实际使用的地址，
 也不必自己生成证书。这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、
 `android-settings`、`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南

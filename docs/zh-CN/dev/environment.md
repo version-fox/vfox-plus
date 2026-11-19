@@ -110,7 +110,7 @@ feature，它让容器成为特权容器。本仓库用到 Docker 的三件事�
 ### 限制
 
 - 没有模拟器，也没有 KVM（见[模拟器与 KVM](#模拟器与-kvm)）：用 CI 的 `measure` 任务，或像[没有 KVM 时](#没有-kvm-时)那样用一台 adb 设备。
-- 没有显示。应用的窗口需要显示：测试在 `xvfb` 里运行，要使用应用，运行 `vfox-plus-serve`，在容器外配对一个浏览器。
+- 没有显示。应用的窗口需要显示：测试在 `xvfb` 里运行；端到端构建为工具提供自己的回环链接，测试不需要浏览器。
 - 没有 Chrome，`vfxtool webheap` 驱动的那个（见 [Go 与本机工具](#go-与本机工具)）。自己装一个，用 `--chrome` 指定。
 - git worktree 是这样一个文件夹：它的 `.git` 是个文件，指向它所属的克隆，而那在容器挂载的文件夹之外，所以 git
   在容器里用不了（Go 仍能构建）。请打开那个克隆。
@@ -305,9 +305,9 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
   -keyout key.pem -out cert.pem
 ```
 
-启动应用（`vfxtool build build/vfox-plus && build/vfox-plus`），在它的设置里开启网页界面和*其他设备*，再选择
+启动应用（`vfxtool build build/vfox-plus && build/vfox-plus`），在它的设置里开启*其他设备*，再选择
 *证书 → 浏览…* 和文件 `cert.pem`、`key.pem`。（也可以在启动前把这些设置写进
-`~/.config/vfox-plus/settings.json`：`"webInterface": true`、`"webRemote": true`、
+`~/.config/vfox-plus/settings.json`：`"webRemote": true`、
 `"webCertificate": "/path/cert.pem"` 与 `"webKey": "/path/key.pem"`。）
 
 端到端构建（`vfxtool build --e2e`）既不需要证书，也不用替换地址：环境里有 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 时，它

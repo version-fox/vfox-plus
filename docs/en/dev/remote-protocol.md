@@ -2,10 +2,10 @@
 
 > [简体中文](../../zh-CN/dev/remote-protocol.md)
 
-This document specifies the HTTP surface of the servers of the web interface
+This document specifies the HTTP surface of the server for other devices
 (`mygo/pair`, run by the application when its settings say so): the contract the web
-interface (`mygo/pair/webapp.html`) and the Android client (`android/`) program
-against. The implementation is `mygo/pair/pair.go` (`Server`), `host.go` (`Host`),
+interface that the Docker gateway serves (`mygo/pair/webapp.html`) and the Android client
+(`android/`) program against. The implementation is `mygo/pair/pair.go` (`Server`), `host.go` (`Host`),
 `web.go` and `webapi.go`.
 
 ## Concepts
@@ -14,28 +14,24 @@ against. The implementation is `mygo/pair/pair.go` (`Server`), `host.go` (`Host`
   once and expire after 5 minutes. Opening one pairs the browser: the server
   answers `Set-Cookie: vfox-plus-session=<session>` (`Secure`, `HttpOnly`,
   `SameSite=Lax`) and a redirect (`303`) to `/app`. The application makes the links:
-  *Open in browser* and *Copy link* in its settings for the browsers of its computer,
-  *Pair a phone* for the devices of the network.
+  *Pair a phone* in its settings, for the devices of the network, which copy the link to the
+  gateway or scan its code.
 - A **session** cookie authenticates every route except `/`,
   `/auth/connect/*` and `/manifest.webmanifest`. The sessions of the server for other devices
-  expire after 24 hours; the sessions of the server of this computer last as long as the
-  application runs. Expired sessions answer 401 and must pair again.
+  expire after 24 hours. Expired sessions answer 401 and must pair again.
 - State-changing routes additionally refuse the cross-origin requests of
   browsers, with the cross-origin protection of `net/http`: a request whose
   `Sec-Fetch-Site` is not `same-origin` (or `none`), or, without that header,
   whose `Origin` names another host than the one asked, answers 403. Requests with
   neither header (like curl) are allowed through with the session cookie.
-- Two **servers** serve the one application state, each with its own tokens and
-  sessions (see [the architecture](architecture.md#remote-front-ends)). The
-  **local server** listens on `127.0.0.1` on a free port, in plain HTTP, whenever the
-  setting `webInterface` is on. The **remote server** listens on `0.0.0.0` on the
-  port of the setting `webPort` (8369 by default), over HTTPS only, while `webRemote` is
-  on as well. Turning a setting off closes its server and every connection it holds;
-  the sessions of that server end with it. Pairing does not survive a restart of the
-  application.
-- The pages of the web interface can read and change how other devices connect and whether
-  the application stays up without its window, and can quit the application (`/api/web`,
-  `/api/quit`); they cannot turn the web interface itself off.
+- The **remote server** is the one server, and it shares the application state with
+  nothing else (see [the architecture](architecture.md#remote-front-ends)). It listens on
+  `0.0.0.0` on the port of the setting `webPort` (8369 by default), over HTTPS only, while
+  `webRemote` is on. Turning the setting off closes the server and every connection it holds;
+  the sessions end with it. Pairing does not survive a restart of the application.
+- The pages of the interface can read and change how other devices connect and whether the
+  application stays up without its window, and can quit the application (`/api/web`,
+  `/api/quit`).
 
 ## Pairing
 

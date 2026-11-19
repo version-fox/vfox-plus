@@ -141,8 +141,8 @@ application (`screenshots`). Where privileged containers are not allowed, or ghc
 - There is no emulator and no KVM ([The emulator and KVM](#the-emulator-and-kvm)): use
   the `measure` job of CI, or an adb device, as in [Without KVM](#without-kvm).
 - There is no display. The window of the application needs one: the tests run in
-  `xvfb`, and to use the application, run `vfox-plus-serve` and pair a browser outside
-  the container.
+  `xvfb`; the end-to-end build serves its own loopback link to the tools, so no browser is needed
+  for the tests.
 - There is no Chrome, which `vfxtool webheap` drives ([Go and the native
   tools](#go-and-the-native-tools)). Install one and name it with `--chrome`.
 - A git worktree is a folder whose `.git` is a file that points into the clone it
@@ -375,9 +375,9 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
 ```
 
 Start the application (`vfxtool build build/vfox-plus && build/vfox-plus`) and, in its settings,
-turn on the web interface and *Other devices*, then choose *Certificate → Browse…* and the
+turn on *Other devices*, then choose *Certificate → Browse…* and the
 files `cert.pem` and `key.pem`. (The same settings can be written to
-`~/.config/vfox-plus/settings.json` before the start: `"webInterface": true`, `"webRemote": true`,
+`~/.config/vfox-plus/settings.json` before the start: `"webRemote": true`,
 `"webCertificate": "/path/cert.pem"` and `"webKey": "/path/key.pem"`.)
 
 The end-to-end build (`vfxtool build --e2e`) needs neither the certificate nor the replacing of the address:

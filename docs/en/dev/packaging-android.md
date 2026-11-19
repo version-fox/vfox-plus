@@ -21,7 +21,7 @@ against the Go code. Users install the `.apk` and pair it with the PC; see
 ## What the app does
 
 - **Pairing** (`PairingFragment`) is native: the fox on the 9-sided cookie of the
-  shape library, where to find the pairing on the PC (*Settings → Web interface →
+  shape library, where to find the pairing on the PC (*Settings → Other devices →
   Pair a phone*), a button that scans the QR code that the PC shows, and a field for the one-time
   link (its end icon pastes while the field is empty and clears it when it is
   not). After a first pairing the screen offers the last server first, with a

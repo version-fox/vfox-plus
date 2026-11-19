@@ -45,7 +45,7 @@ measured that way.
 
 ## The lightweight mode
 
-With the web interface and the lightweight mode on, closing the window leaves the
+With other devices allowed and the lightweight mode on, closing the window leaves the
 application running without it (see [the architecture](architecture.md#the-window-and-the-lightweight-mode)).
 `vfxtool measure-lightweight` measures it the same way as the table above — one process,
 smaps_rollup, a fresh home directory with the fake vfox, settled after start — on the
@@ -53,7 +53,7 @@ same WSL2 host, on 2026-11-04:
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Window open, Home page, web interface on | 62 MB | 48 MB |
+| Window open, Home page, other devices allowed | 62 MB | 48 MB |
 | Window closed (`lightweight-idle`) | 46 MB | 33 MB |
 | Window closed, a browser paired and past its first inventory (`lightweight-loaded`) | 50 MB | 37 MB |
 
@@ -77,7 +77,7 @@ The rest is clean pages of files, which the system can take back whenever it nee
 of the executable that was touched (17 MB: a Go executable is mapped whole, and the system maps
 sixteen pages around every one that runs), the fonts that the toolkit mapped (10 MB), GTK 3 and the
 libraries it loads. A desktop application keeps them for as long as it runs, so the lightweight mode
-saved a few MB, and its point is not memory: it is that the web interface, its sessions and the tasks that
+saved a few MB, and its point is not memory: it is that the server for other devices, its sessions and the tasks that
 run go on without a window, and that the window comes back from the icon in the tray or by starting the
 application again.
 
@@ -198,7 +198,7 @@ above.
 
 - **Lightweight mode.** `vfxtool measure-lightweight` starts the end-to-end build of the
   application under a display (`xvfb-run`) with a fresh home directory, the fake vfox, and
-  settings with the web interface and the lightweight mode on. The end-to-end build writes a
+  settings with other devices allowed and the lightweight mode on. The end-to-end build writes a
   pairing link to the file that `VFOX_PLUS_E2E_LINK` names and closes its window on `SIGUSR1`,
   which a release build has no code for. The tool closes the window five seconds after the
   pairing link is written, once the window has loaded what it loads when it starts, and prints

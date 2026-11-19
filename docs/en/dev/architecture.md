@@ -46,7 +46,7 @@ flowchart TB
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
         direction LR
-        m("<b>mygo/</b><br/>the desktop application and its web<br/>interface (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+        m("<b>mygo/</b><br/>the desktop application and its server<br/>for other devices (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
     end
     docs ~~~ shared ~~~ code
 
@@ -242,9 +242,9 @@ Settings of the GUI itself are stored as JSON:
 | `vfoxExecutable`   | string          | absent       | Path of vfox; absent means "detect".                       |
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
 | `railExpanded`     | boolean         | `false`      | Whether the navigation rail shows its labels.              |
-| `webInterface`     | boolean         | `false`      | Serve the web interface to the browsers of this computer, on a loopback server, while the application runs. Read from `remoteAccess`, its old name, when absent. |
-| `lightweight`      | boolean         | `false`      | Closing the window leaves the application running without it, while the web interface is up. |
-| `webRemote`        | boolean         | `false`      | Also let other devices on the network connect, over HTTPS. Only means something while `webInterface` is on. |
+| `lightweight`      | boolean         | `false`      | Closing the window leaves the application running without it, while other devices may connect. |
+| `webRemote`        | boolean         | `false`      | Let other devices on the network connect, over HTTPS: the Docker gateway, phones and other computers. |
+| `webInterface`, `remoteAccess` | boolean | absent | Retired: the application serves no web interface on its computer. Read only, so that they are dropped from the file, and never written. |
 | `webPort`          | integer         | absent       | The port that other devices connect to, from 1024 to 65535; absent means 8369. |
 | `webCertificate`, `webKey` | string  | absent       | The PEM files of the certificate and the private key that other devices get; absent means a certificate that the application makes for itself. |
 | `searches`         | object          | `{}`         | What was chosen to list for a plugin, by its name: `{"java": "tem"}`. The default has no entry. |
@@ -366,9 +366,11 @@ Low memory use is a goal of the project. The application:
 ## Remote front ends
 
 The application is a desktop application and has no command line: it takes no arguments, and
-what else it does is a matter of its settings. The web interface is one of those things. The
-package `mygo/pair` holds its servers, and a `Host` runs them as the settings say; the window
-and the pages of the web interface itself both write those settings.
+what else it does is a matter of its settings. One of them is whether other devices may connect.
+The package `mygo/pair` holds the server for them, and a `Host` runs it as the settings say; the
+window and the pages of the paired devices both write those settings. The application shows no
+web interface on the computer it runs on: the Docker gateway serves the interface, and the
+Android app shows it, to the devices that pair with the server.
 
 ```mermaid
 ---
@@ -392,52 +394,41 @@ config:
       bottom: 8
 ---
 flowchart TB
-    accTitle: How the settings decide which servers run
-    accDescr: The settings webInterface, webRemote, webPort and lightweight are read by the Host. With webInterface on, it runs a loopback server for the browsers of this computer. With webRemote on as well, it runs a second server over HTTPS for phones and other computers. Both serve the same application state. The window makes links for both and the pages of the web interface change the settings.
-    set(["<b>Settings</b><br/>webInterface · webRemote<br/>webPort · lightweight"]) --> host("<b>pair.Host</b><br/>follows the settings,<br/>starts and stops at once")
-    subgraph servers["<b>Servers</b> · both serve the one application state (<code>AppModel</code>)"]
-        loc("<b>Local server</b><br/>127.0.0.1, any free port,<br/>plain HTTP,<br/>sessions as long as it runs")
-        rem("<b>Remote server</b><br/>0.0.0.0, the port of the settings,<br/>HTTPS only,<br/>sessions of 24 hours")
-    end
-    host -->|webInterface| loc
-    host -->|"webInterface and webRemote"| rem
-    loc --> b1(["<b>Browsers</b><br/>of this computer"])
-    rem --> b2(["<b>Phones, other computers</b><br/>and the Android app"])
-    win(["<b>The window</b><br/>Open in browser · Pair a phone"]) -->|"LocalLink · RemoteLink"| host
-    web(["<b>The web interface</b><br/>Other devices · Lightweight mode · Quit"]) -->|"PUT /api/web · POST /api/quit"| set
+    accTitle: How the settings decide whether other devices connect
+    accDescr: The settings webRemote, webPort and the certificate are read by the Host. With webRemote on, it runs a server over HTTPS for the Docker gateway, phones and other computers. The window makes the pairing links, and the paired pages change the settings.
+    set(["<b>Settings</b><br/>webRemote · webPort<br/>webCertificate · lightweight"]) --> host("<b>pair.Host</b><br/>follows the settings,<br/>starts and stops at once")
+    rem("<b>Remote server</b><br/>0.0.0.0, the port of the settings,<br/>HTTPS only,<br/>sessions of 24 hours")
+    host -->|webRemote| rem
+    rem --> b2(["<b>The gateway, phones<br/>and other computers</b>"])
+    win(["<b>The window</b><br/>Pair a phone"]) -->|"RemoteLink"| host
+    web(["<b>Paired pages</b><br/>Other devices · Lightweight mode · Quit"]) -->|"PUT /api/web · POST /api/quit"| set
 
     classDef cfg fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
     classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
     class set,win,web cfg
-    class host,loc,rem own
-    class b1,b2 client
-    style servers fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    class host,rem own
+    class b2 client
     linkStyle default stroke-width:2px
 ```
 
-- **The web interface** (`webInterface`) starts the local server on the loopback interface, on a free
-  port, over plain HTTP: browsers treat loopback origins as trustworthy, so the session cookie,
-  which is always `Secure`, is kept there. The window's *Open in browser* mints a one-time link
-  for it in the process (`Host.LocalLink`) and opens it in the browser; the link answers with
-  the session cookie and a redirect to `/app`.
-- **Other devices** (`webRemote`) start a second server on `0.0.0.0` and the port of the settings, which
+- **Other devices** (`webRemote`) start a server on `0.0.0.0` and the port of the settings, which
   speaks HTTPS only, and which `pair.NewServer` refuses to start without a certificate. The
   certificate is the one of `webCertificate` and `webKey`, or one that the application makes for
   itself next to the settings (`EnsureServerCert`), whose fingerprint the settings show for
   comparison. *Pair a phone* mints a link for it (`Host.RemoteLink`), with an address of the computer
   that the user chooses in it, and draws it as a QR code (`pair.QRMatrix`). Turning it off closes
-  the server and every connection it holds, the server-sent events of the paired pages
-  included, and with it the sessions. A port that is taken, or a certificate that does not
-  load, does not stop the local server: the settings say why other devices cannot connect.
+  the server and every connection it holds, the server-sent events of the paired pages included,
+  and with it the sessions. A port that is taken, or a certificate that does not load, is what the
+  settings report: `Status.RemoteError`.
 - **Settings are applied at once.** `Host` listens to the settings and applies the difference
-  (`Host.Apply`); it notifies its own listeners, which the window redraws on and the pages
-  of the web interface learn of by a `web` event.
-- **The two servers are two security domains**: each has its own one-time tokens and sessions, so a
-  link for the browsers of this computer does not pair a phone, and the other way round. The pages
-  of the web interface can change how other devices connect and quit the application
-  (`PUT /api/web`, `POST /api/quit`, same-origin and paired only), but not turn the web interface
-  off, which would cut the connection they use.
+  (`Host.Apply`); it notifies its own listeners, which the window redraws on and the paired pages
+  learn of by a `web` event.
+- **The paired pages** can change how other devices connect, and quit the application
+  (`PUT /api/web`, `POST /api/quit`, same-origin and paired only).
+- **The end-to-end build** (the `e2e` tag) also starts a loopback server (`LocalLink`) for the tools
+  that picture and measure the interface. The builds that are released have none
+  (`mygo/pair/loopback_e2e.go` and `loopback_off.go`).
 
 ### The window and the lightweight mode
 
@@ -469,11 +460,11 @@ config:
 ---
 stateDiagram-v2
     accTitle: The window and the lightweight mode
-    accDescr: The application starts with its window. When the window is closed it quits, unless the lightweight mode is on and the web interface is up, in which case it keeps running without a window, releasing what the window held and putting an icon in the tray. Choosing Open in the menu of the icon, or starting the application again, opens the window again; quitting from the menu of the icon, from the settings, from a paired page or by a signal ends it.
+    accDescr: The application starts with its window. When the window is closed it quits, unless the lightweight mode is on and other devices may connect, in which case it keeps running without a window, releasing what the window held and putting an icon in the tray. Choosing Open in the menu of the icon, or starting the application again, opens the window again; quitting from the menu of the icon, from the settings, from a paired page or by a signal ends it.
     direction LR
     [*] --> window: start
-    window --> quit: window closed,<br/>lightweight off<br/>or no web interface
-    window --> background: window closed,<br/>lightweight on and<br/>web interface up
+    window --> quit: window closed,<br/>lightweight off<br/>or no other devices
+    window --> background: window closed,<br/>lightweight on and<br/>other devices allowed
     background --> window: tray icon ·<br/>started again
     background --> quit: Quit · signal
     window --> quit: Quit
@@ -487,13 +478,13 @@ stateDiagram-v2
 ```
 
 Closing the last window (`OnWindowAllClosed`) quits the application, unless
-`Settings.Lightweight` is on and `Host.Status().Running`. Then `App.releaseWindow` lets go of
+`Settings.Lightweight` is on and `Host.Status().Remote`. Then `App.releaseWindow` lets go of
 everything that the window held (the widgets, the page, the lists, the listeners on the tasks,
 the work that was meant for the window), puts the icon in the tray (see [The tray](#the-tray)), and
 returns the memory of Go to the system, and two seconds later, if the window is still closed, tells the
 system that it does not want the pages of its files (`App.scheduleTrim`, see
 [Memory](memory.md#what-the-application-does-about-the-pages-of-files)); a window opened later starts from a clean state. Tasks,
-the web interface and its sessions go on, since they are not the window's. The toolkit of mygo (GTK 3 and its libraries) stays loaded, which is
+the server for other devices and its sessions go on, since they are not the window's. The toolkit of mygo (GTK 3 and its libraries) stays loaded, which is
 why the lightweight mode saves a few MB and not the most of the memory (see
 [Memory](memory.md#the-lightweight-mode)).
 
@@ -511,8 +502,7 @@ extension). Others are not supported: KDE Plasma and the desktops whose tray is 
 are for the user to leave for GNOME, or to do without the icon, as the application then runs without
 it. The code does not refuse them (on Linux the icon is made wherever a StatusNotifierWatcher is on the
 session bus, and on macOS it is in the menu bar), and nothing of it is tested or promised.
-Its menu has *Open vfox+*, *Open the web interface* (the browser of this computer, paired
-with a one-time link) and *Quit vfox+*. It is the way back to the window, and the way to end the
+Its menu has *Open vfox+* and *Quit vfox+*. It is the way back to the window, and the way to end the
 application, that a process without a window would otherwise lack. The code is `mygo/ui/tray.go`, with
 the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tray_other.go`.
 
@@ -554,7 +544,7 @@ the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tr
   (`hideTray`), and at once when the application ends (`OnWillQuit` → `removeTray`), because Windows shows the
   icon of a program that is gone until the pointer passes over it. On Linux, giving the name up takes the icon
   away in the same way.
-- **Language.** The labels are in the language of the settings, which the web interface can
+- **Language.** The labels are in the language of the settings, which another device can
   change while there is no window to draw it: a listener on the settings (`refreshTray`) writes
   the menu again when the language changed.
 - **The picture.** `tray.png`, 32 by 32 pixels, is the fox of the application icon without its
@@ -575,8 +565,8 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   (godbus, BSD-2-Clause, is its one dependency). `vfxtool e2e-run tray`, a step of the `build` job,
   closes the window and checks the icon, its ID, its tool tip, its picture (the pixels that the item carries:
   a 32 by 32 fox, with no plate) and its menu, chooses *Open vfox+* (the window comes back and the item
-  leaves the bus), chooses *Open the web interface* (a stand-in for the browser of the user, registered as the
-  handler of the links of the web, gets a link that pairs), and quits from the menu (the application ends with
+  leaves the bus), checks that the application opens no link (a stand-in for the browser of the user, registered as the
+  handler of the links, records none), and quits from the menu (the application ends with
   the code 0, and its item leaves the bus). The host also leaves the bus and comes up again, as a shell does when it restarts: the icon takes
   its place with the new host. Then the application runs where no host has come up yet, and a host that comes up
   after the window has closed takes the icon (`tray-late`).
@@ -585,7 +575,7 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   of `shared/sandbox/gnome.Dockerfile`, and `vfxtool e2e-run tray-gnome`, which the `tray-gnome` job runs, is the
   scenario against it: the application closes its window, and the shell puts an indicator for it in its panel,
   makes the menu of it (what it makes is read with `org.gnome.Shell.Eval`, which the shell serves in unsafe mode),
-  chooses *Open vfox+*, *Open the web interface* and *Quit vfox+* as the user does, by having the extension send
+  chooses *Open vfox+* and *Quit vfox+* as the user does, by having the extension send
   the event of the click, and the application does what they say. The shell hides the icon when the window comes
   back. Each time the window closes, the panel shows the one icon of the application, and the indicator of the
   appearance before is gone. The shell drops the icon when the application ends, and is still up after it all.
@@ -608,19 +598,19 @@ into it, and the application does what the user does with the close button and w
 menu, and removes it. The automation plugin of mygo has no way to close a window, and Windows has no signal to
 send for it.
 
-### The web interface and the Android client
+### The servers and the Android client
 
-The servers (package `mygo/pair`) serve one-time links and expiring
-sessions. A paired browser gets the full web interface at `/app`:
+The server for other devices (package `mygo/pair`) serves one-time links and expiring
+sessions. A paired device gets the interface at `/app`:
 installed SDKs with install/use/uninstall, the plugin registry with
 add/update/remove, tasks with live progress and logs over server-sent events,
-and the settings. The HTTP surface the web interface uses is specified in
+and the settings. The HTTP surface that the interface uses is specified in
 [the remote protocol](remote-protocol.md).
 
 The Android client (`android/`) connects to the same server: it is a WebView
 around `/app`, with a native Material 3 Expressive pairing flow (paste or scan the
 pairing link of the settings, compare the certificate fingerprint), so a phone drives the
-vfox-plus instance on a PC. The web interface itself follows the
+vfox-plus instance on a PC. The interface itself follows the
 [design system](design-system.md) (seed colour, shapes, motion) with inlined
 assets, the favicon among them, because the servers serve a single
 embedded page with no external requests. A web app manifest at

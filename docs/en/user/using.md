@@ -62,8 +62,8 @@ made from:
   GraalVM, which you filter by name, short name or maker; **All distributions**
   lists every one of them, about 2,700 versions, and says which each is of. The
   choice is remembered, for the next time you open the plugin and after a restart; it
-  is kept in the settings of the desktop application, so the web interface and the
-  Android app show the same one. It is the same as `vfox search java tem`.
+  is kept in the settings of the desktop application, so the gateway and the Android app show
+  the same one. It is the same as `vfox search java tem`.
 - **Filter chips.** Chips above the list narrow it by what the plugin says of its
   versions: LTS and JavaFX for Java, LTS for Node.js, the channels (stable, beta,
   dev, OpenHarmony) and the architectures (x64, arm64) for Flutter, and GraalPy and GraalPy Community for Python. Chips of one
@@ -221,10 +221,9 @@ a task finishes while you look at another page, a message reports it.
 
 - **Appearance**: light, dark or follow the system; use the desktop accent
   colour or pick one of the swatches; the language (English or 简体中文).
-- **Web interface**: whether vfox-plus also serves its interface to a browser on this
-  computer, whether it keeps running without its window (lightweight mode), and
-  whether phones and other computers on the network may connect, over HTTPS. See
-  [The web interface and other devices](remote.md).
+- **Other devices**: whether phones, the gateway and other computers on the network may
+  connect, over HTTPS, and whether vfox-plus keeps running without its window for them
+  (lightweight mode). See [Other devices and the lightweight mode](remote.md).
 - **vfox**: which executable is used (detected automatically, or pick your
   own) and extra environment variables such as download mirrors.
 - **vfox configuration**: proxy, registry, storage directory, legacy version

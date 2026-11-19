@@ -19,7 +19,7 @@
 
     <!-- Pairing -->
     <string name="pair_title">Connect to vfox-plus</string>
-    <string name="where_path">Settings → Web interface → Pair a phone</string>
+    <string name="where_path">Settings → Other devices → Pair a phone</string>
     <string name="where_label">On your PC, open vfox+</string>
     <string name="scan">Scan QR code</string>
     <string name="or_paste_link">or paste the pairing link</string>
@@ -33,7 +33,7 @@
     <string name="reconnect">Reconnect</string>
     <string name="how">How to pair</string>
     <string name="how_title">Pair with your PC</string>
-    <string name="how_body">1. On the PC, open vfox+, go to Settings → Web interface, and turn on the web interface and Other devices. Allow the port in the firewall of the PC.\n\n2. Choose Show code next to Pair a phone: the PC shows a QR code, the pairing link and, for HTTPS, a certificate fingerprint.\n\n3. Scan the QR code, or paste the link here and connect. If the PC uses a self-signed certificate, compare its fingerprint with the one in the settings on the PC before trusting it.\n\n4. The app stays paired and reconnects on the same network. The phone must reach the PC (same Wi-Fi or another route).</string>
+    <string name="how_body">1. On the PC, open vfox+, go to Settings → Other devices, turn it on and allow it. Allow the port in the firewall of the PC.\n\n2. Choose Show code next to Pair a phone: the PC shows a QR code, the pairing link and, for HTTPS, a certificate fingerprint.\n\n3. Scan the QR code, or paste the link here and connect. If the PC uses a self-signed certificate, compare its fingerprint with the one in the settings on the PC before trusting it.\n\n4. The app stays paired and reconnects on the same network. The phone must reach the PC (same Wi-Fi or another route).</string>
 
     <!-- The scanner -->
     <string name="scan_title">Scan to pair</string>

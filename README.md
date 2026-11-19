@@ -26,7 +26,7 @@ audience:
 
 Start with the [user guide](docs/en/user/index.md) ([简体中文](docs/zh-CN/user/index.md)):
 what it does, [install](docs/en/user/install.md), [use](docs/en/user/using.md),
-the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/android.md) and the
+[other devices](docs/en/user/remote.md), the [Android app](docs/en/user/android.md) and the
 [gateway](docs/en/user/gateway.md) (Docker).
 
 ## Screenshots

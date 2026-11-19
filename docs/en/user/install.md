@@ -53,8 +53,9 @@ A sideloaded snap does not refresh itself: download the `.snap` of the new
 release and install it again the same way.
 
 vfox-plus is a desktop application: it takes no arguments, and needs a desktop session
-to show its window. To use it from a browser or a phone as well, turn on its web
-interface in its settings (see [The web interface and other devices](remote.md)).
+to show its window. To use it from a browser or a phone as well, allow other devices in its
+settings (see [Other devices and the lightweight mode](remote.md)); a browser reaches it
+through the [gateway](gateway.md).
 
 ## Windows 11
 
