@@ -265,6 +265,7 @@
   "updateDownloaded": "已下载到 {path}",
   "updateOpenReleases": "打开发布页",
   "updateNoAsset": "没有适用于本系统的安装包",
+  "openLinkRefused": "这个地址不是网页地址，所以不会打开。",
   "updateMirror": "更新镜像",
   "updateMirrorHelp": "留空为直连。",
   "taskInstallUse": "安装并使用 {subject}",

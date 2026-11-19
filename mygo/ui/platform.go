@@ -15,8 +15,11 @@
 package ui
 
 import (
+	"fmt"
 	"io/fs"
 	"log"
+	"net/url"
+	"strings"
 
 	"github.com/egoist/mygo"
 
@@ -32,11 +35,42 @@ func loadIcons(table []byte, files fs.FS) {
 	}
 }
 
-// openURL opens a web address in the browser of the user.
+// shellOpen opens an address with the default application of the system. It is
+// a variable so that the tests can see what would be handed to the system.
+var shellOpen = func(address string) error { return mygo.Shell.OpenExternal(address) }
+
+// webAddressOf returns the address without its surrounding space when it is an
+// absolute http or https address with a host, the only kind the application
+// opens. A plugin names its homepage in its own metadata, so any other scheme
+// (file:, javascript:, a protocol handler of the system) is refused.
+func webAddressOf(address string) (string, bool) {
+	trimmed := strings.TrimSpace(address)
+	parsed, err := url.Parse(trimmed)
+	if err != nil || parsed.Host == "" {
+		return "", false
+	}
+	// url.Parse lowercases the scheme, so HTTPS and https are the same here.
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", false
+	}
+	return trimmed, true
+}
+
+// openWebAddress opens a web address in the browser of the user. Any other
+// address is refused, and the system never sees it.
+func openWebAddress(address string) error {
+	web, ok := webAddressOf(address)
+	if !ok {
+		return fmt.Errorf("refusing to open %q: only http and https addresses are opened", address)
+	}
+	return shellOpen(web)
+}
+
+// openURL opens a web address in the browser of the user, without waiting for it.
 func openURL(address string) {
 	go func() {
-		if err := mygo.Shell.OpenExternal(address); err != nil {
-			log.Printf("cannot open %s: %v", address, err)
+		if err := openWebAddress(address); err != nil {
+			log.Printf("cannot open %q: %v", address, err)
 		}
 	}()
 }

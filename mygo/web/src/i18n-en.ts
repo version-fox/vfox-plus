@@ -112,6 +112,7 @@ export const en = {
   activeEmpty: "No version in use yet.",
   added: "Open",
   homepageOpen: "Homepage",
+  linkRefused: "This address is not a web address, so it is not opened.",
   copied: "Copied.",
   refresh: "Refresh",
   taskSucceeded: "Task succeeded.",

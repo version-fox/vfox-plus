@@ -112,6 +112,7 @@ export const zh = {
   activeEmpty: "暂无在用版本。",
   added: "打开",
   homepageOpen: "主页",
+  linkRefused: "这个地址不是网页地址，所以不会打开。",
   copied: "已复制。",
   refresh: "刷新",
   taskSucceeded: "任务成功。",

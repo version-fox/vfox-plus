@@ -507,7 +507,13 @@ func (a *App) announce(task *state.VfoxTask) {
 }
 
 // openURL opens a web address in the browser of the user.
-func (a *App) openURL(address string) { a.desktop.openURL(address) }
+func (a *App) openURL(address string) {
+	if _, ok := webAddressOf(address); !ok {
+		a.notify(a.T("openLinkRefused"))
+		return
+	}
+	a.desktop.openURL(address)
+}
 
 // copy puts text on the clipboard.
 func (a *App) copy(text string) { a.desktop.copy(text) }
