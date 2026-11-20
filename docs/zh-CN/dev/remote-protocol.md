@@ -2,32 +2,31 @@
 
 > [English](../../en/dev/remote-protocol.md)
 
-本文规定给其他设备用的服务器（`mygo/pair`，应用在设置要求时运行）的 HTTP 接口：Docker 网关提供的 Web 界面
-（`mygo/pair/webapp.html`）与 Android 客户端（`android/`）都按它编程。实现在
-`mygo/pair/pair.go`（`Server`）、`host.go`（`Host`）、`web.go` 与 `webapi.go`。
+本文规定给其他设备用的服务器（`mygo/pair`，应用在设置要求时运行）的 HTTP 接口：Docker 网关（`mygo/gateway`）
+与 Android 客户端（`android/`）都按它编程。这个服务器只提供 API；Web 界面是一个由网关提供的单页面
+（见[Web 界面](#web-界面)）。实现在 `mygo/pair/pair.go`（`Server`）、`host.go`（`Host`）、`web.go` 与 `webapi.go`。
 
 ## 概念
 
 - **配对链接**是一次性 URL `/auth/connect/<token>`。令牌一次性有效，5 分钟后过期。
-  打开即配对：服务返回 `Set-Cookie: vfox-plus-session=<session>`（`Secure`、`HttpOnly`、
-  `SameSite=Lax`）和到 `/app` 的重定向（`303`）。链接由应用生成：设置里的*配对手机*给网络中的设备，
-  设备把链接交给网关，或扫描它的二维码。
-- **会话** cookie 认证除 `/`、`/auth/connect/*` 与 `/manifest.webmanifest` 外的所有路由。会话 24 小时后过期。过期会话返回 401，需重新配对。
+  打开即配对：服务返回 `204 No Content` 和 `Set-Cookie: vfox-plus-session=<session>`（`Secure`、
+  `HttpOnly`、`SameSite=Lax`），不再重定向，因为这个服务器并不提供可以前往的页面（见[Web 界面](#web-界面)）。
+  链接由应用生成：设置里的*配对手机*给网络中的设备，设备把链接交给网关，或扫描它的二维码。
+- **会话** cookie 认证除 `/auth/connect/*` 外的所有路由。会话 24 小时后过期。过期会话返回 401，需重新配对。
 - 写操作路由另外拒绝浏览器的跨源请求，用 `net/http` 的跨源保护：`Sec-Fetch-Site`
   不是 `same-origin`（或 `none`），或没有该头时 `Origin` 的主机与所请求的主机不同，
   返回 403。两个头都不带（如 curl）的请求凭会话 cookie 直接放行。
 - **远端服务器**是唯一的服务器，它的应用状态只与应用共享（见[架构](architecture.md#远端前端)）。它在 `webRemote`
   开启时监听 `0.0.0.0` 和设置 `webPort`（默认 8369）的端口，仅 HTTPS。关闭该设置会关掉服务器和它持有的所有连接；
   会话随之结束。重启应用后配对不保留。
-- 界面的页面可以读取并修改其他设备如何连接、应用在没有窗口时是否继续运行，也可以退出应用
+- Web 界面可以读取并修改其他设备如何连接、应用在没有窗口时是否继续运行，也可以退出应用
   （`/api/web`、`/api/quit`）。
 
 ## 配对
 
 | 方法与路径 | 认证 | 含义 |
 | --- | --- | --- |
-| `GET /` | 无 | 介绍页，说明去哪里拿链接（应用的设置）。绝口不提令牌。 |
-| `GET /auth/connect/<token>` | 令牌 | 消费令牌、种会话 cookie、重定向到 `/app`。无效、已用或过期令牌返回 403。 |
+| `GET /auth/connect/<token>` | 令牌 | 消费令牌、种会话 cookie，应答 `204 No Content`（不重定向）。无效、已用或过期令牌返回 403。 |
 | `GET /api/token` | 会话 | 为第二个浏览器增发一次性配对链接：`{url}`，按调用方 host 渲染。 |
 
 设置里的配对二维码是远端服务器的配对链接，链接里带本机在某个网络上的地址（`Host.RemoteLink`），
@@ -36,12 +35,12 @@
 
 ## Web 界面
 
-`GET /app`（仅会话，否则跳 `/`）提供单个嵌入页面：无外部请求、资源全内联、
-`Cache-Control: no-store`。遵循[设计系统](design-system.md)（种子色、形状、动效），
-图标为内联 SVG。
+这个服务器不提供页面。Web 界面是一个单页面，无外部请求、资源全内联，由网关在 `GET /app` 提供
+（见[网关](#网关)）。它遵循[设计系统](design-system.md)（种子色、形状、动效），图标为内联 SVG，
+并调用本文规定的路由。本服务器对 `/`、`/app` 与 `/manifest.webmanifest` 都返回 `404`。
 
-`GET /manifest.webmanifest`（无需会话）提供 Web 界面的 Web 应用清单
-（`application/manifest+json`，`Cache-Control: no-cache`）：`name` 与 `short_name`
+页面的 Web 应用清单同样由网关提供：网关上的 `GET /manifest.webmanifest`（无需会话）给出
+`application/manifest+json`，`Cache-Control: no-cache`：`name` 与 `short_name`
 为 `vfox+`，`id` 与 `start_url` 为 `/app`，`scope` 为 `/`，`display` 为
 `standalone`，颜色取自页面，图标只有一个：favicon，尺寸 `any` 的 SVG data URI。
 Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话，因为只写明应用名
@@ -258,10 +257,12 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
 | `POST /gateway/trust` | 网关 | `link` 和 `fingerprint`，来自显示指纹的页面：与指纹相符的证书配对（地址上的证书不是展示过的那个时 `409`）。 |
 | `POST /gateway/invite` | 网关 | 一个带有给另一个浏览器的链接的页面。 |
 | `POST /gateway/forget` | 网关 | 忘记实例及在它那里的会话；`303` 到 `/`。 |
-| `/app`、`/api/*`、`/manifest.webmanifest` | 实例 | 带着网关的会话转发（清单也转发给未配对的浏览器，因为实例就是这样提供它的）。 |
+| `GET /app` | 网关 | 界面的单页面，给与网关配对、且网关在某个实例上持有会话的浏览器：`200`、`Cache-Control: no-store`，不向实例发请求（页面自己调用 `/api/*`）。其他浏览器重定向到 `/`（`302`）。 |
+| `GET /manifest.webmanifest` | 网关 | 页面的 Web 应用清单，给任何浏览器，无需会话。只接受 `GET` 与 `HEAD`，其他方法返回 `405` 与 `Allow: GET, HEAD`。 |
+| `/api/*` | 实例 | 带着网关的会话转发。 |
 
 网关的表单需要已配对的浏览器（`401`）、网关自己的来源（`403`），且不超过 8 KiB（`400`）。实例的路由，对没有与网关
-配对的浏览器是 `401`（`/app` 则重定向到 `/`），网关没有配对任何实例或会话已结束时，每个路由也是：应答用界面读取
-错误的形式说明，`{"error": "…"}`。连不上实例时，API 以同样的形式应答 `502`，`/app` 则应答 `502` 和一个页面。
+配对的浏览器是 `401`；网关没有配对任何实例或会话已结束时，每个路由也是：应答用界面读取错误的形式说明，
+`{"error": "…"}`。连不上实例时，API 以同样的形式应答 `502`，界面的页面仍然提供，并显示它的调用得到的结果。
 浏览器上能认出它的东西（cookie、`Origin`、`Referer`、`Forwarded` 头）都留在网关里，实例的 `Set-Cookie` 不会到达
 浏览器。

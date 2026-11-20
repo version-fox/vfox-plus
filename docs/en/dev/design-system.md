@@ -23,7 +23,7 @@ defines them.
   `surfaceContainerHighest`. Primary, secondary and tertiary containers mark the
   avatars.
 - Destructive actions use `error`.
-- The web interface (the `--m3-*` variables of `mygo/pair/webapp.html`) and the
+- The web interface (the `--m3-*` variables of `mygo/gateway/webapp.html`) and the
   Android app (`values/colors.xml` and `values-night/colors.xml`) hold the 48 roles
   of the scheme as literal values, and `go test ./pair` in `mygo` fails when they
   are not the roles that `mygo/ui/mcu` computes for the seed.
@@ -298,7 +298,7 @@ that it needs to settle, and `--sp-NAME`, its step response sampled into a
 `linear()` curve with as few stops as keep the line within 0.6 % of the curve.
 Every `transition` and `animation` takes its time and its curve from them; a
 dialog scales in on the default spatial spring while it fades in on the default
-effects spring, which makes two animations. A test in `mygo/pair` recomputes the
+effects spring, which makes two animations. A test in `mygo/gateway` recomputes the
 variables from `kit.Expressive` and fails, printing the lines to paste, when they
 differ, and when a declaration has a duration or a curve of its own (the wavy
 progress and the loading indicator, which run until the work is done, are the
@@ -355,22 +355,14 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
 | Filter chips | [Chips](https://m3.material.io/components/chips) | `FilterChip` in `ui/kit/chip.go` |
 | Search bar, cards, dialogs, menus, snack bars, switches, text fields | Material 3 | `SearchBar`, `Card`, `Menu`, dialogs and snack bars in `ui/kit`, themed in `ui/kit/theme.go` |
 
-### Android app
+### Phone app
 
-The app builds its screens from the components of Material Components 1.14.0
-(Views, not Compose: [why](packaging-android.md#why-views-and-not-compose)),
-whose Expressive styles are the defaults of its theme.
-
-| Component | In the app |
-| --- | --- |
-| Buttons (filled, tonal, text) and icon buttons | `Widget.Material3Expressive.Button*`, which come with the shape morph; a layout only sets the size (`materialSizeOverlay`, Medium) |
-| Floating toolbar | `FloatingToolbarLayout` with `Widget.Material3.FloatingToolbar.Vibrant`, on the scanner: the torch and "Enter manually" |
-| Cards | filled `MaterialCardView` with 28 dp corners: the command on `surfaceContainerHigh`, the last server on `secondaryContainer` |
-| Text field | outlined `TextInputLayout` with the 4 dp corners of the specification; its end icon pastes and clears |
-| Loading indicator | `LoadingIndicator` in the place of the Connect button |
-| Wavy progress indicator | `Widget.Material3Expressive.LinearProgressIndicator.Wavy`, while the page of the session loads |
-| Dialogs | `MaterialAlertDialogBuilder`, in the style of the Expressive theme; the certificate fingerprint sits in a `surfaceContainerHighest` card |
-| Shapes | the cookie behind the fox of the pairing screen and the soft burst behind the icon of the error state (`ExpressiveShapes`) |
+The phone app is a native mygo application (`mygo/phone`). It builds its screens
+from the components of `ui/kit`, the same components as the desktop application,
+in the same theme (seed colour `#F28C1B`). It shows no web page: it talks to the
+server for other devices through its API, and its screens follow the web interface
+(the home, SDKs, plugins, tasks and settings tabs, and the pairing screen). Its
+build and signing are in [packaging-android.md](packaging-android.md).
 
 ### Wavy progress indicator
 
@@ -470,8 +462,8 @@ One drawing serves every platform:
 | Android launcher | `ic_launcher_background.xml`, `ic_launcher_foreground.xml` and `ic_launcher_monochrome.xml` in [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) | The adaptive icon: the launcher masks the full-bleed plate and the fox. The monochrome layer, for the themed icons of Android 13, has the cheeks at half strength and the eyes and the nose cut out. |
 | Android pairing screen | `ic_mark.xml` in the same directory | The master as a vector drawable. |
 | Windows | `Assets/*.png` in the `.msix` | Drawn by `vfxtool build-msix` from the same paths ([`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)), because no image is committed. |
-| Web interface | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | The plate and the fox without the halo, and the fox larger, which still reads at 16 px. Every page of the pairing server inlines it as a data URI (`favicon.go`), so that the pages make no request for an icon; the web interface shows it as the brand mark of its navigation rail, and its web app manifest names it as the icon of the installed application (an SVG icon of the size `any` is one that Chromium accepts for installing). |
+| Web interface | [`mygo/gateway/favicon.svg`](../../../mygo/gateway/favicon.svg) | The plate and the fox without the halo, and the fox larger, which still reads at 16 px. Every page of the gateway inlines it as a data URI (`favicon.go`), so that the pages make no request for an icon; the web interface shows it as the brand mark of its navigation rail, and its web app manifest names it as the icon of the installed application (an SVG icon of the size `any` is one that Chromium accepts for installing). |
 
 The SVG is the master: the vector drawables, `appicon` and the favicon repeat its
-paths, and `go test` in `shared/tooling` (the first two) and in `mygo/pair` (the
+paths, and `go test` in `shared/tooling` (the first two) and in `mygo/gateway` (the
 favicon) fails when they differ.

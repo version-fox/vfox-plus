@@ -262,7 +262,7 @@ B 类依赖按自身许可证及其条件发布（声明保留、源码可得）
 mygo 为 MIT 许可证，其链接的 Go 模块 purego 为 Apache License 2.0，文本塑形
 `go-text/typesetting` 为 Unlicense 或 BSD，`golang.org/x` 模块与 Go 标准库为 BSD；
 二维码编码器 `skip2/go-qrcode`（MIT）把设置里的配对链接编码成
-二维码供安卓 App 扫描；`mygo/ui/mcu` 与 `mygo/ui/shapes` 中的移植代码来自 Apache License 2.0 与 MIT 许可证
+二维码供手机端扫描；二维码解码器 `makiuchi-d/gozxing`（MIT，ZXing 的 Go 移植）读取照片里的二维码，供手机端配对；`mygo/ui/mcu` 与 `mygo/ui/shapes` 中的移植代码来自 Apache License 2.0 与 MIT 许可证
 的库，声明随应用发布（[`mygo/NOTICE.txt`](../../../mygo/NOTICE.txt)）。应用不链接 LGPL 的
 GTK 3、GLib、Pango 和 Cairo：mygo 启动时从系统加载，包按
 `vfxtool runtask`（`shared/tooling/internal/runtask`）声明依赖。托盘图标在 Linux 上不需要库：
@@ -349,7 +349,7 @@ flowchart TB
 - **设置立即生效。**`Host` 监听设置并应用差异（`Host.Apply`）；它再通知自己的监听者，窗口据此重绘，已配对的页面通过
   `web` 事件得知。
 - **已配对的页面**可以改变其他设备如何连接，并退出应用（`PUT /api/web`、`POST /api/quit`，仅限同源且已配对）。
-- **端到端构建**（`e2e` 标签）还会启动一个回环服务器（`LocalLink`），供给画面与测量界面的工具用。发布的构建没有它
+- **端到端构建**（`e2e` 标签）还会启动一个回环服务器（`LocalLink`）。它的链接用来把网关与应用配对，工具经由该网关为界面拍照与测量。发布的构建没有它
   （`mygo/pair/loopback_e2e.go` 与 `loopback_off.go`）。
 
 ### 窗口与轻量模式
@@ -478,16 +478,15 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 
 ### 服务器与安卓客户端
 
-给其他设备用的服务器（`mygo/pair` 包）提供一次性链接与会过期的会话。配对后的设备在
-`/app` 得到界面：已安装 SDK 的安装/使用/卸载、插件仓库的添加/更新/
-删除、带 server-sent events 实时进度与日志的任务、以及设置。界面使用的 HTTP 接口见
-[远端协议](remote-protocol.md)。
+给其他设备用的服务器（`mygo/pair` 包）提供一次性链接与会过期的会话。配对后的设备得到的是服务器的 API：
+已安装 SDK 的安装/使用/卸载、插件仓库的添加/更新/删除、带 server-sent events 实时进度与日志的任务、以及设置。
+服务器不提供页面，界面由网关提供（见下文）。界面使用的 HTTP 接口见[远端协议](remote-protocol.md)。
 
 Android 客户端（`android/`）连同一个服务器：它是包住 `/app` 的 WebView，
 配对流程是原生 Material 3 Expressive（粘贴或扫描设置里的配对链接、核对证书指纹），
 手机以此驱动 PC 上的 vfox-plus 实例。Web 界面本身遵循
 [设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），
-因为服务器只提供单个无外部请求的嵌入页面。`/manifest.webmanifest` 的 Web 应用清单
+因为网关提供的是单个无外部请求的嵌入页面。网关在 `/manifest.webmanifest` 提供的 Web 应用清单
 让 Chromium 系浏览器能把该页面安装为应用，图标相同。
 
 ### 网关
@@ -521,8 +520,8 @@ config:
 ---
 flowchart LR
     accTitle: 网关的两次配对
-    accDescr: 浏览器用网关的证书经 HTTPS 与网关配对，持有 cookie vfox-plus-gateway。网关经 HTTPS 与某个实例的远端服务器配对，以人核对过的证书为唯一的根，持有 cookie vfox-plus-session。网关提供自己的页面，并转发实例的页面与 API。
-    b(["<b>浏览器</b>"]) -->|"HTTPS，网关的证书<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>网关</b><br/>自己的页面，<br/>以及反向代理")
+    accDescr: 浏览器用网关的证书经 HTTPS 与网关配对，持有 cookie vfox-plus-gateway。网关经 HTTPS 与某个实例的远端服务器配对，以人核对过的证书为唯一的根，持有 cookie vfox-plus-session。网关提供自己的页面与界面页面，并转发实例的 API。
+    b(["<b>浏览器</b>"]) -->|"HTTPS，网关的证书<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>网关</b><br/>自己的页面与界面，<br/>以及反向代理")
     g -->|"HTTPS，人核对过的证书就是根<br/>cookie <code>vfox-plus-session</code>"| r("<b>某个实例的</b><br/><b>远端服务器</b>")
 
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
@@ -546,9 +545,10 @@ flowchart LR
   （`127.1`、`2130706433`、`0x7f.1`）既不是主机名也不是地址，主机名用不到的字符同样不行。关于地址，说的仅此而已。
   人可以指定哪些主机并不受限制，因为实例可能在任何地方，而与网关配对的人被信任可以这样做（用户指南里这么说）；
   运行网关的人授权的目标清单才能限制它，网关没有这样的清单。
-- **网关自己提供什么，什么属于实例。** 页面 `/`、`/auth/connect/`、`/api/token` 和 `/gateway/` 下的表单属于
-  网关（见[远端协议](remote-protocol.md#网关)）。`/app`、`/api/*` 和 `/manifest.webmanifest` 属于实例，由
-  `httputil.ReverseProxy` 带着网关的会话转发，所以页面就是实例自己的，总与它调用的路由相符。事件随到随发。
+- **网关自己提供什么，什么属于实例。** 页面 `/`、`/auth/connect/`、`/api/token`、`/gateway/` 下的表单、
+  `/app` 的界面页面及其清单 `/manifest.webmanifest` 属于网关（见[远端协议](remote-protocol.md#网关)）。
+  实例不提供页面。`/api/*` 的路由属于实例，由 `httputil.ReverseProxy` 带着网关的会话转发；页面调用它们，
+  而页面与网关由同一份源码构建，所以网关与实例的版本不同时，它们对路由的看法可能不一致。事件随到随发。
   代理从请求里去掉属于浏览器和网关、不属于实例的东西（cookie、`Origin`、`Referer`、`Authorization`、
   `Forwarded`、`X-Forwarded-*`、`X-Real-Ip` 和 `Sec-Fetch-*`：实例会拒绝来源指向另一台主机的修改，而网关在转发前
   已用 `http.CrossOriginProtection` 按自己的来源检查过），并去掉应答里的 `Set-Cookie`。

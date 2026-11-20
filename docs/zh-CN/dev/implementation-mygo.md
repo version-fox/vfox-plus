@@ -18,7 +18,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`ui/mcu/`](../../../mygo/ui/mcu) | 配色：Material 颜色工具的 Go 移植（HCT、CAM16、tonal spot） |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
 | [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标、翻译与许可证（构建时收集） |
-| [`pair/`](../../../mygo/pair) | 给其他设备用的服务器：按设置通过 HTTPS 运行它的 `Host`、一次性配对链接及其二维码，以及配对后的设备得到的界面（`/app`：SDK、仓库、带实时日志的任务、设置），由 Docker 网关在浏览器里显示 |
+| [`pair/`](../../../mygo/pair) | 给其他设备用的服务器：按设置通过 HTTPS 运行它的 `Host`、一次性配对链接及其二维码，以及配对后的设备得到的 API（SDK、仓库、带实时日志的任务、设置）。服务器不提供页面：界面（`/app`）由 Docker 网关提供给浏览器 |
 | [`main.go`](../../../mygo/main.go) | 组装模型、给其他设备用的服务器与窗口。应用不接受任何参数 |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | 仅在构建标签 `e2e` 下链接 mygo 的自动化插件：端到端测试、内存测量与截图经它驱动应用 |
 

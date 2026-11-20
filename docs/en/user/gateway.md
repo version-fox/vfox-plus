@@ -50,7 +50,8 @@ from nothing each time the container is made.
    ![The page that asks to compare the fingerprint of the certificate of vfox-plus with the one in its settings](https://iili.io/nyiVSYg.png)
 
 3. **Use it.** The browser is taken to the interface of vfox-plus: the one a paired browser
-   has, served by that vfox-plus itself, so the page always fits the version that runs. Pair
+   has, served by the gateway itself: keep the gateway at the version of the vfox-plus that it pairs
+   with, since a page of another version may call routes that the running vfox-plus does not have. Pair
    more browsers with *Pair another browser* on the page of the gateway, and pair the gateway
    with another vfox-plus by pasting its link there (*Forget this vfox+* lets go of the one it
    has).

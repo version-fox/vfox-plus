@@ -313,7 +313,7 @@ the Go modules it links are purego under the Apache License 2.0, the text
 shaper `go-text/typesetting` under the Unlicense or a BSD license, and the
 `golang.org/x` modules under BSD licenses, as is the Go standard library; the
 QR encoder `skip2/go-qrcode` (MIT) encodes the pairing link of the settings as a
-QR code for the Android app to scan; the
+QR code for the phone app to scan, and the QR decoder `makiuchi-d/gozxing` (MIT, a Go port of ZXing) reads the QR code of a photo for the phone app to pair with; the
 ports in `mygo/ui/mcu` and `mygo/ui/shapes` are of libraries under the Apache
 License 2.0 and the MIT license, and their notices ship with the application
 ([`mygo/NOTICE.txt`](../../../mygo/NOTICE.txt)). The application does not link GTK 3,
@@ -426,8 +426,8 @@ flowchart TB
   learn of by a `web` event.
 - **The paired pages** can change how other devices connect, and quit the application
   (`PUT /api/web`, `POST /api/quit`, same-origin and paired only).
-- **The end-to-end build** (the `e2e` tag) also starts a loopback server (`LocalLink`) for the tools
-  that picture and measure the interface. The builds that are released have none
+- **The end-to-end build** (the `e2e` tag) also starts a loopback server (`LocalLink`). Its link pairs the gateway that
+  the tools picture and measure the interface through. The builds that are released have none
   (`mygo/pair/loopback_e2e.go` and `loopback_off.go`).
 
 ### The window and the lightweight mode
@@ -601,20 +601,20 @@ send for it.
 ### The servers and the Android client
 
 The server for other devices (package `mygo/pair`) serves one-time links and expiring
-sessions. A paired device gets the interface at `/app`:
-installed SDKs with install/use/uninstall, the plugin registry with
-add/update/remove, tasks with live progress and logs over server-sent events,
-and the settings. The HTTP surface that the interface uses is specified in
-[the remote protocol](remote-protocol.md).
+sessions. A paired device gets the API of the server: installed SDKs with
+install/use/uninstall, the plugin registry with add/update/remove, tasks with live
+progress and logs over server-sent events, and the settings. The server serves no
+page: the interface is the gateway's (see below). The HTTP surface that the interface
+uses is specified in [the remote protocol](remote-protocol.md).
 
 The Android client (`android/`) connects to the same server: it is a WebView
 around `/app`, with a native Material 3 Expressive pairing flow (paste or scan the
 pairing link of the settings, compare the certificate fingerprint), so a phone drives the
 vfox-plus instance on a PC. The interface itself follows the
 [design system](design-system.md) (seed colour, shapes, motion) with inlined
-assets, the favicon among them, because the servers serve a single
-embedded page with no external requests. A web app manifest at
-`/manifest.webmanifest` lets Chromium browsers install the page as an application
+assets, the favicon among them, because the gateway serves a single
+embedded page with no external requests. The gateway serves a web app manifest at
+`/manifest.webmanifest`, which lets Chromium browsers install the page as an application
 with the same icon.
 
 ### The gateway
@@ -650,8 +650,8 @@ config:
 ---
 flowchart LR
     accTitle: The two pairings of the gateway
-    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, with the certificate that a person compared as the only root, and holds the cookie vfox-plus-session. The gateway serves pages of its own and forwards the page and the API of the instance.
-    b(["<b>Browser</b>"]) -->|"HTTPS, the certificate of the gateway<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>gateway</b><br/>pages of its own,<br/>and a reverse proxy")
+    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, with the certificate that a person compared as the only root, and holds the cookie vfox-plus-session. The gateway serves pages of its own and the page of the interface, and forwards the API of the instance.
+    b(["<b>Browser</b>"]) -->|"HTTPS, the certificate of the gateway<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>gateway</b><br/>its pages and the interface,<br/>and a reverse proxy")
     g -->|"HTTPS, the certificate that<br/>a person compared is the root<br/>cookie <code>vfox-plus-session</code>"| r("<b>Remote server</b><br/>of an instance")
 
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
@@ -686,11 +686,12 @@ flowchart LR
   be anywhere, and the people who are paired with the gateway are trusted with that (the user guide says
   so); a list of the targets that the person who runs the gateway authorizes would restrict it, and the
   gateway has none.
-- **What the gateway serves, and what is the instance's.** The page `/`, `/auth/connect/`, `/api/token`
-  and the forms under `/gateway/` are the gateway's (see [the remote protocol](remote-protocol.md#the-gateway)).
-  `/app`, `/api/*` and `/manifest.webmanifest` are the instance's, forwarded by `httputil.ReverseProxy`
-  with the session of the gateway, so the page is the instance's own and always matches the routes it
-  calls. The events are flushed as they come. The proxy takes out of the request what is the browser's
+- **What the gateway serves, and what is the instance's.** The page `/`, `/auth/connect/`, `/api/token`,
+  the forms under `/gateway/`, the page of the interface at `/app` and its manifest at `/manifest.webmanifest`
+  are the gateway's (see [the remote protocol](remote-protocol.md#the-gateway)). The instance serves no page.
+  The routes of `/api/*` are the instance's, forwarded by `httputil.ReverseProxy` with the session of the
+  gateway. The page calls them, and it is built from the same sources as the gateway, so a gateway and an
+  instance of different versions may disagree about the routes. The events are flushed as they come. The proxy takes out of the request what is the browser's
   and the gateway's and not the instance's (the cookies, `Origin`, `Referer`, `Authorization`,
   `Forwarded`, `X-Forwarded-*`, `X-Real-Ip` and `Sec-Fetch-*`: the instance refuses a change whose origin
   names another host, and the gateway has checked the origin against its own, with

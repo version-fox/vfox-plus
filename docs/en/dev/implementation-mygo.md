@@ -22,7 +22,7 @@ project, in Go:
 | [`ui/mcu/`](../../../mygo/ui/mcu) | The colour scheme: a Go port of the Material colour utilities (HCT, CAM16, tonal spot) |
 | [`ui/shapes/`](../../../mygo/ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
 | [`assets/`](../../../mygo/assets) | What the binary embeds: the icons, the translations and the licenses (all collected at build time) |
-| [`pair/`](../../../mygo/pair) | The server for other devices: the `Host` that runs it over HTTPS as the settings say, one-time pairing links and their QR codes, and the interface that a paired device gets (`/app`: SDKs, registry, tasks with live logs, settings), which the Docker gateway shows in a browser |
+| [`pair/`](../../../mygo/pair) | The server for other devices: the `Host` that runs it over HTTPS as the settings say, one-time pairing links and their QR codes, and the API that a paired device gets (SDKs, registry, tasks with live logs, settings). The server serves no page: the Docker gateway serves the interface (`/app`) to a browser |
 | [`main.go`](../../../mygo/main.go) | Assembles the model, the server for other devices and the window. The application takes no arguments |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | Links the automation plugin of mygo, only with the build tag `e2e`: the end-to-end tests, the memory measurement and the screenshots drive the application through it |
 

@@ -3,22 +3,23 @@
 > [简体中文](../../zh-CN/dev/remote-protocol.md)
 
 This document specifies the HTTP surface of the server for other devices
-(`mygo/pair`, run by the application when its settings say so): the contract the web
-interface that the Docker gateway serves (`mygo/pair/webapp.html`) and the Android client
-(`android/`) program against. The implementation is `mygo/pair/pair.go` (`Server`), `host.go` (`Host`),
-`web.go` and `webapi.go`.
+(`mygo/pair`, run by the application when its settings say so): the contract that the Docker
+gateway (`mygo/gateway`) and the Android client (`android/`) program against. The server serves
+the API only. The web interface is a single page that the gateway serves (see
+[the web interface](#web-interface)). The implementation is `mygo/pair/pair.go` (`Server`),
+`host.go` (`Host`), `web.go` and `webapi.go`.
 
 ## Concepts
 
 - A **pairing link** is a one-time URL `/auth/connect/<token>`. Tokens work
   once and expire after 5 minutes. Opening one pairs the browser: the server
-  answers `Set-Cookie: vfox-plus-session=<session>` (`Secure`, `HttpOnly`,
-  `SameSite=Lax`) and a redirect (`303`) to `/app`. The application makes the links:
+  answers `204 No Content` with `Set-Cookie: vfox-plus-session=<session>` (`Secure`,
+  `HttpOnly`, `SameSite=Lax`) and no redirect, since it serves no page to go on to (see
+  [the web interface](#web-interface)). The application makes the links:
   *Pair a phone* in its settings, for the devices of the network, which copy the link to the
   gateway or scan its code.
-- A **session** cookie authenticates every route except `/`,
-  `/auth/connect/*` and `/manifest.webmanifest`. The sessions of the server for other devices
-  expire after 24 hours. Expired sessions answer 401 and must pair again.
+- A **session** cookie authenticates every route except `/auth/connect/*`. The sessions of the
+  server for other devices expire after 24 hours. Expired sessions answer 401 and must pair again.
 - State-changing routes additionally refuse the cross-origin requests of
   browsers, with the cross-origin protection of `net/http`: a request whose
   `Sec-Fetch-Site` is not `same-origin` (or `none`), or, without that header,
@@ -29,7 +30,7 @@ interface that the Docker gateway serves (`mygo/pair/webapp.html`) and the Andro
   `0.0.0.0` on the port of the setting `webPort` (8369 by default), over HTTPS only, while
   `webRemote` is on. Turning the setting off closes the server and every connection it holds;
   the sessions end with it. Pairing does not survive a restart of the application.
-- The pages of the interface can read and change how other devices connect and whether the
+- The web interface can read and change how other devices connect and whether the
   application stays up without its window, and can quit the application (`/api/web`,
   `/api/quit`).
 
@@ -37,8 +38,7 @@ interface that the Docker gateway serves (`mygo/pair/webapp.html`) and the Andro
 
 | Method and path | Auth | Meaning |
 | --- | --- | --- |
-| `GET /` | none | Intro page: says where to get a link (the settings of the application). Never mentions tokens. |
-| `GET /auth/connect/<token>` | token | Consume the token, set the session cookie, redirect to `/app`. Invalid, reused or expired tokens answer 403. |
+| `GET /auth/connect/<token>` | token | Consume the token, set the session cookie, answer `204 No Content`. Invalid, reused or expired tokens answer 403. |
 | `GET /api/token` | session | Mint another one-time pairing link for a second browser: `{url}` rendered with the caller's host. |
 
 The pairing code of the settings is the pairing link of the remote server, with an
@@ -50,20 +50,20 @@ open the computer to the network.
 
 ## Web interface
 
-`GET /app` (session only, otherwise redirected to `/`) serves the single
-embedded page: no external requests, all assets inlined, `Cache-Control:
-no-store`. It follows the [design system](design-system.md) (seed colour,
-shapes, motion) with inlined SVG icons.
+The server serves no page: the web interface is a single embedded page, with no
+external requests and all assets inlined, and the gateway serves it at `GET /app`
+(see [the gateway](#the-gateway)). It follows the [design system](design-system.md)
+(seed colour, shapes, motion) with inlined SVG icons, and calls the routes of this
+document. This server answers `404` for `/`, `/app` and `/manifest.webmanifest`.
 
-`GET /manifest.webmanifest` (no session) serves the web app manifest of the web
-interface (`application/manifest+json`, `Cache-Control: no-cache`): `name` and
-`short_name` `vfox+`, `id` and `start_url` `/app`, `scope` `/`, `display`
-`standalone`, the colours of the page, and one icon, the favicon as an
-SVG data URI of the size `any`. Chromium browsers offer to install the web interface
-as an application with it. It needs no session because it names only the
-application and its start page, and because a browser may process a manifest without
-the page that links it (the specification mentions installing from a sync service),
-and so without the session cookie.
+The web app manifest of the page is the gateway's too: `GET /manifest.webmanifest` on
+the gateway (no session) serves `application/manifest+json`, `Cache-Control: no-cache`:
+`name` and `short_name` `vfox+`, `id` and `start_url` `/app`, `scope` `/`, `display`
+`standalone`, the colours of the page, and one icon, the favicon as an SVG data URI of
+the size `any`. Chromium browsers offer to install the web interface as an application
+with it. It needs no session because it names only the application and its start page,
+and because a browser may process a manifest without the page that links it (the
+specification mentions installing from a sync service), and so without the session cookie.
 
 ## Inventory
 
@@ -304,12 +304,14 @@ instance it is a client, as the Android app is: a pairing link that a person pas
 | `POST /gateway/trust` | the gateway | `link` and `fingerprint`, from the page that shows it: pairs with the certificate that has that fingerprint (`409` when the certificate at the address is not the one that was shown). |
 | `POST /gateway/invite` | the gateway | A page with a link for another browser. |
 | `POST /gateway/forget` | the gateway | Forgets the instance and the session at it; `303` to `/`. |
-| `/app`, `/api/*`, `/manifest.webmanifest` | the instance | Forwarded with the session of the gateway (the manifest also to a browser that is not paired, as the instance serves it). |
+| `GET /app` | the gateway | The single page of the interface, for a browser that is paired with the gateway while the gateway holds a session at an instance: `200`, `Cache-Control: no-store`, and no request to the instance (the page makes its calls to `/api/*`). Any other browser is redirected to `/` (`302`). |
+| `GET /manifest.webmanifest` | the gateway | The web app manifest of the page, to any browser, with no session. `GET` and `HEAD`; another method answers `405` with `Allow: GET, HEAD`. |
+| `/api/*` | the instance | Forwarded with the session of the gateway. |
 
 The forms of the gateway need a paired browser (`401`), the origin of the gateway (`403`) and at most 8 KiB
-(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401` (and `/app`
-is a redirect to `/`), and so is every route when the gateway is paired with no instance or its session
-ended: the answer says so in the form that the interface reads errors in, `{"error": "…"}`. When the
-instance cannot be reached the API answers `502` in the same form and `/app` answers `502` with a page.
+(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401`, and so is every
+route when the gateway is paired with no instance or its session ended: the answer says so in the form that the
+interface reads errors in, `{"error": "…"}`. When the instance cannot be reached the API answers `502` in the same
+form, and the page of the interface is still served: it shows what its calls get.
 Everything of the browser that identifies it (its cookies, `Origin`, `Referer`, the `Forwarded` headers)
 stays with the gateway, and the `Set-Cookie` of the instance does not reach the browser.

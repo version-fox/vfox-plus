@@ -10,11 +10,11 @@ WSL2 中，或者用装齐了这一切的开发容器。要装什么取决于你
 | 在编辑器里一次拥有全部工具，且不改动你的机器 | Docker，以及能打开开发容器的编辑器（见[开发容器](#开发容器)） |
 | 跑全部检查、端到端测试与打包，且不改动你的机器 | Docker，以及构建 `vfxtool` 用的 Go（见[沙箱](#沙箱)） |
 | 快速编辑并测试 Go 代码 | Go、几个软件包与 golangci-lint（见[Go 与本机工具](#go-与本机工具)） |
-| 构建 Android 客户端 | JDK 25 与 Android SDK（见 [Android](#android)） |
-| 在模拟器上运行 Android 客户端 | KVM、一台 adb 设备，或 CI（见[模拟器与 KVM](#模拟器与-kvm)） |
+| 构建手机端应用 | JDK 17、Android SDK 与 NDK（见 [Android](#android)） |
+| 在模拟器上运行手机端应用 | KVM、一台 adb 设备，或 CI（见[模拟器与 KVM](#模拟器与-kvm)） |
 
 固定的版本在 [`mygo/versions.env`](../../../mygo/versions.env) 与
-[`android/versions.env`](../../../android/versions.env)。下面的命令直接读取它们，
+[`mygo/phone/versions.env`](../../../mygo/phone/versions.env)。下面的命令直接读取它们，
 所以某个版本改了，本页不会过时；开发容器的镜像在构建时也读取它们。
 
 ## 沙箱
@@ -54,8 +54,7 @@ devcontainer exec --workspace-folder . bash
 
 首次启动要构建镜像，需要几分钟，下载约 1 GB，占用 3.6 GB 磁盘，然后运行
 [`devcontainer.json`](../../../.devcontainer/devcontainer.json) 的 `postCreateCommand`：把 `vfxtool`
-构建到 `/home/vscode/go/bin`（用户的 `~/go/bin`，在 `PATH` 上），下载 Go 模块，并准备应用内嵌的资源
-（不含 Go 模块的许可证，那只有打包才需要；不带 `MYGO_SKIP_LICENSES` 的 `vfxtool prepare` 会收集它们）。
+构建到 `/home/vscode/go/bin`（用户的 `~/go/bin`，在 `PATH` 上），下载 Go 模块，并准备应用内嵌的资源（不含 Go 模块的许可证，那只有打包才需要；不带 `MYGO_SKIP_LICENSES` 的 `vfxtool prepare` 会收集它们），并写出手机端应用的图标（`vfxtool appicon mygo/phone/resources`）。
 之后，[mygo 指南](implementation-mygo.md#日常命令)与[参与贡献](contributing.md#工作流)里的命令照写的样子就能运行：
 
 ```sh
@@ -66,19 +65,19 @@ xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run real 
 ```
 
 `VFOX_PLUS_E2E_VFOX` 指向镜像装的 vfox，版本就是 `mygo/versions.env` 固定的，所以对真实 vfox 的场景不用加前缀，
-也没有你的 `~/.vfox` 可碰。`ANDROID_HOME` 已设好，`cd android && ./gradlew :app:assembleRelease`
-即可构建 Android 客户端（见 [Android](#android)）。
+也没有你的 `~/.vfox` 可碰。`ANDROID_HOME` 已设好，`cd mygo/phone && mygo build -platform android`
+即可构建手机端应用（见 [Android](#android)）。
 
 容器带 init 进程运行（`init`），用来回收测试留下的进程；并带 1 GB 共享内存（`--shm-size`），因为软件渲染和
 内嵌的测试服务器需要的，比 Docker 默认给容器的 64 MB 多。沙箱的容器也是这样运行的。
 
 ### 重建
 
-Dockerfile 在构建镜像时读取 `mygo/versions.env` 与 `android/versions.env`，CI 与沙箱也这样做，所以那里改了
+Dockerfile 在构建镜像时读取 `mygo/versions.env` 与 `mygo/phone/versions.env`，CI 与沙箱也这样做，所以那里改了
 某个版本（比如一次 `git pull`），重建容器时它就会进入容器：*Dev Containers: Rebuild Container*（重建容器），或
 `devcontainer up --workspace-folder . --remove-existing-container`。工具在 `/usr/local` 与 `/opt`，供用户使用而不是修改。
 用户下载的东西放在 `/home/vscode` 下，两个 Docker 卷让它们在容器重建后得以保留：`vfox-plus-devcontainer-go`
-（Go 的模块与构建缓存）与 `vfox-plus-devcontainer-gradle`（Gradle 与 Android 应用的库）。`docker volume rm` 可删除它们。
+（Go 的模块与构建缓存）与 `vfox-plus-devcontainer-gradle`（Gradle 与手机端应用的库）。`docker volume rm` 可删除它们。
 
 ### 网络慢时
 
@@ -86,8 +85,7 @@ Dockerfile 在构建镜像时读取 `mygo/versions.env` 与 `android/versions.en
 `SANDBOX_GOPROXY` 与 `SANDBOX_NPM_REGISTRY`（它们以 `GOPROXY` 与 `VFOX_PLUS_NPM_REGISTRY` 进入容器）。
 Go、golangci-lint、vfox 与 Android 命令行工具分别来自 go.dev、GitHub 与 dl.google.com，Docker feature 来自 ghcr.io，
 它们都没有可指定的镜像（连不上 ghcr.io 时怎么办，见[容器里的 Docker](#容器里的-docker)）。
-你的 `~/.gradle` 不是容器的：Gradle wrapper 从 `gradle-wrapper-neo.json` 读取的下载镜像
-（见[构建](packaging-android.md#构建)）要放在容器的 Gradle 用户目录 `/home/vscode/.gradle`（`$GRADLE_USER_HOME`）里。
+你的 `~/.gradle` 不是容器的：mygo 为安卓工程运行的 Gradle 在容器里的用户目录是 `/home/vscode/.gradle`（`$GRADLE_USER_HOME`），它的下载镜像要放在那里，而不是仓库里（见[构建](packaging-android.md#构建)）。
 
 ### Rootless Docker
 
@@ -109,7 +107,7 @@ feature，它让容器成为特权容器。本仓库用到 Docker 的三件事�
 
 ### 限制
 
-- 没有模拟器，也没有 KVM（见[模拟器与 KVM](#模拟器与-kvm)）：用 CI 的 `measure` 任务，或像[没有 KVM 时](#没有-kvm-时)那样用一台 adb 设备。
+- 没有模拟器，也没有 KVM（见[模拟器与 KVM](#模拟器与-kvm)）：用 CI 的 `emulator` 任务，或像[没有 KVM 时](#没有-kvm-时)那样用一台 adb 设备。
 - 没有显示。应用的窗口需要显示：测试在 `xvfb` 里运行；端到端构建为工具提供自己的回环链接，测试不需要浏览器。
 - 没有 Chrome，`vfxtool webheap` 驱动的那个（见 [Go 与本机工具](#go-与本机工具)）。自己装一个，用 `--chrome` 指定。
 - git worktree 是这样一个文件夹：它的 `.git` 是个文件，指向它所属的克隆，而那在容器挂载的文件夹之外，所以 git
@@ -165,7 +163,7 @@ vfox，所以不会碰你的 `~/.vfox`。
 ## Node 与 Web 界面
 
 Web 界面是 TypeScript 加 Vite，源码在 `mygo/web`（Node 22.12 起；开发容器与 CI 装 Node 26）。
-它的构建把页面打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入，所以仓库里的页面是生成物：
+它的构建把页面打成 `mygo/gateway/webapp.html` 这单个文件供网关嵌入，所以仓库里的页面是生成物：
 改源码，别改页面。
 
 ```sh
@@ -173,7 +171,7 @@ cd mygo/web
 npm ci                  # 装一次，或 package-lock.json 变化时再装
 npm run dev             # 对着运行中的应用开发，见下
 npm test                # 页面的单元测试（esc、i18n helper）
-npm run build           # 类型检查、打包，写回 ../pair/webapp.html
+npm run build           # 类型检查、打包，写回 ../gateway/webapp.html
 ```
 
 `npm run dev` 以热重载供页面，并把 `/api` 代理到一个运行中的应用：先起一个
@@ -183,14 +181,21 @@ CI 构建页面、跑它的测试，构建产物与提交的不一致就失败�
 
 ## Android
 
-构建需要 JDK 25（CI 用 Temurin）与带 platform 37.2 和 build-tools 36.0.0 的 Android SDK，经提交
-进仓库的 wrapper 运行；见 [Android 打包](packaging-android.md#构建)。构建不需要 KVM，
+手机端应用用 mygo CLI 构建，mygo 为安卓工程运行 Gradle。它需要 JDK 17（CI 用 Temurin：Gradle 8.14.3 不能在 JDK 25 上运行）、platform 36 与 build-tools 36.0.0 的 Android SDK，以及 NDK 28.2.13676358（应用的 Go 代码由它编译）。这些版本钉在 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 里。设好 `ANDROID_HOME` 之后，按钉住的版本装好软件包与 CLI：
+
+```sh
+sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+. ./mygo/phone/versions.env
+go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
+```
+
+CLI 装在 `$(go env GOPATH)/bin`，它要在 `PATH` 上。然后按[打包页](packaging-android.md#构建)所说构建应用。构建不需要 KVM，
 模拟器需要。
 
 ## 模拟器与 KVM
 
-[`android.yml`](../../../.github/workflows/android.yml) 的 `measure` 任务把 release APK 装到模拟器
-（API 36、`google_apis`、x86_64）上，并在那里运行 `vfxtool measure-apk`。没有硬件加速，模拟器不会启动
+[`phone.yml`](../../../.github/workflows/phone.yml) 的 `emulator` 任务把手机端应用装到模拟器
+（API 36、`google_apis`、x86_64）上，并在那里运行 `vfxtool phone-link` 与 `vfxtool measure-apk`。没有硬件加速，模拟器不会启动
 x86_64 镜像，在 Linux 上硬件加速就是 KVM，所以要在你的机器上做同样的事，`/dev/kvm` 必须可用。CI 用 runner
 上的 udev 规则启用它。本仓库其他任何事都不需要 KVM。
 
@@ -256,7 +261,7 @@ Windows 11 的累积更新 KB5127648（2026 年 10 月；版本 26100.9711，25H
 
 ### 没有 KVM 时
 
-- 让 CI 来做：`android.yml` 的 `measure` 任务在每个改动 `android/` 或 `mygo/pair/` 的 Pull Request 上运行，
+- 让 CI 来做：`phone.yml` 的 `emulator` 任务在每个改动 `mygo/phone/` 或 `mygo/pair/` 的 Pull Request 上运行，
   并上传 `memory-android` 与 `screenshot-android`。
 - `vfxtool measure-apk` 只需要 `PATH` 上有 `adb`（`sudo apt install adb`）和 `adb devices` 列得出的一台
   设备：开了无线调试的手机（`adb pair`，再 `adb connect`），或运行在 Windows 一侧、经那里的 adb 服务器连上的
@@ -265,7 +270,7 @@ Windows 11 的累积更新 KB5127648（2026 年 10 月；版本 26100.9711，25H
 
 ### 自己的模拟器
 
-KVM 能用之后，模拟器需要 SDK 的命令行工具，即 `android/versions.env` 固定的那个版本（dl.google.com 上的
+KVM 能用之后，模拟器需要 SDK 的命令行工具，即 `mygo/phone/versions.env` 固定的那个版本（dl.google.com 上的
 `commandlinetools-linux-<build>_latest.zip`，按它的校验和核对，解压到 `$ANDROID_HOME/cmdline-tools/latest`），以及三个包。
 下载约 3 GB，`sdkmanager` 会要求你接受 Android SDK 的许可：
 
@@ -280,23 +285,21 @@ adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后�
 ```
 
 `pixel_6` 是 1080×2400、420 dpi，和 CI 的模拟器一样。`~/.android/avd/pixel6.avd/config.ini` 里有
-`hw.camera.back=virtualscene` 时，扫码界面的后置摄像头显示一间客厅（`avdmanager` 写的是 `emulated`，只是一段
-普通动画）；对 WebView 来说 `hw.ramSize=3072M` 比默认的 1536M 合适。去掉 `-no-window` 就能在显示器上
-（WSLg）看到模拟器。不想自己构建、直接装 CI 构建好的 release APK，可以从该 Pull Request 的运行里下载：
-`gh run download RUN -n vfox-plus-android`。
+`hw.camera.back=virtualscene` 时，模拟器的后置摄像头显示一间客厅（`avdmanager` 写的是 `emulated`，只是一段
+普通动画）。手机端应用用原生界面，它的画面由 GPU 绘制，所以模拟器要有 GPU：保留 `-gpu swiftshader_indirect`（CI 用的软件 GPU），或改用 `-gpu host`（本机的 GPU）。去掉 `-no-window` 就能在显示器上
+（WSLg）看到模拟器。不想自己构建、直接装 CI 构建好的 APK，可以从该 Pull Request 的运行里下载：
+`gh run download RUN -n vfox-plus-android-amd64`。
 
 ### 运行 App
 
-模拟器启动后（`adb devices` 能列出它），构建 App、安装，并与你机器上的服务器配对：
+模拟器启动后（`adb devices` 能列出它），构建手机端应用并安装，然后与你机器上的应用配对：
 
 ```sh
-cd android && ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # 供扫码页使用
+cd mygo/phone && mygo build -platform android/amd64
+adb install -r dist/android/*.apk
 ```
 
-模拟器把你的机器当作 `10.0.2.2`。服务器的会话 cookie 带 `Secure`，WebView 只为 `https://` 与回环地址保留它，所以
-用 `http://10.0.2.2:PORT` 配对行不通；给其他设备的服务器本来也只讲 HTTPS。做一份写有 `10.0.2.2` 的自签名证书，
+模拟器把你的机器当作 `10.0.2.2`。其他设备的服务器的配对链接是 `https://` 地址，所以证书要写有 `10.0.2.2`。做一份写有 `10.0.2.2` 的自签名证书，
 交给应用：
 
 ```sh
@@ -314,10 +317,15 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
 为自己生成的证书写的就是 `10.0.2.2`，设置里和*显示二维码*给出的链接也是。指南里的图就是这样拍的
 （[截图](contributing.md#截图)）。
 
-点*配对手机*旁的*显示二维码*，复制链接，输入到 App 里，并把其中你机器的地址换成 `10.0.2.2`。App 会显示证书的指纹，它必须与设置里显示的、以及
-`openssl x509 -in cert.pem -noout -fingerprint -sha256` 打印的相同。
+点*配对手机*旁的*显示二维码*，复制链接，把其中你机器的地址换成 `10.0.2.2`，然后在模拟器上以深链打开它：
 
-`vfxtool measure-apk` 在同一个模拟器上运行。它安装时不带 `-r`，所以要先卸载 App（`adb uninstall dev.vfox.vfoxplus`）。
+```sh
+adb shell am start -a android.intent.action.VIEW -d "vfoxplus://pair?link=https://10.0.2.2:PORT/auth/connect/TOKEN"
+```
+
+应用会打开配对屏，链接已经填好。核对它显示的证书指纹与设置里显示的、以及 `openssl x509 -in cert.pem -noout -fingerprint -sha256` 打印的相同，然后点*信任并配对*。
+
+`vfxtool measure-apk` 在同一个模拟器上运行：它用 `-r` 把 APK 装在已有的应用上，冷启动，并在给出配对链接时经深链配对，见[内存页](memory.md#手机端应用)。
 
 ## WSL2
 

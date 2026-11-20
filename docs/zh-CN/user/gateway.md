@@ -39,8 +39,8 @@ docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-pl
 
    ![要求把 vfox-plus 证书的指纹与它设置里的核对的页面](https://iili.io/nyiVSYg.png)
 
-3. **使用。** 浏览器会被带到 vfox-plus 的界面：与配对浏览器看到的相同，由那个 vfox-plus 自己提供，
-   所以页面总与正在运行的版本相符。在网关的页面上用*配对另一个浏览器*配对更多浏览器；粘贴另一个
+3. **使用。** 浏览器会被带到 vfox-plus 的界面：与配对浏览器看到的相同，由网关自己提供，所以请让网关与它配对的
+   vfox-plus 保持同一版本：另一版本的页面可能调用正在运行的 vfox-plus 没有的路由。在网关的页面上用*配对另一个浏览器*配对更多浏览器；粘贴另一个
    vfox-plus 的链接，就把网关配对给它（*忘记此 vfox+* 则放掉现在的这个）。
 
    | 通过网关看到的 vfox-plus 界面 | 配对之后的网关页面 |

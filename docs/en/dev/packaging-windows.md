@@ -105,6 +105,10 @@ stored in the repository or its secrets. It does these steps, in this order:
    the signature and the publisher hold, and the certificates of the runner are
    left alone.
 
+The same job then signs the APK of the phone app with the release key, after the bundle
+is checked: `zipalign` and `apksigner` replace its debug signature
+([Signing status](packaging-android.md#signing-status)).
+
 The packages are timestamped by the service, so their signatures stay valid after
 the certificate expires; these certificates last only a few days.
 

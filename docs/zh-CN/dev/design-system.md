@@ -17,7 +17,7 @@ vfox-plus 遵循 [Material 3 Expressive](https://m3.material.io/)——2025 年 
   `surfaceContainer`，突出卡片 `surfaceContainerHighest`。主、次、第三容器标记
   头像。
 - 危险操作用 `error`。
-- Web 界面（`mygo/pair/webapp.html` 的 `--m3-*` 变量）与 Android 应用（`values/colors.xml`、`values-night/colors.xml`）以字面值存放
+- Web 界面（`mygo/gateway/webapp.html` 的 `--m3-*` 变量）与 Android 应用（`values/colors.xml`、`values-night/colors.xml`）以字面值存放
   方案的 48 个角色，它们与 `mygo/ui/mcu` 按种子算出的角色不同时，`mygo` 里的 `go test ./pair` 会失败。
 
 mygo：`mygo/ui/kit/theme.go` 的 `PaletteFor`，由 `mygo/ui/mcu`（Material 颜色工具的 Go
@@ -226,7 +226,7 @@ vfox-plus 使用 **expressive** 方案：
 Web 界面就是这样的 API：CSS 只有时长和曲线，没有弹簧。它的 `--sp-*` 变量就是六个弹簧：`--sp-NAME-t` 是 settle 所需的毫秒数，
 `--sp-NAME` 是阶跃响应采样成的 `linear()` 曲线，取尽量少的采样点，使折线与曲线相差不超过 0.6 %。每个 `transition` 与
 `animation` 的时间和曲线都取自它们；对话框在淡入（default effects）的同时缩放进入（default spatial），所以是两个动画。
-`mygo/pair` 的一个测试按 `kit.Expressive` 重新计算这些变量，它们不同、或某条声明带着自己的时长或曲线时失败，并打印该粘贴
+`mygo/gateway` 的一个测试按 `kit.Expressive` 重新计算这些变量，它们不同、或某条声明带着自己的时长或曲线时失败，并打印该粘贴
 的行（一直运行到工作结束的波浪进度与加载指示器除外）。没有 `linear()` 的浏览器沿用此前页面的贝塞尔曲线。Android 应用从主题
 （`motionSpring*`）取弹簧：会动的东西用 `SpringAnimation`，屏幕之间的转场用 `SpringInterpolator`。
 
@@ -271,21 +271,12 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 | 筛选 Chip | [Chips](https://m3.material.io/components/chips) | `ui/kit/chip.go` 的 `FilterChip` |
 | 搜索栏、卡片、对话框、菜单、snack bar、开关、文本框 | Material 3 | `ui/kit` 的 `SearchBar`、`Card`、`Menu`、对话框与 snack bar，`ui/kit/theme.go` 定制 |
 
-### Android 应用
+### 手机端应用
 
-App 的屏幕由 Material Components 1.14.0 的组件搭成（用 View 而不是 Compose：[原因](packaging-android.md#为什么用-view-而不是-compose)），
-其 Expressive 样式是主题的默认值。
-
-| 组件 | 在 App 里 |
-| --- | --- |
-| 按钮（filled、tonal、text）与图标按钮 | `Widget.Material3Expressive.Button*`，自带形状形变；布局只设尺寸（`materialSizeOverlay`，Medium） |
-| 浮动工具栏 | 扫码页的 `FloatingToolbarLayout`，样式 `Widget.Material3.FloatingToolbar.Vibrant`：手电筒与“手动输入” |
-| 卡片 | 28 dp 圆角的 filled `MaterialCardView`：命令在 `surfaceContainerHigh`，上次的服务器在 `secondaryContainer` |
-| 文本框 | outlined `TextInputLayout`，圆角取规约的 4 dp；框尾图标粘贴与清除 |
-| 加载指示器 | 取代“连接”按钮位置的 `LoadingIndicator` |
-| 波浪进度指示器 | `Widget.Material3Expressive.LinearProgressIndicator.Wavy`，会话页面加载时 |
-| 对话框 | `MaterialAlertDialogBuilder`，Expressive 主题的样式；证书指纹放在 `surfaceContainerHighest` 卡片里 |
-| 形状 | 配对屏狐狸背后的 cookie 与错误状态图标背后的 soft burst（`ExpressiveShapes`） |
+手机端是 mygo 原生应用（`mygo/phone`）。界面由 `ui/kit` 的组件搭成，与桌面应用是同一套组件、
+同一主题（种子色 `#F28C1B`）。它不显示网页，而是通过远程服务的 API 工作，界面与网页界面的功能
+一致（首页、SDK、插件、任务、设置五个标签，以及配对页）。构建与签名见
+[packaging-android.md](packaging-android.md)。
 
 ### 波浪进度指示器
 
@@ -357,7 +348,7 @@ Android 应用把同样的符号画成矢量图，仓库里没有任何东西保
 | 安卓启动器 | [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) 里的 `ic_launcher_background.xml`、`ic_launcher_foreground.xml` 与 `ic_launcher_monochrome.xml` | 自适应图标：启动器给铺满的底板和狐狸加遮罩。单色层供安卓 13 的主题图标，脸颊半强度，眼睛和鼻子镂空。 |
 | 安卓配对界面 | 同目录的 `ic_mark.xml` | 母版的矢量绘制版。 |
 | Windows | `.msix` 里的 `Assets/*.png` | 不提交任何图片，故由 `vfxtool build-msix` 用同样的路径（[`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)）绘制。 |
-| Web 界面 | [`mygo/pair/favicon.svg`](../../../mygo/pair/favicon.svg) | 底板与狐狸，去掉光晕，狐狸更大，16 px 下仍可辨认。配对服务的每个页面都把它以 data URI 内联（`favicon.go`），页面不为图标另发请求；Web 界面用它作导航栏的品牌标志，Web 应用清单把它写成已安装应用的图标（尺寸为 `any` 的 SVG 图标是 Chromium 接受用于安装的图标）。 |
+| Web 界面 | [`mygo/gateway/favicon.svg`](../../../mygo/gateway/favicon.svg) | 底板与狐狸，去掉光晕，狐狸更大，16 px 下仍可辨认。网关的每个页面都把它以 data URI 内联（`favicon.go`），页面不为图标另发请求；Web 界面用它作导航栏的品牌标志，Web 应用清单把它写成已安装应用的图标（尺寸为 `any` 的 SVG 图标是 Chromium 接受用于安装的图标）。 |
 
 SVG 是母版：矢量绘制、`appicon` 与 favicon 重复它的路径，不一致时 `shared/tooling`
-（前两者）与 `mygo/pair`（favicon）的 `go test` 失败。
+（前两者）与 `mygo/gateway`（favicon）的 `go test` 失败。

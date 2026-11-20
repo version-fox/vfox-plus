@@ -26,10 +26,10 @@ The build that is measured is the end-to-end build: the release build with the i
 of the native user interface and the automation plugin of mygo, which the measuring drives
 it through. They take up to 1 MB of PSS, which the release build does not.
 
-The Android client (`android/`) is not in this table: it is a WebView around
-the web interface, so its memory is the system WebView's plus the page, and it
-is measured on the device, not with this method. What its toolkit costs is in
-[Views or Compose in the Android app](#views-or-compose-in-the-android-app).
+The phone app (`mygo/phone`) is not in this table: it runs on Android, where
+`vfxtool measure-apk` measures it on an emulator, cold and paired (see
+[The phone app](#the-phone-app)). Its numbers come from another system and another
+method, so they are compared only with each other.
 
 ## Motion and memory
 
@@ -192,7 +192,7 @@ with a browser paired, where the table has 46 and 33, and 50 and 37; and the ico
 ## Beyond the desktop
 
 The pull-request comment also tracks what the desktop table does not: the
-lightweight mode and the Android APK. Each has its own
+lightweight mode and the phone app. Each has its own
 method, units and noise; compare the rows of one comment, as with the table
 above.
 
@@ -207,101 +207,52 @@ above.
   first inventory over server-sent events. Only the private memory is judged (see
   [Memory in pull requests](#memory-in-pull-requests)). With `--tray` it measures instead what the
   icon in the tray costs (see [The tray icon](#the-tray-icon)).
-- **Android client.** The `measure` job of `android.yml` installs the release
-  APK on an emulator (API 36, x86_64), cold-starts it through the launcher,
-  settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary
-  more than GitHub runners, so a change counts only past 5 MB and 10%.
+- **Phone app.** The `emulator` job of `phone.yml` installs the APK on an emulator
+  (API 36, x86_64), cold-starts it, settles, and reads `dumpsys meminfo`:
+  `memory (apk-cold)`, in MB (see [The phone app](#the-phone-app)). Emulator boots
+  vary more than GitHub runners, so a change counts only past 5 MB and 10%.
 
 In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and `memory-lightweight-private`,
-the `measure` job of `android.yml` uploads `memory-android`,
+the `emulator` job of `phone.yml` uploads `memory-android`,
 and `memory.yml` reports when either workflow ends, waiting for a still
-running Android run like for the rest. The sections render below the desktop
+running phone run like for the rest. The sections render below the desktop
 table with the numbers of the pull request next to `main`.
 
-Coverage gaps: `apk-cold` never loads the system WebView (it is the unpaired
-first screen). `vfxtool webheap` can still read the JavaScript heap of the paired `/app`
-page locally (next to a screenshot), for diagnosis only, not for the CI
+Coverage gaps: the emulator is not a phone, and it draws with a software GPU
+(`swiftshader_indirect`), so the numbers of the phone app are not those of a device.
+`vfxtool webheap` can still read the JavaScript heap of the paired `/app`
+page of the gateway locally (next to a screenshot), for diagnosis only, not for the CI
 report: it never measures the browser process around the page, so the heap
-numbers do not stand for the browser or the Android client.
+numbers do not stand for the browser or the phone app.
 
-### The paired session
+### The phone app
 
-The client is a WebView around `/app`: the whole session is the shared web
-frontend, so there is exactly one implementation to measure. `vfxtool
-measure-apk --pair-url` hands the one-time link to the debuggable app with
-`run-as` (the app's own files, which only a debuggable build allows), starts the launcher,
-which opens the same session as pasting the link and tapping connect, settles again, and
-appends the `memory (apk-paired)` line. No other application can write there, and no exported
-component takes the link. The release APK that CI measures refuses `run-as`, so the paired
-line needs a debug APK (`./gradlew assembleDebug`).
-Pair against the end-to-end build of the
-application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, which
-makes its certificate and its pairing link name the address where the emulator
-reaches the computer; read the link from the file that `VFOX_PLUS_E2E_LINK`
-names and mint a fresh one per run by restarting the application. The paired
-line is local diagnosis only: never upload a two-line file, and CI keeps
-measuring the cold start.
+`vfxtool measure-apk` measures the phone app on an emulator (API 36, `google_apis`, x86_64,
+with a software GPU), with `dumpsys meminfo` after 20 seconds of settling. One run gives
+two numbers, in MB:
 
-Measured 2026-11-08 on one emulator (API 36, x86_64, no GPU) against the fake
-vfox with the Java and Flutter profiles, release build with R8, `dumpsys
-meminfo` after 20 seconds of settling, paired over plain HTTP through `adb
-reverse` so that no trust tap is needed:
+- `memory (apk-cold)`: the first screen, after a cold start through the launcher. It is the
+  line of the report, in the artifact `memory-android`.
+- `memory (apk-paired)`: the same process once it is paired, with the five tabs visited. CI
+  keeps that line in the artifact `phone-e2e-android`, with the screenshots and the log of the
+  app. The report reads one line, from `memory-android`, so this one is not in it.
 
-| Build | `apk-cold` PSS | `apk-paired` PSS |
-| --- | ---: | ---: |
-| WebView client | 38 MB | 87 MB |
+The paired session starts with the deep link `vfoxplus://pair?link=…`, which opens the pairing
+screen with the one-time link filled in. `measure-apk` then taps the confirmation, waits for the
+app to log the pairing, takes a screenshot and a dump of each tab, and fails when the log of the
+app has an error. It needs no debuggable build and no `run-as`: the link reaches the app the way
+a link opened on the phone does. To run it yourself, start the end-to-end build of the desktop
+application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, write its pairing link for the emulator with
+`vfxtool phone-link` (see [the packaging page](packaging-android.md#continuous-integration)), and run:
 
-The cold start never loads the WebView. The paired session costs the system
-WebView about 49 MB PSS here, with the whole session loaded: home, SDKs with
-their versions and options, plugins, tasks and settings, with live events
-streaming. An earlier A/B against a native control build measured 37/84 MB
-against 38/39 MB cold/paired, so the WebView accounts for nearly all of the
-paired cost and a native session would add only about 1 MB over its own cold
-start. That build was dropped anyway: a second, hand-duplicated UI that has
-to stay pixel- and copy-identical with the web frontend costs more than the
-megabytes, and the design language and the copy now live in exactly one
-place. (An earlier run the same day read 32/68 MB and 31/32 MB; compare rows
-measured back to back.)
+```sh
+vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
+  --pair-link-file LINK --shots DIR/shots
+```
 
-### Views or Compose in the Android app
-
-The Android app is written in Views, with Material Components. To see what Compose
-would cost, its pairing screen was written a second time in Compose, with the same
-strings, colours, icons and shapes, and the apps were run on one emulator (API 36,
-x86_64, no GPU) as release builds with R8: installed, started through the launcher,
-settled for 12 seconds, and the PSS read from `dumpsys meminfo`, three rounds of each
-app in turn, on 2026-10-30. "Fresh" is right after the install, where the code is
-interpreted and compiled just in time; "compiled" is after
-`cmd package compile -m speed -f`, which compiles all of the app ahead of time.
-
-| App | APK (bytes) | PSS fresh (MB) | PSS compiled (MB) |
-| --- | ---: | ---: | ---: |
-| Views, before the rebuild in Material 3 Expressive | 3,176,011 | 40.8 | 44.5 |
-| Views, rebuilt in Material 3 Expressive | 3,228,463 | 43.5 | 46.9 |
-| Compose, the pairing screen only | 3,589,067 | 44.4 | 47.4 |
-
-- **Memory does not tell them apart.** The Compose screen took 0.9 MB (fresh) and
-  0.5 MB (compiled) more than the Views app, which is the size of the noise: in six
-  fresh runs it read between 43.1 and 45.1 MB (its native heap alternated between 9.8
-  and 11.5 MB), where the Views app read between 43.4 and 43.6 MB. The rebuild of the
-  Views app changed more (+2.4 to +2.7 MB). Memory is no reason to choose either
-  toolkit.
-- **The size of the APK does.** Adding Compose to the Views app makes it 4,434,858
-  bytes, 1.2 MB (37 %) more, and the Compose screen alone, without the scanner, the
-  session screen, CameraX and zxing, is already larger than the whole Views app.
-- **Compare apps that carry only what they run.** The first Compose build still had
-  the Views screens in it, which never ran, and read about 3 MB (fresh) and 6 MB
-  (compiled) more than the Views app: code that is in the APK costs memory once the
-  system has compiled it.
-- **The Compose screen** used the Compose BOM 2026.06.01 (Compose 1.11.4 and
-  Material 3 1.4.0, stable API only), activity-compose 1.13.0 and the Compose
-  compiler plugin of Kotlin 2.1.20, which the build pinned then.
-- **The absolute numbers belong to this session**: an earlier one read 30 to 34 MB
-  for the Views apps. Compare the rows of the table.
-- **Not measured:** Compose with the Expressive components, which the pinned
-  toolchain cannot build (see [Why Views and not
-  Compose](packaging-android.md#why-views-and-not-compose)), the session screen with
-  its WebView, and a phone.
+The paired line is for diagnosis. Its numbers do not compare with the desktop table either: they
+come from `dumpsys meminfo` on an emulator, where the desktop table reads `smaps_rollup` on a
+computer. Compare the rows of one report with each other.
 
 ## How it is measured
 
@@ -361,7 +312,7 @@ commit replaces that comment instead of adding another one.
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
   workflow's `measure-remote` job uploads `memory-lightweight` and `memory-lightweight-private`, and the
-  `measure` job of [`android.yml`](../../../.github/workflows/android.yml) uploads
+  `emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.
 - [`memory.yml`](../../../.github/workflows/memory.yml) starts when that workflow ends

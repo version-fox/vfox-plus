@@ -22,9 +22,8 @@ GTK 3。版本列表只构建可见行，增加 5 MB PSS。
 被测的是端到端构建：发布构建加原生用户界面的 inspector 与 mygo 的自动化插件（测量借它驱动应用）。
 它们多占至多 1 MB PSS，发布构建没有。
 
-Android 客户端（`android/`）不在此表：它是包住网页界面的 WebView，内存为系统
-WebView 加页面，在设备上衡量，不用本方法。它的工具包要付出什么，见
-[Android 应用用 View 还是 Compose](#android-应用用-view-还是-compose)。
+手机端应用（`mygo/phone`）不在此表：它运行在安卓上，`vfxtool measure-apk` 在模拟器上分别在冷启动与配对之后测量它（见
+[手机端应用](#手机端应用)）。它的数字来自另一个系统、用另一种方法，所以只与同类数字比较。
 
 ## 动效与内存
 
@@ -141,7 +140,7 @@ RSS 45 MB、PSS 31 到 32 MB，配对浏览器之后是 47 到 48 MB 与 34 到 
 
 ## 桌面之外
 
-Pull Request 评论还跟踪桌面表格没有的两处：轻量模式、Web 客户端堆、Android APK。各有自己的方法、单位与噪声；与上表一样，只比较同评论各行之间。
+Pull Request 评论还跟踪桌面表格没有的两处：轻量模式与手机端应用。各有自己的方法、单位与噪声；与上表一样，只比较同评论各行之间。
 
 - **轻量模式。**`vfxtool measure-lightweight` 在显示环境（`xvfb-run`）下启动应用的端到端构建，
   用全新家目录、假 vfox，以及允许其他设备并开启轻量模式的设置。端到端构建把配对链接写进
@@ -149,74 +148,35 @@ Pull Request 评论还跟踪桌面表格没有的两处：轻量模式、Web 客
   启动时要加载的东西，工具才关闭它，然后在两个静置点打印进程树的 RSS、PSS 与私有内存：`lightweight-idle` 窗口已关、无浏览器，
   `lightweight-loaded` 配对浏览器走完首次清单（SSE）。只有私有内存参与判定（见[Pull Request 中的内存](#pull-request-中的内存)）。
   加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
-- **Android 客户端。**`android.yml` 的 `measure` 任务把 release APK 装到模拟器
-  （API 36，x86_64），经 launcher 冷启动、静置后读 `dumpsys meminfo`：
-  `apk-cold`，单位 MB。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
+- **手机端应用。**`phone.yml` 的 `emulator` 任务把 APK 装到模拟器
+  （API 36，x86_64），冷启动、静置后读 `dumpsys meminfo`：
+  `memory (apk-cold)`，单位 MB（见[手机端应用](#手机端应用)）。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
   才算变化。
 
 CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
-`android.yml` 的 `measure` 任务上传 `memory-android`，`memory.yml`
-在任一工作流结束时报告，Android 仍在跑时与其余一样等待。章节渲染在桌面表格
+`phone.yml` 的 `emulator` 任务上传 `memory-android`，`memory.yml`
+在任一工作流结束时报告，手机端仍在跑时与其余一样等待。章节渲染在桌面表格
 下方，Pull Request 数字与 `main` 并列。
 
-覆盖缺口：`apk-cold` 从不加载系统 WebView（它是未配对首屏）。`vfxtool webheap`
-仍可本地看配对后 `/app` 页的 JavaScript 堆（截图附带），只做诊断，不进 CI 报告：
-浏览器进程本身的内存不在测量范围内，堆数字不能代表浏览器或 Android 客户端的占用。
+覆盖缺口：模拟器不是手机，且用软件 GPU（`swiftshader_indirect`）绘制，所以手机端的数字不等于真机。`vfxtool webheap`
+仍可本地看配对后网关的 `/app` 页的 JavaScript 堆（截图附带），只做诊断，不进 CI 报告：
+浏览器进程本身的内存不在测量范围内，堆数字不能代表浏览器或手机端应用的占用。
 
-### 配对后的会话
+### 手机端应用
 
-客户端就是套在 `/app` 外面的 WebView：整个会话是共用的 Web 前端，只有一个
-实现可测。`vfxtool measure-apk --pair-url` 用 `run-as`（只有可调试的构建允许）把一次性配对链接交给应用，再启动启动器，由它打开
-与粘贴链接后点连接相同的会话，再沉降一次，
-追加 `memory (apk-paired)` 行。其他应用无法写入这个目录，也没有导出的组件接受链接。CI 测量的发布版 APK 拒绝 `run-as`，
-所以配对那一行要用调试版 APK（`./gradlew assembleDebug`）。用带 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 的应用端到端构建配对，
-它生成的证书与配对链接用的就是模拟器访问本机的地址；从 `VFOX_PLUS_E2E_LINK`
-指定的文件里读链接，每轮重启应用领一条新链接。配对行只做本地诊断：两行的文件不要上传，
-CI 只测冷启动。
+`vfxtool measure-apk` 在模拟器上测量手机端应用（API 36、`google_apis`、x86_64，软件 GPU），沉降 20 秒后读 `dumpsys meminfo`。一次运行给出两个数，单位 MB：
 
-2026-11-08 在一台模拟器（API 36、x86_64、无 GPU）上实测，对着带 Java 与 Flutter
-档案的假 vfox，R8 的 release 构建，沉降 20 秒后读 `dumpsys meminfo`，
-经 `adb reverse` 走明文 HTTP 配对以便不需要点信任：
+- `memory (apk-cold)`：首屏，经启动器冷启动之后。它是报告的那一行，在构件 `memory-android` 里。
+- `memory (apk-paired)`：同一个进程配对之后，五个标签页都访问过。CI 把这一行放在构件 `phone-e2e-android` 里，与截图和应用日志在一起。报告只从 `memory-android` 读一行，所以这一行不在报告里。
 
-| 构建 | `apk-cold` PSS | `apk-paired` PSS |
-| --- | ---: | ---: |
-| WebView 客户端 | 38 MB | 87 MB |
+配对会话从深链 `vfoxplus://pair?link=…` 开始，它打开配对屏，一次性链接已经填好。之后 `measure-apk` 点确认、等应用记下配对、为每个标签页截图并导出控件树，应用的日志里有错误则失败。它不需要可调试的构建，也不用 `run-as`：链接以在手机上打开链接的方式进入应用。要自己运行，先用 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 启动桌面应用的端到端构建，用 `vfxtool phone-link` 为模拟器写出配对链接（见[打包页](packaging-android.md#持续集成)），然后运行：
 
-冷启动从不加载 WebView。配对会话里系统 WebView 在这里约占 49 MB PSS，
-是带着整个会话实测的：主页、带版本与选项的 SDK、插件、任务、设置，
-连着实时事件流。之前和原生对照构建的 A/B 测过 37/84 MB 对 38/39 MB（冷启动/配对），
-所以配对成本几乎全在 WebView，原生会话只比自己的冷启动多约 1 MB。
-那个对照构建还是删掉了：手搓第二套 UI、还要和 Web 前端在像素与文案上
-一直对齐，花的钱比这几十 MB 多；而设计语言与文案现在只住在一个地方。
-（当天稍早一轮测过 32/68 MB 与 31/32 MB；对比要看同一轮
-背靠背测的行。）
+```sh
+vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
+  --pair-link-file LINK --shots DIR/shots
+```
 
-### Android 应用用 View 还是 Compose
-
-Android 应用用 View 写，配 Material Components。为了看清 Compose 要付出什么，把它的配对屏用 Compose
-又写了一遍（字符串、颜色、图标、形状都相同），2026-10-30 把这几个应用在同一个模拟器（API 36、x86_64、
-无 GPU）上以 R8 的 release 构建依次运行：安装、经 launcher 启动、静置 12 秒，从 `dumpsys meminfo` 读 PSS，
-每个应用轮流三轮。“新装”指刚安装完，代码在解释器与即时编译中运行；“已编译”指执行
-`cmd package compile -m speed -f` 之后，即整个应用已提前编译。
-
-| 应用 | APK（字节） | 新装 PSS（MB） | 已编译 PSS（MB） |
-| --- | ---: | ---: | ---: |
-| View，用 Material 3 Expressive 重做之前 | 3,176,011 | 40.8 | 44.5 |
-| View，用 Material 3 Expressive 重做后 | 3,228,463 | 43.5 | 46.9 |
-| Compose，只有配对屏 | 3,589,067 | 44.4 | 47.4 |
-
-- **内存分不出高下。**Compose 屏比 View 应用多 0.9 MB（新装）与 0.5 MB（已编译），与噪声同量级：六次新装它读到
-  43.1 到 45.1 MB（原生堆在 9.8 与 11.5 MB 之间跳），View 应用读到 43.4 到 43.6 MB。View 应用这次重做带来的变化更大
-  （+2.4 到 +2.7 MB）。内存不是选择任一工具包的理由。
-- **APK 体积分得出。**在 View 应用上加 Compose，APK 变成 4,434,858 字节，多 1.2 MB（37%）；只有配对屏、没有扫码、
-  会话屏、CameraX 与 zxing 的 Compose 应用，就已经比整个 View 应用大。
-- **比较时只带要运行的东西。**第一个 Compose 构建里还留着从未运行的 View 屏幕，读数比 View 应用多约 3 MB（新装）与
-  约 6 MB（已编译）：APK 里的代码一旦被系统编译，就会占内存。
-- **Compose 屏**用的是 Compose BOM 2026.06.01（Compose 1.11.4、Material 3 1.4.0，只用稳定 API）、
-  activity-compose 1.13.0，以及与当时锁定的 Kotlin 2.1.20 对应的 Compose 编译器插件。
-- **绝对数值属于这一次测量**：更早的一次，View 应用读到 30 到 34 MB。只比较表中各行。
-- **没有测：**带 Expressive 组件的 Compose（锁定的工具链构建不了，见[为什么用 View 而不是
-  Compose](packaging-android.md#为什么用-view-而不是-compose)）、带 WebView 的会话屏、真机。
+配对行只做诊断。它的数字也不能与桌面表格比较：它来自模拟器上的 `dumpsys meminfo`，而桌面表格读的是电脑上的 `smaps_rollup`。只比较同一份报告的各行。
 
 ## 如何测量
 
@@ -256,7 +216,7 @@ Android 应用用 View 写，配 Material Components。为了看清 Compose 要�
   跑 `vfxtool measure`（[如何测量](#如何测量)），把打印的行作为构件 `memory-mygo` 上传。
   `vfxtool measure` 也把它们写入 `VFOX_PLUS_MEASURE_OUTPUT` 指定文件。同一工作流的
   `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
-  [`android.yml`](../../../.github/workflows/android.yml) 的 `measure` 任务上传
+  [`phone.yml`](../../../.github/workflows/phone.yml) 的 `emulator` 任务上传
   `memory-android`；评论把它们渲染为表格下方的[桌面之外](#桌面之外)章节。
 - [`memory.yml`](../../../.github/workflows/memory.yml) 在该工作流结束时启动，跑
   `vfxtool memory-report`。比较 Pull Request 构件与 `main` 上同工作流最近运行，

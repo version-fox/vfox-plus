@@ -59,17 +59,36 @@ container, see [Development environment](environment.md).
 4. Describe what changed and how you tested it in the pull request. Include
    screenshots for visual changes, in light and dark themes.
 
+## The phone app
+
+The phone app is [`mygo/phone`](../../../mygo/phone), built for Android by the mygo CLI
+([Packaging the phone app](packaging-android.md)). On a machine that has the tools that
+[`mygo/phone/versions.env`](../../../mygo/phone/versions.env) pins, or in the
+[dev container](environment.md#the-dev-container), which has them, build it from the root of
+the repository:
+
+```sh
+vfxtool appicon mygo/phone/resources
+cd mygo/phone && mygo build -platform android/amd64
+```
+
+`vfxtool appicon` writes the icons, which git ignores. The APK and the AAB land in
+`mygo/phone/dist/android/`, signed with the debug key of the machine. To look at the screens on
+Linux without an emulator, `go run ./phone` from `mygo/` opens the app in a window of a phone's
+size. To pair it with the desktop application on an emulator, see
+[Run the app](environment.md#run-the-app).
+
 ## Continuous integration
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
-| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
+| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the `mygo` or `phone` workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` for amd64 validated with lintian and installed into a clean Ubuntu container, the classic snap packed from that `.deb` on core26 and started, and the arm64 `.deb` and `.tar.gz` validated with lintian and by the machine type of their program, as no arm64 machine installs them, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
-| [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK, signed with a key that the job makes and throws away, and uploads it as `vfox-plus-android` |
-| [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
-| [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the Android APK and the Linux arm64 packages |
+| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`, `mygo/pair/`, `mygo/ui/kit/`, `mygo/VERSION`, `mygo/go.mod`, `mygo/go.sum`, `mygo/versions.env`, `shared/tooling/`, `shared/icons.json` | Builds the [phone app](#the-phone-app) for the x86_64 emulator, signed with the debug key, and drives it on an emulator: it pairs the app with the desktop application through the deep link, visits its five tabs, and measures it cold and paired (see [The phone app](memory.md#the-phone-app)) |
+| [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `mygo/phone/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the build of the phone app, and the checks that use Docker |
+| [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the phone app's APK and the Linux arm64 packages |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
 pinned to commit SHAs.
@@ -101,12 +120,12 @@ A release is one manual run of the Release workflow:
    yet. The last `mygo` run on `main` must have passed: the release vets and
    smoke-tests the build, but runs no tests.
 3. The build job sets the version in `mygo/VERSION`, in the `Version` constant of
-   `mygo/ui/app.go` and in the `<releases>` list of the
+   `mygo/ui/app.go`, in the `version` of `mygo/phone/mygo.json`, and in the `<releases>` list of the
    [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml), and
    commits that in the name of the person who started the run. It builds the
    packages that [`mygo.yml`](#continuous-integration) builds, for amd64 and for
    arm64, the Windows `.msix` packages with the publisher of their certificate, the
-   Android APK unsigned, and the classic snap from `snap/snapcraft.yaml`. It pushes
+   APK of the phone app, which the next step signs, and the classic snap from `snap/snapcraft.yaml`. It pushes
    nothing.
 4. The `sign-windows` job, which waits for the approval, signs the Windows packages
    with Artifact Signing and installs the bundle to check it ([Signing the
@@ -121,7 +140,7 @@ A release is one manual run of the Release workflow:
    `.deb` or the `.tar.gz` of the platform, and the `.msix` or the `.msixbundle`;
    the rest is for manual use.
 
-The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before the signing: the publishing follows without a second approval. An administrator may start it without the approval.
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before `sign-windows` signs the Windows packages and the APK: the publishing follows without a second approval. An administrator may start it without the approval.
 
 Set `dry-run` to build, sign and install everything without pushing, tagging or
 publishing. Start a release that way first when its signing or its secrets change.
@@ -228,12 +247,12 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
 ### Web interface
 
 The web interface is TypeScript built with Vite, in [`mygo/web`](../../../mygo/web).
-Its build bundles the page into the single `mygo/pair/webapp.html` that the Go
-server embeds: edit the sources, run `npm run build` there, and commit the page
+Its build bundles the page into the single `mygo/gateway/webapp.html` that the gateway
+embeds: edit the sources, run `npm run build` there, and commit the page
 with them. `npm test` runs the unit tests of the page; `npm run dev` serves it
 with hot reload against a running application (see
 [Node and the web interface](environment.md#node-and-the-web-interface)).
-The Go tests in `mygo/pair` still guard the contract of the built page: the
+The Go tests in `mygo/gateway` still guard the contract of the built page: the
 design tokens and the springs, which fail when the theme moves without them,
 and the favicon placeholders. Copy of the page lives in its i18n catalogs
 (`mygo/web/src/i18n-*`), typed per language, not in `shared/i18n`.
@@ -323,14 +342,16 @@ that `--scene` plays: `home`, `connections`, `connections-pair`, `flutter-chips`
 `java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`,
 `options-legacy`, `settings-languages`, `alias-set`, `link-manual`, `python-options` and `python-available` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
-scenes click against `mygo/pair/webapp.html`). A scene ends by waiting for the page to fit its
+scenes click against `mygo/gateway/webapp.html`). A scene ends by waiting for the page to fit its
 window, so a layout that overflows fails the shot instead of making a picture. Every picture gets
 an application and a home of its own, because choosing a distribution is kept in the settings of
 the application, and a scene that chooses one would change every picture after it. The application
 allows other devices, which the connections and the code that pairs a phone need
 (`{"webRemote":true}`); it is
 told the addresses of the documentation (see above); and the end-to-end build writes a pairing link
-to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The
+to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The pictures are of the pages that the gateway serves,
+so `shoot` starts the gateway as well: it pairs with the application by that link, as a person does on the
+page of the gateway (`--application`). The
 scenes of Java need a machine that has Java and Flutter installed, the scenes of Python one that has
 Python, and the home page needs one that has not, which is why the inventory of the fake vfox is a
 variable of the call:
@@ -338,6 +359,7 @@ variable of the call:
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
 /tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
+go -C mygo build -o /tmp/vfox-plus-gateway ./cmd/vfox-plus-gateway
 
 # shoot NAME LANGUAGE WIDTH,HEIGHT [options of webheap]
 # INVENTORY=profiles shoot ... plays a machine that has Java and Flutter.
@@ -360,9 +382,20 @@ shoot() {
     [ -n "$LINK" ] && break
     sleep 1
   done
-  /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
-    --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
+  # The gateway serves the page: it runs with a home of its own, and prints the link that pairs a browser with it.
+  gw=/tmp/shot-gateway
+  rm -rf $gw && mkdir -p $gw/config
+  (export HOME=$gw XDG_CONFIG_HOME=$gw/config; exec /tmp/vfox-plus-gateway >$gw/log 2>&1) &
+  gateway=$!
+  for i in $(seq 1 30); do
+    PAIR="$(grep -o 'https://localhost:8080/auth/connect/[A-Za-z0-9_-]*' $gw/log 2>/dev/null | head -1)"
+    [ -n "$PAIR" ] && break
+    sleep 1
+  done
+  /tmp/vfxtool webheap --server https://localhost:8080 --pairing "$PAIR" --application "$LINK" \
+    --output /tmp/shot.txt --screenshot "$name.png" \
     --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
+  kill $gateway; wait $gateway 2>/dev/null
   kill -- -$app
 }
 shoot webapp-en en 412,915
@@ -419,12 +452,12 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 (The build of the application is the one above, run from the root of the repository, which the
 command needs for the fixtures of the fake vfox; `--chrome` names the Chrome as it does for `webheap`.)
 
-**Android.** CI takes one picture, `screenshot-android`: the `measure` job of
-`android.yml` runs the release APK on an emulator, `vfxtool measure-apk` captures the
-cold start, and the job uploads it as an artifact (`gh run download`). The nine
+**Android.** CI takes one picture, `screenshot-android`: the `emulator` job of
+`phone.yml` runs the APK on an emulator, `vfxtool measure-apk` captures the
+first screen, and the job uploads it as an artifact (`gh run download`). The nine
 pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of
 your own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400
-at 420 dpi), with the release APK of the build that CI makes (its artifact `vfox-plus-android`),
+at 420 dpi), with the APK that CI makes (its artifact `vfox-plus-android-amd64`),
 and with the application of the PC that [Run the app](environment.md#run-the-app) describes: the
 end-to-end build against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles`, with the web interface and the
 other devices on, the port 8080 and `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the emulator
