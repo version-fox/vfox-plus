@@ -47,7 +47,8 @@ const (
 	KindNotPluginFile
 	// KindFileTooLarge is a plugin file that the computer would not take.
 	KindFileTooLarge
-	// KindFileUnreadable is a file of the phone that cannot be read.
+	// KindFileUnreadable is a file of the phone that cannot be read, or that changed while it
+	// was sent.
 	KindFileUnreadable
 	// KindPairingRefused is a pairing link that is invalid, used or expired.
 	KindPairingRefused
@@ -80,7 +81,7 @@ func KindOf(err error) Kind {
 		return KindCanceled
 	case errors.Is(err, pairing.ErrNotPairingLink):
 		return KindNotLink
-	case errors.Is(err, ErrFileUnreadable):
+	case errors.Is(err, ErrFileUnreadable), errors.Is(err, remote.ErrFileChanged):
 		return KindFileUnreadable
 	case errors.Is(err, remote.ErrNotPluginFile):
 		return KindNotPluginFile

@@ -74,6 +74,7 @@ func TestKindOfNamesWhatTheUserCanActOn(t *testing.T) {
 			&net.OpError{Op: "remote", Err: remote.ErrCertificateChanged}), KindCertificateChanged},
 		{"network", &net.OpError{Op: "dial", Err: errors.New("connection refused")}, KindUnreachable},
 		{"a file of the phone", fmt.Errorf("%w: %w", ErrFileUnreadable, errors.New("gone")), KindFileUnreadable},
+		{"a file that changed while it was sent", &url.Error{Op: "Post", Err: remote.ErrFileChanged}, KindFileUnreadable},
 		{"end of stream", fmt.Errorf("read: %w", io.ErrUnexpectedEOF), KindUnreachable},
 		{"other", errors.New("something"), KindOther},
 	} {

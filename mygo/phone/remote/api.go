@@ -188,8 +188,10 @@ func (c *Client) AddPlugin(ctx context.Context, source, alias string) (Task, err
 // as the web interface sends them). name is the name of the file, which the server
 // keeps for vfox, and which must end in .zip or .lua: those are the plugins that vfox
 // adds from a file. size is the number of bytes that content holds, at most
-// MaxPluginFile. content is read as it is sent. A file that is not a plugin or is too
-// large is refused before anything is sent (ErrNotPluginFile, ErrPluginFileTooLarge).
+// MaxPluginFile. content is read as it is sent, and a content that has more or fewer
+// bytes than size fails the upload before the form is completed (ErrFileChanged), so
+// the server never takes a plugin that was cut short. A file that is not a plugin or is
+// too large is refused before anything is sent (ErrNotPluginFile, ErrPluginFileTooLarge).
 func (c *Client) UploadPlugin(ctx context.Context, name string, content io.Reader, size int64, alias string) (Task, error) {
 	name = path.Base(strings.ReplaceAll(name, "\\", "/"))
 	// A control character would end a line of the header of the part that holds the file.
@@ -216,9 +218,35 @@ func (c *Client) UploadPlugin(ctx context.Context, name string, content io.Reade
 	body := &formBody{
 		contentType: form.FormDataContentType(),
 		length:      int64(head.Len()) + size + int64(len(tail)),
-		body:        io.MultiReader(&head, content, strings.NewReader(tail)),
+		body:        io.MultiReader(&head, &exactReader{reader: content, size: size}, strings.NewReader(tail)),
 	}
 	return result[Task](ctx, c, http.MethodPost, "/api/plugins", nil, body)
+}
+
+// exactReader reads a file that is said to have size bytes, and fails with ErrFileChanged,
+// as the file is read, when it has more or fewer. The error ends the request before the
+// closing delimiter of the form is sent, so the form is never complete, and the server
+// cannot take a plugin that was cut short or padded. The transport would find the mismatch
+// by itself, but only after the body, and a server that answers first hides it from the
+// caller.
+type exactReader struct {
+	reader io.Reader
+	size   int64
+	read   int64
+}
+
+// Read implements io.Reader. The bytes beyond the size that the file is said to have are
+// the ones that show that it grew, and it does not pass them on.
+func (e *exactReader) Read(p []byte) (int, error) {
+	n, err := e.reader.Read(p)
+	e.read += int64(n)
+	switch {
+	case e.read > e.size:
+		return n - int(e.read-e.size), ErrFileChanged
+	case errors.Is(err, io.EOF) && e.read < e.size:
+		return n, ErrFileChanged
+	}
+	return n, err
 }
 
 // Settings returns the settings of the desktop application (GET /api/settings).

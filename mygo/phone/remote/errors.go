@@ -47,6 +47,10 @@ var (
 	// ErrPluginFileTooLarge reports a plugin file that the server would not take:
 	// it is larger than MaxPluginFile. Nothing was sent.
 	ErrPluginFileTooLarge = errors.New("the plugin file is larger than the server takes")
+	// ErrFileChanged reports a plugin file that did not have the size that it was said
+	// to have when it was read to be sent: it changed under the upload. The form was not
+	// completed, so the server added nothing.
+	ErrFileChanged = errors.New("the plugin file changed while it was sent")
 )
 
 // maxMessageRunes bounds the message kept from an answer of the server, which

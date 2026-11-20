@@ -15,7 +15,6 @@
 package remote
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"mime"
@@ -71,9 +70,9 @@ func serveUploads(t *testing.T) (*url.URL, *uploads) {
 			got.parseError = "the body is not multipart/form-data"
 		} else {
 			form := multipart.NewReader(counter, params["boundary"])
-			for {
+			for got.parseError == "" {
 				part, err := form.NextPart()
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF { //nolint:errorlint // As the server of the desktop does: a form that is cut is a wrapped error, which is not its end.
 					break
 				}
 				if err != nil {
@@ -81,15 +80,24 @@ func serveUploads(t *testing.T) (*url.URL, *uploads) {
 					break
 				}
 				if part.FileName() == "" {
-					value, _ := io.ReadAll(part)
+					value, err := io.ReadAll(part)
+					if err != nil {
+						got.parseError = err.Error()
+					}
 					got.fields[part.FormName()] = string(value)
 					continue
 				}
 				got.fileField, got.fileName = part.FormName(), part.FileName()
 				head := make([]byte, 64)
-				n, _ := io.ReadFull(part, head)
+				n, err := io.ReadFull(part, head)
+				if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+					got.parseError = err.Error()
+				}
 				got.head = string(head[:n])
-				rest, _ := io.Copy(io.Discard, part)
+				rest, err := io.Copy(io.Discard, part)
+				if err != nil {
+					got.parseError = err.Error()
+				}
 				got.fileSize = int64(n) + rest
 			}
 		}
@@ -270,21 +278,61 @@ func TestUploadPluginSendsTheLargestFile(t *testing.T) {
 }
 
 // TestUploadPluginFailsWhenTheFileIsNotTheSizeThatWasSaid checks that a file that changed
-// under the upload is an error, and not a plugin that was cut short or padded: the length
-// that the request declares is the length of the form.
+// under the upload is an error, and not a plugin that was cut short or padded. The reader of
+// the file ends the request before the closing delimiter of the form is sent, so the server
+// never has a complete form. That does not depend on which comes first, the transport's own
+// complaint of a body that is not the length that it declares or the answer of the server,
+// as it would if the transport alone judged: the server of this test is as strict as the
+// server of the desktop, and it still has to be given no complete form.
 func TestUploadPluginFailsWhenTheFileIsNotTheSizeThatWasSaid(t *testing.T) {
-	base, _ := serveUploads(t)
-	client, err := New(base, nil, "")
-	if err != nil {
-		t.Fatal(err)
+	for name, tc := range map[string]struct {
+		content string
+		size    int64
+	}{
+		"the file shrank":              {"short", 100},
+		"the file grew":                {"a file that is longer than it was said to be", 5},
+		"the file grew by one byte":    {"123456", 5},
+		"the file is gone to nothing":  {"", 5},
+		"the file grew from nothing":   {"x", 0},
+		"the file grew past the limit": {strings.Repeat("x", 4096), 1},
+	} {
+		t.Run(name, func(t *testing.T) {
+			base, seen := serveUploads(t)
+			client, err := New(base, nil, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = client.UploadPlugin(t.Context(), "demo.lua", strings.NewReader(tc.content), tc.size, "")
+			if !errors.Is(err, ErrFileChanged) {
+				t.Fatalf("UploadPlugin = %v, want ErrFileChanged", err)
+			}
+			for _, u := range seen.all() {
+				if u.parseError == "" {
+					t.Errorf("the server was given a complete form: %+v", u)
+				}
+			}
+		})
 	}
-	for name, size := range map[string]int64{"the file shrank": 100, "the file grew": 5} {
-		content := bytes.Repeat([]byte("x"), 12)
-		if name == "the file shrank" {
-			content = content[:6]
-		}
-		if _, err := client.UploadPlugin(t.Context(), "demo.lua", bytes.NewReader(content), size, ""); err == nil {
-			t.Errorf("%s: the upload succeeded", name)
+}
+
+func TestExactReaderPassesTheFileAndNoByteMore(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		content string
+		size    int64
+		want    string
+		err     error
+	}{
+		{"as said", "0123456789", 10, "0123456789", nil},
+		{"empty, as said", "", 0, "", nil},
+		{"shorter", "0123", 10, "0123", ErrFileChanged},
+		{"longer", "0123456789ab", 10, "0123456789", ErrFileChanged},
+		{"one byte longer", "01234567890", 10, "0123456789", ErrFileChanged},
+	} {
+		reader := &exactReader{reader: strings.NewReader(tc.content), size: tc.size}
+		got, err := io.ReadAll(reader)
+		if !errors.Is(err, tc.err) || string(got) != tc.want {
+			t.Errorf("%s: read %q, %v; want %q, %v", tc.name, got, err, tc.want, tc.err)
 		}
 	}
 }
