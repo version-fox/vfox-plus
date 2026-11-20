@@ -1700,6 +1700,7 @@ func TestAFieldThatAsksTheKeyboardForTheWrongThingFailsTheRun(t *testing.T) {
 		{"the keyboard of addresses that does not turn suggestions off", "11", "corrections"},
 		{"a field of numbers", "2", "not a text field"},
 		{"no field in focus", "0", "reports no field in focus"},
+		{"a number of more than 32 bits, which is no input type", "1ffffffff", "32 bits"},
 	} {
 		m := inputMachine(tc.inputType)
 		d, _, _, err := inputRun(t, m)

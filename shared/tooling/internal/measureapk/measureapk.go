@@ -566,9 +566,12 @@ func (s *session) linkFieldAsksTheKeyboard() error {
 			return err
 		}
 		if match := editorInputType.FindSubmatch(report); match != nil {
-			if v, err := strconv.ParseInt(string(match[1]), 16, 64); err == nil {
-				inputType = int(v)
+			// An input type is 32 bits of flags: a number that is longer is not one, and does not go into an int of a 32-bit machine.
+			v, err := strconv.ParseInt(string(match[1]), 16, 32)
+			if err != nil {
+				return fmt.Errorf("the input type %q that the input method service reports is not a number of 32 bits", match[1])
 			}
+			inputType = int(v)
 		}
 		if inputType != 0 {
 			break
