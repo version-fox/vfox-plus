@@ -18,7 +18,11 @@
 # the address 10.0.2.2 (the one at which the emulator reaches this runner), and drives the paired
 # session the way a person does: the pairing link comes in through the deep link, the tabs are
 # visited with screenshots, and the app's log is checked for errors. It measures the memory of the
-# app cold and paired, for memory.yml (vfxtool measure-apk). The versions are in
+# app cold and paired, for memory.yml (vfxtool measure-apk). The signing job rehearses what
+# release.yml does to the APK after the approval, on a Windows runner as the release does and with
+# the same script (shared/scripts/sign-apk.ps1), with a key that is made for the run and is no one's:
+# the release is started by hand from main, the release key is in an environment that only main and
+# the tags can use, so no other run can try the signing with the real one. The versions are in
 # mygo/phone/versions.env, and the version of mygo in mygo/go.mod must be the same one.
 name: phone
 
@@ -35,6 +39,7 @@ on:
       - mygo/versions.env
       - shared/tooling/**
       - shared/icons.json
+      - shared/scripts/sign-apk.ps1
       - .github/workflows/phone.yml
   pull_request:
     paths:
@@ -47,6 +52,7 @@ on:
       - mygo/versions.env
       - shared/tooling/**
       - shared/icons.json
+      - shared/scripts/sign-apk.ps1
       - .github/workflows/phone.yml
   workflow_dispatch:
 
@@ -259,3 +265,72 @@ jobs:
         if: always()
         # The bracket keeps pkill from matching the shell that runs this line.
         run: pkill -f '[v]fox-plus-e2e' || true
+
+  signing:
+    name: Rehearse the signing of the APK of the release
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    needs: build
+    # The runner of the job of release.yml that signs the APK. Nothing here is a secret: the key is
+    # made by the job, and nothing else of the job is the release's but the steps.
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        shell: pwsh
+        run: |
+          Get-Content mygo/phone/versions.env | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^[A-Z0-9_]+=' } | Add-Content -Path $env:GITHUB_ENV
+      - name: Set up JDK
+        # apksigner and keytool run on Java, at the version that the phone app is built with.
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Set up the Android build tools
+        # zipalign and apksigner come with the build tools of the pinned version, as in release.yml.
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: "build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }}"
+      - name: Download the APK
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-android-amd64
+          path: apk
+      - name: Sign the APK as the release does, with a key that is no one's
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (-not $env:ANDROID_HOME) { throw "ANDROID_HOME is not set: the Android SDK setup did not run" }
+          $buildTools = Join-Path $env:ANDROID_HOME "build-tools/$env:ANDROID_SDK_BUILD_TOOLS"
+          $apksigner = Join-Path $buildTools "apksigner.bat"
+          $apks = @(Get-ChildItem -Path apk -Filter *.apk)
+          if ($apks.Count -ne 1) { throw "want one APK in the artifact, found: $($apks.Name -join ', ')" }
+          $unsigned = $apks[0].FullName
+
+          # What the release signs is an APK that mygo signed with the debug key. If it is not one, the
+          # check of the script that no debug key is left means nothing.
+          $before = & $apksigner verify --print-certs $unsigned | Out-String
+          if ($LASTEXITCODE -ne 0) { throw "apksigner verify failed with exit code $LASTEXITCODE" }
+          if ($before -notmatch "CN=Android Debug") { throw "the APK of the build is not signed with the debug key of mygo:`n$before" }
+
+          # The key is made here, for this run, and is no one's: a password that nothing else knows.
+          $keystore = Join-Path $env:RUNNER_TEMP "rehearsal.p12"
+          $password = [guid]::NewGuid().ToString("N")
+          Write-Host "::add-mask::$password"
+          & keytool -genkeypair -keystore $keystore -storetype PKCS12 -alias rehearsal -keyalg RSA -keysize 2048 -validity 1 -dname "CN=vfox-plus signing rehearsal" -storepass $password -keypass $password
+          if ($LASTEXITCODE -ne 0) { throw "keytool failed with exit code $LASTEXITCODE" }
+          $env:ANDROID_RELEASE_KEY_ALIAS = "rehearsal"
+          $env:ANDROID_RELEASE_STORE_PASSWORD = $password
+          $env:ANDROID_RELEASE_KEY_PASSWORD = $password
+
+          $signed = Join-Path $env:RUNNER_TEMP "signed/vfox-plus-rehearsal.apk"
+          & (Join-Path $env:GITHUB_WORKSPACE "shared/scripts/sign-apk.ps1") -Unsigned $unsigned -Signed $signed -Keystore $keystore -BuildTools $buildTools
+
+          # The script checks that no debug key is left; here it is the key of the rehearsal, and only it.
+          $after = & $apksigner verify --print-certs $signed | Out-String
+          if ($LASTEXITCODE -ne 0) { throw "apksigner verify failed with exit code $LASTEXITCODE" }
+          if ($after -notmatch "CN=vfox-plus signing rehearsal") { throw "the APK is not signed with the key of the rehearsal:`n$after" }
+          if ($after -match "CN=Android Debug") { throw "the APK still has the debug certificate:`n$after" }
+          Write-Host $after
+          Remove-Item -Force -ErrorAction SilentlyContinue -LiteralPath $keystore

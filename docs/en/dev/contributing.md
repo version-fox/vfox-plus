@@ -143,7 +143,11 @@ A release is one manual run of the Release workflow:
 The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before `sign-windows` signs the Windows packages and the APK: the publishing follows without a second approval. An administrator may start it without the approval.
 
 Set `dry-run` to build, sign and install everything without pushing, tagging or
-publishing. Start a release that way first when its signing or its secrets change.
+publishing. Start a release that way first when its signing or its secrets change. The signing
+of the APK is rehearsed before that, on every change, by the `signing` job of
+[`phone.yml`](../../../.github/workflows/phone.yml), with the script of the release and a key
+that the job makes: what a dry run adds is what only the release has, its secrets, the steps of
+Azure and the approval ([Signing status](packaging-android.md#signing-status)).
 
 The version commit starts no CI run on `main`, because GitHub starts no workflow
 for a push made with a workflow's own token. So no test runs on that commit: the

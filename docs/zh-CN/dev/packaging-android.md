@@ -70,7 +70,9 @@ CI、开发容器及其检查（[`devcontainer.yml`](../../../.github/workflows/
 APK 分两步签名，见 [`release.yml`](../../../.github/workflows/release.yml)：
 
 - `build` 任务用 mygo 生成 APK，用运行器的 debug 密钥签名，并以 `vfox-plus-android-unsigned` 上传。这个任务没有任何 secret，所以发布密钥不会到达它。
-- `sign-windows` 任务在批准之后签名 APK。`zipalign -f -P 16 4` 重新对齐（原生库按 16 KB 页对齐），`apksigner sign` 用发布密钥替换 debug 签名。任务随后检查证书里已没有 `CN=Android Debug`，并把 APK 写到 `dist-android/vfox-plus_<版本>.apk`。`vfxtool check-assets` 在发布之前要求这样的文件恰有一个。
+- `sign-windows` 任务在批准之后用 [`shared/scripts/sign-apk.ps1`](../../../shared/scripts/sign-apk.ps1) 签名 APK。`zipalign -f -P 16 4` 重新对齐（原生库按 16 KB 页对齐），`apksigner sign` 用发布密钥替换 debug 签名。脚本随后检查签名，检查证书里已没有 `CN=Android Debug`，并用 `zipalign -c` 检查签名之后对齐仍然成立。任务把 APK 写到 `dist-android/vfox-plus_<版本>.apk`。`vfxtool check-assets` 在发布之前要求这样的文件恰有一个。
+
+**演练。** 发布在合并之前无法试：它从 `main` 手动发起，发布密钥又在只有 `main` 与标签能用的环境里。所以每当手机端应用或这个脚本有改动，[`phone.yml`](../../../.github/workflows/phone.yml) 的 `signing` 任务就像发布那样在 Windows 运行器上运行同一个脚本。密钥由任务自己生成（一个口令谁也不知道的 PKCS12 keystore），APK 是 `build` 任务用 debug 密钥生成的那个。任务先检查构建出的 APK 确实是 mygo 的 debug 签名，再签名，最后检查结果带的是演练的证书，没有 debug 证书。演练够不到的是只属于发布的部分：密钥从哪里来（下面四个 secret）、给 Windows 包签名的 Azure 步骤、批准，以及版本。这些靠在 `main` 上对 Release 工作流做一次 dry run 来试：Actions，Release，Run workflow，勾选 `dry-run`（构建并签名一切，不推送任何东西）。改过签名之后做一次，设置好环境之后也做一次。
 
 没有下面四个 secret，任务拒绝运行：`ANDROID_RELEASE_KEYSTORE_BASE64`（base64 编码的 keystore）、`ANDROID_RELEASE_STORE_PASSWORD`、`ANDROID_RELEASE_KEY_ALIAS` 与 `ANDROID_RELEASE_KEY_PASSWORD`。它们只放在 `release` 环境里，仓库其他地方没有，也只有 `sign-windows` 读取。keystore 写到运行器的临时文件中，无论结果如何都会删除。
 
@@ -101,6 +103,8 @@ gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plu
 
 - `build` 任务生成 x86_64 的 APK 与 AAB，用 debug 密钥签名，以 `vfox-plus-android-amd64` 上传。
 - `emulator` 任务在虚拟显示中启动桌面应用的端到端构建，并设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`（模拟器访问运行器的地址）。它启动模拟器（API 36、`google_apis`、x86_64，软件 GPU），运行 `vfxtool phone-link`（与桌面应用配对，并写出给 `10.0.2.2` 的配对链接）以及 `vfxtool measure-apk`。后者安装 APK、冷启动并测量，然后经深链配对，逐个访问五个标签页并截图，应用的日志里有错误则失败。配对对话框说电脑没有响应时（模拟器的网络还没起来就可能这样），它关掉对话框并重新打开链接，最多三次，并在输出里说明。失败的运行会保留屏幕、应用的日志，以及设备对自己网络的说法。冷启动的测量是构件 `memory-android`；截图、应用日志、失败的证据与配对后的测量是构件 `phone-e2e-android`。
+
+- `signing` 任务在 Windows 运行器上用发布用的脚本和它自己生成的密钥演练发布的签名（见[签名状态](#签名状态)）。`shared/scripts/sign-apk.ps1` 有改动时它也运行。
 
 [`release.yml`](../../../.github/workflows/release.yml) 生成发布用的 APK 并签名（见[签名状态](#签名状态)）。[`memory.yml`](../../../.github/workflows/memory.yml) 在 `mygo` 或 `phone` 结束时报告 Pull Request 的内存（见[Pull Request 中的内存](memory.md#pull-request-中的内存)）。
 

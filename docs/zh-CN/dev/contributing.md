@@ -96,7 +96,7 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 
 APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。发布的 secret 与 Windows 签名的身份都在 `release` 环境里。运行要在 `sign-windows` 签名 Windows 包与 APK 之前，等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次；发布紧接着进行，不再等第二次。仓库管理员发起的运行可以跳过审批。
 
-勾选 `dry-run` 则构建、签名并安装全部东西，但不推送、不打标签、不发布。签名或 secret 有改动时，先这样运行一次。
+勾选 `dry-run` 则构建、签名并安装全部东西，但不推送、不打标签、不发布。签名或 secret 有改动时，先这样运行一次。在那之前，APK 的签名每次有改动都已由 [`phone.yml`](../../../.github/workflows/phone.yml) 的 `signing` 任务用发布的脚本和任务自己生成的密钥演练过：dry run 多出来的，是只有发布才有的部分，即它的 secret、Azure 的步骤与批准（见[签名状态](packaging-android.md#签名状态)）。
 
 版本提交不会在 `main` 上启动 CI 运行：工作流自己的令牌推送的提交，GitHub 不会启动任何工作流。所以那个提交上不跑测试：它之前最近一次 `mygo` 运行才算数，这就是任务要检查它的原因。
 

@@ -112,11 +112,27 @@ The APK is signed in two steps, in [`release.yml`](../../../.github/workflows/re
 - The `build` job makes the APK with mygo, with the debug key of its runner, and uploads
   it as `vfox-plus-android-unsigned`. That job holds no secrets, so the release key never
   reaches it.
-- The `sign-windows` job, after the approval, signs the APK. `zipalign -f -P 16 4` aligns
-  it again, with 16 KB pages for its native libraries, and `apksigner sign` replaces the
-  debug signature with the release key. The job checks that no `CN=Android Debug`
-  certificate is left, and it writes the APK to `dist-android/vfox-plus_<version>.apk`.
+- The `sign-windows` job, after the approval, signs the APK with
+  [`shared/scripts/sign-apk.ps1`](../../../shared/scripts/sign-apk.ps1). `zipalign -f -P 16 4`
+  aligns it again, with 16 KB pages for its native libraries, and `apksigner sign` replaces
+  the debug signature with the release key. The script checks the signature, that no
+  `CN=Android Debug` certificate is left, and with `zipalign -c` that the alignment is still
+  there after the signing. The job writes the APK to `dist-android/vfox-plus_<version>.apk`.
   `vfxtool check-assets` requires exactly one such file before anything is published.
+
+**The rehearsal.** The release cannot be tried before it is merged: it is started by hand
+from `main`, and its key is in an environment that only `main` and the tags can use. So the
+`signing` job of [`phone.yml`](../../../.github/workflows/phone.yml) runs the same script on
+a Windows runner, as the release does, whenever the phone app or the script changes. The key
+is made by the job (a PKCS12 keystore, with a password that nothing else knows), and the APK
+is the one that the `build` job makes with the debug key. The job checks that the APK of the
+build is signed with the debug key of mygo, signs it, and checks that the result has the
+certificate of the rehearsal and no debug one. What the rehearsal cannot reach is what is
+the release's alone: where the key comes from (the four secrets below), the steps of Azure
+that sign the Windows packages, the approval, and the version. A dry run of the Release
+workflow on `main` tries them: Actions, Release, Run workflow, with `dry-run` (it builds and
+signs everything, and pushes nothing). Run one after a change of the signing, and once
+after the environment is set up.
 
 The job refuses to run without the four secrets: `ANDROID_RELEASE_KEYSTORE_BASE64` (the
 keystore, in base64), `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS` and
@@ -184,6 +200,10 @@ tooling and to the pinned versions:
   network. The cold measurement is the artifact `memory-android`. The screenshots, the log of
   the app, the evidence of a failure and the measurement of the paired session are the artifact
   `phone-e2e-android`.
+
+- The `signing` job rehearses the signing of the release on a Windows runner, with the script
+  of the release and a key that it makes ([Signing status](#signing-status)). It runs when
+  `shared/scripts/sign-apk.ps1` changes too.
 
 [`release.yml`](../../../.github/workflows/release.yml) makes the APK of the release and
 signs it ([Signing status](#signing-status)). [`memory.yml`](../../../.github/workflows/memory.yml)
