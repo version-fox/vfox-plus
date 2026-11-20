@@ -81,7 +81,12 @@ EOF
 # command-line tools are verified against the checksum that mygo/phone/versions.env
 # pins, and the packages are the ones that the build uses, the NDK included, so that
 # the first build downloads no package of the SDK. The SDK belongs to root: the build
-# only reads it.
+# only reads it and runs what is in it. sdkmanager unpacks the files that run (the clang
+# of the NDK, aapt2, apksigner) with the mode 744, which no other user can run, so the
+# last steps give every user the right to run what its owner can, and check that the
+# user of the container can run the tools that the build starts: a file that cannot be
+# run shows up in the build as "cgo: C compiler not found: permission denied", far from
+# its cause.
 ENV ANDROID_HOME=/opt/android-sdk
 RUN --mount=type=bind,source=mygo/phone/versions.env,target=/tmp/android.env <<EOF
 set -eu
@@ -105,6 +110,15 @@ rm /tmp/cmdline-tools.zip
 sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 yes | "$sdkmanager" --licenses > /dev/null
 "$sdkmanager" "platform-tools" "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
+chmod -R a+rX "$ANDROID_HOME"
+for tool in \
+  "ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" \
+  "ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android26-clang" \
+  "build-tools/$ANDROID_SDK_BUILD_TOOLS/aapt2" \
+  "build-tools/$ANDROID_SDK_BUILD_TOOLS/apksigner" \
+  "platform-tools/adb"; do
+  runuser -u vscode -- test -x "$ANDROID_HOME/$tool" || { echo "vscode cannot run $ANDROID_HOME/$tool" >&2; exit 1; }
+done
 EOF
 
 # Go, verified against the published checksum.
