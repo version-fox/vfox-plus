@@ -32,7 +32,7 @@ config:
 ---
 flowchart TB
     accTitle: 仓库布局
-    accDescr: docs 存放文档，shared 存放应用使用的资源，mygo 是应用和 Docker 镜像的网关，android 是安卓客户端，.github 是 CI 工作流。
+    accDescr: docs 存放文档，shared 存放应用使用的资源，mygo 是应用、Docker 镜像的网关和手机端应用，.github 是 CI 工作流。
     subgraph docs["<b>docs/</b> · 全部文档，先按语言、再按受众分类"]
         direction LR
         d1("<b>en/user/</b><br/>用户指南：安装、使用、<br/>远端与安卓") ~~~ d2("<b>en/dev/</b><br/>开发者规约<br/>（本文档在这里）") ~~~ d3("<b>zh-CN/user/</b><br/>简体中文用户指南") ~~~ d4("<b>zh-CN/dev/</b><br/>简体中文开发者规约")
@@ -44,7 +44,7 @@ flowchart TB
     end
     subgraph code["<b>应用</b>与<b>自动化</b>"]
         direction LR
-        m("<b>mygo/</b><br/>桌面应用及其远程服务器（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>android/</b><br/>安卓远端客户端<br/>（远程服务器的 WebView 套壳）") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
+        m("<b>mygo/</b><br/>桌面应用及其远程服务器（Go；不接受任何参数），<br/>以及 Docker 镜像的网关") ~~~ a("<b>mygo/phone/</b><br/>手机端应用：mygo 的<br/>安卓原生应用") ~~~ g("<b>.github/</b><br/>CI 工作流：仓库检查、构建、<br/>内存报告和沙箱")
     end
     docs ~~~ shared ~~~ code
 
@@ -299,7 +299,7 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 
 应用是桌面应用，没有命令行：不接受任何参数，它还做什么由设置决定。其中之一是是否允许其他设备连接。
 `mygo/pair` 包放着给它们用的服务器，由 `Host` 按设置运行；窗口和已配对页面都会改写这些设置。应用不在它所在的电脑上提供
-Web 界面：Docker 网关提供界面，安卓 App 则向与服务器配对的设备显示它。
+Web 界面：Docker 网关把界面提供给浏览器；手机端应用则是同一 API 的原生客户端，有自己的界面。
 
 ```mermaid
 ---
@@ -476,22 +476,24 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
 控制文件是端到端构建的 `VFOX_PLUS_E2E_CONTROL`：工具往里写 `close`、`show` 或 `quit`，应用就做用户用关闭按钮和
 菜单的两个条目所做的事，并把文件删掉。mygo 的自动化插件没有关闭窗口的办法，Windows 也没有可发的信号。
 
-### 服务器与安卓客户端
+### 服务器与手机端应用
 
 给其他设备用的服务器（`mygo/pair` 包）提供一次性链接与会过期的会话。配对后的设备得到的是服务器的 API：
 已安装 SDK 的安装/使用/卸载、插件仓库的添加/更新/删除、带 server-sent events 实时进度与日志的任务、以及设置。
 服务器不提供页面，界面由网关提供（见下文）。界面使用的 HTTP 接口见[远端协议](remote-protocol.md)。
 
-Android 客户端（`android/`）连同一个服务器：它是包住 `/app` 的 WebView，
-配对流程是原生 Material 3 Expressive（粘贴或扫描设置里的配对链接、核对证书指纹），
-手机以此驱动 PC 上的 vfox-plus 实例。Web 界面本身遵循
-[设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），
-因为网关提供的是单个无外部请求的嵌入页面。网关在 `/manifest.webmanifest` 提供的 Web 应用清单
-让 Chromium 系浏览器能把该页面安装为应用，图标相同。
+手机端应用（`mygo/phone`）是同一个 API 的原生客户端，它没有自己的页面：它是为安卓构建的 mygo 应用，屏幕由 `ui/kit`
+的组件搭成，与桌面应用同一主题（种子色 `#F28C1B`）。它用电脑设置里的配对链接与电脑配对，配对前两边的证书指纹要由人对比，
+然后驱动那台电脑上的 vfox-plus 实例。[远端协议](remote-protocol.md#手机端应用)说明它怎样配对、保持会话与调用接口。
+它的包有 `remote`（API 的客户端）、`pairing`（配对链接与指纹）、`store`（保存的电脑及其会话）、`app`（连接与屏幕所示的数据）
+与 `screens`（界面）。
+
+Web 界面遵循[设计系统](design-system.md)（种子色、形状、动效），资源全部内联（favicon 也是），因为网关提供的是
+单个无外部请求的嵌入页面。网关在 `/manifest.webmanifest` 提供的 Web 应用清单让 Chromium 系浏览器能把该页面安装为应用，图标相同。
 
 ### 网关
 
-Docker 镜像（`mygo/Dockerfile`）是远端服务器的第二种客户端，与安卓 App 并列，而不是应用的一个实例。它的程序
+Docker 镜像（`mygo/Dockerfile`）是远端服务器的第二种客户端，与手机端应用并列，而不是应用的一个实例。它的程序
 是 `mygo/cmd/vfox-plus-gateway`，不接受任何参数；它的包是 `mygo/gateway`。它用 `mygo/pair` 的证书与指纹，
 不用窗口、界面库和 vfox，所以不需要 cgo 就能构建成一个约 10 MB 的静态二进制，镜像就是这个二进制放在
 `scratch` 上，再加机构证书和用户 10001 的主目录。想通过自己选定的地址（比如容器主机）使用某个 vfox-plus
@@ -533,7 +535,7 @@ flowchart LR
 
 - **两次配对，按协议来。** 浏览器用一次性链接（`/auth/connect/<token>`，五分钟，网关启动时打印）与网关配对，
   并持有自己的会话。它的 cookie 是 `vfox-plus-gateway` 而不是 `vfox-plus-session`：cookie 属于主机而不属于
-  端口，同一主机上网关与实例的 cookie 否则就成了同一个。网关与实例配对的方式和安卓 App 一样：人把实例的
+  端口，同一主机上网关与实例的 cookie 否则就成了同一个。网关与实例配对的方式和手机端应用一样：人把实例的
   配对链接粘贴到网关的页面上，网关查看证书（`certificateOf`），拿到的会话 cookie 归网关所有。系统根证书
   担保的证书直接信任；应用自己生成的证书则以指纹显示，与应用设置里的核对，只有人说两者一致才信任并固定。
   任何连接都不会跳过证书校验（不使用 `InsecureSkipVerify`）：被查看的证书取自一次校验失败的连接的错误，其中

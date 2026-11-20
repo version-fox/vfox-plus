@@ -1,49 +1,148 @@
-# The Android app
+# The phone app
 
 > [简体中文](../../zh-CN/user/android.md)
 
-The Android app drives the vfox-plus on your PC from your phone: it shows the
-same interface as the gateway does (see [Other devices and the lightweight mode](remote.md)). Links to other sites, such as the homepage of a plugin or its
-documentation, open in the browser of the phone.
+The phone app drives the vfox-plus on your PC from your phone. It is a native
+Android app, named vfox+ on the phone: it is not a web page in a window. It draws
+its own screens and calls the vfox-plus on your PC directly, so *Other devices*
+must be turned on there. Links to other sites, such as the homepage of a plugin,
+open in the browser of the phone.
 
-1. On the PC, open vfox-plus, go to *Settings → Other devices* and turn it on, then allow it.
-   Allow the port in the firewall of the PC.
-2. Download the `.apk` of the latest GitHub release to your phone, install it and open it. A newer release installs over the one on the phone and keeps the pairing. Only an APK signed with another key, such as one from a development build, must be uninstalled first, which forgets the pairing.
-3. Choose *Show code* next to *Pair a phone* on the PC, and scan the QR code with the
-   app, or copy the link and paste it into the app, and connect. If the PC uses a
-   certificate that it made itself, the app shows its fingerprint: compare it with the one
-   in the settings on the PC before accepting, exactly as you would in a browser.
-4. The app stays paired and reconnects automatically on the same network. If
-   pairing expires, or vfox-plus on the PC was restarted, scan a fresh code.
+## Install
 
-The app opens on the pairing screen, which says where to find the code on the PC
-(*Settings → Other devices → Pair a phone*): scan the QR code of the PC (Android
-asks for the camera once) or paste the link. A self-signed certificate shows its
-fingerprint first, to compare with the one on the PC.
+Install the `.apk` of the latest GitHub release, as [Install](install.md#android)
+describes. The phone app has the package name `dev.vfox.vfoxplus`, the same as the
+earlier Android client, which showed the web interface in a window. If Android
+refuses to install over that client, uninstall it first; that forgets the pairing,
+so pair the phone again afterwards.
 
-| The pairing screen | Scanning the QR code | The fingerprint of a self-signed certificate |
-| --- | --- | --- |
-| ![The pairing screen of the Android app, which says where to find the code on the PC](https://iili.io/nmsX1B1.png) | ![The scanner of the Android app, with the viewfinder and the toolbar](https://iili.io/nDQjIPn.png) | ![The dialog that shows the fingerprint of a self-signed certificate](https://iili.io/nDQjwNV.png) |
+## Pair the phone
 
-Once paired, the app shows the interface of the paired browser: the home page
-with the plugins in use, the SDKs with their versions, and the settings. The
-first card of the settings, *This phone*, pairs another link or disconnects the
-phone; the connections below it are the ones of the window of vfox-plus on the PC
-(see [Other devices](remote.md#other-devices)).
+The phone must reach the PC, on the same Wi-Fi or on another network route.
 
-| Home | An SDK | The settings, with the card of this phone and the connections |
-| --- | --- | --- |
-| ![The home page in the Android app](https://iili.io/nmiRUs2.png) | ![An SDK in the Android app: flutter, with its installed versions](https://iili.io/nmi5PBp.png) | ![The settings in the Android app: the card of this phone, and the connections of the PC](https://iili.io/nmbqY9s.png) |
+1. On the PC, open vfox-plus, go to *Settings → Other devices* and turn on
+   *Other devices*. Confirm with **Allow** (允许).
+2. Allow the port of other devices (8369 by default) in the firewall of the PC.
+3. On the PC, tap **Show code** (显示二维码) next to *Pair a phone*. The PC shows a
+   QR code and its link; **Copy link** (复制链接) copies the link.
+4. On the phone, open vfox+. The pairing page has three ways to get the link, side by
+   side.
 
-The app follows the dark theme of the phone. When it cannot reach the PC (vfox-plus
-stopped, other devices not allowed, another network, a firewall in the way), it says
-so and offers to try again or to pair a new link.
+   **Photo** (拍照) takes a photo of the code with the camera. Android asks for the
+   camera once. If you refuse, the app says *Camera access is off* and offers
+   **Open settings** (打开设置), or a picture instead. Point the camera at the code and
+   tap **Take the photo** (拍摄).
 
-| The pairing screen in the dark theme | Home in the dark theme | A PC that cannot be reached |
-| --- | --- | --- |
-| ![The pairing screen of the Android app in the dark theme](https://iili.io/nmsl6ap.png) | ![The home page in the Android app in the dark theme](https://iili.io/nmi7SFS.png) | ![The Android app when the PC cannot be reached](https://iili.io/nDQwkml.png) |
+   **Picture** (相册) chooses a picture of the code from the library of the phone.
+   Only PNG and JPEG pictures can be read.
 
-The app needs your PC reachable from the phone (same Wi-Fi or another network
-route) and the port of other devices (8369 by default) allowed through the PC
-firewall. Browsers can only set the global version; pinning versions to a
-project stays in the desktop application.
+   **Paste** (粘贴) pastes the link that you copied. Then tap **Connect** (连接). You can
+   also type or paste the link into the field *Pairing link* (配对链接) and tap
+   **Connect**.
+
+   A photo or a picture needs no **Connect**: the app checks the PC as soon as it reads
+   the code.
+
+5. The app checks the PC and shows *Trust this computer?* (信任这台电脑吗？) with the
+   SHA-256 fingerprint of the certificate of the PC. Compare it with the fingerprint
+   that the PC shows in *Settings → Other devices*, under *Link and certificate*
+   (链接与证书), after **Show code**.
+6. Only when the two fingerprints match, tap **Trust and pair** (信任并配对). The app
+   saves the address and the fingerprint of the PC and pins its certificate: from then
+   on it accepts that certificate only, and refuses any other one.
+
+The link works once and expires after five minutes. If the app says that the link is
+invalid, already used or expired, make a new one on the PC.
+
+The deep link `vfoxplus://pair?link=…` opens the pairing page with the link filled in,
+and checks the PC in the same way. It never pairs by itself: you still compare the
+fingerprint and tap **Trust and pair**.
+
+## The five tabs
+
+The bottom bar has five tabs: **Home** (主页), **SDKs** (SDK), **Plugins** (插件),
+**Tasks** (任务) and **Settings** (设置). They show what the desktop application
+shows, with the differences that [What differs from the desktop application](#what-differs-from-the-desktop-application)
+lists.
+
+**Home** shows the version of vfox with a refresh button, the SDKs in use, and the
+health check: its first five findings, with **Adopt** (纳入) or **Reinstall** (重装)
+where a finding offers them. Below them is the command for the terminal,
+`eval "$(vfox activate bash)"`, with a **Copy** (复制) button.
+
+**SDKs** lists the plugins that you have installed, with their current versions, and
+searches them. Open a plugin to see its detail, which has three tabs: **Installed**
+(已安装), which counts its versions; **Available** (可安装); and **Options** (选项),
+which appears when the plugin has options.
+
+Under **Installed**, each version offers **Use globally** (设为全局), **Reinstall**
+(重装), **Name alias** (命名别名) and **Uninstall** (卸载). Under **Available**, you
+search the versions and tap **Install** (安装) or **Install and use** (安装并使用).
+**Install by name…** (按名称安装…) installs a version that the list does not show, and
+**Detect and link** (探测并链接) and **Link existing…** (链接已有…) take the SDKs that are
+already on the PC under vfox-plus. Filter chips above the list narrow it. Under
+**Options**, you find **Plugin variables** (插件变量), each with **Change** (更改),
+**Version files** (版本文件), **Aliases** (别名), each with **Remove alias** (删除别名),
+**Notes** (须知) and **Documentation** (文档).
+
+**Plugins** lists the plugin registry. Search it, filter it with **All** (全部),
+**Official** (官方) or **Community** (社区), and tap **Install** (安装) on a plugin. Each
+card has a **Homepage** (主页) button, which opens the homepage in the browser.
+**Update all** (全部更新) updates the installed plugins, and **Add from source**
+(从来源添加) adds a plugin from a source URL (*Source URL*, 来源地址), with an optional
+alias.
+
+**Tasks** lists the changes that the PC runs as tasks, with their states. Tap a task to
+open its output, then use **Cancel** (取消), **Retry** (重试), **Full log** (完整日志) or
+**Copy log** (复制日志). **Clear finished** (清除已完成) forgets the finished tasks. The
+badge on the tab counts the tasks that are queued or running. When a task that was queued
+or running finishes while you look at another tab, a message says so, with **View**
+(查看), which opens Tasks.
+
+**Settings** has these sections, from the top:
+
+- **This phone** (这台手机): *Connected to* (已连接到) the address of the PC, with
+  **Pair a new link** (配对新链接) and **Disconnect** (断开连接).
+- **Connections** (连接): the **Other devices** (其他设备) switch. Turning it on asks
+  *Allow other devices?* (允许其他设备？) with **Allow** (允许). Turning it off asks
+  *Stop other devices?* (停止其他设备的访问？) with **Stop** (停止), and this phone loses its
+  connection too. Then come **Port** (端口), **Pair a phone** (配对手机) with **Show code**
+  (显示二维码), which shows the QR code of a pairing link for another device,
+  **Lightweight mode** (轻量模式), and **Quit vfox+** (退出 vfox+). Quitting asks for a
+  confirmation with **Quit** (退出); it ends vfox-plus on the PC, disconnects every device,
+  and cancels the tasks that run.
+- **Application** (应用): **vfox executable** (vfox 可执行文件), **Application language**
+  (应用语言), which the PC keeps, and **Interface language** (界面语言), which changes only
+  the screens of this phone. Both offer *system* (跟随系统), *English* and *简体中文*. Then
+  come **Environment variables** (环境变量), one `KEY=value` per line, saved with **Save**
+  (保存).
+- **vfox config** (vfox 配置): the settings of vfox on the PC; tap one to change it.
+
+## When the phone cannot reach the PC
+
+If the phone loses the PC, the app keeps trying. While the PC does not answer, a strip
+above the tabs says *The computer did not answer. Check the network, and that vfox+ runs
+on the computer.* and offers **Retry** (重试).
+
+If the session has ended, the pairing page shows *This phone must pair again* (需要重新配对).
+That happens after vfox-plus on the PC restarts, after *Other devices* is turned off, and
+when the session of 24 hours expires. Copy the new link on the PC, then on the pairing page
+tap **Paste** (粘贴) and **Connect** (连接).
+
+If the certificate of the PC has changed, the app refuses to connect and shows *The
+computer's certificate changed* (电脑的证书已经改变). Before you pair again, compare the
+fingerprint in the settings of the PC, as in step 5.
+
+The app follows the dark theme of the phone, and its text size and motion follow the
+system's settings.
+
+## What differs from the desktop application
+
+- **Plugins** are added from a source URL only. The phone cannot add a plugin from a
+  `.zip` archive or a `.lua` script.
+- **The camera** takes a photo of the code. It does not scan the code live.
+- **Versions** are set globally only, with **Use globally**. The phone cannot pin a
+  version to a project or copy an install path.
+- **The certificate, the public address and the public tunnel** are set on the PC only.
+- **Disconnect** forgets the PC on this phone only. The PC keeps the session until it
+  expires, after 24 hours; the PC does not revoke it.

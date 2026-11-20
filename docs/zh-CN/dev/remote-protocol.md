@@ -3,7 +3,7 @@
 > [English](../../en/dev/remote-protocol.md)
 
 本文规定给其他设备用的服务器（`mygo/pair`，应用在设置要求时运行）的 HTTP 接口：Docker 网关（`mygo/gateway`）
-与 Android 客户端（`android/`）都按它编程。这个服务器只提供 API；Web 界面是一个由网关提供的单页面
+与手机端应用（`mygo/phone`）都按它编程。这个服务器只提供 API；Web 界面是一个由网关提供的单页面
 （见[Web 界面](#web-界面)）。实现在 `mygo/pair/pair.go`（`Server`）、`host.go`（`Host`）、`web.go` 与 `webapi.go`。
 
 ## 概念
@@ -31,7 +31,7 @@
 
 设置里的配对二维码是远端服务器的配对链接，链接里带本机在某个网络上的地址（`Host.RemoteLink`），
 画成二维码（`mygo/pair.QRMatrix`；Web 界面的页面通过 `POST /api/web/pairing` 拿到 SVG 形式），
-供安卓 App 扫描免输入。其他设备默认关闭：设置在把电脑开放给网络之前先要求确认。
+供手机端应用从照片或图片中读取，免去输入。其他设备默认关闭：设置在把电脑开放给网络之前先要求确认。
 
 ## Web 界面
 
@@ -217,35 +217,42 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
 
 远端服务器一律 HTTPS，`NewServer` 没有证书就拒绝监听回环之外的地址。设置里没有 `webCertificate`
 与 `webKey` 时，应用在第一次允许其他设备时在设置旁生成自签名证书对
-（`mygo/pair/tlscert.go`），设置里显示它的 SHA-256 指纹。浏览器与安卓 App 在
+（`mygo/pair/tlscert.go`），设置里显示它的 SHA-256 指纹。浏览器与手机端应用在
 信任证书前必须展示该指纹供核对。自带证书可免去警告。会话 cookie 恒为
 `Secure`：回环来源可信，浏览器在纯 HTTP 回环上也会送回它。
 
-## Android 客户端
+## 手机端应用
 
-`android/` 是包住本协议的薄原生套壳：
+`mygo/phone` 是本协议的原生客户端，面向安卓。它没有页面，也没有网页视图：屏幕是 mygo 自己的，它通过本文档的路由读取和修改电脑。
+它一次只保存一台电脑。
 
-- **配对流程**是原生的（Material 3 Expressive）：粘贴配对链接（或扫码）、展示
-  TLS 指纹供核对、持久化会话 cookie。
-- **主内容**是 `/app` 的 WebView，打开文件上传（供插件 `.zip`/`.lua` 文件），
-  下拉等交互留给页面。
-- 页面与 App 通过 `window.vfoxAndroid` 对话：它是 App 加进 WebView 的对象（`WebBridge`），别的客户端没有，所以页面
-  找到它就知道自己运行在 App 里：
-  - `insets()` 以 `"top,right,bottom,left,keyboard"` 返回安全区（CSS 像素）：系统栏与刘海遮住的部分，以及键盘打开时的
-    高度。页面把前四个值写进 CSS 变量 `--sai-top`、`--sai-right`、`--sai-bottom`、`--sai-left`（在浏览器里它们是
-    `env(safe-area-inset-*)`，而 WebView 并非每个版本都给出），键盘打开时给根元素加上 `kb`。边距变化时 App 再次调用
-    `window.vfoxInsets()`。
-  - `server()` 返回已配对服务器的地址（scheme 与 authority）。
-  - `pairNew()` 与 `disconnect()` 离开会话回到配对屏；后者先忘掉服务器与会话 cookie。页面的设置在**这台手机**卡片上
-    提供这两项，只有 App 才显示这张卡片。
-- 它按本文档编程，不直连 Go 代码：列表用总览，进度用 `/api/tasks` +
-  `/api/events`，动作用 POST 路由。
+- **配对。** 人把电脑在 *设置 → 连接 → 其他设备 → 配对手机* 中显示的配对链接交给手机：粘贴，或用相机读取二维码（*拍照*），
+  或从二维码的图片读取（*相册*），或打开深链 `vfoxplus://pair?link=…`。深链只把链接填好并开始检查；只有人点击 *信任并配对*，
+  手机才会配对。链接的形式是 `https://host[:port]/auth/connect/<token>`，省略 scheme 的 `host[:port]/auth/connect/<token>` 也按 https 处理。
+  带查询、片段、用户信息或别的路径的链接，在发出任何请求之前就被拒绝。
+- **指纹。** 信任电脑之前，手机先经 TLS 连接一次（不核查证书链），把证书的 SHA-256 指纹按电脑显示的形式展示：32 组大写十六进制数字，
+  以冒号分隔。人把它与电脑 *其他设备* 下的指纹对比。之后 *信任并配对* 调用 `GET /auth/connect/<token>`，走的连接只接受指纹相同的叶证书，
+  不查系统根证书。手机保存电脑的主机名、地址与这个指纹；之后每次连接都必须出示同一张证书。证书不同时连接被拒绝，配对页会说明电脑的证书已经改变。
+- **会话。** 配对成功时，接口以 `204 No Content` 应答，并设置会话 cookie `vfox-plus-session`。手机把它的值保存在应用私有目录的一个文件里，
+  权限为 `0600`，与保存的地址和指纹分开（后两者不是机密）。每次调用与事件流都带上这个 cookie；手机不跟随重定向，所以 cookie 只发给电脑的地址。
+  *设置 → 这台手机* 里的 *断开连接* 会在手机上忘掉电脑与会话。API 没有结束电脑上会话的调用，所以手机不要求电脑结束它。
+- **事件。** 应用在前台时，手机带着会话保持 `GET /api/events` 打开，读取其中的 `event:` 行。每种类型把它所指的资源标记为过期：
+  `hello`（全部，并且手机已配对）、`task`（任务）、`inventory`（清单、SDK 的版本、配置档案、别名与插件信息，以及健康检查）、
+  `vfox`（清单与健康检查）与 `web`（其他设备的连接方式）。事件不带数据：屏幕下次读取时才重新加载资源。应用进入后台时流结束；
+  回到前台时手机重新连接，并把一切重新加载。流断开后三秒重试一次。应答 `401` 表示电脑不再接受这个会话，手机会要求人重新配对。
+- **调用。** 手机读取 `GET /api/inventory`、`GET /api/doctor`、SDK 的 `info`、`versions`、`profile` 与 `aliases` 路由、
+  `GET /api/tasks` 与 `GET /api/tasks/<id>` 及其 `/log`，以及 `GET /api/settings` 与 `GET /api/web`。它用本文档的其他路由改变电脑：
+  `POST /api/tasks` 启动任务，如安装、使用或卸载（见[任务](#任务)）；`POST /api/plugins` 添加插件；`PUT /api/sdks/<name>/search` 与
+  `PUT /api/sdks/<name>/variables` 设置 SDK 的搜索与环境变量；`PUT` 与 `DELETE /api/config` 设置与重置一个 vfox 键；
+  `PUT /api/settings` 与 `PUT /api/web` 修改设置与其他设备的连接方式；`POST /api/web/pairing` 为另一台设备制作配对链接，
+  手机以文字和二维码展示它；`POST /api/quit` 退出电脑上的应用，须经人确认。一次调用最多等待 150 秒，比服务器等 vfox 两分钟后应答 `504` 的时间更长。
+  手机接受最多 64 MiB 的应答，即最大的应答：完整的任务日志。
 
 ## 网关
 
 `mygo/gateway`（Docker 镜像，见[网关](architecture.md#网关)）把某个实例的界面，经 HTTPS 在 8080 端口提供给与它
 配对的浏览器。它把本协议用了两次。对浏览器它是服务器：同样的一次性链接（`/auth/connect/<token>`，五分钟）
-和会话（24 小时），cookie 是 `vfox-plus-gateway`。对某个实例的远端服务器它是客户端，和安卓 App 一样：人粘贴
+和会话（24 小时），cookie 是 `vfox-plus-gateway`。对某个实例的远端服务器它是客户端，和手机端应用一样：人粘贴
 的配对链接、会话 cookie `vfox-plus-session`，以及由根证书或指纹信任的证书。
 
 | 路由 | 由谁应答 | 说明 |

@@ -267,8 +267,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
   一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔
   （`:` 与 `;`）、vfox 查找（`vfox` 与 `vfox.exe` 及 Windows 回退目录）、设置位置
   （`~/.config` 与 `%APPDATA%`）。
-- **`.apk` 在 `android/`，不在此。**mygo 无 Android 后端，界面不能是由本代码构建的
-  原生 Android 应用。Android 客户端是包住应用界面的
-  WebView：手机经[远端协议](remote-protocol.md)驱动 PC 上的 vfox-plus 实例，
-  所示 Web 界面遵循[设计系统](design-system.md)（见
-  [远端前端](architecture.md#远端前端)）。
+- **手机端应用是 `mygo/phone`，不在此。**它的屏幕是 mygo 自己的，由 `ui/kit` 搭成，不是安卓 View，也不是 WebView。
+  mygo 用 `mygo build -platform android` 为应用写出安卓工程，所以 APK 由本代码构建，见[手机端打包](packaging-android.md)。
+  手机经[远端协议](remote-protocol.md#手机端应用)驱动 PC 上的 vfox-plus 实例，它的屏幕遵循[设计系统](design-system.md#手机端应用)
+  （见[远端前端](architecture.md#远端前端)）。

@@ -34,7 +34,7 @@ config:
 ---
 flowchart TB
     accTitle: Repository layout
-    accDescr: docs holds the documentation, shared the resources used by the application, mygo the application and the gateway of the Docker image, android the Android client, and .github the CI workflows.
+    accDescr: docs holds the documentation, shared the resources used by the application, mygo the application, the gateway of the Docker image and the phone app, and .github the CI workflows.
     subgraph docs["<b>docs/</b> · all documentation, by language, then by audience"]
         direction LR
         d1("<b>en/user/</b><br/>user guides: install, use,<br/>remote and Android") ~~~ d2("<b>en/dev/</b><br/>developer specification<br/>(this document lives here)") ~~~ d3("<b>zh-CN/user/</b><br/>Simplified Chinese<br/>user guides") ~~~ d4("<b>zh-CN/dev/</b><br/>Simplified Chinese<br/>developer specification")
@@ -46,7 +46,7 @@ flowchart TB
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
         direction LR
-        m("<b>mygo/</b><br/>the desktop application and its server<br/>for other devices (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+        m("<b>mygo/</b><br/>the desktop application and its server<br/>for other devices (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>mygo/phone/</b><br/>the phone app: a native application<br/>of mygo for Android") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
     end
     docs ~~~ shared ~~~ code
 
@@ -369,8 +369,8 @@ The application is a desktop application and has no command line: it takes no ar
 what else it does is a matter of its settings. One of them is whether other devices may connect.
 The package `mygo/pair` holds the server for them, and a `Host` runs it as the settings say; the
 window and the pages of the paired devices both write those settings. The application shows no
-web interface on the computer it runs on: the Docker gateway serves the interface, and the
-Android app shows it, to the devices that pair with the server.
+web interface on the computer it runs on: the Docker gateway serves the interface to browsers, and the
+phone app is a native client of the same API, with screens of its own.
 
 ```mermaid
 ---
@@ -598,7 +598,7 @@ into it, and the application does what the user does with the close button and w
 menu, and removes it. The automation plugin of mygo has no way to close a window, and Windows has no signal to
 send for it.
 
-### The servers and the Android client
+### The servers and the phone app
 
 The server for other devices (package `mygo/pair`) serves one-time links and expiring
 sessions. A paired device gets the API of the server: installed SDKs with
@@ -607,19 +607,25 @@ progress and logs over server-sent events, and the settings. The server serves n
 page: the interface is the gateway's (see below). The HTTP surface that the interface
 uses is specified in [the remote protocol](remote-protocol.md).
 
-The Android client (`android/`) connects to the same server: it is a WebView
-around `/app`, with a native Material 3 Expressive pairing flow (paste or scan the
-pairing link of the settings, compare the certificate fingerprint), so a phone drives the
-vfox-plus instance on a PC. The interface itself follows the
-[design system](design-system.md) (seed colour, shapes, motion) with inlined
-assets, the favicon among them, because the gateway serves a single
+The phone app (`mygo/phone`) is a native client of the same API, and it has no page of
+its own. It is a mygo application for Android, whose screens are built from the components
+of `ui/kit` in the theme of the desktop application (seed colour `#F28C1B`). It pairs with a
+computer through the pairing link of the computer's settings, after the person has compared
+the certificate fingerprint on both screens, and then drives the vfox-plus instance on that
+computer. The [remote protocol](remote-protocol.md#the-phone-app) specifies how it pairs,
+keeps its session and makes its calls. Its packages are `remote` (the client of the API),
+`pairing` (the link and the fingerprint), `store` (the saved computer and its session),
+`app` (the connection and the data that the screens show) and `screens` (the interface).
+
+The web interface follows the [design system](design-system.md) (seed colour, shapes, motion)
+with inlined assets, the favicon among them, because the gateway serves a single
 embedded page with no external requests. The gateway serves a web app manifest at
 `/manifest.webmanifest`, which lets Chromium browsers install the page as an application
 with the same icon.
 
 ### The gateway
 
-The Docker image (`mygo/Dockerfile`) is a second client of the remote server, next to the Android app,
+The Docker image (`mygo/Dockerfile`) is a second client of the remote server, next to the phone app,
 and not an instance of the application. Its program is `mygo/cmd/vfox-plus-gateway`, which takes no
 arguments, and its package is `mygo/gateway`. It uses `mygo/pair` for the certificates and their
 fingerprints and nothing of the window, the toolkit or vfox, so it builds without cgo into one static
@@ -665,7 +671,7 @@ flowchart LR
   (`/auth/connect/<token>`, five minutes, printed when the gateway starts) and holds a session of its
   own. Its cookie is `vfox-plus-gateway` and not `vfox-plus-session`: cookies belong to a host and
   not to a port, so the cookie of a gateway and that of an instance on the same host would be one. The
-  gateway pairs with an instance as the Android app does: a person pastes a pairing link of the instance
+  gateway pairs with an instance as the phone app does: a person pastes a pairing link of the instance
   on the page of the gateway, the gateway looks at the certificate (`certificateOf`), and the session
   cookie it gets is the gateway's. A certificate that the roots of the system vouch for is trusted;
   the one that the application makes for itself is shown as a fingerprint to compare with the settings

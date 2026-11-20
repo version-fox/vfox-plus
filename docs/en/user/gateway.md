@@ -3,10 +3,12 @@
 > [简体中文](../../zh-CN/user/gateway.md)
 
 The Docker image is not vfox-plus in a container: it has no vfox, no window and no SDKs of
-its own, and it takes no arguments. It is a *gateway*. Like the [Android app](android.md), it
+its own, and it takes no arguments. It is a *gateway*. Like the [phone app](android.md), it
 connects to one vfox-plus that runs on a computer (with *Other devices* turned on, see
 [Other devices and the lightweight mode](remote.md)), and shows the interface of that vfox-plus
-to the browsers that you pair with the gateway. Use it to put the interface at
+to the browsers that you pair with the gateway. To those browsers it is a server: it serves
+the web interface, and it forwards what that interface asks to the vfox-plus. To the
+computer it is a client, as the phone app is. Use it to put the interface at
 an address of your choice, for example on a container host that your browsers reach and your
 phone does not.
 
@@ -67,11 +69,11 @@ not running, the interface says that it cannot be reached.
 
 Good to know:
 
-- **A vfox-plus on the same computer.** The link for other devices works from the container:
-  it is an address of the PC on the network, and a link that names `127.0.0.1` or `localhost`
-  names the container itself, which does not reach the PC. On Linux, run the container with
-  `--network host` instead of `-p`, so that the gateway shares the network of the computer; it
-  then listens on port 8080 of the computer.
+- **A vfox-plus on the same computer.** It needs no `--network host`: keep the mapped port
+  (`-p`). Its pairing link names an address of the computer on the network, never `127.0.0.1`
+  or `localhost`, which would name the container itself, so the container reaches the computer
+  with that address, as it reaches any other computer. If the firewall of the computer blocks
+  the container, allow the port of other devices (8369 by default) for it too.
 - **A certificate of your own.** Put a certificate that browsers trust in the volume, as
   `cert.pem` and `key.pem` (PEM files), and the gateway serves with it and makes none of its
   own.

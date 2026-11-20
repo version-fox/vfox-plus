@@ -358,10 +358,9 @@ adds 5 MB because only the rows in view are built.
   splitting (`:` vs `;`), vfox lookup (`vfox` vs `vfox.exe` with Windows fallback
   directories) and the settings location (`~/.config` vs `%APPDATA%`) follow the
   platform.
-- **`.apk` lives in `android/`, not here.** mygo has no Android backend, so the
-  interface cannot be a native Android app built from this code. The Android
-  client is a WebView around the interface of the application: the phone
-  drives the vfox-plus instance on the PC over the
-  [remote protocol](remote-protocol.md), and the interface it shows follows
-  the [design system](design-system.md) (see
-  [Remote front ends](architecture.md#remote-front-ends)).
+- **The phone app is `mygo/phone`, not here.** Its screens are mygo's own, built from `ui/kit`, and
+  not an Android View or a WebView. mygo builds the Android project of the app with
+  `mygo build -platform android`, so the APK is made from this code, as
+  [Packaging the phone app](packaging-android.md) describes. The phone drives the vfox-plus instance
+  on the PC over the [remote protocol](remote-protocol.md#the-phone-app), and its screens follow the
+  [design system](design-system.md#phone-app) (see [Remote front ends](architecture.md#remote-front-ends)).

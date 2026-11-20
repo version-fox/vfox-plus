@@ -339,3 +339,33 @@ Grouped in segmented lists:
 - All motion stops or becomes instantaneous when the platform asks for reduced
   motion.
 - Text follows the platform text scale; layouts wrap rather than clip.
+
+## Phone app
+
+The phone app ([`mygo/phone`](../../../mygo/phone)) shows the five tabs of the window with the same
+names and icons: Home, SDKs, Plugins, Tasks and Settings. On a phone they are a navigation bar at the
+bottom of the screen, as the compact layout above describes. The tasks tab shows the same badge of
+queued and running tasks.
+
+The pages above the tabs are the detail of an SDK, a task with its output, the full log of a task, and
+the pairing page. A paired phone shows nothing above the tabs, except while it checks the saved computer
+(*Connecting to the computer…*, with a progress indicator). When the computer does not answer, a bar above
+the tabs says *The computer did not answer. Check the network, and that vfox+ runs on the computer.* and
+offers *Retry*; the tabs stay on the screen.
+
+The pairing page is shown when the phone has no computer, when it must pair again (*This phone must pair
+again*), when the computer's certificate changed (*The computer's certificate changed*), and as a page above
+the tabs for *Pair a new link*. It has a short explanation (*How to pair*) and a field for the pairing link,
+which three buttons fill: *Paste*, *Photo* (the camera reads the code) and *Picture* (an image of the code).
+*Connect* checks the computer and opens the dialog *Trust this computer?*. The dialog shows
+*Checking the computer…* while the check runs, then the fingerprint of the certificate, with *Cancel* and
+*Trust and pair*. A line in red warns when the fingerprint is not the one paired before. The phone pairs
+only when the person chooses *Trust and pair*.
+
+Settings holds the connections of other devices (*Connections*: *Other devices*, with the port and the
+lightweight mode; *Pair a phone*; and *Quit vfox+*, which quits the application on the computer), the card
+*This phone* (the computer it is paired with, *Pair a new link* and *Disconnect*), and the language of the
+phone. The language of the phone is a preference of its own: it follows the system's languages, or one of
+English and Simplified Chinese. The language of the computer is set on the computer.
+
+Its components, colours, shapes and springs are the desktop's; see [the design system](design-system.md#phone-app).

@@ -23,10 +23,11 @@ defines them.
   `surfaceContainerHighest`. Primary, secondary and tertiary containers mark the
   avatars.
 - Destructive actions use `error`.
-- The web interface (the `--m3-*` variables of `mygo/gateway/webapp.html`) and the
-  Android app (`values/colors.xml` and `values-night/colors.xml`) hold the 48 roles
-  of the scheme as literal values, and `go test ./pair` in `mygo` fails when they
-  are not the roles that `mygo/ui/mcu` computes for the seed.
+- The web interface (the `--m3-*` variables of `mygo/gateway/webapp.html`) holds the 48 roles
+  of the scheme as literal values, and the test `TestTheColoursOfThePageAreTheSchemeOfTheSeed`
+  in `mygo/gateway` fails when they are not the roles that `mygo/ui/mcu` computes for the seed.
+  The phone app holds no table of colours: it computes the scheme from the same seed, with the
+  same `ui/kit`, for the light or the dark appearance that the system shows.
 
 mygo: `PaletteFor` in `mygo/ui/kit/theme.go`, computed from `mygo/ui/mcu` (a
 Go port of the Material colour utilities, tonal spot).
@@ -136,8 +137,7 @@ person to understand, to judge or to act; what the layout already says is not sa
 
 ### Budgets
 
-The census of a screen is taken by `webheap -audit` for the web interface, which the Android
-app shows as well, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
+The census of a screen is taken by `webheap -audit` for the web interface, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
 ([how to take them](contributing.md#auditing-the-interface)). The test draws 39 scenes in
 fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
@@ -279,7 +279,7 @@ vfox-plus uses the **expressive** scheme:
 | Navigation rail expanding and collapsing             | default spatial   |
 | Navigation indicator growing, icon fill              | fast spatial / fast effects |
 | Dialogs scaling in                                   | default spatial (scale), default effects (fade) |
-| Page transitions (fade through, shared axis)         | slow effects in the web interface and the Android app; none on the desktop |
+| Page transitions (fade through, shared axis)         | slow effects in the web interface; none on the desktop and in the phone app |
 | Progress of the wavy indicator, wave amplitude        | default spatial / default effects |
 | Loading indicator morph                              | 0.6 / 200, every 650 ms, plus a 4666 ms rotation |
 
@@ -303,16 +303,15 @@ variables from `kit.Expressive` and fails, printing the lines to paste, when the
 differ, and when a declaration has a duration or a curve of its own (the wavy
 progress and the loading indicator, which run until the work is done, are the
 exception). A browser without `linear()` keeps the Bézier curves that the page
-had before. The Android app takes the springs from its theme (`motionSpring*`):
-`SpringAnimation` for what moves and a `SpringInterpolator` for the transitions
-of its screens.
+had before. The phone app takes the springs from the same theme. When the system asks for less
+motion, it follows that, as the desktop does: its springs jump to their target.
 
 mygo: the springs and `AnimateTo` in `mygo/ui/kit/motion.go`, drawn only while
 they move, so the window is idle when nothing changes.
 
 ### Transitions
 
-On the desktop none of these is drawn, for the memory that the layers cost (see
+On the desktop and in the phone app none of these is drawn, for the memory that the layers cost (see
 above).
 
 - Between top-level destinations: **fade through**.
@@ -329,15 +328,15 @@ A frame has 8.3 ms at 120 Hz, and every client keeps within it:
   in virtual machines and WSL), a transition that scales redraws every pixel of the page
   in each frame and takes 10 to 40 ms, which is why the toolkit's transitions only fade
   there (`kit.Env.Software`, set from `Painter.Accelerated`).
-- Web interface and the Android app, which shows it in a WebView: animate
+- Web interface: animate
   `transform` and `opacity`, which the compositor runs without the main thread
   of the page, and not `left`, `top` or `height`. A long list sets
   `content-visibility: auto`, so that opening its page lays out only what is on
   the screen (the plugin cards took 58 ms to lay out on a phone six times slower
   than a desktop, 16 ms with it).
-- Android: many phones keep ordinary windows at 60 Hz, so the app asks for the
-  display mode with the highest refresh rate at the current resolution
-  (`HighRefreshRate.kt`).
+- Android: many phones keep ordinary windows at 60 Hz, so mygo's Android host asks the
+  display for its highest refresh rate, with `Surface.setFrameRate` on Android 11 and later
+  (`SurfaceWindow.kt` of mygo), and the phone app runs in that host.
 
 ## Components
 
@@ -410,26 +409,10 @@ application carries no icon font; the fill that the navigation and the buttons
 animate is the cross-fade of the outlined and the filled icon, and the SVGs
 (about 60 KB) are parsed when an icon is first drawn.
 
-The Android app draws the same symbols as vector drawables, which nothing in the
-repository holds or generates: they are the Android XML that
-[google/material-design-icons](https://github.com/google/material-design-icons)
-publishes for each symbol (Apache-2.0, like the repository), and the build imports
-them. That repository keeps them in git, not as a library, so `settings.gradle.kts`
-has an Ivy repository over its raw files, for the group `symbols` and for nothing
-else, and `app/build.gradle.kts` lists the symbols with the commit
-(`10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`, of 2026-10-23) as
-dependencies, `symbols:SYMBOL:COMMIT@xml`, with the classifier `fill1` for a filled
-one: the files `symbols/android/SYMBOL/materialsymbolsrounded/SYMBOL_24px.xml` and
-`SYMBOL_fill1_24px.xml`. Gradle fetches them once into its cache, which a build
-offline uses afterwards, and a task for each variant (`copyMaterialSymbolsRelease`,
-`copyMaterialSymbolsDebug`) puts them, unchanged, as `ic_NAME.xml` among the generated
-resources that the Android plugin merges with the others
-(`app/build/generated/res/copyMaterialSymbolsRelease/drawable`). A file has the colour of the
-theme (`colorControlNormal`) unless a view tints it, and Google marks the symbols that
-turn around in a right-to-left language (`autoMirrored`, here `copy`, `forward` and
-`help`). The app uses `ic_close` (`close`), `ic_copy` (`content_copy`), `ic_forward` (`arrow_forward`), `ic_help` (`help`), `ic_history` (`history`), `ic_keyboard` (`keyboard`), `ic_link` (`link`), `ic_lock` (`lock`), `ic_paste` (`content_paste`), `ic_retry` (`replay`), `ic_scan_qr` (`qr_code_scanner`), `ic_torch_off` (`flashlight_off`), `ic_torch_on_fill` (`flashlight_on`, filled) and `ic_unreachable` (`cloud_off`). They and the npm package above are two copies of one
-set, Material Symbols Rounded at weight 400 and 24 px, so the interfaces look the
-same.
+The phone app draws the same symbols from the same SVGs: its build embeds the icons that
+`shared/icons.json` names, as the desktop application does, and `ui/kit` draws them in the colour
+of the text. Nothing is added for the phone app. Its launcher icon has another source, drawn by
+`vfxtool appicon` ([Application icon](#application-icon)).
 
 ### Application icon
 
@@ -459,11 +442,10 @@ One drawing serves every platform:
 | Platform | Files | Notes |
 | --- | --- | --- |
 | Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | The master, on a squircle plate. `vfxtool build-deb` installs it as the scalable icon. The AppStream metadata next to it names the colours that software centres put behind the icon: `#FFDCC1` for the light and `#6B3B04` for the dark theme, the primary containers of the colour scheme of the vfox orange (the `--m3-primary-container` of the web interface). |
-| Android launcher | `ic_launcher_background.xml`, `ic_launcher_foreground.xml` and `ic_launcher_monochrome.xml` in [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) | The adaptive icon: the launcher masks the full-bleed plate and the fox. The monochrome layer, for the themed icons of Android 13, has the cheeks at half strength and the eyes and the nose cut out. |
-| Android pairing screen | `ic_mark.xml` in the same directory | The master as a vector drawable. |
+| Android launcher | `icon.png` and `icon-foreground.png` in [`mygo/phone/resources`](../../../mygo/phone/resources), written by `vfxtool appicon mygo/phone/resources` and named by [`mygo/phone/mygo.json`](../../../mygo/phone/mygo.json) | The launcher icon, and the adaptive icon of Android 8.0 and later: the foreground is the full-bleed plate with the halo and the fox, and the background `#1B1268` shows where a launcher moves the foreground. The adaptive icon has no monochrome layer: `mygo.json` names only the foreground and the background. |
 | Windows | `Assets/*.png` in the `.msix` | Drawn by `vfxtool build-msix` from the same paths ([`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)), because no image is committed. |
 | Web interface | [`mygo/gateway/favicon.svg`](../../../mygo/gateway/favicon.svg) | The plate and the fox without the halo, and the fox larger, which still reads at 16 px. Every page of the gateway inlines it as a data URI (`favicon.go`), so that the pages make no request for an icon; the web interface shows it as the brand mark of its navigation rail, and its web app manifest names it as the icon of the installed application (an SVG icon of the size `any` is one that Chromium accepts for installing). |
 
-The SVG is the master: the vector drawables, `appicon` and the favicon repeat its
-paths, and `go test` in `shared/tooling` (the first two) and in `mygo/gateway` (the
+The SVG is the master: the icons that `appicon` draws (the phone app's, and the Windows tiles) and the
+favicon repeat its paths, and `go test` in `shared/tooling` (for `appicon`) and in `mygo/gateway` (for the
 favicon) fails when they differ.

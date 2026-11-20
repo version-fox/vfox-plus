@@ -17,8 +17,9 @@ vfox-plus 遵循 [Material 3 Expressive](https://m3.material.io/)——2025 年 
   `surfaceContainer`，突出卡片 `surfaceContainerHighest`。主、次、第三容器标记
   头像。
 - 危险操作用 `error`。
-- Web 界面（`mygo/gateway/webapp.html` 的 `--m3-*` 变量）与 Android 应用（`values/colors.xml`、`values-night/colors.xml`）以字面值存放
-  方案的 48 个角色，它们与 `mygo/ui/mcu` 按种子算出的角色不同时，`mygo` 里的 `go test ./pair` 会失败。
+- Web 界面（`mygo/gateway/webapp.html` 的 `--m3-*` 变量）以字面值存放方案的 48 个角色，它们与 `mygo/ui/mcu` 按种子算出的角色不同时，
+  `mygo/gateway` 里的测试 `TestTheColoursOfThePageAreTheSchemeOfTheSeed` 会失败。手机端应用不存放颜色表：它与桌面应用用同一个 `ui/kit`，
+  按种子为系统给出的浅色或深色外观现算方案。
 
 mygo：`mygo/ui/kit/theme.go` 的 `PaletteFor`，由 `mygo/ui/mcu`（Material 颜色工具的 Go
 移植，tonal spot）计算。
@@ -104,7 +105,7 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
 
 ### 预算
 
-一个屏幕的普查，网页界面（安卓应用显示的也是它）由 `webheap -audit` 做，桌面应用由
+一个屏幕的普查，网页界面由 `webheap -audit` 做，桌面应用由
 `TestTheScreensAreWithinTheBudgets` 做（[怎么做](contributing.md#审查界面)）。这个测试在十四种窗口里画 39 个场景：
 1280 dp 宽的浅色和深色，700、412 和 360 dp 宽（应用能打开的最窄窗口），系统把文字放大之后的六种：
 360 dp 宽的 130 % 和 150 %，412 dp 宽的 150 %，以及 360、700 和 1280 dp 宽的 200 %，还有三种中文窗口：360 dp 宽的 100 % 和 200 %，
@@ -215,7 +216,7 @@ vfox-plus 使用 **expressive** 方案：
 | 导航栏展开收起 | default spatial |
 | 导航指示器生长、图标填充 | fast spatial / fast effects |
 | 对话框缩放进入 | default spatial（缩放）、default effects（淡入） |
-| 页面切换（fade through、shared axis） | Web 界面与 Android 应用用 slow effects；桌面没有 |
+| 页面切换（fade through、shared axis） | Web 界面用 slow effects；桌面与手机端应用都没有 |
 | 波浪进度、波幅 | default spatial / default effects |
 | 加载指示器形变 | 0.6 / 200，每 650 ms 一次，加 4666 ms 旋转 |
 
@@ -227,14 +228,13 @@ Web 界面就是这样的 API：CSS 只有时长和曲线，没有弹簧。它�
 `--sp-NAME` 是阶跃响应采样成的 `linear()` 曲线，取尽量少的采样点，使折线与曲线相差不超过 0.6 %。每个 `transition` 与
 `animation` 的时间和曲线都取自它们；对话框在淡入（default effects）的同时缩放进入（default spatial），所以是两个动画。
 `mygo/gateway` 的一个测试按 `kit.Expressive` 重新计算这些变量，它们不同、或某条声明带着自己的时长或曲线时失败，并打印该粘贴
-的行（一直运行到工作结束的波浪进度与加载指示器除外）。没有 `linear()` 的浏览器沿用此前页面的贝塞尔曲线。Android 应用从主题
-（`motionSpring*`）取弹簧：会动的东西用 `SpringAnimation`，屏幕之间的转场用 `SpringInterpolator`。
+的行（一直运行到工作结束的波浪进度与加载指示器除外）。没有 `linear()` 的浏览器沿用此前页面的贝塞尔曲线。手机端应用与桌面一样从同一主题取弹簧；系统要求减少动态效果时，它也照做，弹簧直达目标。
 
 mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，静止时窗口空闲。
 
 ### 转场
 
-桌面上这些转场都不画，因为图层占内存（见上）。
+桌面与手机端应用上这些转场都不画，因为图层占内存（见上）。
 
 - 顶级目的地之间：**fade through**。
 - 窄窗口 SDK 列表到 SDK：**shared axis** 横向。
@@ -248,12 +248,12 @@ mygo：`mygo/ui/kit/motion.go` 的弹簧与 `AnimateTo`，只在动时绘制，�
 - mygo：工具包按显示器的刷新率出帧。桌面有变化才出帧（见动效）。窗口由 CPU 绘制时（没有
   GPU，如虚拟机和 WSL），带缩放的转场每帧要重绘整页的每个像素，耗时 10 到 40 ms，所以工具包的
   转场在那里只做淡入淡出（`kit.Env.Software`，由 `Painter.Accelerated` 设置）。
-- Web 界面与用 WebView 显示它的 Android 应用：动画用 `transform` 和 `opacity`，由合成器
+- Web 界面：动画用 `transform` 和 `opacity`，由合成器
   执行、不占页面主线程；不要动画 `left`、`top`、`height`。长列表设置
   `content-visibility: auto`，打开页面时只布局屏幕上的部分（插件卡片在比桌面慢六倍的
   手机上布局要 58 ms，设置后 16 ms）。
-- Android：很多手机让普通窗口停在 60 Hz，所以应用请求当前分辨率下刷新率最高的显示
-  模式（`HighRefreshRate.kt`）。
+- Android：很多手机让普通窗口停在 60 Hz，所以 mygo 的安卓宿主（`SurfaceWindow.kt`，mygo v0.10.0）在 Android 11 及以后
+  用 `Surface.setFrameRate` 请求显示器的最高刷新率，手机端应用运行在这个宿主里。
 
 ## 组件
 
@@ -310,17 +310,8 @@ grade 0、optical size 24：选中导航目的地图标填充（`FILL` 1），�
 mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；导航与按钮的填充动画是描边与填充两个图标的
 交叉淡入淡出，SVG（共约 60 KB）在首次绘制某图标时才解析。
 
-Android 应用把同样的符号画成矢量图，仓库里没有任何东西保存或生成它们：它们是
-[google/material-design-icons](https://github.com/google/material-design-icons)
-为每个符号发布的 Android XML（Apache-2.0，与本仓库相同），由构建导入。那个仓库把它们放在 git 里，不当作库发布，所以
-`settings.gradle.kts` 有一个指向其 raw 文件的 Ivy 仓库，只服务组 `symbols`，别的一概不经过它；`app/build.gradle.kts`
-列出符号与提交（`10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`，2026-10-23），
-每个符号是一个依赖 `symbols:SYMBOL:COMMIT@xml`，填充的加分类器 `fill1`：对应文件
-`symbols/android/SYMBOL/materialsymbolsrounded/SYMBOL_24px.xml` 与 `SYMBOL_fill1_24px.xml`。Gradle 把它们取到自己的缓存里
-一次，之后离线构建也能用；每个变体一个任务（`copyMaterialSymbolsRelease`、`copyMaterialSymbolsDebug`）把它们原样写成
-`ic_NAME.xml`，作为生成的资源交给 Android 插件与其它资源合并（`app/build/generated/res/copyMaterialSymbolsRelease/drawable`）。文件的颜色取主题的 `colorControlNormal`，除非视图另外着色；在从右到左的
-语言里要翻转的符号由 Google 标出（`autoMirrored`，这里是 `copy`、`forward` 与 `help`）。应用用到 `ic_close`（`close`）、`ic_copy`（`content_copy`）、`ic_forward`（`arrow_forward`）、`ic_help`（`help`）、`ic_history`（`history`）、`ic_keyboard`（`keyboard`）、`ic_link`（`link`）、`ic_lock`（`lock`）、`ic_paste`（`content_paste`）、`ic_retry`（`replay`）、`ic_scan_qr`（`qr_code_scanner`）、`ic_torch_off`（`flashlight_off`）、`ic_torch_on_fill`（`flashlight_on`，填充）与 `ic_unreachable`（`cloud_off`）。
-它们与上面的 npm 包是同一套图标的两份拷贝，即 Material Symbols Rounded、字重 400、24 px，所以各界面看起来一样。
+手机端应用用同样的 SVG 画同一套符号：它的构建与桌面应用一样内嵌 `shared/icons.json` 所指定的图标，`ui/kit` 以文本颜色绘制它们，
+所以手机端应用不需要为此添加任何东西。它的启动器图标另有来源，由 `vfxtool appicon` 绘制（见[应用图标](#应用图标)）。
 
 ### 应用图标
 
@@ -345,10 +336,9 @@ Android 应用把同样的符号画成矢量图，仓库里没有任何东西保
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
 | Linux | [`shared/packaging/linux/dev.vfox.VfoxPlus.svg`](../../../shared/packaging/linux/dev.vfox.VfoxPlus.svg) | 母版，方圆底板。`vfxtool build-deb` 装为可缩放图标。旁边的 AppStream 元数据写明软件中心垫在图标后面的颜色：浅色主题 `#FFDCC1`，深色主题 `#6B3B04`，即 vfox 橙配色的主容器色（Web 界面的 `--m3-primary-container`）。 |
-| 安卓启动器 | [`android/app/src/main/res/drawable`](../../../android/app/src/main/res/drawable) 里的 `ic_launcher_background.xml`、`ic_launcher_foreground.xml` 与 `ic_launcher_monochrome.xml` | 自适应图标：启动器给铺满的底板和狐狸加遮罩。单色层供安卓 13 的主题图标，脸颊半强度，眼睛和鼻子镂空。 |
-| 安卓配对界面 | 同目录的 `ic_mark.xml` | 母版的矢量绘制版。 |
+| 安卓启动器 | [`mygo/phone/resources`](../../../mygo/phone/resources) 里的 `icon.png` 与 `icon-foreground.png`，由 `vfxtool appicon mygo/phone/resources` 写出，并由 [`mygo/phone/mygo.json`](../../../mygo/phone/mygo.json) 指定 | 启动器图标，以及 Android 8.0 起的自适应图标：前景是铺满的底板、光晕与狐狸，背景 `#1B1268` 显示启动器移动前景时露出的地方。自适应图标没有单色层：`mygo.json` 只指定前景与背景。 |
 | Windows | `.msix` 里的 `Assets/*.png` | 不提交任何图片，故由 `vfxtool build-msix` 用同样的路径（[`shared/tooling/internal/appicon`](../../../shared/tooling/internal/appicon)）绘制。 |
 | Web 界面 | [`mygo/gateway/favicon.svg`](../../../mygo/gateway/favicon.svg) | 底板与狐狸，去掉光晕，狐狸更大，16 px 下仍可辨认。网关的每个页面都把它以 data URI 内联（`favicon.go`），页面不为图标另发请求；Web 界面用它作导航栏的品牌标志，Web 应用清单把它写成已安装应用的图标（尺寸为 `any` 的 SVG 图标是 Chromium 接受用于安装的图标）。 |
 
-SVG 是母版：矢量绘制、`appicon` 与 favicon 重复它的路径，不一致时 `shared/tooling`
-（前两者）与 `mygo/gateway`（favicon）的 `go test` 失败。
+SVG 是母版：`appicon` 绘制的图标（手机端应用的图标与 Windows 磁贴）与 favicon 重复它的路径，不一致时 `shared/tooling`（针对 `appicon`）与
+`mygo/gateway`（针对 favicon）里的 `go test` 失败。

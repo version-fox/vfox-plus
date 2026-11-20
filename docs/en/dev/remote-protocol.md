@@ -4,7 +4,7 @@
 
 This document specifies the HTTP surface of the server for other devices
 (`mygo/pair`, run by the application when its settings say so): the contract that the Docker
-gateway (`mygo/gateway`) and the Android client (`android/`) program against. The server serves
+gateway (`mygo/gateway`) and the phone app (`mygo/phone`) program against. The server serves
 the API only. The web interface is a single page that the gateway serves (see
 [the web interface](#web-interface)). The implementation is `mygo/pair/pair.go` (`Server`),
 `host.go` (`Host`), `web.go` and `webapi.go`.
@@ -44,7 +44,7 @@ the API only. The web interface is a single page that the gateway serves (see
 The pairing code of the settings is the pairing link of the remote server, with an
 address of the computer on a network in it (`Host.RemoteLink`), as a QR code
 (`mygo/pair.QRMatrix`; the page of the web interface gets it as an SVG from
-`POST /api/web/pairing`), so that the Android app scans instead of typing.
+`POST /api/web/pairing`), so that the phone app reads it from a photo or a picture instead of typing.
 Other devices are off by default: the settings ask for a confirmation before they
 open the computer to the network.
 
@@ -253,38 +253,61 @@ The remote server always speaks HTTPS, and `NewServer` refuses to listen beyond 
 without a certificate. Without `webCertificate` and `webKey` in the settings, the
 application generates a self-signed pair next to the settings the first time
 that other devices are allowed (`mygo/pair/tlscert.go`) and the settings show its SHA-256
-fingerprint. Clients — the browser and the Android app — must show that fingerprint for
+fingerprint. Clients — the browser and the phone app — must show that fingerprint for
 comparison before trusting the certificate. Bringing your own certificate avoids the warning.
 The session cookie is always `Secure`: loopback origins are trustworthy, so
 browsers send it back over plain HTTP there.
 
-## Android client
+## The phone app
 
-`android/` is a thin native wrapper around this protocol:
+`mygo/phone` is a native client of this API, for Android. It has no page and no web view: its
+screens are mygo's own, and it reads and changes the computer through the routes of this document.
+It keeps one computer.
 
-- The **pairing flow** is native (Material 3 Expressive): paste the pairing
-  link (or scan it), show the TLS fingerprint for comparison, persist the
-  session cookie.
-- The **main content** is a WebView of `/app` with file upload enabled (for
-  plugin `.zip`/`.lua` files) and pull handling left to the page.
-- The page and the app talk through `window.vfoxAndroid`, an object that the app
-  adds to the WebView (`WebBridge`) and that no other client has, so that a page
-  that finds it knows that it runs in the app:
-  - `insets()` returns the safe area as `"top,right,bottom,left,keyboard"` in CSS
-    pixels: what the system bars and a display cutout cover, and the height of the
-    keyboard while it is open. The page puts the first four into the CSS
-    variables `--sai-top`, `--sai-right`, `--sai-bottom` and `--sai-left` (in a
-    browser they are `env(safe-area-inset-*)`, and a WebView does not give
-    that in every version), and marks the root element `kb` while the keyboard
-    is open. The app calls `window.vfoxInsets()` again whenever the insets
-    change.
-  - `server()` returns the address of the paired server, scheme and authority.
-  - `pairNew()` and `disconnect()` leave the session for the pairing screen;
-    the second forgets the server and the session cookie first. The settings of
-    the page offer both on the **This phone** card, which only the app shows.
-- It programs against this document, not against the Go code: inventory for
-  lists, `/api/tasks` + `/api/events` for progress, `POST` routes for
-  actions.
+- **Pairing.** The person gives the phone the pairing link that the computer shows under
+  *Settings → Connections → Other devices → Pair a phone*: by pasting it, by reading its QR code
+  with the camera (*Photo*) or from a picture of it (*Picture*), or by opening the deep link
+  `vfoxplus://pair?link=…`. A deep link only fills in the link and starts the check; the phone
+  pairs when the person chooses *Trust and pair*. A link is `https://host[:port]/auth/connect/<token>`,
+  and a bare `host[:port]/auth/connect/<token>` is read as https. A query, a fragment, user
+  information or another path is refused before any request is made.
+- **Fingerprint.** Before it trusts the computer, the phone connects once over TLS without checking
+  the chain, and shows the SHA-256 fingerprint of the certificate in the form that the computer
+  shows: 32 pairs of upper-case hexadecimal digits separated by colons. The person compares it with
+  the fingerprint under *Other devices* on the computer. *Trust and pair* then calls
+  `GET /auth/connect/<token>` over a connection that accepts only the leaf certificate with that
+  fingerprint; the system's roots are not consulted. The phone saves the computer's host, its
+  address and that fingerprint, and every later connection to the computer must present the same
+  certificate. When it does not, the connection is refused, and the pairing page says that the
+  computer's certificate changed.
+- **Session.** A successful pairing answers `204 No Content` with the session cookie
+  `vfox-plus-session`. The phone keeps its value in a file of its private directory, with mode
+  `0600`, apart from the saved address and fingerprint, which hold no secret. It sends the cookie
+  with every call and with the event stream, and it does not follow redirects, so the cookie goes
+  only to the address of the computer. *Disconnect* (in *Settings → This phone*) forgets the
+  computer and the session on the phone. The API has no call that ends a session on the computer,
+  so the phone does not ask the computer to end it.
+- **Events.** While the app is in the foreground, the phone keeps `GET /api/events` open with the
+  session and reads its `event:` lines. Each kind marks what it names as out of date: `hello`
+  (everything, and the phone is paired), `task` (the tasks), `inventory` (the inventory, the
+  doctor, and the versions, profiles, aliases and plugin information of the SDKs), `vfox` (the
+  inventory and the doctor) and `web` (how other devices connect). The events carry no data: a
+  resource is loaded again when the screen reads it next. The stream ends when the app goes to the
+  background; when the app comes back, the phone connects again and loads everything anew. A broken
+  stream is tried again after three seconds. An answer of `401` means that the computer no longer
+  accepts the session, and the phone asks the person to pair again.
+- **Calls.** The phone reads `GET /api/inventory`, `GET /api/doctor`, the `info`, `versions`,
+  `profile` and `aliases` routes of an SDK, `GET /api/tasks` with `GET /api/tasks/<id>` and its
+  `/log`, and `GET /api/settings` and `GET /api/web`. It changes the computer with the other routes
+  of this document: `POST /api/tasks` starts a task, such as an install, a use or an uninstall (see
+  [Tasks](#tasks)); `POST /api/plugins` adds a plugin; `PUT /api/sdks/<name>/search` and
+  `PUT /api/sdks/<name>/variables` set an SDK's search and environment variables; `PUT` and
+  `DELETE /api/config` set and reset a vfox key; `PUT /api/settings` and `PUT /api/web` change the
+  settings and how other devices connect; `POST /api/web/pairing` makes a pairing link for another
+  device, which the phone shows as text and as a QR code; and `POST /api/quit` quits the application
+  on the computer, after the person confirms it. A call waits for its answer for at most 150 seconds,
+  which is longer than the two minutes that the server waits for vfox before it answers `504`. The
+  phone accepts an answer of up to 64 MiB, the size of the largest answer, a full task log.
 
 ## The gateway
 
@@ -292,7 +315,7 @@ browsers send it back over plain HTTP there.
 of one instance to the browsers that are paired with it, over HTTPS on port 8080. It speaks this
 protocol twice. To its browsers it is a server: the same one-time links (`/auth/connect/<token>`, five
 minutes) and sessions (24 hours), with the cookie `vfox-plus-gateway`. To the remote server of an
-instance it is a client, as the Android app is: a pairing link that a person pasted, the session cookie
+instance it is a client, as the phone app is: a pairing link that a person pasted, the session cookie
 `vfox-plus-session`, and the certificate trusted by the roots or by a fingerprint.
 
 | Route | Answered by | Notes |

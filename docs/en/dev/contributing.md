@@ -173,7 +173,7 @@ keeping code blocks, command lines, file paths and the glossary of
 | `docs/en/dev/*.md` | `docs/zh-CN/dev/*.md` (same base name) |
 
 User guides (`user/`) are for people who run vfox-plus: installing, using the
-desktop application, the browser and the Android client. They never mention
+desktop application, the browser and the phone app. They never mention
 building from source, the repository layout, the vfox CLI contract or any
 other developer topic. Developer specification (`dev/`) is for contributors:
 architecture, contracts, UI and design specifications, packaging and tooling.
@@ -227,12 +227,10 @@ name that describes its meaning, with the name of the symbol as at
 added: `vfxtool prepare` cuts the SVGs out of the pinned npm package when it builds,
 and fails, naming the icons, for a symbol that the package does not have.
 
-The Android app does not take its icons from the package: its build imports the
-Android XML that google/material-design-icons publishes ([Icons](design-system.md#icons)
-says how). To add one, add a line to the list `materialSymbols` in
-`android/app/build.gradle.kts`: the name of the drawable, the symbol, and `"fill1"` if
-the filled variant is wanted. To move to a newer commit of that repository, change
-`materialSymbolsCommit` there. Nothing is copied or committed.
+The phone app takes its symbols from the same package, through the same embedded icons, so nothing is
+added for it. Its launcher icon is drawn by `vfxtool appicon mygo/phone/resources`: the files
+`icon.png` and `icon-foreground.png`, which [`mygo/phone/mygo.json`](../../../mygo/phone/mygo.json)
+names (see [Application icon](design-system.md#application-icon)).
 
 To move to a newer version of the package, change `version` and `sha512` in the
 `source` of that file. The registry says the checksum in base64; the file wants it
@@ -452,20 +450,26 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 (The build of the application is the one above, run from the root of the repository, which the
 command needs for the fixtures of the fake vfox; `--chrome` names the Chrome as it does for `webheap`.)
 
-**Android.** CI takes one picture, `screenshot-android`: the `emulator` job of
-`phone.yml` runs the APK on an emulator, `vfxtool measure-apk` captures the
-first screen, and the job uploads it as an artifact (`gh run download`). The nine
-pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of
-your own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400
-at 420 dpi), with the APK that CI makes (its artifact `vfox-plus-android-amd64`),
-and with the application of the PC that [Run the app](environment.md#run-the-app) describes: the
-end-to-end build against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles`, with the web interface and the
-other devices on, the port 8080 and `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the emulator
-reaches the computer. The pairing screen, the links and the certificate then name the address that runs,
-and there is no certificate to make. The nine are `android-pairing`, `android-scan`, `android-trust`,
-`android-home`, `android-sdk`, `android-settings`, `android-dark-pairing`, `android-dark-home` and
-`android-unreachable`; the guide links all of them, in English for both languages. What makes the
-pictures alike, and what goes wrong:
+**Android.** CI takes one picture, `screenshot-android`, and the evidence of a paired session. The
+`emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) starts the end-to-end build of the
+desktop application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, runs `vfxtool phone-link` (which allows other
+devices and writes a pairing link for `10.0.2.2`), and then runs `vfxtool measure-apk`. The tool installs the
+APK, starts the app cold, and pairs it through the deep link `vfoxplus://pair?link=…`: it taps
+*Trust and pair*, visits the five tabs, and keeps a screenshot and a dump of the accessibility tree of each. Once the pairing succeeds, the app
+writes the line `vfoxplus: paired host=… fingerprint=…` to its log, and `measure-apk` waits for that line.
+The first screen is the artifact `screenshot-android`. The screenshots and dumps of the tabs, the log of the
+app, the log of the desktop application and the memory after pairing are the artifact `phone-e2e-android`.
+
+The nine pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of your
+own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400 at 420 dpi),
+with the APK that CI makes (its artifact `vfox-plus-android-amd64`), and with the application of the PC that
+[Run the app](environment.md#run-the-app) describes: the end-to-end build against the fake vfox of
+`VFOX_PLUS_FAKE_INVENTORY=profiles`, with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the
+emulator reaches the computer. The pairing link is the one that *Show code* gives, with `10.0.2.2` for its
+address, and the deep link of [Run the app](environment.md#run-the-app) opens it. The nine are
+`android-pairing`, `android-scan`, `android-trust`, `android-home`, `android-sdk`, `android-settings`,
+`android-dark-pairing`, `android-dark-home` and `android-unreachable`; the guide links all of them, in English
+for both languages. What makes the pictures alike, and what goes wrong:
 
 - The demo mode of the status bar fixes the clock and shows a full battery and
   wifi and no notifications: `adb shell settings put global sysui_demo_allowed 1`,
@@ -481,23 +485,22 @@ pictures alike, and what goes wrong:
   `adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` and
   `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
   the camera again, which `pm clear` drops, or the system dialog covers the scanner.
-- The views of the app are found by their ids in `adb exec-out uiautomator dump /dev/tty`
-  (`scanButton`, `manualButton`, `linkField`, `connectButton`, `reconnectButton`). The web interface in
-  the WebView is not in the dump: the bar at the bottom is tapped by its position, with
-  `adb shell input tap X 2205` for X = 125, 332, 540, 749 and 956 (Home, SDKs, Plugins, Tasks, Settings),
-  and flutter is the first of the plugins, at `540 682`.
-- Type the pairing link with the app in English (`adb shell input text`). With the app in Chinese Gboard turns
-  to Pinyin and writes the link with full-width punctuation and "author" for "auth";
-  the field keeps its text when the language is changed back before *Connect*. The keyboard covers
-  the button: close it with BACK (`adb shell input keyevent 4`) before.
-- The dialog of the fingerprint and the settings are taken in one run of the application: it makes its
-  certificate again at every run, and the two show the same fingerprint only within one. Choose
-  *Trust once*, and wait for the page to load before the picture of the home page.
-- To see the page that says the PC cannot be reached, end the application of the PC and open the app
-  again: it opens on the pairing screen, with the last server, and *Reconnect* shows the page.
-- Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has
-  settled. The scanner shows the living room of the emulator (`hw.camera.back=virtualscene`), as there
-  is no code to point it at.
+- The controls of the app are in the accessibility tree: `adb exec-out uiautomator dump /dev/tty` gives
+  each one with its label and its bounds, and `adb shell input tap X Y` taps the centre of the bounds. The
+  labels are *Trust and pair* (`信任并配对` in Simplified Chinese), *Connect* (`连接`), and the tabs *Home*,
+  *SDKs*, *Plugins*, *Tasks* and *Settings* (`主页`, `SDK`, `插件`, `任务` and `设置`), which
+  `vfxtool measure-apk` looks for as well.
+- Type a link in the field with the app in English (`adb shell input text`). With the app in Chinese Gboard
+  turns to Pinyin and writes the link with full-width punctuation and "author" for "auth"; the field keeps its
+  text when the language is changed back before *Connect*. The keyboard covers the button: close it with BACK
+  (`adb shell input keyevent 4`) before.
+- The dialog that shows the fingerprint and the settings are taken in one run of the application: it makes its
+  certificate again at every run, and the two show the same fingerprint only within one. Tap *Trust and pair*,
+  and wait for the tabs to load before the picture of the home page.
+- To see the picture of a computer that does not answer, stop the application on the PC while the app is open:
+  the bar above the tabs says so, and it offers *Retry*.
+- Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has settled. The scanner shows
+  the living room of the emulator (`hw.camera.back=virtualscene`), as there is no code to point it at.
 
 The pictures are 1080 by 2400 as they come. `vfxtool frame-phone NAME.png OUT.png` gives them the
 rounded corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px

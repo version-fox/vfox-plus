@@ -9,7 +9,7 @@ lightweight mode, and how they reach vfox-plus.
 
 vfox-plus shows no web interface on this computer. Other devices see it through the
 [gateway](gateway.md), a Docker image that serves the interface to the browsers that pair
-with it, and a phone uses the [Android app](android.md).
+with it, and a phone uses the [phone app](android.md).
 
 ## Other devices
 
@@ -31,11 +31,12 @@ that you trust.
   on the same network reaches.
 - Other devices connect over **HTTPS**. Without a certificate of your own, vfox-plus makes
   one for itself and signs it itself, and the settings show its SHA-256 fingerprint: compare
-  it with the one that the browser, the gateway or the Android app shows before you trust it.
+  it with the one that the browser, the gateway or the phone app shows before you trust it.
   To use your own, choose *Certificate → Browse…*, then the certificate and its private key
   (PEM files).
-- *Pair a phone* shows the **QR code** of a pairing link. Scan it with the
-  [Android app](android.md), or paste the link into the [gateway](gateway.md). The link is
+- *Pair a phone* shows the **QR code** of a pairing link. Read it with the
+  [phone app](android.md) (a photo of the code, or a picture of it), or paste the link into
+  the [phone app](android.md) or the [gateway](gateway.md). The link is
   under *Link and certificate*, with the fingerprint of the certificate for whoever wants to
   check it. A computer that is on more than one network, or that has a public address, offers
   each address above the code: choose the one that the phone reaches. The link works once and
@@ -47,7 +48,8 @@ that you trust.
 | --- | --- |
 | ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nyiVG2e.png) | ![The code that pairs a phone, in the settings of the interface](https://iili.io/nmiAZPI.png) |
 
-The settings of the interface show the same switches: from a paired device you can allow
+The settings of the phone app and of the interface that the gateway shows have the same
+switches: from a paired device you can allow
 other devices, change the port and turn the lightweight mode on or off, and *Pair a phone*
 shows the code there, too, which is how a computer without a window (lightweight mode)
 pairs a phone.

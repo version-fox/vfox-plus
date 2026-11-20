@@ -62,7 +62,7 @@ vfox-plus 通过 vfox 命令行工具干活，vfox 需另行安装（见
 | [安装](install.md) | 在 Linux、Windows 11 或安卓上装 vfox-plus。 |
 | [使用](using.md) | 桌面应用：主页、SDK、插件、任务与设置。 |
 | [其他设备与轻量模式](remote.md) | 让网关、手机和其他电脑连接，不留窗口地后台运行 vfox-plus。 |
-| [安卓 App](android.md) | 用手机操控 PC 上的 vfox-plus。 |
+| [手机端 App](android.md) | 用手机操控 PC 上的 vfox-plus。 |
 | [网关（Docker）](gateway.md) | 把某个 vfox-plus 的界面显示给与容器配对的浏览器。 |
 
 ## 许可证

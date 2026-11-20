@@ -87,7 +87,7 @@ your PC. An APK signed with another key, such as a development build, does not i
 over it: uninstall that one first, which forgets the pairing. To install from a computer
 instead, turn on USB debugging and run `adb install -r vfox-plus_<version>.apk`.
 
-Then pair the app with the vfox-plus on your PC. See [The Android app](android.md).
+Then pair the app with the vfox-plus on your PC. See [The phone app](android.md).
 
 ## Docker
 

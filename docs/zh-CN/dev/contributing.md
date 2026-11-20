@@ -116,7 +116,7 @@ Pull Request 提交。中文逐节对照，代码块、命令行、文件路径�
 | `docs/en/dev/*.md` | `docs/zh-CN/dev/*.md`（同名） |
 
 用户指南（`user/`）给运行 vfox-plus 的人看：安装、使用桌面应用、浏览器与
-Android 客户端，绝不涉及源码构建、仓库布局、vfox CLI 契约等开发者话题。
+手机端应用，绝不涉及源码构建、仓库布局、vfox CLI 契约等开发者话题。
 开发者规约（`dev/`）给贡献者看：架构、契约、界面与设计规约、打包与工具链。
 
 仓库根与源码目录只保留薄入口
@@ -162,10 +162,8 @@ docker run --rm --volume "$PWD:/workdir" \
 <https://fonts.google.com/icons>（`history`、`folder_open`），其余不用加：构建时 `vfxtool prepare`
 从锁定的 npm 包切出 SVG；包里没有的符号会失败并列出这些图标。
 
-Android 应用不用这个包里的图标：它的构建导入 google/material-design-icons 发布的 Android XML
-（做法见[图标](design-system.md#图标)）。要添加一个，在 `android/app/build.gradle.kts` 的 `materialSymbols` 列表里加一行：
-drawable 的名字、符号，要填充变体就再写 `"fill1"`。要换到该仓库更新的提交，改那里的 `materialSymbolsCommit`。
-不用复制，也不用提交任何文件。
+手机端应用用同一个包里的符号，经同样内嵌的图标使用它们，所以不需要为它另外添加任何东西。它的启动器图标另有来源：
+由 `vfxtool appicon mygo/phone/resources` 写出 `icon.png` 与 `icon-foreground.png`，由 [`mygo/phone/mygo.json`](../../../mygo/phone/mygo.json) 指定（见[应用图标](design-system.md#应用图标)）。
 
 要换新版本的包，改该文件 `source` 里的 `version` 与 `sha512`。注册表给的校验和是 base64，文件里要十六进制：
 
@@ -348,15 +346,18 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 
 （应用的构建就是上面那个；要在仓库根目录运行，命令靠它找假 vfox 的夹具；`--chrome` 和 `webheap` 一样指定 Chrome。）
 
-**Android。** CI 拍一张图 `screenshot-android`：`phone.yml` 的 `emulator` 任务在模拟器跑 APK，
-`vfxtool measure-apk` 截首屏，任务把它上传为构件（`gh run download`）。[安卓 App 指南](../user/android.md)里的
-九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），
-用 CI 构建出来的 APK（它的构件 `vfox-plus-android-amd64`），以及[运行 App](environment.md#运行-app)里描述的 PC 端应用：
-对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，允许其他设备，端口为 8080，并设
-`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问这台电脑用的地址。配对屏、链接和证书就都写着实际使用的地址，
-也不必自己生成证书。这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、
-`android-settings`、`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南
-都用英文版。让图保持一致的做法以及容易出错的地方：
+**Android。** CI 拍一张图 `screenshot-android`，并留下配对后会话的证据。[`phone.yml`](../../../.github/workflows/phone.yml)
+的 `emulator` 任务以 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 启动桌面应用的端到端构建，运行 `vfxtool phone-link`（允许其他设备，
+并为 `10.0.2.2` 写出配对链接），然后运行 `vfxtool measure-apk`。后者安装 APK，冷启动应用，再经深链 `vfoxplus://pair?link=…`
+与它配对：点按*信任并配对*，逐个访问五个标签页，并为每个标签页保存一张截图与一份无障碍树的导出。配对成功后，应用在日志里写一行 `vfoxplus: paired host=… fingerprint=…`，`measure-apk` 等的就是这一行。首屏是构件
+`screenshot-android`；标签页的截图与导出、应用的日志、桌面应用的日志，以及配对后的内存，是构件 `phone-e2e-android`。
+
+[安卓 App 指南](../user/android.md)里的九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，
+1080×2400，420 dpi），用 CI 构建出来的 APK（它的构件 `vfox-plus-android-amd64`），以及[运行 App](environment.md#运行-app)里描述的
+PC 端应用：对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问
+这台电脑用的地址。配对链接是*显示二维码*给出的那个，地址为 `10.0.2.2`，并按[运行 App](environment.md#运行-app)那样作为深链打开。
+这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、
+`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南都用英文版。让图保持一致的做法以及容易出错的地方：
 
 - 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
   再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
@@ -367,16 +368,16 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 - 语言与主题是 App 与系统的：`adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` 与
   `adb shell cmd uimode night yes`。每轮之间清数据（`pm clear`），并重新授予相机权限（`pm clear` 会收回它），
   否则系统对话框会盖住扫码界面。
-- App 里的控件用 `adb exec-out uiautomator dump /dev/tty` 里的 id 找（`scanButton`、`manualButton`、`linkField`、
-  `connectButton`、`reconnectButton`）。WebView 里的网页界面不在导出里：底部的栏按位置点，
-  `adb shell input tap X 2205`，X 依次取 125、332、540、749、956（主页、SDK、插件、任务、设置），
-  flutter 是插件列表里的第一个，在 `540 682`。
+- App 里的控件在无障碍树里：`adb exec-out uiautomator dump /dev/tty` 给出每个控件的文字与边界，
+  `adb shell input tap X Y` 点按边界的中心。控件的文字是*信任并配对*（英文界面为 Trust and pair）、*连接*（Connect），
+  以及五个标签页 *主页*、*SDK*、*插件*、*任务* 与 *设置*（英文界面为 Home、SDKs、Plugins、Tasks、Settings），
+  `vfxtool measure-apk` 也按这些文字找。
 - 配对链接要在 App 为英文时输入（`adb shell input text`）。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
   `author`；在点*连接*之前把语言改回来，输入框的文字会保留。键盘会盖住按钮：输入后先按返回键
   （`adb shell input keyevent 4`）收起它。
-- 指纹对话框与设置要在应用的同一次运行里拍：应用每次运行都重新生成证书，两处的指纹只在同一次运行里一致。选*信任一次*，
-  拍主页之前要等页面加载完。
-- 想拍“连不上 PC”的页面，就结束 PC 端的应用，再打开 App：它先打开带“上次的服务器”的配对界面，选*重新连接*就出现那个页面。
+- 显示指纹的对话框与设置要在应用的同一次运行里拍：应用每次运行都重新生成证书，两处的指纹只在同一次运行里一致。点按*信任并配对*，
+  拍主页之前要等标签页加载完。
+- 想拍“电脑没有响应”的页面，就在 App 打开时结束 PC 端的应用：标签页上方的条会显示它，并有*重试*按钮。
 - 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅
   （`hw.camera.back=virtualscene`），因为没有二维码可对。
 

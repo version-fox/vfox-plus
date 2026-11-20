@@ -73,7 +73,7 @@ separately (see the [vfox installation guide](https://vfox.dev/guides/quick-star
 | [Install](install.md) | Get vfox-plus on Linux, Windows 11 or Android. |
 | [Use](using.md) | The desktop application: Home, SDKs, plugins, tasks and settings. |
 | [Other devices and the lightweight mode](remote.md) | Let the gateway, phones and other computers connect, and keep vfox-plus running without its window. |
-| [The Android app](android.md) | Drive the vfox-plus on your PC from your phone. |
+| [The phone app](android.md) | Drive the vfox-plus on your PC from your phone. |
 | [The gateway (Docker)](gateway.md) | Show the interface of a vfox-plus in the browsers that you pair with a container. |
 
 ## License
