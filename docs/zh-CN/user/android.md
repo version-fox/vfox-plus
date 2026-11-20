@@ -37,6 +37,12 @@
 6. 只有两个指纹一致时，才点**信任并配对**（Trust and pair）。App 会保存 PC 的地址与指纹，并固定它的证书：
    此后只接受这个证书，拒绝任何其他证书。
 
+截图用的是英文界面。
+
+| 配对界面 | 询问是否信任这台电脑 | 配对之后的主页 |
+| --- | --- | --- |
+| ![手机端 App 的配对界面（英文界面）：配对链接输入框，以及 Paste、Photo、Picture 三个按钮](https://iili.io/oFvjPwJ.png) | ![询问是否信任这台电脑的对话框：PC 证书的指纹，以及 Cancel 与 Trust and pair 两个按钮](https://iili.io/oFvw9us.png) | ![手机端 App 的主页：vfox 的版本、在用的 SDK、健康检查与终端里要用的命令](https://iili.io/oFvwoAu.png) |
+
 链接一次性有效，五分钟后过期。如果 App 提示链接无效、已使用或已过期，请在 PC 上重新生成。
 
 深链 `vfoxplus://pair?link=…` 会打开配对界面并填入链接，同样去检查 PC。它不会自行配对：仍需核对指纹，
@@ -46,6 +52,14 @@
 
 底部栏有五个标签页：**主页**（Home）、**SDK**（SDKs）、**插件**（Plugins）、**任务**（Tasks）与
 **设置**（Settings）。它们显示的内容与桌面应用相同，差别见[与桌面应用的区别](#与桌面应用的区别)。
+
+| SDK 标签页 | 一个 SDK 的页面 | 插件标签页 |
+| --- | --- | --- |
+| ![手机端 App 的 SDK 标签页：搜索框，以及已安装的 SDK flutter、java、maven 与 nodejs](https://iili.io/oFvwztj.png) | ![SDK nodejs 的页面：Installed、Available、Options 三个页签，以及它已安装的版本](https://iili.io/oFvwTox.png) | ![手机端 App 的插件标签页：Update all 与 Add from source 两个操作、搜索框、All、Official、Community 三个筛选，以及插件仓库里的插件](https://iili.io/oFvwcHF.png) |
+
+| 添加插件 | 任务标签页 | 设置标签页 |
+| --- | --- | --- |
+| ![添加插件的对话框：Source URL 与 Alias 两个输入框，以及 Upload & add 下的 Choose a file 按钮](https://iili.io/oFvwMVR.png) | ![手机端 App 的任务标签页，还没有运行过任务](https://iili.io/oFvwNHX.png) | ![手机端 App 的设置标签页：This phone（有 Pair a new link 与 Disconnect）以及 Connections 一节](https://iili.io/oFvwsRe.png) |
 
 **主页**显示 vfox 的版本与刷新按钮、在用的 SDK，以及健康检查的前五条发现；发现提供**纳入**（Adopt）或
 **重装**（Reinstall）时，会显示相应按钮。下面是终端里要用的命令 `eval "$(vfox activate bash)"`，
@@ -89,6 +103,12 @@
   （Save）保存。
 - **vfox 配置**（vfox config）：PC 上 vfox 的设置，点一项即可修改。
 
+App 跟随手机的深色主题；文字大小与动效跟随系统设置。
+
+| 深色主题下的配对界面 | 深色主题下的主页 |
+| --- | --- |
+| ![深色主题下手机端 App 的配对界面](https://iili.io/oFvjbat.png) | ![深色主题下手机端 App 的主页](https://iili.io/oFvN9UP.png) |
+
 ## 手机无法连到 PC 时
 
 如果手机与 PC 断开，App 会继续尝试。PC 仍无响应时，标签页上方会出现一条提示：“电脑没有响应。请检查网络，
@@ -100,8 +120,6 @@
 
 如果 PC 的证书变了，App 会拒绝连接，并显示*电脑的证书已经改变*（The computer's certificate changed）。
 重新配对之前，按第 5 步在 PC 的设置里核对指纹。
-
-App 跟随手机的深色主题；文字大小与动效跟随系统设置。
 
 ## 与桌面应用的区别
 

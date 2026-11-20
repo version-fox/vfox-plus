@@ -51,6 +51,10 @@ The phone must reach the PC, on the same Wi-Fi or on another network route.
    saves the address and the fingerprint of the PC and pins its certificate: from then
    on it accepts that certificate only, and refuses any other one.
 
+| The pairing page | The question that asks to trust the computer | The home page, once the phone is paired |
+| --- | --- | --- |
+| ![The pairing page of the phone app, with the field for the pairing link and the buttons Paste, Photo and Picture](https://iili.io/oFvjPwJ.png) | ![The question Trust this computer?, with the fingerprint of the certificate of the PC and the buttons Cancel and Trust and pair](https://iili.io/oFvw9us.png) | ![The home page of the phone app: the version of vfox, the SDKs in use, the health check and the command for the shell](https://iili.io/oFvwoAu.png) |
+
 The link works once and expires after five minutes. If the app says that the link is
 invalid, already used or expired, make a new one on the PC.
 
@@ -64,6 +68,14 @@ The bottom bar has five tabs: **Home** (主页), **SDKs** (SDK), **Plugins** (�
 **Tasks** (任务) and **Settings** (设置). They show what the desktop application
 shows, with the differences that [What differs from the desktop application](#what-differs-from-the-desktop-application)
 lists.
+
+| SDKs | The page of an SDK | Plugins |
+| --- | --- | --- |
+| ![The SDKs tab of the phone app, with a search field and the installed SDKs flutter, java, maven and nodejs](https://iili.io/oFvwztj.png) | ![The page of the SDK nodejs, with the tabs Installed, Available and Options, and its installed versions](https://iili.io/oFvwTox.png) | ![The Plugins tab of the phone app, with the actions Update all and Add from source, the search field, the filters All, Official and Community, and the plugins of the registry](https://iili.io/oFvwcHF.png) |
+
+| Adding a plugin | Tasks | Settings |
+| --- | --- | --- |
+| ![The dialog that adds a plugin, with the fields Source URL and Alias, and the button Choose a file under Upload and add](https://iili.io/oFvwMVR.png) | ![The Tasks tab of the phone app, before any task has run](https://iili.io/oFvwNHX.png) | ![The Settings tab of the phone app: This phone, with Pair a new link and Disconnect, and the section Connections](https://iili.io/oFvwsRe.png) |
 
 **Home** shows the version of vfox with a refresh button, the SDKs in use, and the
 health check: its first five findings, with **Adopt** (纳入) or **Reinstall** (重装)
@@ -121,6 +133,13 @@ or running finishes while you look at another tab, a message says so, with **Vie
   (保存).
 - **vfox config** (vfox 配置): the settings of vfox on the PC; tap one to change it.
 
+The app follows the dark theme of the phone, and its text size and motion follow the
+system's settings.
+
+| The pairing page in the dark theme | The home page in the dark theme |
+| --- | --- |
+| ![The pairing page of the phone app in the dark theme](https://iili.io/oFvjbat.png) | ![The home page of the phone app in the dark theme](https://iili.io/oFvN9UP.png) |
+
 ## When the phone cannot reach the PC
 
 If the phone loses the PC, the app keeps trying. While the PC does not answer, a strip
@@ -135,9 +154,6 @@ tap **Paste** (粘贴) and **Connect** (连接).
 If the certificate of the PC has changed, the app refuses to connect and shows *The
 computer's certificate changed* (电脑的证书已经改变). Before you pair again, compare the
 fingerprint in the settings of the PC, as in step 5.
-
-The app follows the dark theme of the phone, and its text size and motion follow the
-system's settings.
 
 ## What differs from the desktop application
 
