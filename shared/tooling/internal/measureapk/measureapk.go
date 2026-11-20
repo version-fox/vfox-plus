@@ -234,12 +234,6 @@ func (s *session) measure(c config) error {
 // paired drives the paired session: the link, the confirmation, the tabs, the log and the memory.
 // When it fails it leaves the evidence of the failure beside the screenshots (keepEvidence).
 func (s *session) paired(c config, pkg string) (err error) {
-	if c.pictures != "" {
-		// The pictures put the status bar in the demo mode (see pictures.go), and the device is one that a person
-		// may keep: it gets its own status bar back when the session ends, whatever the outcome. It is declared
-		// before the evidence below, so that this runs after it, and the evidence is of the screen as it failed.
-		defer s.demoMode(false)
-	}
 	link, err := readLink(c.pairLinkFile)
 	if err != nil {
 		return err

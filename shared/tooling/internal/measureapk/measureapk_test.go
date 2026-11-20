@@ -292,12 +292,11 @@ type screenMachine struct {
 	screens map[string]string
 	next    map[string]map[string]string
 	back    map[string]string
-	// night is the theme of the system, and demo says that the status bar is in the demo mode: what was asked
-	// for. The system shows it lag screenshots later, as a slow emulator does (shownNight and shownDemo are what
-	// a screenshot has, and delay the screenshots that are still to show the old state).
-	night, demo           bool
-	shownNight, shownDemo bool
-	lag, delay            int
+	// night is the theme of the system: what was asked for. The system shows it lag screenshots later, as a slow
+	// emulator does (shownNight is what a screenshot has, and delay the screenshots that are still to show the old
+	// state).
+	night, shownNight bool
+	lag, delay        int
 	// keyboard says that the device shows a soft keyboard when the dialog that adds a plugin opens, as an emulator that has no
 	// hardware keyboard does, and ime that it is shown now: it takes the taps that are meant for the buttons of the dialog,
 	// and the key of Android that goes back closes it and not the dialog.
@@ -361,9 +360,9 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 			m.delay--
 		}
 		if m.delay == 0 {
-			m.shownNight, m.shownDemo = m.night, m.demo
+			m.shownNight = m.night
 		}
-		return []byte(fmt.Sprintf("\x89PNG fake screen=%s night=%t demo=%t ime=%t", m.now, m.shownNight, m.shownDemo, m.ime)), nil
+		return []byte(fmt.Sprintf("\x89PNG fake screen=%s night=%t ime=%t", m.now, m.shownNight, m.ime)), nil
 	case args[0] == "exec-out":
 		return []byte("\x89PNG fake"), nil
 	case strings.HasPrefix(command, "shell am start"):
@@ -392,19 +391,6 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 			return []byte("  mImeWindowVis=3\n  mInputShown=true\n"), nil
 		}
 		return []byte("  mImeWindowVis=0\n  mInputShown=false\n"), nil
-	case strings.HasPrefix(command, "shell am broadcast -a com.android.systemui.demo"):
-		if d.machine != nil {
-			switch {
-			case strings.HasSuffix(command, "command enter"):
-				d.machine.demo = true
-			case strings.HasSuffix(command, "command exit"):
-				d.machine.demo = false
-			}
-			d.machine.delay = d.machine.lag
-		}
-		return nil, nil
-	case strings.HasPrefix(command, "shell settings put global sysui_demo_allowed"):
-		return nil, nil
 	case strings.HasPrefix(command, "shell dumpsys meminfo"):
 		return []byte(meminfoReport), nil
 	case strings.HasPrefix(command, "shell uiautomator dump "+screenFile):
@@ -830,10 +816,6 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("%s is %q, want a picture of %q", name, got, want)
 		}
-		// The status bar is the same in all of them: the demo mode was in force before the first picture.
-		if !strings.Contains(got, "demo=true") {
-			t.Errorf("%s is %q, want a picture taken with the status bar in the demo mode", name, got)
-		}
 		// The device of the test shows a keyboard when the dialog opens, and no picture shows it.
 		if strings.Contains(got, "ime=true") {
 			t.Errorf("%s is %q, want a picture taken without the keyboard", name, got)
@@ -847,13 +829,16 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 		t.Errorf("the directory of the pictures has %d files, want the 11 of the guide", len(entries))
 	}
 
-	// The theme of the system is the light one again, and the status bar was put in the demo mode before the
-	// first picture.
+	// The theme of the system is the light one again. The status bar is left to the system: the demo mode of Android
+	// throws an exception in System UI at every `enter` and `exit` on the image of CI, and leaves what listens to it half
+	// in and half out, at random, so the tool does not use it (the framing cuts the bar off).
 	if m.night {
 		t.Error("the run leaves the system in the dark theme")
 	}
-	if !slices.Contains(d.commands, "shell settings put global sysui_demo_allowed 1") {
-		t.Error("the demo mode of the status bar was not allowed")
+	for _, command := range d.commands {
+		if strings.Contains(command, "systemui.demo") || strings.Contains(command, "sysui_demo") {
+			t.Errorf("the run used the demo mode of the status bar: %q", command)
+		}
 	}
 	// The dark theme was asked for twice (the pairing page and the home page), and each time given back.
 	var themes []string
@@ -880,11 +865,6 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 	if got := slices.Index(d.commands, "shell input keyevent 4"); got < 0 {
 		t.Error("the page of the SDK was not closed with the key of Android")
 	}
-	// The device is one that a person may keep: the last thing the run does is to take the status bar out of the
-	// demo mode, after the last picture.
-	if got := d.commands[len(d.commands)-1]; got != demoExit {
-		t.Errorf("the last command of the run is %q, want %q", got, demoExit)
-	}
 	// What the pictures are of is kept as dumps beside the screenshots, and the memory is still measured.
 	for _, name := range []string{"picture-android-sdk.xml", "picture-android-add-plugin.xml", "picture-android-trust.xml"} {
 		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
@@ -896,13 +876,9 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 	}
 }
 
-// demoExit is the command that takes the status bar of the device out of the demo mode.
-const demoExit = "shell am broadcast -a com.android.systemui.demo -e command exit"
-
-// TestAFailedSessionGivesTheDeviceBack checks that a run that takes the pictures and fails, here for the lack of a
-// confirmation, leaves the theme of the system light and the status bar out of the demo mode, as a run that
-// succeeds does, and that the evidence of the failure is taken before that, of the screen as it failed.
-func TestAFailedSessionGivesTheDeviceBack(t *testing.T) {
+// TestAFailedSessionGivesTheThemeBack checks that a run that takes the pictures and fails, here for the lack of a
+// confirmation, leaves the theme of the system light, as a run that succeeds does, and keeps the evidence of the failure.
+func TestAFailedSessionGivesTheThemeBack(t *testing.T) {
 	dir := t.TempDir()
 	link := filepath.Join(dir, "link.txt")
 	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
@@ -922,11 +898,6 @@ func TestAFailedSessionGivesTheDeviceBack(t *testing.T) {
 	}
 	if want := []string{"yes", "no"}; !slices.Equal(themes, want) {
 		t.Errorf("the themes were %v, want %v", themes, want)
-	}
-	// The evidence of the failure (its screenshot, the log, what the device says of the network) is commands too, and
-	// they all come before the last one: the screen is kept as it failed, and then the device is given back.
-	if got := d.commands[len(d.commands)-1]; got != demoExit {
-		t.Errorf("the last command of the failed run is %q, want %q", got, demoExit)
 	}
 	if _, err := os.Stat(filepath.Join(c.shots, "failure.png")); err != nil {
 		t.Errorf("the failed run left no screenshot of the failure: %v", err)
@@ -958,43 +929,28 @@ func TestPicturesNeedAPairedSession(t *testing.T) {
 	}
 }
 
-// barPicture is a screenshot 100 px wide whose status bar is the colour top, with the number of icons at its right
-// that a person can see (dark on a light bar, light on a dark one), over a page of the colour below.
-func barPicture(t *testing.T, top, below color.Color, icons int) []byte {
+// screenshotOf is a screenshot 100 px wide: a status bar of statusBarRows rows, grey, with a mark at the left whose
+// place is the time that it says, over a page of the colour page, with a mark at the height of the line that the
+// page shows.
+func screenshotOf(t *testing.T, clock int, page color.Color, line int) []byte {
 	t.Helper()
-	r, g, b, _ := top.RGBA()
-	icon := color.Color(color.RGBA{255, 255, 255, 255})
-	if (299*(r>>8)+587*(g>>8)+114*(b>>8))/1000 > 128 {
-		icon = color.RGBA{60, 60, 60, 255}
-	}
-	return barPictureOf(t, top, below, slices.Repeat([]color.Color{icon}, icons)...)
-}
-
-// barPictureOf is a screenshot like barPicture whose icons are of the colours that are given, the first at the left.
-func barPictureOf(t *testing.T, top, below color.Color, icons ...color.Color) []byte {
-	t.Helper()
-	img := image.NewRGBA(image.Rect(0, 0, 100, statusBarRows+30))
-	for y := 0; y < statusBarRows+30; y++ {
+	img := image.NewRGBA(image.Rect(0, 0, 100, statusBarRows+200))
+	for y := 0; y < statusBarRows+200; y++ {
 		for x := 0; x < 100; x++ {
 			if y < statusBarRows {
-				img.Set(x, y, top)
+				img.Set(x, y, color.RGBA{200, 200, 205, 255})
 			} else {
-				img.Set(x, y, below)
+				img.Set(x, y, page)
 			}
 		}
 	}
-	for i, icon := range icons {
-		for y := 40; y < 80; y++ {
-			for x := 60 + 18*i; x < 68+18*i; x++ {
-				img.Set(x, y, icon)
-			}
-		}
-	}
-	// The clock, at the left, which is no icon: it is seen and not counted.
 	for y := 40; y < 80; y++ {
-		for x := 6; x < 30; x++ {
+		for x := 4 + 8*clock; x < 10+8*clock; x++ {
 			img.Set(x, y, color.RGBA{60, 60, 60, 255})
 		}
+	}
+	for x := 10; x < 60; x++ {
+		img.Set(x, statusBarRows+20+line, color.RGBA{60, 60, 60, 255})
 	}
 	var out bytes.Buffer
 	if err := png.Encode(&out, img); err != nil {
@@ -1003,50 +959,36 @@ func barPictureOf(t *testing.T, top, below color.Color, icons ...color.Color) []
 	return out.Bytes()
 }
 
-func TestBarOf(t *testing.T) {
+func TestPageOf(t *testing.T) {
 	light, dark := color.RGBA{250, 245, 240, 255}, color.RGBA{20, 16, 10, 255}
-	white, black := color.RGBA{255, 255, 255, 255}, color.RGBA{0, 0, 0, 255}
-	pixels := func(screenshot []byte) []byte { p, _ := barOf(screenshot); return p }
-	icons := func(screenshot []byte) int { _, n := barOf(screenshot); return n }
-
-	// What is under the bar does not make it another bar: a page that moves is not a bar that changes.
-	if !bytes.Equal(pixels(barPicture(t, light, white, 2)), pixels(barPicture(t, light, black, 2))) {
-		t.Error("two screenshots with the same bar over other pages have different bars")
+	// The status bar is the system's and says the time: a screen is the same screen at another minute.
+	if !bytes.Equal(pageOf(screenshotOf(t, 0, light, 0)), pageOf(screenshotOf(t, 5, light, 0))) {
+		t.Error("two screenshots of the same page with another time in the status bar are other pages")
 	}
-	if bytes.Equal(pixels(barPicture(t, light, white, 2)), pixels(barPicture(t, dark, white, 2))) {
-		t.Error("a light bar and a dark one are the same bar")
+	if bytes.Equal(pageOf(screenshotOf(t, 0, light, 0)), pageOf(screenshotOf(t, 0, dark, 0))) {
+		t.Error("a light page and a dark one are the same page")
 	}
-	if bytes.Equal(pixels(barPicture(t, light, white, 2)), pixels(barPicture(t, light, white, 1))) {
-		t.Error("a bar with an icon missing is the same bar")
+	if bytes.Equal(pageOf(screenshotOf(t, 0, light, 0)), pageOf(screenshotOf(t, 0, light, 30))) {
+		t.Error("a page with a line at another height is the same page")
 	}
-
-	// The icons that are counted are the ones that can be seen.
-	for n := range 4 {
-		if got := icons(barPicture(t, light, white, n)); got != n {
-			t.Errorf("a light bar with %d icons has %d", n, got)
-		}
-		if got := icons(barPicture(t, dark, white, n)); got != n {
-			t.Errorf("a dark bar with %d icons has %d", n, got)
-		}
+	// A screenshot that is not a picture is all there is of it.
+	if got := pageOf([]byte("not a picture")); string(got) != "not a picture" {
+		t.Errorf("pageOf of what is not a picture = %q", got)
 	}
-	// The icons of the mobile network of the demo mode are white on a light bar, which nobody sees; and the icons that have
-	// not turned light yet are dark on a dark bar.
-	if got := icons(barPictureOf(t, light, white, white, color.RGBA{60, 60, 60, 255})); got != 1 {
-		t.Errorf("a light bar with a white icon and a dark one has %d icons, want the one that can be seen", got)
+	// A picture that is no higher than the status bar has no page, and that is not an error.
+	flat := image.NewRGBA(image.Rect(0, 0, 4, statusBarRows-10))
+	var out bytes.Buffer
+	if err := png.Encode(&out, flat); err != nil {
+		t.Fatal(err)
 	}
-	if got := icons(barPictureOf(t, dark, white, color.RGBA{10, 8, 4, 255}, color.RGBA{10, 8, 4, 255})); got != 0 {
-		t.Errorf("a dark bar with dark icons has %d icons, want none that can be seen", got)
-	}
-
-	// A screenshot that is not a picture is all there is of it, and has what was asked for.
-	got, n := barOf([]byte("not a picture"))
-	if string(got) != "not a picture" || n != statusIcons {
-		t.Errorf("barOf of what is not a picture = %q, %d", got, n)
+	if got := pageOf(out.Bytes()); len(got) != 0 {
+		t.Errorf("pageOf of a picture as high as the status bar has %d bytes, want none", len(got))
 	}
 }
 
-// scriptedBar is a session whose screenshots are the frames, one for each look, the last one for ever after. It counts the looks.
-func scriptedBar(frames [][]byte) (s *session, looks *int, log *strings.Builder) {
+// scriptedScreen is a session whose screenshots are the frames, one for each look, the last one for ever after. It
+// counts the looks.
+func scriptedScreen(frames [][]byte) (s *session, looks *int, log *strings.Builder) {
 	looks, log = new(int), new(strings.Builder)
 	clock := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
 	return &session{
@@ -1061,84 +1003,66 @@ func scriptedBar(frames [][]byte) (s *session, looks *int, log *strings.Builder)
 	}, looks, log
 }
 
-// repeat returns the frame n times.
-func repeat(frame []byte, n int) [][]byte { return slices.Repeat([][]byte{frame}, n) }
+// pageOfScreenshot is what the page of a screenshot is made of, which the session gives settle as the page before.
+func pageOfScreenshot(screenshot []byte) []byte { return pageOf(screenshot) }
 
-// TestTheStatusBarSettles checks what settleStatusBar waits for: that the bar has changed from the one before the request,
-// and that it has then stayed as it is for calmPolls looks in a row. Neither is enough alone: the system answers a request
-// seconds late, so a bar that has not changed yet is not a bar that has settled, and a bar that has changed once is not done
-// while it is still being drawn.
-func TestTheStatusBarSettles(t *testing.T) {
-	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White, 2)
-	b := barPicture(t, color.RGBA{20, 16, 10, 255}, color.White, 2)
-	c := barPicture(t, color.RGBA{20, 16, 10, 200}, color.White, 2)
-	// The frames: the old bar for longer than a calm takes (the system has not answered yet), a half drawn one that
-	// stays for less than a calm takes, and the one that stays.
+// TestTheScreenSettles checks what settle waits for: that the screen has changed from the one before the request, and
+// that it has then stayed as it is for calmPolls looks in a row. Neither is enough alone: the system answers a request
+// seconds late, so a screen that has not changed yet is not a screen that has settled, and one that has changed once is
+// not done while it is still being drawn. The clock of the status bar goes on all the while, and is no part of it.
+func TestTheScreenSettles(t *testing.T) {
+	light, dark, darker := color.RGBA{250, 245, 240, 255}, color.RGBA{20, 16, 10, 255}, color.RGBA{10, 8, 4, 255}
+	// The frames: the old page for longer than a calm takes (the system has not answered yet), a half drawn one that
+	// stays for less than a calm takes, and the one that stays. The clock of each frame is another one.
 	old := calmPolls + 2
-	frames := append(repeat(a, old), b, b, c)
-	s, looks, log := scriptedBar(frames)
-	s.settleStatusBar(statusBarOf(t, a))
-	// The looks at the old bar, 2 at the half drawn one, then c: 1 look that changes it and calmPolls that find it unchanged.
+	var frames [][]byte
+	for i := range old {
+		frames = append(frames, screenshotOf(t, i, light, 0))
+	}
+	frames = append(frames, screenshotOf(t, old, dark, 0), screenshotOf(t, old+1, dark, 0))
+	for i := range calmPolls + 3 {
+		frames = append(frames, screenshotOf(t, old+2+i, darker, 0))
+	}
+	s, looks, log := scriptedScreen(frames)
+	s.settle(pageOfScreenshot(screenshotOf(t, 0, light, 0)))
+	// The looks at the old page, 2 at the half drawn one, then the one that stays: 1 look that changes it and calmPolls
+	// that find it unchanged.
 	if want := old + 2 + 1 + calmPolls; *looks != want {
-		t.Errorf("settleStatusBar looked %d times, want %d: it must wait for the bar that stays", *looks, want)
+		t.Errorf("settle looked %d times, want %d: it must wait for the page that stays, and not for the clock", *looks, want)
 	}
 	if strings.Contains(log.String(), "warning") {
-		t.Errorf("a bar that settled was reported: %s", log)
+		t.Errorf("a screen that settled was reported: %s", log)
 	}
 }
 
-// TestTheStatusBarWaitsForItsIcons is the wifi that comes late: the clock and the battery are drawn, and the bar stays as it
-// is for longer than a calm takes, without the icon of the wifi. On a runner the icon was seconds behind the rest.
-func TestTheStatusBarWaitsForItsIcons(t *testing.T) {
+func TestTheScreenThatNeverChangesIsGivenUpOn(t *testing.T) {
 	light := color.RGBA{250, 245, 240, 255}
-	before := barPicture(t, color.RGBA{240, 240, 245, 255}, color.White, 3) // the real bar of the device
-	withoutWifi := barPicture(t, light, color.White, 1)
-	done := barPicture(t, light, color.White, 2)
-	frames := append([][]byte{before}, repeat(withoutWifi, calmPolls+3)...)
-	frames = append(frames, repeat(done, calmPolls+1)...)
-	s, looks, log := scriptedBar(frames)
-	s.settleStatusBar(statusBarOf(t, before))
-	// 1 look at the old bar, the bar without the wifi for calmPolls+3 looks, then the done bar: 1 look that changes it and
-	// calmPolls that find it unchanged.
-	if want := 1 + calmPolls + 3 + 1 + calmPolls; *looks != want {
-		t.Errorf("settleStatusBar looked %d times, want %d: it must wait for the icon of the wifi", *looks, want)
-	}
-	if strings.Contains(log.String(), "warning") {
-		t.Errorf("a bar that settled was reported: %s", log)
-	}
-}
-
-func TestTheStatusBarThatNeverGetsItsIconsIsGivenUpOn(t *testing.T) {
-	light := color.RGBA{250, 245, 240, 255}
-	before := barPicture(t, color.RGBA{240, 240, 245, 255}, color.White, 3)
-	withoutWifi := barPicture(t, light, color.White, 1)
-	s, looks, log := scriptedBar(append([][]byte{before}, repeat(withoutWifi, 1)...))
-	s.settleStatusBar(statusBarOf(t, before))
+	s, looks, log := scriptedScreen([][]byte{screenshotOf(t, 0, light, 0)})
+	s.settle(pageOfScreenshot(screenshotOf(t, 0, light, 0)))
 	if want := int(calmTimeout/calmPoll) + 1; *looks != want {
-		t.Errorf("settleStatusBar looked %d times, want %d: one for each poll of the time that it waits", *looks, want)
-	}
-	if !strings.Contains(log.String(), "did not settle") || !strings.Contains(log.String(), "icons seen: 1 of 2") {
-		t.Errorf("a bar that never got its icons was not reported: %q", log)
-	}
-}
-
-func TestTheStatusBarThatNeverChangesIsGivenUpOn(t *testing.T) {
-	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White, 2)
-	s, looks, log := scriptedBar([][]byte{a})
-	s.settleStatusBar(statusBarOf(t, a))
-	if want := int(calmTimeout/calmPoll) + 1; *looks != want {
-		t.Errorf("settleStatusBar looked %d times, want %d: one for each poll of the time that it waits", *looks, want)
+		t.Errorf("settle looked %d times, want %d: one for each poll of the time that it waits", *looks, want)
 	}
 	if !strings.Contains(log.String(), "did not settle") || !strings.Contains(log.String(), "changed: false") {
-		t.Errorf("a bar that never changed was not reported: %q", log)
+		t.Errorf("a screen that never changed was not reported: %q", log)
 	}
 }
 
-// statusBarOf is what the bar of a screenshot is made of, which the session gives settleStatusBar as the bar before.
-func statusBarOf(t *testing.T, screenshot []byte) []byte {
-	t.Helper()
-	pixels, _ := barOf(screenshot)
-	return pixels
+func TestTheScreenThatNeverStaysIsGivenUpOn(t *testing.T) {
+	light, dark, darker := color.RGBA{250, 245, 240, 255}, color.RGBA{20, 16, 10, 255}, color.RGBA{10, 8, 4, 255}
+	// A page that is drawn over and over: it changes at every look for longer than the time that settle waits.
+	var frames [][]byte
+	for i := range int(calmTimeout/calmPoll) + 10 {
+		page := color.Color(dark)
+		if i%2 == 1 {
+			page = darker
+		}
+		frames = append(frames, screenshotOf(t, i, page, 0))
+	}
+	s, _, log := scriptedScreen(frames)
+	s.settle(pageOfScreenshot(screenshotOf(t, 0, light, 0)))
+	if !strings.Contains(log.String(), "did not settle") || !strings.Contains(log.String(), "changed: true") {
+		t.Errorf("a screen that never stayed was not reported: %q", log)
+	}
 }
 
 // pictureOfHome is what a picture needs of a run: the page, and the directories.

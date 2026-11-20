@@ -469,9 +469,8 @@ tree of each. Once the pairing succeeds, the app writes the line
 screen is the artifact `screenshot-android`. The screenshots and dumps of the tabs, the log of the app,
 the log of the desktop application and the memory after pairing are the artifact `phone-e2e-android`.
 
-The pictures are taken on the way, with the status bar in the demo mode of Android (a fixed clock, a full
-battery and wifi, no notifications), and the dark ones in the dark theme of the system. The tool gives the
-theme and the status bar back when it ends. There are eleven:
+The pictures are taken on the way, the dark ones in the dark theme of the system, which the tool gives
+back when it ends. There are eleven:
 
 | Picture | What it shows |
 | --- | --- |
@@ -482,23 +481,27 @@ theme and the status bar back when it ends. There are eleven:
 | `android-add-plugin` | the dialog that adds a plugin, with the source and the upload of a file |
 | `android-dark-home` | the home page, in the dark theme |
 
-What makes the pictures alike is the tool's work, because the system draws what they show seconds after it is asked, and an
-emulator is slow. After it fixes the status bar, and after each change of theme, it looks at the status bar until the bar has changed,
-shows the two icons that were asked for at its right (the wifi and the battery: the clock is drawn first, the wifi came many seconds
-later on a runner, and on the dark bar the icons stay dark for a while) and has then stayed as it is for four looks in a row, not for a
-time that a slower emulator would overrun. It closes the soft keyboard that an emulator without a hardware keyboard shows over the
-dialog that adds a plugin: the key of Android that goes back closes the keyboard and keeps the dialog. It takes a picture again, up to
-three times, while the app shows the strip that says that the computer did not answer, which it does for a moment after a change of
-theme on a slow emulator. And when the system covers the screen with the dialog of a process that does not answer (*System UI isn't
-responding*, which a loaded machine makes it show), it taps *Wait* as a person does, wherever it is looking at the screen.
+What makes the pictures alike is the tool's work, because the app and the system draw what they show seconds after they are
+asked, and an emulator is slow. After each change of theme it looks at the screen under the status bar until the screen has changed
+and has then stayed as it is for four looks in a row, not for a time that a slower emulator would overrun. It closes the soft keyboard
+that an emulator without a hardware keyboard shows over the dialog that adds a plugin: the key of Android that goes back closes the
+keyboard and keeps the dialog. It takes a picture again, up to three times, while the app shows the strip that says that the computer
+did not answer, which it does for a moment after a change of theme on a slow emulator. And when the system covers the screen with the
+dialog of a process that does not answer (*System UI isn't responding*, which a loaded machine makes it show), it taps *Wait* as a
+person does, wherever it is looking at the screen.
 
-The artifact `phone-pictures` has each of them twice: in `raw/` as it came, 1080 by 2400, and in
-`framed/`. `vfxtool frame-phone NAME.png OUT.png` makes the framed one: it gives the picture the rounded
-corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px (`#7A7A84`)
-over the edge, as the cream screens of the light theme have no edge against the white page of GitHub. The
-pictures are in English, which both guides use. CI uploads nothing to the image host: download the
-artifact from the run of the pull request (`gh run download RUN -n phone-pictures`), upload the pictures
-of `framed/` as below, and replace the links in the two guides.
+The artifact `phone-pictures` has each of them twice: in `raw/` as it came, 1080 by 2400, with the status bar of
+the emulator, and in `framed/`. `vfxtool frame-phone --top 118 NAME.png OUT.png` makes the framed one. It cuts off the
+status bar, which is 118 px high on this emulator: it shows the real time, and what the system draws there is not the
+same from one run to the next (the demo mode of Android, which would fix it, throws an exception in System UI at every
+`enter` and `exit` on the image of CI, and leaves some of what listens to it out of the demo mode, at random: two icons
+of the wifi in one run and one in the next). What the guide shows is the app. (The picture of the dialog that adds a plugin is cut
+at 168 px, under the bar that Android keeps over the page of a tab, which the shade of the dialog does not cover.) Then it gives the
+picture the rounded corners
+of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px (`#7A7A84`) over the edge, as the
+cream screens of the light theme have no edge against the white page of GitHub. The pictures are in English, which both
+guides use. CI uploads nothing to the image host: download the artifact from the run of the pull request
+(`gh run download RUN -n phone-pictures`), upload the pictures of `framed/` as below, and replace the links in the two guides.
 
 To take them on an emulator of your own ([An emulator of your own](environment.md#an-emulator-of-your-own):
 API 36, 1080 by 2400 at 420 dpi), do what the job does: start the end-to-end build against the fake vfox, as

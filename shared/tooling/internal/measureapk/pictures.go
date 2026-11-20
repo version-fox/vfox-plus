@@ -21,16 +21,17 @@ package measureapk
 // and the home page in the dark theme.
 //
 // The computer is the end-to-end build of the desktop application against the fake vfox, which has
-// SDKs installed and plugins to offer, so the pictures show what a person who uses the app has. The
-// status bar is that of the demo mode of Android, which fixes the clock, shows a full battery and a good
-// network, and no notification: the pictures are alike for it. The app is in English, which both guides
-// use, and the pictures are of the screen as it comes, 1080 by 2400; `vfxtool frame-phone` gives them the
-// shape of a phone display afterwards.
+// SDKs installed and plugins to offer, so the pictures show what a person who uses the app has. The app
+// is in English, which both guides use, and the pictures are of the screen as it comes, 1080 by 2400, with
+// the status bar of the emulator: the real time, and what the system draws there, which is not the same
+// from one run to the next (the demo mode of Android, which would fix it, throws a NullPointerException in
+// System UI at every `enter` and `exit` of the image of CI, and leaves some of what listens to it out of
+// the demo mode, at random). `vfxtool frame-phone --top` cuts the status bar off when it gives the pictures
+// the shape of a phone display, so that what the guide shows is the app.
 
 import (
 	"bytes"
 	"fmt"
-	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -62,14 +63,12 @@ var (
 const keyBack = "4"
 
 const (
-	// statusBarRows is how many rows of a screenshot, from the top, hold the status bar: 118 px on the
-	// 1080 by 2400 of the pictures, and a few more.
-	statusBarRows = 120
-	// statusIcons is how many icons the demo mode that the tool asks for shows at the right of the status bar: the
-	// wifi and the battery. The clock is at the left.
-	statusIcons = 2
-	// calmPoll is the time between two looks at the status bar while it settles, calmPolls the number of
-	// looks in a row that must find it unchanged, and calmTimeout when the tool stops waiting for it.
+	// statusBarRows is how many rows of a screenshot, from the top, hold the status bar of the device: 118 px on the
+	// 1080 by 2400 of the pictures. What the system draws there is not the tool's to wait for, and the framing of
+	// the pictures cuts it off (`frame-phone --top`, in phone.yml).
+	statusBarRows = 118
+	// calmPoll is the time between two looks at the screen while it settles, calmPolls the number of looks in a row
+	// that must find it unchanged, and calmTimeout when the tool stops waiting for it.
 	calmPoll    = time.Second
 	calmPolls   = 4
 	calmTimeout = 60 * time.Second
@@ -79,38 +78,9 @@ const (
 	dialogAttempts  = 3
 )
 
-// demoMode puts the status bar of the device in the demo mode of Android, or takes it out. Nothing here
-// fails the run: a status bar that is not fixed makes a picture that is not like the others, and no more.
-func (s *session) demoMode(on bool) {
-	if !on {
-		s.demo("exit")
-		return
-	}
-	before := s.statusBar()
-	_, _ = s.adb("shell", "settings", "put", "global", "sysui_demo_allowed", "1")
-	for _, command := range [][]string{
-		{"enter"},
-		{"clock", "-e", "hhmm", "1000"},
-		{"battery", "-e", "level", "100", "-e", "plugged", "false"},
-		{"network", "-e", "wifi", "show", "-e", "level", "4", "-e", "fully", "true"},
-		{"network", "-e", "mobile", "hide"},
-		{"notifications", "-e", "visible", "false"},
-	} {
-		s.demo(command...)
-	}
-	s.settleStatusBar(before)
-}
-
-// demo sends one command of the demo mode to the system interface.
-func (s *session) demo(command ...string) {
-	args := append([]string{"shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command"}, command...)
-	_, _ = s.adb(args...)
-}
-
-// theme sets the theme of the system, which the app follows: dark or light. It returns when the status bar
-// has followed.
+// theme sets the theme of the system, which the app follows: dark or light. It returns when the screen has followed.
 func (s *session) theme(dark bool) error {
-	before := s.statusBar()
+	before := s.page()
 	mode := "no"
 	if dark {
 		mode = "yes"
@@ -118,103 +88,63 @@ func (s *session) theme(dark bool) error {
 	if _, err := s.adb("shell", "cmd", "uimode", "night", mode); err != nil {
 		return err
 	}
-	s.settleStatusBar(before)
+	s.settle(before)
 	return nil
 }
 
-// barOf reads the status bar of a screenshot: what its rows are made of, which tells one bar from another whatever the
-// page under it does, and how many icons it shows at the right, which tells a bar that is done from one that is half
-// drawn. A screenshot that cannot be read as a picture stands for itself, and has all the icons that were asked for.
-func barOf(screenshot []byte) (pixels []byte, icons int) {
+// pageOf returns what the rows of a screenshot under the status bar are made of, which tells one screen from
+// another: two screenshots of the same screen give the same bytes, whatever the status bar says, and the status bar
+// is the system's, and not what the pictures are of. A screenshot that cannot be read as a picture stands for itself.
+func pageOf(screenshot []byte) []byte {
 	img, err := png.Decode(bytes.NewReader(screenshot))
 	if err != nil {
-		return screenshot, statusIcons
+		return screenshot
 	}
 	bounds := img.Bounds()
-	rows := min(statusBarRows, bounds.Dy())
-	pixels = make([]byte, 0, rows*bounds.Dx()*4)
-	for y := bounds.Min.Y; y < bounds.Min.Y+rows; y++ {
+	top := min(statusBarRows, bounds.Dy())
+	pixels := make([]byte, 0, (bounds.Dy()-top)*bounds.Dx()*4)
+	for y := bounds.Min.Y + top; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
 			pixels = append(pixels, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8))
 		}
 	}
-	return pixels, iconsOf(img, rows)
-}
-
-// iconsOf counts the icons that can be seen at the right of the status bar: the runs of columns, in the right 45 % of
-// the rows of the bar, that hold something that is not the colour of the bar, a gap of the colour of the bar apart. What
-// is white on a cream bar, as the icons of the mobile network are, is not seen by a person and is not counted; and on a
-// dark bar the icons that are still dark are not either, which is how the bar that has not followed the theme yet is told.
-func iconsOf(img image.Image, rows int) int {
-	const visible = 40 // the difference of luminance, of 255, that a person sees
-	bounds := img.Bounds()
-	luminance := func(x, y int) int {
-		r, g, b, _ := img.At(x, y).RGBA()
-		return int((299*(r>>8) + 587*(g>>8) + 114*(b>>8)) / 1000)
-	}
-	bar := luminance(bounds.Max.X-3, bounds.Min.Y+4)
-	gap := max(bounds.Dx()/108, 3)
-	count, last := 0, -gap
-	inside := false
-	for x := bounds.Min.X + bounds.Dx()*55/100; x < bounds.Max.X; x++ {
-		seen := false
-		for y := bounds.Min.Y + rows/6; y < bounds.Min.Y+rows && !seen; y++ {
-			seen = max(luminance(x, y)-bar, bar-luminance(x, y)) > visible
-		}
-		switch {
-		case seen && !inside:
-			inside, count = true, count+1
-			last = x
-		case seen:
-			last = x
-		case inside && x-last >= gap:
-			inside = false
-		}
-	}
-	return count
-}
-
-// statusBar takes a screenshot and returns what its status bar is made of, or nothing when the device gives none.
-func (s *session) statusBar() []byte {
-	pixels, _ := s.statusBarLook()
 	return pixels
 }
 
-// statusBarLook takes a screenshot and reads its status bar (barOf).
-func (s *session) statusBarLook() (pixels []byte, icons int) {
+// page takes a screenshot and returns what the screen under the status bar is made of, or nothing when the device
+// gives none.
+func (s *session) page() []byte {
 	screenshot, err := s.adb("exec-out", "screencap", "-p")
 	if err != nil {
-		return nil, statusIcons
+		return nil
 	}
-	return barOf(screenshot)
+	return pageOf(screenshot)
 }
 
-// settleStatusBar waits until the status bar is no longer the one that the tool saw before it asked for a
-// change (the demo mode, a theme), shows the icons that were asked for, and stays as it is for calmPolls looks in a row.
-// The system draws the bar when it can, which on a slow emulator is seconds after the request has returned, and in
-// steps: the clock and the battery, then the icon of the wifi, many seconds later on a runner; or the dark bar, with its
-// icons still dark. A bar that has stayed as it is for a while is not done for that: it has not got the wifi yet. A picture
-// taken before is of a bar half drawn, and not like the others. It gives up after calmTimeout, says so, and goes on.
-func (s *session) settleStatusBar(before []byte) {
+// settle waits until the screen is no longer the one that the tool saw before it asked for a change (a theme), and
+// then stays as it is for calmPolls looks in a row. The app and the system draw it when they can, which on a slow
+// emulator is seconds after the request has returned, and in steps: neither is enough alone, as the screen does not
+// change for a while after the request, and a screen that has changed once is not done while it is drawn. It gives
+// up after calmTimeout, says so, and goes on.
+func (s *session) settle(before []byte) {
 	deadline := s.now().Add(calmTimeout)
 	var last []byte
-	changed, still, icons := false, 0, 0
+	changed, still := false, 0
 	for {
-		var bar []byte
-		bar, icons = s.statusBarLook()
-		changed = changed || !bytes.Equal(bar, before)
-		if last != nil && bytes.Equal(bar, last) {
+		now := s.page()
+		changed = changed || !bytes.Equal(now, before)
+		if last != nil && bytes.Equal(now, last) {
 			still++
 		} else {
 			still = 0
 		}
-		last = bar
-		if changed && still >= calmPolls && icons >= statusIcons {
+		last = now
+		if changed && still >= calmPolls {
 			return
 		}
 		if !s.now().Before(deadline) {
-			fmt.Fprintf(s.log, "warning: the status bar did not settle in %s (changed: %t, icons seen: %d of %d): the pictures that follow may show it half drawn\n", calmTimeout, changed, icons, statusIcons)
+			fmt.Fprintf(s.log, "warning: the screen did not settle in %s (changed: %t): the picture that follows may show it half drawn\n", calmTimeout, changed)
 			return
 		}
 		s.sleep(calmPoll)
@@ -260,13 +190,11 @@ func (s *session) picture(c config, name string) error {
 }
 
 // unpairedPictures takes the pictures of the pairing page, in the light theme and in the dark one, of the
-// app that has not paired yet, and puts the status bar in the demo mode for all the pictures that follow. The
-// theme is light again when it returns.
+// app that has not paired yet. The theme is light again when it returns.
 func (s *session) unpairedPictures(c config) error {
 	if err := os.MkdirAll(c.pictures, 0o755); err != nil {
 		return err
 	}
-	s.demoMode(true)
 	if err := s.picture(c, pairingPicture); err != nil {
 		return err
 	}

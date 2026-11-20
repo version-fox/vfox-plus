@@ -192,3 +192,77 @@ func TestRunFails(t *testing.T) {
 		}
 	}
 }
+
+// TestRunCutsTheTopBeforeItFrames checks that --top removes the rows of the status bar, and that what is framed is
+// what is left: with no rounding and no border the picture is what remains, and its first row is the row after the cut.
+func TestRunCutsTheTopBeforeItFrames(t *testing.T) {
+	dir := t.TempDir()
+	red := color.NRGBA{R: 255, A: 255}
+	picture := screen(300, 600)
+	for y := range 100 {
+		for x := range 300 {
+			picture.SetNRGBA(x, y, red) // the status bar
+		}
+	}
+	input := filepath.Join(dir, "in.png")
+	var raw bytes.Buffer
+	if err := png.Encode(&raw, picture); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(input, raw.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(dir, "out.png")
+	if err := run([]string{"--top", "100", "--radius", "0", "--border", "0", input, output}, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.Open(output) //nolint:gosec // The picture of this test.
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	cut, err := png.Decode(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cut.Bounds(); got != image.Rect(0, 0, 300, 500) {
+		t.Fatalf("the size is %v, want the 100 rows of the bar taken off the 600", got)
+	}
+	for _, at := range [][2]int{{0, 0}, {150, 0}, {299, 0}, {150, 499}} {
+		if got := color.NRGBAModel.Convert(cut.At(at[0], at[1])); got != cream {
+			t.Errorf("%v is %v, want the screen: the bar is not cut", at, got)
+		}
+	}
+}
+
+func TestCutTopWithNothingToCutIsTheSamePicture(t *testing.T) {
+	picture := screen(10, 20)
+	got, err := CutTop(picture, 0)
+	if err != nil || got != image.Image(picture) {
+		t.Errorf("CutTop(picture, 0) = %v, %v, want the picture itself", got, err)
+	}
+}
+
+func TestCutTopThatLeavesNothingFails(t *testing.T) {
+	dir := t.TempDir()
+	input := filepath.Join(dir, "in.png")
+	var raw bytes.Buffer
+	if err := png.Encode(&raw, screen(30, 60)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(input, raw.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, top := range []string{"60", "61", "1000"} {
+		err := run([]string{"--top", top, input, filepath.Join(dir, "out.png")}, io.Discard)
+		if err == nil || !strings.Contains(err.Error(), "leaves nothing") {
+			t.Errorf("--top %s: %v, want an error that says that nothing is left", top, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "out.png")); err == nil {
+		t.Error("a picture was written for a cut that leaves nothing")
+	}
+	if err := run([]string{"--top", "-1", input, filepath.Join(dir, "out.png")}, io.Discard); err == nil || !strings.Contains(err.Error(), "not negative") {
+		t.Errorf("--top -1: %v, want an error that says that it is not negative", err)
+	}
+}

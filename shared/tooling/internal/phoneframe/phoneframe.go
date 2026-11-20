@@ -15,7 +15,9 @@
 // Package phoneframe implements `vfxtool frame-phone`: it frames the screenshot of a phone for the
 // documentation. The pictures of the phone app in the user guide have the rounded corners of a phone
 // display, transparent outside, and a thin grey border over the edge of the picture: the cream screens of the
-// light theme have no edge against the white page of GitHub without it.
+// light theme have no edge against the white page of GitHub without it. With --top it first cuts the rows at
+// the top that hold the status bar of the device: what the guide shows is the app, and not the clock, the
+// battery and the signal of the emulator that it was taken on.
 package phoneframe
 
 import (
@@ -40,7 +42,7 @@ const (
 	defaultColor  = "7A7A84"
 )
 
-const usage = "Usage: frame-phone [--radius PIXELS] [--border PIXELS] [--color RRGGBB] INPUT.png OUTPUT.png"
+const usage = "Usage: frame-phone [--top PIXELS] [--radius PIXELS] [--border PIXELS] [--color RRGGBB] INPUT.png OUTPUT.png"
 
 // Run implements `frame-phone INPUT.png OUTPUT.png`.
 func Run(args []string) error {
@@ -50,6 +52,7 @@ func Run(args []string) error {
 func run(args []string, stderr io.Writer) error {
 	flags := flag.NewFlagSet("frame-phone", flag.ContinueOnError)
 	flags.SetOutput(stderr)
+	top := flags.Int("top", 0, "rows to cut from the top of the picture before it is framed, in pixels: the status bar of the device")
 	radius := flags.Int("radius", defaultRadius, "radius of the corners, in pixels")
 	border := flags.Int("border", defaultBorder, "width of the border, in pixels")
 	hex := flags.String("color", defaultColor, "colour of the border, as RRGGBB")
@@ -59,8 +62,8 @@ func run(args []string, stderr io.Writer) error {
 	if flags.NArg() != 2 {
 		return errors.New(usage)
 	}
-	if *radius < 0 || *border < 0 {
-		return errors.New("frame-phone: the radius and the border are not negative")
+	if *top < 0 || *radius < 0 || *border < 0 {
+		return errors.New("frame-phone: the top, the radius and the border are not negative")
 	}
 	edge, err := parseColor(*hex)
 	if err != nil {
@@ -72,6 +75,10 @@ func run(args []string, stderr io.Writer) error {
 	}
 	defer func() { _ = input.Close() }()
 	source, err := png.Decode(input)
+	if err != nil {
+		return fmt.Errorf("%s: %w", flags.Arg(0), err)
+	}
+	source, err = CutTop(source, *top)
 	if err != nil {
 		return fmt.Errorf("%s: %w", flags.Arg(0), err)
 	}
@@ -97,6 +104,21 @@ func parseColor(text string) (color.NRGBA, error) {
 		return color.NRGBA{}, fmt.Errorf("frame-phone: %q is not a colour, which is RRGGBB", text)
 	}
 	return color.NRGBA{R: uint8(value >> 16), G: uint8(value >> 8), B: uint8(value), A: 255}, nil
+}
+
+// CutTop returns the picture without its first rows, which hold the status bar of the device. It fails when
+// nothing would be left of the picture.
+func CutTop(source image.Image, rows int) (image.Image, error) {
+	if rows == 0 {
+		return source, nil
+	}
+	bounds := source.Bounds()
+	if rows >= bounds.Dy() {
+		return nil, fmt.Errorf("--top %d leaves nothing of a picture that is %d rows high", rows, bounds.Dy())
+	}
+	cut := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()-rows))
+	draw.Draw(cut, cut.Bounds(), source, image.Pt(bounds.Min.X, bounds.Min.Y+rows), draw.Src)
+	return cut, nil
 }
 
 // Frame returns the picture with the corners rounded, which are transparent outside the rounding, and a border

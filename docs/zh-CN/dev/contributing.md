@@ -348,7 +348,7 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 
 **Android。** [`phone.yml`](../../../.github/workflows/phone.yml) 的 `emulator` 任务，在驱动应用的那次会话里，拍[手机端 App 指南](../user/android.md)用的图。它对着假 vfox 启动桌面应用的端到端构建，做法与拍桌面图相同：一份名为 `vfox` 的 `vfxtool` 副本排在 `PATH` 最前，设 `VFOX_PLUS_FIXTURES` 与 `VFOX_PLUS_FAKE_INVENTORY=profiles`，家目录独立，于是各标签页显示的是已安装的 Node.js、Java、Flutter 和一个插件仓库，与真人看到的一样。`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 是模拟器访问运行器用的地址。任务运行 `vfxtool phone-link`（允许其他设备，并为 `10.0.2.2` 写出配对链接），然后运行 `vfxtool measure-apk --pictures DIR`。后者安装 APK，冷启动应用，再经深链 `vfoxplus://pair?link=…` 与它配对：点按*信任并配对*，逐个访问五个标签页，并为每个标签页保存一张截图与一份无障碍树的导出。配对成功后，应用在日志里写一行 `vfoxplus: paired host=… fingerprint=…`，`measure-apk` 等的就是这一行。首屏是构件 `screenshot-android`；标签页的截图与导出、应用的日志、桌面应用的日志，以及配对后的内存，是构件 `phone-e2e-android`。
 
-图是顺带拍下的：状态栏用 Android 的演示模式（固定时钟、满电与 Wi-Fi、没有通知），深色的图在系统的深色主题下拍。工具结束时会把主题与状态栏还原。一共十一张：
+图是顺带拍下的，深色的图在系统的深色主题下拍，工具结束时会把主题还原。一共十一张：
 
 | 图 | 内容 |
 | --- | --- |
@@ -359,9 +359,9 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 | `android-add-plugin` | 添加插件的对话框，有来源，也有上传文件 |
 | `android-dark-home` | 深色主题下的主页 |
 
-让图保持一致靠的是工具的做法，因为系统在被要求之后要过几秒才画出图里的内容，而模拟器又慢。固定状态栏之后，以及每次切换主题之后，它不断查看状态栏，直到状态栏变了、右侧显示出被要求的两个图标（Wi-Fi 与电池：时钟先画出，Wi-Fi 在运行器上晚了许多秒，深色栏上的图标也会暗一阵），并且连续四次查看都不再变化为止，而不是等一个更慢的模拟器会超过的固定时间。没有硬件键盘的模拟器会在添加插件的对话框上弹出软键盘，工具把它收起来：安卓的返回键先关键盘，对话框保留。应用显示“电脑没有响应”的提示条时（在慢模拟器上切换主题之后会短暂出现），它会把这张图重新拍一遍，最多三次。系统用某个进程“没有响应”的对话框盖住屏幕时（*System UI isn't responding*，机器负载高时会出现），工具在读屏幕的任何地方都像人那样点*Wait*。
+让图保持一致靠的是工具的做法，因为应用和系统在被要求之后要过几秒才画出图里的内容，而模拟器又慢。每次切换主题之后，它不断查看状态栏以下的屏幕，直到屏幕变了、并且连续四次查看都不再变化为止，而不是等一个更慢的模拟器会超过的固定时间。没有硬件键盘的模拟器会在添加插件的对话框上弹出软键盘，工具把它收起来：安卓的返回键先关键盘，对话框保留。应用显示“电脑没有响应”的提示条时（在慢模拟器上切换主题之后会短暂出现），它会把这张图重新拍一遍，最多三次。系统用某个进程“没有响应”的对话框盖住屏幕时（*System UI isn't responding*，机器负载高时会出现），工具在读屏幕的任何地方都像人那样点*Wait*。
 
-构件 `phone-pictures` 里每张图都有两份：`raw/` 里是截下来的原样，1080×2400；`framed/` 里是加了框的。框由 `vfxtool frame-phone NAME.png OUT.png` 加：手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px 的灰色边框（`#7A7A84`），因为浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。图都是英文的，两种语言的指南共用。CI 不往图床上传任何东西：从 Pull Request 那次运行下载构件（`gh run download RUN -n phone-pictures`），按下面的方法上传 `framed/` 里的图，并替换两份指南里的链接。
+构件 `phone-pictures` 里每张图都有两份：`raw/` 里是截下来的原样，1080×2400，带着模拟器的状态栏；`framed/` 里是加了框的，由 `vfxtool frame-phone --top 118 NAME.png OUT.png` 生成。它先裁掉状态栏（在这台模拟器上高 118 px）：状态栏显示的是真实时间，系统在那里画的东西每次运行也不一样（Android 的演示模式本可以固定它，但在 CI 的镜像上每次 `enter` 与 `exit` 都会让 System UI 抛异常，并随机让一部分监听者留在演示模式之外：一次运行里是两个 Wi-Fi 图标，下一次是一个）。指南展示的是应用本身。（添加插件对话框那张图裁到 168 px，在 Android 盖在标签页上的那条栏之下，因为对话框的遮罩盖不到它。）然后给图加上手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px 的灰色边框（`#7A7A84`），因为浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。图都是英文的，两种语言的指南共用。CI 不往图床上传任何东西：从 Pull Request 那次运行下载构件（`gh run download RUN -n phone-pictures`），按下面的方法上传 `framed/` 里的图，并替换两份指南里的链接。
 
 要在自己的模拟器上拍（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），就做任务做的事：在仓库根目录对着假 vfox 启动端到端构建（如上），用 `vfxtool phone-link` 写出配对链接，再对 CI 构建出来的 APK（它的构件 `vfox-plus-android-amd64`）运行 `vfxtool measure-apk`，用[手机端应用](memory.md#手机端应用)里给出的选项，再加 `--pictures DIR`。端到端构建的回环链接只能用一次，所以每次运行都要重新启动应用；模拟器上装着别的密钥签名的版本时，先卸载它（`adb uninstall dev.vfox.vfoxplus`）。工具点按的控件在无障碍树里（`adb exec-out uiautomator dump /dev/tty`），按英文与简体中文的标签查找：应用改了标签，工具要随之改（见[维护者注记](packaging-android.md#维护者注记)）。
 
