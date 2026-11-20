@@ -637,17 +637,75 @@ func TestAnEvenNumberOfColdStartsHasTheMeanOfTheMiddleTwo(t *testing.T) {
 	}
 }
 
-func TestAColdStartWhoseReportHasNoMemoryFailsTheRun(t *testing.T) {
+func TestAColdStartWhoseReportNeverHasMemoryFailsTheRun(t *testing.T) {
 	dir := t.TempDir()
-	d := &fakeDevice{meminfos: []string{meminfoOf(30, 100), "No process found for: dev.vfox.vfoxplus\n", meminfoOf(32, 110)}}
+	// The device has no process of the app from the second start on: every try of its reading finds the same.
+	d := &fakeDevice{meminfos: []string{meminfoOf(30, 100), "No process found for: dev.vfox.vfoxplus\n"}}
 	c := config{apk: "phone.apk", outputDir: dir, aapt2: "aapt2", settle: time.Second, coldRuns: 3}
 	err := d.session().measure(c)
-	if err == nil || !strings.Contains(err.Error(), "cold start 2") {
-		t.Fatalf("err = %v, want one that names the second start", err)
+	if err == nil || !strings.Contains(err.Error(), "cold start 2") || !strings.Contains(err.Error(), "4 tries") {
+		t.Fatalf("err = %v, want one that names the second start and the tries", err)
+	}
+	// The first reading, and the four tries of the second: the run does not ask for ever.
+	if got := strings.Count(strings.Join(d.commands, "\n"), "shell dumpsys meminfo"); got != 1+meminfoTries {
+		t.Errorf("the report was asked for %d times, want %d", got, 1+meminfoTries)
 	}
 	// A line of two readings is not what the report was asked for: no line is written.
 	if _, statErr := os.Stat(filepath.Join(dir, "memory.txt")); statErr == nil {
 		t.Error("memory.txt was written for a run that failed")
+	}
+}
+
+// meminfoTimeout is what the service answers when the device is too busy to dump the memory in 10 s, as an emulator is in the minute after
+// it booted: no report, and the run of CI that met it stopped.
+const meminfoTimeout = "\n*** SERVICE 'meminfo' DUMP TIMEOUT (10000ms) EXPIRED ***\n\n"
+
+func TestAReportThatTimesOutIsAskedForAgain(t *testing.T) {
+	dir := t.TempDir()
+	d := &fakeDevice{meminfos: []string{meminfoTimeout, meminfoTimeout, meminfoOf(32, 110)}}
+	var output strings.Builder
+	s := d.session()
+	s.log = &output
+	c := config{apk: "phone.apk", outputDir: dir, aapt2: "aapt2", settle: time.Second}
+	if err := s.measure(c); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := readText(t, filepath.Join(dir, "memory.txt")), "memory (apk-cold): RSS 110 MB, PSS 32 MB in 1 processes\n"; got != want {
+		t.Errorf("memory.txt = %q, want %q: the reading of the third try", got, want)
+	}
+	if got := strings.Count(strings.Join(d.commands, "\n"), "shell dumpsys meminfo"); got != 3 {
+		t.Errorf("the report was asked for %d times, want 3", got)
+	}
+	// The report that was kept is the one that held the memory, not a timeout.
+	if got := readText(t, filepath.Join(dir, "meminfo-cold-1.txt")); got != meminfoOf(32, 110) {
+		t.Errorf("meminfo-cold-1.txt = %q, want the report of the third try", got)
+	}
+	if !strings.Contains(output.String(), "holds no memory (try 1 of 4): asking again") {
+		t.Errorf("the output does not say that the reading was asked for again:\n%s", output.String())
+	}
+	// The clock moved by the settling and by the waits between the tries: the tool does not hammer a device that is busy.
+	if got := d.clock.Sub(time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)); got < c.settle+2*meminfoPause {
+		t.Errorf("the run waited %s, want %s or more", got, c.settle+2*meminfoPause)
+	}
+}
+
+func TestTheReportOfThePairedSessionThatTimesOutIsAskedForAgain(t *testing.T) {
+	dir := t.TempDir()
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{
+		screens:  []string{confirmScreen, tabsScreen},
+		logs:     []string{"", pairedLogText("10.0.2.2", "AA:BB"), pairedLogText("10.0.2.2", "AA:BB")},
+		meminfos: []string{meminfoOf(30, 100), meminfoTimeout, meminfoOf(57, 136)},
+	}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: filepath.Join(dir, "shots"), aapt2: "aapt2"}
+	if err := d.session().measure(c); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := readText(t, filepath.Join(dir, "memory-paired.txt")), "memory (apk-paired): RSS 136 MB, PSS 57 MB in 1 processes\n"; got != want {
+		t.Errorf("memory-paired.txt = %q, want %q", got, want)
 	}
 }
 

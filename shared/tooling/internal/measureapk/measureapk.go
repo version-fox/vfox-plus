@@ -306,6 +306,34 @@ func (s *session) measure(c config) error {
 	return s.paired(c, pkg)
 }
 
+// meminfoTries is how many times the report of `dumpsys meminfo` is asked for when it holds no memory, and meminfoPause the wait
+// before the next. Right after the boot of an emulator, or on a runner that is busy, the service answers "DUMP TIMEOUT (10000ms)
+// EXPIRED", which is no reading and says nothing of the app: the reading is asked for again, and not the start, which has settled.
+const (
+	meminfoTries = 4
+	meminfoPause = 5 * time.Second
+)
+
+// readMeminfo reads the memory of the app, the PSS and the RSS of its report, asking again when the report holds none. what names the
+// reading in the log and in the error. It returns the whole report as well.
+func (s *session) readMeminfo(pkg, what string) (pss, rss int, report []byte, err error) {
+	for attempt := 1; ; attempt++ {
+		report, err = s.adb("shell", "dumpsys", "meminfo", pkg)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		var ok bool
+		if pss, rss, ok = ParseMeminfo(string(report)); ok {
+			return pss, rss, report, nil
+		}
+		if attempt == meminfoTries {
+			return 0, 0, report, fmt.Errorf("no PSS or RSS in the meminfo report of %s, in %d tries:\n%s", what, meminfoTries, report)
+		}
+		fmt.Fprintf(s.log, "the meminfo report of %s holds no memory (try %d of %d): asking again\n", what, attempt, meminfoTries)
+		s.sleep(meminfoPause)
+	}
+}
+
 // coldSamples starts the app cold as many times as c asks for (once when it asks for none), lets each start
 // settle, and reads its memory. The whole report of each reading is kept in the output directory, to see
 // which category of memory it was that moved when two readings differ.
@@ -317,13 +345,9 @@ func (s *session) coldSamples(c config, pkg, activity string) ([]sample, error) 
 			return nil, err
 		}
 		s.sleep(c.settle)
-		report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
+		pss, rss, report, err := s.readMeminfo(pkg, fmt.Sprintf("cold start %d", run))
 		if err != nil {
 			return nil, err
-		}
-		pss, rss, ok := ParseMeminfo(string(report))
-		if !ok {
-			return nil, fmt.Errorf("no PSS or RSS in the meminfo report of cold start %d:\n%s", run, report)
 		}
 		if err := writeFile(filepath.Join(c.outputDir, fmt.Sprintf("meminfo-cold-%d.txt", run)), string(report)); err != nil {
 			return nil, err
@@ -394,13 +418,9 @@ func (s *session) paired(c config, pkg string) (err error) {
 			return err
 		}
 	}
-	report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
+	pss, rss, _, err := s.readMeminfo(pkg, "the paired session")
 	if err != nil {
 		return err
-	}
-	pss, rss, ok := ParseMeminfo(string(report))
-	if !ok {
-		return fmt.Errorf("no PSS or RSS in the paired meminfo report:\n%s", report)
 	}
 	line := PairedLine(pss, rss)
 	fmt.Fprintln(s.log, line)
