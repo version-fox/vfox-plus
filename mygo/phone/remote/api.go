@@ -15,12 +15,24 @@
 package remote
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
+	"strings"
+	"unicode"
 )
+
+// MaxPluginFile is the largest plugin file that the phone sends: 32 MiB. The server
+// takes an upload of 33 MiB, the file and the form around it, and keeps up to 32 MiB
+// of it in memory (mygo/pair, pluginSource).
+const MaxPluginFile = 32 << 20
 
 // Inventory returns the installed SDKs, the plugin registry and the vfox
 // configuration (GET /api/inventory).
@@ -166,9 +178,47 @@ func (c *Client) ClearFinished(ctx context.Context) error {
 }
 
 // AddPlugin adds a plugin from a URL and returns the task that adds it; alias is
-// optional (POST /api/plugins). Uploaded files are not sent from the phone.
+// optional (POST /api/plugins).
 func (c *Client) AddPlugin(ctx context.Context, source, alias string) (Task, error) {
 	return result[Task](ctx, c, http.MethodPost, "/api/plugins", nil, pluginRequest{Source: source, Alias: alias})
+}
+
+// UploadPlugin adds a plugin from a file and returns the task that adds it; alias is
+// optional (POST /api/plugins, as multipart/form-data with the fields file and alias,
+// as the web interface sends them). name is the name of the file, which the server
+// keeps for vfox, and which must end in .zip or .lua: those are the plugins that vfox
+// adds from a file. size is the number of bytes that content holds, at most
+// MaxPluginFile. content is read as it is sent. A file that is not a plugin or is too
+// large is refused before anything is sent (ErrNotPluginFile, ErrPluginFileTooLarge).
+func (c *Client) UploadPlugin(ctx context.Context, name string, content io.Reader, size int64, alias string) (Task, error) {
+	name = path.Base(strings.ReplaceAll(name, "\\", "/"))
+	// A control character would end a line of the header of the part that holds the file.
+	if lower := strings.ToLower(name); (!strings.HasSuffix(lower, ".zip") && !strings.HasSuffix(lower, ".lua")) ||
+		strings.ContainsFunc(name, unicode.IsControl) {
+		return Task{}, ErrNotPluginFile
+	}
+	if size < 0 || size > MaxPluginFile {
+		return Task{}, ErrPluginFileTooLarge
+	}
+	// The form is written around the file: what comes before it, then the file, then the
+	// closing delimiter, which the writer would put after the last part (Close).
+	var head bytes.Buffer
+	form := multipart.NewWriter(&head)
+	if alias != "" {
+		if err := form.WriteField("alias", alias); err != nil {
+			return Task{}, fmt.Errorf("remote: make the form: %w", err)
+		}
+	}
+	if _, err := form.CreateFormFile("file", name); err != nil {
+		return Task{}, fmt.Errorf("remote: make the form: %w", err)
+	}
+	tail := "\r\n--" + form.Boundary() + "--\r\n"
+	body := &formBody{
+		contentType: form.FormDataContentType(),
+		length:      int64(head.Len()) + size + int64(len(tail)),
+		body:        io.MultiReader(&head, content, strings.NewReader(tail)),
+	}
+	return result[Task](ctx, c, http.MethodPost, "/api/plugins", nil, body)
 }
 
 // Settings returns the settings of the desktop application (GET /api/settings).

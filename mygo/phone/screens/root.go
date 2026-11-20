@@ -64,6 +64,11 @@ type Root struct {
 	// tasks is the watch of the tasks that end, which sync announces on every screen.
 	// Only the frames use it, on the main thread.
 	tasks taskWatch
+
+	// pickFile has the user choose a plugin file, and returns the path of a copy of it, or ""
+	// when the user chose nothing. It blocks until the user answers, so it runs in the
+	// background. It is a field so that the tests answer for the user; see pickPluginFile.
+	pickFile func(ctx context.Context) (string, error)
 }
 
 // New loads the icons of the interface, and assembles the app: a router, which
@@ -93,7 +98,7 @@ func New() (*Root, error) {
 	// its back gesture; elsewhere SystemStack changes nothing.
 	router.SystemStack = true
 	theme := kit.NewTheme(seedColor, false, false, 1)
-	root := &Root{router: router, env: kit.NewEnv(theme), uiTheme: theme.UI(), service: service}
+	root := &Root{router: router, env: kit.NewEnv(theme), uiTheme: theme.UI(), service: service, pickFile: pickPluginFile}
 	root.app = app.New(routerHistory{router: router})
 	root.seen = service.Status().Session
 	root.app.SetSession(root.seen)
@@ -218,6 +223,12 @@ func noticeText(kind app.Kind) string {
 	switch kind {
 	case app.KindNotLink:
 		return i18n.Text("errNotLink")
+	case app.KindNotPluginFile:
+		return i18n.Text("errNotPluginFile")
+	case app.KindFileTooLarge:
+		return i18n.Text("errFileTooLarge")
+	case app.KindFileUnreadable:
+		return i18n.Text("errFileUnreadable")
 	case app.KindPairingRefused:
 		return i18n.Text("errPairingRefused")
 	case app.KindUnpaired:

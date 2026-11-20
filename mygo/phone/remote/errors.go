@@ -41,6 +41,12 @@ var (
 	// than the one whose fingerprint the user confirmed. The connection is
 	// refused; nothing is trusted automatically.
 	ErrCertificateChanged = errors.New("the server's certificate is not the one that was paired")
+	// ErrNotPluginFile reports a file that is not a plugin that vfox can add: its
+	// name does not end in .zip or .lua. Nothing was sent.
+	ErrNotPluginFile = errors.New("a plugin file is a .zip archive or a .lua script")
+	// ErrPluginFileTooLarge reports a plugin file that the server would not take:
+	// it is larger than MaxPluginFile. Nothing was sent.
+	ErrPluginFileTooLarge = errors.New("the plugin file is larger than the server takes")
 )
 
 // maxMessageRunes bounds the message kept from an answer of the server, which

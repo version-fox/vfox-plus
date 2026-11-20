@@ -307,7 +307,7 @@ It keeps one computer.
   `profile` and `aliases` routes of an SDK, `GET /api/tasks` with `GET /api/tasks/<id>` and its
   `/log`, and `GET /api/settings` and `GET /api/web`. It changes the computer with the other routes
   of this document: `POST /api/tasks` starts a task, such as an install, a use or an uninstall (see
-  [Tasks](#tasks)); `POST /api/plugins` adds a plugin; `PUT /api/sdks/<name>/search` and
+  [Tasks](#tasks)); `POST /api/plugins` adds a plugin, from a source URL or from the file that the person chose with the picker of the system (a `.zip` or a `.lua` of at most 32 MiB, sent as the form that [Plugins](#plugins) describes, with its length declared); `PUT /api/sdks/<name>/search` and
   `PUT /api/sdks/<name>/variables` set an SDK's search and environment variables; `PUT` and
   `DELETE /api/config` set and reset a vfox key; `PUT /api/settings` and `PUT /api/web` change the
   settings and how other devices connect; `POST /api/web/pairing` makes a pairing link for another

@@ -23,7 +23,8 @@ package app
 //
 // What each call marks:
 //
-//	StartTask, AddPlugin      the list of tasks (the new task is in it)
+//	StartTask, AddPlugin,
+//	UploadPlugin              the list of tasks (the new task is in it)
 //	CancelTask, RetryTask     the list, and that task and its log
 //	ClearFinished             the list, and every task and log
 //	SetSearch                 the plugin's versions (every search) and profile
@@ -39,6 +40,9 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/version-fox/vfox-plus/mygo/phone/remote"
 )
@@ -95,6 +99,39 @@ func (s *Service) AddPlugin(ctx context.Context, source, alias string) (remote.T
 	var task remote.Task
 	err := s.call(func(c *remote.Client) (err error) {
 		task, err = c.AddPlugin(ctx, source, alias)
+		return err
+	})
+	if err == nil {
+		s.touch(func() { s.markTasksLocked(none) })
+	}
+	return task, err
+}
+
+// UploadPlugin adds a plugin from a file of the phone, and returns the task that adds
+// it. The file is a .zip archive or a .lua script, at most remote.MaxPluginFile bytes,
+// and it is read as it is sent. A file that is neither, or is larger, is refused before
+// anything is sent (KindNotPluginFile, KindFileTooLarge), and so is a file that cannot
+// be read (KindFileUnreadable). The alias is optional.
+func (s *Service) UploadPlugin(ctx context.Context, path, alias string) (remote.Task, error) {
+	// The path is a copy that the picker of the system made in the app's cache, not text
+	// that the user typed. Clean only normalises its spelling.
+	file, err := os.Open(filepath.Clean(path))
+	if err != nil {
+		return remote.Task{}, fmt.Errorf("%w: %w", ErrFileUnreadable, err)
+	}
+	defer func() { _ = file.Close() }()
+	info, err := file.Stat()
+	if err != nil {
+		return remote.Task{}, fmt.Errorf("%w: %w", ErrFileUnreadable, err)
+	}
+	// Anything but a file would fail while it is sent, and the failure of its reading would
+	// look like the failure of the connection.
+	if !info.Mode().IsRegular() {
+		return remote.Task{}, fmt.Errorf("%w: %s is not a file", ErrFileUnreadable, filepath.Base(path))
+	}
+	var task remote.Task
+	err = s.call(func(c *remote.Client) (err error) {
+		task, err = c.UploadPlugin(ctx, filepath.Base(path), file, info.Size(), alias)
 		return err
 	})
 	if err == nil {

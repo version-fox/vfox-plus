@@ -286,6 +286,21 @@ func TestTasksStartListFollowAndFinish(t *testing.T) {
 	if added := strictly[Task](t, rec); added.Operation != OperationAddPlugin {
 		t.Errorf("AddPlugin operation = %q, want %q", added.Operation, OperationAddPlugin)
 	}
+
+	// A plugin file goes to the same route as a form, which the server of the desktop reads as it
+	// reads the one that the web interface sends. The file arrives under its own name, and not
+	// under the path that it had on the phone, and the alias goes with it.
+	script := "-- a plugin\nPLUGIN = {name = 'demo'}\n"
+	if _, err := client.UploadPlugin(ctx, "/storage/cache/picked/1/demo.lua", strings.NewReader(script), int64(len(script)), "demo-file"); err != nil {
+		t.Fatalf("UploadPlugin: %v", err)
+	}
+	uploaded := strictly[Task](t, rec)
+	if uploaded.Operation != OperationAddPlugin {
+		t.Errorf("UploadPlugin operation = %q, want %q", uploaded.Operation, OperationAddPlugin)
+	}
+	if !strings.Contains(uploaded.CommandLine, "/demo.lua") || strings.Contains(uploaded.CommandLine, "picked") {
+		t.Errorf("the uploaded file is added as %q, want it under the name demo.lua alone", uploaded.CommandLine)
+	}
 }
 
 // waitForFullLog polls until the desktop has kept the complete log of the task.

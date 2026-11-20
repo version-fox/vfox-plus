@@ -18,11 +18,16 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"net"
 
 	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 	"github.com/version-fox/vfox-plus/mygo/phone/remote"
 )
+
+// ErrFileUnreadable is a file of the phone that cannot be read: the copy that the picker
+// of the system made is gone, or it is not a file.
+var ErrFileUnreadable = errors.New("the file cannot be read")
 
 // Kind tells the errors of the service apart for the user interface, which says
 // them in its own words. The service gives the kind only; the text is the window's.
@@ -37,6 +42,13 @@ const (
 	KindCanceled
 	// KindNotLink is text that is not a pairing link.
 	KindNotLink
+	// KindNotPluginFile is a file that is not a plugin that vfox adds: not a .zip
+	// archive and not a .lua script.
+	KindNotPluginFile
+	// KindFileTooLarge is a plugin file that the computer would not take.
+	KindFileTooLarge
+	// KindFileUnreadable is a file of the phone that cannot be read.
+	KindFileUnreadable
 	// KindPairingRefused is a pairing link that is invalid, used or expired.
 	KindPairingRefused
 	// KindUnpaired is a computer that does not accept the phone: pair it again.
@@ -68,6 +80,12 @@ func KindOf(err error) Kind {
 		return KindCanceled
 	case errors.Is(err, pairing.ErrNotPairingLink):
 		return KindNotLink
+	case errors.Is(err, ErrFileUnreadable):
+		return KindFileUnreadable
+	case errors.Is(err, remote.ErrNotPluginFile):
+		return KindNotPluginFile
+	case errors.Is(err, remote.ErrPluginFileTooLarge):
+		return KindFileTooLarge
 	case errors.Is(err, remote.ErrPairingRefused):
 		return KindPairingRefused
 	case errors.Is(err, remote.ErrCertificateChanged):
@@ -89,8 +107,13 @@ func KindOf(err error) Kind {
 }
 
 // isNetwork reports whether err is a failure of the connection, which the
-// computer did not answer.
+// computer did not answer. A failure of a file is not: its system error (a file that is
+// not there) implements net.Error as well, and it does not say that the network is down.
 func isNetwork(err error) bool {
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		return false
+	}
 	var netErr net.Error
 	return errors.As(err, &netErr) ||
 		errors.Is(err, io.EOF) ||

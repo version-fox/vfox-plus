@@ -90,7 +90,10 @@ already on the PC under vfox-plus. Filter chips above the list narrow it. Under
 card has a **Homepage** (主页) button, which opens the homepage in the browser.
 **Update all** (全部更新) updates the installed plugins, and **Add from source**
 (从来源添加) adds a plugin from a source URL (*Source URL*, 来源地址), with an optional
-alias.
+alias. Under **Upload & add** (上传并添加) in the same dialog, **Choose a file** (选择文件)
+opens the file picker of the phone: choose a `.zip` archive or a `.lua` script of up to 32 MiB,
+and the app sends it to the PC, which adds the plugin from it, with the alias that you typed.
+Any other file is refused at once.
 
 **Tasks** lists the changes that the PC runs as tasks, with their states. Tap a task to
 open its output, then use **Cancel** (取消), **Retry** (重试), **Full log** (完整日志) or
@@ -138,8 +141,6 @@ system's settings.
 
 ## What differs from the desktop application
 
-- **Plugins** are added from a source URL only. The phone cannot add a plugin from a
-  `.zip` archive or a `.lua` script.
 - **The camera** takes a photo of the code. It does not scan the code live.
 - **Versions** are set globally only, with **Use globally**. The phone cannot pin a
   version to a project or copy an install path.

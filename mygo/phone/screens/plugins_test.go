@@ -15,8 +15,15 @@
 package screens
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -182,8 +189,11 @@ func TestAddFromSourceSendsTheAddressAndTheAlias(t *testing.T) {
 	}
 	availWaitText(t, tt, "Source URL")
 	availShot(t, tt, "add-plugin-dialog")
-	if hasText(tt, "Upload & add") {
-		t.Error("the add dialog offers an upload, which the phone does not do")
+	// The dialog is the web's: the source and the alias, and under them the upload of a file.
+	for _, want := range []string{"Upload & add", "Choose a file"} {
+		if !hasText(tt, want) {
+			t.Errorf("the add dialog does not show %q; it shows %q", want, tt.Texts())
+		}
 	}
 	tt.Type("https://example.com/x.git")
 	if err := tt.Click("Alias (optional)"); err != nil {
@@ -196,6 +206,236 @@ func TestAddFromSourceSendsTheAddressAndTheAlias(t *testing.T) {
 		t.Errorf("add from source sent %+v", got)
 	}
 	availWaitTab(t, tt, root)
+}
+
+// pluginFile writes a file with the name and the content in a new directory, and returns its path.
+func pluginFile(t *testing.T, name, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// pickerThatChooses sets the picker of the window to one that answers as the user does, and
+// returns a channel that is closed when the picker has been shown.
+func pickerThatChooses(root *Root, path string, err error) <-chan struct{} {
+	shown := make(chan struct{})
+	root.pickFile = func(context.Context) (string, error) {
+		close(shown)
+		return path, err
+	}
+	return shown
+}
+
+// pluginOpenAddDialog opens the dialog of "Add from source" on the plugin tab.
+func pluginOpenAddDialog(t *testing.T, tt *ui.Tester) {
+	t.Helper()
+	if err := tt.Click("Add from source"); err != nil {
+		t.Fatalf("Click(Add from source): %v", err)
+	}
+	availWaitText(t, tt, "Choose a file")
+}
+
+func TestChoosingAFileUploadsItWithTheAlias(t *testing.T) {
+	f := availNewComputer(t)
+	f.inventory = pluginRegistry()
+	root := availRoot(t, f)
+	path := pluginFile(t, "demo.lua", "-- a plugin\n")
+	pickerThatChooses(root, path, nil)
+	tt := ui.NewTester(root.View, 480, 900)
+	pluginOpenTab(t, root, tt)
+	pluginOpenAddDialog(t, tt)
+
+	if err := tt.Click("Alias (optional)"); err != nil {
+		t.Fatalf("Click(Alias): %v", err)
+	}
+	tt.Type("xx")
+	if err := tt.Click("Choose a file"); err != nil {
+		t.Fatalf("Click(Choose a file): %v", err)
+	}
+	calls := availWaitCalls(t, tt, f)
+	got := calls[0]
+	if got.Method != "POST" || got.Path != "/api/plugins" {
+		t.Fatalf("choosing a file sent %+v, want a POST to /api/plugins", got)
+	}
+	// The form is the one that the web sends: the file under its name, and the alias that was typed.
+	for _, want := range []string{`name="file"; filename="demo.lua"`, "-- a plugin", `name="alias"`, "\r\n\r\nxx\r\n"} {
+		if !strings.Contains(got.Body, want) {
+			t.Errorf("the form lacks %q:\n%s", want, got.Body)
+		}
+	}
+	// As in the web, the plugin is added and the tasks tab follows; the file of the user stays.
+	availWaitTab(t, tt, root)
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("the file that the user chose is gone: %v", err)
+	}
+}
+
+func TestGoingBackFromThePickerAddsNothing(t *testing.T) {
+	f := availNewComputer(t)
+	f.inventory = pluginRegistry()
+	root := availRoot(t, f)
+	shown := pickerThatChooses(root, "", nil)
+	tt := ui.NewTester(root.View, 480, 900)
+	pluginOpenTab(t, root, tt)
+	pluginOpenAddDialog(t, tt)
+
+	if err := tt.Click("Choose a file"); err != nil {
+		t.Fatalf("Click(Choose a file): %v", err)
+	}
+	select {
+	case <-shown:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the picker was not shown")
+	}
+	// Nothing follows the picker: the frames that are drawn after it show the same tab.
+	for range 20 {
+		tt.Frame()
+		time.Sleep(5 * time.Millisecond)
+	}
+	if calls := f.recorded(); len(calls) != 0 {
+		t.Errorf("a picker that chose nothing sent %+v", calls)
+	}
+	if root.App().Tab() != app.TabPlugins {
+		t.Errorf("the window shows tab %v after a picker that chose nothing, want the plugins", root.App().Tab())
+	}
+	// Going back is not a failure of any kind: no message of an error is shown.
+	for kind := app.KindNone + 1; kind <= app.KindOther; kind++ {
+		if text := noticeText(kind); text != "" && hasText(tt, text) {
+			t.Errorf("a picker that chose nothing is shown as an error: %q", text)
+		}
+	}
+}
+
+func TestAFileThatIsNotAPluginIsRefusedAtOnce(t *testing.T) {
+	f := availNewComputer(t)
+	f.inventory = pluginRegistry()
+	root := availRoot(t, f)
+	pickerThatChooses(root, pluginFile(t, "notes.txt", "not a plugin"), nil)
+	tt := ui.NewTester(root.View, 480, 900)
+	pluginOpenTab(t, root, tt)
+	pluginOpenAddDialog(t, tt)
+
+	if err := tt.Click("Choose a file"); err != nil {
+		t.Fatalf("Click(Choose a file): %v", err)
+	}
+	availWaitText(t, tt, noticeText(app.KindNotPluginFile))
+	if calls := f.recorded(); len(calls) != 0 {
+		t.Errorf("a file that is not a plugin was sent: %+v", calls)
+	}
+	if root.App().Tab() != app.TabPlugins {
+		t.Errorf("the window shows tab %v after a refused file, want the plugins", root.App().Tab())
+	}
+	availShot(t, tt, "add-plugin-refused")
+}
+
+func TestAPickerThatFailsSaysSo(t *testing.T) {
+	f := availNewComputer(t)
+	f.inventory = pluginRegistry()
+	root := availRoot(t, f)
+	pickerThatChooses(root, "", errors.New("the system picker failed"))
+	tt := ui.NewTester(root.View, 480, 900)
+	pluginOpenTab(t, root, tt)
+	pluginOpenAddDialog(t, tt)
+
+	if err := tt.Click("Choose a file"); err != nil {
+		t.Fatalf("Click(Choose a file): %v", err)
+	}
+	availWaitText(t, tt, noticeText(app.KindOther))
+	if calls := f.recorded(); len(calls) != 0 {
+		t.Errorf("a picker that failed sent %+v", calls)
+	}
+}
+
+// TestThePickersCopyIsRemovedAfterTheUpload checks the whole way of a pick on Linux, where the
+// cache of the app is the XDG_CACHE_HOME that the test sets: the copy that the picker made is
+// gone when the upload ends. The other systems keep their caches elsewhere; the rule is
+// tested for all of them in TestForgetPickedRemovesOnlyThePickersCopy.
+func TestThePickersCopyIsRemovedAfterTheUpload(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("the cache of the app is found from XDG_CACHE_HOME on Linux only")
+	}
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+	copyDir := filepath.Join(cache, "picked", "1700000000000000000")
+	if err := os.MkdirAll(copyDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(copyDir, "demo.zip")
+	if err := os.WriteFile(path, []byte("PK"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f := availNewComputer(t)
+	f.inventory = pluginRegistry()
+	root := availRoot(t, f)
+	pickerThatChooses(root, path, nil)
+	tt := ui.NewTester(root.View, 480, 900)
+	pluginOpenTab(t, root, tt)
+	pluginOpenAddDialog(t, tt)
+
+	if err := tt.Click("Choose a file"); err != nil {
+		t.Fatalf("Click(Choose a file): %v", err)
+	}
+	availWaitCalls(t, tt, f)
+	availWaitTab(t, tt, root)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if _, err := os.Stat(copyDir); errors.Is(err, os.ErrNotExist) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the copy that the picker made is still in the cache after the upload")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func TestForgetPickedRemovesOnlyThePickersCopy(t *testing.T) {
+	cache := t.TempDir()
+	file := func(parts ...string) string {
+		t.Helper()
+		path := filepath.Join(parts...)
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	exists := func(path string) bool {
+		_, err := os.Stat(path)
+		return err == nil
+	}
+	pick := file(cache, "picked", "1700000000000000000", "demo.zip")
+	// What is not the file of one pick stays: the file of the user, a file of the cache that
+	// the picker did not make, a pick that is deeper, a directory that is not a number, and a path
+	// that leaves the directory of the picks.
+	users := file(t.TempDir(), "demo.zip")
+	other := file(cache, "other", "5", "demo.zip")
+	deeper := file(cache, "picked", "7", "sub", "demo.zip")
+	named := file(cache, "picked", "keep", "demo.zip")
+	outside := file(cache, "outside.zip")
+	for _, path := range []string{users, other, deeper, named, outside, filepath.Join(cache, "picked", "..", "outside.zip"), "", "relative.zip"} {
+		forgetPickedIn(cache, path)
+	}
+	for _, path := range []string{users, other, deeper, named, outside} {
+		if !exists(path) {
+			t.Errorf("%s was removed, and it is not the copy of a pick", path)
+		}
+	}
+	if !exists(pick) {
+		t.Fatal("the copy of the pick was removed by a path that is not it")
+	}
+	forgetPickedIn(cache, pick)
+	if exists(filepath.Dir(pick)) {
+		t.Error("the directory of the pick is still there")
+	}
+	if !exists(filepath.Join(cache, "picked")) {
+		t.Error("the directory of the picks was removed with the pick")
+	}
 }
 
 func TestAddFromSourceNeedsASource(t *testing.T) {

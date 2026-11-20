@@ -223,23 +223,44 @@ func (c *Client) authorize(request *http.Request) {
 	}
 }
 
+// formBody is the payload of a call that sends a form with a file in it. The body
+// is read as it is sent, so the phone does not hold the file in memory, and its
+// length is known, as the length of the form that a browser sends is.
+type formBody struct {
+	contentType string
+	length      int64
+	body        io.Reader
+}
+
 // call makes one request and returns the answer of a 2xx status. A payload that
-// is not nil is sent as JSON. Any other status is an *APIError.
+// is not nil is sent as JSON, except a *formBody, which is sent as it is. Any other
+// status is an *APIError.
 func (c *Client) call(ctx context.Context, method, path string, query url.Values, payload any) ([]byte, error) {
-	var body io.Reader
-	if payload != nil {
+	var (
+		body        io.Reader
+		contentType string
+		length      = int64(-1)
+	)
+	switch p := payload.(type) {
+	case nil:
+	case *formBody:
+		body, contentType, length = p.body, p.contentType, p.length
+	default:
 		encoded, err := json.Marshal(payload)
 		if err != nil {
 			return nil, fmt.Errorf("remote: encode the request: %w", err)
 		}
-		body = bytes.NewReader(encoded)
+		body, contentType = bytes.NewReader(encoded), "application/json"
 	}
 	request, err := http.NewRequestWithContext(ctx, method, c.endpoint(path, query), body)
 	if err != nil {
 		return nil, fmt.Errorf("remote: make the request: %w", err)
 	}
-	if payload != nil {
-		request.Header.Set("Content-Type", "application/json")
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
+	if length >= 0 {
+		request.ContentLength = length
 	}
 	c.authorize(request)
 	response, err := c.client.Do(request)

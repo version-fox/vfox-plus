@@ -41,6 +41,11 @@ import (
 // sessionCookie is the cookie of the session, as the desktop names it.
 const sessionCookie = "vfox-plus-session"
 
+// uploadedPlugin is a plugin file that the computer received in a form.
+type uploadedPlugin struct {
+	name, content, alias string
+}
+
 type desktop struct {
 	t           *testing.T
 	server      *httptest.Server
@@ -61,6 +66,7 @@ type desktop struct {
 	settings  remote.AppSettings
 	web       remote.WebState
 	requests  map[string]int
+	uploads   []uploadedPlugin
 	holds     map[string]chan struct{}
 	failures  map[string]int
 	subs      map[chan string]bool
@@ -202,6 +208,13 @@ func (d *desktop) count(path string) int {
 	return d.requests["GET "+path]
 }
 
+// countOf returns how many requests with method and path arrived.
+func (d *desktop) countOf(method, path string) int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.requests[method+" "+path]
+}
+
 // openStreams returns how many event streams are open now.
 func (d *desktop) openStreams() int {
 	d.mu.Lock()
@@ -336,7 +349,7 @@ func (d *desktop) route(w http.ResponseWriter, r *http.Request) {
 	case "POST api/tasks":
 		d.startTask(w, r)
 	case "POST api/plugins":
-		d.startTask(w, r)
+		d.addPlugin(w, r)
 	case "DELETE api/tasks/finished":
 		d.clearFinished(w)
 	case "GET api/tasks/:id":
@@ -467,6 +480,61 @@ func (d *desktop) startTask(w http.ResponseWriter, r *http.Request) {
 	d.nextID++
 	d.tasks = append(d.tasks, task)
 	writeJSON(w, http.StatusCreated, task)
+}
+
+// addPlugin starts the task that adds a plugin, from the source of a JSON body or from the
+// file of a form, as the desktop does. It keeps the files that it received.
+func (d *desktop) addPlugin(w http.ResponseWriter, r *http.Request) {
+	var source, alias string
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		// Bounded as the server of the desktop bounds it, with a bound that suits a test.
+		r.Body = http.MaxBytesReader(w, r.Body, 4<<20)
+		if err := r.ParseMultipartForm(1 << 20); err != nil { //nolint:gosec // Bounded above; G120 does not track MaxBytesReader on the body field.
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Cannot read the upload."})
+			return
+		}
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "An uploaded file or a source URL is required."})
+			return
+		}
+		defer func() { _ = file.Close() }()
+		content, err := io.ReadAll(file)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		source, alias = header.Filename, r.FormValue("alias")
+		d.mu.Lock()
+		d.uploads = append(d.uploads, uploadedPlugin{name: header.Filename, content: string(content), alias: alias})
+		d.mu.Unlock()
+	} else {
+		var request struct {
+			Source string `json:"source"`
+			Alias  string `json:"alias"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.Source == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "A source URL is required."})
+			return
+		}
+		source, alias = request.Source, request.Alias
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	task := remote.Task{
+		ID: d.nextID, Operation: remote.OperationAddPlugin, Alias: alias,
+		Status: remote.TaskQueued, CommandLine: "vfox add --source " + source, Log: []string{},
+	}
+	d.nextID++
+	d.tasks = append(d.tasks, task)
+	writeJSON(w, http.StatusCreated, task)
+}
+
+// uploaded returns the plugin files that the computer received.
+func (d *desktop) uploaded() []uploadedPlugin {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return append([]uploadedPlugin(nil), d.uploads...)
 }
 
 // clearFinished forgets the tasks that are not queued or running.

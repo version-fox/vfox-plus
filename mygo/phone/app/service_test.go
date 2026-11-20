@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -576,6 +577,95 @@ func TestMutationsChangeTheComputerAndMarkWhatTheyChange(t *testing.T) {
 	}
 	if listed := loaded(t, svc.Tasks); !slices.ContainsFunc(listed, func(x remote.Task) bool { return x.ID == added.ID }) {
 		t.Errorf("the tasks after AddPlugin lack task %d", added.ID)
+	}
+}
+
+// writePluginFile writes a file of the given size in a new directory, as the picker of the system
+// leaves its copies, and returns its path. A file of the size of a large one is sparse.
+func writePluginFile(t *testing.T, name, content string, size int64) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	if size > 0 {
+		file, err := os.Create(filepath.Clean(path)) // In the temporary directory of the test.
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Truncate(size); err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// madeDirectory makes a directory with the name in a new directory, and returns its path.
+func madeDirectory(t *testing.T, name string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	if err := os.Mkdir(path, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestUploadPluginSendsTheFileAndListsItsTask(t *testing.T) {
+	d := newDesktop(t)
+	svc := paired(t, d)
+	path := writePluginFile(t, "demo.lua", "-- a plugin\n", 0)
+	added, err := svc.UploadPlugin(t.Context(), path, "demo")
+	if err != nil {
+		t.Fatalf("UploadPlugin: %v", err)
+	}
+	if added.Operation != remote.OperationAddPlugin || added.Alias != "demo" {
+		t.Errorf("the task is %+v, want the one that adds the plugin with the alias demo", added)
+	}
+	if got := d.uploaded(); len(got) != 1 || got[0] != (uploadedPlugin{name: "demo.lua", content: "-- a plugin\n", alias: "demo"}) {
+		t.Errorf("the computer received %+v, want the file under its name, with its content and its alias", got)
+	}
+	if listed := loaded(t, svc.Tasks); !slices.ContainsFunc(listed, func(x remote.Task) bool { return x.ID == added.ID }) {
+		t.Errorf("the tasks after UploadPlugin lack task %d", added.ID)
+	}
+	// The service reads the file and sends it: the file is the picker's to remove, as the user's
+	// own file stays where it is on a computer.
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("the file of the upload is gone: %v", err)
+	}
+}
+
+func TestUploadPluginRefusesWhatCannotBeAddedAndSendsNothing(t *testing.T) {
+	d := newDesktop(t)
+	svc := paired(t, d)
+	for name, tc := range map[string]struct {
+		path string
+		want Kind
+	}{
+		"a file that is not a plugin":    {writePluginFile(t, "notes.txt", "x", 0), KindNotPluginFile},
+		"a file that is too large":       {writePluginFile(t, "big.zip", "", remote.MaxPluginFile+1), KindFileTooLarge},
+		"a file that is not there":       {filepath.Join(t.TempDir(), "gone.zip"), KindFileUnreadable},
+		"a directory with a plugin name": {madeDirectory(t, "folder.zip"), KindFileUnreadable},
+	} {
+		_, err := svc.UploadPlugin(t.Context(), tc.path, "")
+		if got := KindOf(err); got != tc.want {
+			t.Errorf("%s: %v is of kind %v, want %v", name, err, got, tc.want)
+		}
+	}
+	if n := d.countOf(http.MethodPost, "/api/plugins"); n != 0 {
+		t.Errorf("the computer was asked %d times to add a plugin that cannot be added", n)
+	}
+}
+
+func TestUploadPluginOfAnUnpairedPhoneIsUnpaired(t *testing.T) {
+	servers, sessions := stores(t)
+	svc := newTestService(t, servers, sessions)
+	path := writePluginFile(t, "demo.zip", "PK", 0)
+	if _, err := svc.UploadPlugin(t.Context(), path, ""); KindOf(err) != KindUnpaired {
+		t.Errorf("UploadPlugin without a computer: %v, want the phone to be unpaired", err)
 	}
 }
 

@@ -40,5 +40,9 @@ func init() {
 			"https://…",
 			"https://…",
 		},
+		"chooseFile": {
+			"Choose a file",
+			"选择文件",
+		},
 	})
 }

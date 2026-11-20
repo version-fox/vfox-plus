@@ -23,6 +23,18 @@ func init() {
 			"That is not a pairing link.",
 			"这不是配对链接。",
 		},
+		"errNotPluginFile": {
+			"That file is not a plugin. A plugin is a .zip archive or a .lua script.",
+			"这个文件不是插件。插件是 .zip 压缩包或 .lua 脚本。",
+		},
+		"errFileTooLarge": {
+			"That file is larger than 32 MiB, which the computer does not take.",
+			"这个文件超过 32 MiB，电脑不接收。",
+		},
+		"errFileUnreadable": {
+			"The file could not be read.",
+			"无法读取这个文件。",
+		},
 		"errPairingRefused": {
 			"The pairing link is invalid, already used or expired. Make a new one on the computer.",
 			"配对链接无效、已使用或已过期，请在电脑上重新生成一个。",

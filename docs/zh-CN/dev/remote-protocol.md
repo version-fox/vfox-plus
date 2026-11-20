@@ -246,7 +246,7 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
   回到前台时手机重新连接，并把一切重新加载。流断开后三秒重试一次。应答 `401` 表示电脑不再接受这个会话，手机会要求人重新配对。
 - **调用。** 手机读取 `GET /api/inventory`、`GET /api/doctor`、SDK 的 `info`、`versions`、`profile` 与 `aliases` 路由、
   `GET /api/tasks` 与 `GET /api/tasks/<id>` 及其 `/log`，以及 `GET /api/settings` 与 `GET /api/web`。它用本文档的其他路由改变电脑：
-  `POST /api/tasks` 启动任务，如安装、使用或卸载（见[任务](#任务)）；`POST /api/plugins` 添加插件；`PUT /api/sdks/<name>/search` 与
+  `POST /api/tasks` 启动任务，如安装、使用或卸载（见[任务](#任务)）；`POST /api/plugins` 添加插件，来源是一个地址，或是人用系统选择器选的文件（至多 32 MiB 的 `.zip` 或 `.lua`，按[插件](#插件)所述的表单发送，并声明其长度）；`PUT /api/sdks/<name>/search` 与
   `PUT /api/sdks/<name>/variables` 设置 SDK 的搜索与环境变量；`PUT` 与 `DELETE /api/config` 设置与重置一个 vfox 键；
   `PUT /api/settings` 与 `PUT /api/web` 修改设置与其他设备的连接方式；`POST /api/web/pairing` 为另一台设备制作配对链接，
   手机以文字和二维码展示它；`POST /api/quit` 退出电脑上的应用，须经人确认。一次调用最多等待 150 秒，比服务器等 vfox 两分钟后应答 `504` 的时间更长。
