@@ -305,7 +305,9 @@ where the difference is:
 
 The pages of the Go program (Code) and its heap (Native heap) are most of the difference. In that
 run five of the six starts of the phone app read 51.1 to 51.4 MB of PSS and one read 46.8 MB, so the
-median of several starts is steadier than a start, which is why the line is one.
+median of several starts is steadier than a start, which is why the line is one. In CI the five
+starts of one session read 44 to 48, 31 to 50 and 31 to 48 MB of PSS in the first three runs that took
+five, and the medians were 44, 44 and 46 MB.
 
 What the comparison leaves out. The client was measured at its first screen only, and no process
 of a web page was running then (`ps` showed the `webview_zygote` and `webview_service` of the
