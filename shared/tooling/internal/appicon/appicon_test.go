@@ -16,6 +16,7 @@ package appicon
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"image/color"
@@ -208,6 +209,31 @@ func TestWritePhoneIcons(t *testing.T) {
 	}
 	if _, _, _, a := decoded.At(0, 0).RGBA(); a != 0 {
 		t.Errorf("the corner of the icon has alpha %d, want 0", a>>8)
+	}
+}
+
+// TestTheConfigOfThePhoneAppNamesTheIcons checks that mygo/phone/mygo.json names the foreground that
+// WritePhoneIcons writes, and the colour that goes under it. The icons are made at build time and the
+// repository holds none, so what the configuration says of them is checked here, where they are made,
+// and not in the tests of the app, which run where no icon was written.
+func TestTheConfigOfThePhoneAppNamesTheIcons(t *testing.T) {
+	var config struct {
+		Android struct {
+			AdaptiveIcon struct {
+				Foreground string `json:"foreground"`
+				Background string `json:"background"`
+			} `json:"adaptiveIcon"`
+		} `json:"android"`
+	}
+	if err := json.Unmarshal([]byte(repoFile(t, "mygo/phone/mygo.json")), &config); err != nil {
+		t.Fatal(err)
+	}
+	icon := config.Android.AdaptiveIcon
+	if want := "resources/" + ForegroundFile; icon.Foreground != want {
+		t.Errorf("mygo.json names the foreground %q, WritePhoneIcons writes %q", icon.Foreground, want)
+	}
+	if icon.Background != AdaptiveBackground {
+		t.Errorf("mygo.json gives the adaptive icon the background %q, WritePhoneIcons is made for %q", icon.Background, AdaptiveBackground)
 	}
 }
 

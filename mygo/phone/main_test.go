@@ -16,8 +16,6 @@ package main
 
 import (
 	"encoding/json"
-	"image"
-	_ "image/png" // Registers the PNG decoder of image.DecodeConfig.
 	"os"
 	"strings"
 	"testing"
@@ -67,20 +65,5 @@ func TestTheVersionIsTheDesktopsVersion(t *testing.T) {
 	}
 	if want, got := strings.TrimSpace(string(data)), readConfig(t).Version; got != want {
 		t.Errorf("mygo.json has version %q, mygo/VERSION has %q", got, want)
-	}
-}
-
-func TestTheIconIsASquareOf1024Pixels(t *testing.T) {
-	f, err := os.Open("resources/icon.png")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = f.Close() }()
-	cfg, format, err := image.DecodeConfig(f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if format != "png" || cfg.Width != 1024 || cfg.Height != 1024 {
-		t.Errorf("icon is %s %dx%d, want a 1024x1024 PNG", format, cfg.Width, cfg.Height)
 	}
 }
