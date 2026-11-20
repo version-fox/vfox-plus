@@ -18,10 +18,10 @@
 # the address 10.0.2.2 (the one at which the emulator reaches this runner), and drives the paired
 # session the way a person does: the pairing link comes in through the deep link, the tabs are
 # visited with screenshots, and the app's log is checked for errors. It measures the memory of the
-# app cold and paired, for memory.yml (vfxtool measure-apk). The desktop application it pairs with
-# runs against the fake vfox (a machine that has Node.js, Java and Flutter installed, and plugins to
-# offer), so the tabs show what a person has, and the same run takes the pictures of the user guide
-# (the phone-pictures artifact, without the status bar of the emulator;
+# app cold (the median of five starts) and paired, for memory.yml (vfxtool measure-apk). The desktop
+# application it pairs with runs against the fake vfox (a machine that has Node.js, Java and Flutter
+# installed, and plugins to offer), so the tabs show what a person has, and the same run takes the
+# pictures of the user guide (the phone-pictures artifact, without the status bar of the emulator;
 # docs/en/dev/contributing.md#screenshots). The signing job rehearses what
 # release.yml does to the APK after the approval, on a Windows runner as the release does and with
 # the same script (shared/scripts/sign-apk.ps1), with a key that is made for the run and is no one's:
@@ -219,10 +219,12 @@ jobs:
           # One line: the runner executes the script line by line, each in its own shell. The link is
           # asked for at the last moment, because a pairing link lasts five minutes, and the emulator
           # takes minutes to boot. The memory of the first screen goes to memory-android (the one line
-          # memory.txt the report reads), the paired one to memory-paired.txt beside the screenshots in
-          # shots, and the pictures of the user guide to phone-pictures/raw. The link goes to a file of its
-          # own: a secret, never printed.
-          script: ${{ runner.temp }}/vfxtool phone-link --loopback-link-file ${{ runner.temp }}/phone-e2e/loopback-link.txt --host 10.0.2.2 --output ${{ runner.temp }}/phone-e2e/pairing-link.txt --wait 180 && ${{ runner.temp }}/vfxtool measure-apk --apk ${{ env.APK }} --output ${{ runner.temp }}/memory-android --screenshot ${{ runner.temp }}/screenshot-android.png --pair-link-file ${{ runner.temp }}/phone-e2e/pairing-link.txt --shots ${{ runner.temp }}/phone-e2e/shots --pictures ${{ runner.temp }}/phone-pictures/raw
+          # memory.txt the report reads: the median of five cold starts, because one start of an
+          # emulator reads anything from 29 to 49 MB of PSS, and the five readings and the whole report
+          # of each are beside it), the paired one to memory-paired.txt beside the screenshots in
+          # shots, and the pictures of the user guide to phone-pictures/raw. The link goes to a file of
+          # its own: a secret, never printed.
+          script: ${{ runner.temp }}/vfxtool phone-link --loopback-link-file ${{ runner.temp }}/phone-e2e/loopback-link.txt --host 10.0.2.2 --output ${{ runner.temp }}/phone-e2e/pairing-link.txt --wait 180 && ${{ runner.temp }}/vfxtool measure-apk --apk ${{ env.APK }} --output ${{ runner.temp }}/memory-android --cold-runs 5 --screenshot ${{ runner.temp }}/screenshot-android.png --pair-link-file ${{ runner.temp }}/phone-e2e/pairing-link.txt --shots ${{ runner.temp }}/phone-e2e/shots --pictures ${{ runner.temp }}/phone-pictures/raw
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memory-android
@@ -266,11 +268,14 @@ jobs:
           cp -r "$RUNNER_TEMP/phone-e2e/shots" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
           cp "$RUNNER_TEMP/phone-e2e/desktop.log" "$RUNNER_TEMP/phone-e2e/desktop-listening.txt" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
           cp "$RUNNER_TEMP/memory-android/memory-paired.txt" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
+          # The five readings of the cold starts and the whole report of `dumpsys meminfo` of each, which say
+          # what moved when two runs differ (the category of memory), where the line says only that it did.
+          cp -r "$RUNNER_TEMP/memory-android" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          # The screens of the tabs, their dumps of the accessibility tree, the log of the app and the
-          # log of the desktop application. The pairing link is not among them.
+          # The screens of the tabs, their dumps of the accessibility tree, the log of the app, the
+          # log of the desktop application, and the readings of the memory. The pairing link is not among them.
           name: phone-e2e-android
           path: ${{ runner.temp }}/evidence/*
           if-no-files-found: warn

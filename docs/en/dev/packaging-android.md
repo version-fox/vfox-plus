@@ -193,7 +193,8 @@ tooling and to the pinned versions:
   installed and plugins to offer. It starts an emulator (API 36, `google_apis`, x86_64, with a software
   GPU), then runs `vfxtool phone-link`, which pairs with the desktop application and writes
   a pairing link for `10.0.2.2`, and `vfxtool measure-apk`. The tool installs the APK, starts
-  it cold and measures it, then pairs it through the deep link, visits the five tabs with a
+  it cold five times and measures it after each start (the line is the median, see
+  [the phone app](memory.md#the-phone-app)), then pairs it through the deep link, visits the five tabs with a
   screenshot of each, takes the pictures of the [guide to the phone app](../user/android.md) on the way
   (`--pictures`, see [Screenshots](contributing.md#screenshots)), and fails when the log of the app has an
   error. When the dialog of the
@@ -201,7 +202,8 @@ tooling and to the pinned versions:
   can cause, the tool closes it and opens the link again, up to three times, and says so in its
   output. A run that fails keeps the screen, the log of the app and what the device says of its
   network. The cold measurement is the artifact `memory-android`. The screenshots, the log of
-  the app, the evidence of a failure and the measurement of the paired session are the artifact
+  the app, the evidence of a failure, the measurement of the paired session and the five readings
+  of the cold starts, with the whole `dumpsys meminfo` report of each, are the artifact
   `phone-e2e-android`, and the pictures of the guide are the artifact `phone-pictures`.
 - The `signing` job rehearses the signing of the release on a Windows runner, with the script
   of the release and a key that it makes ([Signing status](#signing-status)). It runs when

@@ -44,6 +44,11 @@ Uptime: 100 Realtime: 100
  TOTAL PSS:    81920            TOTAL RSS:   130048       TOTAL SWAP PSS:        0
 `
 
+// meminfoOf is meminfoReport with the PSS and the RSS of a reading that has other totals, in MB.
+func meminfoOf(pssMB, rssMB int) string {
+	return strings.NewReplacer("81920", fmt.Sprint(pssMB*1024), "130048", fmt.Sprint(rssMB*1024)).Replace(meminfoReport)
+}
+
 // confirmScreen is the screen of the pairing page, with the button that trusts the certificate.
 const confirmScreen = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <hierarchy rotation="0">
@@ -116,6 +121,30 @@ func TestLine(t *testing.T) {
 	}
 }
 
+func TestMedian(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		values []int
+		want   int
+	}{
+		{"none", nil, 0},
+		{"one", []int{7}, 7},
+		{"an odd number, out of order", []int{95, 30, 32, 31, 33}, 32},
+		{"an even number is the mean of the two in the middle", []int{10, 40, 20, 30}, 25},
+		{"the mean of the two in the middle is rounded up", []int{10, 20, 21, 90}, 21},
+		{"the same value", []int{4, 4, 4, 4}, 4},
+	} {
+		if got := Median(tc.values); got != tc.want {
+			t.Errorf("%s: Median(%v) = %d, want %d", tc.name, tc.values, got, tc.want)
+		}
+	}
+	values := []int{3, 1, 2}
+	Median(values)
+	if !slices.Equal(values, []int{3, 1, 2}) {
+		t.Errorf("Median put its argument in order: %v", values)
+	}
+}
+
 func TestRunUsage(t *testing.T) {
 	if err := Run([]string{}); err == nil {
 		t.Fatal("want a usage error")
@@ -123,6 +152,13 @@ func TestRunUsage(t *testing.T) {
 	err := Run([]string{"--apk", "phone.apk", "--output", "out", "--pair-link-file", "link.txt"})
 	if err == nil || !strings.Contains(err.Error(), "--shots") {
 		t.Fatalf("pairing without --shots: err = %v", err)
+	}
+	// A measurement of no start at all reads nothing: that is a mistake, and the median of none is not a number to report.
+	for _, runs := range []string{"0", "-1"} {
+		err = Run([]string{"--apk", "phone.apk", "--output", "out", "--cold-runs", runs})
+		if err == nil || !strings.Contains(err.Error(), "--cold-runs") {
+			t.Errorf("--cold-runs %s: err = %v, want the usage", runs, err)
+		}
 	}
 }
 
@@ -276,6 +312,10 @@ type fakeDevice struct {
 	taps        []string
 	screenIndex int
 	logIndex    int
+	// meminfos are the reports of `dumpsys meminfo`, one for each time that the session asks (the last one
+	// again once they are used up); without any, the device answers meminfoReport every time.
+	meminfos     []string
+	meminfoIndex int
 	// machine, when it is set, shows the screens that the taps lead to, as the app does, in place of
 	// the list of screens in the order that they are dumped.
 	machine *screenMachine
@@ -392,7 +432,12 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 		}
 		return []byte("  mImeWindowVis=0\n  mInputShown=false\n"), nil
 	case strings.HasPrefix(command, "shell dumpsys meminfo"):
-		return []byte(meminfoReport), nil
+		if len(d.meminfos) == 0 {
+			return []byte(meminfoReport), nil
+		}
+		text := d.meminfos[min(d.meminfoIndex, len(d.meminfos)-1)]
+		d.meminfoIndex++
+		return []byte(text), nil
 	case strings.HasPrefix(command, "shell uiautomator dump "+screenFile):
 		return []byte("UI hierarchy dumped to: " + screenFile + "\n"), nil
 	case strings.HasPrefix(command, "shell cat "+screenFile) && d.machine != nil && d.machine.anr:
@@ -474,6 +519,107 @@ func TestMeasureColdStart(t *testing.T) {
 	}
 	if _, err := os.Stat(c.screenshot); err != nil {
 		t.Errorf("the screenshot of the cold start: %v", err)
+	}
+	// One start is what a configuration that does not ask for more takes, and it leaves its whole report and its table.
+	if got := readText(t, filepath.Join(dir, "meminfo-cold-1.txt")); got != meminfoReport {
+		t.Errorf("meminfo-cold-1.txt = %q, want the report of the device", got)
+	}
+	want := "cold start 1: RSS 127 MB, PSS 80 MB\nmedian of 1: RSS 127 MB, PSS 80 MB (the PSS of the starts is from 80 to 80 MB)\n"
+	if got := readText(t, filepath.Join(dir, "memory-cold-samples.txt")); got != want {
+		t.Errorf("memory-cold-samples.txt = %q, want %q", got, want)
+	}
+	if got := strings.Count(strings.Join(d.commands, "\n"), "shell am start -S -W"); got != 1 {
+		t.Errorf("the app was started cold %d times, want 1", got)
+	}
+}
+
+// The readings of the cold starts in MB, as the device reports them: the first and the last are not the middle one of
+// either, and the mean of each is not the median, so a line that takes the first, the last, or the mean is not the line.
+var coldReadings = []struct{ pss, rss int }{{30, 100}, {31, 400}, {32, 110}, {33, 120}, {95, 105}}
+
+func TestTheColdStartIsRepeatedAndTheLineIsTheMedian(t *testing.T) {
+	dir := t.TempDir()
+	d := &fakeDevice{}
+	for _, r := range coldReadings {
+		d.meminfos = append(d.meminfos, meminfoOf(r.pss, r.rss))
+	}
+	var log bytes.Buffer
+	s := d.session()
+	s.log = &log
+	c := config{apk: "phone.apk", outputDir: dir, aapt2: "aapt2", settle: 20 * time.Second, coldRuns: len(coldReadings)}
+	if err := s.measure(c); err != nil {
+		t.Fatal(err)
+	}
+	// The median of each, of its own: 32 MB of PSS, 110 MB of RSS (no start read both).
+	if got, want := readText(t, filepath.Join(dir, "memory.txt")), "memory (apk-cold): RSS 110 MB, PSS 32 MB in 1 processes\n"; got != want {
+		t.Errorf("memory.txt = %q, want %q", got, want)
+	}
+	// Each reading comes from a start of its own, which stops the process first (-S) as a person's start of the app would find it.
+	start := "shell am start -S -W -n dev.vfox.vfoxplus/dev.mygo.MyGoActivity"
+	starts, reads := 0, 0
+	for _, command := range d.commands {
+		switch {
+		case command == start:
+			starts++
+		case strings.HasPrefix(command, "shell dumpsys meminfo"):
+			// A reading is of the start before it: the start comes first, the settling, the reading.
+			reads++
+			if reads != starts {
+				t.Errorf("reading %d came after %d starts, want one start before each reading", reads, starts)
+			}
+		}
+	}
+	if starts != len(coldReadings) || reads != len(coldReadings) {
+		t.Errorf("starts = %d and readings = %d, want %d of each", starts, reads, len(coldReadings))
+	}
+	for i, r := range coldReadings {
+		name := fmt.Sprintf("meminfo-cold-%d.txt", i+1)
+		if got := readText(t, filepath.Join(dir, name)); got != meminfoOf(r.pss, r.rss) {
+			t.Errorf("%s is not the report of the start %d: %q", name, i+1, got)
+		}
+	}
+	want := "cold start 1: RSS 100 MB, PSS 30 MB\ncold start 2: RSS 400 MB, PSS 31 MB\ncold start 3: RSS 110 MB, PSS 32 MB\n" +
+		"cold start 4: RSS 120 MB, PSS 33 MB\ncold start 5: RSS 105 MB, PSS 95 MB\n" +
+		"median of 5: RSS 110 MB, PSS 32 MB (the PSS of the starts is from 30 to 95 MB)\n"
+	if got := readText(t, filepath.Join(dir, "memory-cold-samples.txt")); got != want {
+		t.Errorf("memory-cold-samples.txt:\n%s\nwant:\n%s", got, want)
+	}
+	// The log of the run shows each reading, so that the spread is in the log of CI and not only in a file.
+	for _, line := range []string{"cold start 1 of 5: RSS 100 MB, PSS 30 MB", "cold start 5 of 5: RSS 105 MB, PSS 95 MB"} {
+		if !strings.Contains(log.String(), line) {
+			t.Errorf("the log has no %q: %q", line, log.String())
+		}
+	}
+	// Each start settles for as long as the first: the clock moved by the settling of five starts, at least.
+	if got := d.clock.Sub(time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)); got < 5*c.settle {
+		t.Errorf("the run waited %s, want %s or more: every start settles", got, 5*c.settle)
+	}
+}
+
+func TestAnEvenNumberOfColdStartsHasTheMeanOfTheMiddleTwo(t *testing.T) {
+	dir := t.TempDir()
+	d := &fakeDevice{meminfos: []string{meminfoOf(60, 150), meminfoOf(20, 110), meminfoOf(40, 130), meminfoOf(30, 120)}}
+	c := config{apk: "phone.apk", outputDir: dir, aapt2: "aapt2", settle: time.Second, coldRuns: 4}
+	if err := d.session().measure(c); err != nil {
+		t.Fatal(err)
+	}
+	// 20 30 40 60: the middle two are 30 and 40; 110 120 130 150: 120 and 130.
+	if got, want := readText(t, filepath.Join(dir, "memory.txt")), "memory (apk-cold): RSS 125 MB, PSS 35 MB in 1 processes\n"; got != want {
+		t.Errorf("memory.txt = %q, want %q", got, want)
+	}
+}
+
+func TestAColdStartWhoseReportHasNoMemoryFailsTheRun(t *testing.T) {
+	dir := t.TempDir()
+	d := &fakeDevice{meminfos: []string{meminfoOf(30, 100), "No process found for: dev.vfox.vfoxplus\n", meminfoOf(32, 110)}}
+	c := config{apk: "phone.apk", outputDir: dir, aapt2: "aapt2", settle: time.Second, coldRuns: 3}
+	err := d.session().measure(c)
+	if err == nil || !strings.Contains(err.Error(), "cold start 2") {
+		t.Fatalf("err = %v, want one that names the second start", err)
+	}
+	// A line of two readings is not what the report was asked for: no line is written.
+	if _, statErr := os.Stat(filepath.Join(dir, "memory.txt")); statErr == nil {
+		t.Error("memory.txt was written for a run that failed")
 	}
 }
 

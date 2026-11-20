@@ -16,6 +16,12 @@
 // the APK of the phone app, cold-starts it, settles, and reads `dumpsys meminfo`, which is the
 // memory(apk-cold) line of the memory report. It takes a screenshot of the first screen too.
 //
+// The reading of one cold start moves from emulator to emulator (the first screen of the same code
+// read between 29 and 49 MB of PSS in nine runs of CI), so with --cold-runs N the app is started
+// cold N times and the line is the median of the N readings. Every reading is kept: the whole
+// report of `dumpsys meminfo` of each start (meminfo-cold-N.txt, to see which category moved), and
+// a table of them (memory-cold-samples.txt), beside the line.
+//
 // With --pair-link-file it then drives the paired session the way a person does: the pairing
 // link comes in through the deep link vfoxplus://pair, the button that trusts the certificate is
 // tapped, the five tabs are visited with a screenshot and a dump of each, the log of the app is
@@ -41,6 +47,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -67,7 +74,7 @@ const (
 )
 
 // usage is the command line of measure-apk, as its errors print it.
-const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR]]"
+const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--cold-runs N] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR]]"
 
 var (
 	totalLine = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
@@ -121,22 +128,77 @@ func ParseMeminfo(report string) (pss, rss int, ok bool) {
 	return pss, rss, true
 }
 
+// mb is a size in KB as the lines have it, in MB rounded to the nearest.
+func mb(kb int) int {
+	return (kb + 512) / 1024
+}
+
 // Line formats the measuring point like the desktop one, in MB rounded to
 // the nearest.
 func Line(pssKB, rssKB int) string {
-	return fmt.Sprintf("memory (apk-cold): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
+	return fmt.Sprintf("memory (apk-cold): RSS %d MB, PSS %d MB in 1 processes", mb(rssKB), mb(pssKB))
 }
 
 // PairedLine formats the paired-session point: the same process after the pairing, with the tabs
 // visited.
 func PairedLine(pssKB, rssKB int) string {
-	return fmt.Sprintf("memory (apk-paired): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
+	return fmt.Sprintf("memory (apk-paired): RSS %d MB, PSS %d MB in 1 processes", mb(rssKB), mb(pssKB))
+}
+
+// sample is what one reading of `dumpsys meminfo` held, in KB.
+type sample struct{ pss, rss int }
+
+// Median returns the middle of values, and for an even number of them the mean of the two in the middle,
+// rounded up. It leaves values as they are. It is 0 for none.
+func Median(values []int) int {
+	sorted := slices.Clone(values)
+	slices.Sort(sorted)
+	switch n := len(sorted); {
+	case n == 0:
+		return 0
+	case n%2 == 1:
+		return sorted[n/2]
+	default:
+		return (sorted[n/2-1] + sorted[n/2] + 1) / 2
+	}
+}
+
+// medians is the median PSS and the median RSS of the samples, each of its own: the start that read the
+// median of one need not be the start that read the median of the other.
+func medians(samples []sample) (pss, rss int) {
+	pssAll := make([]int, len(samples))
+	rssAll := make([]int, len(samples))
+	for i, s := range samples {
+		pssAll[i], rssAll[i] = s.pss, s.rss
+	}
+	return Median(pssAll), Median(rssAll)
+}
+
+// samplesText is the table of the readings, in the order of the starts, and the line that they came to.
+func samplesText(samples []sample, pss, rss int) string {
+	var text strings.Builder
+	lowest, highest := 0, 0
+	for i, s := range samples {
+		fmt.Fprintf(&text, "cold start %d: RSS %d MB, PSS %d MB\n", i+1, mb(s.rss), mb(s.pss))
+		if i == 0 || s.pss < lowest {
+			lowest = s.pss
+		}
+		if i == 0 || s.pss > highest {
+			highest = s.pss
+		}
+	}
+	fmt.Fprintf(&text, "median of %d: RSS %d MB, PSS %d MB (the PSS of the starts is from %d to %d MB)\n",
+		len(samples), mb(rss), mb(pss), mb(lowest), mb(highest))
+	return text.String()
 }
 
 // config is what Run reads from the command line.
 type config struct {
 	apk, outputDir, screenshot, pairLinkFile, shots, pictures, aapt2 string
 	settle                                                           time.Duration
+	// coldRuns is how many times the app is started cold and read; the line of memory.txt is the
+	// median of the readings. Zero is one.
+	coldRuns int
 }
 
 // session runs the steps against a device. Its clock and its sleep are replaceable, so that the
@@ -156,6 +218,7 @@ func Run(args []string) error {
 	outputDir := flags.String("output", "", "directory receiving memory.txt (and memory-paired.txt with --pair-link-file)")
 	screenshot := flags.String("screenshot", "", "PNG file for a screenshot of the first screen")
 	settle := flags.Int("settle", 20, "seconds to settle after each start")
+	coldRuns := flags.Int("cold-runs", 1, "how many times the app is started cold and read: the line of memory.txt is the median of the readings")
 	pairLinkFile := flags.String("pair-link-file", "", "file holding a one-time pairing link of a reachable server: the paired session is driven and measured too")
 	shots := flags.String("shots", "", "directory receiving the screenshots, the screen dumps and the log of the paired session (required with --pair-link-file)")
 	pictures := flags.String("pictures", "", "directory receiving the pictures of the user guide, taken in the paired session (needs --pair-link-file)")
@@ -163,7 +226,7 @@ func Run(args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *apk == "" || *outputDir == "" || *settle < 0 {
+	if *apk == "" || *outputDir == "" || *settle < 0 || *coldRuns < 1 {
 		return errors.New(usage)
 	}
 	if *pairLinkFile != "" && *shots == "" {
@@ -173,7 +236,7 @@ func Run(args []string) error {
 		return errors.New("--pictures needs --pair-link-file: the pictures are taken in the paired session")
 	}
 	c := config{apk: *apk, outputDir: *outputDir, screenshot: *screenshot, pairLinkFile: *pairLinkFile,
-		shots: *shots, pictures: *pictures, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second}
+		shots: *shots, pictures: *pictures, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second, coldRuns: *coldRuns}
 	s := &session{adb: runAdb, badging: readBadging, sleep: time.Sleep, now: time.Now, log: os.Stderr}
 	return s.measure(c)
 }
@@ -203,21 +266,19 @@ func (s *session) measure(c config) error {
 		return err
 	}
 	// A cold start: the process of the app is stopped first, and the launcher's activity is started.
-	if err := s.start(fmt.Sprintf("am start -S -W -n %s/%s", pkg, activity)); err != nil {
-		return err
-	}
-	s.sleep(c.settle)
-	report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
+	// What one start reads moves a good deal (see the package documentation), so the app is started as
+	// many times as was asked for, and the line is the median of what the starts read.
+	samples, err := s.coldSamples(c, pkg, activity)
 	if err != nil {
 		return err
 	}
-	pss, rss, ok := ParseMeminfo(string(report))
-	if !ok {
-		return fmt.Errorf("no PSS or RSS in the meminfo report:\n%s", report)
-	}
+	pss, rss := medians(samples)
 	line := Line(pss, rss)
 	fmt.Fprintln(s.log, line)
 	if err := writeFile(filepath.Join(c.outputDir, "memory.txt"), line+"\n"); err != nil {
+		return err
+	}
+	if err := writeFile(filepath.Join(c.outputDir, "memory-cold-samples.txt"), samplesText(samples, pss, rss)); err != nil {
 		return err
 	}
 	if c.screenshot != "" {
@@ -229,6 +290,34 @@ func (s *session) measure(c config) error {
 		return nil
 	}
 	return s.paired(c, pkg)
+}
+
+// coldSamples starts the app cold as many times as c asks for (once when it asks for none), lets each start
+// settle, and reads its memory. The whole report of each reading is kept in the output directory, to see
+// which category of memory it was that moved when two readings differ.
+func (s *session) coldSamples(c config, pkg, activity string) ([]sample, error) {
+	runs := max(c.coldRuns, 1)
+	samples := make([]sample, 0, runs)
+	for run := 1; run <= runs; run++ {
+		if err := s.start(fmt.Sprintf("am start -S -W -n %s/%s", pkg, activity)); err != nil {
+			return nil, err
+		}
+		s.sleep(c.settle)
+		report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
+		if err != nil {
+			return nil, err
+		}
+		pss, rss, ok := ParseMeminfo(string(report))
+		if !ok {
+			return nil, fmt.Errorf("no PSS or RSS in the meminfo report of cold start %d:\n%s", run, report)
+		}
+		if err := writeFile(filepath.Join(c.outputDir, fmt.Sprintf("meminfo-cold-%d.txt", run)), string(report)); err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(s.log, "cold start %d of %d: RSS %d MB, PSS %d MB\n", run, runs, mb(rss), mb(pss))
+		samples = append(samples, sample{pss: pss, rss: rss})
+	}
+	return samples, nil
 }
 
 // paired drives the paired session: the link, the confirmation, the tabs, the log and the memory.

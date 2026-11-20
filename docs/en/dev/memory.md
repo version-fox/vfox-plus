@@ -208,9 +208,10 @@ above.
   [Memory in pull requests](#memory-in-pull-requests)). With `--tray` it measures instead what the
   icon in the tray costs (see [The tray icon](#the-tray-icon)).
 - **Phone app.** The `emulator` job of `phone.yml` installs the APK on an emulator
-  (API 36, x86_64), cold-starts it, settles, and reads `dumpsys meminfo`:
-  `memory (apk-cold)`, in MB (see [The phone app](#the-phone-app)). Emulator boots
-  vary more than GitHub runners, so a change counts only past 5 MB and 10%.
+  (API 36, x86_64), cold-starts it five times, settles after each start, and reads
+  `dumpsys meminfo`: `memory (apk-cold)` is the median of the five, in MB (see
+  [The phone app](#the-phone-app)). Emulator boots vary more than GitHub runners, so a change
+  counts only past 5 MB and 10%.
 
 In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and `memory-lightweight-private`,
 the `emulator` job of `phone.yml` uploads `memory-android`,
@@ -231,8 +232,14 @@ numbers do not stand for the browser or the phone app.
 with a software GPU), with `dumpsys meminfo` after 20 seconds of settling. One run gives
 two numbers, in MB:
 
-- `memory (apk-cold)`: the first screen, after a cold start through the launcher. It is the
-  line of the report, in the artifact `memory-android`.
+- `memory (apk-cold)`: the first screen, after a cold start through the launcher. With
+  `--cold-runs N` the app is started cold N times, each start settles for the 20 seconds, and the
+  line is the median of the N readings (the PSS and the RSS each have a median of their own); CI
+  asks for five. It is the line of the report, in the artifact `memory-android`. Beside it the
+  run writes the readings in the order of the starts (`memory-cold-samples.txt`) and the whole
+  report of `dumpsys meminfo` of every start (`meminfo-cold-N.txt`), which show which category of
+  memory moved when two runs differ. CI keeps them in the artifact `phone-e2e-android`, in
+  `memory-android/`.
 - `memory (apk-paired)`: the same process once it is paired, with the five tabs visited. CI
   keeps that line in the artifact `phone-e2e-android`, with the screenshots and the log of the
   app. The report reads one line, from `memory-android`, so this one is not in it.
@@ -259,6 +266,45 @@ session ([Screenshots](contributing.md#screenshots)).
 The paired line is for diagnosis. Its numbers do not compare with the desktop table either: they
 come from `dumpsys meminfo` on an emulator, where the desktop table reads `smaps_rollup` on a
 computer. Compare the rows of one report with each other.
+
+#### The first screen, against the client it replaced
+
+One cold start of an emulator is a poor reading. In the runs of CI that kept their number, the first
+screen of the phone app read between 29 and 49 MB of PSS (nine runs of its branch, whose code changed
+little in between, one start each, before `--cold-runs`), and the Kotlin client that it replaced
+between 26 and 37 MB (eighteen runs of `main`, one start each):
+
+| PSS in MB, one start per run | Runs | Lowest | Median | Highest |
+| --- | ---: | ---: | ---: | ---: |
+| The Kotlin client, on `main` | 18 | 26 | 31.5 | 37 |
+| The phone app | 9 | 29 | 46 | 49 |
+
+Eight of the nine readings of the phone app are above the highest of the eighteen of the client, so
+the 14.5 MB between the medians is not noise: at its first screen the process of the phone app holds
+about 15 MB more than the client's did. The two apps run one after the other on one emulator (four
+starts of the client and six of the phone app, medians, in MB) read as follows, and the table says
+where the difference is:
+
+| MB | Client | Phone app | Difference |
+| --- | ---: | ---: | ---: |
+| Java heap | 4.9 | 5.6 | +0.7 |
+| Native heap | 11.1 | 16.4 | +5.3 |
+| Code | 9.1 | 17.1 | +8.0 |
+| Stack | 0.4 | 0.5 | +0.1 |
+| Private other | 2.0 | 6.9 | +4.9 |
+| System | 8.3 | 4.7 | −3.6 |
+| **PSS** | **36.0** | **51.2** | **+15.3** |
+| RSS | 167 | 178 | +10.5 |
+
+The pages of the Go program (Code) and its heap (Native heap) are most of the difference. In that
+run five of the six starts of the phone app read 51.1 to 51.4 MB of PSS and one read 46.8 MB, so the
+median of several starts is steadier than a start, which is why the line is one.
+
+What the comparison leaves out. The client was measured at its first screen only, and no process
+of a web page was running then (`ps` showed the `webview_zygote` and `webview_service` of the
+system and no renderer). A paired client shows its page in a WebView, whose renderer is a process of
+its own, and no run of `main` measured a paired client, so what the two apps cost in use is not
+known. And the emulator is x86_64 and draws with software, where a phone is arm64 and has a GPU.
 
 ## How it is measured
 
@@ -347,6 +393,11 @@ judges them as follows:
   than the larger of 2 MB and 5 % of the number on `main`. The resident and the proportional memory are shown with
   their difference, without bold. The 2 MB is a first estimate from runs on the devcontainer, where the private
   memory of one build moved by about 1 MB before the wait; CI has not measured it over several runs yet.
+- The phone app: the line is the median of five cold starts, and a difference counts as a change
+  only when it is more than the larger of 5 MB and 10 % of the number on `main`. In nine runs of
+  one start each, on a branch whose code changed little in between, the first screen read from 29 to
+  49 MB of PSS ([the table](#the-first-screen-against-the-client-it-replaced)); the five readings of
+  each run are in the artifact `phone-e2e-android`.
 
 The number of processes never varied, so a different number is a change too. The sample is small: if the comment
 reports a change that the commit cannot have caused, measure how much identical code varies again and adjust

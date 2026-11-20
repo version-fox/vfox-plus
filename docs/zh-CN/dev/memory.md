@@ -149,8 +149,8 @@ Pull Request 评论还跟踪桌面表格没有的两处：轻量模式与手机�
   `lightweight-loaded` 配对浏览器走完首次清单（SSE）。只有私有内存参与判定（见[Pull Request 中的内存](#pull-request-中的内存)）。
   加 `--tray` 则改为测量托盘图标的开销（见[托盘图标](#托盘图标)）。
 - **手机端应用。**`phone.yml` 的 `emulator` 任务把 APK 装到模拟器
-  （API 36，x86_64），冷启动、静置后读 `dumpsys meminfo`：
-  `memory (apk-cold)`，单位 MB（见[手机端应用](#手机端应用)）。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
+  （API 36，x86_64），冷启动五次，每次启动后静置，再读 `dumpsys meminfo`：
+  `memory (apk-cold)` 是五次的中位数，单位 MB（见[手机端应用](#手机端应用)）。模拟器启动波动大于 GitHub runner，超过 5 MB 且 10%
   才算变化。
 
 CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `memory-lightweight-private`，
@@ -166,7 +166,7 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `me
 
 `vfxtool measure-apk` 在模拟器上测量手机端应用（API 36、`google_apis`、x86_64，软件 GPU），沉降 20 秒后读 `dumpsys meminfo`。一次运行给出两个数，单位 MB：
 
-- `memory (apk-cold)`：首屏，经启动器冷启动之后。它是报告的那一行，在构件 `memory-android` 里。
+- `memory (apk-cold)`：首屏，经启动器冷启动之后。加 `--cold-runs N`，应用冷启动 N 次，每次都沉降 20 秒，那一行是 N 次读数的中位数（PSS 与 RSS 各取各的中位数）；CI 要五次。它是报告的那一行，在构件 `memory-android` 里。同一次运行还在它旁边写下按启动顺序排列的各次读数（`memory-cold-samples.txt`），以及每次启动的完整 `dumpsys meminfo` 报告（`meminfo-cold-N.txt`）：两次运行不同时，由它们看是哪一类内存动了。CI 把它们放在构件 `phone-e2e-android` 的 `memory-android/` 里。
 - `memory (apk-paired)`：同一个进程配对之后，五个标签页都访问过。CI 把这一行放在构件 `phone-e2e-android` 里，与截图和应用日志在一起。报告只从 `memory-android` 读一行，所以这一行不在报告里。
 
 配对会话从深链 `vfoxplus://pair?link=…` 开始，它打开配对屏，一次性链接已经填好。之后 `measure-apk` 点确认（对话框说电脑没有响应时，它关掉对话框并重新打开链接，最多三次）、等应用记下配对、为每个标签页截图并导出控件树，应用的日志里有错误则失败。它不需要可调试的构建，也不用 `run-as`：链接以在手机上打开链接的方式进入应用。CI 里的桌面应用对着假 vfox 运行，所以测量配对行时各标签页里有 SDK 和插件，与真人看到的一样（见[截图](contributing.md#截图)）。要自己运行，先用 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 启动桌面应用的端到端构建，用 `vfxtool phone-link` 为模拟器写出配对链接（见[打包页](packaging-android.md#持续集成)），然后运行：
@@ -179,6 +179,32 @@ vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
 加上 `--pictures DIR`，同一次运行会在配对会话里拍下手机端 App 指南用的图（见[截图](contributing.md#截图)）。
 
 配对行只做诊断。它的数字也不能与桌面表格比较：它来自模拟器上的 `dumpsys meminfo`，而桌面表格读的是电脑上的 `smaps_rollup`。只比较同一份报告的各行。
+
+#### 首屏，与它取代的客户端相比
+
+模拟器上一次冷启动的读数不可靠。在留下了数字的 CI 运行里，手机端应用首屏的 PSS 在 29 到 49 MB 之间（它所在分支的九次运行，期间代码改动不大，每次一次启动，那时还没有 `--cold-runs`），而它取代的 Kotlin 客户端在 26 到 37 MB 之间（`main` 的十八次运行，每次一次启动）：
+
+| PSS（MB），每次运行一次启动 | 运行次数 | 最低 | 中位数 | 最高 |
+| --- | ---: | ---: | ---: | ---: |
+| Kotlin 客户端，`main` 上 | 18 | 26 | 31.5 | 37 |
+| 手机端应用 | 9 | 29 | 46 | 49 |
+
+手机端应用的九个读数里，有八个高于客户端十八个读数中的最高值，所以两个中位数相差的 14.5 MB 不是噪声：首屏时手机端应用的进程比客户端的多占约 15 MB。两个应用在同一个模拟器上先后运行（客户端四次启动，手机端应用六次，取中位数，单位 MB），读数如下，差在哪里也看得出来：
+
+| MB | 客户端 | 手机端应用 | 差 |
+| --- | ---: | ---: | ---: |
+| Java heap | 4.9 | 5.6 | +0.7 |
+| Native heap | 11.1 | 16.4 | +5.3 |
+| Code | 9.1 | 17.1 | +8.0 |
+| Stack | 0.4 | 0.5 | +0.1 |
+| Private other | 2.0 | 6.9 | +4.9 |
+| System | 8.3 | 4.7 | −3.6 |
+| **PSS** | **36.0** | **51.2** | **+15.3** |
+| RSS | 167 | 178 | +10.5 |
+
+差的大部分是 Go 程序的页（Code）与它的堆（Native heap）。那次运行里，手机端应用六次启动中有五次的 PSS 在 51.1 到 51.4 MB，一次是 46.8 MB，所以多次启动的中位数比一次启动稳，那一行取中位数就是这个缘故。
+
+这个比较没有包括的：客户端只测了首屏，那时没有任何网页进程在运行（`ps` 里只有系统的 `webview_zygote` 与 `webview_service`，没有渲染进程）。配对之后的客户端在 WebView 里显示它的页面，WebView 的渲染器是单独的进程，而 `main` 上没有任何一次运行测过配对后的客户端，所以两个应用在使用中各占多少，并不知道。此外，模拟器是 x86_64、用软件绘制，手机是 arm64、有 GPU。
 
 ## 如何测量
 
@@ -237,6 +263,7 @@ vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
   从未超过 1 MB（Home 最低值的 2.4%；Versions 列表 0 MB）。
 - 轻量模式：只判定私有内存，超过 2 MB 与 `main` 上数字 5% 中较大者才算变化。常驻内存与 PSS 只显示差值，不加粗。
   2 MB 是开发容器上的初步估计（等待之前，同一份构建的私有内存只差约 1 MB），CI 上还没有多次运行的数据。
+- 手机端应用：那一行是五次冷启动的中位数，差异超过 5 MB 与 `main` 上数字 10% 中较大者才算变化。在代码改动不大的分支上，九次每次一次启动的运行里，首屏 PSS 在 29 到 49 MB 之间（见[上表](#首屏与它取代的客户端相比)）；每次运行五次启动的读数在构件 `phone-e2e-android` 里。
 
 进程数不同也算变化。样本小：若提交明显带不动报告的变化，重新测量相同代码的波动，并调整 `vfxtool memory-report`
 的 `Tolerances`；轻量模式则调整 `MinPrivateChangeKB` 与 `PrivateTolerance`。
