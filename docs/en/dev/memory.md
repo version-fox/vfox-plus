@@ -242,14 +242,19 @@ screen with the one-time link filled in. `measure-apk` then taps the confirmatio
 dialog says that the computer did not answer, it closes the dialog and opens the link again, up to
 three times), waits for the app to log the pairing, takes a screenshot and a dump of each tab, and
 fails when the log of the app has an error. It needs no debuggable build and no `run-as`: the link reaches the app the way
-a link opened on the phone does. To run it yourself, start the end-to-end build of the desktop
-application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, write its pairing link for the emulator with
+a link opened on the phone does. The desktop application of CI runs against the fake vfox, so the tabs
+that the paired line is measured on hold SDKs and plugins, as a person's do
+([Screenshots](contributing.md#screenshots)). To run it yourself, start the end-to-end build of the
+desktop application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, write its pairing link for the emulator with
 `vfxtool phone-link` (see [the packaging page](packaging-android.md#continuous-integration)), and run:
 
 ```sh
 vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
   --pair-link-file LINK --shots DIR/shots
 ```
+
+With `--pictures DIR` the same run takes the pictures of the guide to the phone app, in the paired
+session ([Screenshots](contributing.md#screenshots)).
 
 The paired line is for diagnosis. Its numbers do not compare with the desktop table either: they
 come from `dumpsys meminfo` on an emulator, where the desktop table reads `smaps_rollup` on a

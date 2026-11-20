@@ -189,18 +189,20 @@ tooling and to the pinned versions:
   them as `vfox-plus-android-amd64`.
 - The `emulator` job starts the end-to-end build of the desktop application with
   `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the emulator reaches the runner,
-  in a virtual display. It starts an emulator (API 36, `google_apis`, x86_64, with a software
+  in a virtual display, against the fake vfox: the tabs hold what a person's do, SDKs that are
+  installed and plugins to offer. It starts an emulator (API 36, `google_apis`, x86_64, with a software
   GPU), then runs `vfxtool phone-link`, which pairs with the desktop application and writes
   a pairing link for `10.0.2.2`, and `vfxtool measure-apk`. The tool installs the APK, starts
   it cold and measures it, then pairs it through the deep link, visits the five tabs with a
-  screenshot of each, and fails when the log of the app has an error. When the dialog of the
+  screenshot of each, takes the pictures of the [guide to the phone app](../user/android.md) on the way
+  (`--pictures`, see [Screenshots](contributing.md#screenshots)), and fails when the log of the app has an
+  error. When the dialog of the
   pairing says that the computer did not answer, which an emulator whose network is not up yet
   can cause, the tool closes it and opens the link again, up to three times, and says so in its
   output. A run that fails keeps the screen, the log of the app and what the device says of its
   network. The cold measurement is the artifact `memory-android`. The screenshots, the log of
   the app, the evidence of a failure and the measurement of the paired session are the artifact
-  `phone-e2e-android`.
-
+  `phone-e2e-android`, and the pictures of the guide are the artifact `phone-pictures`.
 - The `signing` job rehearses the signing of the release on a Windows runner, with the script
   of the release and a key that it makes ([Signing status](#signing-status)). It runs when
   `shared/scripts/sign-apk.ps1` changes too.
@@ -215,8 +217,10 @@ reports the memory of a pull request when `mygo` or `phone` ends
 - `vfxtool measure-apk` looks for what the app shows and logs, in English and in Simplified
   Chinese: the label of the confirmation, the message that the computer did not answer and
   the label of the button that closes it, the labels of the five tabs, and the line that the
-  pairing logs (see `shared/tooling/internal/measureapk/measureapk.go`). Change them in the app
-  and in that file in one commit, or the measurement fails.
+  pairing logs (see `shared/tooling/internal/measureapk/measureapk.go`). The run that takes the
+  pictures looks for the row of the SDK that it opens (`nodejs`) and for the buttons of the dialog
+  that adds a plugin, *Add from source* and *Cancel* (`pictures.go`, beside it). Change them in the
+  app and in those files in one commit, or the measurement fails.
 - `mygo/phone/versions.env` and `mygo/go.mod` pin the same mygo version. `JAVA_VERSION` follows
   the Gradle that mygo runs for the project: raise it only together with a mygo that runs a
   Gradle which accepts the newer JDK.

@@ -86,7 +86,7 @@ size. To pair it with the desktop application on an emulator, see
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the `mygo` or `phone` workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` for amd64 validated with lintian and installed into a clean Ubuntu container, the classic snap packed from that `.deb` on core26 and started, and the arm64 `.deb` and `.tar.gz` validated with lintian and by the machine type of their program, as no arm64 machine installs them, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
-| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`, `mygo/pair/`, `mygo/ui/kit/`, `mygo/VERSION`, `mygo/go.mod`, `mygo/go.sum`, `mygo/versions.env`, `shared/tooling/`, `shared/icons.json` | Builds the [phone app](#the-phone-app) for the x86_64 emulator, signed with the debug key, and drives it on an emulator: it pairs the app with the desktop application through the deep link, visits its five tabs, and measures it cold and paired (see [The phone app](memory.md#the-phone-app)) |
+| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`, `mygo/pair/`, `mygo/ui/kit/`, `mygo/VERSION`, `mygo/go.mod`, `mygo/go.sum`, `mygo/versions.env`, `shared/tooling/`, `shared/icons.json`, `shared/scripts/sign-apk.ps1` | Builds the [phone app](#the-phone-app) for the x86_64 emulator, signed with the debug key, and drives it on an emulator against the fake vfox: it pairs the app with the desktop application through the deep link, visits its five tabs, measures it cold and paired (see [The phone app](memory.md#the-phone-app)) and takes the pictures of its guide ([Screenshots](#screenshots)). A job on a Windows runner rehearses the signing of the APK of the release ([Signing status](packaging-android.md#signing-status)) |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `mygo/phone/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the build of the phone app, and the checks that use Docker |
 | [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the phone app's APK and the Linux arm64 packages |
 
@@ -454,61 +454,60 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 (The build of the application is the one above, run from the root of the repository, which the
 command needs for the fixtures of the fake vfox; `--chrome` names the Chrome as it does for `webheap`.)
 
-**Android.** CI takes one picture, `screenshot-android`, and the evidence of a paired session. The
-`emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) starts the end-to-end build of the
-desktop application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, runs `vfxtool phone-link` (which allows other
-devices and writes a pairing link for `10.0.2.2`), and then runs `vfxtool measure-apk`. The tool installs the
-APK, starts the app cold, and pairs it through the deep link `vfoxplus://pair?link=…`: it taps
-*Trust and pair*, visits the five tabs, and keeps a screenshot and a dump of the accessibility tree of each. Once the pairing succeeds, the app
-writes the line `vfoxplus: paired host=… fingerprint=…` to its log, and `measure-apk` waits for that line.
-The first screen is the artifact `screenshot-android`. The screenshots and dumps of the tabs, the log of the
-app, the log of the desktop application and the memory after pairing are the artifact `phone-e2e-android`.
+**Android.** The `emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) takes the
+pictures of the [guide to the phone app](../user/android.md), in the session that drives the app. It
+starts the end-to-end build of the desktop application against the fake vfox, as the pictures of the
+desktop are taken: a copy of `vfxtool` named `vfox` first on the `PATH`, `VFOX_PLUS_FIXTURES` and
+`VFOX_PLUS_FAKE_INVENTORY=profiles`, and a home of its own, so that the tabs show Node.js, Java and
+Flutter installed and a registry of plugins, as a person's do. `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` is the
+address at which the emulator reaches the runner. The job runs `vfxtool phone-link` (which allows other
+devices and writes a pairing link for `10.0.2.2`), and then `vfxtool measure-apk --pictures DIR`. The
+tool installs the APK, starts the app cold, and pairs it through the deep link `vfoxplus://pair?link=…`:
+it taps *Trust and pair*, visits the five tabs, and keeps a screenshot and a dump of the accessibility
+tree of each. Once the pairing succeeds, the app writes the line
+`vfoxplus: paired host=… fingerprint=…` to its log, and `measure-apk` waits for that line. The first
+screen is the artifact `screenshot-android`. The screenshots and dumps of the tabs, the log of the app,
+the log of the desktop application and the memory after pairing are the artifact `phone-e2e-android`.
 
-The nine pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of your
-own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400 at 420 dpi),
-with the APK that CI makes (its artifact `vfox-plus-android-amd64`), and with the application of the PC that
-[Run the app](environment.md#run-the-app) describes: the end-to-end build against the fake vfox of
-`VFOX_PLUS_FAKE_INVENTORY=profiles`, with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the
-emulator reaches the computer. The pairing link is the one that *Show code* gives, with `10.0.2.2` for its
-address, and the deep link of [Run the app](environment.md#run-the-app) opens it. The nine are
-`android-pairing`, `android-scan`, `android-trust`, `android-home`, `android-sdk`, `android-settings`,
-`android-dark-pairing`, `android-dark-home` and `android-unreachable`; the guide links all of them, in English
-for both languages. What makes the pictures alike, and what goes wrong:
+The pictures are taken on the way, with the status bar in the demo mode of Android (a fixed clock, a full
+battery and wifi, no notifications), and the dark ones in the dark theme of the system. The tool gives the
+theme and the status bar back when it ends. There are eleven:
 
-- The demo mode of the status bar fixes the clock and shows a full battery and
-  wifi and no notifications: `adb shell settings put global sysui_demo_allowed 1`,
-  then `adb shell am broadcast -a com.android.systemui.demo -e command` with `enter`,
-  `clock -e hhmm 1000`, `battery -e level 100 -e plugged false`,
-  `network -e wifi show -e level 4 -e fully true`, `network -e mobile hide` (its icons
-  come out white on the light theme) and `notifications -e visible false`.
-- Android shows a green indicator in the status bar while the camera is open, in place of the wifi and
-  battery icons, in the picture of the scanner. Turn it off with `adb root`, then
-  `adb shell device_config put privacy camera_mic_icons_enabled false` (the shell may not write
-  that flag, root may).
-- The language and the theme are the ones of the app and of the system:
-  `adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` and
-  `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
-  the camera again, which `pm clear` drops, or the system dialog covers the scanner.
-- The controls of the app are in the accessibility tree: `adb exec-out uiautomator dump /dev/tty` gives
-  each one with its label and its bounds, and `adb shell input tap X Y` taps the centre of the bounds. The
-  labels are *Trust and pair* (`信任并配对` in Simplified Chinese), *Connect* (`连接`), and the tabs *Home*,
-  *SDKs*, *Plugins*, *Tasks* and *Settings* (`主页`, `SDK`, `插件`, `任务` and `设置`), which
-  `vfxtool measure-apk` looks for as well.
-- Type a link in the field with the app in English (`adb shell input text`). With the app in Chinese Gboard
-  turns to Pinyin and writes the link with full-width punctuation and "author" for "auth"; the field keeps its
-  text when the language is changed back before *Connect*. The keyboard covers the button: close it with BACK
-  (`adb shell input keyevent 4`) before.
-- The dialog that shows the fingerprint and the settings are taken in one run of the application: it makes its
-  certificate again at every run, and the two show the same fingerprint only within one. Tap *Trust and pair*,
-  and wait for the tabs to load before the picture of the home page.
-- To see the picture of a computer that does not answer, stop the application on the PC while the app is open:
-  the bar above the tabs says so, and it offers *Retry*.
-- Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has settled. The scanner shows
-  the living room of the emulator (`hw.camera.back=virtualscene`), as there is no code to point it at.
+| Picture | What it shows |
+| --- | --- |
+| `android-pairing`, `android-dark-pairing` | the pairing page, in the light theme and in the dark one |
+| `android-trust` | the question *Trust this computer?*, with the fingerprint, before its button is tapped |
+| `android-home`, `android-sdks`, `android-plugins`, `android-tasks`, `android-settings` | the five tabs |
+| `android-sdk` | the page of an SDK (`nodejs`), which the key BACK closes |
+| `android-add-plugin` | the dialog that adds a plugin, with the source and the upload of a file |
+| `android-dark-home` | the home page, in the dark theme |
 
-The pictures are 1080 by 2400 as they come. `vfxtool frame-phone NAME.png OUT.png` gives them the
-rounded corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px
-(`#7A7A84`) over the edge: the cream screens of the light theme have no edge against the white page of GitHub.
+What makes the pictures alike is the tool's work, because the system draws what they show seconds after it is asked, and an
+emulator is slow. After it fixes the status bar, and after each change of theme, it looks at the status bar until the bar has changed
+and then stays as it is for four looks in a row (the clock is drawn, then the icons of the network, and on the dark bar the icons turn
+light), not for a time that a slower emulator would overrun. It closes the soft keyboard that an emulator without a hardware keyboard
+shows over the dialog that adds a plugin: the key of Android that goes back closes the keyboard and keeps the dialog. And it takes a
+picture again, up to three times, while the app shows the strip that says that the computer did not answer, which it does for a moment
+after a change of theme on a slow emulator.
+
+The artifact `phone-pictures` has each of them twice: in `raw/` as it came, 1080 by 2400, and in
+`framed/`. `vfxtool frame-phone NAME.png OUT.png` makes the framed one: it gives the picture the rounded
+corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px (`#7A7A84`)
+over the edge, as the cream screens of the light theme have no edge against the white page of GitHub. The
+pictures are in English, which both guides use. CI uploads nothing to the image host: download the
+artifact from the run of the pull request (`gh run download RUN -n phone-pictures`), upload the pictures
+of `framed/` as below, and replace the links in the two guides.
+
+To take them on an emulator of your own ([An emulator of your own](environment.md#an-emulator-of-your-own):
+API 36, 1080 by 2400 at 420 dpi), do what the job does: start the end-to-end build against the fake vfox, as
+above, from the root of the repository, write the pairing link with `vfxtool phone-link`, and run
+`vfxtool measure-apk` on the APK that CI makes (its artifact `vfox-plus-android-amd64`), with the options of
+[The phone app](memory.md#the-phone-app) and `--pictures DIR`. The loopback link of the end-to-end build
+works once, so start the application again for every run, and uninstall the app first
+(`adb uninstall dev.vfox.vfoxplus`) when one that another key signed is on the emulator. The controls that
+the tool taps are in the accessibility tree (`adb exec-out uiautomator dump /dev/tty`), found by their
+labels in English and in Simplified Chinese: when the app changes a label, the tool changes with it
+([Notes for maintainers](packaging-android.md#notes-for-maintainers)).
 
 **Uploading.** Upload a new image with
 

@@ -169,12 +169,14 @@ CI 中 `mygo.yml` 的 `measure-remote` 任务上传 `memory-lightweight` 与 `me
 - `memory (apk-cold)`：首屏，经启动器冷启动之后。它是报告的那一行，在构件 `memory-android` 里。
 - `memory (apk-paired)`：同一个进程配对之后，五个标签页都访问过。CI 把这一行放在构件 `phone-e2e-android` 里，与截图和应用日志在一起。报告只从 `memory-android` 读一行，所以这一行不在报告里。
 
-配对会话从深链 `vfoxplus://pair?link=…` 开始，它打开配对屏，一次性链接已经填好。之后 `measure-apk` 点确认（对话框说电脑没有响应时，它关掉对话框并重新打开链接，最多三次）、等应用记下配对、为每个标签页截图并导出控件树，应用的日志里有错误则失败。它不需要可调试的构建，也不用 `run-as`：链接以在手机上打开链接的方式进入应用。要自己运行，先用 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 启动桌面应用的端到端构建，用 `vfxtool phone-link` 为模拟器写出配对链接（见[打包页](packaging-android.md#持续集成)），然后运行：
+配对会话从深链 `vfoxplus://pair?link=…` 开始，它打开配对屏，一次性链接已经填好。之后 `measure-apk` 点确认（对话框说电脑没有响应时，它关掉对话框并重新打开链接，最多三次）、等应用记下配对、为每个标签页截图并导出控件树，应用的日志里有错误则失败。它不需要可调试的构建，也不用 `run-as`：链接以在手机上打开链接的方式进入应用。CI 里的桌面应用对着假 vfox 运行，所以测量配对行时各标签页里有 SDK 和插件，与真人看到的一样（见[截图](contributing.md#截图)）。要自己运行，先用 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 启动桌面应用的端到端构建，用 `vfxtool phone-link` 为模拟器写出配对链接（见[打包页](packaging-android.md#持续集成)），然后运行：
 
 ```sh
 vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
   --pair-link-file LINK --shots DIR/shots
 ```
+
+加上 `--pictures DIR`，同一次运行会在配对会话里拍下手机端 App 指南用的图（见[截图](contributing.md#截图)）。
 
 配对行只做诊断。它的数字也不能与桌面表格比较：它来自模拟器上的 `dumpsys meminfo`，而桌面表格读的是电脑上的 `smaps_rollup`。只比较同一份报告的各行。
 

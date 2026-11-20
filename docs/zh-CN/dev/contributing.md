@@ -67,7 +67,7 @@ cd mygo/phone && mygo build -platform android/amd64
 | [`memory.yml`](../../../.github/workflows/memory.yml) | `mygo` 或 `phone` 工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、在 Linux、Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取桌面应用各屏幕的普查、发布构建与冒烟测试、amd64 的 `.deb` 与 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），由这个 `.deb` 打包的 core26 classic snap（装好并启动），arm64 的 `.deb` 与 `.tar.gz`（lintian 校验，并核对程序的机器类型；没有 arm64 机器装它们），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中分别跑各部分（`vfxtool sandbox check`、`e2e`、`package` 与普查的四组），每部分一个任务 |
-| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`、`mygo/pair/`、`mygo/ui/kit/`、`mygo/VERSION`、`mygo/go.mod`、`mygo/go.sum`、`mygo/versions.env`、`shared/tooling/`、`shared/icons.json` | 为 x86_64 模拟器构建[手机端应用](#手机端应用)的 APK 与 AAB（用 debug 密钥签名），并在模拟器上驱动它：经深链与桌面应用配对，逐个访问五个标签页，冷启动与配对后各测一次（见[手机端应用](memory.md#手机端应用)） |
+| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`、`mygo/pair/`、`mygo/ui/kit/`、`mygo/VERSION`、`mygo/go.mod`、`mygo/go.sum`、`mygo/versions.env`、`shared/tooling/`、`shared/icons.json`、`shared/scripts/sign-apk.ps1` | 为 x86_64 模拟器构建[手机端应用](#手机端应用)的 APK 与 AAB（用 debug 密钥签名），并在模拟器上对着假 vfox 驱动它：经深链与桌面应用配对，逐个访问五个标签页，冷启动与配对后各测一次（见[手机端应用](memory.md#手机端应用)），并拍下它的指南用的图（[截图](#截图)）。Windows 运行器上的一个任务演练发布用的 APK 的签名（见[签名状态](packaging-android.md#签名状态)） |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`mygo/phone/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、手机端应用的构建，以及用到 Docker 的检查 |
 | [`release.yml`](../../../.github/workflows/release.yml) | 在 `main` 上手动，或 `v*` 标签 | 设定版本并提交到 `main`，打 `v<版本>` 标签，打包（含 Linux arm64 与手机端 APK）并发布 GitHub release，自更新检查读取的就是它 |
 
@@ -346,43 +346,24 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 
 （应用的构建就是上面那个；要在仓库根目录运行，命令靠它找假 vfox 的夹具；`--chrome` 和 `webheap` 一样指定 Chrome。）
 
-**Android。** CI 拍一张图 `screenshot-android`，并留下配对后会话的证据。[`phone.yml`](../../../.github/workflows/phone.yml)
-的 `emulator` 任务以 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 启动桌面应用的端到端构建，运行 `vfxtool phone-link`（允许其他设备，
-并为 `10.0.2.2` 写出配对链接），然后运行 `vfxtool measure-apk`。后者安装 APK，冷启动应用，再经深链 `vfoxplus://pair?link=…`
-与它配对：点按*信任并配对*，逐个访问五个标签页，并为每个标签页保存一张截图与一份无障碍树的导出。配对成功后，应用在日志里写一行 `vfoxplus: paired host=… fingerprint=…`，`measure-apk` 等的就是这一行。首屏是构件
-`screenshot-android`；标签页的截图与导出、应用的日志、桌面应用的日志，以及配对后的内存，是构件 `phone-e2e-android`。
+**Android。** [`phone.yml`](../../../.github/workflows/phone.yml) 的 `emulator` 任务，在驱动应用的那次会话里，拍[手机端 App 指南](../user/android.md)用的图。它对着假 vfox 启动桌面应用的端到端构建，做法与拍桌面图相同：一份名为 `vfox` 的 `vfxtool` 副本排在 `PATH` 最前，设 `VFOX_PLUS_FIXTURES` 与 `VFOX_PLUS_FAKE_INVENTORY=profiles`，家目录独立，于是各标签页显示的是已安装的 Node.js、Java、Flutter 和一个插件仓库，与真人看到的一样。`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 是模拟器访问运行器用的地址。任务运行 `vfxtool phone-link`（允许其他设备，并为 `10.0.2.2` 写出配对链接），然后运行 `vfxtool measure-apk --pictures DIR`。后者安装 APK，冷启动应用，再经深链 `vfoxplus://pair?link=…` 与它配对：点按*信任并配对*，逐个访问五个标签页，并为每个标签页保存一张截图与一份无障碍树的导出。配对成功后，应用在日志里写一行 `vfoxplus: paired host=… fingerprint=…`，`measure-apk` 等的就是这一行。首屏是构件 `screenshot-android`；标签页的截图与导出、应用的日志、桌面应用的日志，以及配对后的内存，是构件 `phone-e2e-android`。
 
-[安卓 App 指南](../user/android.md)里的九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，
-1080×2400，420 dpi），用 CI 构建出来的 APK（它的构件 `vfox-plus-android-amd64`），以及[运行 App](environment.md#运行-app)里描述的
-PC 端应用：对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问
-这台电脑用的地址。配对链接是*显示二维码*给出的那个，地址为 `10.0.2.2`，并按[运行 App](environment.md#运行-app)那样作为深链打开。
-这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、`android-settings`、
-`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南都用英文版。让图保持一致的做法以及容易出错的地方：
+图是顺带拍下的：状态栏用 Android 的演示模式（固定时钟、满电与 Wi-Fi、没有通知），深色的图在系统的深色主题下拍。工具结束时会把主题与状态栏还原。一共十一张：
 
-- 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
-  再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
-  `battery -e level 100 -e plugged false`、`network -e wifi show -e level 4 -e fully true`、
-  `network -e mobile hide`（它的图标在浅色主题下是白的）与 `notifications -e visible false`。
-- 相机打开时，Android 会在状态栏里显示一个绿色指示，顶掉 Wi-Fi 和电池图标，扫码界面的图上就有它。用 `adb root`，再
-  `adb shell device_config put privacy camera_mic_icons_enabled false` 关掉（shell 用户不能写这个开关，root 可以）。
-- 语言与主题是 App 与系统的：`adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` 与
-  `adb shell cmd uimode night yes`。每轮之间清数据（`pm clear`），并重新授予相机权限（`pm clear` 会收回它），
-  否则系统对话框会盖住扫码界面。
-- App 里的控件在无障碍树里：`adb exec-out uiautomator dump /dev/tty` 给出每个控件的文字与边界，
-  `adb shell input tap X Y` 点按边界的中心。控件的文字是*信任并配对*（英文界面为 Trust and pair）、*连接*（Connect），
-  以及五个标签页 *主页*、*SDK*、*插件*、*任务* 与 *设置*（英文界面为 Home、SDKs、Plugins、Tasks、Settings），
-  `vfxtool measure-apk` 也按这些文字找。
-- 配对链接要在 App 为英文时输入（`adb shell input text`）。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
-  `author`；在点*连接*之前把语言改回来，输入框的文字会保留。键盘会盖住按钮：输入后先按返回键
-  （`adb shell input keyevent 4`）收起它。
-- 显示指纹的对话框与设置要在应用的同一次运行里拍：应用每次运行都重新生成证书，两处的指纹只在同一次运行里一致。点按*信任并配对*，
-  拍主页之前要等标签页加载完。
-- 想拍“电脑没有响应”的页面，就在 App 打开时结束 PC 端的应用：标签页上方的条会显示它，并有*重试*按钮。
-- 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅
-  （`hw.camera.back=virtualscene`），因为没有二维码可对。
+| 图 | 内容 |
+| --- | --- |
+| `android-pairing`、`android-dark-pairing` | 配对界面，浅色主题与深色主题 |
+| `android-trust` | *信任这台电脑吗？*，带着指纹，在点按它的按钮之前 |
+| `android-home`、`android-sdks`、`android-plugins`、`android-tasks`、`android-settings` | 五个标签页 |
+| `android-sdk` | 一个 SDK（`nodejs`）的页面，用返回键关闭 |
+| `android-add-plugin` | 添加插件的对话框，有来源，也有上传文件 |
+| `android-dark-home` | 深色主题下的主页 |
 
-图保持截下来的 1080×2400。`vfxtool frame-phone NAME.png OUT.png` 给它们加上手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px
-的灰色边框（`#7A7A84`）：浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。
+让图保持一致靠的是工具的做法，因为系统在被要求之后要过几秒才画出图里的内容，而模拟器又慢。固定状态栏之后，以及每次切换主题之后，它不断查看状态栏，直到状态栏变了、并且连续四次查看都不再变化为止（先画出时钟，再画出网络图标，在深色栏上图标还要变成浅色），而不是等一个更慢的模拟器会超过的固定时间。没有硬件键盘的模拟器会在添加插件的对话框上弹出软键盘，工具把它收起来：安卓的返回键先关键盘，对话框保留。应用显示“电脑没有响应”的提示条时（在慢模拟器上切换主题之后会短暂出现），它会把这张图重新拍一遍，最多三次。
+
+构件 `phone-pictures` 里每张图都有两份：`raw/` 里是截下来的原样，1080×2400；`framed/` 里是加了框的。框由 `vfxtool frame-phone NAME.png OUT.png` 加：手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px 的灰色边框（`#7A7A84`），因为浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。图都是英文的，两种语言的指南共用。CI 不往图床上传任何东西：从 Pull Request 那次运行下载构件（`gh run download RUN -n phone-pictures`），按下面的方法上传 `framed/` 里的图，并替换两份指南里的链接。
+
+要在自己的模拟器上拍（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），就做任务做的事：在仓库根目录对着假 vfox 启动端到端构建（如上），用 `vfxtool phone-link` 写出配对链接，再对 CI 构建出来的 APK（它的构件 `vfox-plus-android-amd64`）运行 `vfxtool measure-apk`，用[手机端应用](memory.md#手机端应用)里给出的选项，再加 `--pictures DIR`。端到端构建的回环链接只能用一次，所以每次运行都要重新启动应用；模拟器上装着别的密钥签名的版本时，先卸载它（`adb uninstall dev.vfox.vfoxplus`）。工具点按的控件在无障碍树里（`adb exec-out uiautomator dump /dev/tty`），按英文与简体中文的标签查找：应用改了标签，工具要随之改（见[维护者注记](packaging-android.md#维护者注记)）。
 
 **上传。** 上传新图：
 
