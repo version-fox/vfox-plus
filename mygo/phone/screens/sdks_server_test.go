@@ -323,17 +323,21 @@ func sdkClickSwitch(t *testing.T, tt *ui.Tester, text string) {
 	tt.ClickAt(480-fromEdge, box.Y+box.H/2)
 }
 
+// sdkBesideGap is how far past the right edge of the anchor the click of
+// sdkClickBeside lands, in points.
+const sdkBesideGap = 28
+
 // sdkClickBeside clicks the place just right of the element that shows anchor, where
 // the button next to it is, in a row that ends with the anchor's button. A dialog
 // titles itself with the text of its confirm button, and a click on the text would
 // reach the title, so the confirm button is told apart by its place.
-func sdkClickBeside(t *testing.T, tt *ui.Tester, anchor string, gap float32) {
+func sdkClickBeside(t *testing.T, tt *ui.Tester, anchor string) {
 	t.Helper()
 	box, ok := tt.Find(anchor)
 	if !ok {
 		t.Fatalf("no element shows %q; the frame shows %q", anchor, tt.Texts())
 	}
-	tt.ClickAt(box.X+box.W+gap, box.Y+box.H/2)
+	tt.ClickAt(box.X+box.W+sdkBesideGap, box.Y+box.H/2)
 }
 
 // sdkShot saves the frame as a PNG in the directory named by PHONE_SDK_SHOTS, for
@@ -344,7 +348,7 @@ func sdkShot(t *testing.T, tt *ui.Tester, name string) {
 	if dir == "" {
 		return
 	}
-	file, err := os.Create(filepath.Join(dir, name+".png"))
+	file, err := os.Create(filepath.Join(dir, name+".png")) //nolint:gosec // G304, G703: PHONE_SDK_SHOTS names the directory; a developer sets it to keep the pictures.
 	if err != nil {
 		t.Fatal(err)
 	}

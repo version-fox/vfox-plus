@@ -31,7 +31,7 @@ import (
 func sdkNameHash(name string) uint32 {
 	var h uint32
 	for _, c := range name {
-		h = h*31 + uint32(c)
+		h = h*31 + uint32(c) //nolint:gosec // G115: c is a code point from range over a string, which is never negative.
 	}
 	return h
 }
@@ -47,7 +47,8 @@ func sdkTone(hash uint32) int {
 // shapes of its own, which the phone takes in the same order. The shapes are not
 // the same figures as the radii.
 func sdkShape(hash uint32) *shapes.Polygon {
-	return shapes.AvatarShapes[hash%uint32(len(shapes.AvatarShapes))]
+	// The list has twelve shapes, so its length fits in uint32.
+	return shapes.AvatarShapes[hash%uint32(len(shapes.AvatarShapes))] //nolint:gosec // G115: see the comment above.
 }
 
 // sdkInitial is the letter of an avatar: the first character of the name in upper
@@ -74,14 +75,15 @@ func sdkTonePair(cs *kit.Palette, tone int) (background, foreground ui.Color) {
 	return cs.PrimaryFixed, cs.OnPrimaryFixed
 }
 
-// sdkAvatar is the avatar of a plugin: the initial of its name, on a shape and in
-// a colour that the name's hash picks, as the web interface draws it.
-func sdkAvatar(k kit.Ctx, name string, size float32) ui.Element {
+// sdkAvatar draws the avatar of a plugin: the initial of its name, on a shape and in
+// a colour that the name's hash picks, as the web interface draws it. The toolkit
+// attaches the shape to the view when it is built, so nothing needs to be kept.
+func sdkAvatar(k kit.Ctx, name string, size float32) {
 	hash := sdkNameHash(name)
 	background, foreground := sdkTonePair(k.Colors(), sdkTone(hash))
 	style := kit.Emph(kit.TitleMedium).WithSize(kit.ScaleSize(size * 0.42)).WithWeight(700)
 	letter := sdkInitial(name)
-	return kit.Shape(k, sdkShape(hash), size, background, func() {
+	kit.Shape(k, sdkShape(hash), size, background, func() {
 		kit.Line(k, letter, style, foreground, kit.InitialText())
 	})
 }

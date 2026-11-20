@@ -175,6 +175,6 @@ var english = map[string]string{
 	"statusFailed":        "Failed",
 	"statusCancelled":     "Cancelled",
 	"pairDetails":         "Link and certificate",
-	"pairScan":            "Scan this code with the Android app.",
+	"pairScan":            "Take a photo of this code with the vfox+ phone app, or pick it from your photos.",
 	"pairShowCode":        "Show code",
 }

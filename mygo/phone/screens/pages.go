@@ -48,7 +48,7 @@ func (r *Root) pageBody(k kit.Ctx, page app.Page) {
 	case app.PageLog:
 		r.logPage(k, page)
 	case app.PagePair:
-		r.pairPage(k, page)
+		r.pairPage(k)
 	}
 }
 

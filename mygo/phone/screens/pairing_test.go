@@ -107,9 +107,9 @@ func newPairDesktop(t *testing.T) *pairDesktop {
 }
 
 // deepLink is the deep link of the pairing page that carries the pairing link of the
-// computer, with the token.
-func (fd *pairDesktop) deepLink(token string) string {
-	return "vfoxplus://pair?link=" + url.QueryEscape(fd.server.URL+"/auth/connect/"+token)
+// computer, with the one-time token that the computer accepts: pairTestToken.
+func (fd *pairDesktop) deepLink() string {
+	return "vfoxplus://pair?link=" + url.QueryEscape(fd.server.URL+"/auth/connect/"+pairTestToken)
 }
 
 // connect answers a pairing link: the one-time token is exchanged for a session.
@@ -124,7 +124,10 @@ func (fd *pairDesktop) connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fd.used = true
-	http.SetCookie(w, &http.Cookie{Name: "vfox-plus-session", Value: pairTestSession, Path: "/", HttpOnly: true})
+	http.SetCookie(w, &http.Cookie{
+		Name: "vfox-plus-session", Value: pairTestSession, Path: "/",
+		Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode,
+	})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -248,14 +251,14 @@ func pairSavePicture(t *testing.T, tt *ui.Tester, name string) {
 	if dir == "" {
 		return
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // G703: VFOXPLUS_SHOTS names the directory; a developer sets it to keep the pictures.
 		t.Fatal(err)
 	}
 	// The transitions of the dialogs and of the labels end after a moment: the picture
 	// is of the settled screen.
 	tt.Advance(2 * time.Second)
 	tt.Frame()
-	file, err := os.Create(filepath.Join(dir, name+".png"))
+	file, err := os.Create(filepath.Join(dir, name+".png")) //nolint:gosec // G304, G703: the directory of the pictures, as above.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +315,7 @@ func TestTheDeepLinkOpensTheFingerprintDialog(t *testing.T) {
 	fd := newPairDesktop(t)
 	root := newRoot(t)
 	tt := ui.NewTester(root.View, 480, 900)
-	root.OpenURL(fd.deepLink(pairTestToken))
+	root.OpenURL(fd.deepLink())
 	pairWaitFor(t, tt, "Trust and pair")
 	if !hasText(tt, "Trust this computer?") {
 		t.Errorf("the dialog has no title; the frame shows %q", tt.Texts())
@@ -343,7 +346,7 @@ func TestTrustAndPairPairsThePhoneAndPrintsTheLine(t *testing.T) {
 	root := newRoot(t)
 	tt := ui.NewTester(root.View, 480, 900)
 	out := pairCaptureStdout(t)
-	root.OpenURL(fd.deepLink(pairTestToken))
+	root.OpenURL(fd.deepLink())
 	pairWaitFor(t, tt, "Trust and pair")
 	if err := tt.Click("Trust and pair"); err != nil {
 		t.Fatalf("Click(Trust and pair): %v", err)
@@ -473,7 +476,7 @@ func TestTheDeepLinkOfAPairedPhoneOpensThePairingPage(t *testing.T) {
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, tt, "the connection", func() bool { return root.Service().Status().Session == app.Paired })
-	root.OpenURL(fd.deepLink(pairTestToken))
+	root.OpenURL(fd.deepLink())
 	pairWaitFor(t, tt, "Trust and pair")
 	if top, ok := root.App().Top(); !ok || top.Kind != app.PagePair {
 		t.Errorf("the top page is %+v, %v; want the pairing page", top, ok)
@@ -592,7 +595,7 @@ func TestARefusedLinkSaysSoInTheDialog(t *testing.T) {
 	fd.used = true
 	root := newRoot(t)
 	tt := ui.NewTester(root.View, 480, 900)
-	root.OpenURL(fd.deepLink(pairTestToken))
+	root.OpenURL(fd.deepLink())
 	pairWaitFor(t, tt, "Trust and pair")
 	if err := tt.Click("Trust and pair"); err != nil {
 		t.Fatalf("Click(Trust and pair): %v", err)

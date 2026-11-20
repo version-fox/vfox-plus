@@ -102,9 +102,10 @@ func availOpenVersions(t *testing.T, root *Root, tt *ui.Tester, count string) {
 	availWaitText(t, tt, count)
 }
 
-// availWaitTab draws frames until the window shows the tab, with no page above it.
-func availWaitTab(t *testing.T, tt *ui.Tester, root *Root, tab app.Tab) {
+// availWaitTab draws frames until the window shows the tasks tab, with no page above it.
+func availWaitTab(t *testing.T, tt *ui.Tester, root *Root) {
 	t.Helper()
+	tab := app.TabTasks
 	for i := 0; i < 500 && (root.App().Tab() != tab || len(root.App().Pages()) != 0); i++ {
 		tt.Frame()
 	}
@@ -209,7 +210,7 @@ func TestTheSearchSourceIsChosenOnTheComputer(t *testing.T) {
 	if err := tt.Click("LTS only"); err != nil {
 		t.Fatalf("Click(LTS only): %v", err)
 	}
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0]; got.Method != "PUT" || got.Path != "/api/sdks/go/search" || got.Body != `{"value":"lts"}` {
 		t.Errorf("the choice sent %+v", got)
 	}
@@ -256,11 +257,11 @@ func TestInstallingAVersionStartsATaskAndShowsTheTasks(t *testing.T) {
 	if err := tt.Click("Install"); err != nil {
 		t.Fatalf("Click(Install): %v", err)
 	}
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0]; got.Method != "POST" || got.Path != "/api/tasks" || got.Body != `{"operation":"install","sdk":"go","version":"1.22.0"}` {
 		t.Errorf("the install sent %+v", got)
 	}
-	availWaitTab(t, tt, root, app.TabTasks)
+	availWaitTab(t, tt, root)
 }
 
 // availOpenInstallMenu opens the menu of the install button of the first version that
@@ -291,11 +292,11 @@ func TestInstallAndUseSendsUseAndShowsTheTasks(t *testing.T) {
 	if err := tt.Click("Install and use"); err != nil {
 		t.Fatalf("Click(%s): %v", "Install and use", err)
 	}
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0].Body; got != `{"operation":"install","sdk":"go","version":"1.22.0","use":true}` {
 		t.Errorf("install and use sent %s", got)
 	}
-	availWaitTab(t, tt, root, app.TabTasks)
+	availWaitTab(t, tt, root)
 }
 
 func TestInstallByNameChecksTheNameBeforeItIsSent(t *testing.T) {
@@ -332,7 +333,7 @@ func TestInstallByNameChecksTheNameBeforeItIsSent(t *testing.T) {
 	}
 	tt.Type("1.22.0")
 	tt.Key(0, ui.KeyEnter)
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0].Body; got != `{"operation":"install","sdk":"go","version":"1.22.0"}` {
 		t.Errorf("the name sent %s", got)
 	}
@@ -389,7 +390,7 @@ func TestLinkingAnExistingSDKSendsItsFolder(t *testing.T) {
 	}
 	tt.Type("/opt/go")
 	tt.Key(0, ui.KeyEnter)
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0].Body; got != `{"operation":"link","sdk":"go","version":"17-system","path":"/opt/go"}` {
 		t.Errorf("the link sent %s", got)
 	}
@@ -411,7 +412,7 @@ func TestDetectingAndLinkingIsOneCall(t *testing.T) {
 	if err := tt.Click("Detect and link"); err != nil {
 		t.Fatalf("Click(%s): %v", "Detect and link", err)
 	}
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0].Body; got != `{"operation":"linkDetect","sdk":"go","yes":true}` {
 		t.Errorf("detect and link sent %s", got)
 	}

@@ -109,9 +109,9 @@ func (r *Root) settingsAppSection(k kit.Ctx) {
 }
 
 // settingsCard is a surface of the settings that holds a field, or a choice, and its
-// buttons.
-func settingsCard(k kit.Ctx, build func()) ui.Element {
-	return ui.Column(k.Context).Background(k.Colors().SurfaceContainer).Radius(kit.CornerLarge).
+// buttons. It is built where it is called, as the other containers are.
+func settingsCard(k kit.Ctx, build func()) {
+	ui.Column(k.Context).Background(k.Colors().SurfaceContainer).Radius(kit.CornerLarge).
 		Padding(16).Gap(12).FillWidth().Children(build)
 }
 

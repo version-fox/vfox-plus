@@ -48,7 +48,7 @@ func TestAFailedLoadKeepsTheValueBeforeIt(t *testing.T) {
 	r.Succeed(3)
 	r.Begin()
 	r.Fail(boom)
-	if r.Phase() != Failed || r.Loading() || r.Err() != boom {
+	if r.Phase() != Failed || r.Loading() || !errors.Is(r.Err(), boom) {
 		t.Errorf("after a failed refresh: phase %v, loading %v, err %v", r.Phase(), r.Loading(), r.Err())
 	}
 	if v, ok := r.Value(); !ok || v != 3 {

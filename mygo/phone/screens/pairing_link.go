@@ -61,19 +61,18 @@ func (r *Root) OpenURL(raw string) {
 
 // pairConnectText puts text in the field of the link. When text is a pairing link, it
 // starts the probe of its computer and opens the dialog that asks the user to confirm
-// the fingerprint; it reports whether it did. A text that is not a link stays in the
-// field, where the field says why it is not one. It runs on the main thread.
-func (r *Root) pairConnectText(text string) bool {
+// the fingerprint. A text that is not a link stays in the field, where the field says
+// why it is not one. It runs on the main thread.
+func (r *Root) pairConnectText(text string) {
 	r.linkText = text
 	link, err := pairing.ParseLink(text)
 	if err != nil {
-		return false
+		return
 	}
 	// The probe starts with this read. The dialog reads the same link from the field,
 	// so the probe it shows is this one.
 	r.service.Probe(link)
 	r.pairOpenConfirm()
-	return true
 }
 
 // pairLinkError returns the message for the text of the field when the text is not a

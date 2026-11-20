@@ -17,11 +17,13 @@
 // (a name, an address and a fingerprint); the session is a credential, and it
 // is never written into the record.
 //
-// The file implementations in this package serve Linux and the tests. On
-// Android the record belongs in the preferences and the session in the secret
-// storage of mygo; those implementations are not written yet, and they must
-// keep the same contract: Load reports ErrNoRecord or ErrNoSession when nothing
-// is saved, Forget is idempotent, and a damaged value is ErrCorrupt.
+// The file implementations in this package serve Linux, the tests and the
+// Android build. On Android they keep their files in the private directory of
+// the app, which no other app can read, and the session file has the mode 0600
+// as on Linux. The secret storage of mygo (the Android keystore) is not used
+// yet; an implementation on it must keep the same contract: Load reports
+// ErrNoRecord or ErrNoSession when nothing is saved, Forget is idempotent, and
+// a damaged value is ErrCorrupt.
 package store
 
 import "errors"

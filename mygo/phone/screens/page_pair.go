@@ -15,13 +15,12 @@
 package screens
 
 import (
-	"github.com/version-fox/vfox-plus/mygo/phone/app"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
 // pairPage is the pairing with a new link, above the tabs, from the settings or a deep
 // link. The phone stays paired until the new pairing succeeds, and then the home tab
 // shows the new computer; pageScreen draws the bar with its way back.
-func (r *Root) pairPage(k kit.Ctx, page app.Page) {
+func (r *Root) pairPage(k kit.Ctx) {
 	r.pairForm(k)
 }

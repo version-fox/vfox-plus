@@ -129,11 +129,11 @@ func TestInstallingAPluginFromTheRegistryStartsAddAndShowsTheTasks(t *testing.T)
 	if err := tt.Click("Install"); err != nil {
 		t.Fatalf("Click(Install): %v", err)
 	}
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0]; got.Method != "POST" || got.Path != "/api/tasks" || got.Body != `{"operation":"add","source":"rust"}` {
 		t.Errorf("the install sent %+v", got)
 	}
-	availWaitTab(t, tt, root, app.TabTasks)
+	availWaitTab(t, tt, root)
 }
 
 func TestUpdateAllStartsAnUpdateOfEveryPlugin(t *testing.T) {
@@ -146,11 +146,11 @@ func TestUpdateAllStartsAnUpdateOfEveryPlugin(t *testing.T) {
 	if err := tt.Click("Update all"); err != nil {
 		t.Fatalf("Click(Update all): %v", err)
 	}
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0].Body; got != `{"operation":"update"}` {
 		t.Errorf("update all sent %s", got)
 	}
-	availWaitTab(t, tt, root, app.TabTasks)
+	availWaitTab(t, tt, root)
 }
 
 func TestAnInstalledPluginOpensItsSDK(t *testing.T) {
@@ -191,11 +191,11 @@ func TestAddFromSourceSendsTheAddressAndTheAlias(t *testing.T) {
 	}
 	tt.Type("xx")
 	tt.Key(0, ui.KeyEnter)
-	calls := availWaitCalls(t, tt, f, 1)
+	calls := availWaitCalls(t, tt, f)
 	if got := calls[0]; got.Method != "POST" || got.Path != "/api/plugins" || got.Body != `{"source":"https://example.com/x.git","alias":"xx"}` {
 		t.Errorf("add from source sent %+v", got)
 	}
-	availWaitTab(t, tt, root, app.TabTasks)
+	availWaitTab(t, tt, root)
 }
 
 func TestAddFromSourceNeedsASource(t *testing.T) {

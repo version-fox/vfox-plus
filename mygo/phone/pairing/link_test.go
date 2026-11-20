@@ -52,7 +52,7 @@ func TestParseLinkAcceptsPairingLinks(t *testing.T) {
 }
 
 func TestParseLinkRejectsEverythingElse(t *testing.T) {
-	cases := map[string]string{
+	cases := map[string]string{ //nolint:gosec // G101 matches the word "token" in the names of the cases; the values are test addresses, not credentials.
 		"empty":                       "",
 		"white space only":            "   ",
 		"plain text":                  "not a link",

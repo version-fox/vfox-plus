@@ -140,7 +140,7 @@ func TestAServiceWithNothingSavedIsUnpairedAndMakesNoRequest(t *testing.T) {
 	if r := svc.Inventory(); r.Phase() != Empty || r.Loading() {
 		t.Errorf("a read with no computer is %v, want empty and not loading", r.Phase())
 	}
-	if n := d.count("GET", "/api/inventory"); n != 0 {
+	if n := d.count("/api/inventory"); n != 0 {
 		t.Errorf("%d requests with no computer, want none", n)
 	}
 }
@@ -154,7 +154,7 @@ func TestASavedComputerWithItsSessionIsCheckedWhenItRuns(t *testing.T) {
 	}
 	startRun(t, svc)
 	waitFor(t, "the computer to accept the session", func() bool { return svc.Status().Session == Paired })
-	if n := d.count("GET", "/api/settings"); n != 1 {
+	if n := d.count("/api/settings"); n != 1 {
 		t.Errorf("the check made %d settings requests, want 1", n)
 	}
 	if got := svc.Status().Server.Base; got != d.base.String() {
@@ -194,7 +194,7 @@ func TestASavedRecordWithoutASessionNeedsPairingAtOnce(t *testing.T) {
 	}
 	startRun(t, svc)
 	time.Sleep(20 * time.Millisecond)
-	if n := d.count("GET", "/api/settings"); n != 0 {
+	if n := d.count("/api/settings"); n != 0 {
 		t.Errorf("%d requests for a phone without a session, want none", n)
 	}
 }
@@ -228,7 +228,7 @@ func TestAChangedCertificateIsReportedAndNotTrusted(t *testing.T) {
 	if !errors.Is(svc.Status().Cause, remote.ErrCertificateChanged) {
 		t.Errorf("cause %v, want the certificate change", svc.Status().Cause)
 	}
-	if n := d.count("GET", "/api/settings"); n != 0 {
+	if n := d.count("/api/settings"); n != 0 {
 		t.Errorf("%d requests reached a computer whose certificate changed, want none", n)
 	}
 	if _, err := sessions.Load(); err != nil {
@@ -344,9 +344,9 @@ func TestLazyReadsLoadOnceAndShareTheLoad(t *testing.T) {
 			t.Fatal("a read that finds the inventory due does not show it loading")
 		}
 	}
-	waitFor(t, "the request to arrive", func() bool { return d.count("GET", "/api/inventory") == 1 })
+	waitFor(t, "the request to arrive", func() bool { return d.count("/api/inventory") == 1 })
 	time.Sleep(20 * time.Millisecond)
-	if n := d.count("GET", "/api/inventory"); n != 1 {
+	if n := d.count("/api/inventory"); n != 1 {
 		t.Errorf("%d requests while the inventory loads, want one shared load", n)
 	}
 	release()
@@ -355,7 +355,7 @@ func TestLazyReadsLoadOnceAndShareTheLoad(t *testing.T) {
 		svc.Inventory()
 	}
 	time.Sleep(20 * time.Millisecond)
-	if n := d.count("GET", "/api/inventory"); n != 1 {
+	if n := d.count("/api/inventory"); n != 1 {
 		t.Errorf("%d requests after the load, want the value kept", n)
 	}
 }
@@ -372,7 +372,7 @@ func TestAFailedLoadIsNotRepeatedByReadsAndRefreshRetriesIt(t *testing.T) {
 		svc.Tasks()
 	}
 	time.Sleep(30 * time.Millisecond)
-	if n := d.count("GET", "/api/tasks"); n != 1 {
+	if n := d.count("/api/tasks"); n != 1 {
 		t.Errorf("%d requests for a failed load, want one", n)
 	}
 	d.fail("GET", "/api/tasks", 0)
@@ -380,7 +380,7 @@ func TestAFailedLoadIsNotRepeatedByReadsAndRefreshRetriesIt(t *testing.T) {
 	if tasks := loaded(t, svc.Tasks); len(tasks) != 1 {
 		t.Errorf("after the refresh the tasks are %d, want the one task", len(tasks))
 	}
-	if n := d.count("GET", "/api/tasks"); n != 2 {
+	if n := d.count("/api/tasks"); n != 2 {
 		t.Errorf("%d requests after a refresh, want two", n)
 	}
 }
@@ -504,7 +504,7 @@ func TestPutSettingsAndPutWebSetTheirAnswersWithoutAReload(t *testing.T) {
 	if err != nil || settings.Language != remote.LanguageEnglish {
 		t.Fatalf("PutSettings = %+v, %v", settings, err)
 	}
-	before := d.count("GET", "/api/settings")
+	before := d.count("/api/settings")
 	if got := svc.Settings(); got.Phase() != Ready {
 		v, _ := got.Value()
 		t.Errorf("settings after PutSettings are %v with %+v, want the answer as they are", got.Phase(), v)
@@ -512,7 +512,7 @@ func TestPutSettingsAndPutWebSetTheirAnswersWithoutAReload(t *testing.T) {
 		t.Errorf("settings after PutSettings say %q", v.Language)
 	}
 	time.Sleep(10 * time.Millisecond)
-	if n := d.count("GET", "/api/settings"); n != before {
+	if n := d.count("/api/settings"); n != before {
 		t.Errorf("PutSettings made the phone read the settings again (%d requests, was %d)", n, before)
 	}
 
@@ -655,7 +655,7 @@ func TestSuspendEndsTheStreamAndTheCallsInFlight(t *testing.T) {
 
 	release := d.hold("GET", "/api/tasks")
 	_ = svc.Tasks()
-	waitFor(t, "the request to arrive", func() bool { return d.count("GET", "/api/tasks") == 1 })
+	waitFor(t, "the request to arrive", func() bool { return d.count("/api/tasks") == 1 })
 
 	svc.Suspend()
 	waitFor(t, "the stream to end", func() bool { return d.openStreams() == 0 })
@@ -664,7 +664,7 @@ func TestSuspendEndsTheStreamAndTheCallsInFlight(t *testing.T) {
 		t.Errorf("the cancelled load is %v with %v; want empty, without an error", r.Phase(), r.Err())
 	}
 	time.Sleep(20 * time.Millisecond)
-	if n := d.count("GET", "/api/tasks"); n != 1 {
+	if n := d.count("/api/tasks"); n != 1 {
 		t.Errorf("%d requests while in the background, want none new", n)
 	}
 	if n := d.openedStreams(); n != 1 {
@@ -680,7 +680,7 @@ func TestSuspendEndsTheStreamAndTheCallsInFlight(t *testing.T) {
 	// The hello of the new stream may mark the tasks out of date again while the load
 	// runs, which loads them once more; at least one load after Resume is what the
 	// test is about.
-	if n := d.count("GET", "/api/tasks"); n < 2 {
+	if n := d.count("/api/tasks"); n < 2 {
 		t.Errorf("%d requests for the tasks after Resume, want the load again", n)
 	}
 }

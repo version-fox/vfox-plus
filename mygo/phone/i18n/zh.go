@@ -175,6 +175,6 @@ var chinese = map[string]string{
 	"statusFailed":        "失败",
 	"statusCancelled":     "已取消",
 	"pairDetails":         "链接与证书",
-	"pairScan":            "用安卓应用扫描这个二维码。",
+	"pairScan":            "用 vfox+ 手机端拍照或从相册选择这个二维码。",
 	"pairShowCode":        "显示二维码",
 }

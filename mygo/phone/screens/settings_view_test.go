@@ -174,7 +174,7 @@ func TestOtherDevicesShowTheCodeOfThePublicAddress(t *testing.T) {
 		t.Fatalf("Click(Show code): %v", err)
 	}
 	tsWaitText(t, tt, "Each link works once, for five minutes.")
-	tsWaitText(t, tt, "Scan this code with the Android app.")
+	tsWaitText(t, tt, "Take a photo of this code with the vfox+ phone app, or pick it from your photos.")
 	if call := settingsWaitCall(t, tt, f, "POST /api/web/pairing"); !strings.Contains(call, "https://10.0.0.2:8443") {
 		t.Errorf("the link names %q, want the public address first", call)
 	}
@@ -301,7 +301,7 @@ func TestTheApplicationLanguageIsSentToTheComputer(t *testing.T) {
 func TestTheScreenLanguageIsSavedOnThePhoneAndAppliedAtOnce(t *testing.T) {
 	f := settingsServer(t)
 	root, _ := settingsWindow(t, f)
-	var preference i18n.Preference = i18n.PreferenceSystem
+	var preference = i18n.PreferenceSystem
 	root.settingsSetScreenLanguage(kit.Ctx{}, &preference, i18n.PreferenceChinese)
 	if preference != i18n.PreferenceChinese || i18n.Current() != i18n.Chinese {
 		t.Errorf("the screens answer %s after the choice of zh, want zh", i18n.Current())

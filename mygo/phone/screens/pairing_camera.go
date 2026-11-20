@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/egoist/mygo"
@@ -271,7 +272,9 @@ func (r *Root) pairPickPicture(p *pairReading) {
 // directory. When there is no link, it returns the key of the message that says why.
 func pairReadCode(path string) (string, string) {
 	defer func() { _ = os.Remove(path) }()
-	data, err := os.ReadFile(path)
+	// The path is a copy that the camera or the picker wrote in the app's temporary
+	// directory, not text that the user typed. Clean only normalises its spelling.
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return "", "pairPhotoFailed"
 	}

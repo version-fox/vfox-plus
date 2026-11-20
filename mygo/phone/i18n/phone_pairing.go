@@ -49,8 +49,8 @@ func init() {
 			"配对这台手机",
 		},
 		"pairHowBody": {
-			"1. On your computer, open the vfox+ settings, then Connections, and turn on Other devices.\n2. Choose Pair a phone. The computer shows a link and a QR code.\n3. Paste the link here, or take a photo of the code, or choose its picture.\n4. Compare the fingerprint shown here with the one under Other devices on the computer, then tap Trust and pair.",
-			"1. 在电脑上打开 vfox+ 的设置，进入“连接”，打开“其他设备”。\n2. 选择“配对手机”，电脑会显示一个链接和一个二维码。\n3. 在这里粘贴链接，或拍下二维码，或从相册选择二维码图片。\n4. 把这里显示的指纹与电脑“其他设备”中的指纹对比，一致后点击“信任并配对”。",
+			"1. On your computer, open the vfox+ settings and turn on Other devices.\n2. Under Pair a phone, choose Show code. The computer shows a link and a QR code.\n3. Paste the link here, or take a photo of the code, or choose its picture.\n4. Compare the fingerprint shown here with the one under Other devices on your computer, and tap Trust and pair when they match.",
+			"1. 在电脑上打开 vfox+ 的设置，打开“其他设备”。\n2. 在“配对手机”下选择“显示二维码”，电脑会显示一个链接和一个二维码。\n3. 在这里粘贴链接，或拍下二维码，或从相册选择二维码图片。\n4. 把这里显示的指纹与电脑“其他设备”中的指纹对比，一致后点击“信任并配对”。",
 		},
 		"pairConfirmTitle": {
 			"Trust this computer?",

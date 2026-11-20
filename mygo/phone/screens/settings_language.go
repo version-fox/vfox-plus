@@ -69,7 +69,9 @@ func loadUILanguage() i18n.Preference {
 	if err != nil {
 		return i18n.PreferenceSystem
 	}
-	data, err := os.ReadFile(path)
+	// The path comes from uiLanguagePath, which joins the configuration directory and the
+	// file's name; no text that the user typed goes into it. Clean only normalises its spelling.
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return i18n.PreferenceSystem
 	}

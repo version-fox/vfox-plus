@@ -49,7 +49,8 @@ func TestTheInterfaceLanguageIsSavedInTheConfigurationDirectory(t *testing.T) {
 	if filepath.Base(path) != uiLanguageFile || filepath.Base(filepath.Dir(path)) != configDirName {
 		t.Errorf("the preference is saved at %s, want %s under %s", path, uiLanguageFile, configDirName)
 	}
-	data, err := os.ReadFile(path)
+	// The path is the test's own configuration directory, from uiLanguagePath.
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		t.Fatal(err)
 	}

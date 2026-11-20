@@ -71,7 +71,8 @@ func TestServerRecordRoundTripsAndIsPrivate(t *testing.T) {
 	requirePrivate(t, path)
 
 	// The record is plain JSON with the three fields.
-	content, err := os.ReadFile(path)
+	// The file is in the test's own temporary directory.
+	content, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +129,8 @@ func TestSessionRoundTripsAndIsPrivateAndApartFromTheRecord(t *testing.T) {
 
 	// The credential is never written into the record, and the record survives
 	// the session being forgotten.
-	record, err := os.ReadFile(serverPath)
+	// The file is in the test's own temporary directory.
+	record, err := os.ReadFile(filepath.Clean(serverPath))
 	if err != nil {
 		t.Fatal(err)
 	}

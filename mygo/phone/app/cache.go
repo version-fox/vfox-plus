@@ -48,7 +48,7 @@ type entry[T any] struct {
 func load[T any](s *Service, client *remote.Client, e *entry[T], fetch func(ctx context.Context) (T, error)) {
 	// Nothing loads while the app is in the background: the reads that come then
 	// keep the entry as it is, and the first read after Resume loads it.
-	if s.reqCtx.Err() != nil || e.res.Loading() || !(e.dirty || e.res.Phase() == Empty) {
+	if s.reqCtx.Err() != nil || e.res.Loading() || (!e.dirty && e.res.Phase() != Empty) {
 		return
 	}
 	e.dirty = false

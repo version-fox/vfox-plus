@@ -212,17 +212,17 @@ func availWaitText(t *testing.T, tt *ui.Tester, want string) {
 	}
 }
 
-// availWaitCalls waits until the computer has recorded n calls, and returns them.
-func availWaitCalls(t *testing.T, tt *ui.Tester, f *availComputer, n int) []availCall {
+// availWaitCalls waits until the computer has recorded a call, and returns the calls.
+func availWaitCalls(t *testing.T, tt *ui.Tester, f *availComputer) []availCall {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		tt.Frame()
-		if calls := f.recorded(); len(calls) >= n {
+		if calls := f.recorded(); len(calls) > 0 {
 			return calls
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("the computer recorded %v; want %d calls", f.recorded(), n)
+			t.Fatalf("the computer recorded %v; want a call", f.recorded())
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
@@ -238,10 +238,10 @@ func availShot(t *testing.T, tt *ui.Tester, name string) {
 	}
 	// The transitions of the dialogs and the menus end within two seconds.
 	settle(tt)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // G703: PHONE_SHOT_DIR names the directory; a developer sets it to keep the pictures.
 		t.Fatal(err)
 	}
-	file, err := os.Create(filepath.Join(dir, name+".png"))
+	file, err := os.Create(filepath.Join(dir, name+".png")) //nolint:gosec // G304, G703: the directory of the pictures, as above.
 	if err != nil {
 		t.Fatal(err)
 	}

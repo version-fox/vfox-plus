@@ -135,8 +135,9 @@ func isLoopback(host string) bool {
 
 // newTransport returns the transport of a client. When pinned is empty, the
 // certificates are checked against the system roots. Otherwise only the leaf
-// certificate with that fingerprint is accepted. VerifyPeerCertificate runs even
-// when the standard verification is skipped, which is why the skip is safe here.
+// certificate with that fingerprint is accepted. VerifyPeerCertificate and
+// VerifyConnection run even when the standard verification is skipped, which is
+// why the skip is safe here.
 //
 // The transport uses no proxy: the desktop is on the local network, and a proxy
 // of the system would replace its certificate.
@@ -150,6 +151,18 @@ func newTransport(pinned string) *http.Transport {
 			}
 			return nil
 		}
+		// crypto/tls does not call VerifyPeerCertificate when it resumes a session, so
+		// a resumed connection would skip the check above. VerifyConnection runs on every
+		// connection, resumed or not, and makes the same check on the leaf certificate
+		// of that connection. Without a ClientSessionCache, crypto/tls never resumes, as
+		// here; SessionTicketsDisabled keeps it that way if a cache is added later.
+		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
+			if len(state.PeerCertificates) == 0 || pairing.FormatFingerprint(state.PeerCertificates[0].Raw) != pinned {
+				return ErrCertificateChanged
+			}
+			return nil
+		}
+		tlsConfig.SessionTicketsDisabled = true
 	}
 	dialer := &net.Dialer{Timeout: dialTimeout}
 	return &http.Transport{
@@ -175,10 +188,14 @@ func (c *Client) endpoint(path string, query url.Values) string {
 	return address.String()
 }
 
-// authorize adds the session cookie of a paired client to request.
+// authorize adds the session cookie of a paired client to request. The client only
+// sends the cookie back, so the Cookie header is written as the server reads it,
+// name=value. The session is a value that pair.go read from the server's Set-Cookie,
+// which holds only bytes that a cookie value may have, so nothing needs quoting. The
+// request is new and has no other cookie, so Set writes the whole header.
 func (c *Client) authorize(request *http.Request) {
 	if c.session != "" {
-		request.AddCookie(&http.Cookie{Name: sessionCookie, Value: c.session})
+		request.Header.Set("Cookie", sessionCookie+"="+c.session)
 	}
 }
 

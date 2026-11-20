@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	qrcode "github.com/skip2/go-qrcode"
+
 	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 )
 
@@ -91,7 +92,8 @@ func boxBlur(img image.Image, passes int) *image.RGBA {
 						n++
 					}
 				}
-				dst.SetRGBA(x, y, color.RGBA{R: uint8(r / n), G: uint8(g / n), B: uint8(b / n), A: 255})
+				// G115: r, g and b are sums of n bytes each, so each mean is at most 255.
+				dst.SetRGBA(x, y, color.RGBA{R: uint8(r / n), G: uint8(g / n), B: uint8(b / n), A: 255}) //nolint:gosec // G115: see the comment above.
 			}
 		}
 		src = dst
@@ -181,12 +183,14 @@ func TestDecodeQRReportsAPictureWithoutACode(t *testing.T) {
 func pngHeader(width, height uint32) []byte {
 	var buf bytes.Buffer
 	buf.WriteString("\x89PNG\r\n\x1a\n")
-	ihdr := make([]byte, 0, 13)
+	// The data of IHDR is 13 bytes: the width and the height, and five bytes more.
+	const ihdrLength = 13
+	ihdr := make([]byte, 0, ihdrLength)
 	ihdr = binary.BigEndian.AppendUint32(ihdr, width)
 	ihdr = binary.BigEndian.AppendUint32(ihdr, height)
 	ihdr = append(ihdr, 8, 6, 0, 0, 0) // 8-bit RGBA, deflate, adaptive filters, no interlace
 	chunk := append([]byte("IHDR"), ihdr...)
-	buf.Write(binary.BigEndian.AppendUint32(nil, uint32(len(ihdr))))
+	buf.Write(binary.BigEndian.AppendUint32(nil, ihdrLength))
 	buf.Write(chunk)
 	buf.Write(binary.BigEndian.AppendUint32(nil, crc32.ChecksumIEEE(chunk)))
 	return buf.Bytes()

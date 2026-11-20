@@ -24,22 +24,22 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/phone/remote"
 )
 
-// homePaired returns the window of a paired phone, and the computer it is paired with,
-// with its connection running, and the home tab on the screen.
-func homePaired(t *testing.T, fd *pairDesktop) (*Root, *ui.Tester) {
+// homePaired returns the frame tester of the window of a phone that is paired with the
+// computer fd, with its connection running and the home tab on the screen.
+func homePaired(t *testing.T, fd *pairDesktop) *ui.Tester {
 	t.Helper()
 	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, tt, "the connection", func() bool { return root.Service().Status().Session == app.Paired })
-	return root, tt
+	return tt
 }
 
 // TestTheHomeTabShowsTheSDKsInUse checks the title, the version of vfox and the SDKs in
 // use: their current version, and not the SDKs that are not in use.
 func TestTheHomeTabShowsTheSDKsInUse(t *testing.T) {
 	fd := newPairDesktop(t)
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, "vfox 0.6.0")
 	for _, text := range []string{"vfox+", "In use", "go", "1.22.0"} {
 		if !hasText(tt, text) {
@@ -58,7 +58,7 @@ func TestTheHomeTabSaysWhenNoSDKIsInUse(t *testing.T) {
 	fd.inventory = `{"vfox":{"availability":"ready","version":"0.6.0"},` +
 		`"installed":{"loading":false,"value":[{"Name":"node","Versions":["20.1.0"],"Current":"","HasCurrent":false}]},` +
 		`"registry":{"loading":false,"value":[]},"config":{"loading":false,"value":[]},"complete":true}`
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, i18n.TextIn(i18n.English, "activeEmpty"))
 	pairSavePicture(t, tt, "home-empty")
 }
@@ -70,7 +70,7 @@ func TestTheHomeTabSaysWhenVfoxIsMissing(t *testing.T) {
 	fd.inventory = `{"vfox":{"availability":"notFound"},` +
 		`"installed":{"loading":false,"value":[]},"registry":{"loading":false,"value":[]},` +
 		`"config":{"loading":false,"value":[]},"complete":true}`
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, i18n.TextIn(i18n.English, "vfoxMissing"))
 }
 
@@ -79,7 +79,7 @@ func TestTheHomeTabSaysWhenVfoxIsMissing(t *testing.T) {
 func TestTheHomeTabShowsAFailedInventoryInRed(t *testing.T) {
 	fd := newPairDesktop(t)
 	fd.inventoryStatus = 502
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, noticeText(app.KindUnavailable))
 	pairSavePicture(t, tt, "home-error")
 }
@@ -94,7 +94,7 @@ func TestTheHealthOfTheSDKsOffersItsActions(t *testing.T) {
 		`{"id":"sdk.drift","severity":"warning","sdk":"node","version":"20.1.0","message":"node 20.1.0 differs from its receipt"},` +
 		`{"id":"vfox.path","severity":"info","sdk":"","version":"","message":"vfox is not first on the path"}` +
 		`]}`
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, "Adopt")
 	for _, text := range []string{"Reinstall", "go 1.21.0 has no receipt", "vfox is not first on the path"} {
 		if !hasText(tt, text) {
@@ -121,7 +121,7 @@ func TestTheHealthOfTheSDKsOffersItsActions(t *testing.T) {
 // TestAHealthyVfoxSaysSo checks the report without findings.
 func TestAHealthyVfoxSaysSo(t *testing.T) {
 	fd := newPairDesktop(t)
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, i18n.TextIn(i18n.English, "doctorNoProblems"))
 }
 
@@ -129,7 +129,7 @@ func TestAHealthyVfoxSaysSo(t *testing.T) {
 // the copy: the clipboard holds the line, and the button shows the copy for a while.
 func TestTheCommandCardCopiesTheLineOfVfox(t *testing.T) {
 	fd := newPairDesktop(t)
-	_, tt := homePaired(t, fd)
+	tt := homePaired(t, fd)
 	pairWaitFor(t, tt, homeCommand)
 	if err := tt.Click("Copy"); err != nil {
 		t.Fatalf("Click(Copy): %v", err)

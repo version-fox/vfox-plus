@@ -15,6 +15,7 @@
 package remote
 
 import (
+	"crypto/tls"
 	"errors"
 	"net"
 	"net/http"
@@ -128,7 +129,7 @@ func TestAPIErrorMatchesTheSentinelOfItsStatus(t *testing.T) {
 		for _, sentinel := range all {
 			expected := false
 			for _, w := range want {
-				expected = expected || w == sentinel
+				expected = expected || errors.Is(w, sentinel)
 			}
 			if errors.Is(err, sentinel) != expected {
 				t.Errorf("status %d: errors.Is(%v) = %v, want %v", status, sentinel, !expected, expected)
@@ -169,6 +170,44 @@ func TestTheFingerprintPinsTheCertificate(t *testing.T) {
 	}
 	if _, err := system.Inventory(ctx); err == nil || errors.Is(err, ErrUnpaired) {
 		t.Fatalf("a self-signed certificate without a pin: %v, want a certificate error", err)
+	}
+}
+
+// TestTheFingerprintIsCheckedOnEveryConnection checks VerifyConnection of a pinned
+// client. It runs for a resumed session too, where VerifyPeerCertificate does not: it
+// accepts the certificate of the pinned fingerprint, refuses another one, and refuses
+// a connection that has no certificate.
+func TestTheFingerprintIsCheckedOnEveryConnection(t *testing.T) {
+	s := startServer(t)
+	conn, err := tls.Dial("tcp", s.base.Host, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec // The test checks the fingerprint itself, as the client does.
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+	state := conn.ConnectionState()
+
+	pinned, err := New(s.base, s.fingerprint, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	verify := pinned.client.Transport.(*http.Transport).TLSClientConfig.VerifyConnection
+	if verify == nil {
+		t.Fatal("a pinned client has no VerifyConnection")
+	}
+	if err := verify(state); err != nil {
+		t.Fatalf("VerifyConnection refuses the pinned certificate: %v", err)
+	}
+	if err := verify(tls.ConnectionState{}); !errors.Is(err, ErrCertificateChanged) {
+		t.Errorf("a connection without a certificate: %v, want ErrCertificateChanged", err)
+	}
+
+	wrong, err := New(s.base, strings.Repeat("00:", 31)+"00", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	verify = wrong.client.Transport.(*http.Transport).TLSClientConfig.VerifyConnection
+	if err := verify(state); !errors.Is(err, ErrCertificateChanged) {
+		t.Fatalf("a certificate with another fingerprint: %v, want ErrCertificateChanged", err)
 	}
 }
 

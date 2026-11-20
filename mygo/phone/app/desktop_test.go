@@ -171,11 +171,11 @@ func (d *desktop) fail(method, path string, status int) {
 	d.failures[method+" "+path] = status
 }
 
-// count returns how many requests with method and path arrived.
-func (d *desktop) count(method, path string) int {
+// count returns how many GET requests with path arrived.
+func (d *desktop) count(path string) int {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.requests[method+" "+path]
+	return d.requests["GET "+path]
 }
 
 // openStreams returns how many event streams are open now.
@@ -253,7 +253,10 @@ func (d *desktop) pair(w http.ResponseWriter, token string) {
 	delete(d.tokens, token)
 	session := fmt.Sprintf("session-%d", len(d.sessions)+1)
 	d.sessions[session] = true
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: session, Path: "/"})
+	http.SetCookie(w, &http.Cookie{
+		Name: sessionCookie, Value: session, Path: "/",
+		Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode,
+	})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -284,7 +287,8 @@ func (d *desktop) route(w http.ResponseWriter, r *http.Request) {
 	}
 	var id int
 	if len(parts) > 2 && parts[1] == "tasks" && shape[2] == ":id" {
-		fmt.Sscan(parts[2], &id)
+		// The error is ignored on purpose: a part that is not a number leaves id at zero.
+		_, _ = fmt.Sscan(parts[2], &id)
 	}
 	name := ""
 	if len(parts) > 2 && parts[1] == "sdks" {
@@ -381,12 +385,12 @@ func (d *desktop) events(w http.ResponseWriter, r *http.Request) {
 		d.streams--
 		d.mu.Unlock()
 	}()
-	fmt.Fprint(w, "event: hello\ndata: {}\n\n")
+	_, _ = fmt.Fprint(w, "event: hello\ndata: {}\n\n")
 	flusher.Flush()
 	for {
 		select {
 		case kind := <-ch:
-			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", kind)
+			_, _ = fmt.Fprintf(w, "event: %s\ndata: {}\n\n", kind)
 			flusher.Flush()
 		case <-cut:
 			return

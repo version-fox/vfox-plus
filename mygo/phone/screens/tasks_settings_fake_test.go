@@ -187,9 +187,9 @@ func (f *tsFake) serve(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 	switch {
 	case r.Method == http.MethodGet && path == "/api/inventory":
-		tsWriteJSON(w, http.StatusOK, f.inventory())
+		tsWriteJSON(w, f.inventory())
 	case r.Method == http.MethodGet && path == "/api/tasks":
-		tsWriteJSON(w, http.StatusOK, f.tasks)
+		tsWriteJSON(w, f.tasks)
 	case r.Method == http.MethodDelete && path == "/api/tasks/finished":
 		f.record(r, "")
 		kept := f.tasks[:0]
@@ -203,7 +203,7 @@ func (f *tsFake) serve(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, "/api/tasks/"):
 		f.task(w, r, strings.TrimPrefix(path, "/api/tasks/"))
 	case path == "/api/settings" && r.Method == http.MethodGet:
-		tsWriteJSON(w, http.StatusOK, f.settings)
+		tsWriteJSON(w, f.settings)
 	case path == "/api/settings" && r.Method == http.MethodPut:
 		f.record(r, string(body))
 		var patch map[string]json.RawMessage
@@ -218,9 +218,9 @@ func (f *tsFake) serve(w http.ResponseWriter, r *http.Request) {
 			f.settings.ExtraEnvironment = nil
 			_ = json.Unmarshal(raw, &f.settings.ExtraEnvironment)
 		}
-		tsWriteJSON(w, http.StatusOK, f.settings)
+		tsWriteJSON(w, f.settings)
 	case path == "/api/web" && r.Method == http.MethodGet:
-		tsWriteJSON(w, http.StatusOK, f.web)
+		tsWriteJSON(w, f.web)
 	case path == "/api/web" && r.Method == http.MethodPut:
 		f.record(r, string(body))
 		var patch remote.WebPatch
@@ -234,7 +234,7 @@ func (f *tsFake) serve(w http.ResponseWriter, r *http.Request) {
 		if patch.Lightweight != nil {
 			f.web.Lightweight = *patch.Lightweight
 		}
-		tsWriteJSON(w, http.StatusOK, f.web)
+		tsWriteJSON(w, f.web)
 	case path == "/api/web/pairing" && r.Method == http.MethodPost:
 		f.record(r, string(body))
 		var request struct {
@@ -245,7 +245,7 @@ func (f *tsFake) serve(w http.ResponseWriter, r *http.Request) {
 		if host == "" {
 			host = f.web.PublicAddress
 		}
-		tsWriteJSON(w, http.StatusOK, remote.PairingCode{URL: host + "/auth/connect/0123456789abcdef"})
+		tsWriteJSON(w, remote.PairingCode{URL: host + "/auth/connect/0123456789abcdef"})
 	case path == "/api/config" && r.Method == http.MethodPut:
 		f.record(r, string(body))
 		var entry remote.ConfigEntry
@@ -281,7 +281,7 @@ func (f *tsFake) task(w http.ResponseWriter, r *http.Request, rest string) {
 	}
 	switch {
 	case action == "" && r.Method == http.MethodGet && index >= 0:
-		tsWriteJSON(w, http.StatusOK, f.tasks[index])
+		tsWriteJSON(w, f.tasks[index])
 	case action == "log" && r.Method == http.MethodGet:
 		text, ok := f.logs[id]
 		if !ok {
@@ -334,9 +334,10 @@ func (f *tsFake) inventory() remote.Inventory {
 	}
 }
 
-func tsWriteJSON(w http.ResponseWriter, status int, v any) {
+// tsWriteJSON answers v as JSON, with the status 200.
+func tsWriteJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(v)
 }
 
@@ -389,10 +390,10 @@ func tsShot(t *testing.T, tt *ui.Tester, name string) {
 		return
 	}
 	tsSettle(tt)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // G703: VFOX_PHONE_SHOTS names the directory; a developer sets it to keep the pictures.
 		t.Fatal(err)
 	}
-	file, err := os.Create(filepath.Join(dir, name+".png"))
+	file, err := os.Create(filepath.Join(dir, name+".png")) //nolint:gosec // G304, G703: the directory of the pictures, as above.
 	if err != nil {
 		t.Fatal(err)
 	}

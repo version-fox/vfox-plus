@@ -81,7 +81,7 @@ func readQR(img image.Image) (text string, err error) {
 	}
 	result, err := qrcode.NewQRCodeReader().Decode(bitmap, hints)
 	if err != nil {
-		return "", fmt.Errorf("%w (%v)", ErrNoQRCode, err)
+		return "", fmt.Errorf("%w (%w)", ErrNoQRCode, err)
 	}
 	return result.GetText(), nil
 }

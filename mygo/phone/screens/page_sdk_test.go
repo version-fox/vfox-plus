@@ -138,7 +138,7 @@ func TestSDKPageReinstallsAVersionFromItsMenu(t *testing.T) {
 	root.App().Push(app.Page{Kind: app.PageSDK, Name: "go"})
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Use globally")
-	sdkClickBeside(t, tt, "Use globally", 4+24)
+	sdkClickBeside(t, tt, "Use globally")
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Reinstall")
 	if err := tt.Click("Reinstall"); err != nil {
@@ -160,7 +160,7 @@ func TestSDKPageUninstallsAVersionOnlyWhenConfirmed(t *testing.T) {
 	root.App().Push(app.Page{Kind: app.PageSDK, Name: "go"})
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Use globally")
-	sdkClickBeside(t, tt, "Use globally", 4+24)
+	sdkClickBeside(t, tt, "Use globally")
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Uninstall")
 	if err := tt.Click("Uninstall"); err != nil {
@@ -180,7 +180,7 @@ func TestSDKPageUninstallsAVersionOnlyWhenConfirmed(t *testing.T) {
 		t.Fatalf("a task was started without the confirmation: %+v", got)
 	}
 
-	sdkClickBeside(t, tt, "Use globally", 4+24)
+	sdkClickBeside(t, tt, "Use globally")
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Uninstall")
 	if err := tt.Click("Uninstall"); err != nil {
@@ -188,7 +188,7 @@ func TestSDKPageUninstallsAVersionOnlyWhenConfirmed(t *testing.T) {
 	}
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Cancel")
-	sdkClickBeside(t, tt, "Cancel", 8+20)
+	sdkClickBeside(t, tt, "Cancel")
 	sdkWait(t, tt, "the confirmed uninstall is not started", func() bool {
 		return len(sdkTaskRequests(t, fake)) == 1
 	})
@@ -205,7 +205,7 @@ func TestSDKPageNamesAnAliasForTheVersionItWasOpenedFor(t *testing.T) {
 	root.App().Push(app.Page{Kind: app.PageSDK, Name: "go"})
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Use globally")
-	sdkClickBeside(t, tt, "Use globally", 4+24)
+	sdkClickBeside(t, tt, "Use globally")
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Name alias")
 	if err := tt.Click("Name alias"); err != nil {
@@ -219,7 +219,7 @@ func TestSDKPageNamesAnAliasForTheVersionItWasOpenedFor(t *testing.T) {
 	tt.Type("j17")
 	sdkSettle(tt)
 	sdkShot(t, tt, "page-alias-dialog")
-	sdkClickBeside(t, tt, "Cancel", 8+20)
+	sdkClickBeside(t, tt, "Cancel")
 	sdkWait(t, tt, "the alias is not named", func() bool {
 		return len(sdkTaskRequests(t, fake)) == 1
 	})
@@ -251,7 +251,7 @@ func TestSDKPageNamesAnAliasForTheVersionInUseFromTheOptions(t *testing.T) {
 	}
 	tt.Type("v2")
 	sdkSettle(tt)
-	sdkClickBeside(t, tt, "Cancel", 8+20)
+	sdkClickBeside(t, tt, "Cancel")
 	sdkWait(t, tt, "the alias is not named", func() bool {
 		return len(sdkTaskRequests(t, fake)) == 1
 	})
@@ -297,7 +297,7 @@ func TestSDKPageRemovesThePluginAfterItAsks(t *testing.T) {
 	}
 	sdkSettle(tt)
 	sdkWaitText(t, tt, "Cancel")
-	sdkClickBeside(t, tt, "Cancel", 8+20)
+	sdkClickBeside(t, tt, "Cancel")
 	sdkWait(t, tt, "the removal is not started", func() bool {
 		return len(sdkTaskRequests(t, fake)) == 1
 	})
