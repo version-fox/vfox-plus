@@ -32,6 +32,9 @@
 // pictures.go): the pairing page in both themes, the dialog of the trust, the five tabs, the detail of an
 // SDK, the dialog that adds a plugin and the home page in the dark theme, in a directory of their own.
 //
+// With --check-back-key it presses the key back with the dialog of the pairing open, before the pairing, and fails when
+// the dialog stays open or the app is taken out of the front (see backKeepsTheApp).
+//
 // The screens are read from the accessibility tree (uiautomator dump): the native UI of the app
 // exposes its elements with their labels and bounds (mygo's SurfaceWindow, the accessibility
 // provider). CI runs it from the emulator job of .github/workflows/phone.yml. adb is on the
@@ -74,11 +77,15 @@ const (
 )
 
 // usage is the command line of measure-apk, as its errors print it.
-const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--cold-runs N] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR]]"
+const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--cold-runs N] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR] [--check-back-key]]"
 
 var (
 	totalLine = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
 	rssField  = regexp.MustCompile(`\bRSS:\s*(\d+)K?`)
+	// resumedActivity is the line of `dumpsys activity activities` that names the activity in front, which is
+	// `topResumedActivity=ActivityRecord{… u0 package/Activity t12}` on the emulator of CI (API 36) and
+	// `mResumedActivity: ActivityRecord{…}` on the releases before.
+	resumedActivity = regexp.MustCompile(`ResumedActivity[=:]\s*ActivityRecord\{\S+ u\d+ (\S+)`)
 )
 
 // The labels of the paired session, as the phone app shows them in English and in Simplified
@@ -199,6 +206,8 @@ type config struct {
 	// coldRuns is how many times the app is started cold and read; the line of memory.txt is the
 	// median of the readings. Zero is one.
 	coldRuns int
+	// checkBack has the paired session press the key back with the dialog of the pairing open (see backKeepsTheApp).
+	checkBack bool
 }
 
 // session runs the steps against a device. Its clock and its sleep are replaceable, so that the
@@ -222,6 +231,7 @@ func Run(args []string) error {
 	pairLinkFile := flags.String("pair-link-file", "", "file holding a one-time pairing link of a reachable server: the paired session is driven and measured too")
 	shots := flags.String("shots", "", "directory receiving the screenshots, the screen dumps and the log of the paired session (required with --pair-link-file)")
 	pictures := flags.String("pictures", "", "directory receiving the pictures of the user guide, taken in the paired session (needs --pair-link-file)")
+	checkBack := flags.Bool("check-back-key", false, "press the key back with the dialog of the pairing open, and fail when the dialog stays or the app leaves (needs --pair-link-file)")
 	aapt2 := flags.String("aapt2", "", "the aapt2 of the build tools (default: the newest in ANDROID_HOME, or the one on the PATH)")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -235,8 +245,12 @@ func Run(args []string) error {
 	if *pictures != "" && *pairLinkFile == "" {
 		return errors.New("--pictures needs --pair-link-file: the pictures are taken in the paired session")
 	}
+	if *checkBack && *pairLinkFile == "" {
+		return errors.New("--check-back-key needs --pair-link-file: the dialog of the pairing is opened by its link")
+	}
 	c := config{apk: *apk, outputDir: *outputDir, screenshot: *screenshot, pairLinkFile: *pairLinkFile,
-		shots: *shots, pictures: *pictures, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second, coldRuns: *coldRuns}
+		shots: *shots, pictures: *pictures, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second, coldRuns: *coldRuns,
+		checkBack: *checkBack}
 	s := &session{adb: runAdb, badging: readBadging, sleep: time.Sleep, now: time.Now, log: os.Stderr}
 	return s.measure(c)
 }
@@ -345,6 +359,11 @@ func (s *session) paired(c config, pkg string) (err error) {
 			return err
 		}
 	}
+	if c.checkBack {
+		if err := s.backKeepsTheApp(pkg, uri); err != nil {
+			return err
+		}
+	}
 	confirm, err := s.confirmPairing(c, pkg, uri)
 	if err != nil {
 		return err
@@ -409,6 +428,74 @@ func (s *session) paired(c config, pkg string) (err error) {
 		fmt.Fprintf(s.log, "warning: the system reported an ANR for %s (not a failure): %s\n", pkg, warnings[0])
 	}
 	return nil
+}
+
+// backKeepsTheApp opens the pairing link, and when the dialog of the trust is up (the dialog of an app that has not paired,
+// where nothing of the app takes the key back) goes back with the key of Android, as a person does, and asks two things of
+// the result: the dialog is closed, and the app is still in front. mygo takes a Back that no shortcut of the window claims
+// as the end of the app, and a dialog, an overlay, is not a shortcut of the window (egoist/mygo#2088), so the dialog closed
+// and the app went to the background with it. The app answers that (Root.sync) and this keeps it so: nothing else can see an
+// app leave, which no test of its screens does. The dialog is left closed; the pairing opens the link again.
+func (s *session) backKeepsTheApp(pkg, uri string) error {
+	if err := s.start(fmt.Sprintf("am start -W -a android.intent.action.VIEW -d '%s' -p %s", uri, pkg), uri); err != nil {
+		return err
+	}
+	s.sleep(tabSettle)
+	if _, err := s.awaitDialog(confirmTimeout); err != nil {
+		return err
+	}
+	if _, err := s.adb("shell", "input", "keyevent", keyBack); err != nil {
+		return err
+	}
+	s.sleep(tabSettle)
+	front, err := s.front()
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix(front, pkg+"/") {
+		return fmt.Errorf("the key back, with the dialog of the pairing open, took the app out of the front: %s is in front", front)
+	}
+	shot, err := s.dump()
+	if err != nil {
+		return err
+	}
+	if hasLabel(shot.elements, confirmLabel) || hasLabel(shot.elements, unreachableLabel) {
+		return fmt.Errorf("the dialog of the pairing is still open after the key back: the screen has %s", labelsOf(shot.elements))
+	}
+	fmt.Fprintln(s.log, "the key back closed the dialog of the pairing, and the app stayed in front")
+	return nil
+}
+
+// awaitDialog waits until the screen shows the dialog of the pairing: the button that trusts the computer, or the message that
+// it did not answer. The screen it returns when it fails is the last one it dumped.
+func (s *session) awaitDialog(timeout time.Duration) (screen, error) {
+	deadline := s.now().Add(timeout)
+	var last screen
+	for {
+		if shot, err := s.dump(); err == nil {
+			last = shot
+			if hasLabel(shot.elements, confirmLabel) || hasLabel(shot.elements, unreachableLabel) {
+				return shot, nil
+			}
+		}
+		if !s.now().Before(deadline) {
+			return last, fmt.Errorf("no dialog of the pairing within %s: the screen has %s", timeout, labelsOf(last.elements))
+		}
+		s.sleep(pollInterval)
+	}
+}
+
+// front is the activity that Android has in front, as "package/Activity".
+func (s *session) front() (string, error) {
+	out, err := s.adb("shell", "dumpsys", "activity", "activities")
+	if err != nil {
+		return "", err
+	}
+	match := resumedActivity.FindSubmatch(out)
+	if match == nil {
+		return "", errors.New("the report of the activities of the device names no activity in front")
+	}
+	return string(match[1]), nil
 }
 
 // confirmPairing opens the pairing link on the device and taps the button that trusts the computer,

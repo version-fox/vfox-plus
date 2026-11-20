@@ -196,7 +196,8 @@ func (r *Root) View(c *ui.Context) {
 // messages of the tasks that end. The system's
 // back key is taken where the App takes the back gesture: on a tab other than the
 // home tab, with no page above the tabs (see app.App.TakesBack). Pages take it
-// through the router, and on the home tab it is left to the system.
+// through the router, and on the home tab it is left to the system, but not
+// while a dialog is open: the window claims it then, so that the app stays.
 func (r *Root) sync(k kit.Ctx) {
 	if session := r.service.Status().Session; session != r.seen {
 		r.seen = session
@@ -213,8 +214,16 @@ func (r *Root) sync(k kit.Ctx) {
 	// The tasks that ended are announced on every screen, as the web announces them on
 	// every page, so the watch is read here and not on the tasks tab only.
 	r.announceTasks(k, &r.tasks)
-	if r.app.TakesBack() && k.Shortcut(0, ui.KeyBack) {
-		r.app.Back()
+	// The window claims the back key while a dialog is open as well. Android sends Escape, which closes the dialog (an
+	// overlay), and then Back, and the surface takes the app out of the front on a Back that no shortcut of the window
+	// claims: the shortcut of an overlay does not count (egoist/mygo#2088, in 0.10.0). A dialog of the pairing page, or
+	// on the home tab, or on a page, closed and left the app with it. Nothing is done with the key then: the dialog has
+	// its Escape, and the tabs and the pages their own back.
+	takesBack := r.app.TakesBack()
+	if takesBack || k.Env.HasDialog() {
+		if k.Shortcut(0, ui.KeyBack) && takesBack {
+			r.app.Back()
+		}
 	}
 }
 

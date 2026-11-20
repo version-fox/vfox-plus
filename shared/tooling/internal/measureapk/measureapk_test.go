@@ -153,6 +153,11 @@ func TestRunUsage(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "--shots") {
 		t.Fatalf("pairing without --shots: err = %v", err)
 	}
+	// The dialog of the pairing is opened by the link: the check of the key back has none to open without it.
+	err = Run([]string{"--apk", "phone.apk", "--output", "out", "--check-back-key"})
+	if err == nil || !strings.Contains(err.Error(), "--check-back-key") {
+		t.Errorf("--check-back-key without --pair-link-file: err = %v, want the usage", err)
+	}
 	// A measurement of no start at all reads nothing: that is a mistake, and the median of none is not a number to report.
 	for _, runs := range []string{"0", "-1"} {
 		err = Run([]string{"--apk", "phone.apk", "--output", "out", "--cold-runs", runs})
@@ -349,7 +354,19 @@ type screenMachine struct {
 	anr, anrStays bool
 	// seen is the screens that were dumped, in order.
 	seen []string
+	// front is the activity that Android has in front, "" for the app's own. leavesOnBack are the screens where the key of
+	// Android takes the app out of the front, to the launcher (the dialog closing with it), as the app did with a dialog
+	// open, and backs are the screens that were shown when the key was pressed, in order.
+	front        string
+	leavesOnBack map[string]bool
+	backs        []string
 }
+
+// The activities that the device can have in front, as the report of the device names them.
+const (
+	appActivity      = "dev.vfox.vfoxplus/dev.mygo.MyGoActivity"
+	launcherActivity = "com.google.android.apps.nexuslauncher/.NexusLauncherActivity"
+)
 
 // notRespondingScreen is the dialog that Android shows when System UI does not answer, as uiautomator dumps it on the emulator:
 // a title and two buttons, whose bounds are those of the dump of the emulator.
@@ -423,9 +440,20 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 				d.machine.ime = false
 				return nil, nil
 			}
+			d.machine.backs = append(d.machine.backs, d.machine.now)
+			if d.machine.leavesOnBack[d.machine.now] {
+				d.machine.front = launcherActivity
+			}
 			d.machine.move(d.machine.back, d.machine.now)
 		}
 		return nil, nil
+	case command == "shell dumpsys activity activities":
+		front := appActivity
+		if d.machine != nil && d.machine.front != "" {
+			front = d.machine.front
+		}
+		return []byte("ACTIVITY MANAGER ACTIVITIES (dumpsys activity activities)\n  topResumedActivity=ActivityRecord{203859552 u0 " + front +
+			" t27}\n  ResumedActivity: ActivityRecord{203859552 u0 " + front + " t27}\n"), nil
 	case command == "shell dumpsys input_method":
 		if d.machine != nil && d.machine.ime {
 			return []byte("  mImeWindowVis=3\n  mInputShown=true\n"), nil
@@ -924,7 +952,7 @@ func guideMachine() *screenMachine {
 			"settings":  with(nil),
 			"addplugin": {"200 1350": "plugins"},
 		},
-		back: map[string]string{"sdk": "sdks", "addplugin": "plugins"},
+		back: map[string]string{"confirm": "pairing", "sdk": "sdks", "addplugin": "plugins"},
 	}
 }
 
@@ -1376,5 +1404,143 @@ func TestADialogThatNeverGoesIsNotWaitedOnForEver(t *testing.T) {
 	}
 	if len(d.taps) == 0 {
 		t.Error("Wait was never tapped")
+	}
+}
+
+// backRun runs the paired session of a device that has the key back checked, and returns the device, the output of the
+// tool, the directory of its screenshots, and the error of the run.
+func backRun(t *testing.T, m *screenMachine) (*fakeDevice, string, string, error) {
+	t.Helper()
+	dir := t.TempDir()
+	shots := filepath.Join(dir, "shots")
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{machine: m, logs: []string{"", pairedLogText("10.0.2.2", "AA:BB"), pairedLogText("10.0.2.2", "AA:BB")}}
+	var output strings.Builder
+	s := d.session()
+	s.log = &output
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, aapt2: "aapt2", checkBack: true}
+	err := s.measure(c)
+	return d, output.String(), shots, err
+}
+
+// TestTheKeyBackWithTheDialogOfThePairingOpenLeavesTheAppInFront is the check that the app answers egoist/mygo#2088: the
+// key goes back with the dialog of the trust open, the dialog closes, and the app is in front still. The pairing then
+// opens the link again, as it does after a dialog that was closed, and goes on.
+func TestTheKeyBackWithTheDialogOfThePairingOpenLeavesTheAppInFront(t *testing.T) {
+	m := guideMachine()
+	d, output, _, err := backRun(t, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The key was pressed with the dialog open, and once.
+	if want := []string{"confirm"}; !slices.Equal(m.backs, want) {
+		t.Errorf("the key back was pressed with %v shown, want %v: the dialog open", m.backs, want)
+	}
+	// The link, the key, the link again; the check taps nothing, so the taps are those of a pairing without it.
+	var steps []string
+	for _, command := range d.commands {
+		switch {
+		case strings.Contains(command, "android.intent.action.VIEW"):
+			steps = append(steps, "link")
+		case command == "shell input keyevent 4":
+			steps = append(steps, "back")
+		}
+	}
+	if want := []string{"link", "back", "link"}; !slices.Equal(steps, want) {
+		t.Errorf("the steps were %v, want %v", steps, want)
+	}
+	if want := []string{"540 1880", "108 2300", "324 2300", "540 2300", "756 2300", "972 2300"}; !slices.Equal(d.taps, want) {
+		t.Errorf("taps = %v, want %v", d.taps, want)
+	}
+	if !strings.Contains(output, "the key back closed the dialog of the pairing, and the app stayed in front") {
+		t.Errorf("the output does not say what the check found:\n%s", output)
+	}
+	if m.front != "" {
+		t.Errorf("the run ends with %q in front", m.front)
+	}
+}
+
+// TestAKeyBackThatTakesTheAppOutOfTheFrontFailsTheRun is the app as it was in 0.10.0 of mygo: the dialog closes and the app
+// goes to the launcher with it. The run fails, says which activity is in front, keeps the screen, and does not try the pairing.
+func TestAKeyBackThatTakesTheAppOutOfTheFrontFailsTheRun(t *testing.T) {
+	m := guideMachine()
+	m.leavesOnBack = map[string]bool{"confirm": true}
+	d, _, shots, err := backRun(t, m)
+	if err == nil || !strings.Contains(err.Error(), "took the app out of the front") || !strings.Contains(err.Error(), launcherActivity) {
+		t.Fatalf("measure = %v, want the key back to have taken the app out of the front, with the launcher named", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(shots, "failure.png")); statErr != nil {
+		t.Errorf("the failed run left no screen: %v", statErr)
+	}
+	if slices.Contains(d.taps, "540 1880") {
+		t.Error("the pairing was tried after the app had left")
+	}
+}
+
+// TestADialogThatTheKeyBackLeavesOpenFailsTheRun is the app that stays in front and keeps its dialog: a person who goes back
+// is left with the dialog, so the run fails with what is on the screen.
+func TestADialogThatTheKeyBackLeavesOpenFailsTheRun(t *testing.T) {
+	m := guideMachine()
+	delete(m.back, "confirm")
+	_, _, _, err := backRun(t, m)
+	if err == nil || !strings.Contains(err.Error(), "still open after the key back") || !strings.Contains(err.Error(), "Trust and pair") {
+		t.Fatalf("measure = %v, want the dialog to be still open after the key back, with what the screen has", err)
+	}
+}
+
+// TestTheKeyBackIsPressedOnlyWhenAskedFor is the session as it was: with no --check-back-key, no key is pressed before
+// the pairing, and the activity in front is not read.
+func TestTheKeyBackIsPressedOnlyWhenAskedFor(t *testing.T) {
+	m := guideMachine()
+	dir := t.TempDir()
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{machine: m, logs: []string{"", pairedLogText("10.0.2.2", "AA:BB"), pairedLogText("10.0.2.2", "AA:BB")}}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: filepath.Join(dir, "shots"), aapt2: "aapt2"}
+	if err := d.session().measure(c); err != nil {
+		t.Fatal(err)
+	}
+	if len(m.backs) != 0 {
+		t.Errorf("the key back was pressed with %v shown, without being asked for", m.backs)
+	}
+	if slices.Contains(d.commands, "shell dumpsys activity activities") {
+		t.Error("the activity in front was read without the check being asked for")
+	}
+}
+
+// TestACheckOfTheKeyBackWithoutADialogIsAnError is a screen that has no dialog of the pairing when the link is opened: the
+// run says so, and not that the key back did something.
+func TestACheckOfTheKeyBackWithoutADialogIsAnError(t *testing.T) {
+	m := guideMachine()
+	m.screens["confirm"] = coverScreen("Pair with the computer", "")
+	_, _, _, err := backRun(t, m)
+	if err == nil || !strings.Contains(err.Error(), "no dialog of the pairing") {
+		t.Fatalf("measure = %v, want no dialog of the pairing to have been found", err)
+	}
+	if len(m.backs) != 0 {
+		t.Errorf("the key back was pressed with %v shown, with no dialog to go back from", m.backs)
+	}
+}
+
+func TestTheActivityInFrontIsRead(t *testing.T) {
+	for _, tc := range []struct{ name, report, want string }{
+		{"the report of API 29 and later", "  topResumedActivity=ActivityRecord{203859552 u0 dev.vfox.vfoxplus/dev.mygo.MyGoActivity t27}\n", appActivity},
+		{"the report before it", "  mResumedActivity: ActivityRecord{1a2b3c u0 com.android.launcher3/.Launcher t2}\n", "com.android.launcher3/.Launcher"},
+		{"the launcher", "  ResumedActivity: ActivityRecord{226493392 u0 " + launcherActivity + " t2}\n", launcherActivity},
+	} {
+		s := &session{adb: func(args ...string) ([]byte, error) { return []byte(tc.report), nil }}
+		got, err := s.front()
+		if err != nil || got != tc.want {
+			t.Errorf("%s: front = %q, %v, want %q", tc.name, got, err, tc.want)
+		}
+	}
+	s := &session{adb: func(args ...string) ([]byte, error) { return []byte("nothing is resumed\n"), nil }}
+	if got, err := s.front(); err == nil {
+		t.Errorf("a report without an activity in front gave %q", got)
 	}
 }

@@ -248,7 +248,10 @@ The paired session starts with the deep link `vfoxplus://pair?link=…`, which o
 screen with the one-time link filled in. `measure-apk` then taps the confirmation (when the
 dialog says that the computer did not answer, it closes the dialog and opens the link again, up to
 three times), waits for the app to log the pairing, takes a screenshot and a dump of each tab, and
-fails when the log of the app has an error. It needs no debuggable build and no `run-as`: the link reaches the app the way
+fails when the log of the app has an error. With `--check-back-key` it first presses the key back with
+the dialog of the trust open: the dialog must close and the app must stay in front, which no test of
+the screens can see (mygo takes a back that nothing of the window claims as the end of the app, and a
+dialog does not claim it: [egoist/mygo#2088](https://github.com/egoist/mygo/issues/2088)). It needs no debuggable build and no `run-as`: the link reaches the app the way
 a link opened on the phone does. The desktop application of CI runs against the fake vfox, so the tabs
 that the paired line is measured on hold SDKs and plugins, as a person's do
 ([Screenshots](contributing.md#screenshots)). To run it yourself, start the end-to-end build of the

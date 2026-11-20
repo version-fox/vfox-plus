@@ -194,7 +194,8 @@ tooling and to the pinned versions:
   GPU), then runs `vfxtool phone-link`, which pairs with the desktop application and writes
   a pairing link for `10.0.2.2`, and `vfxtool measure-apk`. The tool installs the APK, starts
   it cold five times and measures it after each start (the line is the median, see
-  [the phone app](memory.md#the-phone-app)), then pairs it through the deep link, visits the five tabs with a
+  [the phone app](memory.md#the-phone-app)), presses the key back with the dialog of the pairing open (it
+  must close the dialog and leave the app in front, `--check-back-key`), then pairs it through the deep link, visits the five tabs with a
   screenshot of each, takes the pictures of the [guide to the phone app](../user/android.md) on the way
   (`--pictures`, see [Screenshots](contributing.md#screenshots)), and fails when the log of the app has an
   error. When the dialog of the
