@@ -753,6 +753,10 @@ func TestMeasurePairing(t *testing.T) {
 	if got, want := readText(t, filepath.Join(dir, "memory-paired.txt")), "memory (apk-paired): RSS 127 MB, PSS 80 MB in 1 processes\n"; got != want {
 		t.Errorf("memory-paired.txt = %q, want %q", got, want)
 	}
+	// The report that the line came from is kept whole, to see the category that moved when two runs differ.
+	if got := readText(t, filepath.Join(dir, "meminfo-paired.txt")); got != meminfoReport {
+		t.Errorf("meminfo-paired.txt = %q, want the report of the device", got)
+	}
 	for _, name := range []string{"tab-home.png", "tab-sdks.png", "tab-plugins.png", "tab-tasks.png", "tab-settings.png", "tab-home.xml", "confirm.xml", "logcat.txt"} {
 		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
 			t.Errorf("%s: %v", name, err)

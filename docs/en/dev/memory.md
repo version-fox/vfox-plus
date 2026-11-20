@@ -237,9 +237,9 @@ two numbers, in MB:
   line is the median of the N readings (the PSS and the RSS each have a median of their own); CI
   asks for five. It is the line of the report, in the artifact `memory-android`. Beside it the
   run writes the readings in the order of the starts (`memory-cold-samples.txt`) and the whole
-  report of `dumpsys meminfo` of every start (`meminfo-cold-N.txt`), which show which category of
-  memory moved when two runs differ. CI keeps them in the artifact `phone-e2e-android`, in
-  `memory-android/`.
+  report of `dumpsys meminfo` of every start (`meminfo-cold-N.txt`), and that of the paired reading
+  (`meminfo-paired.txt`), which show which category of memory moved when two runs differ. CI keeps
+  them in the artifact `phone-e2e-android`, in `memory-android/`.
 - `memory (apk-paired)`: the same process once it is paired, with the five tabs visited. CI
   keeps that line in the artifact `phone-e2e-android`, with the screenshots and the log of the
   app. The report reads one line, from `memory-android`, so this one is not in it.

@@ -448,8 +448,13 @@ func (s *session) paired(c config, pkg string) (err error) {
 			return err
 		}
 	}
-	pss, rss, _, err := s.readMeminfo(pkg, "the paired session")
+	pss, rss, report, err := s.readMeminfo(pkg, "the paired session")
 	if err != nil {
+		return err
+	}
+	// The whole report is kept, as that of each cold start is: the paired reading has moved by 10 MB between runs, and the category of
+	// memory that moved is what says why.
+	if err := writeFile(filepath.Join(c.outputDir, "meminfo-paired.txt"), string(report)); err != nil {
 		return err
 	}
 	line := PairedLine(pss, rss)
