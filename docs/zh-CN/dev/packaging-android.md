@@ -99,12 +99,12 @@ gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plu
 [`phone.yml`](../../../.github/workflows/phone.yml) 构建应用，并在模拟器上驱动它。应用、它所配对的代码、共享工具与钉住的版本有改动时运行：
 
 - `build` 任务生成 x86_64 的 APK 与 AAB，用 debug 密钥签名，以 `vfox-plus-android-amd64` 上传。
-- `emulator` 任务在虚拟显示中启动桌面应用的端到端构建，并设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`（模拟器访问运行器的地址）。它启动模拟器（API 36、`google_apis`、x86_64，软件 GPU），运行 `vfxtool phone-link`（与桌面应用配对，并写出给 `10.0.2.2` 的配对链接）以及 `vfxtool measure-apk`。后者安装 APK、冷启动并测量，然后经深链配对，逐个访问五个标签页并截图，应用的日志里有错误则失败。冷启动的测量是构件 `memory-android`；截图、应用日志与配对后的测量是构件 `phone-e2e-android`。
+- `emulator` 任务在虚拟显示中启动桌面应用的端到端构建，并设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`（模拟器访问运行器的地址）。它启动模拟器（API 36、`google_apis`、x86_64，软件 GPU），运行 `vfxtool phone-link`（与桌面应用配对，并写出给 `10.0.2.2` 的配对链接）以及 `vfxtool measure-apk`。后者安装 APK、冷启动并测量，然后经深链配对，逐个访问五个标签页并截图，应用的日志里有错误则失败。配对对话框说电脑没有响应时（模拟器的网络还没起来就可能这样），它关掉对话框并重新打开链接，最多三次，并在输出里说明。失败的运行会保留屏幕、应用的日志，以及设备对自己网络的说法。冷启动的测量是构件 `memory-android`；截图、应用日志、失败的证据与配对后的测量是构件 `phone-e2e-android`。
 
 [`release.yml`](../../../.github/workflows/release.yml) 生成发布用的 APK 并签名（见[签名状态](#签名状态)）。[`memory.yml`](../../../.github/workflows/memory.yml) 在 `mygo` 或 `phone` 结束时报告 Pull Request 的内存（见[Pull Request 中的内存](memory.md#pull-request-中的内存)）。
 
 ## 维护者注记
 
-- `vfxtool measure-apk` 查找应用显示与记录的文字，英文与简体中文都有：确认按钮的标签、五个标签页的标签，以及配对时记下的那行日志（见 `shared/tooling/internal/measureapk/measureapk.go`）。改应用里的这些文字时，要与该文件在同一次提交中一起改，否则测量失败。
+- `vfxtool measure-apk` 查找应用显示与记录的文字，英文与简体中文都有：确认按钮的标签、电脑没有响应的提示与关闭它的按钮的标签、五个标签页的标签，以及配对时记下的那行日志（见 `shared/tooling/internal/measureapk/measureapk.go`）。改应用里的这些文字时，要与该文件在同一次提交中一起改，否则测量失败。
 - `mygo/phone/versions.env` 与 `mygo/go.mod` 钉住同一个 mygo 版本。`JAVA_VERSION` 跟随 mygo 为项目运行的 Gradle：只有连同能运行新 JDK 的 Gradle 的 mygo 一起升级时，才提高它。
 - 不要手改 `mygo.json` 的 `version`：`vfxtool set-version` 会与 `mygo/VERSION` 一起写它。

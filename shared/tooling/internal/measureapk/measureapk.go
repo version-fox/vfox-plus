@@ -45,11 +45,17 @@ import (
 // The waits of the paired session. Each one ends as soon as its condition holds. The emulator
 // draws its first frames slowly (docs/en/dev/memory.md), hence the long ones.
 const (
-	confirmTimeout = 90 * time.Second
+	// confirmTimeout is the wait of one attempt for the dialog of the pairing to show its button or
+	// its failure: the app looks for the computer for ten seconds at most.
+	confirmTimeout = 45 * time.Second
 	pairedTimeout  = 60 * time.Second
 	tabTimeout     = 30 * time.Second
 	pollInterval   = 2 * time.Second
 	tabSettle      = 3 * time.Second
+	// pairAttempts is how many times the link is opened when the computer does not answer, and
+	// retryPause the wait before the next one.
+	pairAttempts = 3
+	retryPause   = 5 * time.Second
 	// screenFile is where uiautomator dumps the accessibility tree of the screen, on the device.
 	screenFile = "/sdcard/vfoxplus-measure.xml"
 )
@@ -67,7 +73,11 @@ var (
 // order. The confirmation is the one button that trusts the certificate and pairs the phone.
 var (
 	confirmLabel = regexp.MustCompile(`^(Trust and pair|信任并配对)$`)
-	tabs         = []tab{
+	// unreachableLabel is how the dialog of the pairing begins its message when the computer did not
+	// answer (the message goes on with what to check), and closeLabel is the button that closes it.
+	unreachableLabel = regexp.MustCompile(`^(The computer did not answer\.|电脑没有响应。)`)
+	closeLabel       = regexp.MustCompile(`^(Close|关闭)$`)
+	tabs             = []tab{
 		{"home", regexp.MustCompile(`^(Home|主页)$`)},
 		{"sdks", regexp.MustCompile(`^(SDKs|SDK)$`)},
 		{"plugins", regexp.MustCompile(`^(Plugins|插件)$`)},
@@ -224,15 +234,8 @@ func (s *session) paired(c config, pkg string) (err error) {
 	if err := os.MkdirAll(c.shots, 0o755); err != nil {
 		return err
 	}
-	// The deep link opens the pairing page with the link filled in: the app does not pair by
-	// itself, the person confirms the fingerprint.
-	if err := s.start(fmt.Sprintf("am start -W -a android.intent.action.VIEW -d '%s' -p %s", uri, pkg), uri); err != nil {
-		return err
-	}
-	s.sleep(tabSettle)
-	confirm, err := s.tapWhen(confirmLabel, confirmTimeout, "confirmation button")
+	confirm, err := s.confirmPairing(c, pkg, uri)
 	if err != nil {
-		s.keepDump(c.shots, "confirm-not-found", confirm)
 		return err
 	}
 	s.keepDump(c.shots, "confirm", confirm)
@@ -282,6 +285,69 @@ func (s *session) paired(c config, pkg string) (err error) {
 	line := PairedLine(pss, rss)
 	fmt.Fprintln(s.log, line)
 	return writeFile(filepath.Join(c.outputDir, "memory-paired.txt"), line+"\n")
+}
+
+// confirmPairing opens the pairing link on the device and taps the button that trusts the computer,
+// and returns the screen that had the button. The deep link opens the pairing page with the link
+// filled in: the app does not pair by itself, the person confirms the fingerprint.
+//
+// The network of an emulator may not be up when the app first looks for the computer, and then the
+// dialog says that the computer did not answer, as it says to a person whose phone is not on the
+// network yet. The person closes the dialog and opens the link again, which probes the computer
+// anew, and so does this, up to pairAttempts times. Each retry is in the output, so that a run that
+// needed one is not taken for a run that did not.
+func (s *session) confirmPairing(c config, pkg, uri string) (screen, error) {
+	for attempt := 1; ; attempt++ {
+		if err := s.start(fmt.Sprintf("am start -W -a android.intent.action.VIEW -d '%s' -p %s", uri, pkg), uri); err != nil {
+			return screen{}, err
+		}
+		s.sleep(tabSettle)
+		shot, unreachable, err := s.awaitConfirmation(confirmTimeout)
+		if err == nil && !unreachable {
+			return shot, nil
+		}
+		if err == nil && attempt < pairAttempts {
+			s.keepDump(c.shots, fmt.Sprintf("confirm-unreachable-%d", attempt), shot)
+			fmt.Fprintf(s.log, "the computer did not answer (attempt %d of %d): closing the dialog and opening the link again\n", attempt, pairAttempts)
+			if _, err := s.tapWhen(closeLabel, tabTimeout, "Close button"); err != nil {
+				return shot, err
+			}
+			s.sleep(retryPause)
+			continue
+		}
+		s.keepDump(c.shots, "confirm-not-found", shot)
+		if err == nil {
+			err = fmt.Errorf("the computer did not answer in %d attempts: the screen has %s", pairAttempts, labelsOf(shot.elements))
+		}
+		return shot, err
+	}
+}
+
+// awaitConfirmation waits until the dialog of the pairing shows what it has to show: the button that
+// trusts the computer, which it taps, or the message that the computer did not answer, which it
+// reports. The screen it returns when it fails is the last one it dumped.
+func (s *session) awaitConfirmation(timeout time.Duration) (shot screen, unreachable bool, err error) {
+	deadline := s.now().Add(timeout)
+	var last screen
+	for {
+		if dumped, derr := s.dump(); derr == nil {
+			last = dumped
+			if target, ok := lowestClickable(dumped.elements, confirmLabel); ok {
+				x, y := target.center()
+				if _, err := s.adb("shell", fmt.Sprintf("input tap %d %d", x, y)); err != nil {
+					return dumped, false, err
+				}
+				return dumped, false, nil
+			}
+			if hasLabel(dumped.elements, unreachableLabel) {
+				return dumped, true, nil
+			}
+		}
+		if !s.now().Before(deadline) {
+			return last, false, fmt.Errorf("no confirmation button within %s: the screen has %s", timeout, labelsOf(last.elements))
+		}
+		s.sleep(pollInterval)
+	}
 }
 
 // keepEvidence leaves in dir what explains a paired session that failed: the screen, the whole log of

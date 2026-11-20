@@ -122,6 +122,16 @@ func lowestClickable(elements []element, pattern *regexp.Regexp) (element, bool)
 	return best, found
 }
 
+// hasLabel reports whether an element of the screen has a label that matches pattern, clickable or not.
+func hasLabel(elements []element, pattern *regexp.Regexp) bool {
+	for _, e := range elements {
+		if pattern.MatchString(strings.TrimSpace(e.label)) {
+			return true
+		}
+	}
+	return false
+}
+
 // labelsOf lists the labels of the elements, each once, for the errors that say what a screen shows.
 func labelsOf(elements []element) string {
 	seen := map[string]bool{}

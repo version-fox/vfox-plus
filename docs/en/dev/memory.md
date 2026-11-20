@@ -238,9 +238,10 @@ two numbers, in MB:
   app. The report reads one line, from `memory-android`, so this one is not in it.
 
 The paired session starts with the deep link `vfoxplus://pair?link=…`, which opens the pairing
-screen with the one-time link filled in. `measure-apk` then taps the confirmation, waits for the
-app to log the pairing, takes a screenshot and a dump of each tab, and fails when the log of the
-app has an error. It needs no debuggable build and no `run-as`: the link reaches the app the way
+screen with the one-time link filled in. `measure-apk` then taps the confirmation (when the
+dialog says that the computer did not answer, it closes the dialog and opens the link again, up to
+three times), waits for the app to log the pairing, takes a screenshot and a dump of each tab, and
+fails when the log of the app has an error. It needs no debuggable build and no `run-as`: the link reaches the app the way
 a link opened on the phone does. To run it yourself, start the end-to-end build of the desktop
 application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, write its pairing link for the emulator with
 `vfxtool phone-link` (see [the packaging page](packaging-android.md#continuous-integration)), and run:

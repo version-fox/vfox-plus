@@ -51,6 +51,21 @@ const confirmScreen = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 </hierarchy>
 `
 
+// unreachableScreen is the dialog of the pairing when the computer did not answer, as the device dumped
+// it: the title, the message, the reason that the app gives, and the button that closes it.
+const unreachableScreen = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node index="0" text="" class="android.widget.FrameLayout" package="dev.vfox.vfoxplus" clickable="false" enabled="true" bounds="[0,0][1080,2400]">
+    <node index="0" text="Trust this computer?" class="android.view.View" clickable="true" bounds="[63,884][1016,1514]">
+      <node index="0" text="Trust this computer?" class="android.view.View" clickable="false" bounds="[126,1052][953,1136]" />
+      <node index="1" text="The computer did not answer. Check the network, and that vfox+ runs on the computer." class="android.view.View" clickable="false" bounds="[126,1178][953,1283]" />
+      <node index="2" text="remote: the request failed: dial tcp 10.0.2.2:8443: i/o timeout" class="android.view.View" clickable="false" bounds="[126,1290][953,1330]" />
+      <node index="3" text="Close" class="android.widget.Button" clickable="true" bounds="[775,1346][953,1451]" />
+    </node>
+  </node>
+</hierarchy>
+`
+
 // tabsScreen is the home page, with its tab bar at the bottom. The title "Home" is not clickable.
 const tabsScreen = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <hierarchy rotation="0">
@@ -496,6 +511,83 @@ func TestAddressOfALink(t *testing.T) {
 	} {
 		if host, port, ok := addressOf(link); ok {
 			t.Errorf("addressOf(%q) = %q %q, want no address", link, host, port)
+		}
+	}
+}
+
+// deepLinkCommands counts the commands that open the pairing link on the device.
+func deepLinkCommands(d *fakeDevice) int {
+	count := 0
+	for _, command := range d.commands {
+		if strings.HasPrefix(command, "shell am start -W -a android.intent.action.VIEW -d 'vfoxplus://pair?link=") {
+			count++
+		}
+	}
+	return count
+}
+
+// TestMeasurePairingTriesAgainWhenTheComputerDoesNotAnswer checks the way of a person whose phone was
+// not on the network yet: the dialog says that the computer did not answer, the person closes it and opens
+// the link again, and the app finds the computer. The run does the same, and says that it did.
+func TestMeasurePairingTriesAgainWhenTheComputerDoesNotAnswer(t *testing.T) {
+	dir := t.TempDir()
+	shots := filepath.Join(dir, "shots")
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{
+		screens: []string{unreachableScreen, unreachableScreen, confirmScreen, tabsScreen},
+		logs:    []string{"", pairedLogText("10.0.2.2", "AA:BB"), pairedLogText("10.0.2.2", "AA:BB")},
+	}
+	var output strings.Builder
+	s := d.session()
+	s.log = &output
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, aapt2: "aapt2"}
+	if err := s.measure(c); err != nil {
+		t.Fatal(err)
+	}
+	if got := deepLinkCommands(d); got != 2 {
+		t.Errorf("the link was opened %d times, want 2: once, and again after the computer did not answer", got)
+	}
+	// The button that closes the dialog, then the confirmation, then the five tabs.
+	if want := []string{"864 1398", "540 1880", "108 2300", "324 2300", "540 2300", "756 2300", "972 2300"}; !slices.Equal(d.taps, want) {
+		t.Errorf("taps = %v, want %v", d.taps, want)
+	}
+	if !strings.Contains(output.String(), "the computer did not answer (attempt 1 of 3)") {
+		t.Errorf("the output does not say that the run tried again:\n%s", output.String())
+	}
+	for _, name := range []string{"confirm-unreachable-1.xml", "confirm.xml"} {
+		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(shots, "confirm-not-found.xml")); err == nil {
+		t.Error("a run that paired kept the screen of a confirmation that was not found")
+	}
+}
+
+// TestMeasurePairingGivesUpWhenTheComputerNeverAnswers checks that the retries end, with the reason and
+// the evidence of every attempt, and not with a run that waits for ever.
+func TestMeasurePairingGivesUpWhenTheComputerNeverAnswers(t *testing.T) {
+	dir := t.TempDir()
+	shots := filepath.Join(dir, "shots")
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{screens: []string{unreachableScreen}}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, aapt2: "aapt2"}
+	err := d.session().measure(c)
+	if err == nil || !strings.Contains(err.Error(), "did not answer in 3 attempts") || !strings.Contains(err.Error(), "i/o timeout") {
+		t.Fatalf("measure = %v, want the computer not to have answered in 3 attempts, with the reason that the app gave", err)
+	}
+	if got := deepLinkCommands(d); got != pairAttempts {
+		t.Errorf("the link was opened %d times, want %d", got, pairAttempts)
+	}
+	for _, name := range []string{"confirm-unreachable-1.xml", "confirm-unreachable-2.xml", "confirm-not-found.xml", "failure.png", "device-network.txt"} {
+		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
+			t.Errorf("the failed run left no %s: %v", name, err)
 		}
 	}
 }

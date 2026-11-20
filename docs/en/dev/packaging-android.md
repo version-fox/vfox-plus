@@ -176,9 +176,13 @@ tooling and to the pinned versions:
   GPU), then runs `vfxtool phone-link`, which pairs with the desktop application and writes
   a pairing link for `10.0.2.2`, and `vfxtool measure-apk`. The tool installs the APK, starts
   it cold and measures it, then pairs it through the deep link, visits the five tabs with a
-  screenshot of each, and fails when the log of the app has an error. The cold measurement
-  is the artifact `memory-android`. The screenshots, the log of the app and the measurement of
-  the paired session are the artifact `phone-e2e-android`.
+  screenshot of each, and fails when the log of the app has an error. When the dialog of the
+  pairing says that the computer did not answer, which an emulator whose network is not up yet
+  can cause, the tool closes it and opens the link again, up to three times, and says so in its
+  output. A run that fails keeps the screen, the log of the app and what the device says of its
+  network. The cold measurement is the artifact `memory-android`. The screenshots, the log of
+  the app, the evidence of a failure and the measurement of the paired session are the artifact
+  `phone-e2e-android`.
 
 [`release.yml`](../../../.github/workflows/release.yml) makes the APK of the release and
 signs it ([Signing status](#signing-status)). [`memory.yml`](../../../.github/workflows/memory.yml)
@@ -188,7 +192,8 @@ reports the memory of a pull request when `mygo` or `phone` ends
 ## Notes for maintainers
 
 - `vfxtool measure-apk` looks for what the app shows and logs, in English and in Simplified
-  Chinese: the label of the confirmation, the labels of the five tabs, and the line that the
+  Chinese: the label of the confirmation, the message that the computer did not answer and
+  the label of the button that closes it, the labels of the five tabs, and the line that the
   pairing logs (see `shared/tooling/internal/measureapk/measureapk.go`). Change them in the app
   and in that file in one commit, or the measurement fails.
 - `mygo/phone/versions.env` and `mygo/go.mod` pin the same mygo version. `JAVA_VERSION` follows
