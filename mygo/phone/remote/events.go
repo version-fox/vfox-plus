@@ -56,7 +56,7 @@ func (c *Client) Events(ctx context.Context, onEvent func(kind string)) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		return requestError(err)
+		return c.requestError(err)
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"image/png"
@@ -59,6 +60,9 @@ const pairTestInventory = `{"vfox":{"availability":"ready","version":"0.6.0"},` 
 type pairDesktop struct {
 	server      *httptest.Server
 	fingerprint string
+	// certificate is the DER encoding of the certificate that the computer presents: what
+	// the phone pins once the user has compared its fingerprint.
+	certificate []byte
 
 	mu sync.Mutex
 	// used says that the pairing link was exchanged; the link is one-time.
@@ -102,7 +106,8 @@ func newPairDesktop(t *testing.T) *pairDesktop {
 	})
 	mux.HandleFunc("/api/tasks", fd.createTask)
 	fd.server = newTLSServer(t, mux)
-	fd.fingerprint = pairing.FormatFingerprint(fd.server.Certificate().Raw)
+	fd.certificate = fd.server.Certificate().Raw
+	fd.fingerprint = pairing.FormatFingerprint(fd.certificate)
 	return fd
 }
 
@@ -178,7 +183,7 @@ func pairWriteJSON(w http.ResponseWriter, body string) {
 // pairSavedRoot returns the window of a phone that has saved the computer at base, with
 // the fingerprint given. The phone is paired when session is set, and otherwise the
 // saved computer needs pairing. The configuration directory is the test's own.
-func pairSavedRoot(t *testing.T, base, fingerprint string, session bool) *Root {
+func pairSavedRoot(t *testing.T, base string, certificate []byte, session bool) *Root {
 	t.Helper()
 	i18n.SetLanguage(i18n.English)
 	t.Cleanup(func() { i18n.SetLanguage(i18n.English) })
@@ -188,7 +193,12 @@ func pairSavedRoot(t *testing.T, base, fingerprint string, session bool) *Root {
 	if err := os.MkdirAll(config, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	record, err := json.Marshal(store.Record{Name: "127.0.0.1", Base: base, Fingerprint: fingerprint})
+	record, err := json.Marshal(store.Record{
+		Name:        "127.0.0.1",
+		Base:        base,
+		Fingerprint: pairing.FormatFingerprint(certificate),
+		Certificate: store.EncodeCertificate(certificate),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +392,49 @@ func TestAFailedProbeSaysWhyInTheDialog(t *testing.T) {
 	if hasText(tt, "Trust and pair") {
 		t.Error("a computer that did not answer can be trusted")
 	}
+	// Under the words of the app is the reason, which names the address that did not answer and
+	// never the token of the link: a person who is told that the computer did not answer needs to
+	// know whether it refused, timed out or has no route.
+	var detail string
+	for _, text := range tt.Texts() {
+		if strings.Contains(text, strings.TrimPrefix(closed, "https://")) {
+			detail = text
+		}
+	}
+	if detail == "" {
+		t.Errorf("the dialog does not say why the computer did not answer; it shows %q", tt.Texts())
+	}
+	if strings.Contains(detail, pairTestToken) {
+		t.Errorf("the reason holds the token of the pairing link: %q", detail)
+	}
 	pairSavePicture(t, tt, "pair-error")
+}
+
+// TestAFailureSaysItsReasonOnlyWhereTheWordsDoNot checks which failures show the text of their error
+// under their message: the ones that the words of the app do not explain, cut to what a dialog holds.
+func TestAFailureSaysItsReasonOnlyWhereTheWordsDoNot(t *testing.T) {
+	timeout := fmt.Errorf("remote: the request failed: %w", context.DeadlineExceeded)
+	for kind, want := range map[app.Kind]string{
+		app.KindUnreachable:        timeout.Error(),
+		app.KindCertificateChanged: timeout.Error(),
+		app.KindOther:              timeout.Error(),
+		app.KindPairingRefused:     "",
+		app.KindNotLink:            "",
+		app.KindUnpaired:           "",
+		app.KindCanceled:           "",
+		app.KindNone:               "",
+	} {
+		if got := pairFailureDetail(kind, timeout); got != want {
+			t.Errorf("the reason of kind %v = %q, want %q", kind, got, want)
+		}
+	}
+	if got := pairFailureDetail(app.KindUnreachable, nil); got != "" {
+		t.Errorf("the reason of no error = %q", got)
+	}
+	long := errors.New(strings.Repeat("x", 2*pairDetailRunes))
+	if got := []rune(pairFailureDetail(app.KindOther, long)); len(got) != pairDetailRunes+1 || got[len(got)-1] != '…' {
+		t.Errorf("a long reason has %d runes and ends with %q, want %d and an ellipsis", len(got), got[len(got)-1], pairDetailRunes+1)
+	}
 }
 
 // TestAPairingLinkThatIsNotOneSaysSoInTheField checks the validation of the field.
@@ -451,7 +503,7 @@ func TestTheUnpairedPageHasItsEntries(t *testing.T) {
 // the session, and shows the form, above the tabs.
 func TestAPairedPhoneCanPairANewLinkAboveTheTabs(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, true)
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, tt, "the connection", func() bool { return root.Service().Status().Session == app.Paired })
@@ -472,7 +524,7 @@ func TestAPairedPhoneCanPairANewLinkAboveTheTabs(t *testing.T) {
 // pairing page above the tabs of a paired phone, and asks for the fingerprint there.
 func TestTheDeepLinkOfAPairedPhoneOpensThePairingPage(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, true)
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, tt, "the connection", func() bool { return root.Service().Status().Session == app.Paired })

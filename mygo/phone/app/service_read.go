@@ -199,7 +199,7 @@ func (s *Service) Probe(link pairing.Link) Resource[Candidate] {
 		if err != nil {
 			return Candidate{}, err
 		}
-		return Candidate{Link: link, Fingerprint: found.Fingerprint, SystemTrusted: found.SystemTrusted}, nil
+		return Candidate{Link: link, Fingerprint: found.Fingerprint, Certificate: found.Certificate, SystemTrusted: found.SystemTrusted}, nil
 	})
 	return s.probe.res
 }

@@ -15,6 +15,8 @@
 package remote
 
 import (
+	"bytes"
+	"crypto/x509"
 	"io"
 	"log"
 	"net"
@@ -23,6 +25,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/version-fox/vfox-plus/mygo/phone/internal/phonetest"
 	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 )
 
@@ -34,6 +37,9 @@ func TestProbeReportsTheFingerprintOfTheDesktopCertificate(t *testing.T) {
 	}
 	if result.Fingerprint != s.fingerprint {
 		t.Fatalf("Probe fingerprint = %q, the server's is %q", result.Fingerprint, s.fingerprint)
+	}
+	if !bytes.Equal(result.Certificate, s.certificate) {
+		t.Error("Probe does not return the certificate that the server presents: it is what the client pins")
 	}
 	if result.SystemTrusted {
 		t.Error("a self-signed certificate is reported as trusted by the system")
@@ -58,8 +64,51 @@ func TestProbeOfAnotherTLSServerReportsItsCertificate(t *testing.T) {
 	if want := pairing.FormatFingerprint(server.Certificate().Raw); result.Fingerprint != want {
 		t.Fatalf("Probe fingerprint = %q, want %q", result.Fingerprint, want)
 	}
+	if !bytes.Equal(result.Certificate, server.Certificate().Raw) {
+		t.Error("Probe does not return the certificate that the server presents")
+	}
 	if result.SystemTrusted {
 		t.Error("the test certificate is reported as trusted by the system")
+	}
+}
+
+// TestProbeSaysThatTheRootsVouchForACertificate checks the one answer that a desktop's own
+// certificate never gets: a certificate that the roots verify for the address needs no
+// pinning, and the probe says so. The roots are the ones that the test gives, in place of
+// the system's.
+func TestProbeSaysThatTheRootsVouchForACertificate(t *testing.T) {
+	cert := phonetest.Valid(t, []string{"localhost"}, net.ParseIP("127.0.0.1"))
+	base := serveCertificate(t, cert)
+	result, err := probe(t.Context(), base, rootsOf(t, cert.DER))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.SystemTrusted {
+		t.Error("a certificate that the roots verify is reported as untrusted")
+	}
+	if !bytes.Equal(result.Certificate, cert.DER) || result.Fingerprint != pairing.FormatFingerprint(cert.DER) {
+		t.Error("the probe of a verified certificate does not describe it")
+	}
+}
+
+// TestProbeStillShowsACertificateThatDoesNotNameTheAddress checks that a certificate that
+// fails the verification for another reason than its authority (here, the address it is
+// asked for) is shown to the user as well, as a self-signed one is: the failed connection
+// has the certificate that was presented, and nothing is trusted until the user agrees.
+func TestProbeStillShowsACertificateThatDoesNotNameTheAddress(t *testing.T) {
+	cert := phonetest.Valid(t, []string{"desktop.example"}) // The probe dials 127.0.0.1.
+	base := serveCertificate(t, cert)
+	for name, roots := range map[string]*x509.CertPool{"the system roots": nil, "roots that hold the certificate": rootsOf(t, cert.DER)} {
+		result, err := probe(t.Context(), base, roots)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if result.SystemTrusted {
+			t.Errorf("%s: a certificate that does not name the address is reported as trusted", name)
+		}
+		if !bytes.Equal(result.Certificate, cert.DER) {
+			t.Errorf("%s: the probe does not return the certificate that was presented", name)
+		}
 	}
 }
 

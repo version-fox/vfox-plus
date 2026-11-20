@@ -28,7 +28,7 @@ import (
 // computer fd, with its connection running and the home tab on the screen.
 func homePaired(t *testing.T, fd *pairDesktop) *ui.Tester {
 	t.Helper()
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, true)
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, tt, "the connection", func() bool { return root.Service().Status().Session == app.Paired })

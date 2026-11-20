@@ -15,8 +15,10 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -25,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/version-fox/vfox-plus/mygo/phone/internal/phonetest"
+	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 	"github.com/version-fox/vfox-plus/mygo/phone/remote"
 	"github.com/version-fox/vfox-plus/mygo/phone/store"
 )
@@ -51,7 +55,7 @@ func newTestService(t *testing.T, servers store.ServerStore, sessions store.Sess
 func savedComputer(t *testing.T, d *desktop) (store.ServerStore, store.SessionStore) {
 	t.Helper()
 	servers, sessions := stores(t)
-	if err := servers.Save(store.Record{Name: "desktop", Base: d.base.String(), Fingerprint: d.fingerprint}); err != nil {
+	if err := servers.Save(d.record()); err != nil {
 		t.Fatal(err)
 	}
 	if err := sessions.Save(d.issueSession("saved-session")); err != nil {
@@ -130,6 +134,17 @@ func waitFor(t *testing.T, what string, ok func() bool) {
 // wrongFingerprint is a fingerprint of the right shape that no certificate has.
 var wrongFingerprint = strings.TrimSuffix(strings.Repeat("00:", 32), ":")
 
+// anotherRecord is the record of d with the certificate of another computer: the one
+// that the phone paired with is not the one that answers.
+func anotherRecord(t *testing.T, d *desktop) store.Record {
+	t.Helper()
+	other := phonetest.Another(t)
+	record := d.record()
+	record.Fingerprint = pairing.FormatFingerprint(other)
+	record.Certificate = store.EncodeCertificate(other)
+	return record
+}
+
 func TestAServiceWithNothingSavedIsUnpairedAndMakesNoRequest(t *testing.T) {
 	d := newDesktop(t)
 	servers, sessions := stores(t)
@@ -185,7 +200,7 @@ func TestASavedComputerThatRefusesItsSessionNeedsPairing(t *testing.T) {
 func TestASavedRecordWithoutASessionNeedsPairingAtOnce(t *testing.T) {
 	d := newDesktop(t)
 	servers, sessions := stores(t)
-	if err := servers.Save(store.Record{Base: d.base.String(), Fingerprint: d.fingerprint}); err != nil {
+	if err := servers.Save(d.record()); err != nil {
 		t.Fatal(err)
 	}
 	svc := newTestService(t, servers, sessions)
@@ -216,7 +231,7 @@ func TestASessionWithoutItsComputerIsForgotten(t *testing.T) {
 func TestAChangedCertificateIsReportedAndNotTrusted(t *testing.T) {
 	d := newDesktop(t)
 	servers, sessions := stores(t)
-	if err := servers.Save(store.Record{Base: d.base.String(), Fingerprint: wrongFingerprint}); err != nil {
+	if err := servers.Save(anotherRecord(t, d)); err != nil {
 		t.Fatal(err)
 	}
 	if err := sessions.Save(d.issueSession("saved-session")); err != nil {
@@ -245,6 +260,9 @@ func TestProbeReadsTheFingerprintBeforeAnyTrust(t *testing.T) {
 	if candidate.Fingerprint != d.fingerprint || candidate.Link.Token != link.Token {
 		t.Errorf("candidate %+v, want the fingerprint %q and the link", candidate, d.fingerprint)
 	}
+	if !bytes.Equal(candidate.Certificate, d.certificate) || candidate.SystemTrusted {
+		t.Errorf("the candidate does not carry the self-signed certificate that was presented: trusted %t", candidate.SystemTrusted)
+	}
 	if got := svc.Status().Session; got != Unpaired {
 		t.Errorf("probing made the phone %v; nothing is trusted before the user confirms", got)
 	}
@@ -266,8 +284,8 @@ func TestPairingSavesTheComputerAndItsSession(t *testing.T) {
 	if status.Session != Paired || status.Server.Fingerprint != d.fingerprint || status.Server.Base != d.base.String() {
 		t.Errorf("status after pairing %+v", status)
 	}
-	if rec, err := servers.Load(); err != nil || rec.Fingerprint != d.fingerprint {
-		t.Errorf("saved record %+v, %v", rec, err)
+	if rec, err := servers.Load(); err != nil || rec != d.pairedRecord() {
+		t.Errorf("saved record %+v, %v; want the one that pins the certificate that was compared: %+v", rec, err, d.pairedRecord())
 	}
 	if session, err := sessions.Load(); err != nil || session == "" {
 		t.Errorf("saved session %q, %v", session, err)
@@ -301,7 +319,9 @@ func TestAPairingWithAnotherCertificateSavesNothing(t *testing.T) {
 	svc := newTestService(t, servers, sessions)
 	link := d.issueLink()
 	candidate := loaded(t, func() Resource[Candidate] { return svc.Probe(link) })
-	candidate.Fingerprint = wrongFingerprint
+	// The user compared another certificate than the one that the computer presents now.
+	candidate.Certificate = phonetest.Another(t)
+	candidate.Fingerprint = pairing.FormatFingerprint(candidate.Certificate)
 	err := svc.Pair(t.Context(), candidate)
 	if KindOf(err) != KindCertificateChanged {
 		t.Errorf("pairing with another certificate: %v, want the change refused", err)
@@ -311,6 +331,83 @@ func TestAPairingWithAnotherCertificateSavesNothing(t *testing.T) {
 	}
 	if _, err := servers.Load(); !errors.Is(err, store.ErrNoRecord) {
 		t.Errorf("a record was saved: %v", err)
+	}
+}
+
+// TestACandidateWhoseCertificateIsNotTheOneComparedIsRefusedBeforeAnyConnection checks that
+// the fingerprint that the user compared and the certificate that is pinned are one: a
+// candidate whose certificate has another fingerprint is refused, and the computer is not
+// asked for anything.
+func TestACandidateWhoseCertificateIsNotTheOneComparedIsRefusedBeforeAnyConnection(t *testing.T) {
+	d := newDesktop(t)
+	servers, sessions := stores(t)
+	svc := newTestService(t, servers, sessions)
+	link := d.issueLink()
+	candidate := loaded(t, func() Resource[Candidate] { return svc.Probe(link) })
+	candidate.Fingerprint = wrongFingerprint
+	if err := svc.Pair(t.Context(), candidate); err == nil {
+		t.Fatal("a candidate whose certificate is not the one that was compared was paired")
+	}
+	if n := d.count("/auth/connect/" + link.Token); n != 0 {
+		t.Errorf("the computer was asked %d times for a pairing with a certificate that was not compared", n)
+	}
+	if _, err := servers.Load(); !errors.Is(err, store.ErrNoRecord) {
+		t.Errorf("a record was saved: %v", err)
+	}
+}
+
+// TestACertificateTheSystemVouchesForIsNotPinned checks the other kind of server: when the
+// roots of the system vouch for the certificate, nothing is pinned, and the roots go on
+// deciding, so that a renewal of the certificate needs no pairing. The test server is
+// self-signed, so here the roots do not vouch for it: the pairing is refused as a
+// certificate that is not the paired one, which shows that the certificate was not pinned.
+func TestACertificateTheSystemVouchesForIsNotPinned(t *testing.T) {
+	d := newDesktop(t)
+	servers, sessions := stores(t)
+	svc := newTestService(t, servers, sessions)
+	link := d.issueLink()
+	candidate := loaded(t, func() Resource[Candidate] { return svc.Probe(link) })
+	candidate.SystemTrusted = true
+	err := svc.Pair(t.Context(), candidate)
+	if KindOf(err) != KindCertificateChanged {
+		t.Fatalf("pairing without a pin with a certificate that the roots do not vouch for: %v, want the certificate refused", err)
+	}
+	if _, err := servers.Load(); !errors.Is(err, store.ErrNoRecord) {
+		t.Errorf("a record was saved: %v", err)
+	}
+}
+
+// TestARecordWithADamagedCertificateIsNotConnectedAndIsReplacedByAPairing checks that a
+// record whose certificate is not what the phone saved is reported as damaged, with no
+// connection made in its name, and that the next pairing replaces it.
+func TestARecordWithADamagedCertificateIsNotConnectedAndIsReplacedByAPairing(t *testing.T) {
+	d := newDesktop(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "server.json")
+	content := `{"name": "desktop", "base": "` + d.base.String() + `", "fingerprint": "` + d.fingerprint + `", "certificate": "not base64 !!"}`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	servers, sessions := store.NewFileServerStore(path), store.NewFileSessionStore(filepath.Join(dir, "session.json"))
+	if err := sessions.Save(d.issueSession("saved-session")); err != nil {
+		t.Fatal(err)
+	}
+	svc := newTestService(t, servers, sessions)
+	if got := svc.Status(); got.Session != Unpaired || !errors.Is(got.Cause, store.ErrCorrupt) {
+		t.Fatalf("status %+v, want unpaired with the damaged record as its cause", got)
+	}
+	startRun(t, svc)
+	time.Sleep(20 * time.Millisecond)
+	if n := d.count("/api/settings"); n != 0 {
+		t.Errorf("%d requests were made in the name of a damaged record, want none", n)
+	}
+	link := d.issueLink()
+	candidate := loaded(t, func() Resource[Candidate] { return svc.Probe(link) })
+	if err := svc.Pair(t.Context(), candidate); err != nil {
+		t.Fatalf("the pairing after a damaged record: %v", err)
+	}
+	if rec, err := servers.Load(); err != nil || rec != d.pairedRecord() {
+		t.Errorf("the pairing did not replace the damaged record: %+v, %v", rec, err)
 	}
 }
 

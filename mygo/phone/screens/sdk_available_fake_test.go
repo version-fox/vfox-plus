@@ -177,6 +177,7 @@ func availRoot(t *testing.T, f *availComputer) *Root {
 		Name:        "computer",
 		Base:        f.server.URL,
 		Fingerprint: pairing.FormatFingerprint(f.server.Certificate().Raw),
+		Certificate: store.EncodeCertificate(f.server.Certificate().Raw),
 	}
 	if err := store.NewFileServerStore(filepath.Join(dir, serverFile)).Save(record); err != nil {
 		t.Fatal(err)

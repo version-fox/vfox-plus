@@ -221,6 +221,7 @@ func sdkRoot(t *testing.T, fake *sdkFake) *Root {
 		Name:        "fake",
 		Base:        fake.server.URL,
 		Fingerprint: pairing.FormatFingerprint(fake.server.Certificate().Raw),
+		Certificate: store.EncodeCertificate(fake.server.Certificate().Raw),
 	}
 	if err := store.NewFileServerStore(filepath.Join(dir, serverFile)).Save(record); err != nil {
 		t.Fatal(err)

@@ -15,13 +15,16 @@
 package remote
 
 import (
-	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/version-fox/vfox-plus/mygo/phone/internal/phonetest"
 )
 
 // tokenOf returns the token of a pairing link.
@@ -35,7 +38,7 @@ func TestPairingIssuesASession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := New(s.base, s.fingerprint, "")
+	client, err := New(s.base, s.certificate, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +57,7 @@ func TestPairingIssuesASession(t *testing.T) {
 
 func TestPairingRefusesInvalidAndUsedTokens(t *testing.T) {
 	s := startServer(t)
-	client, err := New(s.base, s.fingerprint, "")
+	client, err := New(s.base, s.certificate, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,14 +141,14 @@ func TestAPIErrorMatchesTheSentinelOfItsStatus(t *testing.T) {
 	}
 }
 
-func TestTheFingerprintPinsTheCertificate(t *testing.T) {
+func TestAPinnedCertificateIsTheOnlyRoot(t *testing.T) {
 	s := startServer(t)
+	other := startServer(t) // Another desktop: a certificate of its own.
 	ctx := t.Context()
 	session := s.pairRaw(t)
 
-	// Letter case and surrounding white space do not matter; the pinned
-	// certificate answers.
-	pinned, err := New(s.base, " "+strings.ToLower(s.fingerprint)+" ", session)
+	// The certificate that the user compared is the root, and it answers.
+	pinned, err := New(s.base, s.certificate, session)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,61 +156,68 @@ func TestTheFingerprintPinsTheCertificate(t *testing.T) {
 		t.Fatalf("the pinned certificate is refused: %v", err)
 	}
 
-	// Another fingerprint is a changed certificate: the connection is refused.
-	wrong, err := New(s.base, strings.Repeat("00:", 31)+"00", session)
+	// Another certificate is not the one that was paired: it is refused, and nothing is
+	// trusted in its place. The error says so, and keeps the cause of the refusal.
+	wrong, err := New(s.base, other.certificate, session)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := wrong.Inventory(ctx); !errors.Is(err, ErrCertificateChanged) {
-		t.Fatalf("a certificate with another fingerprint: %v, want ErrCertificateChanged", err)
+	_, err = wrong.Inventory(ctx)
+	if !errors.Is(err, ErrCertificateChanged) {
+		t.Fatalf("a certificate other than the pinned one: %v, want ErrCertificateChanged", err)
+	}
+	var unknown x509.UnknownAuthorityError
+	if !errors.As(err, &unknown) {
+		t.Errorf("the error of a refused certificate lost its cause: %v", err)
 	}
 
-	// Without a fingerprint, the system roots decide, and they do not trust a
-	// self-signed certificate.
-	system, err := New(s.base, "", session)
+	// Without a pin the system roots decide, and they do not vouch for a self-signed
+	// certificate: it is not the one that was paired either.
+	system, err := New(s.base, nil, session)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := system.Inventory(ctx); err == nil || errors.Is(err, ErrUnpaired) {
-		t.Fatalf("a self-signed certificate without a pin: %v, want a certificate error", err)
+	if _, err := system.Inventory(ctx); !errors.Is(err, ErrCertificateChanged) {
+		t.Fatalf("a self-signed certificate without a pin: %v, want ErrCertificateChanged", err)
 	}
 }
 
-// TestTheFingerprintIsCheckedOnEveryConnection checks VerifyConnection of a pinned
-// client. It runs for a resumed session too, where VerifyPeerCertificate does not: it
-// accepts the certificate of the pinned fingerprint, refuses another one, and refuses
-// a connection that has no certificate.
-func TestTheFingerprintIsCheckedOnEveryConnection(t *testing.T) {
-	s := startServer(t)
-	conn, err := tls.Dial("tcp", s.base.Host, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec // The test checks the fingerprint itself, as the client does.
+// TestAPinnedCertificateIsVerifiedForTheNameItHas checks that the pinned certificate
+// answers when the phone reaches the computer by an address that the certificate does
+// not name: it is verified for a name that it has, as the gateway verifies it.
+func TestAPinnedCertificateIsVerifiedForTheNameItHas(t *testing.T) {
+	cert := phonetest.Valid(t, []string{"desktop.example"}) // Names no address, and the phone dials 127.0.0.1.
+	base := serveCertificate(t, cert)
+	client, err := New(base, cert.DER, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = conn.Close() }()
-	state := conn.ConnectionState()
+	if _, err := client.call(t.Context(), http.MethodGet, "/api/anything", nil, nil); err != nil {
+		t.Fatalf("a pinned certificate that does not name the address is refused: %v", err)
+	}
+}
 
-	pinned, err := New(s.base, s.fingerprint, "")
+// TestAPinnedCertificateThatExpiredFailsAsItself checks that the pinned certificate is
+// verified as any is, its dates included: when it expired it is still the one that was
+// paired, so the error says that it expired, and not that the certificate changed.
+func TestAPinnedCertificateThatExpiredFailsAsItself(t *testing.T) {
+	now := time.Now()
+	cert := phonetest.Mint(t, now.Add(-2*time.Hour), now.Add(-time.Hour), []string{"localhost"}, net.ParseIP("127.0.0.1"))
+	base := serveCertificate(t, cert)
+	client, err := New(base, cert.DER, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	verify := pinned.client.Transport.(*http.Transport).TLSClientConfig.VerifyConnection
-	if verify == nil {
-		t.Fatal("a pinned client has no VerifyConnection")
+	_, err = client.call(t.Context(), http.MethodGet, "/api/anything", nil, nil)
+	if err == nil {
+		t.Fatal("an expired certificate is accepted")
 	}
-	if err := verify(state); err != nil {
-		t.Fatalf("VerifyConnection refuses the pinned certificate: %v", err)
+	if errors.Is(err, ErrCertificateChanged) {
+		t.Errorf("the pinned certificate itself is reported as changed: %v", err)
 	}
-	if err := verify(tls.ConnectionState{}); !errors.Is(err, ErrCertificateChanged) {
-		t.Errorf("a connection without a certificate: %v, want ErrCertificateChanged", err)
-	}
-
-	wrong, err := New(s.base, strings.Repeat("00:", 31)+"00", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	verify = wrong.client.Transport.(*http.Transport).TLSClientConfig.VerifyConnection
-	if err := verify(state); !errors.Is(err, ErrCertificateChanged) {
-		t.Fatalf("a certificate with another fingerprint: %v, want ErrCertificateChanged", err)
+	var invalid x509.CertificateInvalidError
+	if !errors.As(err, &invalid) || invalid.Reason != x509.Expired {
+		t.Errorf("the error does not say that the certificate expired: %v", err)
 	}
 }
 
@@ -220,31 +230,36 @@ func TestNewValidatesItsArguments(t *testing.T) {
 		}
 		return u
 	}
-	const fingerprint = "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF"
+	named := phonetest.Valid(t, []string{"desktop.example"})
+	nameless := phonetest.Valid(t, nil)
 	bad := []struct {
-		name        string
-		base        *url.URL
-		fingerprint string
+		name   string
+		base   *url.URL
+		pinned []byte
 	}{
-		{"no address", nil, ""},
-		{"no host", mustURL("https://"), ""},
-		{"unknown scheme", mustURL("ftp://192.168.1.10"), ""},
-		{"a path", mustURL("https://192.168.1.10:8369/app"), ""},
-		{"a query", mustURL("https://192.168.1.10:8369/?x=1"), ""},
-		{"user information", mustURL("https://user@192.168.1.10:8369"), ""},
-		{"plain http on the network", mustURL("http://192.168.1.10:8369"), ""},
-		{"a fingerprint over plain http", mustURL("http://127.0.0.1:8369"), fingerprint},
-		{"a malformed fingerprint", mustURL("https://192.168.1.10:8369"), "00:11"},
+		{"no address", nil, nil},
+		{"no host", mustURL("https://"), nil},
+		{"unknown scheme", mustURL("ftp://192.168.1.10"), nil},
+		{"a path", mustURL("https://192.168.1.10:8369/app"), nil},
+		{"a query", mustURL("https://192.168.1.10:8369/?x=1"), nil},
+		{"user information", mustURL("https://user@192.168.1.10:8369"), nil},
+		{"plain http on the network", mustURL("http://192.168.1.10:8369"), nil},
+		{"a certificate over plain http", mustURL("http://127.0.0.1:8369"), named.DER},
+		{"a pinned value that is not a certificate", mustURL("https://192.168.1.10:8369"), []byte("not a certificate")},
+		{"a certificate that names no host and no address", mustURL("https://192.168.1.10:8369"), nameless.DER},
 	}
 	for _, tc := range bad {
-		if _, err := New(tc.base, tc.fingerprint, ""); err == nil {
+		if _, err := New(tc.base, tc.pinned, ""); err == nil {
 			t.Errorf("%s: New accepted it", tc.name)
 		}
 	}
 	for _, text := range []string{"http://127.0.0.1:8369", "http://localhost:8369", "https://192.168.1.10:8369/"} {
-		if _, err := New(mustURL(text), "", ""); err != nil {
+		if _, err := New(mustURL(text), nil, ""); err != nil {
 			t.Errorf("New(%s): %v", text, err)
 		}
+	}
+	if _, err := New(mustURL("https://192.168.1.10:8369"), named.DER, ""); err != nil {
+		t.Errorf("New with a certificate that names a host: %v", err)
 	}
 }
 
@@ -262,7 +277,7 @@ func TestErrorsDoNotCarryTheTokenOfALink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := New(base, "", "")
+	client, err := New(base, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}

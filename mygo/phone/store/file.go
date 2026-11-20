@@ -117,6 +117,9 @@ func (s *fileServerStore) Load() (Record, error) {
 	if record.Base == "" {
 		return Record{}, fmt.Errorf("%w: the record has no address", ErrCorrupt)
 	}
+	if _, err := record.PinnedCertificate(); err != nil {
+		return Record{}, err
+	}
 	return record, nil
 }
 
@@ -124,6 +127,9 @@ func (s *fileServerStore) Load() (Record, error) {
 func (s *fileServerStore) Save(record Record) error {
 	if record.Base == "" {
 		return errors.New("a server record needs the address of the server")
+	}
+	if _, err := record.PinnedCertificate(); err != nil {
+		return err
 	}
 	content, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {

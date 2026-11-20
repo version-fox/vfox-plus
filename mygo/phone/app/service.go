@@ -137,15 +137,20 @@ type Status struct {
 }
 
 // Candidate is a computer that the user is about to pair with: the link that
-// names it, and the fingerprint of the certificate that it presents now. The user
-// compares the fingerprint with the one that the computer shows, before Pair
-// trusts it.
+// names it, and the certificate that it presents now, with its fingerprint. The
+// user compares the fingerprint with the one that the computer shows, before Pair
+// trusts the certificate.
 type Candidate struct {
 	Link        pairing.Link
 	Fingerprint string
+	// Certificate is the DER encoding of the certificate that has the fingerprint:
+	// the one that Pair trusts, when the user has compared it, and no other.
+	Certificate []byte
 	// SystemTrusted reports whether the system's roots verify the certificate for
 	// the address. A desktop's own certificate is not, so the user's comparison of
-	// the fingerprint is what decides.
+	// the fingerprint is what decides, and Pair pins the certificate. One that the
+	// roots vouch for is not pinned: it may be renewed, and the roots go on
+	// vouching for the renewal.
 	SystemTrusted bool
 }
 
@@ -213,7 +218,10 @@ func (s *Service) restore() {
 	base, err := url.Parse(record.Base)
 	var client *remote.Client
 	if err == nil {
-		client, err = remote.New(base, record.Fingerprint, session)
+		var pinned []byte
+		if pinned, err = record.PinnedCertificate(); err == nil {
+			client, err = remote.New(base, pinned, session)
+		}
 	}
 	if err != nil {
 		s.state, s.cause = NeedsPairing, err

@@ -265,21 +265,28 @@ screens are mygo's own, and it reads and changes the computer through the routes
 It keeps one computer.
 
 - **Pairing.** The person gives the phone the pairing link that the computer shows under
-  *Settings → Connections → Other devices → Pair a phone*: by pasting it, by reading its QR code
+  *Settings → Other devices → Pair a phone → Show code*: by pasting it, by reading its QR code
   with the camera (*Photo*) or from a picture of it (*Picture*), or by opening the deep link
   `vfoxplus://pair?link=…`. A deep link only fills in the link and starts the check; the phone
   pairs when the person chooses *Trust and pair*. A link is `https://host[:port]/auth/connect/<token>`,
   and a bare `host[:port]/auth/connect/<token>` is read as https. A query, a fragment, user
   information or another path is refused before any request is made.
-- **Fingerprint.** Before it trusts the computer, the phone connects once over TLS without checking
-  the chain, and shows the SHA-256 fingerprint of the certificate in the form that the computer
-  shows: 32 pairs of upper-case hexadecimal digits separated by colons. The person compares it with
-  the fingerprint under *Other devices* on the computer. *Trust and pair* then calls
-  `GET /auth/connect/<token>` over a connection that accepts only the leaf certificate with that
-  fingerprint; the system's roots are not consulted. The phone saves the computer's host, its
-  address and that fingerprint, and every later connection to the computer must present the same
-  certificate. When it does not, the connection is refused, and the pairing page says that the
-  computer's certificate changed.
+- **Fingerprint.** Before it trusts the computer, the phone looks at its certificate. No connection
+  of the phone skips the verification of a certificate (`InsecureSkipVerify` is not used): the phone
+  connects over TLS and verifies the certificate as any is verified, with the roots of the system. The
+  certificate that the computer makes for itself fails that, and the error of a connection that is
+  verified and fails has the certificate that was presented, which the phone shows by its SHA-256
+  fingerprint in the form that the computer shows: 32 pairs of upper-case hexadecimal digits
+  separated by colons. The person compares it with the fingerprint under *Other devices* on the
+  computer. *Trust and pair* then calls `GET /auth/connect/<token>` over a connection whose only
+  root is that certificate: it is verified as any certificate is, its dates and its use included, for
+  a name that it has, since the computer names its own addresses in it and the phone may reach it by
+  another. The phone saves the host, the address, the fingerprint and that certificate, which is
+  public, in the record of the computer, and every later connection has the same only root. A
+  certificate that is another one is refused, and the pairing page says that the computer's
+  certificate changed. A certificate that the roots of the system vouch for (a computer behind a
+  public name) is trusted as it is and is not pinned, so that its renewal needs no pairing. The
+  gateway trusts a certificate the same way (see [the gateway](#the-gateway)).
 - **Session.** A successful pairing answers `204 No Content` with the session cookie
   `vfox-plus-session`. The phone keeps its value in a file of its private directory, with mode
   `0600`, apart from the saved address and fingerprint, which hold no secret. It sends the cookie

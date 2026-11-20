@@ -36,17 +36,30 @@ type ProbeResult struct {
 	// Fingerprint is the SHA-256 fingerprint of the leaf certificate, in the form
 	// that the desktop application shows it (pairing.FormatFingerprint).
 	Fingerprint string
+	// Certificate is the DER encoding of the leaf certificate: what New pins once
+	// the user has compared the fingerprint.
+	Certificate []byte
 	// SystemTrusted reports whether the system roots verify the certificate for
 	// the host of the address. The self-signed certificate of a desktop server is
-	// not, so the user confirms its fingerprint instead.
+	// not, so the user confirms its fingerprint instead; a certificate that the
+	// roots vouch for needs no pinning, and a renewal of it needs no pairing.
 	SystemTrusted bool
 }
 
-// Probe connects once to the server at base over TLS, without checking the
-// certificate, and reports its fingerprint. Nothing is trusted yet: the user
-// compares the fingerprint with the one that the desktop application shows, and
-// only then is it pinned with New and Pair. base must be https.
+// Probe connects once to the server at base over TLS and reports the certificate
+// that it presents. The connection is verified as any is, with the system roots,
+// and a certificate that they do not vouch for fails it: the error of that failure
+// has the certificate that was presented, which is what the user is asked to
+// compare, and no connection that verifies nothing is made. Nothing is trusted yet:
+// the user compares the fingerprint with the one that the desktop application shows,
+// and only then is the certificate pinned with New and Pair. base must be https.
 func Probe(ctx context.Context, base *url.URL) (ProbeResult, error) {
+	return probe(ctx, base, nil)
+}
+
+// probe is Probe with the roots that verify the connection: the system's when roots
+// is nil, which is what Probe uses. The tests give their own.
+func probe(ctx context.Context, base *url.URL, roots *x509.CertPool) (ProbeResult, error) {
 	address, err := normalizeBase(base)
 	if err != nil {
 		return ProbeResult{}, err
@@ -65,16 +78,14 @@ func Probe(ctx context.Context, base *url.URL) (ProbeResult, error) {
 	defer cancel()
 	dialer := &tls.Dialer{
 		NetDialer: &net.Dialer{Timeout: dialTimeout},
-		Config: &tls.Config{
-			// The certificate is judged by the user, by its fingerprint, and not by
-			// the chain: that is what Probe reports.
-			InsecureSkipVerify: true, //nolint:gosec // See the comment above.
-			MinVersion:         tls.VersionTLS12,
-			ServerName:         host,
-		},
+		Config:    &tls.Config{MinVersion: tls.VersionTLS12, ServerName: host, RootCAs: roots},
 	}
 	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, port))
 	if err != nil {
+		var failed *tls.CertificateVerificationError
+		if errors.As(err, &failed) && len(failed.UnverifiedCertificates) > 0 {
+			return probeResult(failed.UnverifiedCertificates[0], false), nil
+		}
 		return ProbeResult{}, requestError(err)
 	}
 	defer func() { _ = conn.Close() }()
@@ -86,31 +97,23 @@ func Probe(ctx context.Context, base *url.URL) (ProbeResult, error) {
 	if len(chain) == 0 {
 		return ProbeResult{}, errors.New("remote: the server sent no certificate")
 	}
-	return ProbeResult{
-		Fingerprint:   pairing.FormatFingerprint(chain[0].Raw),
-		SystemTrusted: systemTrusted(chain, host),
-	}, nil
+	return probeResult(chain[0], true), nil
 }
 
-// systemTrusted reports whether the system roots verify the chain of a server
-// for host.
-func systemTrusted(chain []*x509.Certificate, host string) bool {
-	roots, err := x509.SystemCertPool()
-	if err != nil {
-		return false
+// probeResult describes the leaf certificate that a server presented.
+func probeResult(leaf *x509.Certificate, trusted bool) ProbeResult {
+	return ProbeResult{
+		Fingerprint:   pairing.FormatFingerprint(leaf.Raw),
+		Certificate:   leaf.Raw,
+		SystemTrusted: trusted,
 	}
-	intermediates := x509.NewCertPool()
-	for _, cert := range chain[1:] {
-		intermediates.AddCert(cert)
-	}
-	_, err = chain[0].Verify(x509.VerifyOptions{DNSName: host, Roots: roots, Intermediates: intermediates})
-	return err == nil
 }
 
 // Pair exchanges the one-time token of a pairing link for a session, over the
 // connection that the client pins: the session belongs to the server whose
-// fingerprint the user confirmed. The client should have been made with New and
-// the fingerprint, and without a session.
+// certificate the user confirmed. The client should have been made with New and
+// that certificate (none when the system roots vouch for the server), and without a
+// session.
 //
 // The server answers 204 with the session cookie. A refused token (invalid,
 // already used or expired) is an error that matches ErrPairingRefused. Pair does
@@ -125,7 +128,7 @@ func (c *Client) Pair(ctx context.Context, token string) (string, error) {
 	}
 	response, err := c.client.Do(request)
 	if err != nil {
-		return "", requestError(err)
+		return "", c.requestError(err)
 	}
 	defer func() { _ = response.Body.Close() }()
 	answer, err := io.ReadAll(io.LimitReader(response.Body, 4<<10))

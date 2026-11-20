@@ -14,8 +14,9 @@
 
 // Package remote is the client of the remote API of a desktop server (see
 // mygo/pair): the pairing of the phone and the calls that it makes once paired.
-// A client pins the certificate of its server by fingerprint when the user has
-// confirmed one; see New.
+// A client trusts the certificate of its server that the user has confirmed, and no
+// other, when there is one; see New. No connection of the package skips the
+// verification of a certificate.
 //
 // The package does not depend on the desktop code. Its tests do, through the
 // server of mygo/pair.
@@ -35,8 +36,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 )
 
 const (
@@ -58,6 +57,9 @@ type Client struct {
 	base *url.URL
 	// session is the value of the paired session cookie, or empty before pairing.
 	session string
+	// pinned is the certificate that the user confirmed, which is the only root of
+	// the connections, or nil when the roots of the system vouch for the server.
+	pinned *x509.Certificate
 	// client makes the calls. It has a timeout, and it does not follow redirects.
 	client *http.Client
 	// streamer opens the event stream, which lasts as long as its context. It has
@@ -69,32 +71,39 @@ type Client struct {
 // plain http address of the loopback interface (127.0.0.1, ::1 or localhost) is
 // accepted too.
 //
-// fingerprint, when it is not empty, is the SHA-256 fingerprint of the server's
-// certificate that the user confirmed, in the form pairing.FormatFingerprint
-// gives. The client then accepts only a server whose leaf certificate has that
-// fingerprint, and it does not consult the system roots: the confirmation is the
-// trust. When fingerprint is empty, the certificate must chain to the system
-// roots. A fingerprint needs https.
+// pinned, when it is not empty, is the DER encoding of the certificate of the
+// server that the user confirmed: what Probe returned, once its fingerprint was
+// compared with the one that the desktop application shows. The client then trusts
+// that certificate and no other, in place of the system roots. It is the only root
+// of the connections, so it is verified as any certificate is, its dates and its
+// use included, for a name that it has: the desktop names the addresses of its
+// computer in it, and the phone may reach the computer by another. When pinned is
+// empty, the certificate must chain to the system roots. A pinned certificate
+// needs https.
 //
 // session is the value of the session cookie of an earlier pairing, or empty.
-func New(base *url.URL, fingerprint, session string) (*Client, error) {
+func New(base *url.URL, pinned []byte, session string) (*Client, error) {
 	address, err := normalizeBase(base)
 	if err != nil {
 		return nil, err
 	}
-	pinned := ""
-	if fingerprint != "" {
+	var certificate *x509.Certificate
+	if len(pinned) > 0 {
 		if address.Scheme != "https" {
-			return nil, errors.New("remote: a pinned fingerprint needs an https server")
+			return nil, errors.New("remote: a pinned certificate needs an https server")
 		}
-		if pinned, err = pairing.NormalizeFingerprint(fingerprint); err != nil {
-			return nil, err
+		if certificate, err = x509.ParseCertificate(pinned); err != nil {
+			return nil, fmt.Errorf("remote: the pinned certificate cannot be read: %w", err)
+		}
+		if nameOf(certificate) == "" {
+			return nil, errors.New("remote: the pinned certificate names no host and no address, so no connection can be verified against it")
 		}
 	}
-	transport := newTransport(pinned)
+	transport := newTransport(certificate)
 	return &Client{
 		base:     address,
 		session:  session,
+		pinned:   certificate,
 		client:   &http.Client{Transport: transport, Timeout: requestTimeout, CheckRedirect: noRedirects},
 		streamer: &http.Client{Transport: transport, CheckRedirect: noRedirects},
 	}, nil
@@ -133,36 +142,21 @@ func isLoopback(host string) bool {
 	return false
 }
 
-// newTransport returns the transport of a client. When pinned is empty, the
-// certificates are checked against the system roots. Otherwise only the leaf
-// certificate with that fingerprint is accepted. VerifyPeerCertificate and
-// VerifyConnection run even when the standard verification is skipped, which is
-// why the skip is safe here.
+// newTransport returns the transport of a client. The certificate of the server
+// is always verified by crypto/tls. When pinned is nil, the roots are the system's.
+// Otherwise pinned is the only root: it verifies, as the certificate that the user
+// compared, and no other does, for the name that it has (nameOf), since the phone
+// may reach the computer by an address that the certificate does not name.
 //
 // The transport uses no proxy: the desktop is on the local network, and a proxy
 // of the system would replace its certificate.
-func newTransport(pinned string) *http.Transport {
+func newTransport(pinned *x509.Certificate) *http.Transport {
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-	if pinned != "" {
-		tlsConfig.InsecureSkipVerify = true //nolint:gosec // The leaf certificate is checked against the pinned fingerprint below.
-		tlsConfig.VerifyPeerCertificate = func(raw [][]byte, _ [][]*x509.Certificate) error {
-			if len(raw) == 0 || pairing.FormatFingerprint(raw[0]) != pinned {
-				return ErrCertificateChanged
-			}
-			return nil
-		}
-		// crypto/tls does not call VerifyPeerCertificate when it resumes a session, so
-		// a resumed connection would skip the check above. VerifyConnection runs on every
-		// connection, resumed or not, and makes the same check on the leaf certificate
-		// of that connection. Without a ClientSessionCache, crypto/tls never resumes, as
-		// here; SessionTicketsDisabled keeps it that way if a cache is added later.
-		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
-			if len(state.PeerCertificates) == 0 || pairing.FormatFingerprint(state.PeerCertificates[0].Raw) != pinned {
-				return ErrCertificateChanged
-			}
-			return nil
-		}
-		tlsConfig.SessionTicketsDisabled = true
+	if pinned != nil {
+		only := x509.NewCertPool()
+		only.AddCert(pinned)
+		tlsConfig.RootCAs = only
+		tlsConfig.ServerName = nameOf(pinned)
 	}
 	dialer := &net.Dialer{Timeout: dialTimeout}
 	return &http.Transport{
@@ -171,6 +165,36 @@ func newTransport(pinned string) *http.Transport {
 		TLSHandshakeTimeout: dialTimeout,
 		IdleConnTimeout:     90 * time.Second,
 	}
+}
+
+// nameOf is a name that certificate is made for, a DNS name or an address, and ""
+// when it has none.
+func nameOf(certificate *x509.Certificate) string {
+	if len(certificate.DNSNames) > 0 {
+		return certificate.DNSNames[0]
+	}
+	if len(certificate.IPAddresses) > 0 {
+		return certificate.IPAddresses[0].String()
+	}
+	return ""
+}
+
+// requestError describes a request of c that did not get an answer. A connection
+// whose certificate fails the verification has the certificate that was presented
+// in its error, which tells a server that is not the one that was paired from the
+// one that is: when nothing was pinned, a certificate that the system roots do not
+// vouch for is not the one that was paired; when a certificate was pinned, so is
+// any other than it. Both are ErrCertificateChanged, and nothing is trusted
+// automatically. The pinned certificate itself, failing for another reason (it
+// expired), is described as any request that failed is.
+func (c *Client) requestError(err error) error {
+	var failed *tls.CertificateVerificationError
+	if errors.As(err, &failed) && len(failed.UnverifiedCertificates) > 0 &&
+		(c.pinned == nil || !bytes.Equal(failed.UnverifiedCertificates[0].Raw, c.pinned.Raw)) {
+		// The error of the verification has no address in it, as the URL error has.
+		return fmt.Errorf("remote: the request failed: %w: %w", ErrCertificateChanged, failed)
+	}
+	return requestError(err)
 }
 
 // noRedirects returns the first answer as it is. The server does not redirect
@@ -220,7 +244,7 @@ func (c *Client) call(ctx context.Context, method, path string, query url.Values
 	c.authorize(request)
 	response, err := c.client.Do(request)
 	if err != nil {
-		return nil, requestError(err)
+		return nil, c.requestError(err)
 	}
 	defer func() { _ = response.Body.Close() }()
 	answer, err := readAnswer(response.Body)

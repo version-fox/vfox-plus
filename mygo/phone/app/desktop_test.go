@@ -35,6 +35,7 @@ import (
 
 	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 	"github.com/version-fox/vfox-plus/mygo/phone/remote"
+	"github.com/version-fox/vfox-plus/mygo/phone/store"
 )
 
 // sessionCookie is the cookie of the session, as the desktop names it.
@@ -45,6 +46,9 @@ type desktop struct {
 	server      *httptest.Server
 	base        *url.URL
 	fingerprint string
+	// certificate is the DER encoding of the certificate that the computer presents,
+	// which the phone pins once the user has compared its fingerprint.
+	certificate []byte
 
 	mu        sync.Mutex
 	tokens    map[string]bool
@@ -100,9 +104,29 @@ func newDesktop(t *testing.T) *desktop {
 		t.Fatal(err)
 	}
 	d.base = base
-	d.fingerprint = pairing.FormatFingerprint(d.server.Certificate().Raw)
+	d.certificate = d.server.Certificate().Raw
+	d.fingerprint = pairing.FormatFingerprint(d.certificate)
 	t.Cleanup(d.close)
 	return d
+}
+
+// pairedRecord is the record that a pairing with d saves: the name of a computer that
+// the user did not name is the host of its address.
+func (d *desktop) pairedRecord() store.Record {
+	record := d.record()
+	record.Name = d.base.Hostname()
+	return record
+}
+
+// record is the record of d as the phone saves it after a pairing: the computer, the
+// fingerprint that the user compared, and the certificate that it pins.
+func (d *desktop) record() store.Record {
+	return store.Record{
+		Name:        "desktop",
+		Base:        d.base.String(),
+		Fingerprint: d.fingerprint,
+		Certificate: store.EncodeCertificate(d.certificate),
+	}
 }
 
 // close releases the requests that wait, and stops the server.

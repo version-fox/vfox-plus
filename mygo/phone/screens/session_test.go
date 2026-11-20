@@ -21,17 +21,14 @@ import (
 
 	"github.com/version-fox/vfox-plus/mygo/phone/app"
 	"github.com/version-fox/vfox-plus/mygo/phone/i18n"
+	"github.com/version-fox/vfox-plus/mygo/phone/internal/phonetest"
 )
-
-// pairWrongFingerprint is a fingerprint that no certificate has: the saved computer of the
-// test presents another certificate, which the phone refuses.
-const pairWrongFingerprint = "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"
 
 // TestAConnectingPhoneShowsItsProgress checks the strip above the tabs while the saved
 // computer is checked: the tabs are shown, with the progress.
 func TestAConnectingPhoneShowsItsProgress(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, true)
 	tt := ui.NewTester(root.View, 480, 900)
 	tt.Frame()
 	if root.Service().Status().Session != app.Connecting {
@@ -48,7 +45,7 @@ func TestAConnectingPhoneShowsItsProgress(t *testing.T) {
 // the tabs, says so, and offers the retry.
 func TestAnUnreachableComputerShowsRetry(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, true)
 	fd.server.Close()
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
@@ -70,7 +67,7 @@ func TestAnUnreachableComputerShowsRetry(t *testing.T) {
 // computer no longer accepts it: the explanation, and the computer it had.
 func TestANeedsPairingComputerShowsTheExplanation(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, false)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, false)
 	tt := ui.NewTester(root.View, 480, 900)
 	tt.Frame()
 	if root.Service().Status().Session != app.NeedsPairing {
@@ -101,7 +98,7 @@ func TestANeedsPairingComputerShowsTheExplanation(t *testing.T) {
 // not the one saved: the phone refuses it, the pairing page warns, and nothing is trusted.
 func TestACertificateThatChangedIsWarnedAndNotTrusted(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, pairWrongFingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, phonetest.Another(t), true) // The computer presents another certificate than the one saved.
 	pairStartService(t, root)
 	tt := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, tt, "the refusal of the certificate", func() bool {
@@ -139,7 +136,7 @@ func phoneCardView(root *Root) func(c *ui.Context) {
 // disconnection, which waits for the confirmation and then forgets the computer.
 func TestThePhoneCardShowsTheComputerAndPairsOrDisconnects(t *testing.T) {
 	fd := newPairDesktop(t)
-	root := pairSavedRoot(t, fd.server.URL, fd.fingerprint, true)
+	root := pairSavedRoot(t, fd.server.URL, fd.certificate, true)
 	pairStartService(t, root)
 	paired := ui.NewTester(root.View, 480, 900)
 	pairWaitUntil(t, paired, "the connection", func() bool {

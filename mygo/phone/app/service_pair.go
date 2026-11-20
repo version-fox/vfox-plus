@@ -18,20 +18,33 @@ import (
 	"context"
 	"errors"
 
+	"github.com/version-fox/vfox-plus/mygo/phone/pairing"
 	"github.com/version-fox/vfox-plus/mygo/phone/remote"
 	"github.com/version-fox/vfox-plus/mygo/phone/store"
 )
 
 // Pair pairs the phone with the computer of candidate. The one-time link is
 // exchanged for a session, which the computer accepts from then on, and the
-// computer is saved with the fingerprint that the user confirmed, in place of the
-// one saved before. The pairing is not made when the certificate of the computer is
-// not the candidate's: the connection is refused, and nothing is saved.
+// computer is saved with the certificate that the user confirmed, in place of the
+// one saved before. That certificate is the only one that the phone trusts for the
+// computer from then on, unless the roots of the system vouch for the computer, which
+// then needs no pinning. The pairing is not made when the certificate of the
+// computer is not the candidate's: the connection is refused, and nothing is saved.
 func (s *Service) Pair(ctx context.Context, candidate Candidate) error {
 	if candidate.Link.Base == nil || candidate.Fingerprint == "" {
 		return errors.New("the candidate names no computer to pair with")
 	}
-	anonymous, err := remote.New(candidate.Link.Base, candidate.Fingerprint, "")
+	var pinned []byte
+	if !candidate.SystemTrusted {
+		// The certificate is the one whose fingerprint the user compared, and no other:
+		// a candidate whose certificate has another fingerprint is refused before any
+		// connection is made.
+		if len(candidate.Certificate) == 0 || pairing.FormatFingerprint(candidate.Certificate) != candidate.Fingerprint {
+			return errors.New("the candidate has no certificate that has the fingerprint that was compared")
+		}
+		pinned = candidate.Certificate
+	}
+	anonymous, err := remote.New(candidate.Link.Base, pinned, "")
 	if err != nil {
 		return err
 	}
@@ -39,7 +52,7 @@ func (s *Service) Pair(ctx context.Context, candidate Candidate) error {
 	if err != nil {
 		return err
 	}
-	client, err := remote.New(candidate.Link.Base, candidate.Fingerprint, session)
+	client, err := remote.New(candidate.Link.Base, pinned, session)
 	if err != nil {
 		return err
 	}
@@ -47,6 +60,7 @@ func (s *Service) Pair(ctx context.Context, candidate Candidate) error {
 		Name:        candidate.Link.Base.Hostname(),
 		Base:        candidate.Link.Base.String(),
 		Fingerprint: candidate.Fingerprint,
+		Certificate: store.EncodeCertificate(pinned),
 	}
 	if err := s.servers.Save(record); err != nil {
 		return err

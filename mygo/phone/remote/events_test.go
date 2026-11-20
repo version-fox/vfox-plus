@@ -105,7 +105,7 @@ func TestEventsIgnoreHeartbeatsAndEndWithTheStream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := New(base, "", "pretend")
+	client, err := New(base, nil, "pretend")
 	if err != nil {
 		t.Fatal(err)
 	}

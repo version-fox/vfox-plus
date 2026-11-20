@@ -26,7 +26,11 @@
 // a damaged value is ErrCorrupt.
 package store
 
-import "errors"
+import (
+	"encoding/base64"
+	"errors"
+	"fmt"
+)
 
 var (
 	// ErrNoRecord reports that no server is saved.
@@ -38,16 +42,45 @@ var (
 	ErrCorrupt = errors.New("the saved data is damaged")
 )
 
-// Record is a saved server: the name the user knows it by, its address and the
-// fingerprint of its certificate that the user confirmed. It holds no secret.
+// Record is a saved server: the name the user knows it by, its address and its
+// certificate that the user confirmed. It holds no secret: a certificate is public.
 type Record struct {
 	// Name is the name that the user gave the server, or its host.
 	Name string `json:"name"`
 	// Base is the address of the server, https://host:port.
 	Base string `json:"base"`
 	// Fingerprint is the fingerprint of the server's certificate that the user
-	// confirmed, in the form pairing.FormatFingerprint gives.
+	// confirmed, in the form pairing.FormatFingerprint gives. It is what the user
+	// compares, and it is shown again when the same server is paired once more.
 	Fingerprint string `json:"fingerprint"`
+	// Certificate is the leaf certificate of the server that the user confirmed: its
+	// DER encoding, in standard base64 (EncodeCertificate), which a string keeps
+	// comparable with ==. The phone trusts that certificate and no other for the
+	// server: it is the only root of the connections to it. Empty when the roots of
+	// the system vouch for the server, which needs no pinning.
+	Certificate string `json:"certificate,omitempty"`
+}
+
+// EncodeCertificate returns the form in which a Record holds the DER encoding of a
+// certificate. It returns "" for no certificate.
+func EncodeCertificate(der []byte) string {
+	if len(der) == 0 {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(der)
+}
+
+// PinnedCertificate returns the DER encoding of the certificate that the record
+// pins, or nil when it pins none. A value that is not base64 is ErrCorrupt.
+func (r Record) PinnedCertificate() ([]byte, error) {
+	if r.Certificate == "" {
+		return nil, nil
+	}
+	der, err := base64.StdEncoding.DecodeString(r.Certificate)
+	if err != nil {
+		return nil, fmt.Errorf("%w: the saved certificate is not base64: %w", ErrCorrupt, err)
+	}
+	return der, nil
 }
 
 // ServerStore keeps the one saved server. The phone keeps one server only, which

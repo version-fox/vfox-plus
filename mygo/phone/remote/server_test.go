@@ -21,6 +21,7 @@ package remote
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -70,9 +71,12 @@ func (f *fakeControl) Quit() {
 
 // testServer is a desktop server on the loopback interface.
 type testServer struct {
-	server      *pair.Server
-	base        *url.URL
+	server *pair.Server
+	base   *url.URL
+	// fingerprint and certificate are those of the certificate that the server presents:
+	// what the user compares, and what the client pins.
 	fingerprint string
+	certificate []byte
 	control     *fakeControl
 }
 
@@ -85,6 +89,10 @@ type testServer struct {
 func startServer(t *testing.T) *testServer {
 	t.Helper()
 	certFile, keyFile, fingerprint, err := pair.EnsureServerCert(t.TempDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pairOfFiles, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +125,7 @@ func startServer(t *testing.T) *testServer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &testServer{server: server, base: base, fingerprint: fingerprint, control: control}
+	return &testServer{server: server, base: base, fingerprint: fingerprint, certificate: pairOfFiles.Certificate[0], control: control}
 }
 
 // newModel returns the application state over runner, once the installed SDKs
@@ -162,9 +170,18 @@ func (s *testServer) pairRaw(t *testing.T) string {
 // cookie of the answer.
 func (s *testServer) follow(t *testing.T, link string) string {
 	t.Helper()
+	// The certificate of the test server is the only root, as it is for the client of the
+	// phone, and it is verified for a name that it has: no connection of the tests skips
+	// the verification either.
+	root, err := x509.ParseCertificate(s.certificate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roots := x509.NewCertPool()
+	roots.AddCert(root)
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // The test server has a certificate of its own.
+			TLSClientConfig: &tls.Config{RootCAs: roots, ServerName: nameOf(root), MinVersion: tls.VersionTLS12},
 		},
 		CheckRedirect: noRedirects,
 	}
@@ -188,7 +205,7 @@ func (s *testServer) follow(t *testing.T, link string) string {
 // certificate, and the recorder of its answers.
 func (s *testServer) client(t *testing.T, session string) (*Client, *recorder) {
 	t.Helper()
-	client, err := New(s.base, s.fingerprint, session)
+	client, err := New(s.base, s.certificate, session)
 	if err != nil {
 		t.Fatal(err)
 	}

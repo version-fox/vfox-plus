@@ -83,6 +83,86 @@ func TestServerRecordRoundTripsAndIsPrivate(t *testing.T) {
 	}
 }
 
+func TestAPinnedCertificateIsSavedWithTheRecordAndReadBack(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server.json")
+	servers := store.NewFileServerStore(path)
+	der := []byte{0x30, 0x82, 0x01, 0x0a, 0xde, 0xad, 0xbe, 0xef} // Not a certificate: the store keeps bytes.
+	record := sampleRecord()
+	record.Certificate = store.EncodeCertificate(der)
+	if err := servers.Save(record); err != nil {
+		t.Fatal(err)
+	}
+	got, err := servers.Load()
+	if err != nil || got != record {
+		t.Fatalf("Load = %+v, %v; want %+v", got, err, record)
+	}
+	pinned, err := got.PinnedCertificate()
+	if err != nil || !bytes.Equal(pinned, der) {
+		t.Fatalf("PinnedCertificate = %x, %v; want %x", pinned, err, der)
+	}
+	// The certificate is public, so it is in the record file, under its own key.
+	// The file is in the test's own temporary directory.
+	content, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(content, []byte(`"certificate"`)) {
+		t.Errorf("the record file lacks the certificate: %s", content)
+	}
+}
+
+func TestARecordThatPinsNothingSaysSoAndLeavesOutTheKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server.json")
+	servers := store.NewFileServerStore(path)
+	if err := servers.Save(sampleRecord()); err != nil {
+		t.Fatal(err)
+	}
+	got, err := servers.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pinned, err := got.PinnedCertificate(); err != nil || pinned != nil {
+		t.Errorf("PinnedCertificate of a record without one = %x, %v; want nil", pinned, err)
+	}
+	// The file is in the test's own temporary directory.
+	content, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(content, []byte(`"certificate"`)) {
+		t.Errorf("a record that pins nothing has the key of the certificate: %s", content)
+	}
+	if store.EncodeCertificate(nil) != "" {
+		t.Error("EncodeCertificate of nothing is not empty")
+	}
+}
+
+func TestACertificateThatIsNotBase64IsDamagedAndIsNotSaved(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server.json")
+	servers := store.NewFileServerStore(path)
+	bad := sampleRecord()
+	bad.Certificate = "not base64 !!"
+	if err := servers.Save(bad); !errors.Is(err, store.ErrCorrupt) {
+		t.Errorf("Save of a record with a damaged certificate = %v, want ErrCorrupt", err)
+	}
+	if _, err := servers.Load(); !errors.Is(err, store.ErrNoRecord) {
+		t.Errorf("a record that was refused is saved: %v", err)
+	}
+	// A file that holds one is damaged, and the next Save replaces it.
+	if err := os.WriteFile(path, []byte(`{"name": "Study PC", "base": "https://192.168.1.10:8369", "certificate": "not base64 !!"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := servers.Load(); !errors.Is(err, store.ErrCorrupt) {
+		t.Errorf("a record with a damaged certificate: Load = %v, want ErrCorrupt", err)
+	}
+	if err := servers.Save(sampleRecord()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := servers.Load(); err != nil {
+		t.Errorf("Save did not replace the damaged record: %v", err)
+	}
+}
+
 func TestSaveReplacesTheRecordAndForgetRemovesIt(t *testing.T) {
 	servers := store.NewFileServerStore(filepath.Join(t.TempDir(), "server.json"))
 	if err := servers.Save(sampleRecord()); err != nil {

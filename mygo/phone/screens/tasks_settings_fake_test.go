@@ -48,6 +48,7 @@ const tsSession = "test-session"
 type tsFake struct {
 	server      *httptest.Server
 	fingerprint string
+	certificate []byte
 
 	mu       sync.Mutex
 	tasks    []remote.Task
@@ -75,6 +76,7 @@ func tsNewFake(t *testing.T) *tsFake {
 		t.Fatal(err)
 	}
 	f.fingerprint = probe.Fingerprint
+	f.certificate = probe.Certificate
 	return f
 }
 
@@ -95,7 +97,7 @@ func tsRoot(t *testing.T, f *tsFake) *Root {
 	dir = filepath.Join(dir, configDirName)
 	servers := store.NewFileServerStore(filepath.Join(dir, serverFile))
 	sessions := store.NewFileSessionStore(filepath.Join(dir, sessionFile))
-	if err := servers.Save(store.Record{Name: "desktop", Base: f.server.URL, Fingerprint: f.fingerprint}); err != nil {
+	if err := servers.Save(store.Record{Name: "desktop", Base: f.server.URL, Fingerprint: f.fingerprint, Certificate: store.EncodeCertificate(f.certificate)}); err != nil {
 		t.Fatal(err)
 	}
 	if err := sessions.Save(tsSession); err != nil {

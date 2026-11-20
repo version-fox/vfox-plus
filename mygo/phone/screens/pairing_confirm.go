@@ -42,13 +42,15 @@ type pairFlow struct {
 	paired bool
 	// failure is the kind of the error that the call ended with, KindNone for none.
 	failure app.Kind
+	// reason is what the error says that the words of the kind do not (pairFailureDetail).
+	reason string
 }
 
 // begin marks the call as running.
 func (f *pairFlow) begin() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.busy, f.failure = true, app.KindNone
+	f.busy, f.failure, f.reason = true, app.KindNone, ""
 }
 
 // end records the error that the call ended with, nil for a call that paired the phone.
@@ -61,6 +63,14 @@ func (f *pairFlow) end(err error) {
 		return
 	}
 	f.failure = app.KindOf(err)
+	f.reason = pairFailureDetail(f.failure, err)
+}
+
+// detail is the reason of the failure that the call ended with, or "" for none.
+func (f *pairFlow) detail() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.reason
 }
 
 // state returns what the call is doing, and how it ended.
@@ -101,7 +111,8 @@ func (r *Root) pairConfirmSpec(c kit.Ctx, close func(), flow *pairFlow) kit.Dial
 		return spec
 	case failure != app.KindNone:
 		spec.Icon, spec.IconError = "error", true
-		spec.Content = func() { pairTextContent(c, noticeText(failure), c.Colors().Error) }
+		detail := flow.detail()
+		spec.Content = func() { pairFailureContent(c, noticeText(failure), detail) }
 		spec.Actions = []func(){pairCloseAction(c, close)}
 		if failure == app.KindCertificateChanged {
 			clipboard := c.Services()
@@ -138,7 +149,8 @@ func (r *Root) pairConfirmSpec(c kit.Ctx, close func(), flow *pairFlow) kit.Dial
 	case app.Ready:
 	case app.Failed:
 		spec.Icon, spec.IconError = "error", true
-		spec.Content = func() { pairTextContent(c, noticeText(app.KindOf(probe.Err())), c.Colors().Error) }
+		kind, detail := app.KindOf(probe.Err()), pairFailureDetail(app.KindOf(probe.Err()), probe.Err())
+		spec.Content = func() { pairFailureContent(c, noticeText(kind), detail) }
 		spec.Actions = []func(){pairCloseAction(c, close)}
 		return spec
 	default:
@@ -151,7 +163,12 @@ func (r *Root) pairConfirmSpec(c kit.Ctx, close func(), flow *pairFlow) kit.Dial
 	if !ok {
 		return spec
 	}
-	known := r.service.Status().Server.Fingerprint
+	// The fingerprint that the user compared last time warns only for a certificate that
+	// was pinned: a computer that the roots of the system vouch for renews its own.
+	known := ""
+	if saved := r.service.Status().Server; saved.Certificate != "" {
+		known = saved.Fingerprint
+	}
 	spec.Content = func() {
 		ui.Column(c.Context).Gap(12).Children(func() {
 			kit.Label(c, i18n.Text("pairConfirmBody"), kit.Type(kit.BodyMedium), c.Colors().OnSurfaceVariant)
@@ -210,6 +227,41 @@ func pairBusyContent(c kit.Ctx, text ...string) {
 // pairTextContent is the content of the dialog that says one message, in colour.
 func pairTextContent(c kit.Ctx, text string, colour ui.Color) {
 	kit.Label(c, text, kit.Type(kit.BodyMedium), colour)
+}
+
+// pairDetailRunes is the most of the text of an error that a dialog shows.
+const pairDetailRunes = 300
+
+// pairFailureDetail is the reason of a failure that the words of the app do not say: why a
+// computer did not answer (refused, timed out, no route), or what is wrong with its certificate.
+// It is the text of the error, which names the address of the computer and never the token of a
+// pairing link, cut to what a dialog holds. The other kinds say all there is in their words.
+func pairFailureDetail(kind app.Kind, err error) string {
+	switch kind {
+	case app.KindUnreachable, app.KindCertificateChanged, app.KindOther:
+	default:
+		return ""
+	}
+	if err == nil {
+		return ""
+	}
+	runes := []rune(err.Error())
+	if len(runes) > pairDetailRunes {
+		runes = append(runes[:pairDetailRunes], '…')
+	}
+	return string(runes)
+}
+
+// pairFailureContent is the content of the dialog that says that a pairing failed: the message in
+// the words of the app, in the colour of an error, and under it the reason, in a smaller text that
+// the user can select and send to whoever helps.
+func pairFailureContent(c kit.Ctx, message, detail string) {
+	ui.Column(c.Context).Gap(8).Children(func() {
+		kit.Label(c, message, kit.Type(kit.BodyMedium), c.Colors().Error)
+		if detail != "" {
+			kit.Label(c, detail, kit.Type(kit.BodySmall), c.Colors().OnSurfaceVariant, kit.Breakable(), kit.Selectable())
+		}
+	})
 }
 
 // pairCloseAction is the button that closes a dialog.
