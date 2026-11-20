@@ -22,6 +22,10 @@
 // checked for errors, and the paired session is measured apart: memory(apk-paired), in
 // memory-paired.txt, because the memory report reads one line of its artifact.
 //
+// With --pictures it takes the pictures of the user guide on the way, in the same session (see
+// pictures.go): the pairing page in both themes, the dialog of the trust, the five tabs, the detail of an
+// SDK, the dialog that adds a plugin and the home page in the dark theme, in a directory of their own.
+//
 // The screens are read from the accessibility tree (uiautomator dump): the native UI of the app
 // exposes its elements with their labels and bounds (mygo's SurfaceWindow, the accessibility
 // provider). CI runs it from the emulator job of .github/workflows/phone.yml. adb is on the
@@ -61,7 +65,7 @@ const (
 )
 
 // usage is the command line of measure-apk, as its errors print it.
-const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--aapt2 FILE] [--pair-link-file FILE --shots DIR]"
+const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR]]"
 
 var (
 	totalLine = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
@@ -123,8 +127,8 @@ func PairedLine(pssKB, rssKB int) string {
 
 // config is what Run reads from the command line.
 type config struct {
-	apk, outputDir, screenshot, pairLinkFile, shots, aapt2 string
-	settle                                                 time.Duration
+	apk, outputDir, screenshot, pairLinkFile, shots, pictures, aapt2 string
+	settle                                                           time.Duration
 }
 
 // session runs the steps against a device. Its clock and its sleep are replaceable, so that the
@@ -146,6 +150,7 @@ func Run(args []string) error {
 	settle := flags.Int("settle", 20, "seconds to settle after each start")
 	pairLinkFile := flags.String("pair-link-file", "", "file holding a one-time pairing link of a reachable server: the paired session is driven and measured too")
 	shots := flags.String("shots", "", "directory receiving the screenshots, the screen dumps and the log of the paired session (required with --pair-link-file)")
+	pictures := flags.String("pictures", "", "directory receiving the pictures of the user guide, taken in the paired session (needs --pair-link-file)")
 	aapt2 := flags.String("aapt2", "", "the aapt2 of the build tools (default: the newest in ANDROID_HOME, or the one on the PATH)")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -156,8 +161,11 @@ func Run(args []string) error {
 	if *pairLinkFile != "" && *shots == "" {
 		return errors.New("--pair-link-file needs --shots: the paired session leaves its screenshots and its log there")
 	}
+	if *pictures != "" && *pairLinkFile == "" {
+		return errors.New("--pictures needs --pair-link-file: the pictures are taken in the paired session")
+	}
 	c := config{apk: *apk, outputDir: *outputDir, screenshot: *screenshot, pairLinkFile: *pairLinkFile,
-		shots: *shots, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second}
+		shots: *shots, pictures: *pictures, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second}
 	s := &session{adb: runAdb, badging: readBadging, sleep: time.Sleep, now: time.Now, log: os.Stderr}
 	return s.measure(c)
 }
@@ -234,6 +242,12 @@ func (s *session) paired(c config, pkg string) (err error) {
 	if err := os.MkdirAll(c.shots, 0o755); err != nil {
 		return err
 	}
+	if c.pictures != "" {
+		// The app has not paired yet: this is its first page.
+		if err := s.unpairedPictures(c); err != nil {
+			return err
+		}
+	}
 	confirm, err := s.confirmPairing(c, pkg, uri)
 	if err != nil {
 		return err
@@ -260,6 +274,29 @@ func (s *session) paired(c config, pkg string) (err error) {
 			return err
 		}
 		s.keepDump(c.shots, "tab-"+t.name, shot)
+		if err := s.picture(c, "android-"+t.name); err != nil {
+			return err
+		}
+	}
+	report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
+	if err != nil {
+		return err
+	}
+	pss, rss, ok := ParseMeminfo(string(report))
+	if !ok {
+		return fmt.Errorf("no PSS or RSS in the paired meminfo report:\n%s", report)
+	}
+	line := PairedLine(pss, rss)
+	fmt.Fprintln(s.log, line)
+	if err := writeFile(filepath.Join(c.outputDir, "memory-paired.txt"), line+"\n"); err != nil {
+		return err
+	}
+	// The pictures that the tabs do not give come after the measurement, which they would change (pages
+	// that are opened, a theme that is changed), and before the log is read, which they write to.
+	if c.pictures != "" {
+		if err := s.morePictures(c); err != nil {
+			return err
+		}
 	}
 	logText, err := s.logText()
 	if err != nil {
@@ -274,17 +311,7 @@ func (s *session) paired(c config, pkg string) (err error) {
 	if warnings := anrs(logText, pkg); len(warnings) > 0 {
 		fmt.Fprintf(s.log, "warning: the system reported an ANR for %s (not a failure): %s\n", pkg, warnings[0])
 	}
-	report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
-	if err != nil {
-		return err
-	}
-	pss, rss, ok := ParseMeminfo(string(report))
-	if !ok {
-		return fmt.Errorf("no PSS or RSS in the paired meminfo report:\n%s", report)
-	}
-	line := PairedLine(pss, rss)
-	fmt.Fprintln(s.log, line)
-	return writeFile(filepath.Join(c.outputDir, "memory-paired.txt"), line+"\n")
+	return nil
 }
 
 // confirmPairing opens the pairing link on the device and taps the button that trusts the computer,
@@ -302,7 +329,13 @@ func (s *session) confirmPairing(c config, pkg, uri string) (screen, error) {
 			return screen{}, err
 		}
 		s.sleep(tabSettle)
-		shot, unreachable, err := s.awaitConfirmation(confirmTimeout)
+		shot, unreachable, err := s.awaitConfirmation(confirmTimeout, func() {
+			// The dialog that shows the fingerprint, before the button that trusts it is tapped.
+			s.sleep(tabSettle)
+			if err := s.picture(c, trustPicture); err != nil {
+				fmt.Fprintf(s.log, "the picture of the dialog of the trust was not taken: %v\n", err)
+			}
+		})
 		if err == nil && !unreachable {
 			return shot, nil
 		}
@@ -324,15 +357,17 @@ func (s *session) confirmPairing(c config, pkg, uri string) (screen, error) {
 }
 
 // awaitConfirmation waits until the dialog of the pairing shows what it has to show: the button that
-// trusts the computer, which it taps, or the message that the computer did not answer, which it
-// reports. The screen it returns when it fails is the last one it dumped.
-func (s *session) awaitConfirmation(timeout time.Duration) (shot screen, unreachable bool, err error) {
+// trusts the computer, which it taps (after beforeTap, which the run uses to take a picture of the
+// dialog), or the message that the computer did not answer, which it reports. The screen it returns
+// when it fails is the last one it dumped.
+func (s *session) awaitConfirmation(timeout time.Duration, beforeTap func()) (shot screen, unreachable bool, err error) {
 	deadline := s.now().Add(timeout)
 	var last screen
 	for {
 		if dumped, derr := s.dump(); derr == nil {
 			last = dumped
 			if target, ok := lowestClickable(dumped.elements, confirmLabel); ok {
+				beforeTap()
 				x, y := target.center()
 				if _, err := s.adb("shell", fmt.Sprintf("input tap %d %d", x, y)); err != nil {
 					return dumped, false, err

@@ -272,6 +272,33 @@ type fakeDevice struct {
 	taps        []string
 	screenIndex int
 	logIndex    int
+	// machine, when it is set, shows the screens that the taps lead to, as the app does, in place of
+	// the list of screens in the order that they are dumped.
+	machine *screenMachine
+}
+
+// screenMachine is a device that shows one screen at a time, and goes to another when it is tapped or when
+// the key of Android goes back, as the app does. A picture that it takes holds the name of the screen and the
+// theme that it was taken in, so that a test reads what each picture is of.
+type screenMachine struct {
+	// now is the name of the screen that is shown.
+	now string
+	// screens holds the dump of each screen by name, and next and back where a tap (its coordinates, as
+	// "x y") and the key of Android lead from each of them.
+	screens map[string]string
+	next    map[string]map[string]string
+	back    map[string]string
+	// night is the theme of the system.
+	night bool
+	// seen is the screens that were dumped, in order.
+	seen []string
+}
+
+// move goes to the screen that a tap or a key leads to from the screen that is shown, if there is one.
+func (m *screenMachine) move(table map[string]string, key string) {
+	if to, ok := table[key]; ok {
+		m.now = to
+	}
 }
 
 // adb answers one command of the fake device.
@@ -293,20 +320,48 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 	case strings.HasPrefix(command, "shell ip "), strings.HasPrefix(command, "shell getprop "),
 		strings.HasPrefix(command, "shell ping "), strings.HasPrefix(command, "shell echo | nc "):
 		return []byte("answer of the device to: " + strings.TrimPrefix(command, "shell ") + "\n"), nil
+	case args[0] == "exec-out" && d.machine != nil:
+		return []byte(fmt.Sprintf("\x89PNG fake screen=%s night=%t", d.machine.now, d.machine.night)), nil
 	case args[0] == "exec-out":
 		return []byte("\x89PNG fake"), nil
 	case strings.HasPrefix(command, "shell am start"):
+		if d.machine != nil && strings.Contains(command, "android.intent.action.VIEW") {
+			// The deep link opens the dialog of the trust.
+			d.machine.now = "confirm"
+		}
 		return []byte("Starting: Intent\nStatus: ok\n"), nil
+	case command == "shell cmd uimode night yes", command == "shell cmd uimode night no":
+		if d.machine != nil {
+			d.machine.night = strings.HasSuffix(command, "yes")
+		}
+		return nil, nil
+	case command == "shell input keyevent 4":
+		if d.machine != nil {
+			d.machine.move(d.machine.back, d.machine.now)
+		}
+		return nil, nil
+	case strings.HasPrefix(command, "shell settings put global sysui_demo_allowed"),
+		strings.HasPrefix(command, "shell am broadcast -a com.android.systemui.demo"):
+		return nil, nil
 	case strings.HasPrefix(command, "shell dumpsys meminfo"):
 		return []byte(meminfoReport), nil
 	case strings.HasPrefix(command, "shell uiautomator dump "+screenFile):
 		return []byte("UI hierarchy dumped to: " + screenFile + "\n"), nil
+	case strings.HasPrefix(command, "shell cat "+screenFile) && d.machine != nil:
+		d.machine.seen = append(d.machine.seen, d.machine.now)
+		return []byte(d.machine.screens[d.machine.now]), nil
 	case strings.HasPrefix(command, "shell cat "+screenFile):
 		text := d.screens[min(d.screenIndex, len(d.screens)-1)]
 		d.screenIndex++
 		return []byte(text), nil
 	case strings.HasPrefix(command, "shell input tap "):
-		d.taps = append(d.taps, strings.TrimPrefix(command, "shell input tap "))
+		tap := strings.TrimPrefix(command, "shell input tap ")
+		d.taps = append(d.taps, tap)
+		if d.machine != nil {
+			if to, ok := d.machine.next[d.machine.now][tap]; ok {
+				d.machine.now = to
+			}
+		}
 		return nil, nil
 	}
 	return nil, fmt.Errorf("the fake device has no answer to %q", command)
@@ -589,5 +644,184 @@ func TestMeasurePairingGivesUpWhenTheComputerNeverAnswers(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
 			t.Errorf("the failed run left no %s: %v", name, err)
 		}
+	}
+}
+
+// pageScreen is a page above the bar of the tabs, as the device dumps it: a title, the elements in extra, and
+// the five tabs at the bottom, each at the centre that tabsScreen gives it.
+func pageScreen(title, extra string) string {
+	return `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node index="0" text="` + title + `" class="android.view.View" clickable="false" bounds="[0,0][1080,120]" />
+` + extra + `
+  <node index="1" text="Home" class="android.view.View" clickable="true" bounds="[0,2200][216,2400]" />
+  <node index="2" text="SDKs" class="android.view.View" clickable="true" bounds="[216,2200][432,2400]" />
+  <node index="3" text="Plugins" class="android.view.View" clickable="true" bounds="[432,2200][648,2400]" />
+  <node index="4" text="Tasks" class="android.view.View" clickable="true" bounds="[648,2200][864,2400]" />
+  <node index="5" text="Settings" class="android.view.View" clickable="true" bounds="[864,2200][1080,2400]" />
+</hierarchy>
+`
+}
+
+// coverScreen is a screen that has no bar of tabs: a page that opens above them, or a dialog.
+func coverScreen(title, extra string) string {
+	return `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node index="0" text="` + title + `" class="android.view.View" clickable="false" bounds="[0,0][1080,120]" />
+` + extra + `
+</hierarchy>
+`
+}
+
+// guideMachine is the app as the pictures of the guide go through it: the pairing page, the dialog of the
+// trust that the deep link opens, the five tabs, the detail of an SDK that the row opens (and that the key of
+// Android closes), and the dialog of a plugin that its button opens (and that Cancel closes).
+func guideMachine() *screenMachine {
+	tabTaps := map[string]string{"108 2300": "home", "324 2300": "sdks", "540 2300": "plugins", "756 2300": "tasks", "972 2300": "settings"}
+	with := func(extra map[string]string) map[string]string {
+		out := map[string]string{}
+		for k, v := range tabTaps {
+			out[k] = v
+		}
+		for k, v := range extra {
+			out[k] = v
+		}
+		return out
+	}
+	return &screenMachine{
+		now: "pairing",
+		screens: map[string]string{
+			"pairing":   coverScreen("Pair with the computer", ""),
+			"confirm":   confirmScreen,
+			"home":      pageScreen("Home", ""),
+			"sdks":      pageScreen("SDKs", `  <node index="9" text="nodejs" class="android.view.View" clickable="true" bounds="[40,500][1040,700]" />`),
+			"sdk":       coverScreen("nodejs", ""),
+			"plugins":   pageScreen("Plugins", `  <node index="9" text="Add from source" class="android.view.View" clickable="true" bounds="[500,200][1000,300]" />`),
+			"addplugin": coverScreen("Add a plugin", `  <node index="9" text="Cancel" class="android.widget.Button" clickable="true" bounds="[100,1300][300,1400]" />`),
+			"tasks":     pageScreen("Tasks", ""),
+			"settings":  pageScreen("Settings", ""),
+		},
+		next: map[string]map[string]string{
+			"confirm":   {"540 1880": "home"},
+			"home":      with(nil),
+			"sdks":      with(map[string]string{"540 600": "sdk"}),
+			"plugins":   with(map[string]string{"750 250": "addplugin"}),
+			"tasks":     with(nil),
+			"settings":  with(nil),
+			"addplugin": {"200 1350": "plugins"},
+		},
+		back: map[string]string{"sdk": "sdks", "addplugin": "plugins"},
+	}
+}
+
+func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
+	dir := t.TempDir()
+	pictures := filepath.Join(dir, "pictures")
+	shots := filepath.Join(dir, "shots")
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m := guideMachine()
+	d := &fakeDevice{machine: m, logs: []string{"", pairedLogText("10.0.2.2", "AA:BB"), pairedLogText("10.0.2.2", "AA:BB")}}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, pictures: pictures, aapt2: "aapt2"}
+	if err := d.session().measure(c); err != nil {
+		t.Fatal(err)
+	}
+
+	// Every picture is of the screen and in the theme that its name says: the one of the trust is of the
+	// dialog before its button is tapped, and the dark ones are dark.
+	for name, want := range map[string]string{
+		"android-pairing":      "screen=pairing night=false",
+		"android-dark-pairing": "screen=pairing night=true",
+		"android-trust":        "screen=confirm night=false",
+		"android-home":         "screen=home night=false",
+		"android-sdks":         "screen=sdks night=false",
+		"android-plugins":      "screen=plugins night=false",
+		"android-tasks":        "screen=tasks night=false",
+		"android-settings":     "screen=settings night=false",
+		"android-sdk":          "screen=sdk night=false",
+		"android-add-plugin":   "screen=addplugin night=false",
+		"android-dark-home":    "screen=home night=true",
+	} {
+		if got := readText(t, filepath.Join(pictures, name+".png")); !strings.Contains(got, want) {
+			t.Errorf("%s is %q, want a picture of %q", name, got, want)
+		}
+	}
+	entries, err := os.ReadDir(pictures)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 11 {
+		t.Errorf("the directory of the pictures has %d files, want the 11 of the guide", len(entries))
+	}
+
+	// The theme of the system is the light one again, and the status bar was put in the demo mode before the
+	// first picture.
+	if m.night {
+		t.Error("the run leaves the system in the dark theme")
+	}
+	demo, firstShot := slices.Index(d.commands, "shell settings put global sysui_demo_allowed 1"), slices.Index(d.commands, "exec-out screencap -p")
+	if demo < 0 || demo > firstShot {
+		t.Errorf("the demo mode is at command %d, the first screenshot at %d: want it before", demo, firstShot)
+	}
+	// The dark theme was asked for twice (the pairing page and the home page), and each time given back.
+	var themes []string
+	for _, command := range d.commands {
+		if strings.HasPrefix(command, "shell cmd uimode night ") {
+			themes = append(themes, strings.TrimPrefix(command, "shell cmd uimode night "))
+		}
+	}
+	if want := []string{"yes", "no", "yes", "no"}; !slices.Equal(themes, want) {
+		t.Errorf("the themes were %v, want %v", themes, want)
+	}
+	// The detail of the SDK and the dialog were opened by their elements and closed, in this order: the row, the
+	// key of Android, the button, Cancel.
+	var steps []string
+	for _, tap := range d.taps {
+		switch tap {
+		case "540 600", "750 250", "200 1350":
+			steps = append(steps, tap)
+		}
+	}
+	if want := []string{"540 600", "750 250", "200 1350"}; !slices.Equal(steps, want) {
+		t.Errorf("the taps of the pictures were %v, want %v", steps, want)
+	}
+	if got := slices.Index(d.commands, "shell input keyevent 4"); got < 0 {
+		t.Error("the page of the SDK was not closed with the key of Android")
+	}
+	// What the pictures are of is kept as dumps beside the screenshots, and the memory is still measured.
+	for _, name := range []string{"picture-android-sdk.xml", "picture-android-add-plugin.xml", "picture-android-trust.xml"} {
+		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "memory-paired.txt")); err != nil {
+		t.Errorf("the paired memory was not measured: %v", err)
+	}
+}
+
+func TestMeasurePairingWithoutPicturesTakesNone(t *testing.T) {
+	dir := t.TempDir()
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{machine: guideMachine(), logs: []string{"", pairedLogText("10.0.2.2", "AA:BB"), pairedLogText("10.0.2.2", "AA:BB")}}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: filepath.Join(dir, "shots"), aapt2: "aapt2"}
+	if err := d.session().measure(c); err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range d.commands {
+		if strings.Contains(command, "uimode") || strings.Contains(command, "systemui.demo") {
+			t.Errorf("a run without pictures changed the theme or the status bar: %q", command)
+		}
+	}
+}
+
+func TestPicturesNeedAPairedSession(t *testing.T) {
+	err := Run([]string{"--apk", "phone.apk", "--output", "out", "--pictures", "pictures"})
+	if err == nil || !strings.Contains(err.Error(), "--pictures needs --pair-link-file") {
+		t.Errorf("Run = %v, want the pictures to need a pairing link", err)
 	}
 }

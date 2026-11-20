@@ -18,7 +18,10 @@
 # the address 10.0.2.2 (the one at which the emulator reaches this runner), and drives the paired
 # session the way a person does: the pairing link comes in through the deep link, the tabs are
 # visited with screenshots, and the app's log is checked for errors. It measures the memory of the
-# app cold and paired, for memory.yml (vfxtool measure-apk). The signing job rehearses what
+# app cold and paired, for memory.yml (vfxtool measure-apk). The desktop application it pairs with
+# runs against the fake vfox (a machine that has Node.js, Java and Flutter installed, and plugins to
+# offer), so the tabs show what a person has, and the same run takes the pictures of the user guide
+# (the phone-pictures artifact; docs/en/dev/contributing.md#screenshots). The signing job rehearses what
 # release.yml does to the APK after the approval, on a Windows runner as the release does and with
 # the same script (shared/scripts/sign-apk.ps1), with a key that is made for the run and is no one's:
 # the release is started by hand from main, the release key is in an environment that only main and
@@ -164,11 +167,20 @@ jobs:
       - name: Start the desktop application in a virtual display
         # The end-to-end build writes its loopback link to the file when it starts, and lists
         # 10.0.2.2 as an address of this computer (VFOX_PLUS_E2E_ADDRESSES), so that the link of
-        # the phone names the address at which the emulator reaches this runner. It runs until the
-        # last step of the job stops it.
+        # the phone names the address at which the emulator reaches this runner. It runs against the
+        # fake vfox, as the pictures of the documentation are taken (docs/en/dev/contributing.md): a
+        # copy of vfxtool named vfox is first on the PATH, and acts as vfox with the fixtures, as a
+        # machine that has Node.js, Java and Flutter installed (VFOX_PLUS_FAKE_INVENTORY=profiles).
+        # Its home is a directory of its own. It runs until the last step of the job stops it.
         run: |
-          mkdir -p "$RUNNER_TEMP/phone-e2e"
-          VFOX_PLUS_E2E_ADDRESSES=10.0.2.2 VFOX_PLUS_E2E_LINK="$RUNNER_TEMP/phone-e2e/loopback-link.txt" \
+          set -eu
+          home="$RUNNER_TEMP/phone-e2e/home"
+          mkdir -p "$home/bin" "$home/run" "$home/.config/vfox-plus"
+          chmod 700 "$home/run"
+          cp "$RUNNER_TEMP/vfxtool" "$home/bin/vfox"
+          HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_RUNTIME_DIR="$home/run" PATH="$home/bin:$PATH" NO_COLOR=1 \
+            VFOX_PLUS_FIXTURES="$PWD/shared/fixtures/vfox-1.1.0" VFOX_PLUS_FAKE_INVENTORY=profiles \
+            VFOX_PLUS_E2E_ADDRESSES=10.0.2.2 VFOX_PLUS_E2E_LINK="$RUNNER_TEMP/phone-e2e/loopback-link.txt" \
             setsid xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- "$RUNNER_TEMP/vfox-plus-e2e" \
             > "$RUNNER_TEMP/phone-e2e/desktop.log" 2>&1 < /dev/null &
       - name: Download the APK
@@ -207,8 +219,9 @@ jobs:
           # asked for at the last moment, because a pairing link lasts five minutes, and the emulator
           # takes minutes to boot. The memory of the first screen goes to memory-android (the one line
           # memory.txt the report reads), the paired one to memory-paired.txt beside the screenshots in
-          # shots. The link goes to a file of its own: a secret, never printed.
-          script: ${{ runner.temp }}/vfxtool phone-link --loopback-link-file ${{ runner.temp }}/phone-e2e/loopback-link.txt --host 10.0.2.2 --output ${{ runner.temp }}/phone-e2e/pairing-link.txt --wait 180 && ${{ runner.temp }}/vfxtool measure-apk --apk ${{ env.APK }} --output ${{ runner.temp }}/memory-android --screenshot ${{ runner.temp }}/screenshot-android.png --pair-link-file ${{ runner.temp }}/phone-e2e/pairing-link.txt --shots ${{ runner.temp }}/phone-e2e/shots
+          # shots, and the pictures of the user guide to phone-pictures/raw. The link goes to a file of its
+          # own: a secret, never printed.
+          script: ${{ runner.temp }}/vfxtool phone-link --loopback-link-file ${{ runner.temp }}/phone-e2e/loopback-link.txt --host 10.0.2.2 --output ${{ runner.temp }}/phone-e2e/pairing-link.txt --wait 180 && ${{ runner.temp }}/vfxtool measure-apk --apk ${{ env.APK }} --output ${{ runner.temp }}/memory-android --screenshot ${{ runner.temp }}/screenshot-android.png --pair-link-file ${{ runner.temp }}/phone-e2e/pairing-link.txt --shots ${{ runner.temp }}/phone-e2e/shots --pictures ${{ runner.temp }}/phone-pictures/raw
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: memory-android
@@ -259,6 +272,30 @@ jobs:
           # log of the desktop application. The pairing link is not among them.
           name: phone-e2e-android
           path: ${{ runner.temp }}/evidence/*
+          if-no-files-found: warn
+          overwrite: true
+      - name: Frame the pictures of the user guide
+        # vfxtool frame-phone gives each picture the corners of a phone display and a border (the pictures
+        # of the guide are framed: the cream screens have no edge against the white page of GitHub). The
+        # raw ones are kept as well.
+        if: always()
+        run: |
+          set -eu
+          raw="$RUNNER_TEMP/phone-pictures/raw"
+          [ -d "$raw" ] || exit 0
+          mkdir -p "$RUNNER_TEMP/phone-pictures/framed"
+          for picture in "$raw"/*.png; do
+            "$RUNNER_TEMP/vfxtool" frame-phone "$picture" "$RUNNER_TEMP/phone-pictures/framed/$(basename "$picture")"
+          done
+          ls -l "$RUNNER_TEMP/phone-pictures/framed"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          # The pictures of the user guide of the phone app, as the app draws them on the emulator, in
+          # English: framed/ is what the guide links once it is on the image host, raw/ the screens as
+          # they came.
+          name: phone-pictures
+          path: ${{ runner.temp }}/phone-pictures/*
           if-no-files-found: warn
           overwrite: true
       - name: Stop the desktop application
