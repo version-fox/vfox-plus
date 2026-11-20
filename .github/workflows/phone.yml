@@ -99,6 +99,16 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Build vfxtool
         run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Prepare the embedded assets
+        # The translations, the icons and the licenses that mygo compiles into the application
+        # (mygo/assets, which the repository does not hold), as mygo.yml prepares them. The build
+        # of the phone app compiles the module, so it needs them.
+        run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
       - name: Write the icons of the app
         # The repository holds no binary files: the icons that mygo.json names are drawn by vfxtool.
         run: '"$RUNNER_TEMP/vfxtool" appicon mygo/phone/resources'
