@@ -15,13 +15,14 @@
 package appicon
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"image/color"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -157,11 +158,62 @@ func TestParsePath(t *testing.T) {
 }
 
 func TestPathsAreAbsolute(t *testing.T) {
-	all := append([]shape{plate, halo, {id: "android", d: androidBackground}, {id: "mono", d: maskMono}}, foxShapes...)
+	all := append([]shape{plate, halo, {id: "adaptive-plate", d: androidBackground}}, foxShapes...)
 	for _, s := range all {
-		if _, err := parsePath(s.d); err != nil && s.id != "android" { // H and V are for Android only.
+		if _, err := parsePath(s.d); err != nil {
 			t.Errorf("%s: %v", s.id, err)
 		}
+	}
+}
+
+func TestRenderAdaptiveForeground(t *testing.T) {
+	img := RenderAdaptiveForeground(432)
+	// The plate covers the whole canvas, so the corners are opaque, and the colour runs from the
+	// top colour of the plate to the bottom one.
+	if c := img.NRGBAAt(0, 0); !near(c, "#5444E4", 12) {
+		t.Errorf("top-left corner = %v, want the top colour of the plate", c)
+	}
+	if c := img.NRGBAAt(431, 431); !near(c, "#1B1268", 16) {
+		t.Errorf("bottom-right corner = %v, want the bottom colour of the plate", c)
+	}
+}
+
+func TestWritePhoneIcons(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "resources")
+	if err := WritePhoneIcons(dir); err != nil {
+		t.Fatalf("WritePhoneIcons: %v", err)
+	}
+	for file, side := range map[string]int{IconFile: PhoneIconSize, ForegroundFile: AdaptiveForegroundSize} {
+		data, err := os.ReadFile(filepath.Join(dir, file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		img, err := png.Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatalf("%s: %v", file, err)
+		}
+		if b := img.Bounds(); b.Dx() != side || b.Dy() != side {
+			t.Errorf("%s is %v, want %d by %d", file, b, side, side)
+		}
+	}
+	// The icon keeps the rounded corners of the desktop icon, transparent outside; the foreground is
+	// opaque to its corners.
+	icon, err := os.ReadFile(filepath.Join(dir, IconFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := png.Decode(bytes.NewReader(icon))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, a := decoded.At(0, 0).RGBA(); a != 0 {
+		t.Errorf("the corner of the icon has alpha %d, want 0", a>>8)
+	}
+}
+
+func TestRunNeedsADirectory(t *testing.T) {
+	if err := Run(nil); err == nil {
+		t.Fatal("Run without a directory succeeded")
 	}
 }
 
@@ -254,151 +306,5 @@ func TestMatchesSVG(t *testing.T) {
 	}
 	for i, s := range foxShapes {
 		check(icon.Fox.Paths[i], s)
-	}
-}
-
-var (
-	pathDataRe  = regexp.MustCompile(`android:pathData="([^"]*)"`)
-	fillColorRe = regexp.MustCompile(`android:fillColor="([^"]*)"`)
-	gradientRe  = regexp.MustCompile(`(?s)<gradient\s+android:type="linear"\s+android:startX="([^"]*)" android:startY="([^"]*)"\s+android:endX="([^"]*)" android:endY="([^"]*)">(.*?)</gradient>`)
-	itemRe      = regexp.MustCompile(`<item android:offset="([^"]*)" android:color="([^"]*)"/>`)
-)
-
-// androidColor is the colour as an Android resource writes it, #RRGGBB or #AARRGGBB.
-func androidColor(color string, opacity float64) string {
-	color = strings.ToUpper(color)
-	if opacity >= 1 {
-		return color
-	}
-	return fmt.Sprintf("#%02X%s", int(math.Round(opacity*255)), strings.TrimPrefix(color, "#"))
-}
-
-// androidGradient is how a gradient of the XML reads: its line and its stops.
-func androidGradient(g gradient) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "%v,%v,%v,%v", g.x1, g.y1, g.x2, g.y2)
-	for _, s := range g.stops {
-		fmt.Fprintf(&b, " %v=%s", s.offset, androidColor(s.color, s.opacity))
-	}
-	return b.String()
-}
-
-func gradientByID(id string) gradient {
-	for _, g := range gradients {
-		if g.id == id {
-			return g
-		}
-	}
-	panic("no gradient " + id)
-}
-
-// fullBleedPlate is the gradient of the plate of the adaptive icon, which fills the canvas
-// instead of the rounded square of the other icons.
-func fullBleedPlate() gradient {
-	g := gradientByID("plate")
-	g.x1, g.y1, g.x2, g.y2 = 0, 0, canvas, canvas
-	return g
-}
-
-func TestMatchesAndroid(t *testing.T) {
-	type layer struct {
-		file      string
-		paths     []string   // the path data of the file, in order
-		gradients []gradient // the gradients, in order
-		solids    []string   // the solid colours, in order
-		groups    []string   // the transforms of the groups, in order
-	}
-	foxPaths, foxSolids := []string{}, []string{}
-	for _, s := range foxShapes {
-		foxPaths = append(foxPaths, s.d)
-		if !strings.HasPrefix(s.fill, "url(") {
-			foxSolids = append(foxSolids, strings.ToUpper(s.fill))
-		}
-	}
-	foxGradients := []gradient{gradientByID("cream"), gradientByID("fur")}
-	foxAndroid := fmt.Sprintf("%v,%v,%v", androidFoxX, androidFoxY, androidFoxScale)
-	layers := []layer{
-		{"ic_launcher_background.xml", []string{androidBackground, halo.d}, []gradient{fullBleedPlate(), gradientByID("halo")}, nil,
-			[]string{fmt.Sprint(androidHaloScale)}},
-		{"ic_launcher_foreground.xml", foxPaths, foxGradients, foxSolids, []string{foxAndroid}},
-		{"ic_mark.xml", append([]string{plate.d, halo.d}, foxPaths...), append([]gradient{gradientByID("plate"), gradientByID("halo")}, foxGradients...), foxSolids,
-			[]string{fmt.Sprint(haloScale), fmt.Sprintf("%v,%v,%v", foxX, foxY, foxScale)}},
-	}
-	for _, l := range layers {
-		text := repoFile(t, "android/app/src/main/res/drawable/"+l.file)
-		var got []string
-		for _, m := range pathDataRe.FindAllStringSubmatch(text, -1) {
-			got = append(got, m[1])
-		}
-		if strings.Join(got, "\n") != strings.Join(l.paths, "\n") {
-			t.Errorf("%s: the path data differs from appicon (%d paths in the file, %d in appicon)", l.file, len(got), len(l.paths))
-		}
-		var solids []string
-		for _, m := range fillColorRe.FindAllStringSubmatch(text, -1) {
-			solids = append(solids, strings.ToUpper(m[1]))
-		}
-		if strings.Join(solids, " ") != strings.Join(l.solids, " ") {
-			t.Errorf("%s: solid colours %v, want %v", l.file, solids, l.solids)
-		}
-		var grads []string
-		for _, m := range gradientRe.FindAllStringSubmatch(text, -1) {
-			var stops []string
-			for _, it := range itemRe.FindAllStringSubmatch(m[5], -1) {
-				stops = append(stops, it[1]+"="+strings.ToUpper(it[2]))
-			}
-			grads = append(grads, fmt.Sprintf("%s,%s,%s,%s %s", m[1], m[2], m[3], m[4], strings.Join(stops, " ")))
-		}
-		var want []string
-		for _, g := range l.gradients {
-			want = append(want, androidGradient(g))
-		}
-		if strings.Join(grads, "\n") != strings.Join(want, "\n") {
-			t.Errorf("%s: gradients\n%s\nwant\n%s", l.file, strings.Join(grads, "\n"), strings.Join(want, "\n"))
-		}
-		var groups []string
-		for _, m := range regexp.MustCompile(`(?s)<group(.*?)>`).FindAllStringSubmatch(text, -1) {
-			attr := func(name string) string {
-				a := regexp.MustCompile(`android:` + name + `="([^"]*)"`).FindStringSubmatch(m[1])
-				if a == nil {
-					return ""
-				}
-				return a[1]
-			}
-			if attr("pivotX") != "" { // The halo: a scale around the centre.
-				groups = append(groups, attr("scaleX"))
-			} else {
-				groups = append(groups, attr("translateX")+","+attr("translateY")+","+attr("scaleX"))
-			}
-		}
-		if strings.Join(groups, " ") != strings.Join(l.groups, " ") {
-			t.Errorf("%s: group transforms %v, want %v", l.file, groups, l.groups)
-		}
-	}
-
-	// The monochrome icon draws the cheeks, with the eyes and the nose cut out, below the fur,
-	// with the eyes and the ears cut out.
-	text := repoFile(t, "android/app/src/main/res/drawable/ic_launcher_monochrome.xml")
-	var mono []string
-	for _, m := range pathDataRe.FindAllStringSubmatch(text, -1) {
-		mono = append(mono, m[1])
-	}
-	byID := map[string]string{}
-	for _, s := range foxShapes {
-		byID[s.id] = s.d
-	}
-	wantMono := []string{
-		strings.Join([]string{byID["cheeks"], byID["eye-left"], byID["eye-right"], byID["nose"]}, " "),
-		strings.Join([]string{maskMono, byID["eye-left"], byID["eye-right"], byID["ear-left"], byID["ear-right"]}, " "),
-	}
-	if strings.Join(mono, "\n") != strings.Join(wantMono, "\n") {
-		t.Errorf("ic_launcher_monochrome.xml differs from appicon:\n%v\nwant\n%v", mono, wantMono)
-	}
-	for _, f := range []string{"ic_launcher.xml", "ic_launcher_round.xml"} {
-		adaptive := repoFile(t, "android/app/src/main/res/mipmap-anydpi-v26/"+f)
-		for _, ref := range []string{"@drawable/ic_launcher_background", "@drawable/ic_launcher_foreground", "@drawable/ic_launcher_monochrome"} {
-			if !strings.Contains(adaptive, ref) {
-				t.Errorf("%s does not use %s", f, ref)
-			}
-		}
 	}
 }
