@@ -83,7 +83,7 @@ func PageHeader(c Ctx, title, subtitle string, leading func(), actions ...func()
 			leading()
 		}
 		ui.Column(c.Context).Grow(1).Shrink(1).Basis(room).MinWidth(room).Gap(4).Children(func() {
-			Label(c, title, style, cs.OnSurface, Lines(2)).Role(ui.RoleHeading).Level(1)
+			Line(c, title, style, cs.OnSurface).Role(ui.RoleHeading).Level(1)
 			if subtitle != "" {
 				Label(c, subtitle, Type(BodyMedium), cs.OnSurfaceVariant, Lines(2))
 			}

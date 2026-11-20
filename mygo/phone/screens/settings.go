@@ -26,11 +26,9 @@ import (
 // the computer, the settings of the application, and vfox's configuration. The
 // order is the web's. Each section reads its data from the service as it is drawn,
 // and changes it through Do.
-func (r *Root) settingsTab(k kit.Ctx, bar bool) {
+func (r *Root) settingsTab(k kit.Ctx) {
 	ui.Column(k.Context).Fill().Children(func() {
-		if bar {
-			kit.PageHeader(k, tabTitle(app.TabSettings), "", nil)
-		}
+		kit.PageHeader(k, tabTitle(app.TabSettings), "", nil)
 		ui.Scroll(k.Context).Grow(1).Shrink(1).Children(func() {
 			ui.Column(k.Context).Padding(0, 16, 24, 16).Gap(16).Children(func() {
 				r.phoneCard(k)

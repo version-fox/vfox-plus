@@ -94,8 +94,9 @@ func New() (*Root, error) {
 		return nil, err
 	}
 	router := ui.NewRouter(app.RootPath)
-	// On a phone the system shows the pages as its own stack of screens, with
-	// its back gesture; elsewhere SystemStack changes nothing.
+	// On a phone the system shows the pages that open above the tabs as its own
+	// stack of screens, with its bar, its back button and its back gesture;
+	// elsewhere SystemStack changes nothing. The tabs themselves draw their heading.
 	router.SystemStack = true
 	theme := kit.NewTheme(seedColor, false, false, 1)
 	root := &Root{router: router, env: kit.NewEnv(theme), uiTheme: theme.UI(), service: service, pickFile: pickPluginFile}
@@ -254,28 +255,35 @@ func noticeText(kind app.Kind) string {
 // route builds the page of one route of the router: the tabs at the root, and
 // the page of its path above them.
 func (r *Root) route(k kit.Ctx, route *ui.Route) {
-	// Where the system shows the bar of the window, with the title and the way
-	// back of each page, the window draws none of its own.
-	bar := !r.router.InSystemStack(k.Context)
 	page, ok := app.ParsePage(route.Path())
 	if !ok {
-		route.Title(tabTitle(r.app.Tab()))
-		r.tabShell(k, bar)
+		// The tabs draw their own heading, in every window, and give the bar of the system no title. On
+		// Android the bar is a toolbar, and with no way back beside it (the root has none) it is as high as
+		// its title is, with the room that the font gives the line but not what its letters need: the tail of
+		// the g of Plugins and of Settings was cut. It also kept the colour that its title had in the light
+		// theme when the system went dark while the app ran. The bar is then no more than the place of the
+		// status bar.
+		route.Title("")
+		r.tabShell(k)
 		return
 	}
+	// Where the system shows the bar of the window, with the title and the way
+	// back of each page above the tabs, the window draws none of its own.
+	bar := !r.router.InSystemStack(k.Context)
 	route.Title(pageTitle(page))
 	r.pageScreen(k, page, bar)
 }
 
 // tabShell is the root of the router: the page of the tab shown, above the bar of
-// the tabs.
-func (r *Root) tabShell(k kit.Ctx, bar bool) {
+// the tabs. The page has its name, which is the tab's, for a screen reader: the title
+// of the route is empty (see route).
+func (r *Root) tabShell(k kit.Ctx) {
 	tab := r.app.Tab()
-	ui.Column(k.Context).Fill().Children(func() {
+	ui.Column(k.Context).Fill().Label(tabTitle(tab)).Children(func() {
 		// The connection's state (checking, or not answering) is shown above the tabs.
 		r.sessionStrip(k)
 		kit.SwitchView(k, kit.FadeThrough, 0, tab, func() {
-			r.tabPage(k, tab, bar)
+			r.tabPage(k, tab)
 		}).Grow(1).Shrink(1)
 		kit.NavBar(k, kit.NavBarSpec{
 			ID:           "tabs",

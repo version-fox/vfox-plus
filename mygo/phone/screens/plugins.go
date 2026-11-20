@@ -40,26 +40,16 @@ type pluginsState struct {
 	landed *atomic.Bool
 }
 
-// pluginsTab is the plugin tab. With the bar of the window it shows the title and the
-// actions in its header; without it, which is when the system shows the title, it shows
-// the actions above the list.
-func (r *Root) pluginsTab(k kit.Ctx, bar bool) {
+// pluginsTab is the plugin tab: its title and its actions in the header, and the
+// registry under them.
+func (r *Root) pluginsTab(k kit.Ctx) {
 	column := ui.Column(k.Context).Fill()
 	st := ui.Local(column, "pluginsState", func() pluginsState {
 		return pluginsState{filter: pluginFilterAll, limit: availPageSize, landed: new(atomic.Bool)}
 	})
 	column.Children(func() {
 		r.availFollowTasks(k, st.landed)
-		actions := r.pluginsActions(k, st)
-		if bar {
-			kit.PageHeader(k, tabTitle(app.TabPlugins), "", nil, actions...)
-		} else {
-			ui.Row(k.Context).Padding(8, 16, 0, 16).Gap(8).Wrap().Justify(ui.End).Children(func() {
-				for _, action := range actions {
-					action()
-				}
-			})
-		}
+		kit.PageHeader(k, tabTitle(app.TabPlugins), "", nil, r.pluginsActions(k, st)...)
 		ui.Column(k.Context).Grow(1).Shrink(1).Children(func() {
 			r.pluginsBody(k, st)
 		})

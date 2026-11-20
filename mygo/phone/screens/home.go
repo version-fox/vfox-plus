@@ -41,12 +41,12 @@ type homeState struct {
 // homeTab is the home tab. It shows the version of vfox with a refresh, the SDKs that
 // are in use, the health of vfox and of the SDKs, and the line that puts vfox in the
 // shell. Each part reads its resource without waiting; the reads load what they need.
-func (r *Root) homeTab(k kit.Ctx, bar bool) {
+func (r *Root) homeTab(k kit.Ctx) {
 	inventory := r.service.Inventory()
 	column := ui.Column(k.Context).Fill()
 	state := ui.Local(column, "home", func() homeState { return homeState{} })
 	column.Children(func() {
-		r.homeHeader(k, inventory, bar)
+		r.homeHeader(k, inventory)
 		ui.Scroll(k.Context).Grow(1).Shrink(1).Children(func() {
 			ui.Column(k.Context).Padding(8, 16, 24, 16).Gap(16).Children(func() {
 				r.homeActive(k, inventory)
@@ -58,25 +58,15 @@ func (r *Root) homeTab(k kit.Ctx, bar bool) {
 }
 
 // homeHeader is the title of the home tab: the name of the app, and the version of
-// vfox under it, with the button that refreshes everything. Where the system draws
-// the bar, the title is its own; the version and the refresh stay in the page.
-func (r *Root) homeHeader(k kit.Ctx, inventory app.Resource[remote.Inventory], bar bool) {
-	subtitle := homeVersionLine(inventory)
-	refresh := func() {
+// vfox under it, with the button that refreshes everything.
+func (r *Root) homeHeader(k kit.Ctx, inventory app.Resource[remote.Inventory]) {
+	kit.PageHeader(k, i18n.Text("appName"), homeVersionLine(inventory), nil, func() {
 		kit.IconButton(k, kit.IconButtonSpec{
 			ID:      "refresh",
 			Icon:    "refresh",
 			Tooltip: i18n.Text("refresh"),
 			OnClick: r.service.Refresh,
 		})
-	}
-	if bar {
-		kit.PageHeader(k, i18n.Text("appName"), subtitle, nil, refresh)
-		return
-	}
-	ui.Row(k.Context).Padding(16, 16, 8, 16).Gap(8).Children(func() {
-		kit.Label(k, subtitle, kit.Type(kit.TitleMedium), k.Colors().OnSurfaceVariant).Grow(1).Shrink(1)
-		refresh()
 	})
 }
 

@@ -22,18 +22,18 @@ import (
 
 // tabPage builds the page of a tab. The page of each tab is in the file of its
 // group (see the comment at the top of each file).
-func (r *Root) tabPage(k kit.Ctx, tab app.Tab, bar bool) {
+func (r *Root) tabPage(k kit.Ctx, tab app.Tab) {
 	switch tab {
 	case app.TabHome:
-		r.homeTab(k, bar)
+		r.homeTab(k)
 	case app.TabSDKs:
-		r.sdksTab(k, bar)
+		r.sdksTab(k)
 	case app.TabPlugins:
-		r.pluginsTab(k, bar)
+		r.pluginsTab(k)
 	case app.TabTasks:
-		r.tasksTab(k, bar)
+		r.tasksTab(k)
 	case app.TabSettings:
-		r.settingsTab(k, bar)
+		r.settingsTab(k)
 	}
 }
 

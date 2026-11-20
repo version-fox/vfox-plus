@@ -28,18 +28,14 @@ import (
 // tasksTab is the tasks tab: what vfox has done and is doing, the newest first. A
 // row opens its output under it, and the task page and the full log open from
 // there. The list is a virtual list, so that only the rows on the screen are built.
-func (r *Root) tasksTab(k kit.Ctx, bar bool) {
+func (r *Root) tasksTab(k kit.Ctx) {
 	column := ui.Column(k.Context).Fill()
 	list := ui.Local(column, "list", func() ui.ListState { return ui.ListState{} })
 	res := r.service.Tasks()
 	values, loaded := res.Value()
 	tasks, cut := newestTasks(values)
 	column.Children(func() {
-		if bar {
-			kit.PageHeader(k, i18n.Text("tasksH"), "", nil, func() { r.taskClearButton(k) })
-		} else {
-			ui.Row(k.Context).Justify(ui.End).Padding(8, 16, 0, 16).Children(func() { r.taskClearButton(k) })
-		}
+		kit.PageHeader(k, i18n.Text("tasksH"), "", nil, func() { r.taskClearButton(k) })
 		switch {
 		case !loaded && res.Phase() == app.Failed:
 			ui.Column(k.Context).Grow(1).Shrink(1).Children(func() {

@@ -32,18 +32,16 @@ import (
 // sdksTab is the SDK tab, which lists the plugins that are installed, with a search
 // over their names. A tap opens the page of the plugin. The list reads the installed
 // plugins of the inventory; the registry is the plugins tab's.
-func (r *Root) sdksTab(k kit.Ctx, bar bool) {
+func (r *Root) sdksTab(k kit.Ctx) {
 	ui.Column(k.Context).Fill().Children(func() {
-		if bar {
-			kit.PageHeader(k, tabTitle(app.TabSDKs), "", nil, func() {
-				kit.IconButton(k, kit.IconButtonSpec{
-					ID:      "sdkRefresh",
-					Icon:    "refresh",
-					Tooltip: i18n.Text("refresh"),
-					OnClick: r.service.Refresh,
-				})
+		kit.PageHeader(k, tabTitle(app.TabSDKs), "", nil, func() {
+			kit.IconButton(k, kit.IconButtonSpec{
+				ID:      "sdkRefresh",
+				Icon:    "refresh",
+				Tooltip: i18n.Text("refresh"),
+				OnClick: r.service.Refresh,
 			})
-		}
+		})
 		r.sdkListBody(k)
 	})
 }
