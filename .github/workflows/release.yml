@@ -15,26 +15,32 @@
 # A release of vfox-plus, started by hand like the releases of
 # https://github.com/version-fox/vfox-java: Actions, Release, Run workflow, on
 # main, and type the version (1.0.0, without the v). That is the whole procedure.
-# A run waits once for the approval of a member of @version-fox/vfox-maintainers
-# or @version-fox/vfox-committers, before the signing: that job is the only one
-# that names the release environment, because GitHub asks for an approval for
-# each job that does. An administrator of the repository may start it without
-# the approval. The release environment holds the secrets and the signing
-# identity, and only main and the tags v* can use it
-# (docs/en/dev/packaging-windows.md#signing-the-release).
+# A run waits for the approval of a member of @version-fox/vfox-maintainers
+# or @version-fox/vfox-committers before it signs, and it asks for that approval
+# once: one job names the release environment, sign-windows, which signs the
+# Windows packages and the APK of the phone app. GitHub asks for an approval for
+# each job that names an environment, so all the signing stays in that one job. An
+# administrator of the repository may start it without the approval. The release
+# environment holds the secrets and the signing identities, and only main and the
+# tags v* can use it (docs/en/dev/packaging-windows.md#signing-the-release).
 #
 # The build job checks the request first: the version is new and newer than the
 # newest tag, and the last run of mygo on main passed. It sets the version in
-# mygo/VERSION, the Version constant of mygo/ui/app.go and the release list of the
-# metainfo, and commits that in the name of the person who started the run. It
-# builds what mygo.yml builds for Linux (amd64 and arm64), the classic snap of
-# snap/snapcraft.yaml, the Windows packages with the publisher of the signing
-# certificate, and the Android APK, unsigned. It pushes nothing.
+# mygo/VERSION, the Version constant of mygo/ui/app.go, the version of the phone app
+# (mygo/phone/mygo.json) and the release list of the metainfo, and commits that in
+# the name of the person who started the run. It builds what mygo.yml builds for
+# Linux (amd64 and arm64), the classic snap of snap/snapcraft.yaml, the Windows
+# packages with the publisher of the signing certificate, and the phone app for
+# Android with the debug key, which checks that the build works before anyone
+# approves the release. It pushes nothing.
 #
 # The sign-windows job, which waits for the approval, signs the .msix files, then
 # makes the .msixbundle again from them (the signatures make them larger), signs
 # it, and installs the bundle without -AllowUnsigned to check that Windows accepts
-# it. It signs the APK with the release key, with apksigner.
+# it. The same job signs the APK of the phone app with the release key: the build
+# job makes that APK with mygo and the debug key, because the build has no secrets,
+# and sign-windows replaces the debug signature with zipalign and apksigner. Then it
+# checks that no debug signature is left.
 #
 # The publish job attests the Linux packages and checks the assets. Only then does
 # it push the version commit to main, tag v<version> and publish the GitHub release,
@@ -149,10 +155,10 @@ jobs:
           id="$(gh api "users/$GITHUB_ACTOR" --jq .id)"
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$id+$GITHUB_ACTOR@users.noreply.github.com"
-          if git diff --quiet -- mygo/VERSION mygo/ui/app.go shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml; then
+          if git diff --quiet -- mygo/VERSION mygo/ui/app.go mygo/phone/mygo.json shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml; then
             echo "The files say $VERSION already"
           else
-            git add -- mygo/VERSION mygo/ui/app.go shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml
+            git add -- mygo/VERSION mygo/ui/app.go mygo/phone/mygo.json shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml
             git commit -q -m "Release v$VERSION"
           fi
       - name: Keep the commit for the publish job
@@ -259,8 +265,8 @@ jobs:
         run: |
           ls -la dist-windows
           "$RUNNER_TEMP/vfxtool" validate-msix --publisher "$WINDOWS_PUBLISHER" dist-windows
-      - name: Read the pinned Android versions
-        run: grep -hE '^[A-Z0-9_]+=' android/versions.env >> "$GITHUB_ENV"
+      - name: Read the pinned versions of the phone app
+        run: grep -hE '^[A-Z0-9_]+=' mygo/phone/versions.env >> "$GITHUB_ENV"
       - name: Set up JDK
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
@@ -271,25 +277,38 @@ jobs:
         with:
           # The default package list still names the `tools` package, which
           # Google removed; install only what the build needs.
-          packages: platform-tools
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
-        with:
-          # Only the caches: android/gradlew is Gradle Wrapper Neo, which has
-          # no wrapper jar to validate.
-          validate-wrappers: false
-      - name: Build the unsigned release APK
-        # Without the release key: the sign-windows job signs the APK, and only that job
-        # reads the key. After Set the version, so the APK carries the version it is
-        # released as.
-        env:
-          ANDROID_RELEASE_UNSIGNED: '1'
-        run: ./gradlew :app:assembleRelease
-        working-directory: android
-      - name: Keep the unsigned APK
+          packages: platform-tools platforms;android-${{ env.ANDROID_SDK_PLATFORM }} build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }} ndk;${{ env.ANDROID_NDK_VERSION }}
+      - name: Install the mygo CLI
         run: |
+          go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Write the icons of the phone app
+        # The icons that mygo.json names. They are written from the root of the repository:
+        # a step in mygo/phone would write them under mygo/phone/mygo/phone.
+        run: '"$RUNNER_TEMP/vfxtool" appicon mygo/phone/resources'
+      - name: Build the phone app with the debug key
+        # The APK is built before the approval, and it is the one that is released: the
+        # build has no secrets, so mygo signs it with the debug key, and sign-windows
+        # replaces that signature with the release key. After Set the version, so the
+        # build carries the version it is released as.
+        run: mygo build -platform android
+        working-directory: mygo/phone
+      - name: Keep the unsigned APK of the phone app
+        # sign-windows signs this file with the release key. There must be exactly one APK.
+        run: |
+          set -eu
+          apk="$(ls mygo/phone/dist/android/*.apk)"
+          if [ "$(printf '%s\n' "$apk" | grep -c .)" != 1 ]; then
+            echo "::error::want one APK of the phone app, found: $apk"
+            exit 1
+          fi
           mkdir -p dist-android-unsigned
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk "dist-android-unsigned/vfox-plus_${VERSION}-unsigned.apk"
+          cp "$apk" "dist-android-unsigned/vfox-plus_${VERSION}-unsigned.apk"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-android-unsigned
+          path: dist-android-unsigned/*
+          if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vfox-plus-linux-x64
@@ -312,24 +331,19 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: vfox-plus-android-unsigned
-          path: dist-android-unsigned/*
-          if-no-files-found: error
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
           name: vfox-plus-version
           path: ${{ runner.temp }}/version/*
           if-no-files-found: error
 
   sign-windows:
-    name: Sign the Windows packages and the APK with the release key
+    name: Sign the Windows packages
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
     needs: build
-    # The signing identity and the release key are in this environment, and a run
-    # waits here for the one approval of the release (see the top of this file). The
-    # federated credential of Azure is bound to this environment, and no other job
-    # names it: no other job can sign, and none can read the release key.
+    # The signing identity of the Windows packages is in this environment, and a run
+    # waits here for its approval (see the top of this file). The federated credential
+    # of Azure is bound to this environment, and no other job names it: no other job
+    # can sign the Windows packages.
     environment: release
     permissions:
       # id-token: write lets the job log in to Azure with the identity of the release.
@@ -348,23 +362,23 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARTIFACT_SIGNING_ENDPOINT: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          ARTIFACT_SIGNING_ACCOUNT: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          ARTIFACT_SIGNING_PROFILE: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-          ARTIFACT_SIGNING_ENDPOINT: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
-          ARTIFACT_SIGNING_ACCOUNT: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
-          ARTIFACT_SIGNING_PROFILE: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
         shell: pwsh
         run: |
           $missing = @()
-          foreach ($name in "AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID", "ANDROID_RELEASE_KEYSTORE_BASE64", "ANDROID_RELEASE_STORE_PASSWORD", "ANDROID_RELEASE_KEY_ALIAS", "ANDROID_RELEASE_KEY_PASSWORD", "ARTIFACT_SIGNING_ENDPOINT", "ARTIFACT_SIGNING_ACCOUNT", "ARTIFACT_SIGNING_PROFILE", "WINDOWS_PUBLISHER") {
+          foreach ($name in "AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID", "ARTIFACT_SIGNING_ENDPOINT", "ARTIFACT_SIGNING_ACCOUNT", "ARTIFACT_SIGNING_PROFILE", "WINDOWS_PUBLISHER", "ANDROID_RELEASE_KEYSTORE_BASE64", "ANDROID_RELEASE_STORE_PASSWORD", "ANDROID_RELEASE_KEY_ALIAS", "ANDROID_RELEASE_KEY_PASSWORD") {
             if (-not [Environment]::GetEnvironmentVariable($name)) { $missing += $name }
           }
           if ($missing) { throw "not set in the release environment or the variables: $($missing -join ', ')" }
       - name: Check out the repository
         # Before the downloads: a checkout cleans the workspace of the files that the
-        # downloads put there. The pinned versions of android/versions.env are read from it.
+        # downloads put there. The pinned versions of the phone app are read from it.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download the Windows packages
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -464,11 +478,12 @@ jobs:
         with:
           name: vfox-plus-android-unsigned
           path: dist-android-unsigned
-      - name: Read the pinned Android versions
+      - name: Read the pinned versions of the phone app
         shell: pwsh
         run: |
-          Get-Content android/versions.env | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^[A-Z0-9_]+=' } | Add-Content -Path $env:GITHUB_ENV
+          Get-Content mygo/phone/versions.env | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^[A-Z0-9_]+=' } | Add-Content -Path $env:GITHUB_ENV
       - name: Set up JDK
+        # apksigner runs on Java, at the version that the phone app is built with.
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
@@ -479,9 +494,10 @@ jobs:
         with:
           packages: "build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }}"
       - name: Sign the APK with the release key
-        # zipalign aligns the APK first, as the Android Gradle plugin does, and apksigner
-        # signs it with the release key of the environment. The keystore goes to the
-        # temporary directory of the runner, and is removed whatever the outcome.
+        # zipalign aligns the APK again, with the 16 KB pages of its native libraries (-P
+        # cannot be combined with -p), and apksigner replaces the debug signature of mygo
+        # with the release key of the environment. The keystore goes to the temporary
+        # directory of the runner, and is removed whatever the outcome.
         env:
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
@@ -501,12 +517,13 @@ jobs:
           New-Item -ItemType Directory -Force -Path (Split-Path -Parent $signed) | Out-Null
           try {
             [IO.File]::WriteAllBytes($keystore, [Convert]::FromBase64String($env:ANDROID_RELEASE_KEYSTORE_BASE64))
-            & $zipalign -p -f 4 $unsigned $aligned
+            & $zipalign -f -P 16 4 $unsigned $aligned
             if ($LASTEXITCODE -ne 0) { throw "zipalign failed with exit code $LASTEXITCODE" }
             & $apksigner sign --ks $keystore --ks-key-alias $env:ANDROID_RELEASE_KEY_ALIAS --ks-pass env:ANDROID_RELEASE_STORE_PASSWORD --key-pass env:ANDROID_RELEASE_KEY_PASSWORD --out $signed $aligned
             if ($LASTEXITCODE -ne 0) { throw "apksigner sign failed with exit code $LASTEXITCODE" }
-            & $apksigner verify --print-certs $signed
+            $certificates = & $apksigner verify --print-certs $signed | Out-String
             if ($LASTEXITCODE -ne 0) { throw "apksigner verify failed with exit code $LASTEXITCODE" }
+            if ($certificates -match "CN=Android Debug") { throw "the APK is still signed with the debug key" }
           } finally {
             Remove-Item -Force -ErrorAction SilentlyContinue -Path $keystore, $aligned
           }
@@ -527,8 +544,8 @@ jobs:
     name: Attest, push the version commit, tag and publish
     # Forks do not run CI.
     if: github.repository == 'version-fox/vfox-plus'
-    # No environment: nothing here needs a secret, and the approval of the run is the
-    # one of sign-windows, which this job waits for.
+    # No environment: nothing here needs a secret, and the approval of the run is the one
+    # of sign-windows, which this job waits for.
     needs: [build, sign-windows]
     permissions:
       # attestations and id-token let the job attest the Linux packages.

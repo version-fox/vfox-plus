@@ -48,9 +48,10 @@ func (r fakeRepo) ReadFile(path string) (string, error) {
 // sayingVersion is the content of the three files of a commit that says version.
 func sayingVersion(version string) map[string]string {
 	return map[string]string{
-		VersionFile:  version + "\n",
-		AppFile:      "package ui\n\nconst Version = \"" + version + "\"\n",
-		MetainfoFile: "<releases>\n    <release version=\"" + version + "\" date=\"2026-10-17\"/>\n</releases>\n",
+		VersionFile:     version + "\n",
+		AppFile:         "package ui\n\nconst Version = \"" + version + "\"\n",
+		PhoneConfigFile: phoneConfigText(version),
+		MetainfoFile:    "<releases>\n    <release version=\"" + version + "\" date=\"2026-10-17\"/>\n</releases>\n",
 	}
 }
 
@@ -118,7 +119,13 @@ func TestCheckVersionOfATagRun(t *testing.T) {
 		files := sayingVersion("1.0.0")
 		delete(files, AppFile)
 		_, err := tagRun(files)
-		checkResult(t, "", err, "", "must say 1.0.0 in mygo/VERSION, mygo/ui/app.go and the metainfo")
+		checkResult(t, "", err, "", "must say 1.0.0 in mygo/VERSION, mygo/ui/app.go, mygo/phone/mygo.json and the metainfo")
+	})
+	t.Run("the phone configuration says another version", func(t *testing.T) {
+		files := sayingVersion("1.0.0")
+		files[PhoneConfigFile] = phoneConfigText("0.9.0")
+		_, err := tagRun(files)
+		checkResult(t, "", err, "", "mygo/phone/mygo.json does not say 1.0.0")
 	})
 }
 

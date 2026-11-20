@@ -26,9 +26,10 @@ import (
 func writeCheckout(t *testing.T, root, version string) {
 	t.Helper()
 	files := map[string]string{
-		VersionFile:  version + "\n",
-		AppFile:      "package ui\n\nconst Version = \"" + version + "\"\n",
-		MetainfoFile: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<component>\n  <releases>\n    <release version=\"" + version + "\" date=\"2026-10-17\"/>\n  </releases>\n</component>\n",
+		VersionFile:     version + "\n",
+		AppFile:         "package ui\n\nconst Version = \"" + version + "\"\n",
+		PhoneConfigFile: phoneConfigText(version),
+		MetainfoFile:    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<component>\n  <releases>\n    <release version=\"" + version + "\" date=\"2026-10-17\"/>\n  </releases>\n</component>\n",
 	}
 	for file, text := range files {
 		writeFile(t, root, file, text)
@@ -128,5 +129,79 @@ func TestSetVersionRefusesWhatItCannotWrite(t *testing.T) {
 				t.Fatalf("SetVersion error = %v, want one containing %q", err, c.wantErr)
 			}
 		})
+	}
+}
+
+// phoneConfigText is the configuration of the phone app, as a person writes it, at version.
+func phoneConfigText(version string) string {
+	return "{\n  \"name\": \"vfox+\",\n  \"identifier\": \"dev.vfox.vfoxplus\",\n  \"slug\": \"vfox-plus\",\n" +
+		"  \"version\": \"" + version + "\",\n  \"linux\": {\n    \"webview\": false\n  }\n}\n"
+}
+
+func TestSetVersionEditsOnlyTheVersionOfThePhoneApp(t *testing.T) {
+	root := t.TempDir()
+	writeCheckout(t, root, "0.1.0")
+	if err := SetVersion(root, "1.0.0", "2026-11-15"); err != nil {
+		t.Fatalf("SetVersion: %v", err)
+	}
+	want := strings.Replace(phoneConfigText("0.1.0"), `"version": "0.1.0"`, `"version": "1.0.0"`, 1)
+	if got := readFile(t, root, PhoneConfigFile); got != want {
+		t.Errorf("mygo.json = %q, want %q", got, want)
+	}
+}
+
+func TestSetPhoneVersion(t *testing.T) {
+	// The layout of the file, tabs included, stays as it is.
+	tabbed := "{\n\t\"name\": \"vfox+\",\n\t\"version\" : \"0.1.0\",\n\t\"linux\": {\"webview\": false}\n}\n"
+	got, err := setPhoneVersion([]byte(tabbed), "0.2.0")
+	if err != nil {
+		t.Fatalf("setPhoneVersion: %v", err)
+	}
+	if want := strings.Replace(tabbed, `"version" : "0.1.0"`, `"version" : "0.2.0"`, 1); string(got) != want {
+		t.Errorf("setPhoneVersion = %q, want %q", got, want)
+	}
+	for _, c := range []struct {
+		name, config, wantErr string
+	}{
+		{"not JSON", "name = vfox+\n", "cannot read the version"},
+		{"no version field", "{\"name\": \"vfox+\"}\n", "must have one version field, found 0"},
+		{"a version that is not a string", "{\"version\": 1}\n", "cannot read the version"},
+		{"a nested version as well", "{\n  \"version\": \"0.1.0\",\n  \"android\": {\n    \"version\": \"0.1.0\"\n  }\n}\n", "must have one version field, found 2"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := setPhoneVersion([]byte(c.config), "0.2.0")
+			if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+				t.Fatalf("setPhoneVersion error = %v, want one containing %q", err, c.wantErr)
+			}
+		})
+	}
+}
+
+func TestSetVersionChangesNothingWhenAFileCannotBeChanged(t *testing.T) {
+	root := t.TempDir()
+	writeCheckout(t, root, "0.1.0")
+	writeFile(t, root, PhoneConfigFile, "{\"name\": \"vfox+\"}\n") // No version to change.
+	before := map[string]string{}
+	for _, file := range []string{VersionFile, AppFile, MetainfoFile} {
+		before[file] = readFile(t, root, file)
+	}
+	if err := SetVersion(root, "1.0.0", "2026-11-15"); err == nil {
+		t.Fatal("SetVersion succeeded on a phone configuration without a version")
+	}
+	for file, text := range before {
+		if got := readFile(t, root, file); got != text {
+			t.Errorf("%s changed although the release failed: %q", file, got)
+		}
+	}
+}
+
+func TestSetVersionRefusesAPhoneConfigWithoutTheFile(t *testing.T) {
+	root := t.TempDir()
+	writeCheckout(t, root, "0.1.0")
+	if err := os.Remove(filepath.Join(root, filepath.FromSlash(PhoneConfigFile))); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetVersion(root, "1.0.0", "2026-11-15"); err == nil {
+		t.Fatal("SetVersion without the phone configuration succeeded")
 	}
 }

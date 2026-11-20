@@ -12,19 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package measureapk implements `vfxtool measure-apk`: on a booted Android
-// emulator it installs the release APK, cold-starts it through the launcher,
-// settles, reads `dumpsys meminfo`, writes the memory(apk-cold) line for the
-// memory report and takes a screenshot of the cold start for the
-// documentation. CI runs it from the emulator job of
-// .github/workflows/android.yml; adb must be on PATH.
+// Package measureapk implements `vfxtool measure-apk`: on a booted Android emulator it installs
+// the APK of the phone app, cold-starts it, settles, and reads `dumpsys meminfo`, which is the
+// memory(apk-cold) line of the memory report. It takes a screenshot of the first screen too.
+//
+// With --pair-link-file it then drives the paired session the way a person does: the pairing
+// link comes in through the deep link vfoxplus://pair, the button that trusts the certificate is
+// tapped, the five tabs are visited with a screenshot and a dump of each, the log of the app is
+// checked for errors, and the paired session is measured apart: memory(apk-paired), in
+// memory-paired.txt, because the memory report reads one line of its artifact.
+//
+// The screens are read from the accessibility tree (uiautomator dump): the native UI of the app
+// exposes its elements with their labels and bounds (mygo's SurfaceWindow, the accessibility
+// provider). CI runs it from the emulator job of .github/workflows/phone.yml. adb is on the
+// PATH; aapt2 is in ANDROID_HOME, or on the PATH.
 package measureapk
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,22 +42,47 @@ import (
 	"time"
 )
 
-var (
-	applicationID = regexp.MustCompile(`applicationId\s*=\s*"([^"]+)"`)
-	totalLine     = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
-	rssField      = regexp.MustCompile(`\bRSS:\s*(\d+)K?`)
-	// The flags of the package in `dumpsys package`: the line starts with flags=[ ... ],
-	// not with pkgFlags= or privateFlags=.
-	packageFlags = regexp.MustCompile(`(?m)^\s*flags=\[([^\]]*)\]`)
+// The waits of the paired session. Each one ends as soon as its condition holds. The emulator
+// draws its first frames slowly (docs/en/dev/memory.md), hence the long ones.
+const (
+	confirmTimeout = 90 * time.Second
+	pairedTimeout  = 60 * time.Second
+	tabTimeout     = 30 * time.Second
+	pollInterval   = 2 * time.Second
+	tabSettle      = 3 * time.Second
+	// screenFile is where uiautomator dumps the accessibility tree of the screen, on the device.
+	screenFile = "/sdcard/vfoxplus-measure.xml"
 )
 
-// ApplicationID reads the applicationId out of a build.gradle.kts.
-func ApplicationID(gradle string) (string, bool) {
-	match := applicationID.FindStringSubmatch(gradle)
-	if match == nil {
-		return "", false
+// usage is the command line of measure-apk, as its errors print it.
+const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--aapt2 FILE] [--pair-link-file FILE --shots DIR]"
+
+var (
+	totalLine = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
+	rssField  = regexp.MustCompile(`\bRSS:\s*(\d+)K?`)
+)
+
+// The labels of the paired session, as the phone app shows them in English and in Simplified
+// Chinese. The tabs are the five pages of the web interface (mygo/web/src/router.ts), in their
+// order. The confirmation is the one button that trusts the certificate and pairs the phone.
+var (
+	confirmLabel = regexp.MustCompile(`^(Trust and pair|信任并配对)$`)
+	tabs         = []tab{
+		{"home", regexp.MustCompile(`^(Home|主页)$`)},
+		{"sdks", regexp.MustCompile(`^(SDKs|SDK)$`)},
+		{"plugins", regexp.MustCompile(`^(Plugins|插件)$`)},
+		{"tasks", regexp.MustCompile(`^(Tasks|任务)$`)},
+		{"settings", regexp.MustCompile(`^(Settings|设置)$`)},
 	}
-	return match[1], true
+	// pairedLog is the line that the app writes to its standard output when a pairing succeeds:
+	// the host without its port, and the fingerprint of its certificate (as the desktop shows it).
+	pairedLog = regexp.MustCompile(`(?m)vfoxplus: paired host=(\S+) fingerprint=((?:[0-9A-F]{2}:)*[0-9A-F]{2})\s*$`)
+)
+
+// tab is one tab of the app: its name for the files, and its label.
+type tab struct {
+	name  string
+	label *regexp.Regexp
 }
 
 // ParseMeminfo returns the total PSS and RSS, in KB, of a `dumpsys meminfo
@@ -72,121 +105,83 @@ func Line(pssKB, rssKB int) string {
 	return fmt.Sprintf("memory (apk-cold): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
 }
 
-// PairedLine formats the paired-session point: the same process with the
-// system WebView and the /app page loaded.
+// PairedLine formats the paired-session point: the same process after the pairing, with the tabs
+// visited.
 func PairedLine(pssKB, rssKB int) string {
 	return fmt.Sprintf("memory (apk-paired): RSS %d MB, PSS %d MB in 1 processes", (rssKB+512)/1024, (pssKB+512)/1024)
 }
 
-// IsDebuggable reports whether the report of `dumpsys package` for an installed
-// app lists the DEBUGGABLE flag, which only a debuggable build has.
-func IsDebuggable(report string) bool {
-	match := packageFlags.FindStringSubmatch(report)
-	if match == nil {
-		return false
-	}
-	for _, flag := range strings.Fields(match[1]) {
-		if flag == "DEBUGGABLE" {
-			return true
-		}
-	}
-	return false
+// config is what Run reads from the command line.
+type config struct {
+	apk, outputDir, screenshot, pairLinkFile, shots, aapt2 string
+	settle                                                 time.Duration
 }
 
-// pairingLinkArgs is the adb command that writes the one-time pairing link into the
-// private files directory of the debuggable app, through run-as: only a debuggable
-// application allows it, and no other application can write there. adb joins its
-// arguments into one command for the device's shell, so the whole script is a single
-// argument, quoted for that shell. The link comes on standard input and never
-// reaches the command line.
-func pairingLinkArgs(pkg string) []string {
-	return []string{"shell", "run-as " + pkg + " sh -c 'mkdir -p files/measurement && cat > files/measurement/pairing-link'"}
+// session runs the steps against a device. Its clock and its sleep are replaceable, so that the
+// tests run the waits at once.
+type session struct {
+	adb     func(args ...string) ([]byte, error)
+	badging func(aapt2, apk string) (pkg, activity string, err error)
+	sleep   func(time.Duration)
+	now     func() time.Time
+	log     io.Writer
 }
 
-// pairedStart is the adb command that starts the launcher activity, which takes the
-// pairing link that pairingLinkArgs wrote and opens its session.
-func pairedStart(pkg string) []string {
-	return []string{"shell", "am", "start", "-n", pkg + "/.MainActivity"}
-}
-
-// adbInput runs adb with input on its standard input.
-func adbInput(input string, args ...string) error {
-	command := exec.Command("adb", args...)
-	command.Stdin = strings.NewReader(input)
-	var stderr bytes.Buffer
-	command.Stderr = &stderr
-	if err := command.Run(); err != nil {
-		return fmt.Errorf("adb %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return nil
-}
-
-func adb(args ...string) ([]byte, error) {
-	command := exec.Command("adb", args...)
-	var stderr bytes.Buffer
-	command.Stderr = &stderr
-	out, err := command.Output()
-	if err != nil {
-		return out, fmt.Errorf("adb %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return out, nil
-}
-
-// Run implements `measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS] [--pair-url URL]`.
-// Without --pair-url it does what CI does: install, cold-start through the
-// launcher, settle, and write the memory(apk-cold) line. With --pair-url it
-// then leaves the one-time link for the debuggable app with run-as (no other
-// application can write there, and no exported component takes a link), starts
-// its launcher, which opens the same session as pasting the link and tapping
-// connect, settles again,
-// and appends the memory(apk-paired) line: the native session with its tabs
-// loaded, next to the unpaired screen. The paired line is for local
-// diagnosis only: pair it against a loopback instance of the application (with other
-// devices allowed) with `adb reverse` carrying the port, and never upload a two-line file, which
-// the memory report would refuse to parse.
+// Run implements `measure-apk`: see the package documentation for what it measures.
 func Run(args []string) error {
 	flags := flag.NewFlagSet("measure-apk", flag.ContinueOnError)
 	apk := flags.String("apk", "", "the APK to install")
-	outputDir := flags.String("output", "", "directory receiving memory.txt")
-	gradle := flags.String("gradle", "android/app/build.gradle.kts", "build file holding the applicationId")
-	screenshot := flags.String("screenshot", "", "PNG file for a screenshot of the cold start")
-	settle := flags.Int("settle", 20, "seconds to settle after the start")
-	pairURL := flags.String("pair-url", "", "one-time pairing link of a reachable server, to also measure the paired session (a debuggable APK only)")
+	outputDir := flags.String("output", "", "directory receiving memory.txt (and memory-paired.txt with --pair-link-file)")
+	screenshot := flags.String("screenshot", "", "PNG file for a screenshot of the first screen")
+	settle := flags.Int("settle", 20, "seconds to settle after each start")
+	pairLinkFile := flags.String("pair-link-file", "", "file holding a one-time pairing link of a reachable server: the paired session is driven and measured too")
+	shots := flags.String("shots", "", "directory receiving the screenshots, the screen dumps and the log of the paired session (required with --pair-link-file)")
+	aapt2 := flags.String("aapt2", "", "the aapt2 of the build tools (default: the newest in ANDROID_HOME, or the one on the PATH)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *apk == "" || *outputDir == "" || *settle < 0 {
-		return errors.New("Usage: measure-apk --apk FILE --output DIR [--gradle FILE] [--screenshot FILE] [--settle SECONDS] [--pair-url URL]")
+		return errors.New(usage)
 	}
-	build, err := os.ReadFile(*gradle)
+	if *pairLinkFile != "" && *shots == "" {
+		return errors.New("--pair-link-file needs --shots: the paired session leaves its screenshots and its log there")
+	}
+	c := config{apk: *apk, outputDir: *outputDir, screenshot: *screenshot, pairLinkFile: *pairLinkFile,
+		shots: *shots, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second}
+	s := &session{adb: runAdb, badging: readBadging, sleep: time.Sleep, now: time.Now, log: os.Stderr}
+	return s.measure(c)
+}
+
+// measure runs the steps of the command against the device.
+func (s *session) measure(c config) error {
+	aapt2, err := findAapt2(c.aapt2)
 	if err != nil {
 		return err
 	}
-	pkg, ok := ApplicationID(string(build))
-	if !ok {
-		return fmt.Errorf("no applicationId in %s", *gradle)
-	}
-	if _, err := adb("install", *apk); err != nil {
+	pkg, activity, err := s.badging(aapt2, c.apk)
+	if err != nil {
 		return err
 	}
-	if *pairURL != "" {
-		// Only a debuggable build lets run-as leave the pairing link for the app: a release
-		// build refuses it, so the paired line would have no session to measure.
-		// The check comes before any measurement, so nothing is written for it.
-		info, err := adb("shell", "dumpsys", "package", pkg)
-		if err != nil {
-			return err
-		}
-		if !IsDebuggable(string(info)) {
-			return fmt.Errorf("--pair-url needs a debuggable APK: run-as leaves the pairing link for the app only in a debuggable build, and %s is not one (build the debug variant with ./gradlew assembleDebug in android/, or leave out --pair-url)", *apk)
-		}
-	}
-	// Cold start through the launcher, like a user tapping the icon.
-	if _, err := adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1"); err != nil {
+	install, err := s.adb("install", "-r", c.apk)
+	if err != nil {
 		return err
 	}
-	time.Sleep(time.Duration(*settle) * time.Second)
-	report, err := adb("shell", "dumpsys", "meminfo", pkg)
+	if !strings.Contains(string(install), "Success") {
+		return fmt.Errorf("adb install: %s", strings.TrimSpace(string(install)))
+	}
+	// The notification permission is granted beforehand: the system's dialog for it would cover the
+	// button that the paired session taps. An app that does not ask for it refuses the grant, which
+	// is no failure.
+	_, _ = s.adb("shell", "pm", "grant", pkg, "android.permission.POST_NOTIFICATIONS")
+	if _, err := s.adb("logcat", "-c"); err != nil {
+		return err
+	}
+	// A cold start: the process of the app is stopped first, and the launcher's activity is started.
+	if err := s.start(fmt.Sprintf("am start -S -W -n %s/%s", pkg, activity)); err != nil {
+		return err
+	}
+	s.sleep(c.settle)
+	report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
 	if err != nil {
 		return err
 	}
@@ -195,48 +190,206 @@ func Run(args []string) error {
 		return fmt.Errorf("no PSS or RSS in the meminfo report:\n%s", report)
 	}
 	line := Line(pss, rss)
-	fmt.Println(line)
-	if err := os.MkdirAll(*outputDir, 0o755); err != nil {
+	fmt.Fprintln(s.log, line)
+	if err := writeFile(filepath.Join(c.outputDir, "memory.txt"), line+"\n"); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(*outputDir, "memory.txt"), []byte(line+"\n"), 0o644); err != nil {
-		return err
-	}
-	if *screenshot != "" {
-		png, err := adb("exec-out", "screencap", "-p")
-		if err != nil {
-			return err
-		}
-		if err := os.WriteFile(*screenshot, png, 0o644); err != nil {
+	if c.screenshot != "" {
+		if err := s.screenshotTo(c.screenshot); err != nil {
 			return err
 		}
 	}
-	if *pairURL == "" {
+	if c.pairLinkFile == "" {
 		return nil
 	}
-	// The paired session: the same native session a user gets after connecting,
-	// with the inventory loaded and live events streaming.
-	if err := adbInput(*pairURL, pairingLinkArgs(pkg)...); err != nil {
-		return err
-	}
-	if _, err := adb(pairedStart(pkg)...); err != nil {
-		return err
-	}
-	time.Sleep(time.Duration(*settle) * time.Second)
-	paired, err := adb("shell", "dumpsys", "meminfo", pkg)
+	return s.paired(c, pkg)
+}
+
+// paired drives the paired session: the link, the confirmation, the tabs, the log and the memory.
+func (s *session) paired(c config, pkg string) error {
+	link, err := readLink(c.pairLinkFile)
 	if err != nil {
 		return err
 	}
-	pairedPSS, pairedRSS, ok := ParseMeminfo(string(paired))
+	uri, host, err := DeepLink(link)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(c.shots, 0o755); err != nil {
+		return err
+	}
+	// The deep link opens the pairing page with the link filled in: the app does not pair by
+	// itself, the person confirms the fingerprint.
+	if err := s.start(fmt.Sprintf("am start -W -a android.intent.action.VIEW -d '%s' -p %s", uri, pkg), uri); err != nil {
+		return err
+	}
+	s.sleep(tabSettle)
+	confirm, err := s.tapWhen(confirmLabel, confirmTimeout, "confirmation button")
+	if err != nil {
+		s.keepDump(c.shots, "confirm-not-found", confirm)
+		return err
+	}
+	s.keepDump(c.shots, "confirm", confirm)
+	fmt.Fprintln(s.log, "tapped the confirmation")
+	match, err := s.waitForLog(pairedLog, pairedTimeout)
+	if err != nil {
+		return err
+	}
+	if got := match[1]; got != host {
+		return fmt.Errorf("the app paired with %s, want %s", got, host)
+	}
+	fmt.Fprintf(s.log, "paired with %s\n", match[1])
+	s.sleep(c.settle)
+	for _, t := range tabs {
+		shot, err := s.tapWhen(t.label, tabTimeout, t.name+" tab")
+		if err != nil {
+			s.keepDump(c.shots, "tab-"+t.name+"-not-found", shot)
+			return err
+		}
+		s.sleep(tabSettle)
+		if err := s.screenshotTo(filepath.Join(c.shots, "tab-"+t.name+".png")); err != nil {
+			return err
+		}
+		s.keepDump(c.shots, "tab-"+t.name, shot)
+	}
+	logText, err := s.logText()
+	if err != nil {
+		return err
+	}
+	if err := writeFile(filepath.Join(c.shots, "logcat.txt"), logText); err != nil {
+		return err
+	}
+	if problems := appErrors(logText); len(problems) > 0 {
+		return fmt.Errorf("the log of the app has %d error(s), the first: %s", len(problems), problems[0])
+	}
+	if warnings := anrs(logText, pkg); len(warnings) > 0 {
+		fmt.Fprintf(s.log, "warning: the system reported an ANR for %s (not a failure): %s\n", pkg, warnings[0])
+	}
+	report, err := s.adb("shell", "dumpsys", "meminfo", pkg)
+	if err != nil {
+		return err
+	}
+	pss, rss, ok := ParseMeminfo(string(report))
 	if !ok {
-		return fmt.Errorf("no PSS or RSS in the paired meminfo report:\n%s", paired)
+		return fmt.Errorf("no PSS or RSS in the paired meminfo report:\n%s", report)
 	}
-	pairedLine := PairedLine(pairedPSS, pairedRSS)
-	fmt.Println(pairedLine)
-	file, err := os.OpenFile(filepath.Join(*outputDir, "memory.txt"), os.O_APPEND|os.O_WRONLY, 0o644)
+	line := PairedLine(pss, rss)
+	fmt.Fprintln(s.log, line)
+	return writeFile(filepath.Join(c.outputDir, "memory-paired.txt"), line+"\n")
+}
+
+// start runs an am start command on the device, and reports the error that am prints when the
+// activity does not start, which adb does not report as a failure. The secret, the pairing link
+// of a deep link, is left out of that error.
+func (s *session) start(command string, secret ...string) error {
+	out, err := s.adb("shell", command)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(file, pairedLine)
-	return errors.Join(err, file.Close())
+	text := strings.TrimSpace(string(out))
+	if strings.Contains(text, "Error") {
+		for _, value := range secret {
+			text = strings.ReplaceAll(text, value, "<redacted>")
+		}
+		return fmt.Errorf("the device did not start the activity: %s", text)
+	}
+	return nil
+}
+
+// screenshotTo saves a screenshot of the screen of the device as a PNG file.
+func (s *session) screenshotTo(path string) error {
+	png, err := s.adb("exec-out", "screencap", "-p")
+	if err != nil {
+		return err
+	}
+	return writeFile(path, string(png))
+}
+
+// keepDump saves the dump of a screen, for the diagnosis of a screen that was not as expected or of
+// the tabs.
+func (s *session) keepDump(dir, name string, shot screen) {
+	if dir == "" || shot.raw == "" {
+		return
+	}
+	_ = writeFile(filepath.Join(dir, name+".xml"), shot.raw)
+}
+
+// logText is the log of the device since it was cleared.
+func (s *session) logText() (string, error) {
+	out, err := s.adb("logcat", "-d", "-v", "threadtime")
+	return string(out), err
+}
+
+// waitForLog waits until the log holds a line that matches pattern, and returns the match.
+func (s *session) waitForLog(pattern *regexp.Regexp, timeout time.Duration) ([]string, error) {
+	deadline := s.now().Add(timeout)
+	for {
+		if text, err := s.logText(); err == nil {
+			if match := pattern.FindStringSubmatch(text); match != nil {
+				return match, nil
+			}
+		}
+		if !s.now().Before(deadline) {
+			return nil, fmt.Errorf("the log has no line of the pairing within %s", timeout)
+		}
+		s.sleep(pollInterval)
+	}
+}
+
+// tapWhen waits until the screen has a clickable element whose label matches pattern, taps the
+// lowest of them (a tab bar is at the bottom), and returns the screen. The screen it returns when
+// it fails is the last one it dumped.
+func (s *session) tapWhen(pattern *regexp.Regexp, timeout time.Duration, what string) (screen, error) {
+	deadline := s.now().Add(timeout)
+	var last screen
+	for {
+		shot, err := s.dump()
+		if err == nil {
+			last = shot
+			if target, ok := lowestClickable(shot.elements, pattern); ok {
+				x, y := target.center()
+				if _, err := s.adb("shell", fmt.Sprintf("input tap %d %d", x, y)); err != nil {
+					return shot, err
+				}
+				return shot, nil
+			}
+		}
+		if !s.now().Before(deadline) {
+			return last, fmt.Errorf("no %s within %s: the screen has %s", what, timeout, labelsOf(last.elements))
+		}
+		s.sleep(pollInterval)
+	}
+}
+
+// dump reads the accessibility tree of the screen, which uiautomator writes to the device.
+func (s *session) dump() (screen, error) {
+	if _, err := s.adb("shell", "uiautomator dump "+screenFile); err != nil {
+		return screen{}, err
+	}
+	data, err := s.adb("shell", "cat "+screenFile)
+	if err != nil {
+		return screen{}, err
+	}
+	return parseScreen(data)
+}
+
+// runAdb runs adb with args and returns its standard output. Its error names the first argument
+// and the message of adb, and not the rest of the command, which can hold a pairing link.
+func runAdb(args ...string) ([]byte, error) {
+	var stdout, stderr strings.Builder
+	command := exec.Command("adb", args...)
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return []byte(stdout.String()), fmt.Errorf("adb %s: %w: %s", args[0], err, strings.TrimSpace(stderr.String()))
+	}
+	return []byte(stdout.String()), nil
+}
+
+// writeFile writes text to path, making its directory first.
+func writeFile(path, text string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(text), 0o644)
 }

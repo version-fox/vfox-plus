@@ -15,6 +15,7 @@
 package main
 
 import (
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/appicon"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/build"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/builddeb"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/buildmsix"
@@ -34,6 +35,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/memoryreport"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/msixinstall"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/phoneframe"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/phonelink"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/release"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
@@ -53,6 +55,8 @@ func init() {
 	commands["measure"] = measure.Run
 	commands["measure-lightweight"] = measurelightweight.Run
 	commands["measure-apk"] = measureapk.Run
+	commands["phone-link"] = phonelink.Run
+	commands["appicon"] = appicon.Run
 	commands["webheap"] = webheap.Run
 	commands["screenshots"] = screenshots.Run
 	commands["smoke-test"] = smoketest.Run

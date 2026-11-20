@@ -102,7 +102,7 @@ jobs:
           cache-dependency-path: mygo/web/package-lock.json
       - name: Build and test the web interface
         # TypeScript and Vite, bundled into the single page that the Go server
-        # embeds as mygo/pair/webapp.html (no other requests, desktop and web
+        # embeds as mygo/gateway/webapp.html (no other requests, desktop and web
         # stay on one design). The built page is committed: the check below
         # fails when the sources and the checked-in page disagree.
         working-directory: mygo/web
@@ -111,7 +111,7 @@ jobs:
           npm test
           npm run build
       - name: The built page is committed
-        run: git diff --exit-code -- mygo/pair/webapp.html
+        run: git diff --exit-code -- mygo/gateway/webapp.html
       - name: Prepare the embedded assets
         # The icons, the translations and the licenses of the Go modules.
         run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'

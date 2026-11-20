@@ -22,9 +22,9 @@ Thumbs.db
 snap/*.snap
 snap/vfox-plus.deb
 
-# Android build outputs (see docs/en/dev/packaging-android.md).
-/android/.gradle/
-/android/.kotlin/
-/android/build/
-/android/app/build/
-/android/local.properties
+# The phone app (mygo/phone): the icons that `vfxtool appicon` writes before a build (the repository
+# holds no binary files), and the outputs and the generated Gradle project of `mygo build`.
+/mygo/phone/resources/icon.png
+/mygo/phone/resources/icon-foreground.png
+/mygo/phone/dist/
+/mygo/phone/.mygo/

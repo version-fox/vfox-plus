@@ -1,0 +1,227 @@
+# Copyright 2026 Han Li and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The phone app (mygo/phone), which mygo builds for Android. The build job makes the APK and the
+# AAB for the x86_64 emulator, with the debug key (the release is release.yml's job). The emulator
+# job starts the end-to-end build of the desktop application, pairs the emulator with it through
+# the address 10.0.2.2 (the one at which the emulator reaches this runner), and drives the paired
+# session the way a person does: the pairing link comes in through the deep link, the tabs are
+# visited with screenshots, and the app's log is checked for errors. It measures the memory of the
+# app cold and paired, for memory.yml (vfxtool measure-apk). The versions are in
+# mygo/phone/versions.env, and the version of mygo in mygo/go.mod must be the same one.
+name: phone
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - mygo/phone/**
+      - mygo/pair/**
+      - mygo/ui/kit/**
+      - mygo/VERSION
+      - mygo/go.mod
+      - mygo/go.sum
+      - mygo/versions.env
+      - shared/tooling/**
+      - shared/icons.json
+      - .github/workflows/phone.yml
+  pull_request:
+    paths:
+      - mygo/phone/**
+      - mygo/pair/**
+      - mygo/ui/kit/**
+      - mygo/VERSION
+      - mygo/go.mod
+      - mygo/go.sum
+      - mygo/versions.env
+      - shared/tooling/**
+      - shared/icons.json
+      - .github/workflows/phone.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The packages of the desktop application for its end-to-end build (the ones of mygo.yml that
+  # the virtual display and the fonts need).
+  LINUX_PACKAGES: >-
+    build-essential libgtk-3-0t64 fontconfig fonts-ubuntu fonts-noto-cjk
+    xvfb xauth dbus-x11
+
+jobs:
+  build:
+    name: Build the APK and the AAB for the emulator
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: |
+          grep -hE '^[A-Z0-9_]+=' mygo/phone/versions.env >> "$GITHUB_ENV"
+          grep -hE '^GO_VERSION=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: mygo/go.sum
+      - name: Set up JDK
+        # Gradle, which mygo runs for the Android project, does not run on newer JDKs.
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          # The default package list still names the `tools` package, which
+          # Google removed; install only what the build needs.
+          packages: platform-tools platforms;android-${{ env.ANDROID_SDK_PLATFORM }} build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }} ndk;${{ env.ANDROID_NDK_VERSION }}
+      - name: Install the mygo CLI
+        run: |
+          go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - name: Write the icons of the app
+        # The repository holds no binary files: the icons that mygo.json names are drawn by vfxtool.
+        run: '"$RUNNER_TEMP/vfxtool" appicon mygo/phone/resources'
+      - name: Build the APK and the AAB
+        # mygo builds the Go code for x86_64 and the Android project with Gradle, and signs them
+        # with the debug key, as the configuration has no keystore. Its files are in mygo/phone/dist/android.
+        run: mygo build -platform android/amd64
+        working-directory: mygo/phone
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vfox-plus-android-amd64
+          path: mygo/phone/dist/android/*
+          if-no-files-found: error
+
+  emulator:
+    name: Pair, drive and measure the app on an emulator
+    # Forks do not run CI.
+    if: github.repository == 'version-fox/vfox-plus'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read the pinned versions
+        run: |
+          grep -hE '^[A-Z0-9_]+=' mygo/phone/versions.env >> "$GITHUB_ENV"
+          grep -hE '^GO_VERSION=' mygo/versions.env >> "$GITHUB_ENV"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: mygo/go.sum
+      - name: Install the Linux packages
+        uses: ./.github/actions/install-linux-packages
+        with:
+          packages: ${{ env.LINUX_PACKAGES }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Where vfxtool prepare keeps the npm package that the icons come from.
+          path: ~/.cache/vfox-plus/icons
+          key: icons-${{ hashFiles('shared/icons.json') }}
+      - name: Build vfxtool
+        run: go -C shared/tooling build -o "$RUNNER_TEMP/vfxtool" ./cmd/vfxtool
+      - name: Prepare the embedded assets of the desktop application
+        run: '"$RUNNER_TEMP/vfxtool" prepare --root mygo'
+      - name: Build the end-to-end desktop application
+        run: '"$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"'
+      - name: Start the desktop application in a virtual display
+        # The end-to-end build writes its loopback link to the file when it starts, and lists
+        # 10.0.2.2 as an address of this computer (VFOX_PLUS_E2E_ADDRESSES), so that the link of
+        # the phone names the address at which the emulator reaches this runner. It runs until the
+        # last step of the job stops it.
+        run: |
+          mkdir -p "$RUNNER_TEMP/phone-e2e"
+          VFOX_PLUS_E2E_ADDRESSES=10.0.2.2 VFOX_PLUS_E2E_LINK="$RUNNER_TEMP/phone-e2e/loopback-link.txt" \
+            setsid xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- "$RUNNER_TEMP/vfox-plus-e2e" \
+            > "$RUNNER_TEMP/phone-e2e/desktop.log" 2>&1 < /dev/null &
+      - name: Download the APK
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vfox-plus-android-amd64
+          path: ${{ runner.temp }}/apk
+      - name: Find the APK
+        run: |
+          set -eu
+          apk="$(find "$RUNNER_TEMP/apk" -name '*.apk')"
+          if [ "$(printf '%s\n' "$apk" | grep -c .)" != 1 ]; then
+            echo "::error::want one APK in the artifact, found: $apk"
+            exit 1
+          fi
+          echo "APK=$apk" >> "$GITHUB_ENV"
+      - name: Set up the Android SDK
+        # The emulator runner installs the emulator and the system image too, when they are missing.
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }} emulator system-images;android-${{ env.ANDROID_EMULATOR_API }};${{ env.ANDROID_SYSTEM_IMAGE_TARGET }};x86_64
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ env.ANDROID_EMULATOR_API }}
+          target: ${{ env.ANDROID_SYSTEM_IMAGE_TARGET }}
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # One line: the runner executes the script line by line, each in its own shell. The link is
+          # asked for at the last moment, because a pairing link lasts five minutes, and the emulator
+          # takes minutes to boot. The memory of the first screen goes to memory-android (the one line
+          # memory.txt the report reads), the paired one to memory-paired.txt beside the screenshots in
+          # shots. The link goes to a file of its own: a secret, never printed.
+          script: ${{ runner.temp }}/vfxtool phone-link --loopback-link-file ${{ runner.temp }}/phone-e2e/loopback-link.txt --host 10.0.2.2 --output ${{ runner.temp }}/phone-e2e/pairing-link.txt --wait 180 && ${{ runner.temp }}/vfxtool measure-apk --apk ${{ env.APK }} --output ${{ runner.temp }}/memory-android --screenshot ${{ runner.temp }}/screenshot-android.png --pair-link-file ${{ runner.temp }}/phone-e2e/pairing-link.txt --shots ${{ runner.temp }}/phone-e2e/shots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memory-android
+          path: ${{ runner.temp }}/memory-android/memory.txt
+          if-no-files-found: error
+          overwrite: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshot-android
+          path: ${{ runner.temp }}/screenshot-android.png
+          if-no-files-found: error
+          overwrite: true
+      - name: Keep the evidence of the paired session
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/evidence"
+          cp -r "$RUNNER_TEMP/phone-e2e/shots" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP/phone-e2e/desktop.log" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP/memory-android/memory-paired.txt" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          # The screens of the tabs, their dumps of the accessibility tree, the log of the app and the
+          # log of the desktop application. The pairing link is not among them.
+          name: phone-e2e-android
+          path: ${{ runner.temp }}/evidence/*
+          if-no-files-found: warn
+          overwrite: true
+      - name: Stop the desktop application
+        if: always()
+        # The bracket keeps pkill from matching the shell that runs this line.
+        run: pkill -f '[v]fox-plus-e2e' || true

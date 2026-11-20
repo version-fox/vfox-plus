@@ -17,7 +17,7 @@
 * text=auto eol=lf
 
 # Windows batch files need CRLF: cmd.exe can fail to find a label in an
-# LF-only file (android/gradlew.bat jumps to one).
+# LF-only file.
 *.bat text eol=crlf
 
 # Binary assets.

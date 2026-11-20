@@ -7,9 +7,9 @@
   shapes. An indigo plate, the 9-sided cookie shape as a soft halo and the fox
   head: orange fur, cream cheeks, a dark nose and eyes.
 
-  The Android launcher icon (android/app/src/main/res/drawable/ic_launcher_*.xml,
-  ic_mark.xml) and the Windows logos (shared/tooling/internal/appicon)
-  repeat these paths, which a test compares.
+  The icon of the phone app (written by vfxtool appicon, from the same shapes)
+  and the Windows logos (shared/tooling/internal/appicon) repeat these paths,
+  which a test compares.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>

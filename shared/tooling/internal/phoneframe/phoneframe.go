@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package phoneframe implements `vfxtool frame-phone`: it frames the screenshot of a phone for the
-// documentation. The pictures of the Android app in the user guide have the rounded corners of a phone
+// documentation. The pictures of the phone app in the user guide have the rounded corners of a phone
 // display, transparent outside, and a thin grey border over the edge of the picture: the cream screens of the
 // light theme have no edge against the white page of GitHub without it.
 package phoneframe

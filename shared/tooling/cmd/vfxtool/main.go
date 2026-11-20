@@ -82,7 +82,9 @@ Commands:
   coverage            gate unit-test coverage (replaces mygo/tools/coverage.sh)
   measure             measure memory use (replaces shared/tools/measure.sh)
   measure-lightweight measure the memory use of the application in the lightweight mode
-  measure-apk         measure the memory use of the Android app on an emulator (with --pair-url, also the paired session of a debuggable APK)
+  measure-apk         measure the memory use of the phone app on an emulator, cold and paired (with --pair-link-file, drives the paired session)
+  phone-link          pair with the end-to-end build of the desktop application and write a pairing link for the phone's emulator
+  appicon             write the icons of the phone app (icon.png, icon-foreground.png) into a directory
   webheap             screenshot the web interface, with its JavaScript heap for local diagnosis (replaces shared/tooling/webheap/check.cjs)
   screenshots         capture page screenshots (replaces shared/tools/screenshots.sh)
   smoke-test          start a graphical application and check that it stays up
