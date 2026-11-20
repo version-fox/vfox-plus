@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -434,6 +437,44 @@ func TestAFailureSaysItsReasonOnlyWhereTheWordsDoNot(t *testing.T) {
 	long := errors.New(strings.Repeat("x", 2*pairDetailRunes))
 	if got := []rune(pairFailureDetail(app.KindOther, long)); len(got) != pairDetailRunes+1 || got[len(got)-1] != '…' {
 		t.Errorf("a long reason has %d runes and ends with %q, want %d and an ellipsis", len(got), got[len(got)-1], pairDetailRunes+1)
+	}
+}
+
+// TestOpeningTheDialogAgainProbesAComputerThatDidNotAnswer checks the way of a person whose phone was
+// not on the network yet: the dialog says that the computer did not answer, the computer comes up, the
+// person closes the dialog and opens it again with the same link, and the dialog finds the computer. A
+// probe that failed is not shown again as it was.
+func TestOpeningTheDialogAgainProbesAComputerThatDidNotAnswer(t *testing.T) {
+	fd := newPairDesktop(t)
+	address := fd.server.Listener.Addr().String()
+	handler := fd.server.Config.Handler
+	fd.server.Close() // The computer is down.
+	root := newRoot(t)
+	tt := ui.NewTester(root.View, 480, 900)
+	deepLink := "vfoxplus://pair?link=" + url.QueryEscape("https://"+address+"/auth/connect/"+pairTestToken)
+	root.OpenURL(deepLink)
+	pairWaitFor(t, tt, noticeText(app.KindUnreachable))
+
+	up := httptest.NewUnstartedServer(handler)
+	_ = up.Listener.Close()
+	var err error
+	if up.Listener, err = net.Listen("tcp", address); err != nil {
+		t.Skipf("the address of the computer was taken before it came up: %v", err)
+	}
+	up.Config.ErrorLog = log.New(io.Discard, "", 0)
+	up.StartTLS()
+	t.Cleanup(up.Close)
+	if err := tt.Click("Close"); err != nil {
+		t.Fatalf("Click(Close): %v", err)
+	}
+	settle(tt)
+	if hasText(tt, noticeText(app.KindUnreachable)) {
+		t.Fatal("the dialog is still open after Close")
+	}
+	root.OpenURL(deepLink)
+	pairWaitFor(t, tt, "Trust and pair")
+	if hasText(tt, noticeText(app.KindUnreachable)) {
+		t.Error("the dialog shows the failure of the probe of before")
 	}
 }
 

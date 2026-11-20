@@ -164,6 +164,19 @@ func (s *Service) Aliases(name string) Resource[[]remote.VersionAlias] {
 	return e.res
 }
 
+// ForgetProbe drops the probe of the last link, so that the next read of Probe connects
+// again. The dialog that asks the user to trust a computer calls it when it opens: the
+// probe does not use the token of the link, so the link can be tried as often as the user
+// likes, and a computer that did not answer a moment ago, because the network was not up
+// yet or the user had not turned it on, may answer now, and may show another certificate.
+// A probe that is still running is not waited for: its answer goes to an entry that nothing
+// reads any more.
+func (s *Service) ForgetProbe() {
+	s.mu.Lock()
+	s.probe, s.probeKey = nil, ""
+	s.mu.Unlock()
+}
+
 // Info returns the metadata of the installed plugin name.
 func (s *Service) Info(name string) Resource[remote.PluginInfo] {
 	s.mu.Lock()
@@ -181,7 +194,8 @@ func (s *Service) Info(name string) Resource[remote.PluginInfo] {
 // compare with the one the computer shows, before Pair. It needs no pairing: it
 // reaches the address, and trusts nothing. The first read starts the probe; the
 // reads of the same link share it, and a read of another link starts another. A
-// link without an address is a failed resource.
+// link without an address is a failed resource. A probe that failed is not tried
+// again by reading it: ForgetProbe makes the next read connect anew.
 func (s *Service) Probe(link pairing.Link) Resource[Candidate] {
 	s.mu.Lock()
 	defer s.mu.Unlock()

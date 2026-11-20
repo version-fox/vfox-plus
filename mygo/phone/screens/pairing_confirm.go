@@ -83,8 +83,11 @@ func (f *pairFlow) state() (bool, bool, app.Kind) {
 // pairOpenConfirm opens the dialog that asks the user to trust the fingerprint of the
 // computer that the field names. The dialog probes the computer and shows its
 // fingerprint; it pairs only when the user taps Trust and pair. The pairing page, a
-// deep link and a picture all open it, and none of them pairs by itself.
+// deep link and a picture all open it, and none of them pairs by itself. Each opening
+// probes the computer anew: a computer that did not answer, because the network was not
+// up yet, is tried again when the user opens the dialog with the same link.
 func (r *Root) pairOpenConfirm() {
+	r.service.ForgetProbe()
 	flow := &pairFlow{}
 	r.env.ShowDialog(pairConfirmID, func(c kit.Ctx, close func()) kit.DialogSpec {
 		return r.pairConfirmSpec(c, close, flow)

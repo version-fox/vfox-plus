@@ -18,7 +18,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"log"
+	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -269,6 +274,46 @@ func TestProbeReadsTheFingerprintBeforeAnyTrust(t *testing.T) {
 	}
 	if rec, err := servers.Load(); !errors.Is(err, store.ErrNoRecord) {
 		t.Errorf("probing saved %+v, %v", rec, err)
+	}
+}
+
+// TestAProbeThatFailedIsTriedAgainOnceItIsForgotten checks the case of a phone whose network is not
+// up yet when it first looks for the computer: the probe fails, and it fails again for as long as it
+// is read, because a probe does not run twice by itself. The computer comes up, the user opens the dialog
+// again with the same link (the probe does not use its token), and ForgetProbe makes the next read connect
+// anew, and read the certificate of the computer.
+func TestAProbeThatFailedIsTriedAgainOnceItIsForgotten(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	if err := listener.Close(); err != nil { // Nothing listens at the address: the computer is down.
+		t.Fatal(err)
+	}
+	servers, sessions := stores(t)
+	svc := newTestService(t, servers, sessions)
+	link := pairing.Link{Base: &url.URL{Scheme: "https", Host: address}, Token: strings.Repeat("a", 32)}
+	probe := func() Resource[Candidate] { return svc.Probe(link) }
+	if first := settle(t, probe); first.Err() == nil || KindOf(first.Err()) != KindUnreachable {
+		t.Fatalf("the probe of a computer that is down: %v, want the computer not to answer", first.Err())
+	}
+
+	up := httptest.NewUnstartedServer(http.NotFoundHandler())
+	_ = up.Listener.Close()
+	if up.Listener, err = net.Listen("tcp", address); err != nil {
+		t.Skipf("the address of the computer was taken before it came up: %v", err)
+	}
+	up.Config.ErrorLog = log.New(io.Discard, "", 0)
+	up.StartTLS()
+	t.Cleanup(up.Close)
+	if again := settle(t, probe); again.Err() == nil {
+		t.Fatal("reading a probe that failed connected again by itself")
+	}
+	svc.ForgetProbe()
+	candidate := loaded(t, probe)
+	if want := pairing.FormatFingerprint(up.Certificate().Raw); candidate.Fingerprint != want {
+		t.Errorf("the fingerprint after the probe was forgotten is %q, want the one of the computer that came up: %q", candidate.Fingerprint, want)
 	}
 }
 
