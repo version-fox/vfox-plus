@@ -158,6 +158,10 @@ func TestRunUsage(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "--check-back-key") {
 		t.Errorf("--check-back-key without --pair-link-file: err = %v, want the usage", err)
 	}
+	err = Run([]string{"--apk", "phone.apk", "--output", "out", "--check-input-type"})
+	if err == nil || !strings.Contains(err.Error(), "--check-input-type") {
+		t.Errorf("--check-input-type without --pair-link-file: err = %v, want the usage", err)
+	}
 	// A measurement of no start at all reads nothing: that is a mistake, and the median of none is not a number to report.
 	for _, runs := range []string{"0", "-1"} {
 		err = Run([]string{"--apk", "phone.apk", "--output", "out", "--cold-runs", runs})
@@ -346,6 +350,11 @@ type screenMachine struct {
 	// hardware keyboard does, and ime that it is shown now: it takes the taps that are meant for the buttons of the dialog,
 	// and the key of Android that goes back closes it and not the dialog.
 	keyboard, ime bool
+	// opensKeyboard are the screens that bring the soft keyboard up when a tap leads to them (the focus of a field), where the
+	// device has one, and inputTypes are the input types, in hex, that the input method service reports for the field in focus on
+	// a screen: none is 0, which it reports when no field has the focus.
+	opensKeyboard map[string]bool
+	inputTypes    map[string]string
 	// strips is how many more dumps have the strip that says that the computer did not answer, over the page, as
 	// the app shows it for a moment when its connection is lost, and clean is how many dumps come before them.
 	strips, clean int
@@ -455,10 +464,19 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 		return []byte("ACTIVITY MANAGER ACTIVITIES (dumpsys activity activities)\n  topResumedActivity=ActivityRecord{203859552 u0 " + front +
 			" t27}\n  ResumedActivity: ActivityRecord{203859552 u0 " + front + " t27}\n"), nil
 	case command == "shell dumpsys input_method":
-		if d.machine != nil && d.machine.ime {
-			return []byte("  mImeWindowVis=3\n  mInputShown=true\n"), nil
+		// The report names the field in focus after the lines of the clients that came before it, which have no input type.
+		inputType := "0"
+		if d.machine != nil {
+			if v, ok := d.machine.inputTypes[d.machine.now]; ok {
+				inputType = v
+			}
 		}
-		return []byte("  mImeWindowVis=0\n  mInputShown=false\n"), nil
+		report := "  mImeWindowVis=0\n  mInputShown=false\n"
+		if d.machine != nil && d.machine.ime {
+			report = "  mImeWindowVis=3\n  mInputShown=true\n"
+		}
+		return []byte("      inputType=0x0 imeOptions=0x0 fieldId=0x0 fieldName=null actionId=0 actionLabel=null\n" + report +
+			"      curEditorInfo:\n        inputType=0x" + inputType + " imeOptions=0x2000006 privateImeOptions=null\n"), nil
 	case strings.HasPrefix(command, "shell dumpsys meminfo"):
 		if len(d.meminfos) == 0 {
 			return []byte(meminfoReport), nil
@@ -498,7 +516,7 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 		if d.machine != nil && !d.machine.ime {
 			if to, ok := d.machine.next[d.machine.now][tap]; ok {
 				d.machine.now = to
-				d.machine.ime = d.machine.keyboard && to == "addplugin"
+				d.machine.ime = d.machine.keyboard && d.machine.opensKeyboard[to]
 			}
 		}
 		return nil, nil
@@ -987,9 +1005,10 @@ func guideMachine() *screenMachine {
 		return out
 	}
 	return &screenMachine{
-		lag:      3,
-		keyboard: true,
-		now:      "pairing",
+		lag:           3,
+		keyboard:      true,
+		opensKeyboard: map[string]bool{"addplugin": true},
+		now:           "pairing",
 		screens: map[string]string{
 			"pairing":   coverScreen("Pair with the computer", ""),
 			"confirm":   confirmScreen,
@@ -1465,9 +1484,9 @@ func TestADialogThatNeverGoesIsNotWaitedOnForEver(t *testing.T) {
 	}
 }
 
-// backRun runs the paired session of a device that has the key back checked, and returns the device, the output of the
+// pairedRun runs the paired session of a device, with the checks that set turns on, and returns the device, the output of the
 // tool, the directory of its screenshots, and the error of the run.
-func backRun(t *testing.T, m *screenMachine) (*fakeDevice, string, string, error) {
+func pairedRun(t *testing.T, m *screenMachine, set func(*config)) (*fakeDevice, string, string, error) {
 	t.Helper()
 	dir := t.TempDir()
 	shots := filepath.Join(dir, "shots")
@@ -1479,9 +1498,16 @@ func backRun(t *testing.T, m *screenMachine) (*fakeDevice, string, string, error
 	var output strings.Builder
 	s := d.session()
 	s.log = &output
-	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, aapt2: "aapt2", checkBack: true}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, aapt2: "aapt2"}
+	set(&c)
 	err := s.measure(c)
 	return d, output.String(), shots, err
+}
+
+// backRun is pairedRun with the key back checked.
+func backRun(t *testing.T, m *screenMachine) (*fakeDevice, string, string, error) {
+	t.Helper()
+	return pairedRun(t, m, func(c *config) { c.checkBack = true })
 }
 
 // TestTheKeyBackWithTheDialogOfThePairingOpenLeavesTheAppInFront is the check that the app answers egoist/mygo#2088: the
@@ -1569,6 +1595,12 @@ func TestTheKeyBackIsPressedOnlyWhenAskedFor(t *testing.T) {
 	if slices.Contains(d.commands, "shell dumpsys activity activities") {
 		t.Error("the activity in front was read without the check being asked for")
 	}
+	if slices.Contains(d.commands, "shell dumpsys input_method") {
+		t.Error("the input method service was asked without the check of the input type being asked for")
+	}
+	if slices.Contains(d.taps, linkFieldTap) {
+		t.Error("the field of the pairing link was tapped without the check of the input type being asked for")
+	}
 }
 
 // TestACheckOfTheKeyBackWithoutADialogIsAnError is a screen that has no dialog of the pairing when the link is opened: the
@@ -1600,5 +1632,120 @@ func TestTheActivityInFrontIsRead(t *testing.T) {
 	s := &session{adb: func(args ...string) ([]byte, error) { return []byte("nothing is resumed\n"), nil }}
 	if got, err := s.front(); err == nil {
 		t.Errorf("a report without an activity in front gave %q", got)
+	}
+}
+
+// linkFieldNode is the label of the field of the pairing link, as the device dumps it: not clickable, over the line of the field, which
+// a tap on it focuses. linkFieldTap is the middle of it.
+const (
+	linkFieldNode = `  <node index="3" text="Pairing link" class="android.view.View" clickable="false" bounds="[178,537][995,600]" />`
+	linkFieldTap  = "586 568"
+)
+
+// inputMachine is the device of the guide with the field of the pairing link on the pairing page: a tap on it focuses it, which brings
+// the soft keyboard up, and the input method service reports inputType (in hex) for the field in focus.
+func inputMachine(inputType string) *screenMachine {
+	m := guideMachine()
+	page := coverScreen("Pair with the computer", linkFieldNode)
+	m.screens["pairing"] = page
+	m.screens["pairing-field"] = page
+	m.next["pairing"] = map[string]string{linkFieldTap: "pairing-field"}
+	m.opensKeyboard["pairing-field"] = true
+	m.inputTypes = map[string]string{"pairing-field": inputType}
+	return m
+}
+
+func inputRun(t *testing.T, m *screenMachine) (*fakeDevice, string, string, error) {
+	t.Helper()
+	return pairedRun(t, m, func(c *config) { c.checkInputType = true })
+}
+
+// TestTheFieldOfThePairingLinkAsksTheKeyboardForAddresses is the field as it is now: text of the keyboard of addresses (0x10), no
+// capitalization, and suggestions off (0x80000). The field is tapped, its input type read, and the keyboard that came up closed
+// again, and the pairing goes on from there.
+func TestTheFieldOfThePairingLinkAsksTheKeyboardForAddresses(t *testing.T) {
+	m := inputMachine("80011")
+	d, output, _, err := inputRun(t, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{linkFieldTap, "540 1880", "108 2300", "324 2300", "540 2300", "756 2300", "972 2300"}; !slices.Equal(d.taps, want) {
+		t.Errorf("taps = %v, want %v: the field first, then the pairing", d.taps, want)
+	}
+	if !strings.Contains(output, "asks for the keyboard of addresses, with no capitalization and no corrections (input type 0x80011)") {
+		t.Errorf("the output does not say what the check found:\n%s", output)
+	}
+	if m.ime {
+		t.Error("the keyboard that the focus brought up is still shown")
+	}
+	// The key that closes the keyboard is pressed once, with the keyboard up, so that the key went to the keyboard and not to the
+	// screen: a key back with no keyboard to close could take the app out of the front.
+	if got := strings.Count(strings.Join(d.commands, "\n"), "shell input keyevent 4"); got != 1 {
+		t.Errorf("the key back was pressed %d times, want once", got)
+	}
+	if len(m.backs) != 0 {
+		t.Errorf("the key back reached the screens %v, want only the keyboard", m.backs)
+	}
+}
+
+// TestAFieldThatAsksTheKeyboardForTheWrongThingFailsTheRun is the field as it was, and the other ways it can ask wrong: each says what
+// was asked, and does not go on to the pairing.
+func TestAFieldThatAsksTheKeyboardForTheWrongThingFailsTheRun(t *testing.T) {
+	for _, tc := range []struct{ name, inputType, want string }{
+		{"the plain field of Android: sentences and corrections", "c001", "does not ask for the keyboard of addresses"},
+		{"the keyboard of addresses that capitalizes sentences", "84011", "capitalize"},
+		{"the keyboard of addresses that capitalizes words", "82011", "capitalize"},
+		{"the keyboard of addresses that capitalizes characters", "81011", "capitalize"},
+		{"the keyboard of addresses with the corrections on", "8011", "corrections"},
+		{"the keyboard of addresses that does not turn suggestions off", "11", "corrections"},
+		{"a field of numbers", "2", "not a text field"},
+		{"no field in focus", "0", "reports no field in focus"},
+	} {
+		m := inputMachine(tc.inputType)
+		d, _, _, err := inputRun(t, m)
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: measure = %v, want an error with %q", tc.name, err, tc.want)
+			continue
+		}
+		if slices.Contains(d.taps, "540 1880") {
+			t.Errorf("%s: the pairing was tried after the field was refused", tc.name)
+		}
+	}
+}
+
+// TestTheKeyboardIsClosedAfterAFieldThatAsksWrong is the failure that leaves a keyboard on the screen: it is closed before the
+// run ends, as it is after a field that passes, so that the evidence of the failure is not the keyboard.
+func TestTheKeyboardIsClosedAfterAFieldThatAsksWrong(t *testing.T) {
+	m := inputMachine("c001")
+	if _, _, _, err := inputRun(t, m); err == nil {
+		t.Fatal("a field of the wrong input type passed")
+	}
+	if m.ime {
+		t.Error("the keyboard is still shown after the failure")
+	}
+}
+
+// TestACheckOfTheInputTypeNeedsTheFieldOnTheScreen is a pairing page without the field: the run says so.
+func TestACheckOfTheInputTypeNeedsTheFieldOnTheScreen(t *testing.T) {
+	m := inputMachine("80011")
+	m.screens["pairing"] = coverScreen("Pair with the computer", "")
+	_, _, _, err := inputRun(t, m)
+	if err == nil || !strings.Contains(err.Error(), "no field of the pairing link") {
+		t.Fatalf("measure = %v, want no field of the pairing link", err)
+	}
+}
+
+// TestTheInputTypeIsReadFromTheFieldInFocus is the report of the service as the device writes it: other clients come before the field in
+// focus, with no input type, and the field's is on the line after curEditorInfo.
+func TestTheInputTypeIsReadFromTheFieldInFocus(t *testing.T) {
+	report := "      inputType=0x0 imeOptions=0x0 fieldId=0x0 fieldName=null actionId=0 actionLabel=null\n" +
+		"    mCurAttribute:\n      inputType=0x20001 imeOptions=0x0\n" +
+		"      curEditorInfo:\n        inputType=0x80011 imeOptions=0x2000006 privateImeOptions=null\n"
+	match := editorInputType.FindStringSubmatch(report)
+	if match == nil || match[1] != "80011" {
+		t.Fatalf("the input type of the field in focus is %v, want 80011", match)
+	}
+	if editorInputType.MatchString("      inputType=0x80011 imeOptions=0x0\n") {
+		t.Error("an input type that is not the field in focus's was read")
 	}
 }

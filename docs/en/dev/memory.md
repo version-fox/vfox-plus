@@ -251,7 +251,11 @@ three times), waits for the app to log the pairing, takes a screenshot and a dum
 fails when the log of the app has an error. With `--check-back-key` it first presses the key back with
 the dialog of the trust open: the dialog must close and the app must stay in front, which no test of
 the screens can see (mygo takes a back that nothing of the window claims as the end of the app, and a
-dialog does not claim it: [egoist/mygo#2088](https://github.com/egoist/mygo/issues/2088)). It needs no debuggable build and no `run-as`: the link reaches the app the way
+dialog does not claim it: [egoist/mygo#2088](https://github.com/egoist/mygo/issues/2088)). With
+`--check-input-type` it then focuses the field of the pairing link and reads, from the input method
+service, what the app asked the keyboard for: the keyboard of addresses, with no capitalization and
+suggestions off, which the fields of the web interface have (a plain field of mygo gets the capitalization
+of sentences and the corrections of the keyboard on Android). It needs no debuggable build and no `run-as`: the link reaches the app the way
 a link opened on the phone does. The desktop application of CI runs against the fake vfox, so the tabs
 that the paired line is measured on hold SDKs and plugins, as a person's do
 ([Screenshots](contributing.md#screenshots)). To run it yourself, start the end-to-end build of the

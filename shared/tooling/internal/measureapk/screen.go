@@ -122,6 +122,25 @@ func lowestClickable(elements []element, pattern *regexp.Regexp) (element, bool)
 	return best, found
 }
 
+// lowestLabelled returns the element whose label matches pattern and which is lowest on the screen, clickable or not, and whether
+// there is one. The label of a text field is such an element: the field is not clickable by the tree, and a tap on its label is a tap
+// on the field.
+func lowestLabelled(elements []element, pattern *regexp.Regexp) (element, bool) {
+	var best element
+	found := false
+	for _, e := range elements {
+		if !pattern.MatchString(strings.TrimSpace(e.label)) {
+			continue
+		}
+		if _, y := e.center(); !found {
+			best, found = e, true
+		} else if _, by := best.center(); y > by {
+			best = e
+		}
+	}
+	return best, found
+}
+
 // hasLabel reports whether an element of the screen has a label that matches pattern, clickable or not.
 func hasLabel(elements []element, pattern *regexp.Regexp) bool {
 	for _, e := range elements {

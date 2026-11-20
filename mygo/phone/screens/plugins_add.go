@@ -72,6 +72,7 @@ func (r *Root) pluginsOpenAdd(env *kit.Env, landed *atomic.Bool) {
 						Text:        &form.source,
 						LeadingIcon: "link",
 						AutoFocus:   true,
+						Keyboard:    ui.KeyboardURL,
 						OnSubmit:    func(string) { submit() },
 					})
 					kit.TextField(c, kit.TextFieldSpec{

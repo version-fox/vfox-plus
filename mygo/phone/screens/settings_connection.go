@@ -114,6 +114,8 @@ func (r *Root) settingsPortItem(k kit.Ctx, web remote.WebState, port *settingsDr
 			kit.TextField(k, kit.TextFieldSpec{
 				ID: "port-field", Label: i18n.Text("setPortHint"), Text: &port.text, Error: errorText,
 				OnSubmit: commit, OnBlur: commit,
+				// A number, as the web interface's field of the port is: the keyboard of digits.
+				Keyboard: ui.KeyboardNumber,
 			})
 		},
 	}

@@ -33,7 +33,9 @@
 // SDK, the dialog that adds a plugin and the home page in the dark theme, in a directory of their own.
 //
 // With --check-back-key it presses the key back with the dialog of the pairing open, before the pairing, and fails when
-// the dialog stays open or the app is taken out of the front (see backKeepsTheApp).
+// the dialog stays open or the app is taken out of the front (see backKeepsTheApp). With --check-input-type it reads what the
+// field of the pairing link asks of the keyboard, and fails unless it is the keyboard of addresses, with no capitalization and
+// no corrections (see linkFieldAsksTheKeyboard).
 //
 // The screens are read from the accessibility tree (uiautomator dump): the native UI of the app
 // exposes its elements with their labels and bounds (mygo's SurfaceWindow, the accessibility
@@ -77,7 +79,7 @@ const (
 )
 
 // usage is the command line of measure-apk, as its errors print it.
-const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--cold-runs N] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR] [--check-back-key]]"
+const usage = "Usage: measure-apk --apk FILE --output DIR [--screenshot FILE] [--settle SECONDS] [--cold-runs N] [--aapt2 FILE] [--pair-link-file FILE --shots DIR [--pictures DIR] [--check-back-key] [--check-input-type]]"
 
 var (
 	totalLine = regexp.MustCompile(`(?m)^\s*TOTAL\s+(\d+)`)
@@ -86,6 +88,21 @@ var (
 	// `topResumedActivity=ActivityRecord{… u0 package/Activity t12}` on the emulator of CI (API 36) and
 	// `mResumedActivity: ActivityRecord{…}` on the releases before.
 	resumedActivity = regexp.MustCompile(`ResumedActivity[=:]\s*ActivityRecord\{\S+ u\d+ (\S+)`)
+	// editorInputType is the input type that the input method service reports for the field in focus, in `dumpsys input_method`:
+	// the line after `curEditorInfo:`. A report of no field in focus has 0.
+	editorInputType = regexp.MustCompile(`curEditorInfo:\s*\n\s*inputType=0x([0-9a-f]+)`)
+)
+
+// The parts of the input type of Android (android.text.InputType) that the check of the field of the pairing link reads: the class, the
+// variation that says a field holds an address, the three capitalizations, the correction, and the flag that turns suggestions off.
+const (
+	inputClassMask     = 0xf
+	inputClassText     = 0x1
+	inputVariationMask = 0xff0
+	inputVariationURI  = 0x10
+	inputCapitalizes   = 0x1000 | 0x2000 | 0x4000 // characters, words, sentences
+	inputAutoCorrect   = 0x8000
+	inputNoSuggestions = 0x80000
 )
 
 // The labels of the paired session, as the phone app shows them in English and in Simplified
@@ -97,6 +114,8 @@ var (
 	// answer (the message goes on with what to check), and closeLabel is the button that closes it.
 	unreachableLabel = regexp.MustCompile(`^(The computer did not answer\.|电脑没有响应。)`)
 	closeLabel       = regexp.MustCompile(`^(Close|关闭)$`)
+	// linkFieldLabel is the label of the field of the pairing link: a tap on it is a tap on the field.
+	linkFieldLabel = regexp.MustCompile(`^(Pairing link|配对链接)$`)
 	// notRespondingLabel is the title of the dialog that Android shows over everything when a process does not answer
 	// ("System UI isn't responding"), and waitLabel is its button that goes on waiting: a person taps that one, and the other
 	// ends the process. The dialog is the system's and not the app's, so it is looked for in English only, which is the language
@@ -208,6 +227,8 @@ type config struct {
 	coldRuns int
 	// checkBack has the paired session press the key back with the dialog of the pairing open (see backKeepsTheApp).
 	checkBack bool
+	// checkInputType has it read what the field of the pairing link asks of the keyboard (see linkFieldAsksTheKeyboard).
+	checkInputType bool
 }
 
 // session runs the steps against a device. Its clock and its sleep are replaceable, so that the
@@ -232,6 +253,7 @@ func Run(args []string) error {
 	shots := flags.String("shots", "", "directory receiving the screenshots, the screen dumps and the log of the paired session (required with --pair-link-file)")
 	pictures := flags.String("pictures", "", "directory receiving the pictures of the user guide, taken in the paired session (needs --pair-link-file)")
 	checkBack := flags.Bool("check-back-key", false, "press the key back with the dialog of the pairing open, and fail when the dialog stays or the app leaves (needs --pair-link-file)")
+	checkInput := flags.Bool("check-input-type", false, "read what the field of the pairing link asks of the keyboard, and fail unless it is the keyboard of addresses, with no capitalization and no corrections (needs --pair-link-file)")
 	aapt2 := flags.String("aapt2", "", "the aapt2 of the build tools (default: the newest in ANDROID_HOME, or the one on the PATH)")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -248,9 +270,12 @@ func Run(args []string) error {
 	if *checkBack && *pairLinkFile == "" {
 		return errors.New("--check-back-key needs --pair-link-file: the dialog of the pairing is opened by its link")
 	}
+	if *checkInput && *pairLinkFile == "" {
+		return errors.New("--check-input-type needs --pair-link-file: it is part of the paired session")
+	}
 	c := config{apk: *apk, outputDir: *outputDir, screenshot: *screenshot, pairLinkFile: *pairLinkFile,
 		shots: *shots, pictures: *pictures, aapt2: *aapt2, settle: time.Duration(*settle) * time.Second, coldRuns: *coldRuns,
-		checkBack: *checkBack}
+		checkBack: *checkBack, checkInputType: *checkInput}
 	s := &session{adb: runAdb, badging: readBadging, sleep: time.Sleep, now: time.Now, log: os.Stderr}
 	return s.measure(c)
 }
@@ -388,6 +413,11 @@ func (s *session) paired(c config, pkg string) (err error) {
 			return err
 		}
 	}
+	if c.checkInputType {
+		if err := s.linkFieldAsksTheKeyboard(); err != nil {
+			return err
+		}
+	}
 	confirm, err := s.confirmPairing(c, pkg, uri)
 	if err != nil {
 		return err
@@ -503,6 +533,62 @@ func (s *session) awaitDialog(timeout time.Duration) (screen, error) {
 		}
 		s.sleep(pollInterval)
 	}
+}
+
+// linkFieldAsksTheKeyboard focuses the field of the pairing link, and reads what the app asked the keyboard for it, which the input
+// method service reports for the field in focus. The field holds an address: the keyboard must be the one for addresses, and must
+// neither capitalize the first letter ("Https://") nor correct what is typed. On Android a plain field is given the capitalization of
+// sentences and the corrections of the keyboard, and the web interface turns them off on its fields (autocapitalize="off",
+// spellcheck="false"), so the text field of the application does (kit.TextField). Nothing in Go sees what the keyboard is told, which
+// is why the emulator is asked. The keyboard that the focus brings is closed again, so that it covers nothing that follows.
+func (s *session) linkFieldAsksTheKeyboard() error {
+	shot, err := s.dump()
+	if err != nil {
+		return err
+	}
+	field, ok := lowestLabelled(shot.elements, linkFieldLabel)
+	if !ok {
+		return fmt.Errorf("no field of the pairing link on the screen: it has %s", labelsOf(shot.elements))
+	}
+	x, y := field.center()
+	if _, err := s.adb("shell", fmt.Sprintf("input tap %d %d", x, y)); err != nil {
+		return err
+	}
+	s.sleep(tabSettle)
+	// The service learns of the field a moment after the focus; it reports no input type before.
+	var inputType int
+	deadline := s.now().Add(tabTimeout)
+	for {
+		report, err := s.adb("shell", "dumpsys", "input_method")
+		if err != nil {
+			return err
+		}
+		if match := editorInputType.FindSubmatch(report); match != nil {
+			if v, err := strconv.ParseInt(string(match[1]), 16, 64); err == nil {
+				inputType = int(v)
+			}
+		}
+		if inputType != 0 {
+			break
+		}
+		if !s.now().Before(deadline) {
+			return fmt.Errorf("the input method service reports no field in focus within %s of the tap on the field of the pairing link", tabTimeout)
+		}
+		s.sleep(pollInterval)
+	}
+	defer s.hideKeyboard()
+	switch {
+	case inputType&inputClassMask != inputClassText:
+		return fmt.Errorf("the field of the pairing link is not a text field: its input type is %#x", inputType)
+	case inputType&inputVariationMask != inputVariationURI:
+		return fmt.Errorf("the field of the pairing link does not ask for the keyboard of addresses: its input type is %#x", inputType)
+	case inputType&inputCapitalizes != 0:
+		return fmt.Errorf("the field of the pairing link asks the keyboard to capitalize what is typed: its input type is %#x", inputType)
+	case inputType&inputAutoCorrect != 0 || inputType&inputNoSuggestions == 0:
+		return fmt.Errorf("the field of the pairing link leaves the corrections of the keyboard on: its input type is %#x", inputType)
+	}
+	fmt.Fprintf(s.log, "the field of the pairing link asks for the keyboard of addresses, with no capitalization and no corrections (input type %#x)\n", inputType)
+	return nil
 }
 
 // front is the activity that Android has in front, as "package/Activity".

@@ -81,6 +81,7 @@ func (r *Root) pairLinkField(k kit.Ctx, reading *pairReading) {
 		Text:        &r.linkText,
 		Error:       message,
 		Lines:       1,
+		Keyboard:    ui.KeyboardURL,
 	})
 }
 
