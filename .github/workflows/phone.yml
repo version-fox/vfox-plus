@@ -215,12 +215,36 @@ jobs:
           path: ${{ runner.temp }}/screenshot-android.png
           if-no-files-found: error
           overwrite: true
+      - name: Look at the server of the desktop application
+        # What the emulator reaches at 10.0.2.2 is the loopback interface of this computer, at the port
+        # of the pairing link. The step says whether the application listens at that port and completes
+        # a TLS handshake there, and it prints the port only: the link is a secret, so a link without a
+        # port is not printed either.
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/phone-e2e"
+          {
+            link="$RUNNER_TEMP/phone-e2e/pairing-link.txt"
+            if [ -s "$link" ]; then
+              port="$(sed -E 's#^https://[^:/]+:([0-9]+)/.*#\1#' "$link")"
+              case "$port" in
+                ''|*[!0-9]*) echo "the pairing link names no port" ;;
+                *)
+                  echo "the pairing link names port $port"
+                  ss -ltn | grep ":$port " || echo "nothing listens at port $port"
+                  openssl s_client -connect "127.0.0.1:$port" -brief </dev/null 2>&1 | head -n 12 || true
+                  ;;
+              esac
+            else
+              echo "no pairing link was made"
+            fi
+          } 2>&1 | tee "$RUNNER_TEMP/phone-e2e/desktop-listening.txt"
       - name: Keep the evidence of the paired session
         if: always()
         run: |
           mkdir -p "$RUNNER_TEMP/evidence"
           cp -r "$RUNNER_TEMP/phone-e2e/shots" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
-          cp "$RUNNER_TEMP/phone-e2e/desktop.log" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP/phone-e2e/desktop.log" "$RUNNER_TEMP/phone-e2e/desktop-listening.txt" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
           cp "$RUNNER_TEMP/memory-android/memory-paired.txt" "$RUNNER_TEMP/evidence/" 2>/dev/null || true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()

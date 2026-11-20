@@ -206,11 +206,17 @@ func (s *session) measure(c config) error {
 }
 
 // paired drives the paired session: the link, the confirmation, the tabs, the log and the memory.
-func (s *session) paired(c config, pkg string) error {
+// When it fails it leaves the evidence of the failure beside the screenshots (keepEvidence).
+func (s *session) paired(c config, pkg string) (err error) {
 	link, err := readLink(c.pairLinkFile)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			s.keepEvidence(c.shots, link)
+		}
+	}()
 	uri, host, err := DeepLink(link)
 	if err != nil {
 		return err
@@ -276,6 +282,40 @@ func (s *session) paired(c config, pkg string) error {
 	line := PairedLine(pss, rss)
 	fmt.Fprintln(s.log, line)
 	return writeFile(filepath.Join(c.outputDir, "memory-paired.txt"), line+"\n")
+}
+
+// keepEvidence leaves in dir what explains a paired session that failed: the screen, the whole log of
+// the app, and what the device says of its network and of the computer at the address that the link
+// names (ping, and a connection to its port). A failure to reach the computer is not an error that the
+// log of the app shows, and a session that stops early does not write its log otherwise. Nothing here
+// fails the session, which has its error already, and nothing here holds the token of the link.
+func (s *session) keepEvidence(dir, link string) {
+	if dir == "" {
+		return
+	}
+	_ = s.screenshotTo(filepath.Join(dir, "failure.png"))
+	if text, err := s.logText(); err == nil {
+		_ = writeFile(filepath.Join(dir, "logcat.txt"), text)
+	}
+	_ = writeFile(filepath.Join(dir, "device-network.txt"), s.networkReport(link))
+}
+
+// networkReport asks the device about its network, and about the address of the computer.
+func (s *session) networkReport(link string) string {
+	commands := []string{"ip -4 addr", "ip route", "getprop | grep -E 'dhcp|dns|net[.]'"}
+	if host, port, ok := addressOf(link); ok {
+		commands = append(commands, "ping -c 1 -W 2 "+host, "echo | nc -w 3 "+host+" "+port+"; echo nc_exit=$?")
+	}
+	var report strings.Builder
+	for _, command := range commands {
+		out, err := s.adb("shell", command)
+		fmt.Fprintf(&report, "$ %s\n%s", command, out)
+		if err != nil {
+			fmt.Fprintf(&report, "[%v]\n", err)
+		}
+		report.WriteString("\n")
+	}
+	return report.String()
 }
 
 // start runs an am start command on the device, and reports the error that am prints when the

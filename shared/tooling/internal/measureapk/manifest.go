@@ -114,6 +114,25 @@ func DeepLink(link string) (uri, host string, err error) {
 	return "vfoxplus://pair?link=" + url.QueryEscape(link), u.Hostname(), nil
 }
 
+// addressPattern is what the host of a pairing link may look like where the tool puts it in a command
+// of the device's shell: letters, digits, dots and dashes, which a host name and an IPv4 address have.
+var addressPattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
+
+// addressOf returns the host and the port that a pairing link names, which are no secret (the token is),
+// and whether they are safe to put in a command: the host looks like a host name or an IPv4 address and
+// the port is a number.
+func addressOf(link string) (host, port string, ok bool) {
+	u, err := url.Parse(link)
+	if err != nil {
+		return "", "", false
+	}
+	host, port = u.Hostname(), u.Port()
+	if !addressPattern.MatchString(host) || port == "" || strings.Trim(port, "0123456789") != "" {
+		return "", "", false
+	}
+	return host, port, true
+}
+
 // readLink reads the pairing link out of its file.
 func readLink(path string) (string, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // The file of the caller, which CI writes.

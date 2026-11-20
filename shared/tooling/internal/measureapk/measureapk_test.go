@@ -269,9 +269,15 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 	case command == "logcat -c", strings.HasPrefix(command, "shell pm grant "):
 		return nil, nil
 	case command == "logcat -d -v threadtime":
+		if len(d.logs) == 0 {
+			return nil, nil
+		}
 		text := d.logs[min(d.logIndex, len(d.logs)-1)]
 		d.logIndex++
 		return []byte(text), nil
+	case strings.HasPrefix(command, "shell ip "), strings.HasPrefix(command, "shell getprop "),
+		strings.HasPrefix(command, "shell ping "), strings.HasPrefix(command, "shell echo | nc "):
+		return []byte("answer of the device to: " + strings.TrimPrefix(command, "shell ") + "\n"), nil
 	case args[0] == "exec-out":
 		return []byte("\x89PNG fake"), nil
 	case strings.HasPrefix(command, "shell am start"):
@@ -428,5 +434,68 @@ func TestMeasurePairingFailsWithoutTheConfirmation(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(shots, "confirm-not-found.xml")); statErr != nil {
 		t.Errorf("the dump of the screen that has no confirmation: %v", statErr)
+	}
+}
+
+// TestAFailedPairingLeavesItsEvidence checks what a session that fails leaves in the directory of
+// the shots: the screen, the log of the app and what the device says of the network and of the
+// computer, which a failure to reach the computer needs, as the log of the app has no error for it.
+// The device is asked about the address of the link and not about its token.
+func TestAFailedPairingLeavesItsEvidence(t *testing.T) {
+	dir := t.TempDir()
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	shots := filepath.Join(dir, "shots")
+	d := &fakeDevice{screens: []string{tabsScreen}, logs: []string{"11-20 10:00:00.000  2551  2551 I mygo    : started\n"}}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: shots, aapt2: "aapt2"}
+	if err := d.session().measure(c); err == nil {
+		t.Fatal("the session without a confirmation did not fail")
+	}
+	for _, name := range []string{"failure.png", "logcat.txt", "device-network.txt", "confirm-not-found.xml"} {
+		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
+			t.Errorf("the failed session left no %s: %v", name, err)
+		}
+	}
+	report := readText(t, filepath.Join(shots, "device-network.txt"))
+	for _, want := range []string{"ip route", "ping -c 1 -W 2 10.0.2.2", "nc -w 3 10.0.2.2 8443"} {
+		if !strings.Contains(report, want) {
+			t.Errorf("the report of the network lacks %q:\n%s", want, report)
+		}
+	}
+	for _, name := range []string{"device-network.txt", "logcat.txt"} {
+		if strings.Contains(readText(t, filepath.Join(shots, name)), "tok123") {
+			t.Errorf("%s holds the token of the pairing link", name)
+		}
+	}
+	for _, command := range d.commands {
+		if strings.Contains(command, "tok123") && !strings.Contains(command, "am start") {
+			t.Errorf("the token of the link went into a command of the device: %q", command)
+		}
+	}
+}
+
+func TestAddressOfALink(t *testing.T) {
+	for link, want := range map[string]string{
+		"https://10.0.2.2:8443/auth/connect/abc":      "10.0.2.2 8443",
+		"https://desktop.example:8369/auth/connect/a": "desktop.example 8369",
+	} {
+		host, port, ok := addressOf(link)
+		if !ok || host+" "+port != want {
+			t.Errorf("addressOf(%q) = %q %q %t, want %q", link, host, port, ok, want)
+		}
+	}
+	// What cannot be put in a command of the shell, and a link with no port, give no address.
+	for _, link := range []string{
+		"https://10.0.2.2/auth/connect/abc",
+		"https://[::1]:8443/auth/connect/abc",
+		"https://10.0.2.2;reboot:8443/auth/connect/abc",
+		"https://10.0.2.2:84a3/auth/connect/abc",
+		"not a link",
+	} {
+		if host, port, ok := addressOf(link); ok {
+			t.Errorf("addressOf(%q) = %q %q, want no address", link, host, port)
+		}
 	}
 }
