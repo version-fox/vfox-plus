@@ -15,7 +15,11 @@
 package measureapk
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
 	"os"
 	"path/filepath"
@@ -288,11 +292,26 @@ type screenMachine struct {
 	screens map[string]string
 	next    map[string]map[string]string
 	back    map[string]string
-	// night is the theme of the system.
-	night bool
+	// night is the theme of the system, and demo says that the status bar is in the demo mode: what was asked
+	// for. The system shows it lag screenshots later, as a slow emulator does (shownNight and shownDemo are what
+	// a screenshot has, and delay the screenshots that are still to show the old state).
+	night, demo           bool
+	shownNight, shownDemo bool
+	lag, delay            int
+	// keyboard says that the device shows a soft keyboard when the dialog that adds a plugin opens, as an emulator that has no
+	// hardware keyboard does, and ime that it is shown now: it takes the taps that are meant for the buttons of the dialog,
+	// and the key of Android that goes back closes it and not the dialog.
+	keyboard, ime bool
+	// strips is how many more dumps have the strip that says that the computer did not answer, over the page, as
+	// the app shows it for a moment when its connection is lost, and clean is how many dumps come before them.
+	strips, clean int
 	// seen is the screens that were dumped, in order.
 	seen []string
 }
+
+// stripNode is the strip of the app that says that the computer did not answer, as the accessibility tree has it.
+const stripNode = `  <node index="99" text="The computer did not answer. Check the network, and that vfox+ runs on the computer." class="android.view.View" clickable="false" bounds="[0,206][1080,340]" />
+`
 
 // move goes to the screen that a tap or a key leads to from the screen that is shown, if there is one.
 func (m *screenMachine) move(table map[string]string, key string) {
@@ -321,7 +340,14 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 		strings.HasPrefix(command, "shell ping "), strings.HasPrefix(command, "shell echo | nc "):
 		return []byte("answer of the device to: " + strings.TrimPrefix(command, "shell ") + "\n"), nil
 	case args[0] == "exec-out" && d.machine != nil:
-		return []byte(fmt.Sprintf("\x89PNG fake screen=%s night=%t", d.machine.now, d.machine.night)), nil
+		m := d.machine
+		if m.delay > 0 {
+			m.delay--
+		}
+		if m.delay == 0 {
+			m.shownNight, m.shownDemo = m.night, m.demo
+		}
+		return []byte(fmt.Sprintf("\x89PNG fake screen=%s night=%t demo=%t ime=%t", m.now, m.shownNight, m.shownDemo, m.ime)), nil
 	case args[0] == "exec-out":
 		return []byte("\x89PNG fake"), nil
 	case strings.HasPrefix(command, "shell am start"):
@@ -333,15 +359,35 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 	case command == "shell cmd uimode night yes", command == "shell cmd uimode night no":
 		if d.machine != nil {
 			d.machine.night = strings.HasSuffix(command, "yes")
+			d.machine.delay = d.machine.lag
 		}
 		return nil, nil
 	case command == "shell input keyevent 4":
 		if d.machine != nil {
+			if d.machine.ime {
+				d.machine.ime = false
+				return nil, nil
+			}
 			d.machine.move(d.machine.back, d.machine.now)
 		}
 		return nil, nil
-	case strings.HasPrefix(command, "shell settings put global sysui_demo_allowed"),
-		strings.HasPrefix(command, "shell am broadcast -a com.android.systemui.demo"):
+	case command == "shell dumpsys input_method":
+		if d.machine != nil && d.machine.ime {
+			return []byte("  mImeWindowVis=3\n  mInputShown=true\n"), nil
+		}
+		return []byte("  mImeWindowVis=0\n  mInputShown=false\n"), nil
+	case strings.HasPrefix(command, "shell am broadcast -a com.android.systemui.demo"):
+		if d.machine != nil {
+			switch {
+			case strings.HasSuffix(command, "command enter"):
+				d.machine.demo = true
+			case strings.HasSuffix(command, "command exit"):
+				d.machine.demo = false
+			}
+			d.machine.delay = d.machine.lag
+		}
+		return nil, nil
+	case strings.HasPrefix(command, "shell settings put global sysui_demo_allowed"):
 		return nil, nil
 	case strings.HasPrefix(command, "shell dumpsys meminfo"):
 		return []byte(meminfoReport), nil
@@ -349,7 +395,15 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 		return []byte("UI hierarchy dumped to: " + screenFile + "\n"), nil
 	case strings.HasPrefix(command, "shell cat "+screenFile) && d.machine != nil:
 		d.machine.seen = append(d.machine.seen, d.machine.now)
-		return []byte(d.machine.screens[d.machine.now]), nil
+		text := d.machine.screens[d.machine.now]
+		switch {
+		case d.machine.clean > 0:
+			d.machine.clean--
+		case d.machine.strips > 0:
+			d.machine.strips--
+			text = strings.Replace(text, "</hierarchy>", stripNode+"</hierarchy>", 1)
+		}
+		return []byte(text), nil
 	case strings.HasPrefix(command, "shell cat "+screenFile):
 		text := d.screens[min(d.screenIndex, len(d.screens)-1)]
 		d.screenIndex++
@@ -357,9 +411,10 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 	case strings.HasPrefix(command, "shell input tap "):
 		tap := strings.TrimPrefix(command, "shell input tap ")
 		d.taps = append(d.taps, tap)
-		if d.machine != nil {
+		if d.machine != nil && !d.machine.ime {
 			if to, ok := d.machine.next[d.machine.now][tap]; ok {
 				d.machine.now = to
+				d.machine.ime = d.machine.keyboard && to == "addplugin"
 			}
 		}
 		return nil, nil
@@ -689,7 +744,9 @@ func guideMachine() *screenMachine {
 		return out
 	}
 	return &screenMachine{
-		now: "pairing",
+		lag:      3,
+		keyboard: true,
+		now:      "pairing",
 		screens: map[string]string{
 			"pairing":   coverScreen("Pair with the computer", ""),
 			"confirm":   confirmScreen,
@@ -744,8 +801,17 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 		"android-add-plugin":   "screen=addplugin night=false",
 		"android-dark-home":    "screen=home night=true",
 	} {
-		if got := readText(t, filepath.Join(pictures, name+".png")); !strings.Contains(got, want) {
+		got := readText(t, filepath.Join(pictures, name+".png"))
+		if !strings.Contains(got, want) {
 			t.Errorf("%s is %q, want a picture of %q", name, got, want)
+		}
+		// The status bar is the same in all of them: the demo mode was in force before the first picture.
+		if !strings.Contains(got, "demo=true") {
+			t.Errorf("%s is %q, want a picture taken with the status bar in the demo mode", name, got)
+		}
+		// The device of the test shows a keyboard when the dialog opens, and no picture shows it.
+		if strings.Contains(got, "ime=true") {
+			t.Errorf("%s is %q, want a picture taken without the keyboard", name, got)
 		}
 	}
 	entries, err := os.ReadDir(pictures)
@@ -761,9 +827,8 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 	if m.night {
 		t.Error("the run leaves the system in the dark theme")
 	}
-	demo, firstShot := slices.Index(d.commands, "shell settings put global sysui_demo_allowed 1"), slices.Index(d.commands, "exec-out screencap -p")
-	if demo < 0 || demo > firstShot {
-		t.Errorf("the demo mode is at command %d, the first screenshot at %d: want it before", demo, firstShot)
+	if !slices.Contains(d.commands, "shell settings put global sysui_demo_allowed 1") {
+		t.Error("the demo mode of the status bar was not allowed")
 	}
 	// The dark theme was asked for twice (the pairing page and the home page), and each time given back.
 	var themes []string
@@ -790,6 +855,11 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 	if got := slices.Index(d.commands, "shell input keyevent 4"); got < 0 {
 		t.Error("the page of the SDK was not closed with the key of Android")
 	}
+	// The device is one that a person may keep: the last thing the run does is to take the status bar out of the
+	// demo mode, after the last picture.
+	if got := d.commands[len(d.commands)-1]; got != demoExit {
+		t.Errorf("the last command of the run is %q, want %q", got, demoExit)
+	}
 	// What the pictures are of is kept as dumps beside the screenshots, and the memory is still measured.
 	for _, name := range []string{"picture-android-sdk.xml", "picture-android-add-plugin.xml", "picture-android-trust.xml"} {
 		if _, err := os.Stat(filepath.Join(shots, name)); err != nil {
@@ -798,6 +868,43 @@ func TestMeasurePairingTakesThePicturesOfTheGuide(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "memory-paired.txt")); err != nil {
 		t.Errorf("the paired memory was not measured: %v", err)
+	}
+}
+
+// demoExit is the command that takes the status bar of the device out of the demo mode.
+const demoExit = "shell am broadcast -a com.android.systemui.demo -e command exit"
+
+// TestAFailedSessionGivesTheDeviceBack checks that a run that takes the pictures and fails, here for the lack of a
+// confirmation, leaves the theme of the system light and the status bar out of the demo mode, as a run that
+// succeeds does, and that the evidence of the failure is taken before that, of the screen as it failed.
+func TestAFailedSessionGivesTheDeviceBack(t *testing.T) {
+	dir := t.TempDir()
+	link := filepath.Join(dir, "link.txt")
+	if err := os.WriteFile(link, []byte("https://10.0.2.2:8443/auth/connect/tok123\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d := &fakeDevice{screens: []string{tabsScreen}}
+	c := config{apk: "phone.apk", outputDir: dir, pairLinkFile: link, shots: filepath.Join(dir, "shots"),
+		pictures: filepath.Join(dir, "pictures"), aapt2: "aapt2"}
+	if err := d.session().measure(c); err == nil {
+		t.Fatal("the session without a confirmation did not fail")
+	}
+	var themes []string
+	for _, command := range d.commands {
+		if strings.HasPrefix(command, "shell cmd uimode night ") {
+			themes = append(themes, strings.TrimPrefix(command, "shell cmd uimode night "))
+		}
+	}
+	if want := []string{"yes", "no"}; !slices.Equal(themes, want) {
+		t.Errorf("the themes were %v, want %v", themes, want)
+	}
+	// The evidence of the failure (its screenshot, the log, what the device says of the network) is commands too, and
+	// they all come before the last one: the screen is kept as it failed, and then the device is given back.
+	if got := d.commands[len(d.commands)-1]; got != demoExit {
+		t.Errorf("the last command of the failed run is %q, want %q", got, demoExit)
+	}
+	if _, err := os.Stat(filepath.Join(c.shots, "failure.png")); err != nil {
+		t.Errorf("the failed run left no screenshot of the failure: %v", err)
 	}
 }
 
@@ -823,5 +930,219 @@ func TestPicturesNeedAPairedSession(t *testing.T) {
 	err := Run([]string{"--apk", "phone.apk", "--output", "out", "--pictures", "pictures"})
 	if err == nil || !strings.Contains(err.Error(), "--pictures needs --pair-link-file") {
 		t.Errorf("Run = %v, want the pictures to need a pairing link", err)
+	}
+}
+
+// barPicture is a screenshot whose status bar is the colour top, over a page of the colour below.
+func barPicture(t *testing.T, top, below color.Color) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, 4, statusBarRows+30))
+	for y := 0; y < statusBarRows+30; y++ {
+		for x := 0; x < 4; x++ {
+			if y < statusBarRows {
+				img.Set(x, y, top)
+			} else {
+				img.Set(x, y, below)
+			}
+		}
+	}
+	var out bytes.Buffer
+	if err := png.Encode(&out, img); err != nil {
+		t.Fatal(err)
+	}
+	return out.Bytes()
+}
+
+func TestStatusBarOf(t *testing.T) {
+	light, dark := color.RGBA{250, 245, 240, 255}, color.RGBA{20, 16, 10, 255}
+	white, black := color.RGBA{255, 255, 255, 255}, color.RGBA{0, 0, 0, 255}
+	// What is under the bar does not make it another bar: a page that moves is not a bar that changes.
+	if !bytes.Equal(statusBarOf(barPicture(t, light, white)), statusBarOf(barPicture(t, light, black))) {
+		t.Error("two screenshots with the same bar over other pages have different bars")
+	}
+	if bytes.Equal(statusBarOf(barPicture(t, light, white)), statusBarOf(barPicture(t, dark, white))) {
+		t.Error("a light bar and a dark one are the same bar")
+	}
+	// A screenshot that is not a picture is all there is of it.
+	if got := statusBarOf([]byte("not a picture")); string(got) != "not a picture" {
+		t.Errorf("statusBarOf of what is not a picture = %q", got)
+	}
+}
+
+// scriptedBar is a session whose screenshots are the frames, one for each look, the last one for ever after. It counts the looks.
+func scriptedBar(frames [][]byte) (s *session, looks *int, log *strings.Builder) {
+	looks, log = new(int), new(strings.Builder)
+	clock := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	return &session{
+		adb: func(args ...string) ([]byte, error) {
+			frame := frames[min(*looks, len(frames)-1)]
+			*looks++
+			return frame, nil
+		},
+		sleep: func(wait time.Duration) { clock = clock.Add(wait) },
+		now:   func() time.Time { return clock },
+		log:   log,
+	}, looks, log
+}
+
+// TestTheStatusBarSettles checks what settleStatusBar waits for: that the bar has changed from the one before the request,
+// and that it has then stayed as it is for calmPolls looks in a row. Neither is enough alone: the system answers a request
+// seconds late, so a bar that has not changed yet is not a bar that has settled, and a bar that has changed once is not done
+// while it is still being drawn (the clock, then the icons).
+func TestTheStatusBarSettles(t *testing.T) {
+	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White)
+	b := barPicture(t, color.RGBA{20, 16, 10, 255}, color.White)
+	c := barPicture(t, color.RGBA{20, 16, 10, 200}, color.White)
+	// The frames: the old bar for longer than a calm takes (the system has not answered yet), a half drawn one that
+	// stays for less than a calm takes, and the one that stays.
+	old := calmPolls + 2
+	frames := make([][]byte, 0, old+3)
+	for range old {
+		frames = append(frames, a)
+	}
+	frames = append(frames, b, b, c)
+	s, looks, log := scriptedBar(frames)
+	s.settleStatusBar(statusBarOf(a))
+	// The looks at the old bar, 2 at the half drawn one, then c: 1 look that changes it and calmPolls that find it unchanged.
+	if want := old + 2 + 1 + calmPolls; *looks != want {
+		t.Errorf("settleStatusBar looked %d times, want %d: it must wait for the bar that stays", *looks, want)
+	}
+	if strings.Contains(log.String(), "warning") {
+		t.Errorf("a bar that settled was reported: %s", log)
+	}
+}
+
+func TestTheStatusBarThatNeverChangesIsGivenUpOn(t *testing.T) {
+	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White)
+	s, looks, log := scriptedBar([][]byte{a})
+	s.settleStatusBar(statusBarOf(a))
+	if want := int(calmTimeout/calmPoll) + 1; *looks != want {
+		t.Errorf("settleStatusBar looked %d times, want %d: one for each poll of the time that it waits", *looks, want)
+	}
+	if !strings.Contains(log.String(), "did not settle") || !strings.Contains(log.String(), "changed: false") {
+		t.Errorf("a bar that never changed was not reported: %q", log)
+	}
+}
+
+// pictureOfHome is what a picture needs of a run: the page, and the directories.
+func pictureOfHome(t *testing.T, strips int) (*fakeDevice, *session, *strings.Builder, config) {
+	t.Helper()
+	dir := t.TempDir()
+	m := guideMachine()
+	m.now, m.strips = "home", strips
+	d := &fakeDevice{machine: m}
+	var log strings.Builder
+	s := d.session()
+	s.log = &log
+	return d, s, &log, config{pictures: filepath.Join(dir, "pictures"), shots: filepath.Join(dir, "shots")}
+}
+
+func screenshots(d *fakeDevice) int {
+	n := 0
+	for _, command := range d.commands {
+		if command == "exec-out screencap -p" {
+			n++
+		}
+	}
+	return n
+}
+
+// TestAPictureIsTakenAgainWhileTheComputerDoesNotAnswer checks the strip that the app shows when its connection is lost: a
+// picture of a page with it is not kept. With three dumps that have the strip, the second attempt still sees it before its
+// screenshot and the third is the first that is clean: the last attempt that is allowed, and a picture.
+func TestAPictureIsTakenAgainWhileTheComputerDoesNotAnswer(t *testing.T) {
+	d, s, log, c := pictureOfHome(t, 3)
+	if err := s.picture(c, "android-home"); err != nil {
+		t.Fatal(err)
+	}
+	if got := screenshots(d); got != pictureAttempts {
+		t.Errorf("the picture was taken %d times, want %d", got, pictureAttempts)
+	}
+	if got := strings.Count(log.String(), "taking it again"); got != pictureAttempts-1 {
+		t.Errorf("the log says %d times that the picture is taken again, want %d:\n%s", got, pictureAttempts-1, log)
+	}
+	if _, err := os.Stat(filepath.Join(c.pictures, "android-home.png")); err != nil {
+		t.Errorf("the picture was not kept: %v", err)
+	}
+	// What is kept beside it is the dump of the clean screen, which says what the picture is of.
+	if dump := readText(t, filepath.Join(c.shots, "picture-android-home.xml")); strings.Contains(dump, "did not answer") {
+		t.Errorf("the dump that is kept has the strip:\n%s", dump)
+	}
+}
+
+// TestAPictureIsTakenAgainWhenOnlyTheDumpAfterItHasTheStrip is the strip that comes while the screenshot is taken: the dump
+// before it was clean, the one after it has the strip, and the screenshot is of a page that has it as well.
+func TestAPictureIsTakenAgainWhenOnlyTheDumpAfterItHasTheStrip(t *testing.T) {
+	d, s, _, c := pictureOfHome(t, 1)
+	d.machine.clean = 1
+	if err := s.picture(c, "android-home"); err != nil {
+		t.Fatal(err)
+	}
+	if got := screenshots(d); got != 2 {
+		t.Errorf("the picture was taken %d times, want twice: the dump after the first had the strip", got)
+	}
+}
+
+func TestAPictureThatKeepsShowingTheStripFails(t *testing.T) {
+	d, s, _, c := pictureOfHome(t, 1000)
+	err := s.picture(c, "android-home")
+	if err == nil || !strings.Contains(err.Error(), "shows that the computer did not answer") {
+		t.Fatalf("picture = %v, want it to fail where the computer never answers", err)
+	}
+	if got := screenshots(d); got != pictureAttempts {
+		t.Errorf("the picture was taken %d times, want %d and no more", got, pictureAttempts)
+	}
+}
+
+func TestAPictureOfAScreenThatAnswersIsTakenOnce(t *testing.T) {
+	d, s, _, c := pictureOfHome(t, 0)
+	if err := s.picture(c, "android-home"); err != nil {
+		t.Fatal(err)
+	}
+	if got := screenshots(d); got != 1 {
+		t.Errorf("the picture was taken %d times, want once", got)
+	}
+}
+
+// TestADialogThatTheKeyboardCoversIsClosed is the dialog that adds a plugin on an emulator that shows a soft keyboard: the keyboard
+// takes the first tap, which was meant for Cancel, and the key of Android that goes back closes the keyboard and not the dialog, so
+// the dialog needs a second one.
+func TestADialogThatTheKeyboardCoversIsClosed(t *testing.T) {
+	m := guideMachine()
+	m.now, m.ime = "addplugin", true
+	d := &fakeDevice{machine: m}
+	if err := d.session().closeDialog(); err != nil {
+		t.Fatalf("closeDialog = %v, want the dialog closed", err)
+	}
+	if m.now != "plugins" {
+		t.Errorf("the screen is %q, want the page of the plugins that the dialog covered", m.now)
+	}
+	if got := slices.Index(d.commands, "shell input keyevent 4"); got < 0 {
+		t.Error("the key of Android that goes back was not used")
+	}
+}
+
+func TestADialogThatDoesNotCloseIsAnError(t *testing.T) {
+	m := guideMachine()
+	m.now, m.ime = "addplugin", true
+	m.back = map[string]string{} // nothing goes back from here, and the keyboard takes the taps
+	d := &fakeDevice{machine: m}
+	err := d.session().closeDialog()
+	if err == nil || !strings.Contains(err.Error(), "the dialog is still open") {
+		t.Fatalf("closeDialog = %v, want the dialog that stays to be reported", err)
+	}
+}
+
+// TestAPictureOfTheDialogHasNoKeyboard checks the keyboard that the emulator shows over the dialog: it is closed before the
+// screenshot, and the dialog and its field are still there.
+func TestAPictureOfTheDialogHasNoKeyboard(t *testing.T) {
+	d, s, _, c := pictureOfHome(t, 0)
+	d.machine.now, d.machine.ime = "addplugin", true
+	if err := s.picture(c, "android-add-plugin"); err != nil {
+		t.Fatal(err)
+	}
+	got := readText(t, filepath.Join(c.pictures, "android-add-plugin.png"))
+	if !strings.Contains(got, "screen=addplugin") || !strings.Contains(got, "ime=false") {
+		t.Errorf("the picture is %q, want the dialog without the keyboard", got)
 	}
 }

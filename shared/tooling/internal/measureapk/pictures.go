@@ -28,10 +28,13 @@ package measureapk
 // shape of a phone display afterwards.
 
 import (
+	"bytes"
 	"fmt"
+	"image/png"
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 )
 
 // The names of the pictures that are not of a tab (those are "android-" and the name of the tab). The
@@ -57,6 +60,21 @@ var (
 // keyBack is the key of Android that goes back.
 const keyBack = "4"
 
+const (
+	// statusBarRows is how many rows of a screenshot, from the top, hold the status bar: 118 px on the
+	// 1080 by 2400 of the pictures, and a few more.
+	statusBarRows = 120
+	// calmPoll is the time between two looks at the status bar while it settles, calmPolls the number of
+	// looks in a row that must find it unchanged, and calmTimeout when the tool stops waiting for it.
+	calmPoll    = time.Second
+	calmPolls   = 4
+	calmTimeout = 60 * time.Second
+	// pictureAttempts is how many times a picture is taken while the app says that the computer did not answer, and
+	// dialogAttempts how many times the tool tries to close a dialog.
+	pictureAttempts = 3
+	dialogAttempts  = 3
+)
+
 // demoMode puts the status bar of the device in the demo mode of Android, or takes it out. Nothing here
 // fails the run: a status bar that is not fixed makes a picture that is not like the others, and no more.
 func (s *session) demoMode(on bool) {
@@ -64,6 +82,7 @@ func (s *session) demoMode(on bool) {
 		s.demo("exit")
 		return
 	}
+	before := s.statusBar()
 	_, _ = s.adb("shell", "settings", "put", "global", "sysui_demo_allowed", "1")
 	for _, command := range [][]string{
 		{"enter"},
@@ -75,6 +94,7 @@ func (s *session) demoMode(on bool) {
 	} {
 		s.demo(command...)
 	}
+	s.settleStatusBar(before)
 }
 
 // demo sends one command of the demo mode to the system interface.
@@ -83,29 +103,113 @@ func (s *session) demo(command ...string) {
 	_, _ = s.adb(args...)
 }
 
-// night sets the theme of the system, which the app follows: dark or light.
-func (s *session) night(dark bool) error {
+// theme sets the theme of the system, which the app follows: dark or light. It returns when the status bar
+// has followed.
+func (s *session) theme(dark bool) error {
+	before := s.statusBar()
 	mode := "no"
 	if dark {
 		mode = "yes"
 	}
-	_, err := s.adb("shell", "cmd", "uimode", "night", mode)
-	return err
+	if _, err := s.adb("shell", "cmd", "uimode", "night", mode); err != nil {
+		return err
+	}
+	s.settleStatusBar(before)
+	return nil
+}
+
+// statusBarOf returns what the rows of a screenshot that hold the status bar are made of: two screenshots of the
+// same bar give the same bytes, whatever the page under it does. A screenshot that cannot be read as a picture
+// stands for itself.
+func statusBarOf(screenshot []byte) []byte {
+	img, err := png.Decode(bytes.NewReader(screenshot))
+	if err != nil {
+		return screenshot
+	}
+	bounds := img.Bounds()
+	rows := min(statusBarRows, bounds.Dy())
+	out := make([]byte, 0, rows*bounds.Dx()*4)
+	for y := bounds.Min.Y; y < bounds.Min.Y+rows; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
+			out = append(out, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8))
+		}
+	}
+	return out
+}
+
+// statusBar takes a screenshot and returns its status bar, or nothing when the device gives none.
+func (s *session) statusBar() []byte {
+	screenshot, err := s.adb("exec-out", "screencap", "-p")
+	if err != nil {
+		return nil
+	}
+	return statusBarOf(screenshot)
+}
+
+// settleStatusBar waits until the status bar is no longer the one that the tool saw before it asked for a
+// change (the demo mode, a theme), and then stays as it is for calmPolls looks in a row. The system draws the
+// bar when it can, which on a slow emulator is seconds after the request has returned, and in steps: the clock,
+// then the icons of the network, or the dark bar with its icons still dark. A picture taken before is of a bar
+// half drawn, and not like the others. It gives up after calmTimeout, says so, and goes on.
+func (s *session) settleStatusBar(before []byte) {
+	deadline := s.now().Add(calmTimeout)
+	var last []byte
+	changed, still := false, 0
+	for {
+		bar := s.statusBar()
+		changed = changed || !bytes.Equal(bar, before)
+		if last != nil && bytes.Equal(bar, last) {
+			still++
+		} else {
+			still = 0
+		}
+		last = bar
+		if changed && still >= calmPolls {
+			return
+		}
+		if !s.now().Before(deadline) {
+			fmt.Fprintf(s.log, "warning: the status bar did not settle in %s (changed: %t): the pictures that follow may show it half drawn\n", calmTimeout, changed)
+			return
+		}
+		s.sleep(calmPoll)
+	}
 }
 
 // picture saves the screen as the picture name of the user guide, when the run takes the pictures, and
 // keeps the dump of the screen beside the screenshots, which says what the picture is of when the labels
 // of a screen change.
+//
+// When the computer does not answer, the app says so in a strip above the page, and the picture must not show it.
+// On a slow emulator the app says it for a moment, after a change of theme for one. The screen is looked at
+// before the screenshot and after it, and the picture is taken again while either has the strip.
 func (s *session) picture(c config, name string) error {
 	if c.pictures == "" {
 		return nil
 	}
-	if err := s.screenshotTo(filepath.Join(c.pictures, name+".png")); err != nil {
-		return err
+	s.hideKeyboard()
+	path := filepath.Join(c.pictures, name+".png")
+	var kept screen
+	for attempt := 1; ; attempt++ {
+		before, _ := s.dump()
+		if err := s.screenshotTo(path); err != nil {
+			return err
+		}
+		after, err := s.dump()
+		if err == nil {
+			kept = after
+		}
+		if !hasLabel(before.elements, unreachableLabel) && !hasLabel(after.elements, unreachableLabel) {
+			break
+		}
+		if attempt == pictureAttempts {
+			s.keepDump(c.shots, "picture-"+name, kept)
+			return fmt.Errorf("the picture %s shows that the computer did not answer, in each of %d attempts", name, pictureAttempts)
+		}
+		fmt.Fprintf(s.log, "the picture %s shows that the computer did not answer (attempt %d of %d): taking it again\n", name, attempt, pictureAttempts)
+		s.sleep(tabSettle)
 	}
-	if shot, err := s.dump(); err == nil {
-		s.keepDump(c.shots, "picture-"+name, shot)
-	}
+	s.keepDump(c.shots, "picture-"+name, kept)
 	fmt.Fprintf(s.log, "picture %s\n", name)
 	return nil
 }
@@ -118,7 +222,6 @@ func (s *session) unpairedPictures(c config) error {
 		return err
 	}
 	s.demoMode(true)
-	s.sleep(tabSettle)
 	if err := s.picture(c, pairingPicture); err != nil {
 		return err
 	}
@@ -128,10 +231,10 @@ func (s *session) unpairedPictures(c config) error {
 // darkPicture puts the system in the dark theme, takes the picture of what show leaves on the screen (nothing,
 // when it is nil), and puts the light theme back.
 func (s *session) darkPicture(c config, name string, show func() error) error {
-	if err := s.night(true); err != nil {
+	if err := s.theme(true); err != nil {
 		return err
 	}
-	defer func() { _ = s.night(false) }()
+	defer func() { _ = s.theme(false) }()
 	s.sleep(tabSettle)
 	if show != nil {
 		if err := show(); err != nil {
@@ -193,12 +296,50 @@ func (s *session) morePictures(c config) error {
 	if err := s.picture(c, addPluginPicture); err != nil {
 		return err
 	}
-	if _, err := s.tapWhen(cancelLabel, tabTimeout, "button that cancels the dialog"); err != nil {
-		// The dialog goes with the key of Android as well, and a page that is covered cannot show its tabs.
-		_, _ = s.adb("shell", "input", "keyevent", keyBack)
+	if err := s.closeDialog(); err != nil {
+		return err
 	}
-	s.sleep(tabSettle)
 
 	// The home page in the dark theme.
 	return s.darkPicture(c, darkHomePicture, func() error { return s.openTab(c, "home") })
+}
+
+// closeDialog cancels the dialog that is open, and returns when it has gone: the page that it covers cannot show its
+// tabs before. It taps the button, and when the dialog is still there it goes back with the key of Android, as a
+// person does, up to dialogAttempts times in all.
+func (s *session) closeDialog() error {
+	for attempt := 1; attempt <= dialogAttempts; attempt++ {
+		shot, err := s.dump()
+		if err == nil && !hasLabel(shot.elements, cancelLabel) {
+			return nil
+		}
+		if attempt == 1 {
+			if target, ok := lowestClickable(shot.elements, cancelLabel); ok {
+				x, y := target.center()
+				_, _ = s.adb("shell", fmt.Sprintf("input tap %d %d", x, y))
+				s.sleep(tabSettle)
+				continue
+			}
+		}
+		_, _ = s.adb("shell", "input", "keyevent", keyBack)
+		s.sleep(tabSettle)
+	}
+	shot, err := s.dump()
+	if err == nil && !hasLabel(shot.elements, cancelLabel) {
+		return nil
+	}
+	return fmt.Errorf("the dialog is still open after %d attempts to close it: the screen has %s", dialogAttempts, labelsOf(shot.elements))
+}
+
+// hideKeyboard closes the soft keyboard when one is shown. An emulator that has no hardware keyboard shows it when a field of
+// the app has the focus, and the field of the dialog that adds a plugin has it as the dialog opens: the keyboard covers the
+// lower half of the dialog and its buttons, which the tool would then tap in place of the button. The key of Android that goes
+// back closes the keyboard, and leaves the dialog and its field.
+func (s *session) hideKeyboard() {
+	out, err := s.adb("shell", "dumpsys", "input_method")
+	if err != nil || !bytes.Contains(out, []byte("mInputShown=true")) {
+		return
+	}
+	_, _ = s.adb("shell", "input", "keyevent", keyBack)
+	s.sleep(tabSettle)
 }
