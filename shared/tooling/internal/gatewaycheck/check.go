@@ -16,7 +16,7 @@
 // program of the Docker image vfox-plus-gateway) as the people who use it use it, against the
 // application itself.
 //
-// It starts the end-to-end build of the application with the web interface and "other devices" switched
+// It starts the end-to-end build of the application with "other devices" switched
 // on, in the way a person switches them on in the settings, and starts the gateway: the Docker image (a
 // container with a volume of its own, stopped the way docker stop stops it) or the program. Then it is
 // the person at a browser: it pairs the browser with the link that the gateway prints, pastes a link
@@ -335,10 +335,11 @@ func (c *check) useTheApplication() {
 	c.Step("use the application through the gateway")
 	page, err := c.browser.get("/app")
 	c.expect(page, err, 200, "the interface")
+	// The application serves no page: the interface is the gateway's, and the application is what it reads.
 	own, err := c.app.get("/app")
-	c.expect(own, err, 200, "the interface of the application itself")
-	c.Check(page.body == own.body, "the page that the gateway serves is the page of the application, byte for byte")
+	c.expect(own, err, 404, "the application itself, which serves no page")
 	c.Check(strings.Contains(page.body, "EventSource"), "the page listens for the events of the application")
+	c.Check(strings.Contains(page.body, `<link rel="manifest" href="/manifest.webmanifest">`), "the page of the gateway links its manifest")
 
 	inventory, err := c.browser.get("/api/inventory")
 	c.expect(inventory, err, 200, "the inventory")
@@ -425,9 +426,10 @@ func (c *check) endTheApplication() {
 	gone, err := c.browser.get("/api/inventory")
 	c.expect(gone, err, 502, "the inventory of an application that has ended")
 	c.expectText(gone, "Cannot reach vfox+", "the answer for the interface")
+	// The page is the gateway's, which it serves while it holds its session; the message above is what its calls get.
 	page, err := c.browser.get("/app")
-	c.expect(page, err, 502, "the interface of an application that has ended")
-	c.expectText(page, "cannot be reached", "the page that says the application is gone")
+	c.expect(page, err, 200, "the interface of an application that has ended")
+	c.Check(strings.Contains(page.body, "EventSource"), "the page of the gateway is served with the application gone")
 	home, err := c.browser.get("/")
 	c.expect(home, err, 200, "the page of the gateway")
 	c.expectText(home, "Paired with vfox+ at", "the gateway keeps its pairing for the application that comes back")

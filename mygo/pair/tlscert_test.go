@@ -105,7 +105,7 @@ func tlsClient() *http.Client {
 
 func TestTLSServerPairsOverHTTPS(t *testing.T) {
 	dir := t.TempDir()
-	certFile, keyFile, fingerprint, err := pair.EnsureServerCert(dir, nil)
+	certFile, keyFile, _, err := pair.EnsureServerCert(dir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,6 @@ func TestTLSServerPairsOverHTTPS(t *testing.T) {
 		AllowNonLoopback: true,
 		TLSCertFile:      certFile,
 		TLSKeyFile:       keyFile,
-		Fingerprint:      fingerprint,
 		Model:            testModel(t, testsupport.FixtureRunner()),
 	})
 	if err != nil {
@@ -138,7 +137,7 @@ func TestTLSServerPairsOverHTTPS(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode != http.StatusSeeOther {
+	if response.StatusCode != http.StatusNoContent {
 		t.Fatalf("got %d", response.StatusCode)
 	}
 	secure := false

@@ -130,10 +130,10 @@ func (g *Gateway) Status() Status {
 	return Status{Address: up.base.Host, Connected: up.connected(), Fingerprint: up.fingerprint(), RenewedAt: up.renewedAt}
 }
 
-// Handler is the gateway: what it serves itself, and the instance's interface that it forwards.
+// Handler is the gateway: the pages that it serves itself, and the routes of the instance's API that it forwards.
 func (g *Gateway) Handler() http.Handler {
 	mux := http.NewServeMux()
-	// What the gateway serves itself.
+	// What the gateway serves itself: its own pages, the page of the interface, and the manifest of that page.
 	mux.HandleFunc("GET /{$}", g.serveHome)
 	mux.HandleFunc("GET "+pairingPath, g.serveBrowserPairing)
 	mux.HandleFunc("/api/token", g.serveToken)
@@ -141,10 +141,10 @@ func (g *Gateway) Handler() http.Handler {
 	mux.HandleFunc("POST /gateway/trust", g.serveTrust)
 	mux.HandleFunc("POST /gateway/invite", g.serveInvite)
 	mux.HandleFunc("POST /gateway/forget", g.serveForget)
-	// What is the instance's.
-	mux.HandleFunc("/app", g.serveInstance)
+	mux.HandleFunc("/app", g.servePage)
+	mux.HandleFunc("/manifest.webmanifest", serveManifest)
+	// What is the instance's: the routes of its API.
 	mux.HandleFunc("/api/", g.serveInstance)
-	mux.HandleFunc("/manifest.webmanifest", g.serveManifest)
 	return mux
 }
 

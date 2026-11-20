@@ -17,7 +17,7 @@
 package pair
 
 // loopbackState is what the Host keeps of the server of this computer. The
-// application has none: it shows its web interface on no browser of this
+// application has none: it opens no browser at an address of this
 // computer, and the builds that are released have nothing to end.
 type loopbackState struct{}
 

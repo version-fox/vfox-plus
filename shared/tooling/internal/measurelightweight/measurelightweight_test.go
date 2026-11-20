@@ -119,14 +119,13 @@ func TestTheLinkIsNotWaitedForWhenTheApplicationIsGoneOrTooSlow(t *testing.T) {
 	}
 }
 
-// The link pairs through a redirect to the interface: the session is in the first answer.
+// The link pairs with no content: the session is in the answer.
 func TestPairingTakesTheSessionFromTheAnswerToTheLink(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/auth/connect/abc", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: "vfox-plus-session", Value: "s1", Path: "/", Secure: true, HttpOnly: true})
-		http.Redirect(w, r, "/app", http.StatusSeeOther)
+		w.WriteHeader(http.StatusNoContent)
 	})
-	mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("the interface")) })
 	mux.HandleFunc("/api/inventory", func(w http.ResponseWriter, r *http.Request) {
 		if cookie := r.Header.Get("Cookie"); cookie != "vfox-plus-session=s1" {
 			http.Error(w, "not paired: "+cookie, http.StatusUnauthorized)

@@ -193,7 +193,7 @@
   "webReachable": "可通过以下地址访问：{addresses}",
   "webPairNone": "这台电脑没有网络地址。",
   "webPairShow": "显示二维码",
-  "webPairHelp": "用安卓应用扫描，或在另一台设备上打开链接。一次性有效，{minutes} 分钟后过期。",
+  "webPairHelp": "用 vfox+ 手机端拍照或从相册选择这个二维码。也可以在另一台设备上打开链接。一次性有效，{minutes} 分钟后过期。",
   "webPairNew": "换一个二维码",
   "webCertificate": "证书",
   "webCertificateMade": "由 vfox+ 生成，自签名",

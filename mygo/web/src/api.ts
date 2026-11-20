@@ -185,10 +185,9 @@ export function showError(msg: string): void {
   }, 4000);
 }
 
-// Opens an address of another site in a new tab. A link is clicked rather
-// than calling window.open, because the WebView of the Android app reports
-// the navigation of a link to its shell, which hands the address to the
-// browser of the phone.
+// Opens an address of another site in a new tab. It is opened as a link that
+// is clicked, with noopener and noreferrer, so that the other site gets no
+// handle on this page.
 export function openExternal(url: string): void {
   const address = webAddress(url);
   if (address === null) {

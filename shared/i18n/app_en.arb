@@ -901,7 +901,7 @@
   "@webPairNone": { "description": "Says that no code can be made because the computer is on no network." },
   "webPairShow": "Show code",
   "@webPairShow": { "description": "Button that shows the code that a phone scans." },
-  "webPairHelp": "Scan with the Android app or open the link elsewhere. It works once and expires in {minutes} minutes.",
+  "webPairHelp": "Take a photo of this code with the vfox+ phone app, or pick it from your photos. You can also open the link elsewhere. It works once and expires in {minutes} minutes.",
   "@webPairHelp": {
     "description": "Explains how to use the pairing code.",
     "placeholders": { "minutes": { "type": "String", "example": "5" } }

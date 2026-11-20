@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package pair is the server that other devices connect to: the Docker gateway,
-// the Android app and a browser that the gateway pairs, and the host that runs that
+// the phone app and a browser that the gateway pairs, and the host that runs that
 // server as the settings say.
 //
 // The application is a desktop application and has no command line, and it shows no
@@ -22,12 +22,13 @@
 // certificate that the application makes for itself or the user brings. The pairing
 // code of the settings is a one-time URL like `https://ADDRESS:PORT/auth/connect/TOKEN`:
 // the token works once and expires after a few minutes, and the server issues a
-// session cookie for the paired device and takes it to the interface. The Docker
-// gateway (package gateway) and the Android app pair with that server.
+// session cookie for the paired device. The Docker gateway (package gateway) and
+// the phone app pair with that server.
 //
-// A paired device gets the interface at `/app` (a single embedded page, no external
-// requests): installed SDKs, the plugin registry, tasks with live progress and logs
-// over server-sent events, and the settings, among them how other devices connect
-// and the lightweight mode, in which the application stays running without its
-// window.
+// A paired device gets the API of the server: installed SDKs, the plugin registry,
+// tasks with live progress and logs over server-sent events, and the settings, among
+// them how other devices connect and the lightweight mode, in which the application
+// stays running without its window. The server serves no page. The interface, a
+// single embedded page with no external requests, is the gateway's: the gateway
+// serves it and forwards these routes.
 package pair

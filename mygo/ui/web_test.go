@@ -335,7 +335,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 		return "https://" + net.JoinHostPort(address, strconv.Itoa(status.Port)) + "/auth/connect/"
 	}
 	first := ta.mustTextWith(link(status.Addresses[0]))
-	ta.mustTextWith("Scan with the Android app")
+	ta.mustTextWith("Take a photo of this code with the vfox+ phone app")
 	if ta.app.pages.pairing == nil || len(ta.app.pages.pairing.matrix) < 29 {
 		t.Fatalf("the code is drawn from a matrix of modules: %+v", ta.app.pages.pairing)
 	}
@@ -355,7 +355,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	if ta.app.pages.pairing != nil {
 		t.Error("a closed dialog keeps no link")
 	}
-	if _, ok := ta.textWith("Scan with the Android app"); ok {
+	if _, ok := ta.textWith("Take a photo of this code with the vfox+ phone app"); ok {
 		t.Error("the dialog is gone")
 	}
 }

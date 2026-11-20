@@ -94,7 +94,7 @@ func startHost() (*trayhost.Host, error) {
 	return host, nil
 }
 
-// closedWindow runs the application with the web interface and the lightweight mode on, closes its
+// closedWindow runs the application with other devices and the lightweight mode on, closes its
 // window when it has loaded, waits for the icon to come into the tray when there is a host, and
 // returns what it occupies when it has settled.
 func closedWindow(argv []string, fixturesDir, fakeVfox string, settle time.Duration, host *trayhost.Host) (measure.Usage, error) {

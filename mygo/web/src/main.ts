@@ -23,13 +23,7 @@ import { setLive, state, type TabName } from "./state";
 import { renderHome, initHome } from "./home";
 import { initPlugins, renderPlugins } from "./plugins";
 import { initSdks, renderSdks, showDetail, showList, updateDetail } from "./sdks";
-import {
-  initSettings,
-  loadWeb,
-  renderSettings,
-  wireLanguageSegs,
-  wirePhoneCard,
-} from "./settings";
+import { initSettings, loadWeb, renderSettings, wireLanguageSegs } from "./settings";
 import { initTasks, renderTasks, watchTasks } from "./tasks";
 
 // The static labels of the chrome, in the current language.
@@ -67,8 +61,6 @@ export function renderChrome(): void {
   setText("l-env", t("extraEnv"));
   setText("h-active", t("active"));
   setText("h-doctor", t("doctorTitle"));
-  setText("h-phone", t("phone"));
-  setText("phoneLead", t("phoneLead"));
   const langSystem = t("langSystem");
   const langSystemButton = document.querySelector('#langSeg [data-l="system"]');
   if (langSystemButton) langSystemButton.textContent = langSystem;
@@ -77,10 +69,6 @@ export function renderChrome(): void {
   document.querySelectorAll("#pageLangSeg button").forEach((b) =>
     b.setAttribute("aria-pressed", String((b as HTMLButtonElement).dataset.l === state.langMode)),
   );
-  const phonePair = document.querySelector("#phonePair span");
-  if (phonePair) phonePair.textContent = t("phonePair");
-  const phoneOut = document.querySelector("#phoneOut span");
-  if (phoneOut) phoneOut.textContent = t("phoneOut");
   const updateAll = document.querySelector("#updateAllBtn span");
   if (updateAll) updateAll.textContent = t("updateAll");
   const saveVfox = document.getElementById("saveVfox");
@@ -190,7 +178,6 @@ initSdks();
 initPlugins();
 initTasks();
 initSettings();
-wirePhoneCard();
 document.querySelectorAll(".dest").forEach((b) => {
   (b as HTMLButtonElement).onclick = () => {
     const tab = (b as HTMLButtonElement).dataset.tab;

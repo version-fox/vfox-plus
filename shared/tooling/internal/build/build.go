@@ -47,7 +47,7 @@ type config struct {
 // the screenshots (MYGO_AUTOMATION names its socket); release builds must not have
 // it. With --goos/--goarch the build cross-compiles, for example
 // --goos windows --goarch amd64 for the MSIX packaging. The application is the
-// only main package: it takes no arguments, and the web interface is one of its
+// only main package: it takes no arguments, and serving other devices is one of its
 // settings.
 func Run(args []string) error {
 	cfg, err := parseArgs(args)

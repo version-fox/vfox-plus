@@ -89,23 +89,26 @@ function showOptions() {
 }
 </script>`
 
-// server is a fake vfox-plus: its pairing link, /app, and a place where the page
-// reports what happens to it.
+// server is a fake gateway: its pairing link, its page of the interface, the form that pairs it with an application, and
+// a place where the page reports what happens to it.
 type server struct {
 	*httptest.Server
-	mu       sync.Mutex
-	requests []string // "GET /auth/connect/abc" and the like, in order
-	notes    []string // what the page reported
+	mu        sync.Mutex
+	requests  []string // "GET /auth/connect/abc" and the like, in order
+	notes     []string // what the page reported
+	connected bool     // whether the form of the gateway paired it with an application (the unpaired and refusing modes)
 }
 
 type serverMode int
 
 const (
 	serving   serverMode = iota // the way it should work
-	redirects                   // sends /app to the intro page, as for an unpaired browser
+	redirects                   // sends /app to the page of the gateway, as for an unpaired browser
 	neverList                   // shows no SDK list, ever
 	noScenes                    // lists no SDK to click
 	clipped                     // has a title and a button whose text does not fit, and some that do not count
+	unpaired                    // paired with no application: its page has the form that pairs it, and /app waits for that
+	refusing                    // paired with no application, and its form refuses the link of the application
 )
 
 // clippedMarkup is what the page of the mode clipped has besides the page of the tests: a title and the label of a button
@@ -126,18 +129,50 @@ const clippedMarkup = `<h1 style="font-size:24px;width:80px;overflow:hidden;text
   <div style="display:flex;width:300px;padding:8px 16px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A_word_that_an_ellipsis_clips_which_the_cut_counts_if_it_counts_it_at_all</span></div>
 </div>`
 
+// gatewayPage is the page of a gateway that is paired with no application: the form that pairs it, and what went
+// wrong with the last thing that was asked of it.
+func gatewayPage(alert string) string {
+	return `<!doctype html><title>vfox+ gateway</title>` + alert +
+		`<form method="post" action="/gateway/connect"><input id="link" name="link" type="text"><button type="submit">Pair</button></form>`
+}
+
 func newServer(t *testing.T, mode serverMode) *server {
 	t.Helper()
 	s := &server{}
+	paired := mode == unpaired || mode == refusing
 	mux := http.NewServeMux()
 	mux.HandleFunc("/auth/connect/abc", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "paired", Path: "/"})
+		if paired {
+			// A gateway that is paired with no application takes the browser to its own page.
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/app", http.StatusSeeOther)
+	})
+	mux.HandleFunc("/gateway/connect", func(w http.ResponseWriter, r *http.Request) {
+		s.record("POST " + r.URL.Path)
+		if !paired {
+			http.NotFound(w, r)
+			return
+		}
+		if mode == refusing {
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = fmt.Fprint(w, gatewayPage(`<div class="card error" role="alert"><p>vfox+ refused the pairing link.</p></div>`))
+			return
+		}
+		s.mu.Lock()
+		s.connected = r.FormValue("link") != ""
+		s.mu.Unlock()
 		http.Redirect(w, r, "/app", http.StatusSeeOther)
 	})
 	mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
-		if _, err := r.Cookie("session"); err != nil || mode == redirects {
+		s.mu.Lock()
+		connected := s.connected
+		s.mu.Unlock()
+		if _, err := r.Cookie("session"); err != nil || mode == redirects || (paired && !connected) {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -163,6 +198,10 @@ func newServer(t *testing.T, mode serverMode) *server {
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		s.record("GET " + r.URL.Path)
+		if _, err := r.Cookie("session"); err == nil && paired {
+			_, _ = fmt.Fprint(w, gatewayPage(""))
+			return
+		}
 		_, _ = fmt.Fprint(w, "<!doctype html><title>intro</title>Open a pairing link.")
 	})
 	s.Server = httptest.NewServer(mux)
@@ -289,6 +328,41 @@ func TestRunMeasures(t *testing.T) {
 		if strings.HasPrefix(note, "lang=") {
 			t.Errorf("the language was pinned without -lang: %q", note)
 		}
+	}
+}
+
+func TestRunPastesTheLinkOfTheApplicationOnThePageOfTheGateway(t *testing.T) {
+	s := newServer(t, unpaired)
+	got := runTool(t, s, "-application", "http://127.0.0.1:9/auth/connect/app")
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	// The form of the gateway pairs it with the application, and then the interface is asked for.
+	s.mu.Lock()
+	requests := append([]string(nil), s.requests...)
+	s.mu.Unlock()
+	pairing, app := indexOf(requests, "POST /gateway/connect"), indexOf(requests, "GET /app")
+	if pairing < 0 || app < pairing {
+		t.Errorf("the requests are %v, want the form of the gateway posted before the interface is asked for", requests)
+	}
+	if !strings.Contains(got.output, "webheap (app): ") {
+		t.Errorf("the output has no measurement: %q", got.output)
+	}
+}
+
+func TestRunStopsWhenTheGatewayRefusesTheLinkOfTheApplication(t *testing.T) {
+	s := newServer(t, refusing)
+	got := runTool(t, s, "-application", "http://127.0.0.1:9/auth/connect/app")
+	if got.err == nil || !strings.Contains(got.err.Error(), "the gateway is not paired with the application: vfox+ refused the pairing link.") {
+		t.Fatalf("got %v", got.err)
+	}
+}
+
+func TestRunNeedsTheLinkOfTheApplicationForAGatewayThatIsPairedWithNone(t *testing.T) {
+	s := newServer(t, unpaired)
+	got := runTool(t, s)
+	if got.err == nil || !strings.Contains(got.err.Error(), "the pairing page did not open") {
+		t.Fatalf("got %v", got.err)
 	}
 }
 
@@ -517,7 +591,7 @@ func indexOf(list []string, item string) int {
 }
 
 func TestScenesUseWhatThePageHas(t *testing.T) {
-	page, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "mygo", "pair", "webapp.html"))
+	page, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "mygo", "gateway", "webapp.html"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -575,6 +649,11 @@ func TestParseOptions(t *testing.T) {
 	got, err = parseOptions(with("-screenshot", "x.png", "-scene", "java-temurin"))
 	if err != nil || got.scene != "java-temurin" {
 		t.Errorf("a scene: %+v, %v", got, err)
+	}
+
+	got, err = parseOptions(with("-application", "http://127.0.0.1:8369/auth/connect/x"))
+	if err != nil || got.application != "http://127.0.0.1:8369/auth/connect/x" {
+		t.Errorf("an application: %+v, %v", got, err)
 	}
 
 	for name, tc := range map[string]struct {

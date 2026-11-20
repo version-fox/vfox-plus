@@ -120,13 +120,6 @@ export async function openTask(id: number): Promise<void> {
     };
     if (row) row.setAttribute("aria-expanded", "true");
     slot.hidden = false;
-    const isWebView = (() => {
-      try {
-        return /;\s*wv\)/.test(navigator.userAgent);
-      } catch {
-        return false;
-      }
-    })();
     slot.innerHTML =
       "<p class='muted'><code>" +
       esc(task.commandLine) +
@@ -134,7 +127,7 @@ export async function openTask(id: number): Promise<void> {
       (task.droppedLines
         ? "<p class='muted'>" + esc(t("droppedHead") + task.droppedLines + t("droppedTail")) + "</p>"
         : "") +
-      (task.hasFullLog && !isWebView
+      (task.hasFullLog
         ? "<div class='row'><a class='btn text' download href='/api/tasks/" +
           task.id +
           "/log'>" +

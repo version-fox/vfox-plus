@@ -199,7 +199,7 @@ var (
 	chinese = words{"zh-", "simplifiedChinese", "其他设备", "允许其他设备？", "配对手机", "显示二维码", "换一个二维码"}
 )
 
-// webInterface shows what the settings say of the web interface, as a person goes through it: the
+// webInterface shows what the settings say of other devices, as a person goes through them: the
 // switch that is on and the address that serves, the dialog that asks before other devices may connect,
 // the settings that come with them, and the code that pairs a phone.
 func webInterface(w words) func(*appsession.Session, shooter) {

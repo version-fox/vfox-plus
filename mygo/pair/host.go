@@ -222,7 +222,6 @@ func (h *Host) startRemote(config webConfig) (server *Server, fingerprint string
 		Model:            h.model,
 		TLSCertFile:      certFile,
 		TLSKeyFile:       keyFile,
-		Fingerprint:      fingerprint,
 		Control:          h,
 	})
 	if err != nil {

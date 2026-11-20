@@ -18,7 +18,7 @@ import { defineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
 // The whole interface builds into one self-contained dist/index.html, which
-// npm run build copies over mygo/pair/webapp.html: the Go server embeds that
+// npm run build copies over mygo/gateway/webapp.html: the gateway embeds that
 // file and serves it as /app, with no other requests. Keep it that way: no
 // external scripts, stylesheets, fonts or images.
 // CSS stays unminified on purpose: the Go design tests read the served

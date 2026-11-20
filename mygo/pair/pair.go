@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net"
 	"net/http"
 	"strings"
@@ -81,9 +80,6 @@ type Options struct {
 	// plain HTTP, which only loopback binds use.
 	TLSCertFile string
 	TLSKeyFile  string
-	// Fingerprint is the SHA-256 fingerprint of the TLS certificate, shown
-	// on the intro page for comparison with the browser.
-	Fingerprint string
 	// Control answers what the server asks of the application besides
 	// vfox. Nil leaves those routes unavailable.
 	Control Control
@@ -105,9 +101,6 @@ type Server struct {
 	model       *state.AppModel
 	control     Control
 	tls         bool
-	// fingerprint is the SHA-256 fingerprint of the TLS certificate,
-	// shown on the intro page for comparison.
-	fingerprint string
 }
 
 // NewServer starts a pairing server, by default on the loopback interface.
@@ -155,18 +148,14 @@ func NewServer(options Options) (*Server, error) {
 		sttl:        options.SessionTTL,
 		model:       options.Model,
 		control:     options.Control,
-		fingerprint: options.Fingerprint,
 	}
 	if options.TLSCertFile != "" {
 		server.tls = true
 		listener = tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12})
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", server.serveIntro)
 	mux.HandleFunc("/auth/connect/", server.serveConnect)
 	mux.HandleFunc("/api/token", server.serveToken)
-	mux.HandleFunc("/app", server.serveApp)
-	mux.HandleFunc("/manifest.webmanifest", server.serveManifest)
 	mux.HandleFunc("/api/inventory", server.serveInventory)
 	mux.HandleFunc("/api/sdks/", server.serveSdks)
 	mux.HandleFunc("/api/doctor", server.serveDoctor)
@@ -326,19 +315,9 @@ func (s *Server) portSuffix() string {
 	return ":" + port
 }
 
-// serveIntro answers without a token. It never mentions tokens, so that
-// scanners learn nothing about pairing links.
-func (s *Server) serveIntro(writer http.ResponseWriter, request *http.Request) {
-	if request.URL.Path != "/" {
-		http.NotFound(writer, request)
-		return
-	}
-	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = introTemplate.Execute(writer, map[string]string{"Fingerprint": s.fingerprint})
-}
-
-// serveConnect pairs a browser holding a one-time link, and takes it to the
-// interface.
+// serveConnect pairs a browser holding a one-time link, and answers with the
+// session cookie and 204 No Content. This server serves no page to send the
+// browser to: the interface is the gateway's.
 func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request) {
 	token := strings.TrimPrefix(request.URL.Path, "/auth/connect/")
 	if token == "" || strings.Contains(token, "/") || !s.takeToken(token) {
@@ -358,7 +337,7 @@ func (s *Server) serveConnect(writer http.ResponseWriter, request *http.Request)
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(writer, request, "/app", http.StatusSeeOther)
+	writer.WriteHeader(http.StatusNoContent)
 }
 
 // serveToken mints another one-time pairing link for an already paired
@@ -378,17 +357,3 @@ func (s *Server) serveToken(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_ = json.NewEncoder(writer).Encode(map[string]string{"url": s.publicURL(request, token)})
 }
-
-var introTemplate = template.Must(template.New("intro").Parse(withFavicon(`<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vfox+</title><!--favicon--></head>
-<body>
-<h1>vfox+</h1>
-<p>This is the web interface of vfox+. To use it, pair this browser with a one-time link from the computer that runs vfox+.</p>
-<p>On that computer, open vfox+, go to Settings, allow other devices, then choose Pair a phone and Show code, and copy the link. Links work once and expire after a few minutes.</p>
-<p>这是 vfox+ 的网页界面。要使用它，请先用运行 vfox+ 的电脑上的一次性链接配对此浏览器。</p>
-<p>在那台电脑上打开 vfox+，进入“设置”，允许其他设备，再选择“配对手机”和“显示二维码”，然后复制链接。链接一次性有效，几分钟后过期。</p>
-{{if .Fingerprint}}<p>Certificate fingerprint: <code>{{.Fingerprint}}</code></p>
-<p>证书指纹：<code>{{.Fingerprint}}</code>（信任自签名证书前请核对）。</p>{{end}}
-</body>
-</html>`)))

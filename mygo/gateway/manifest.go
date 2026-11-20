@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pair
+package gateway
 
 import (
 	"encoding/json"
@@ -68,12 +68,12 @@ var manifestJSON = func() []byte {
 	return content
 }()
 
-// serveManifest answers the web app manifest. It needs no session, like the
-// intro page: it names the application and its start page and nothing else,
-// and a browser may process a manifest without the page that links it (the
-// specification mentions installing from a sync service), so without the
-// session cookie.
-func (s *Server) serveManifest(writer http.ResponseWriter, request *http.Request) {
+// serveManifest answers the web app manifest of the page. It needs no session,
+// like the page of the gateway: it names the application and its start page and
+// nothing else, and a browser may process a manifest without the page that links
+// it (the specification mentions installing from a sync service), so without the
+// session cookie. The gateway answers it itself and does not forward it.
+func serveManifest(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet && request.Method != http.MethodHead {
 		writer.Header().Set("Allow", "GET, HEAD")
 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)

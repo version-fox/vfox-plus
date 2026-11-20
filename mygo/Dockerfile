@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # The vfox-plus-gateway image: the web interface of one vfox+, served from a
-# container. It is a client of vfox+, as the Android app is, and not vfox+ in a
+# container. It is a client of vfox+, as the phone app is, and not vfox+ in a
 # container: it has no vfox, no window and no display, and shows the vfox+ that
 # it is paired with (package gateway, docs/en/user/remote.md#the-gateway-docker).
 #
@@ -35,10 +35,10 @@
 #
 #   docker run --rm -p 8080:8080 -v vfox-plus-gateway:/home/vfoxplus/.config/vfox-plus-gateway vfox-plus-gateway
 #
-# The program takes no arguments and reads no switches. To reach a vfox+ on the
-# same computer through its address on the loopback interface (the "Open in
-# browser" link, http://127.0.0.1:...), run the container with --network host;
-# the link for other devices needs nothing of the kind.
+# The program takes no arguments and reads no switches. A vfox+ on the same
+# computer is paired the way any other is: its pairing link holds an address of
+# the computer on the network, never the loopback one, so the container needs no
+# --network host.
 #
 # The toolchain defaults to mygo/versions.env; keep them in sync. Go runs on
 # linux/amd64 here and builds for the platform of the image, so that one build

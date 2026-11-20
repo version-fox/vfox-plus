@@ -12,36 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pair_test
+package gateway
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
 )
 
 var faviconLinkPattern = regexp.MustCompile(`<link rel="icon" type="image/svg\+xml" href="data:image/svg\+xml,[^"]+">`)
 
-// Every page of the server is seen in a tab: the intro that a visit without a
-// link gets, and the web interface.
+// Every page of the gateway is seen in a tab: the page that a browser that is not paired gets, and the
+// interface that a paired browser gets.
 func TestPagesCarryTheFavicon(t *testing.T) {
-	server := webServer(t, testModel(t, testsupport.FixtureRunner()))
+	instance := startInstance(t)
+	g, server := serveGateway(t, Options{})
 	pages := map[string]string{}
-	status, body := webGet(t, server.BaseURL()+"/", "")
+	status, body := unpaired(t, server).get("/")
 	if status != http.StatusOK {
-		t.Fatalf("intro: got %d", status)
+		t.Fatalf("the page of the gateway: got %d", status)
 	}
-	pages["intro"] = body
-	session := webSession(t, server)
-	status, body = webGet(t, server.BaseURL()+"/app", session)
+	pages["gateway"] = body
+	b := pairedBrowser(t, g, server)
+	pairGateway(t, b, instance.link())
+	status, body = b.get("/app")
 	if status != http.StatusOK {
-		t.Fatalf("app: got %d", status)
+		t.Fatalf("the interface: got %d", status)
 	}
-	pages["app"] = body
+	pages["interface"] = body
 	for name, page := range pages {
 		head, _, _ := strings.Cut(page, "</head>")
 		if len(faviconLinkPattern.FindAllString(head, -1)) != 1 {
@@ -56,15 +57,16 @@ func TestPagesCarryTheFavicon(t *testing.T) {
 	}
 }
 
-// The manifest needs no session: a browser fetches it without the cookie of the page, and
-// its icon is the favicon that the pages carry.
+// The manifest needs no session: a browser fetches it without the cookie of the page, and its icon is the
+// favicon that the pages carry. The gateway answers it itself.
 func TestManifestIsServed(t *testing.T) {
-	server := webServer(t, testModel(t, testsupport.FixtureRunner()))
-	response, err := http.Get(server.BaseURL() + "/manifest.webmanifest")
+	instance := startInstance(t)
+	g, server := serveGateway(t, Options{})
+	response := unpaired(t, server).send(http.MethodGet, "/manifest.webmanifest", nil, nil)
+	manifestBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK || response.Header.Get("Content-Type") != "application/manifest+json" {
 		t.Fatalf("status %d, content type %q", response.StatusCode, response.Header.Get("Content-Type"))
 	}
@@ -77,13 +79,15 @@ func TestManifestIsServed(t *testing.T) {
 			Type  string `json:"type"`
 		} `json:"icons"`
 	}
-	if err := json.NewDecoder(response.Body).Decode(&manifest); err != nil {
+	if err := json.Unmarshal(manifestBody, &manifest); err != nil {
 		t.Fatal(err)
 	}
 	if manifest.Name != "vfox+" || manifest.StartURL != "/app" || len(manifest.Icons) != 1 || manifest.Icons[0].Sizes != "any" || manifest.Icons[0].Type != "image/svg+xml" {
 		t.Fatalf("manifest = %+v", manifest)
 	}
-	status, app := webGet(t, server.BaseURL()+"/app", webSession(t, server))
+	b := pairedBrowser(t, g, server)
+	pairGateway(t, b, instance.link())
+	status, app := b.get("/app")
 	if status != http.StatusOK {
 		t.Fatalf("app: got %d", status)
 	}
@@ -98,15 +102,7 @@ func TestManifestIsServed(t *testing.T) {
 	if !strings.Contains(app, `<img class="mark" src="`+manifest.Icons[0].Src+`"`) || strings.Contains(app, `>v+<`) {
 		t.Error("the navigation rail does not show the icon")
 	}
-	request, err := http.NewRequest(http.MethodPost, server.BaseURL()+"/manifest.webmanifest", strings.NewReader("{}"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	post, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = post.Body.Close() }()
+	post := b.send(http.MethodPost, "/manifest.webmanifest", strings.NewReader("{}"), nil)
 	if post.StatusCode != http.StatusMethodNotAllowed || post.Header.Get("Allow") != "GET, HEAD" {
 		t.Errorf("POST: status %d, Allow %q", post.StatusCode, post.Header.Get("Allow"))
 	}

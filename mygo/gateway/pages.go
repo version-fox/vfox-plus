@@ -17,19 +17,16 @@ package gateway
 import (
 	"html/template"
 	"net/http"
-
-	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
 // The pages the gateway serves itself, one template with a part for each. They are forms that post to
-// the gateway and need no script, in both languages as the intro page of the servers of the application
-// is, and the look of a page of the settings: a card, the colours of the system, light and dark.
+// the gateway and need no script, in both languages, and the look of a page of the settings: a card, the
+// colours of the system, light and dark.
 const (
 	pageIntro  = "intro"  // a browser that is not paired with the gateway.
 	pageHome   = "home"   // a paired browser: to which instance the gateway is paired, and the form to pair it.
 	pageTrust  = "trust"  // the fingerprint of a certificate that nobody vouches for, to be compared.
 	pageInvite = "invite" // the pairing link of another browser.
-	pageFailed = "failed" // the instance cannot be reached.
 )
 
 // view is what a page shows.
@@ -132,18 +129,12 @@ form{margin:0}
 <p><code>{{.Link}}</code></p>
 <div class="row"><a class="button" href="/">Back · 返回</a></div>
 </div>
-{{else if eq .Page "failed"}}
-<div class="card">
-<p>vfox+ at <code>{{.Address}}</code> cannot be reached just now.</p>
-<p class="zh">暂时连不上 <code>{{.Address}}</code> 的 vfox+。</p>
-<div class="row"><a class="button primary" href="/app">Try again · 重试</a><a class="button" href="/">Pair again · 重新配对</a></div>
-</div>
 {{end}}
 </main></body></html>`))
 
 // render writes a page. The pages carry nothing that may be kept, and say what they may not be framed by.
 func render(writer http.ResponseWriter, status int, page view) {
-	page.Favicon = template.HTML(pair.FaviconLink()) //nolint:gosec // The favicon link is a constant of this program.
+	page.Favicon = template.HTML(faviconLink) //nolint:gosec // The favicon link is a constant of this program.
 	header := writer.Header()
 	header.Set("Content-Type", "text/html; charset=utf-8")
 	header.Set("Cache-Control", "no-store")

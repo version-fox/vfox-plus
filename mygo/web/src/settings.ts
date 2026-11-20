@@ -343,18 +343,3 @@ export function initSettings(): void {
     }
   };
 }
-
-// In the Android app the settings offer what only the app can do.
-export function wirePhoneCard(): void {
-  if (!window.vfoxAndroid) return;
-  const bridge = window.vfoxAndroid;
-  (document.getElementById("phoneCard") as HTMLElement).hidden = false;
-  (document.getElementById("phoneServer") as HTMLElement).textContent = String(bridge.server()).replace(
-    /^[a-z]+:\/\//i,
-    "",
-  );
-  el("phonePair").onclick = () => bridge.pairNew();
-  el("phoneOut").onclick = async () => {
-    if (await confirmDlg(t("phoneOutTitle"), t("phoneOutBody"), t("phoneOut"), true)) bridge.disconnect();
-  };
-}

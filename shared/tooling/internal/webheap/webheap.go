@@ -12,20 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package webheap implements `vfxtool webheap`: it drives the paired web
-// interface (/app) with the Chrome DevTools Protocol and writes the
-// JavaScript heap at two points: `webheap (app)` after the SDK list settles,
-// and `webheap (app-settled)` after idling on the open page, which catches
-// leaks in the live event stream. It also takes the screenshots
-// of the web interface for the documentation. CI does not track the heap
-// numbers; they are for local diagnosis while the screenshots are for the
-// docs.
+// Package webheap implements `vfxtool webheap`: it drives the web interface (/app, which the
+// gateway serves) with the Chrome DevTools Protocol and writes the JavaScript heap at two points:
+// `webheap (app)` after the SDK list settles, and `webheap (app-settled)` after idling on the open
+// page, which catches leaks in the live event stream. It also takes the screenshots of the web
+// interface for the documentation. CI does not track the heap numbers; they are for local diagnosis
+// while the screenshots are for the docs.
 //
-// The caller starts the server and passes its pairing link; the tool only
-// drives one throw-away browser profile. The heap numbers describe only the
-// web client in front of a human, never the browser process around it. The
-// tool needs nothing but a Chrome that speaks the DevTools Protocol, which it
-// starts and drives with chromedp.
+// The caller starts the gateway (the program of mygo/cmd/vfox-plus-gateway) and passes its pairing
+// link. A gateway that is paired with no application yet gets the pairing link of the application
+// too: the tool pastes it on the page of the gateway, as a person does. The tool only drives one
+// throw-away browser profile. The heap numbers describe only the web client in front of a human,
+// never the browser process around it. The tool needs nothing but a Chrome that speaks the DevTools
+// Protocol, which it starts and drives with chromedp.
 package webheap
 
 import (
@@ -57,7 +56,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/chrome"
 )
 
-const usage = "Usage: webheap -server URL -pairing URL -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE [-audit FILE]] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
+const usage = "Usage: webheap -server URL -pairing URL [-application URL] -output FILE [-settle SECONDS] [-idle SECONDS] [-timeout SECONDS] [-screenshot FILE [-audit FILE]] [-lang en|zh] [-window WIDTH,HEIGHT] [-tab NAME | -scene NAME] [-dark] [-chrome PATH]"
 
 // auditScript is the census of a screen: what a person reads, and what could not be read.
 //
@@ -79,21 +78,22 @@ const (
 
 // options is the command line.
 type options struct {
-	server     string
-	pairing    string
-	output     string
-	screenshot string
-	audit      string
-	lang       string
-	tab        string
-	scene      string
-	chrome     string
-	width      int
-	height     int
-	settle     time.Duration
-	idle       time.Duration
-	timeout    time.Duration
-	dark       bool
+	server      string
+	pairing     string
+	application string
+	output      string
+	screenshot  string
+	audit       string
+	lang        string
+	tab         string
+	scene       string
+	chrome      string
+	width       int
+	height      int
+	settle      time.Duration
+	idle        time.Duration
+	timeout     time.Duration
+	dark        bool
 }
 
 // seconds converts a number of seconds of a flag.
@@ -107,8 +107,9 @@ func seconds(name string, value float64, zeroAllowed bool) (time.Duration, error
 func parseOptions(args []string) (options, error) {
 	var o options
 	flags := flag.NewFlagSet("webheap", flag.ContinueOnError)
-	flags.StringVar(&o.server, "server", "", "base `URL` of the running server, like http://127.0.0.1:PORT")
-	flags.StringVar(&o.pairing, "pairing", "", "the one-time pairing `URL` that the server printed")
+	flags.StringVar(&o.server, "server", "", "base `URL` of the running gateway, like https://localhost:8080")
+	flags.StringVar(&o.pairing, "pairing", "", "the one-time pairing `URL` that the gateway printed")
+	flags.StringVar(&o.application, "application", "", "the pairing `URL` of the application (a link for this computer, from the end-to-end build), pasted on the page of the gateway when the gateway is not paired with it yet")
 	flags.StringVar(&o.output, "output", "", "`file` that gets the two webheap lines")
 	flags.StringVar(&o.screenshot, "screenshot", "", "also write a PNG screenshot of the settled page to this `file`")
 	flags.StringVar(&o.audit, "audit", "", "also write the census of that page, in JSON, to this `file`: the words, the sentences, the contrast, the repeated buttons and icons, the sizes (with a -screenshot)")
@@ -191,8 +192,9 @@ func formatLines(heap, settled int64) string {
 
 // Run implements `webheap`. The flags:
 //
-//	-server URL        base URL of the running server
+//	-server URL        base URL of the running gateway
 //	-pairing URL       the one-time pairing link it printed
+//	-application URL   the pairing link of the application, pasted on the gateway's page when it is not paired yet
 //	-output FILE       gets `webheap (app): N bytes` and `webheap (app-settled): N bytes`
 //	-settle SECONDS    settle time after the SDK list loads (default 5)
 //	-idle SECONDS      idle time on the open page before the second reading (default 20)
@@ -266,7 +268,7 @@ func evaluate[T any](s *session, expression string) (T, error) {
 
 // open navigates to address and waits for the page to load. It then checks
 // where the browser ended up, which is landing, or address when that is empty: a
-// server that redirects /app to its intro page (the pairing link did not work)
+// gateway that redirects /app to its own page (the pairing link did not work)
 // would otherwise show as a long wait for an SDK list that never comes.
 func (s *session) open(address, label, landing string) error {
 	if err := chromedp.Do(s.page, chromedp.Navigate(address)); err != nil {
@@ -281,6 +283,34 @@ func (s *session) open(address, label, landing string) error {
 	}
 	if !strings.HasPrefix(href, landing) {
 		return fmt.Errorf("%s did not open: the browser ended up on %s (was the pairing link used before?)", label, href)
+	}
+	return nil
+}
+
+// pairApplication pastes the pairing link of the application on the page of the gateway, and presses the button that
+// pairs the gateway with it, as a person does. The gateway then takes the browser to its interface, or the page says
+// what went wrong.
+func (s *session) pairApplication(ctx context.Context, link string) error {
+	paste := fmt.Sprintf(`(() => { const field = document.getElementById("link"); if (!field) return false; field.value = %q; return true; })()`, link)
+	if pasted, err := evaluate[bool](s, paste); err != nil || !pasted {
+		return fmt.Errorf("the page of the gateway has no field for the link of the application (is the gateway paired already?): %v", err)
+	}
+	if _, err := evaluate[chromedp.Void](s, `document.querySelector('form[action="/gateway/connect"] button').click()`); err != nil {
+		return fmt.Errorf("pairing the gateway with the application: %w", err)
+	}
+	if err := s.waitFor(ctx, `location.pathname === "/app" || !!document.querySelector('[role="alert"]')`, "the gateway to pair with the application"); err != nil {
+		return err
+	}
+	reason, err := evaluate[string](s, `(() => {
+		if (location.pathname === "/app") return "";
+		const alert = document.querySelector('[role="alert"]');
+		return alert ? alert.innerText : "the page of the gateway did not open the interface";
+	})()`)
+	if err != nil {
+		return err
+	}
+	if reason != "" {
+		return fmt.Errorf("the gateway is not paired with the application: %s", reason)
 	}
 	return nil
 }
@@ -370,7 +400,10 @@ func measure(ctx context.Context, o options) (measurement, error) {
 	if err != nil {
 		return found, err
 	}
-	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, chrome.Options(binary, o.width, o.height)...)
+	// The gateway serves a certificate that nobody signed, which the person trusts by its fingerprint. The throw-away
+	// browser of the tool does not verify it, as `gateway-shots` does not.
+	options := append(chrome.Options(binary, o.width, o.height), chromedp.Flag("ignore-certificate-errors", true))
+	allocator, stopAllocator := chromedp.NewExecAllocator(ctx, options...)
 	defer stopAllocator()
 	tab, closeTab := chromedp.NewContext(allocator)
 	defer closeTab()
@@ -381,11 +414,22 @@ func measure(ctx context.Context, o options) (measurement, error) {
 		}
 	}
 
-	// Pair first, exactly like a browser: the pairing link sets the session
-	// cookie and takes the browser to the app, which then opens paired.
-	app := strings.TrimSuffix(o.server, "/") + "/app"
-	if err := s.open(o.pairing, "the pairing page", app); err != nil {
+	// Pair first, exactly like a browser: the pairing link sets the session cookie of the gateway. The gateway takes
+	// the browser to the app when it is paired with an application already, and to its own page when it is not, where
+	// the link of the application is pasted, as a person does.
+	base := strings.TrimSuffix(o.server, "/")
+	app := base + "/app"
+	landing := app
+	if o.application != "" {
+		landing = base + "/"
+	}
+	if err := s.open(o.pairing, "the pairing page", landing); err != nil {
 		return found, err
+	}
+	if o.application != "" {
+		if err := s.pairApplication(ctx, o.application); err != nil {
+			return found, err
+		}
 	}
 	if err := s.open(app, "the app", ""); err != nil {
 		return found, err

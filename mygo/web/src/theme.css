@@ -118,7 +118,7 @@
   --m3-scrim: #000000;
 }
 
-/* The safe area: what the system bars and a display cutout cover, reported by the browser as env(). In the Android app the page keeps clear of the bars by the insets that the app reports (window.vfoxAndroid, the script in the head), because a WebView does not give it in every version. */
+/* The safe area: what the system bars and a display cutout cover, reported by the browser as env(). */
 :root{color-scheme:light dark;--sai-top:env(safe-area-inset-top,0px);--sai-right:env(safe-area-inset-right,0px);--sai-bottom:env(safe-area-inset-bottom,0px);--sai-left:env(safe-area-inset-left,0px)}
 /* ---------- motion: the springs of Material 3 Expressive ---------- */
 /* docs/en/dev/design-system.md#motion. CSS has no spring, so each one is its step response, sampled into linear() over the time
@@ -323,7 +323,6 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 /* fields */
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .field label{font-size:12px;font-weight:500;color:var(--m3-on-surface-variant)}
-/* the phone card, which only the Android app shows: the paired server on a shape, and the two things that only the app can do */
 .qr{width:min(248px,100%);border-radius:12px;overflow:hidden;background:#fff;line-height:0}
 .qr svg{display:block;width:100%;height:auto}
 .pairbox{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-top:12px}
@@ -331,9 +330,6 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .list .item input[type=number]{width:96px;flex:none}
 .list .item>span{min-width:0}
 .list .item code{overflow-wrap:anywhere}
-.phone{display:flex;align-items:center;gap:16px;margin:4px 0 16px}
-.phone .avatar{width:56px;height:56px}
-.phone-server{font-size:16px;line-height:24px;font-weight:500;overflow-wrap:anywhere}
 /* table */
 table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--m3-outline-variant);vertical-align:middle}
@@ -441,10 +437,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   /* terminal hint and cards: tonal containers where there is content to group */
   #snacks{bottom:calc(176px + var(--sai-bottom))}
   #error{bottom:calc(176px + var(--sai-bottom))}
-  /* the keyboard is open (the Android app says so): the bars make room for the field */
-  html.kb .navbar,html.kb .mfab{display:none}
-  html.kb main{padding-bottom:16px}
-  html.kb #snacks,html.kb #error{bottom:16px}
   .scrim{align-items:flex-end;padding:0}
   .scrim .dialog{max-width:none;border-radius:28px 28px 0 0;padding:24px 24px calc(24px + var(--sai-bottom))}
 }

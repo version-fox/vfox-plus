@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pair
+package gateway
 
 import (
 	_ "embed"
@@ -26,7 +26,7 @@ import (
 //go:embed favicon.svg
 var faviconSVG string
 
-// faviconPlaceholder marks the place of the favicon link in the head of a
+// faviconPlaceholder marks the place of the favicon link in the head of the
 // page, and logoPlaceholder the place of the same icon as a data URI in the
 // src of the brand mark of the web interface.
 const (
@@ -35,21 +35,12 @@ const (
 )
 
 // faviconURI is the favicon as a data URI. The pages inline it, like their
-// other assets: the server answers no request for an icon, and the web
+// other assets: the gateway answers no request for an icon, and the web
 // interface stays a single page without requests of its own.
 var faviconURI = faviconDataURI(faviconSVG)
 
-// faviconLink is the link of the favicon.
+// faviconLink is the link of the favicon, which the pages of the gateway carry in their heads.
 var faviconLink = `<link rel="icon" type="image/svg+xml" href="` + faviconURI + `">`
-
-// FaviconLink is the link element of the favicon, for the pages of other programs that have the
-// look of this one: the gateway has pages of its own.
-func FaviconLink() string { return faviconLink }
-
-// withFavicon puts the favicon in a page text with a faviconPlaceholder.
-func withFavicon(page string) string {
-	return strings.Replace(page, faviconPlaceholder, faviconLink, 1)
-}
 
 // faviconDataURI turns an SVG into a data URI that is safe in an HTML
 // attribute in double quotes: no comments, no declaration, one space where

@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pair
+package gateway
 
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -30,12 +28,12 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/mcu"
 )
 
-// The desktop interface, the web interface and the Android app are one design system
+// The desktop interface and the web interface are one design system
 // (docs/en/dev/design-system.md): the same colours and the same springs. The desktop has
-// them in code (mcu and kit), the page in CSS and the app in resources. These tests fail
-// when one of them moves without the others, and they say what the others must be.
+// them in code (mcu and kit) and the page in CSS. These tests fail when one of them moves
+// without the other, and they say what the other must be.
 
-// hexOf is a colour the way the page and the resources write it.
+// hexOf is a colour the way the page writes it.
 func hexOf(argb uint32) string { return fmt.Sprintf("#%06x", argb&0xFFFFFF) }
 
 // schemeRoles are the roles of the scheme of the default seed by the names of the web
@@ -83,23 +81,6 @@ func TestTheColoursOfThePageAreTheSchemeOfTheSeed(t *testing.T) {
 			got[string(m[1])] = string(m[2])
 		}
 		sameRoles(t, "the "+theme+" theme of the page", got, schemeRoles(theme == "dark"))
-	}
-}
-
-func TestTheColoursOfTheAndroidAppAreTheSchemeOfTheSeed(t *testing.T) {
-	role := regexp.MustCompile(`<color name="m3_([a-z0-9_]+)">(#[0-9a-fA-F]{6})</color>`)
-	res := filepath.Join("..", "..", "android", "app", "src", "main", "res")
-	for theme, dir := range map[string]string{"light": "values", "dark": "values-night"} {
-		file := filepath.Join(res, dir, "colors.xml")
-		data, err := os.ReadFile(file) //nolint:gosec // A file of the repository.
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := map[string]string{}
-		for _, m := range role.FindAllStringSubmatch(string(data), -1) {
-			got[strings.ReplaceAll(m[1], "_", "-")] = m[2]
-		}
-		sameRoles(t, file, got, schemeRoles(theme == "dark"))
 	}
 }
 

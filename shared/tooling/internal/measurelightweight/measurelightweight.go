@@ -25,7 +25,7 @@
 // It needs the end-to-end build of the application, which closes its window on
 // SIGUSR1 and writes a pairing link to the file that VFOX_PLUS_E2E_LINK names, and a
 // display, which the caller provides (xvfb-run); the application is a desktop
-// application, and has no other way to start the web interface than its settings.
+// application, and has no other way to serve other devices than its settings.
 package measurelightweight
 
 import (
@@ -135,7 +135,7 @@ func Run(args []string) error {
 	// the same build read 42 MB and 48 MB of resident memory on CI for that reason (see the memory page).
 	// The tray measurement waits in the same way.
 	time.Sleep(loadWait)
-	// The window goes; the application stays, with the web interface it was asked for.
+	// The window goes; the application stays, serving other devices as its settings say.
 	if err := command.Process.Signal(closeSignal); err != nil {
 		stop()
 		return fmt.Errorf("cannot ask the application to close its window: %w", err)
@@ -247,8 +247,8 @@ func waitForLink(file string, done <-chan error, timeout time.Duration) (string,
 // inventory (which loads everything the desktop would show) and opens the
 // server-sent events stream past its first event. It returns the open stream.
 func pairAndLoad(pairingURL string) (io.ReadCloser, error) {
-	// The link answers with the session and a redirect to the interface: the cookie is in
-	// the first answer, so the redirect is not followed.
+	// The link answers with the session cookie and no content: the cookie is in the answer,
+	// and no redirect is followed.
 	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	pair, err := client.Get(pairingURL)
 	if err != nil {

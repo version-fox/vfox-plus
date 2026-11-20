@@ -147,8 +147,8 @@ func pairPlain(link string) (*site, error) {
 		return nil, err
 	}
 	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode != http.StatusSeeOther {
-		return nil, fmt.Errorf("the pairing link answered %s, want 303", response.Status)
+	if response.StatusCode != http.StatusNoContent {
+		return nil, fmt.Errorf("the pairing link answered %s, want 204", response.Status)
 	}
 	for _, cookie := range response.Cookies() {
 		if cookie.Name == sessionCookie && cookie.Value != "" {

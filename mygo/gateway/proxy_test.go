@@ -26,22 +26,23 @@ import (
 	"time"
 )
 
-func TestTheInterfaceOfTheInstanceIsServedThroughTheGateway(t *testing.T) {
+// The page of the interface is the gateway's own, the build that it embeds, with the favicon in its head.
+// What the page reads is the instance's, through the gateway.
+func TestTheInterfaceIsServedByTheGatewayAndWhatItReadsIsTheInstances(t *testing.T) {
 	instance := startInstance(t)
 	g, server := serveGateway(t, Options{})
 	b := pairedBrowser(t, g, server)
 	pairGateway(t, b, instance.link())
 	direct := instance.direct()
 
-	// The page is the instance's own, so that it matches the routes it calls.
 	status, page := b.get("/app")
-	_, want := direct.get("/app")
+	want := string(webappHead) + faviconLink + string(webappMiddle) + faviconURI + string(webappTail)
 	if status != http.StatusOK || page != want || !strings.Contains(page, "EventSource") {
-		t.Errorf("/app through the gateway: %d, %d bytes, the instance's page is %d bytes", status, len(page), len(want))
+		t.Errorf("/app through the gateway: %d, %d bytes, want the page of the gateway, %d bytes", status, len(page), len(want))
 	}
 	response := b.send(http.MethodGet, "/app", nil, nil)
 	if response.Header.Get("Cache-Control") != "no-store" || !strings.HasPrefix(response.Header.Get("Content-Type"), "text/html") {
-		t.Errorf("the headers of the instance are the page's: %v", response.Header)
+		t.Errorf("the headers of the page: %v", response.Header)
 	}
 
 	// What it reads is the instance's, too.
@@ -58,15 +59,39 @@ func TestTheInterfaceOfTheInstanceIsServedThroughTheGateway(t *testing.T) {
 	}
 }
 
+// The page of the interface needs a browser that is paired with the gateway and a gateway that is paired with an
+// instance. Any other browser is sent to the page of the gateway.
+func TestTheInterfaceNeedsAPairedBrowserAndAPairedGateway(t *testing.T) {
+	instance := startInstance(t)
+	g, server := serveGateway(t, Options{})
+	if response := unpaired(t, server).send(http.MethodGet, "/app", nil, nil); response.StatusCode != http.StatusFound || response.Header.Get("Location") != "/" {
+		t.Errorf("an unpaired browser: %d to %q, want the page of the gateway", response.StatusCode, response.Header.Get("Location"))
+	}
+	b := pairedBrowser(t, g, server)
+	if response := b.send(http.MethodGet, "/app", nil, nil); response.StatusCode != http.StatusFound || response.Header.Get("Location") != "/" {
+		t.Errorf("a paired browser of a gateway that is paired with nothing: %d to %q", response.StatusCode, response.Header.Get("Location"))
+	}
+	pairGateway(t, b, instance.link())
+	status, page := b.get("/app")
+	if status != http.StatusOK {
+		t.Fatalf("the interface answers %d", status)
+	}
+	for _, want := range []string{"vfox-plus", "/api/events", "taskCount", "sdkList"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the page must contain %q", want)
+		}
+	}
+}
+
 func TestWhatTheInstanceSetsInTheCookiesDoesNotReachTheBrowser(t *testing.T) {
 	instance := startFakeInstance(t)
 	g, server := serveGateway(t, Options{})
 	b := pairedBrowser(t, g, server)
 	pairGateway(t, b, instance.link())
 
-	response := b.send(http.MethodGet, "/app", nil, nil)
+	response := b.send(http.MethodGet, "/api/cookies", nil, nil)
 	if response.StatusCode != http.StatusOK {
-		t.Fatalf("/app answers %d", response.StatusCode)
+		t.Fatalf("/api/cookies answers %d", response.StatusCode)
 	}
 	if cookies := response.Header.Values("Set-Cookie"); len(cookies) != 0 {
 		t.Errorf("the instance set cookies for the browser: %v", cookies)
@@ -279,9 +304,10 @@ func TestAnInstanceThatIsDownIsSaidSoInTheFormTheInterfaceReads(t *testing.T) {
 	if !strings.HasPrefix(response.Header.Get("Content-Type"), "application/json") {
 		t.Errorf("Content-Type = %q", response.Header.Get("Content-Type"))
 	}
-	status, page := b.get("/app")
-	if status != http.StatusBadGateway || !strings.Contains(page, "cannot be reached") {
-		t.Errorf("the page answers %d: %.300s", status, page)
+	// The page is the gateway's: it is served while the gateway holds its session, and the page shows the message
+	// of the failed call above.
+	if status, page := b.get("/app"); status != http.StatusOK || !strings.Contains(page, "EventSource") {
+		t.Errorf("the page answers %d while the instance is down: %.300s", status, page)
 	}
 	// An instance that is down for a moment has not ended the session.
 	if !g.Status().Connected {
@@ -289,49 +315,50 @@ func TestAnInstanceThatIsDownIsSaidSoInTheFormTheInterfaceReads(t *testing.T) {
 	}
 }
 
-func TestTheManifestIsServedToABrowserThatIsNotPaired(t *testing.T) {
+// The gateway serves the manifest itself, to a browser that has no cookie, whether it is paired or not, and the
+// instance is never asked for it.
+func TestTheManifestIsServedByTheGatewayAndNotByTheInstance(t *testing.T) {
 	instance := startFakeInstance(t)
 	g, server := serveGateway(t, Options{})
 	stranger := unpaired(t, server)
-	if status, _ := stranger.get("/manifest.webmanifest"); status != http.StatusNotFound {
-		t.Errorf("a gateway that is paired with nothing has no manifest, got %d", status)
+	check := func(when string) {
+		t.Helper()
+		response := stranger.send(http.MethodGet, "/manifest.webmanifest", nil, nil)
+		body, _ := io.ReadAll(response.Body)
+		if response.StatusCode != http.StatusOK || response.Header.Get("Content-Type") != "application/manifest+json" || !strings.Contains(string(body), `"vfox+"`) {
+			t.Errorf("the manifest of a gateway %s: %d %q %s", when, response.StatusCode, response.Header.Get("Content-Type"), body)
+		}
 	}
+	check("that is paired with nothing")
 	pairGateway(t, pairedBrowser(t, g, server), instance.link())
-
-	// A browser may fetch it without the cookie, to offer the interface as an application.
-	response := stranger.send(http.MethodGet, "/manifest.webmanifest", nil, nil)
-	body, _ := io.ReadAll(response.Body)
-	if response.StatusCode != http.StatusOK || response.Header.Get("Content-Type") != "application/manifest+json" || !strings.Contains(string(body), `"vfox+"`) {
-		t.Errorf("the manifest: %d %q %s", response.StatusCode, response.Header.Get("Content-Type"), body)
+	check("that is paired with an instance")
+	if requests := instance.requests("/manifest.webmanifest"); len(requests) != 0 {
+		t.Errorf("the instance was asked for the manifest %d times, want none", len(requests))
 	}
 }
 
-// The manifest is forwarded for a browser that has no cookie to send, and for a gateway that holds no session.
-// Then there is no session of the gateway to put in the place of the cookies of the browser, and the cookies of
-// the browser are not sent to the instance as they are.
-func TestTheCookiesOfTheBrowserDoNotReachTheInstanceWhenTheGatewayHasNoSession(t *testing.T) {
+// The page of the interface and its manifest are the gateway's: the instance is never asked for them, while the
+// gateway holds a session and after the session has ended.
+func TestThePageIsNeverAskedOfTheInstance(t *testing.T) {
 	instance := startFakeInstance(t)
 	g, server := serveGateway(t, Options{})
 	b := pairedBrowser(t, g, server)
 	pairGateway(t, b, instance.link())
+	if status, _ := b.get("/app"); status != http.StatusOK {
+		t.Errorf("/app answers %d", status)
+	}
+	if status, _ := b.get("/manifest.webmanifest"); status != http.StatusOK {
+		t.Errorf("the manifest answers %d", status)
+	}
 	instance.endSessions()
 	b.get("/api/echo") // The gateway learns that the session ended.
-	if g.Status().Connected {
-		t.Fatal("the gateway still holds a session")
+	if status, _ := b.get("/app"); status != http.StatusFound {
+		t.Errorf("/app of a gateway that holds no session answers %d, want the redirect to the page of the gateway", status)
 	}
-
-	response := b.send(http.MethodGet, "/manifest.webmanifest", nil, map[string]string{
-		"Cookie": cookieName + "=" + b.session + "; " + instanceCookie + "=forged",
-	})
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("the manifest answers %d", response.StatusCode)
-	}
-	requests := instance.requests("/manifest.webmanifest")
-	if len(requests) != 1 {
-		t.Fatalf("the instance saw %d requests of the manifest, want 1", len(requests))
-	}
-	if cookie := requests[0].Header.Get("Cookie"); cookie != "" {
-		t.Errorf("the cookies of the browser reached the instance: %q", cookie)
+	for _, path := range []string{"/app", "/manifest.webmanifest"} {
+		if requests := instance.requests(path); len(requests) != 0 {
+			t.Errorf("the instance was asked for %s %d times, want none", path, len(requests))
+		}
 	}
 }
 

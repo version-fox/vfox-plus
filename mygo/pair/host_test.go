@@ -216,7 +216,7 @@ func TestOtherDevicesConnectOverHTTPSAndOnlyWhileAllowed(t *testing.T) {
 			t.Fatal(err)
 		}
 		_ = response.Body.Close()
-		if response.StatusCode != http.StatusSeeOther || sessionOf(response.Cookies()) == "" {
+		if response.StatusCode != http.StatusNoContent || sessionOf(response.Cookies()) == "" {
 			t.Errorf("the link pairs a device over TLS, got %d", response.StatusCode)
 		}
 		if _, err := f.host.RemoteLink("203.0.113.77"); !errors.Is(err, pair.ErrNoAddress) {
