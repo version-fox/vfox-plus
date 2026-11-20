@@ -483,12 +483,14 @@ theme and the status bar back when it ends. There are eleven:
 | `android-dark-home` | the home page, in the dark theme |
 
 What makes the pictures alike is the tool's work, because the system draws what they show seconds after it is asked, and an
-emulator is slow. After it fixes the status bar, and after each change of theme, it looks at the status bar until the bar has changed
-and then stays as it is for four looks in a row (the clock is drawn, then the icons of the network, and on the dark bar the icons turn
-light), not for a time that a slower emulator would overrun. It closes the soft keyboard that an emulator without a hardware keyboard
-shows over the dialog that adds a plugin: the key of Android that goes back closes the keyboard and keeps the dialog. And it takes a
-picture again, up to three times, while the app shows the strip that says that the computer did not answer, which it does for a moment
-after a change of theme on a slow emulator.
+emulator is slow. After it fixes the status bar, and after each change of theme, it looks at the status bar until the bar has changed,
+shows the two icons that were asked for at its right (the wifi and the battery: the clock is drawn first, the wifi came many seconds
+later on a runner, and on the dark bar the icons stay dark for a while) and has then stayed as it is for four looks in a row, not for a
+time that a slower emulator would overrun. It closes the soft keyboard that an emulator without a hardware keyboard shows over the
+dialog that adds a plugin: the key of Android that goes back closes the keyboard and keeps the dialog. It takes a picture again, up to
+three times, while the app shows the strip that says that the computer did not answer, which it does for a moment after a change of
+theme on a slow emulator. And when the system covers the screen with the dialog of a process that does not answer (*System UI isn't
+responding*, which a loaded machine makes it show), it taps *Wait* as a person does, wherever it is looking at the screen.
 
 The artifact `phone-pictures` has each of them twice: in `raw/` as it came, 1080 by 2400, and in
 `framed/`. `vfxtool frame-phone NAME.png OUT.png` makes the framed one: it gives the picture the rounded

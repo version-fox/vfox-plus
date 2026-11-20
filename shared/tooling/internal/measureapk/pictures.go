@@ -30,6 +30,7 @@ package measureapk
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -64,6 +65,9 @@ const (
 	// statusBarRows is how many rows of a screenshot, from the top, hold the status bar: 118 px on the
 	// 1080 by 2400 of the pictures, and a few more.
 	statusBarRows = 120
+	// statusIcons is how many icons the demo mode that the tool asks for shows at the right of the status bar: the
+	// wifi and the battery. The clock is at the left.
+	statusIcons = 2
 	// calmPoll is the time between two looks at the status bar while it settles, calmPolls the number of
 	// looks in a row that must find it unchanged, and calmTimeout when the tool stops waiting for it.
 	calmPoll    = time.Second
@@ -118,46 +122,87 @@ func (s *session) theme(dark bool) error {
 	return nil
 }
 
-// statusBarOf returns what the rows of a screenshot that hold the status bar are made of: two screenshots of the
-// same bar give the same bytes, whatever the page under it does. A screenshot that cannot be read as a picture
-// stands for itself.
-func statusBarOf(screenshot []byte) []byte {
+// barOf reads the status bar of a screenshot: what its rows are made of, which tells one bar from another whatever the
+// page under it does, and how many icons it shows at the right, which tells a bar that is done from one that is half
+// drawn. A screenshot that cannot be read as a picture stands for itself, and has all the icons that were asked for.
+func barOf(screenshot []byte) (pixels []byte, icons int) {
 	img, err := png.Decode(bytes.NewReader(screenshot))
 	if err != nil {
-		return screenshot
+		return screenshot, statusIcons
 	}
 	bounds := img.Bounds()
 	rows := min(statusBarRows, bounds.Dy())
-	out := make([]byte, 0, rows*bounds.Dx()*4)
+	pixels = make([]byte, 0, rows*bounds.Dx()*4)
 	for y := bounds.Min.Y; y < bounds.Min.Y+rows; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
-			out = append(out, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8))
+			pixels = append(pixels, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8))
 		}
 	}
-	return out
+	return pixels, iconsOf(img, rows)
 }
 
-// statusBar takes a screenshot and returns its status bar, or nothing when the device gives none.
+// iconsOf counts the icons that can be seen at the right of the status bar: the runs of columns, in the right 45 % of
+// the rows of the bar, that hold something that is not the colour of the bar, a gap of the colour of the bar apart. What
+// is white on a cream bar, as the icons of the mobile network are, is not seen by a person and is not counted; and on a
+// dark bar the icons that are still dark are not either, which is how the bar that has not followed the theme yet is told.
+func iconsOf(img image.Image, rows int) int {
+	const visible = 40 // the difference of luminance, of 255, that a person sees
+	bounds := img.Bounds()
+	luminance := func(x, y int) int {
+		r, g, b, _ := img.At(x, y).RGBA()
+		return int((299*(r>>8) + 587*(g>>8) + 114*(b>>8)) / 1000)
+	}
+	bar := luminance(bounds.Max.X-3, bounds.Min.Y+4)
+	gap := max(bounds.Dx()/108, 3)
+	count, last := 0, -gap
+	inside := false
+	for x := bounds.Min.X + bounds.Dx()*55/100; x < bounds.Max.X; x++ {
+		seen := false
+		for y := bounds.Min.Y + rows/6; y < bounds.Min.Y+rows && !seen; y++ {
+			seen = max(luminance(x, y)-bar, bar-luminance(x, y)) > visible
+		}
+		switch {
+		case seen && !inside:
+			inside, count = true, count+1
+			last = x
+		case seen:
+			last = x
+		case inside && x-last >= gap:
+			inside = false
+		}
+	}
+	return count
+}
+
+// statusBar takes a screenshot and returns what its status bar is made of, or nothing when the device gives none.
 func (s *session) statusBar() []byte {
+	pixels, _ := s.statusBarLook()
+	return pixels
+}
+
+// statusBarLook takes a screenshot and reads its status bar (barOf).
+func (s *session) statusBarLook() (pixels []byte, icons int) {
 	screenshot, err := s.adb("exec-out", "screencap", "-p")
 	if err != nil {
-		return nil
+		return nil, statusIcons
 	}
-	return statusBarOf(screenshot)
+	return barOf(screenshot)
 }
 
 // settleStatusBar waits until the status bar is no longer the one that the tool saw before it asked for a
-// change (the demo mode, a theme), and then stays as it is for calmPolls looks in a row. The system draws the
-// bar when it can, which on a slow emulator is seconds after the request has returned, and in steps: the clock,
-// then the icons of the network, or the dark bar with its icons still dark. A picture taken before is of a bar
-// half drawn, and not like the others. It gives up after calmTimeout, says so, and goes on.
+// change (the demo mode, a theme), shows the icons that were asked for, and stays as it is for calmPolls looks in a row.
+// The system draws the bar when it can, which on a slow emulator is seconds after the request has returned, and in
+// steps: the clock and the battery, then the icon of the wifi, many seconds later on a runner; or the dark bar, with its
+// icons still dark. A bar that has stayed as it is for a while is not done for that: it has not got the wifi yet. A picture
+// taken before is of a bar half drawn, and not like the others. It gives up after calmTimeout, says so, and goes on.
 func (s *session) settleStatusBar(before []byte) {
 	deadline := s.now().Add(calmTimeout)
 	var last []byte
-	changed, still := false, 0
+	changed, still, icons := false, 0, 0
 	for {
-		bar := s.statusBar()
+		var bar []byte
+		bar, icons = s.statusBarLook()
 		changed = changed || !bytes.Equal(bar, before)
 		if last != nil && bytes.Equal(bar, last) {
 			still++
@@ -165,11 +210,11 @@ func (s *session) settleStatusBar(before []byte) {
 			still = 0
 		}
 		last = bar
-		if changed && still >= calmPolls {
+		if changed && still >= calmPolls && icons >= statusIcons {
 			return
 		}
 		if !s.now().Before(deadline) {
-			fmt.Fprintf(s.log, "warning: the status bar did not settle in %s (changed: %t): the pictures that follow may show it half drawn\n", calmTimeout, changed)
+			fmt.Fprintf(s.log, "warning: the status bar did not settle in %s (changed: %t, icons seen: %d of %d): the pictures that follow may show it half drawn\n", calmTimeout, changed, icons, statusIcons)
 			return
 		}
 		s.sleep(calmPoll)

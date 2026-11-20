@@ -305,9 +305,25 @@ type screenMachine struct {
 	// strips is how many more dumps have the strip that says that the computer did not answer, over the page, as
 	// the app shows it for a moment when its connection is lost, and clean is how many dumps come before them.
 	strips, clean int
+	// anr, when it is set, is the dialog of the system that says that a process does not answer, which is over every screen
+	// and covers it: the dump is of the dialog. A tap on Wait takes it away, unless the process never answers (anrStays).
+	anr, anrStays bool
 	// seen is the screens that were dumped, in order.
 	seen []string
 }
+
+// notRespondingScreen is the dialog that Android shows when System UI does not answer, as uiautomator dumps it on the emulator:
+// a title and two buttons, whose bounds are those of the dump of the emulator.
+const notRespondingScreen = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node index="0" text="System UI isn't responding" class="android.widget.TextView" clickable="false" bounds="[133,1064][947,1135]" />
+  <node index="1" text="Close app" class="android.widget.Button" clickable="true" bounds="[70,1174][1010,1300]" />
+  <node index="2" text="Wait" class="android.widget.Button" clickable="true" bounds="[70,1300][1010,1426]" />
+</hierarchy>
+`
+
+// waitTap is where a tap on Wait of the dialog goes.
+const waitTap = "540 1363"
 
 // stripNode is the strip of the app that says that the computer did not answer, as the accessibility tree has it.
 const stripNode = `  <node index="99" text="The computer did not answer. Check the network, and that vfox+ runs on the computer." class="android.view.View" clickable="false" bounds="[0,206][1080,340]" />
@@ -393,6 +409,8 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 		return []byte(meminfoReport), nil
 	case strings.HasPrefix(command, "shell uiautomator dump "+screenFile):
 		return []byte("UI hierarchy dumped to: " + screenFile + "\n"), nil
+	case strings.HasPrefix(command, "shell cat "+screenFile) && d.machine != nil && d.machine.anr:
+		return []byte(notRespondingScreen), nil
 	case strings.HasPrefix(command, "shell cat "+screenFile) && d.machine != nil:
 		d.machine.seen = append(d.machine.seen, d.machine.now)
 		text := d.machine.screens[d.machine.now]
@@ -411,6 +429,13 @@ func (d *fakeDevice) adb(args ...string) ([]byte, error) {
 	case strings.HasPrefix(command, "shell input tap "):
 		tap := strings.TrimPrefix(command, "shell input tap ")
 		d.taps = append(d.taps, tap)
+		if d.machine != nil && d.machine.anr {
+			// The dialog is over the screen: the tap is for it, and only Wait does anything.
+			if tap == waitTap && !d.machine.anrStays {
+				d.machine.anr = false
+			}
+			return nil, nil
+		}
 		if d.machine != nil && !d.machine.ime {
 			if to, ok := d.machine.next[d.machine.now][tap]; ok {
 				d.machine.now = to
@@ -933,17 +958,42 @@ func TestPicturesNeedAPairedSession(t *testing.T) {
 	}
 }
 
-// barPicture is a screenshot whose status bar is the colour top, over a page of the colour below.
-func barPicture(t *testing.T, top, below color.Color) []byte {
+// barPicture is a screenshot 100 px wide whose status bar is the colour top, with the number of icons at its right
+// that a person can see (dark on a light bar, light on a dark one), over a page of the colour below.
+func barPicture(t *testing.T, top, below color.Color, icons int) []byte {
 	t.Helper()
-	img := image.NewRGBA(image.Rect(0, 0, 4, statusBarRows+30))
+	r, g, b, _ := top.RGBA()
+	icon := color.Color(color.RGBA{255, 255, 255, 255})
+	if (299*(r>>8)+587*(g>>8)+114*(b>>8))/1000 > 128 {
+		icon = color.RGBA{60, 60, 60, 255}
+	}
+	return barPictureOf(t, top, below, slices.Repeat([]color.Color{icon}, icons)...)
+}
+
+// barPictureOf is a screenshot like barPicture whose icons are of the colours that are given, the first at the left.
+func barPictureOf(t *testing.T, top, below color.Color, icons ...color.Color) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, 100, statusBarRows+30))
 	for y := 0; y < statusBarRows+30; y++ {
-		for x := 0; x < 4; x++ {
+		for x := 0; x < 100; x++ {
 			if y < statusBarRows {
 				img.Set(x, y, top)
 			} else {
 				img.Set(x, y, below)
 			}
+		}
+	}
+	for i, icon := range icons {
+		for y := 40; y < 80; y++ {
+			for x := 60 + 18*i; x < 68+18*i; x++ {
+				img.Set(x, y, icon)
+			}
+		}
+	}
+	// The clock, at the left, which is no icon: it is seen and not counted.
+	for y := 40; y < 80; y++ {
+		for x := 6; x < 30; x++ {
+			img.Set(x, y, color.RGBA{60, 60, 60, 255})
 		}
 	}
 	var out bytes.Buffer
@@ -953,19 +1003,45 @@ func barPicture(t *testing.T, top, below color.Color) []byte {
 	return out.Bytes()
 }
 
-func TestStatusBarOf(t *testing.T) {
+func TestBarOf(t *testing.T) {
 	light, dark := color.RGBA{250, 245, 240, 255}, color.RGBA{20, 16, 10, 255}
 	white, black := color.RGBA{255, 255, 255, 255}, color.RGBA{0, 0, 0, 255}
+	pixels := func(screenshot []byte) []byte { p, _ := barOf(screenshot); return p }
+	icons := func(screenshot []byte) int { _, n := barOf(screenshot); return n }
+
 	// What is under the bar does not make it another bar: a page that moves is not a bar that changes.
-	if !bytes.Equal(statusBarOf(barPicture(t, light, white)), statusBarOf(barPicture(t, light, black))) {
+	if !bytes.Equal(pixels(barPicture(t, light, white, 2)), pixels(barPicture(t, light, black, 2))) {
 		t.Error("two screenshots with the same bar over other pages have different bars")
 	}
-	if bytes.Equal(statusBarOf(barPicture(t, light, white)), statusBarOf(barPicture(t, dark, white))) {
+	if bytes.Equal(pixels(barPicture(t, light, white, 2)), pixels(barPicture(t, dark, white, 2))) {
 		t.Error("a light bar and a dark one are the same bar")
 	}
-	// A screenshot that is not a picture is all there is of it.
-	if got := statusBarOf([]byte("not a picture")); string(got) != "not a picture" {
-		t.Errorf("statusBarOf of what is not a picture = %q", got)
+	if bytes.Equal(pixels(barPicture(t, light, white, 2)), pixels(barPicture(t, light, white, 1))) {
+		t.Error("a bar with an icon missing is the same bar")
+	}
+
+	// The icons that are counted are the ones that can be seen.
+	for n := range 4 {
+		if got := icons(barPicture(t, light, white, n)); got != n {
+			t.Errorf("a light bar with %d icons has %d", n, got)
+		}
+		if got := icons(barPicture(t, dark, white, n)); got != n {
+			t.Errorf("a dark bar with %d icons has %d", n, got)
+		}
+	}
+	// The icons of the mobile network of the demo mode are white on a light bar, which nobody sees; and the icons that have
+	// not turned light yet are dark on a dark bar.
+	if got := icons(barPictureOf(t, light, white, white, color.RGBA{60, 60, 60, 255})); got != 1 {
+		t.Errorf("a light bar with a white icon and a dark one has %d icons, want the one that can be seen", got)
+	}
+	if got := icons(barPictureOf(t, dark, white, color.RGBA{10, 8, 4, 255}, color.RGBA{10, 8, 4, 255})); got != 0 {
+		t.Errorf("a dark bar with dark icons has %d icons, want none that can be seen", got)
+	}
+
+	// A screenshot that is not a picture is all there is of it, and has what was asked for.
+	got, n := barOf([]byte("not a picture"))
+	if string(got) != "not a picture" || n != statusIcons {
+		t.Errorf("barOf of what is not a picture = %q, %d", got, n)
 	}
 }
 
@@ -985,24 +1061,23 @@ func scriptedBar(frames [][]byte) (s *session, looks *int, log *strings.Builder)
 	}, looks, log
 }
 
+// repeat returns the frame n times.
+func repeat(frame []byte, n int) [][]byte { return slices.Repeat([][]byte{frame}, n) }
+
 // TestTheStatusBarSettles checks what settleStatusBar waits for: that the bar has changed from the one before the request,
 // and that it has then stayed as it is for calmPolls looks in a row. Neither is enough alone: the system answers a request
 // seconds late, so a bar that has not changed yet is not a bar that has settled, and a bar that has changed once is not done
-// while it is still being drawn (the clock, then the icons).
+// while it is still being drawn.
 func TestTheStatusBarSettles(t *testing.T) {
-	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White)
-	b := barPicture(t, color.RGBA{20, 16, 10, 255}, color.White)
-	c := barPicture(t, color.RGBA{20, 16, 10, 200}, color.White)
+	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White, 2)
+	b := barPicture(t, color.RGBA{20, 16, 10, 255}, color.White, 2)
+	c := barPicture(t, color.RGBA{20, 16, 10, 200}, color.White, 2)
 	// The frames: the old bar for longer than a calm takes (the system has not answered yet), a half drawn one that
 	// stays for less than a calm takes, and the one that stays.
 	old := calmPolls + 2
-	frames := make([][]byte, 0, old+3)
-	for range old {
-		frames = append(frames, a)
-	}
-	frames = append(frames, b, b, c)
+	frames := append(repeat(a, old), b, b, c)
 	s, looks, log := scriptedBar(frames)
-	s.settleStatusBar(statusBarOf(a))
+	s.settleStatusBar(statusBarOf(t, a))
 	// The looks at the old bar, 2 at the half drawn one, then c: 1 look that changes it and calmPolls that find it unchanged.
 	if want := old + 2 + 1 + calmPolls; *looks != want {
 		t.Errorf("settleStatusBar looked %d times, want %d: it must wait for the bar that stays", *looks, want)
@@ -1012,16 +1087,58 @@ func TestTheStatusBarSettles(t *testing.T) {
 	}
 }
 
+// TestTheStatusBarWaitsForItsIcons is the wifi that comes late: the clock and the battery are drawn, and the bar stays as it
+// is for longer than a calm takes, without the icon of the wifi. On a runner the icon was seconds behind the rest.
+func TestTheStatusBarWaitsForItsIcons(t *testing.T) {
+	light := color.RGBA{250, 245, 240, 255}
+	before := barPicture(t, color.RGBA{240, 240, 245, 255}, color.White, 3) // the real bar of the device
+	withoutWifi := barPicture(t, light, color.White, 1)
+	done := barPicture(t, light, color.White, 2)
+	frames := append([][]byte{before}, repeat(withoutWifi, calmPolls+3)...)
+	frames = append(frames, repeat(done, calmPolls+1)...)
+	s, looks, log := scriptedBar(frames)
+	s.settleStatusBar(statusBarOf(t, before))
+	// 1 look at the old bar, the bar without the wifi for calmPolls+3 looks, then the done bar: 1 look that changes it and
+	// calmPolls that find it unchanged.
+	if want := 1 + calmPolls + 3 + 1 + calmPolls; *looks != want {
+		t.Errorf("settleStatusBar looked %d times, want %d: it must wait for the icon of the wifi", *looks, want)
+	}
+	if strings.Contains(log.String(), "warning") {
+		t.Errorf("a bar that settled was reported: %s", log)
+	}
+}
+
+func TestTheStatusBarThatNeverGetsItsIconsIsGivenUpOn(t *testing.T) {
+	light := color.RGBA{250, 245, 240, 255}
+	before := barPicture(t, color.RGBA{240, 240, 245, 255}, color.White, 3)
+	withoutWifi := barPicture(t, light, color.White, 1)
+	s, looks, log := scriptedBar(append([][]byte{before}, repeat(withoutWifi, 1)...))
+	s.settleStatusBar(statusBarOf(t, before))
+	if want := int(calmTimeout/calmPoll) + 1; *looks != want {
+		t.Errorf("settleStatusBar looked %d times, want %d: one for each poll of the time that it waits", *looks, want)
+	}
+	if !strings.Contains(log.String(), "did not settle") || !strings.Contains(log.String(), "icons seen: 1 of 2") {
+		t.Errorf("a bar that never got its icons was not reported: %q", log)
+	}
+}
+
 func TestTheStatusBarThatNeverChangesIsGivenUpOn(t *testing.T) {
-	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White)
+	a := barPicture(t, color.RGBA{250, 245, 240, 255}, color.White, 2)
 	s, looks, log := scriptedBar([][]byte{a})
-	s.settleStatusBar(statusBarOf(a))
+	s.settleStatusBar(statusBarOf(t, a))
 	if want := int(calmTimeout/calmPoll) + 1; *looks != want {
 		t.Errorf("settleStatusBar looked %d times, want %d: one for each poll of the time that it waits", *looks, want)
 	}
 	if !strings.Contains(log.String(), "did not settle") || !strings.Contains(log.String(), "changed: false") {
 		t.Errorf("a bar that never changed was not reported: %q", log)
 	}
+}
+
+// statusBarOf is what the bar of a screenshot is made of, which the session gives settleStatusBar as the bar before.
+func statusBarOf(t *testing.T, screenshot []byte) []byte {
+	t.Helper()
+	pixels, _ := barOf(screenshot)
+	return pixels
 }
 
 // pictureOfHome is what a picture needs of a run: the page, and the directories.
@@ -1144,5 +1261,50 @@ func TestAPictureOfTheDialogHasNoKeyboard(t *testing.T) {
 	got := readText(t, filepath.Join(c.pictures, "android-add-plugin.png"))
 	if !strings.Contains(got, "screen=addplugin") || !strings.Contains(got, "ime=false") {
 		t.Errorf("the picture is %q, want the dialog without the keyboard", got)
+	}
+}
+
+// TestTheDialogOfAProcessThatDoesNotAnswerIsWaitedOn is System UI that does not answer on a slow emulator: the dialog of the
+// system covers the app, and the tab that the tool looks for is not on the screen. The tool taps Wait, as a person does, and
+// goes on to the tab.
+func TestTheDialogOfAProcessThatDoesNotAnswerIsWaitedOn(t *testing.T) {
+	m := guideMachine()
+	m.now, m.anr = "home", true
+	d := &fakeDevice{machine: m}
+	var log strings.Builder
+	s := d.session()
+	s.log = &log
+	if _, err := s.tapWhen(tabs[1].label, tabTimeout, "SDKs tab"); err != nil {
+		t.Fatalf("tapWhen = %v, want the tab after the dialog was waited on", err)
+	}
+	if want := []string{waitTap, "324 2300"}; !slices.Equal(d.taps, want) {
+		t.Errorf("the taps were %v, want %v: Wait first, then the tab", d.taps, want)
+	}
+	if m.now != "sdks" {
+		t.Errorf("the screen is %q, want the SDKs tab", m.now)
+	}
+	if !strings.Contains(log.String(), `the system says "System UI isn't responding": waiting for it`) {
+		t.Errorf("the dialog that was waited on is not in the log: %q", log.String())
+	}
+}
+
+// TestADialogThatNeverGoesIsNotWaitedOnForEver is the process that never answers: the tool taps Wait a few times and then
+// takes the screen as it is, which says what is on it.
+func TestADialogThatNeverGoesIsNotWaitedOnForEver(t *testing.T) {
+	m := guideMachine()
+	m.now, m.anr, m.anrStays = "home", true, true
+	d := &fakeDevice{machine: m}
+	s := d.session()
+	_, err := s.tapWhen(tabs[1].label, 20*time.Second, "SDKs tab")
+	if err == nil || !strings.Contains(err.Error(), "isn't responding") {
+		t.Fatalf("tapWhen = %v, want the dialog that stays to be what the screen has", err)
+	}
+	for _, tap := range d.taps {
+		if tap != waitTap {
+			t.Errorf("a tap of %q went to a screen that is covered by the dialog", tap)
+		}
+	}
+	if len(d.taps) == 0 {
+		t.Error("Wait was never tapped")
 	}
 }

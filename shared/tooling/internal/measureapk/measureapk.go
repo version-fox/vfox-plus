@@ -60,6 +60,8 @@ const (
 	// retryPause the wait before the next one.
 	pairAttempts = 3
 	retryPause   = 5 * time.Second
+	// notRespondingTries is how many times in a row the tool taps Wait on that dialog before it takes the screen as it is.
+	notRespondingTries = 3
 	// screenFile is where uiautomator dumps the accessibility tree of the screen, on the device.
 	screenFile = "/sdcard/vfoxplus-measure.xml"
 )
@@ -81,7 +83,13 @@ var (
 	// answer (the message goes on with what to check), and closeLabel is the button that closes it.
 	unreachableLabel = regexp.MustCompile(`^(The computer did not answer\.|电脑没有响应。)`)
 	closeLabel       = regexp.MustCompile(`^(Close|关闭)$`)
-	tabs             = []tab{
+	// notRespondingLabel is the title of the dialog that Android shows over everything when a process does not answer
+	// ("System UI isn't responding"), and waitLabel is its button that goes on waiting: a person taps that one, and the other
+	// ends the process. The dialog is the system's and not the app's, so it is looked for in English only, which is the language
+	// of the emulator that CI starts.
+	notRespondingLabel = regexp.MustCompile(`isn.t responding$`)
+	waitLabel          = regexp.MustCompile(`^Wait$`)
+	tabs               = []tab{
 		{"home", regexp.MustCompile(`^(Home|主页)$`)},
 		{"sdks", regexp.MustCompile(`^(SDKs|SDK)$`)},
 		{"plugins", regexp.MustCompile(`^(Plugins|插件)$`)},
@@ -508,8 +516,20 @@ func (s *session) tapWhen(pattern *regexp.Regexp, timeout time.Duration, what st
 	}
 }
 
-// dump reads the accessibility tree of the screen, which uiautomator writes to the device.
+// dump reads the accessibility tree of the screen, which uiautomator writes to the device. When the dialog of a process that
+// does not answer is over the screen, which the system shows when the emulator is slow (it was System UI, in the middle of a theme
+// changing), and covers the app so that no screen that the tool looks for is there, it taps Wait as a person does, and reads again.
 func (s *session) dump() (screen, error) {
+	for tries := 0; ; tries++ {
+		shot, err := s.dumpOnce()
+		if err != nil || tries >= notRespondingTries || !s.waitForTheProcess(shot) {
+			return shot, err
+		}
+	}
+}
+
+// dumpOnce reads the screen once.
+func (s *session) dumpOnce() (screen, error) {
 	if _, err := s.adb("shell", "uiautomator dump "+screenFile); err != nil {
 		return screen{}, err
 	}
@@ -518,6 +538,28 @@ func (s *session) dump() (screen, error) {
 		return screen{}, err
 	}
 	return parseScreen(data)
+}
+
+// waitForTheProcess taps Wait on the dialog of a process that does not answer, when the screen shows it, and says so. It
+// reports whether it tapped.
+func (s *session) waitForTheProcess(shot screen) bool {
+	if !hasLabel(shot.elements, notRespondingLabel) {
+		return false
+	}
+	wait, ok := lowestClickable(shot.elements, waitLabel)
+	if !ok {
+		return false
+	}
+	for _, e := range shot.elements {
+		if label := strings.TrimSpace(e.label); notRespondingLabel.MatchString(label) {
+			fmt.Fprintf(s.log, "the system says %q: waiting for it\n", label)
+			break
+		}
+	}
+	x, y := wait.center()
+	_, _ = s.adb("shell", fmt.Sprintf("input tap %d %d", x, y))
+	s.sleep(pollInterval)
+	return true
 }
 
 // runAdb runs adb with args and returns its standard output. Its error names the first argument
