@@ -142,7 +142,7 @@ func TestCollectExtras(t *testing.T) {
 		if loaded := lightweight.Rows[5]; loaded.PR != "19.0 MB (**+4.5**)" || loaded.Main != "14.5 MB" {
 			t.Fatalf("loaded private = %+v", loaded)
 		}
-		apk := findExtra(extras, "Android client")
+		apk := findExtra(extras, "Phone app")
 		if apk == nil || len(apk.Rows) != 2 {
 			t.Fatalf("apk = %+v", apk)
 		}
@@ -168,7 +168,7 @@ func TestCollectExtras(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		apk := findExtra(extras, "Android client")
+		apk := findExtra(extras, "Phone app")
 		if apk == nil || apk.Note != "Still running; the report is written again when it ends." {
 			t.Fatalf("apk = %+v", apk)
 		}
@@ -193,7 +193,7 @@ func TestCollectExtras(t *testing.T) {
 			t.Fatalf("lightweight = %+v", lightweight)
 		}
 		// No phone run and no phone baseline: no section.
-		if findExtra(extras, "Android client") != nil {
+		if findExtra(extras, "Phone app") != nil {
 			t.Fatal("want no Android section")
 		}
 	})

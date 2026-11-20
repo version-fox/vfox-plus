@@ -16,7 +16,7 @@
 # The vfox-plus-gateway image: the web interface of one vfox+, served from a
 # container. It is a client of vfox+, as the phone app is, and not vfox+ in a
 # container: it has no vfox, no window and no display, and shows the vfox+ that
-# it is paired with (package gateway, docs/en/user/remote.md#the-gateway-docker).
+# it is paired with (package gateway, docs/en/user/gateway.md).
 #
 # Build from the directory mygo/, which is the build context:
 #

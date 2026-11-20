@@ -385,7 +385,7 @@ func collectLightweight(ctx context.Context, repo *Repository, run *github.Workf
 // collectAndroid collects the APK section from the android run.
 func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
-		Title: "Android client",
+		Title: "Phone app",
 		Intro: "What the release APK uses cold-started on an emulator, in MB from `dumpsys meminfo` after " +
 			"settling: `apk-cold`. Emulator boots vary, so only differences of more than 5 MB and 10% count " +
 			"as changes.",

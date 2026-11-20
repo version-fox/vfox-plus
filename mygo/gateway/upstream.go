@@ -264,7 +264,7 @@ func (u *upstream) unreachable(err error) error {
 	}
 	message := fmt.Sprintf("cannot reach vfox+ at %s: %v", u.base.Host, err)
 	if isLoopback(u.base.Hostname()) {
-		message += " (inside a container, 127.0.0.1 is the container itself: run it with --network host, or use the pairing link for other devices)"
+		message += " (inside a container, 127.0.0.1 is the container itself: pair the gateway with the link that the computer shows for other devices, which holds an address of the computer on the network)"
 	}
 	return errors.New(message)
 }

@@ -236,7 +236,7 @@ func TestAnInstanceThatCannotBeReachedIsSaidSoWhenTheGatewayIsPaired(t *testing.
 		if response.StatusCode != http.StatusBadGateway || !strings.Contains(message, "Cannot reach vfox+ at 127.0.0.1:"+strconv.Itoa(free)) {
 			t.Errorf("%s: got %d %s", name, response.StatusCode, message[strings.Index(message, `role="alert"`):])
 		}
-		if !strings.Contains(message, "--network host") {
+		if !strings.Contains(message, "the link that the computer shows for other devices") {
 			t.Errorf("%s: a loopback address in a container is the container itself, and the page does not say so", name)
 		}
 	}
