@@ -84,6 +84,7 @@ size, which is quicker than an emulator for the screens.
 | `JAVA_VERSION` | The JDK, 17: Gradle 8.14.3, which mygo runs, does not run on JDK 25. CI uses Temurin 17, and the dev container the OpenJDK 17 of the Ubuntu archive. |
 | `ANDROID_CMDLINE_TOOLS_BUILD`, `ANDROID_CMDLINE_TOOLS_SHA256` | The command-line tools of the SDK that the dev container installs: the build in the name of the zip that dl.google.com publishes, and its checksum. |
 | `ANDROID_SDK_PLATFORM`, `ANDROID_SDK_BUILD_TOOLS` | The platform `android-36` and the build tools 36.0.0, which hold `aapt2` and `apksigner`. |
+| `ANDROID_GRADLE_BUILD_TOOLS` | The build tools 35.0.0, which the Android Gradle plugin asks for besides the ones above, and which it would download in the middle of the build: that fails where the SDK is not writable, as in the dev container. |
 | `ANDROID_NDK_VERSION` | The NDK, 28.2.13676358. |
 | `ANDROID_EMULATOR_API`, `ANDROID_SYSTEM_IMAGE_TARGET` | The emulator of [CI](#continuous-integration): API 36 with `google_apis`, for x86_64. |
 

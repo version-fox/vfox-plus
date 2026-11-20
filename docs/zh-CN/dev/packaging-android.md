@@ -53,6 +53,7 @@ mygo build -platform android
 | `JAVA_VERSION` | JDK，17：mygo 运行的 Gradle 8.14.3 不能在 JDK 25 上运行。CI 用 Temurin 17，开发容器用 Ubuntu 软件源里的 OpenJDK 17。 |
 | `ANDROID_CMDLINE_TOOLS_BUILD`、`ANDROID_CMDLINE_TOOLS_SHA256` | 开发容器安装的 SDK 命令行工具：dl.google.com 发布的 zip 文件名中的构建号，及其校验和。 |
 | `ANDROID_SDK_PLATFORM`、`ANDROID_SDK_BUILD_TOOLS` | 平台 `android-36` 与构建工具 36.0.0，后者含 `aapt2` 与 `apksigner`。 |
+| `ANDROID_GRADLE_BUILD_TOOLS` | 构建工具 35.0.0：Android Gradle 插件除上面那些之外还要它，缺了它会在构建中途下载，而在 SDK 不可写的地方（如开发容器）下载会失败。 |
 | `ANDROID_NDK_VERSION` | NDK，28.2.13676358。 |
 | `ANDROID_EMULATOR_API`、`ANDROID_SYSTEM_IMAGE_TARGET` | [CI](#持续集成) 的模拟器：API 36，x86_64 的 `google_apis`。 |
 

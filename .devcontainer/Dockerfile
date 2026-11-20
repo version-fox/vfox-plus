@@ -80,8 +80,9 @@ EOF
 # build of OpenJDK; the Ubuntu archive has this one, with its updates), the
 # command-line tools are verified against the checksum that mygo/phone/versions.env
 # pins, and the packages are the ones that the build uses, the NDK included, so that
-# the first build downloads no package of the SDK. The SDK belongs to root: the build
-# only reads it and runs what is in it. sdkmanager unpacks the files that run (the clang
+# the first build downloads no package of the SDK, which it could not install: the SDK
+# belongs to root, and the build only reads it and runs what is in it. Gradle asks for the
+# build tools of ANDROID_GRADLE_BUILD_TOOLS as well, and fails when they are missing. sdkmanager unpacks the files that run (the clang
 # of the NDK, aapt2, apksigner) with the mode 744, which no other user can run, so the
 # last steps give every user the right to run what its owner can, and check that the
 # user of the container can run the tools that the build starts: a file that cannot be
@@ -97,6 +98,7 @@ test -n "$ANDROID_CMDLINE_TOOLS_SHA256"
 test -n "$ANDROID_SDK_PLATFORM"
 test -n "$ANDROID_SDK_BUILD_TOOLS"
 test -n "$ANDROID_NDK_VERSION"
+test -n "$ANDROID_GRADLE_BUILD_TOOLS"
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "openjdk-$JAVA_VERSION-jdk-headless"
 rm -rf /var/lib/apt/lists/*
@@ -109,13 +111,15 @@ mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/late
 rm /tmp/cmdline-tools.zip
 sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 yes | "$sdkmanager" --licenses > /dev/null
-"$sdkmanager" "platform-tools" "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
+"$sdkmanager" "platform-tools" "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" \
+  "build-tools;$ANDROID_GRADLE_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
 chmod -R a+rX "$ANDROID_HOME"
 for tool in \
   "ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" \
   "ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android26-clang" \
   "build-tools/$ANDROID_SDK_BUILD_TOOLS/aapt2" \
   "build-tools/$ANDROID_SDK_BUILD_TOOLS/apksigner" \
+  "build-tools/$ANDROID_GRADLE_BUILD_TOOLS/aapt2" \
   "platform-tools/adb"; do
   runuser -u vscode -- test -x "$ANDROID_HOME/$tool" || { echo "vscode cannot run $ANDROID_HOME/$tool" >&2; exit 1; }
 done

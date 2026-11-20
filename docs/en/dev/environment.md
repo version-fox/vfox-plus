@@ -230,12 +230,13 @@ it together with its sources.
 
 The phone app is built with the mygo CLI, which runs Gradle for the Android project. It
 needs a JDK 17 (CI uses Temurin: Gradle 8.14.3 does not run on JDK 25), the Android SDK
-with platform 36 and build-tools 36.0.0, and the NDK 28.2.13676358, which compiles the Go
-code of the app. [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) pins them.
+with platform 36 and build-tools 36.0.0 and 35.0.0 (the Android Gradle plugin asks for the
+second), and the NDK 28.2.13676358, which compiles the Go code of the app.
+[`mygo/phone/versions.env`](../../../mygo/phone/versions.env) pins them.
 With `ANDROID_HOME` set, install the packages and the CLI at the pinned versions:
 
 ```sh
-sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "ndk;28.2.13676358"
 . ./mygo/phone/versions.env
 go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
 ```

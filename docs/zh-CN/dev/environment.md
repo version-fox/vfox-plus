@@ -181,10 +181,10 @@ CI 构建页面、跑它的测试，构建产物与提交的不一致就失败�
 
 ## Android
 
-手机端应用用 mygo CLI 构建，mygo 为安卓工程运行 Gradle。它需要 JDK 17（CI 用 Temurin：Gradle 8.14.3 不能在 JDK 25 上运行）、platform 36 与 build-tools 36.0.0 的 Android SDK，以及 NDK 28.2.13676358（应用的 Go 代码由它编译）。这些版本钉在 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 里。设好 `ANDROID_HOME` 之后，按钉住的版本装好软件包与 CLI：
+手机端应用用 mygo CLI 构建，mygo 为安卓工程运行 Gradle。它需要 JDK 17（CI 用 Temurin：Gradle 8.14.3 不能在 JDK 25 上运行）、platform 36 与 build-tools 36.0.0 和 35.0.0（后者是 Android Gradle 插件要的）的 Android SDK，以及 NDK 28.2.13676358（应用的 Go 代码由它编译）。这些版本钉在 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 里。设好 `ANDROID_HOME` 之后，按钉住的版本装好软件包与 CLI：
 
 ```sh
-sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "ndk;28.2.13676358"
 . ./mygo/phone/versions.env
 go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
 ```

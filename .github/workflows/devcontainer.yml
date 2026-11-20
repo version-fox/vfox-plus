@@ -70,6 +70,7 @@ jobs:
           java -version 2>&1 | grep -F "version \"$JAVA_VERSION."
           test -d "$ANDROID_HOME/platforms/android-$ANDROID_SDK_PLATFORM"
           test -d "$ANDROID_HOME/build-tools/$ANDROID_SDK_BUILD_TOOLS"
+          test -d "$ANDROID_HOME/build-tools/$ANDROID_GRADLE_BUILD_TOOLS"
           test -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
           mygo version | grep -F "$MYGO_VERSION"
           command -v vfxtool

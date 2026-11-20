@@ -277,7 +277,7 @@ jobs:
         with:
           # The default package list still names the `tools` package, which
           # Google removed; install only what the build needs.
-          packages: platform-tools platforms;android-${{ env.ANDROID_SDK_PLATFORM }} build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }} ndk;${{ env.ANDROID_NDK_VERSION }}
+          packages: platform-tools platforms;android-${{ env.ANDROID_SDK_PLATFORM }} build-tools;${{ env.ANDROID_SDK_BUILD_TOOLS }} build-tools;${{ env.ANDROID_GRADLE_BUILD_TOOLS }} ndk;${{ env.ANDROID_NDK_VERSION }}
       - name: Install the mygo CLI
         run: |
           go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
