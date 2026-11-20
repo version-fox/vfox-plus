@@ -484,8 +484,10 @@ func (s *session) paired(c config, pkg string) (err error) {
 // where nothing of the app takes the key back) goes back with the key of Android, as a person does, and asks two things of
 // the result: the dialog is closed, and the app is still in front. mygo takes a Back that no shortcut of the window claims
 // as the end of the app, and a dialog, an overlay, is not a shortcut of the window (egoist/mygo#2088), so the dialog closed
-// and the app went to the background with it. The app answers that (Root.sync) and this keeps it so: nothing else can see an
-// app leave, which no test of its screens does. The dialog is left closed; the pairing opens the link again.
+// and the app went to the background with it. The dialogs of the app answer that (kit.Env.LayoutDialogs takes the key for the
+// window from inside the dialog) and this keeps it so: nothing else can see an app leave, which no test of its screens does
+// (the first answer, a shortcut made from the page behind the dialog, registered nothing, and this check is what said so). The
+// dialog is left closed; the pairing opens the link again.
 func (s *session) backKeepsTheApp(pkg, uri string) error {
 	if err := s.start(fmt.Sprintf("am start -W -a android.intent.action.VIEW -d '%s' -p %s", uri, pkg), uri); err != nil {
 		return err

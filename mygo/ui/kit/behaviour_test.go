@@ -364,6 +364,39 @@ func TestDialogsAreModalAndGoWhenClosed(t *testing.T) {
 	}
 }
 
+// TestTheKeyBackClosesADialog is the key of Android that goes back, which closes a dialog as Escape does. It is the window that takes
+// it, from inside the dialog: the surface of a phone takes the app out of the front on a Back that no shortcut of the window claims,
+// and the Escape of the dialog does not count (egoist/mygo#2088). That a window's shortcut takes the key, and the dialog goes, is
+// what a test can see of it; that the app stays in front is for the emulator (vfxtool measure-apk --check-back-key).
+func TestTheKeyBackClosesADialog(t *testing.T) {
+	h := newTested(t, 700, 500, func(c Ctx) {
+		Column(c).Fill().Padding(16).Children(func() {
+			Button(c, ButtonSpec{ID: "open", Label: "Open", OnClick: func() {
+				c.Env.ShowDialog("d", func(c Ctx, closeDialog func()) DialogSpec {
+					return DialogSpec{
+						Title: "Hello", MaxWidth: 400,
+						Content: func() { Label(c, "A dialog.", Type(BodyMedium), c.Colors().OnSurfaceVariant) },
+					}
+				})
+			}})
+		})
+		c.Env.LayoutDialogs(c)
+	})
+	h.click("Open")
+	h.mustText("Hello")
+	h.tester.Key(0, ui.KeyBack)
+	h.tester.Advance(time.Second)
+	if h.tester.HasText("Hello") || h.env.HasDialog() {
+		t.Fatalf("the key back does not close the dialog; the frame shows %q", h.tester.Texts())
+	}
+	// With no dialog open, the key is nobody's: nothing opens, nothing is taken.
+	h.tester.Key(0, ui.KeyBack)
+	h.tester.Advance(time.Second)
+	if h.env.HasDialog() {
+		t.Error("a key back opened a dialog")
+	}
+}
+
 func TestSnackbarsShowForAWhileAndReplaceEachOther(t *testing.T) {
 	acted := 0
 	h := newTested(t, 700, 400, func(c Ctx) {

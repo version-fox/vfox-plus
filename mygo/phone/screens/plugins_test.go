@@ -76,6 +76,39 @@ func TestThePluginTabListsTheRegistryWithItsSourcesAndMarks(t *testing.T) {
 	availShot(t, tt, "plugins-tab")
 }
 
+// TestTheSystemsBackClosesTheDialogAndLeavesTheTab is what the key of Android sends, Escape and then Back, with a dialog open on a tab
+// that is not the home tab, where the back of the app goes to the home tab: the dialog closes, and the tab stays, as the dialog took
+// the back that was meant for it.
+func TestTheSystemsBackClosesTheDialogAndLeavesTheTab(t *testing.T) {
+	f := availNewComputer(t)
+	f.inventory = pluginRegistry()
+	root := availRoot(t, f)
+	tt := ui.NewTester(root.View, 480, 900)
+	pluginOpenTab(t, root, tt)
+	if err := tt.Click("Add from source"); err != nil {
+		t.Fatalf("Click(Add from source): %v", err)
+	}
+	settle(tt)
+	if !hasText(tt, "Add a plugin") {
+		t.Fatalf("the dialog is not open; the frame shows %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEscape)
+	tt.Key(0, ui.KeyBack)
+	settle(tt)
+	if hasText(tt, "Add a plugin") {
+		t.Errorf("the dialog is still open after the back; the frame shows %q", tt.Texts())
+	}
+	if tab := root.App().Tab(); tab != app.TabPlugins {
+		t.Errorf("tab %v after the back that closed the dialog, want the plugins tab", tab)
+	}
+	// The back that comes with no dialog open is the app's: it goes to the home tab.
+	tt.Key(0, ui.KeyBack)
+	settle(tt)
+	if tab := root.App().Tab(); tab != app.TabHome {
+		t.Errorf("tab %v after the next back, want the home tab", tab)
+	}
+}
+
 func TestThePluginSearchMatchesNamesAndHomepages(t *testing.T) {
 	f := availNewComputer(t)
 	f.inventory = pluginRegistry()
