@@ -217,6 +217,8 @@ interfaces. Both were checked on Linux only.
 - **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
   `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
   *Settings → Environment variables* as `KEY=VALUE`.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-erlang,
+  in English and in Simplified Chinese, and to its README.
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
   channel** option picks the conda channel that pixi installs clang from; its presets are
   prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
@@ -255,6 +257,8 @@ interfaces, with the limits that their lists have today:
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT`, installs the main
   branch of etcd whatever version is chosen, so the **Options** tab offers no switch for
   it. Set the variable in *Settings → Environment variables* only if you want that build.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-etcd,
+  in English and in Simplified Chinese, and to its README.
 
 ## Plugins
 

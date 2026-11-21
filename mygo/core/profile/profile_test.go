@@ -905,3 +905,28 @@ func TestErlangOffersItsPrebuiltBuildsOnLinuxOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestThePluginsWithADocumentationWebsiteLinkIt(t *testing.T) {
+	// The documentation websites that the plugins publish with GitHub Pages, as
+	// they were checked on 2026-11-21: vfox-erlang and vfox-etcd have one, and
+	// the other plugins with a profile have none. A website comes first in the
+	// documents, in English under /en/ and in Chinese at the root.
+	withWebsite := map[string]bool{"erlang": true, "etcd": true}
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang"} {
+		profile := lookup(t, plugin)
+		base := "https://version-fox.github.io/vfox-" + plugin + "/"
+		websites := 0
+		for i, link := range profile.Docs {
+			if !strings.HasPrefix(link.URL.EN, base) {
+				continue
+			}
+			websites++
+			if i != 0 || link.URL.EN != base+"en/" || link.URL.ZH != base {
+				t.Errorf("%s: the website comes first, in English under /en/ and in Chinese at the root: %+v", plugin, link)
+			}
+		}
+		if (websites != 0) != withWebsite[plugin] {
+			t.Errorf("%s links %d documentation websites, want a website: %v", plugin, websites, withWebsite[plugin])
+		}
+	}
+}

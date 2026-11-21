@@ -40,11 +40,8 @@ func etcdProfile() Profile {
 				"在“设置”的“环境变量”中设置 BUILD_WITH_FAILPOINT，会构建 etcd 的 main 分支，与所选版本无关。"),
 		},
 		Docs: []Link{
+			website("vfox-etcd", text("Documentation website", "文档网站")),
 			readme("vfox-etcd", text("Plugin README", "插件说明")),
-			{
-				Title: text("Documentation site", "文档网站"),
-				URL:   Text{EN: "https://version-fox.github.io/vfox-etcd/en/", ZH: "https://version-fox.github.io/vfox-etcd/"},
-			},
 		},
 	}
 }

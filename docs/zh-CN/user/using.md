@@ -108,6 +108,7 @@
 
 - **预编译的 Erlang/OTP。** 在 Linux 上，**预编译构建**选项选一个 Ubuntu 版本（20.04、22.04 或 24.04），就用它的预编译构建安装 Erlang/OTP，而不从源码编译。此时版本列表是预编译构建，名称带 `OTP-` 前缀，如 `OTP-29.1.2`，列表可能不显示其中最新的构建。选项留空则从源码编译，需要几分钟，并需要插件 README 中列出的编译工具。选择了预编译构建时，`latest` 是 master 分支，不是发行版。
 - **Erlang 的设置。** `OTP_CONFIGURE_ARGS` 把参数传给 configure，如 `--without-javac`；`MAKEFLAGS` 设置 make 的选项，如 `-j8`。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置。
+- **文档。** **选项**页签链接到 vfox-erlang 的文档网站（英文与简体中文），以及它的 README。
 - **Clang。** `latest` 安装列表中标为 latest 的版本。**Conda 频道**选项选择 pixi 安装 clang 所用的 conda 频道，预设为 prefix.dev 与清华镜像；留空则为 conda-forge。每次安装先下载 pixi，通常需要约一分钟。
 - **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。
 - **家目录。** 两个插件在家目录的路径含空格时都无法安装。
@@ -122,6 +123,7 @@
 - **校验和。** Deno 不提供校验和，所以 vfox 不校验它的安装包；没有 `SHA256SUMS` 文件的 etcd 发行版（如 0.3.0）同样不做校验。
 - **Zig。** 列表同时需要 ziglang.org 与 machengine.org：machengine.org 无法访问时，整个列表都会失败。列表中没有的名称可能报告安装成功，却什么也没有安装。
 - **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT` 开启，它会构建 etcd 的 main 分支，与所选版本无关，所以**选项**页签不为它提供开关。只有在需要那种构建时，才在*设置 → 环境变量*中设置该变量。
+- **文档。** **选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文），以及它的 README。
 
 ## 插件
 

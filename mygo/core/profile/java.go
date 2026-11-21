@@ -179,3 +179,12 @@ func readme(repository string, title Text) Link {
 	url := "https://github.com/version-fox/" + repository + "/blob/main/README.md"
 	return Link{Title: title, URL: Text{EN: url, ZH: url}}
 }
+
+// website links the documentation website of a plugin of the version-fox
+// organisation. The plugin publishes the website with GitHub Pages from its
+// website folder: the English pages are under /en/, and the Simplified Chinese
+// pages are at the root.
+func website(repository string, title Text) Link {
+	base := "https://version-fox.github.io/" + repository + "/"
+	return Link{Title: title, URL: Text{EN: base + "en/", ZH: base}}
+}

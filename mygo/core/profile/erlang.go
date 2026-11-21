@@ -70,6 +70,7 @@ func erlangProfile(platform Platform) Profile {
 				"家目录的路径含空格时，安装会失败。"),
 		},
 		Docs: []Link{
+			website("vfox-erlang", text("Documentation website", "文档网站")),
 			readme("vfox-erlang", text("Plugin README", "插件说明")),
 		},
 	}

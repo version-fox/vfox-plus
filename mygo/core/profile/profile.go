@@ -115,7 +115,9 @@ type Profile struct {
 	Guide Text
 	// Tips are things that are good to know before the first install.
 	Tips []Text
-	// Docs are the pages of the plugin's documentation worth opening.
+	// Docs are the pages of the plugin's documentation worth opening: a page of
+	// its docs folder, its README, or its documentation website, which comes first
+	// when the plugin publishes one.
 	Docs []Link
 }
 
