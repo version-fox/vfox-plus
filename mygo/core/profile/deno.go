@@ -15,14 +15,15 @@
 package profile
 
 // The profile of vfox-deno (https://github.com/version-fox/vfox-deno), written
-// from its code and its documents at release 0.2.2, which its main branch shares.
+// from its code and its documents at release 0.2.3, which its main branch shares.
 
 // denoProfile is the profile of vfox-deno. The plugin lists only the releases
 // that have a download for the platform, so the list starts at 0.36.0 on Linux
 // with x86-64, and the first line is the newest stable release, which latest
 // installs. The plugin reads no variable, keeps no notes and takes no search
-// argument. Release 0.36.0 installs with a binary that cannot run, and the tips
-// say so until the plugin sets its execute bit.
+// argument. The plugin sets the execute bit after it unpacks an archive, so
+// release 0.36.0 runs; a 0.36.0 installed by an older plugin needs a reinstall,
+// and the tips say so.
 func denoProfile() Profile {
 	return Profile{
 		Plugin: "deno",
@@ -41,8 +42,8 @@ func denoProfile() Profile {
 				"The plugin checks a release against its .sha256sum file when Deno publishes one, and says so when it does not.",
 				"发行版有 .sha256sum 文件时，插件会据此校验；没有时，插件会说明未校验。"),
 			text(
-				"Deno 0.36.0 installs, but its binary cannot run: the archive has no execute bit, and the plugin does not set one.",
-				"Deno 0.36.0 可以安装，但其二进制无法运行：压缩包没有可执行位，而插件不会设置它。"),
+				"The plugin sets the execute bit on Deno after it unpacks an archive, so 0.36.0 runs. A 0.36.0 installed by a plugin before 0.2.3 has no execute bit: reinstall it with vfox uninstall and vfox install.",
+				"插件在解压后为 Deno 设置可执行位，所以 0.36.0 可以运行。0.2.3 之前的插件安装的 0.36.0 没有可执行位：请用 vfox uninstall 与 vfox install 重新安装。"),
 		},
 		Docs: []Link{
 			docs("vfox-deno", "versions", text("Versions", "版本")),

@@ -286,8 +286,8 @@ interfaces, with the limits that their lists have today:
   that publishes no such file, such as 0.3.0, is checked against checksums that the plugin pins,
   and the install says so; a release from 3.4.0 on without the file is refused.
 - **Deno.** The list starts at 0.36.0, which is the first release with a download for Linux on
-  x86-64. Release 0.36.0 installs, but its binary cannot run: the archive has no execute bit,
-  and the plugin does not set one.
+  x86-64. The plugin sets the execute bit on Deno after it unpacks an archive, so 0.36.0 runs.
+  An install of 0.36.0 made by a plugin before 0.2.3 keeps the bit off: reinstall it.
 - **Zig.** The list merges ziglang.org with machengine.org and needs both: when machengine.org
   cannot be reached, the whole list fails. A name that the list does not show can report
   success without installing anything.
