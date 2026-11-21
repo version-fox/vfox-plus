@@ -29,7 +29,7 @@ updates:
       go-modules:
         patterns: ["*"]
   - package-ecosystem: npm
-    # The web interface, which is built into the page that the Go server embeds.
+    # The web interface, which is built into the page that the gateway embeds.
     directory: /mygo/web
     schedule:
       interval: weekly

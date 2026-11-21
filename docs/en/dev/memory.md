@@ -90,7 +90,7 @@ no page that the process wrote. The system takes them back at once instead of wh
 of another program, and then the resident set is what the application runs. The pages that other programs
 map too, as those of the libraries of the desktop, are left where they are by the system, which pages out
 only what one process maps. A window that opens in the two seconds, which needs them, cancels it; and the
-pages come back when something runs them: the first request that the web interface got after a minute of
+pages come back when something runs them: the first request that the server for other devices got after a minute of
 idleness took 14 ms in one measurement and under 1 ms in the next, where it took 1 ms before, and a window
 opened from the icon in the tray took 0.15 to 0.25 s, as it did (0.19 s). Sampled for three minutes the
 resident set does not creep back.
@@ -176,7 +176,7 @@ CI keeps the cost where it is. `vfxtool measure-lightweight --tray` (the last st
 runs the application twice in the same way, where nothing shows an icon and against the stand-in host, and fails the job
 when the icon costs more than 5 MB of resident or 1.5 MB of private memory: room for the noise of a runner, and
 less than the fallback costs, so that an icon made the way the fallback makes it is caught. It does not use the
-automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray-late`) checks that the application runs
+automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray`, in its part `tray-late`) checks that the application runs
 on, and that the icon takes its place when a host comes up. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
 two above: `malloc_trim` after the window closes changed nothing, `MALLOC_ARENA_MAX=1` saved 0.1 MB, and a
 second `debug.FreeOSMemory` a few seconds after the first saved 0.2 MB of private memory and nothing of
@@ -229,8 +229,10 @@ numbers do not stand for the browser or the phone app.
 ### The phone app
 
 `vfxtool measure-apk` measures the phone app on an emulator (API 36, `google_apis`, x86_64,
-with a software GPU), with `dumpsys meminfo` after 20 seconds of settling. One run gives
-two numbers, in MB:
+with a software GPU), with `dumpsys meminfo` after 20 seconds of settling. When a report holds no
+memory (`dumpsys meminfo` can answer `DUMP TIMEOUT` right after the boot of an emulator), the
+reading is asked for again, up to four times and five seconds apart; the start is not repeated.
+One run gives two numbers, in MB:
 
 - `memory (apk-cold)`: the first screen, after a cold start through the launcher. With
   `--cold-runs N` the app is started cold N times, each start settles for the 20 seconds, and the
@@ -246,8 +248,8 @@ two numbers, in MB:
 
 The paired session starts with the deep link `vfoxplus://pair?link=…`, which opens the pairing
 screen with the one-time link filled in. `measure-apk` then taps the confirmation (when the
-dialog says that the computer did not answer, it closes the dialog and opens the link again, up to
-three times), waits for the app to log the pairing, takes a screenshot and a dump of each tab, and
+dialog says that the computer did not answer, it closes the dialog and opens the link again; it
+tries three times in all), waits for the app to log the pairing, takes a screenshot and a dump of each tab, and
 fails when the log of the app has an error. With `--check-back-key` it first presses the key back with
 the dialog of the trust open: the dialog must close and the app must stay in front, which no test of
 the screens can see (mygo takes a back that nothing of the window claims as the end of the app, and a
@@ -279,11 +281,11 @@ computer. Compare the rows of one report with each other.
 One cold start of an emulator is a poor reading. In the runs of CI that kept their number, the first
 screen of the phone app read between 29 and 49 MB of PSS (nine runs of its branch, whose code changed
 little in between, one start each, before `--cold-runs`), and the Kotlin client that it replaced
-between 26 and 37 MB (eighteen runs of `main`, one start each):
+between 26 and 37 MB (eighteen runs of `main` before this change, one start each):
 
 | PSS in MB, one start per run | Runs | Lowest | Median | Highest |
 | --- | ---: | ---: | ---: | ---: |
-| The Kotlin client, on `main` | 18 | 26 | 31.5 | 37 |
+| The Kotlin client, on `main` before this change | 18 | 26 | 31.5 | 37 |
 | The phone app | 9 | 29 | 46 | 49 |
 
 Eight of the nine readings of the phone app are above the highest of the eighteen of the client, so
@@ -303,16 +305,17 @@ where the difference is:
 | **PSS** | **36.0** | **51.2** | **+15.3** |
 | RSS | 167 | 178 | +10.5 |
 
-The pages of the Go program (Code) and its heap (Native heap) are most of the difference. In that
+(The differences are those of the medians before rounding, so they are not always those of the
+numbers printed.) The pages of the Go program (Code) and its heap (Native heap) are most of the difference. In that
 run five of the six starts of the phone app read 51.1 to 51.4 MB of PSS and one read 46.8 MB, so the
 median of several starts is steadier than a start, which is why the line is one. In CI the five
-starts of one session read 44 to 48, 31 to 50 and 31 to 48 MB of PSS in the first three runs that took
-five, and the medians were 44, 44 and 46 MB.
+starts of one session read 44 to 48, 31 to 50, 31 to 48, 34 to 51 and 28 to 50 MB of PSS in the five
+runs of this branch that took five, and the medians were 44, 44, 46, 40 and 43 MB.
 
 What the comparison leaves out. The client was measured at its first screen only, and no process
 of a web page was running then (`ps` showed the `webview_zygote` and `webview_service` of the
 system and no renderer). A paired client shows its page in a WebView, whose renderer is a process of
-its own, and no run of `main` measured a paired client, so what the two apps cost in use is not
+its own, and no run of `main` before this change measured a paired client, so what the two apps cost in use is not
 known. And the emulator is x86_64 and draws with software, where a phone is arm64 and has a GPU.
 
 ## How it is measured
@@ -376,8 +379,8 @@ commit replaces that comment instead of adding another one.
   `emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.
-- [`memory.yml`](../../../.github/workflows/memory.yml) starts when that workflow ends
-  and runs `vfxtool memory-report`. It compares
+- [`memory.yml`](../../../.github/workflows/memory.yml) starts when the `mygo` or the `phone`
+  workflow ends and runs `vfxtool memory-report`. It compares
   the artifact of the pull request with the latest run of the same workflow on
   `main` and writes the comment. The workflow runs in the context of `main`, which
   is what lets it comment on pull requests of forks, and it reads nothing but two
@@ -410,7 +413,8 @@ judges them as follows:
 
 The number of processes never varied, so a different number is a change too. The sample is small: if the comment
 reports a change that the commit cannot have caused, measure how much identical code varies again and adjust
-`Tolerances`, or `MinPrivateChangeKB` and `PrivateTolerance` for the lightweight mode, in `vfxtool memory-report`.
+`MinChangeMB` and `DefaultTolerance` (`Tolerances` for one implementation only), `androidNoise` for the phone app, or
+`MinPrivateChangeKB` and `PrivateTolerance` for the lightweight mode, in `vfxtool memory-report`.
 
 ### Using it
 

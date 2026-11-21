@@ -68,11 +68,14 @@ The phone app is [`mygo/phone`](../../../mygo/phone), built for Android by the m
 the repository:
 
 ```sh
+vfxtool prepare --root mygo
 vfxtool appicon mygo/phone/resources
 cd mygo/phone && mygo build -platform android/amd64
 ```
 
-`vfxtool appicon` writes the icons, which git ignores. The APK and the AAB land in
+`vfxtool prepare` collects the translations, the icons and the licenses that the `mygo` module compiles in
+and the phone app imports, and `vfxtool appicon` writes the icons of the app; git ignores both (the dev
+container runs both when it is created). The APK and the AAB land in
 `mygo/phone/dist/android/`, signed with the debug key of the machine. To look at the screens on
 Linux without an emulator, `go run ./phone` from `mygo/` opens the app in a window of a phone's
 size. To pair it with the desktop application on an emulator, see
@@ -86,7 +89,7 @@ size. To pair it with the desktop application on an emulator, see
 | [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the `mygo` or `phone` workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` for amd64 validated with lintian and installed into a clean Ubuntu container, the classic snap packed from that `.deb` on core26 and started, and the arm64 `.deb` and `.tar.gz` validated with lintian and by the machine type of their program, as no arm64 machine installs them, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
-| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`, `mygo/pair/`, `mygo/ui/kit/`, `mygo/VERSION`, `mygo/go.mod`, `mygo/go.sum`, `mygo/versions.env`, `shared/tooling/`, `shared/icons.json`, `shared/scripts/sign-apk.ps1` | Builds the [phone app](#the-phone-app) for the x86_64 emulator, signed with the debug key, and drives it on an emulator against the fake vfox: it pairs the app with the desktop application through the deep link, visits its five tabs, measures it cold and paired (see [The phone app](memory.md#the-phone-app)) and takes the pictures of its guide ([Screenshots](#screenshots)). A job on a Windows runner rehearses the signing of the APK of the release ([Signing status](packaging-android.md#signing-status)) |
+| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`, `mygo/pair/`, `mygo/ui/kit/`, `mygo/VERSION`, `mygo/go.mod`, `mygo/go.sum`, `mygo/versions.env`, `shared/tooling/`, `shared/icons.json`, `shared/scripts/sign-apk.ps1` | Builds the APK and the AAB of the [phone app](#the-phone-app) for the x86_64 emulator, signed with the debug key, and drives it on an emulator against the fake vfox: it pairs the app with the desktop application through the deep link, visits its five tabs, measures it cold (the median of five starts) and paired (see [The phone app](memory.md#the-phone-app)) and takes the pictures of its guide ([Screenshots](#screenshots)). A job on a Windows runner rehearses the signing of the APK of the release ([Signing status](packaging-android.md#signing-status)) |
 | [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `mygo/phone/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the build of the phone app, and the checks that use Docker |
 | [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the phone app's APK and the Linux arm64 packages |
 
@@ -296,7 +299,7 @@ account, and linked.
 into `dist/sandbox/mygo/screenshots/`, reproducibly: with the title bar of an
 Ubuntu 26.04 GNOME session on X11, drawn by Metacity with the Yaru theme, over the default wallpaper of
 Ubuntu instead of the black of a bare X server. It starts the end-to-end build
-seven times against the fake vfox, drives it to every page through the automation plugin
+eight times against the fake vfox, drives it to every page through the automation plugin
 of mygo, and captures the screen with ImageMagick when the page has settled:
 
 | Run | What it shows |
@@ -317,23 +320,22 @@ a sandbox that has no network, and so no address of its own, still has one to pa
 
 To take another picture, add a `c.shot(s, "name")` to the function of the run in
 `shared/tooling/internal/screenshots/screenshots.go` (`pages`, `installing`, `profiles`,
-`compactPages` or `compactProfiles`). The steps before it click and wait the way a
+`pythonPages`, `compactPages`, `compactProfiles` or `webInterface`). The steps before it click and wait the way a
 person with a screen reader does, through the names that the user sees (the label
 of a button, the key that a component gave it), so a renamed button fails the
 scenario instead of taking a wrong picture.
 
 The README and the [user guide](../user/index.md) link `home`, `sdks`,
-`dark-available`, `installing`, `tasks`, `plugins`, `zh-settings`, `compact-home`,
-`compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`, and
+`dark-available`, `installing`, `tasks`, `plugins`, `settings` (`zh-settings` in Simplified Chinese),
+`compact-home`, `compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`, and
 the web interface on a phone, `webapp-en` and `web-phone-java-temurin` (`webapp-zh` and
 `web-phone-zh-java-temurin` in Simplified Chinese; see below). The
 [usage guide](../user/using.md) links `java-install-name` and `options-mirror`,
 and `zh-java-available` and `zh-options` in Simplified Chinese. The
-[guide to other devices](../user/remote.md) links `web-interface`, `web-allow`, `web-remote` and
-`web-pair` (with the prefix `zh-` in Simplified Chinese), and the web interface on a phone:
-`webapp-en`, `web-phone-java-temurin`, `web-connections` and `web-connections-pair` (`webapp-zh`,
-`web-phone-zh-java-temurin`, `web-zh-connections` and `web-zh-connections-pair` in Simplified Chinese).
-The [guide to the Android app](../user/android.md) links the pictures of the app, and the
+[guide to other devices](../user/remote.md) links `web-allow`, `web-remote` and `web-pair`
+(with the prefix `zh-` in Simplified Chinese), and the web interface on a phone:
+`web-connections-pair` and `web-connections` (`web-zh-connections-pair` and `web-zh-connections`
+in Simplified Chinese). The [guide to the Android app](../user/android.md) links the pictures of the app, and the
 [guide to the gateway](../user/gateway.md) the pictures of the gateway (see below). The other
 pictures are there to look at when the interface changes; nothing links them.
 

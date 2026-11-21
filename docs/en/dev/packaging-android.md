@@ -45,7 +45,7 @@ of the button and of the tabs ([Notes for maintainers](#notes-for-maintainers)).
 
 The build needs the tools that [`mygo/phone/versions.env`](../../../mygo/phone/versions.env)
 pins ([Pinned versions](#pinned-versions)): a JDK 17, the Android SDK with platform 36
-and build-tools 36.0.0, the NDK 28.2.13676358 (its clang compiles the Go code of the app
+and the build-tools 36.0.0 and 35.0.0, the NDK 28.2.13676358 (its clang compiles the Go code of the app
 for Android), and the mygo CLI. [Android](environment.md#android) says how to install
 them, and [The dev container](environment.md#the-dev-container) has all of them. Gradle,
 which mygo runs on the Android project, downloads its distribution and the libraries on
@@ -56,16 +56,19 @@ From the root of the repository, with `vfxtool` built as [The sandbox](environme
 says:
 
 ```sh
+vfxtool prepare --root mygo
 vfxtool appicon mygo/phone/resources
 cd mygo/phone
 mygo build -platform android
 ```
 
-`mygo build -platform android` makes the APK and the AAB that the release ships.
+`mygo build -platform android` makes the APK, which the release signs and ships, and the AAB.
 `-platform android/amd64` makes the same pair for x86_64 only, which is the one that the
-emulator runs; CI builds that one. Write the icons first, from the root of the repository:
-the path of `vfxtool appicon` is relative to it, and from `mygo/phone` the icons would land
-under `mygo/phone/mygo/phone`.
+emulator runs; CI builds that one. Prepare the assets and write the icons first, from the root
+of the repository. The phone app compiles the `mygo` module, which embeds `mygo/assets`, so
+`vfxtool prepare` comes first (the dev container runs it when it is created); the path of
+`vfxtool appicon` is relative to the root, and from `mygo/phone` the icons would land under
+`mygo/phone/mygo/phone`.
 
 The configuration names no keystore, so `mygo build` signs the APK with the debug key of
 the machine, which Gradle creates at the first build. Such an APK is for testing: the
@@ -201,7 +204,7 @@ tooling and to the pinned versions:
   (`--pictures`, see [Screenshots](contributing.md#screenshots)), and fails when the log of the app has an
   error. When the dialog of the
   pairing says that the computer did not answer, which an emulator whose network is not up yet
-  can cause, the tool closes it and opens the link again, up to three times, and says so in its
+  can cause, the tool closes it and opens the link again, three attempts in all, and says so in its
   output. A run that fails keeps the screen, the log of the app and what the device says of its
   network. The cold measurement is the artifact `memory-android`. The screenshots, the log of
   the app, the evidence of a failure, the measurement of the paired session and the five readings
@@ -220,7 +223,8 @@ reports the memory of a pull request when `mygo` or `phone` ends
 
 - `vfxtool measure-apk` looks for what the app shows and logs, in English and in Simplified
   Chinese: the label of the confirmation, the message that the computer did not answer and
-  the label of the button that closes it, the labels of the five tabs, and the line that the
+  the label of the button that closes it, the label of the field of the pairing link
+  (`--check-input-type`), the labels of the five tabs, and the line that the
   pairing logs (see `shared/tooling/internal/measureapk/measureapk.go`). The run that takes the
   pictures looks for the row of the SDK that it opens (`nodejs`) and for the buttons of the dialog
   that adds a plugin, *Add from source* and *Cancel* (`pictures.go`, beside it). Change them in the

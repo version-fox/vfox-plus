@@ -29,17 +29,18 @@
 
 ## 构建
 
-构建需要 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 钉住的工具（见[钉住的版本](#钉住的版本)）：JDK 17、平台 36 与构建工具 36.0.0 的 Android SDK、NDK 28.2.13676358（应用的 Go 代码由它的 clang 为各个 ABI 编译），以及 mygo CLI。[安卓](environment.md#android)一节说明怎样安装它们，[开发容器](environment.md#开发容器)里则全部装好了。mygo 为安卓工程运行的 Gradle，首次构建时要下载它的发行版与依赖，需要几分钟；它们留在 Gradle 的用户目录里：本机是 `~/.gradle`，容器里是 `/home/vscode/.gradle`。
+构建需要 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 钉住的工具（见[钉住的版本](#钉住的版本)）：JDK 17、平台 36 与构建工具 36.0.0 和 35.0.0 的 Android SDK、NDK 28.2.13676358（应用的 Go 代码由它的 clang 为各个 ABI 编译），以及 mygo CLI。[安卓](environment.md#android)一节说明怎样安装它们，[开发容器](environment.md#开发容器)里则全部装好了。mygo 为安卓工程运行的 Gradle，首次构建时要下载它的发行版与依赖，需要几分钟；它们留在 Gradle 的用户目录里：本机是 `~/.gradle`，容器里是 `/home/vscode/.gradle`。
 
 在仓库根目录，用[沙箱](environment.md#沙箱)所说的方法构建 `vfxtool`，然后运行：
 
 ```sh
+vfxtool prepare --root mygo
 vfxtool appicon mygo/phone/resources
 cd mygo/phone
 mygo build -platform android
 ```
 
-`mygo build -platform android` 生成发布所用的 APK 与 AAB。`-platform android/amd64` 只生成 x86_64 的那一对，模拟器运行的就是它，CI 构建的也是它。图标要先写，并且要在仓库根目录写：`vfxtool appicon` 的路径相对于仓库根目录，若在 `mygo/phone` 里运行，图标会写到 `mygo/phone/mygo/phone` 下面。
+`mygo build -platform android` 生成 APK（发布签名并发布的就是它）与 AAB。`-platform android/amd64` 只生成 x86_64 的那一对，模拟器运行的就是它，CI 构建的也是它。资源要先准备、图标要先写，并且都要在仓库根目录做：手机端应用会编译 `mygo` 模块，它内嵌 `mygo/assets`，所以要先运行 `vfxtool prepare`（开发容器创建时已运行过）；`vfxtool appicon` 的路径相对于仓库根目录，若在 `mygo/phone` 里运行，图标会写到 `mygo/phone/mygo/phone` 下面。
 
 配置里没有 keystore，所以 `mygo build` 用本机的 debug 密钥签名（Gradle 在首次构建时生成它）。这样的 APK 只供测试：发布时会替换它的签名（见[签名状态](#签名状态)）。产物在 `mygo/phone/dist/` 中，被 git 忽略。要把 APK 装到模拟器或手机上，用 `adb install -r`，见[运行 App](environment.md#运行-app)。
 
@@ -102,13 +103,13 @@ gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plu
 [`phone.yml`](../../../.github/workflows/phone.yml) 构建应用，并在模拟器上驱动它。应用、它所配对的代码、共享工具与钉住的版本有改动时运行：
 
 - `build` 任务生成 x86_64 的 APK 与 AAB，用 debug 密钥签名，以 `vfox-plus-android-amd64` 上传。
-- `emulator` 任务在虚拟显示中，对着假 vfox 启动桌面应用的端到端构建，并设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`（模拟器访问运行器的地址）：各标签页里有的，与真人看到的一样，是已安装的 SDK 和可安装的插件。它启动模拟器（API 36、`google_apis`、x86_64，软件 GPU），运行 `vfxtool phone-link`（与桌面应用配对，并写出给 `10.0.2.2` 的配对链接）以及 `vfxtool measure-apk`。后者安装 APK，冷启动五次并在每次启动后测量（那一行取中位数，见[手机端应用](memory.md#手机端应用)），在配对对话框开着时按返回键（对话框必须关上，应用必须仍在前台，`--check-back-key`），读配对链接的输入框向键盘要的是什么（地址键盘、不自动大写、不纠错，`--check-input-type`），然后经深链配对，逐个访问五个标签页并截图，顺带拍下[手机端 App 指南](../user/android.md)用的图（`--pictures`，见[截图](contributing.md#截图)），应用的日志里有错误则失败。配对对话框说电脑没有响应时（模拟器的网络还没起来就可能这样），它关掉对话框并重新打开链接，最多三次，并在输出里说明。失败的运行会保留屏幕、应用的日志，以及设备对自己网络的说法。冷启动的测量是构件 `memory-android`；截图、应用日志、失败的证据、配对后的测量，以及五次冷启动的读数与每次完整的 `dumpsys meminfo` 报告，是构件 `phone-e2e-android`；指南用的图是构件 `phone-pictures`。
+- `emulator` 任务在虚拟显示中，对着假 vfox 启动桌面应用的端到端构建，并设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`（模拟器访问运行器的地址）：各标签页里有的，与真人看到的一样，是已安装的 SDK 和可安装的插件。它启动模拟器（API 36、`google_apis`、x86_64，软件 GPU），运行 `vfxtool phone-link`（与桌面应用配对，并写出给 `10.0.2.2` 的配对链接）以及 `vfxtool measure-apk`。后者安装 APK，冷启动五次并在每次启动后测量（那一行取中位数，见[手机端应用](memory.md#手机端应用)），在配对对话框开着时按返回键（对话框必须关上，应用必须仍在前台，`--check-back-key`），读配对链接的输入框向键盘要的是什么（地址键盘、不自动大写、不纠错，`--check-input-type`），然后经深链配对，逐个访问五个标签页并截图，顺带拍下[手机端 App 指南](../user/android.md)用的图（`--pictures`，见[截图](contributing.md#截图)），应用的日志里有错误则失败。配对对话框说电脑没有响应时（模拟器的网络还没起来就可能这样），它关掉对话框并重新打开链接，一共最多试三次，并在输出里说明。失败的运行会保留屏幕、应用的日志，以及设备对自己网络的说法。冷启动的测量是构件 `memory-android`；截图、应用日志、失败的证据、配对后的测量，以及五次冷启动的读数与每次完整的 `dumpsys meminfo` 报告，是构件 `phone-e2e-android`；指南用的图是构件 `phone-pictures`。
 - `signing` 任务在 Windows 运行器上用发布用的脚本和它自己生成的密钥演练发布的签名（见[签名状态](#签名状态)）。`shared/scripts/sign-apk.ps1` 有改动时它也运行。
 
 [`release.yml`](../../../.github/workflows/release.yml) 生成发布用的 APK 并签名（见[签名状态](#签名状态)）。[`memory.yml`](../../../.github/workflows/memory.yml) 在 `mygo` 或 `phone` 结束时报告 Pull Request 的内存（见[Pull Request 中的内存](memory.md#pull-request-中的内存)）。
 
 ## 维护者注记
 
-- `vfxtool measure-apk` 查找应用显示与记录的文字，英文与简体中文都有：确认按钮的标签、电脑没有响应的提示与关闭它的按钮的标签、五个标签页的标签，以及配对时记下的那行日志（见 `shared/tooling/internal/measureapk/measureapk.go`）。拍图的那次运行还要找它打开的那个 SDK 的行（`nodejs`），以及添加插件对话框里的按钮*从来源添加*（Add from source）与*取消*（Cancel）（在紧挨着它的 `pictures.go` 里）。改应用里的这些文字时，要与这些文件在同一次提交中一起改，否则测量失败。
+- `vfxtool measure-apk` 查找应用显示与记录的文字，英文与简体中文都有：确认按钮的标签、电脑没有响应的提示与关闭它的按钮的标签、配对链接输入框的标签（`--check-input-type`）、五个标签页的标签，以及配对时记下的那行日志（见 `shared/tooling/internal/measureapk/measureapk.go`）。拍图的那次运行还要找它打开的那个 SDK 的行（`nodejs`），以及添加插件对话框里的按钮*从来源添加*（Add from source）与*取消*（Cancel）（在紧挨着它的 `pictures.go` 里）。改应用里的这些文字时，要与这些文件在同一次提交中一起改，否则测量失败。
 - `mygo/phone/versions.env` 与 `mygo/go.mod` 钉住同一个 mygo 版本。`JAVA_VERSION` 跟随 mygo 为项目运行的 Gradle：只有连同能运行新 JDK 的 Gradle 的 mygo 一起升级时，才提高它。
 - 不要手改 `mygo.json` 的 `version`：`vfxtool set-version` 会与 `mygo/VERSION` 一起写它。

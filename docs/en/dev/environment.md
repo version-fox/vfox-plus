@@ -45,7 +45,7 @@ Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR`, `SANDBOX_GOPROXY` and `SA
 [`.devcontainer`](../../../.devcontainer) describes a container that has what the
 sections below install, so that you install none of it: Ubuntu 26.04 with Go,
 golangci-lint and vfox in the pinned versions, the packages that CI installs, a
-virtual display, a JDK and the Android SDK, and Docker. VS Code (with the Dev
+virtual display, a JDK, the Android SDK with the NDK, the mygo CLI, and Docker. VS Code (with the Dev
 Containers extension), GitHub Codespaces and the [dev container
 CLI](https://github.com/devcontainers/cli) open it. The image is for x86-64, like
 the archives it installs; Docker runs it under emulation on another processor.
@@ -105,9 +105,10 @@ The variables of the sandbox work here too. Set `SANDBOX_UBUNTU_MIRROR` (for the
 build of the image), `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY` (they reach the
 container as `GOPROXY` and `VFOX_PLUS_NPM_REGISTRY`) in the environment that starts the
 editor or the CLI. Go, golangci-lint, vfox and the Android command-line tools come
-from go.dev, GitHub and dl.google.com, and the Docker feature from ghcr.io, with no
-mirror to name for any of them ([Docker inside](#docker-inside) says what to do where
-ghcr.io cannot be reached). Your `~/.gradle` is not
+from go.dev, GitHub and dl.google.com, the mygo CLI from the Go module proxy (which
+`SANDBOX_GOPROXY` reaches only when the container runs, not when the image is built),
+and the features from ghcr.io, with no mirror to name for any of them
+([Docker inside](#docker-inside) says what to do where ghcr.io cannot be reached). Your `~/.gradle` is not
 the container's: Gradle, which mygo runs for the Android project, keeps its user home in the
 container, `/home/vscode/.gradle` (`$GRADLE_USER_HOME`): a download mirror for it
 belongs there, not in the repository ([Building](packaging-android.md#building)).
@@ -127,15 +128,18 @@ your uid (`updateRemoteUserUID`).
 
 Docker Engine runs in the container, with images of its own (the
 [`docker-in-docker`](https://github.com/devcontainers/features/tree/main/src/docker-in-docker)
-feature, which makes the container privileged). The three things of this
-repository that use Docker work in it as they are written: `vfxtool sandbox`, and the
-license header check and the Markdown check of [Contributing](contributing.md#markdown).
+feature, which makes the container privileged). `vfxtool sandbox`, and the license
+header check and the Markdown check of [Contributing](contributing.md#markdown), work
+in it as they are written (CI runs the two checks in it). The scenario `tray-gnome` and
+the image of the gateway need Docker too, and have not been tried in the container.
 The container already is a throw-away environment with the tools of the sandbox, so
 you need the sandbox inside it only for what it fixes: the installation into a clean
 Ubuntu (`package`), the memory (`measure`) and the screenshots of the desktop
 application (`screenshots`). Where privileged containers are not allowed, or ghcr.io
-(where the feature comes from) cannot be reached, delete `features` from
-`devcontainer.json`; nothing else needs it.
+(where the feature comes from) cannot be reached, delete the `docker-in-docker` entry of
+`features` from `devcontainer.json`; nothing else needs it. The `node` entry comes from
+ghcr.io too: where that cannot be reached, delete it as well and install Node.js 22.12 or
+later yourself, which `mygo/web` needs.
 
 ### Limits
 
@@ -236,8 +240,9 @@ second), and the NDK 28.2.13676358, which compiles the Go code of the app.
 With `ANDROID_HOME` set, install the packages and the CLI at the pinned versions:
 
 ```sh
-sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "ndk;28.2.13676358"
 . ./mygo/phone/versions.env
+sdkmanager platform-tools "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" \
+  "build-tools;$ANDROID_GRADLE_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
 go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
 ```
 
@@ -330,10 +335,12 @@ and does not help.
 ### Without KVM
 
 - Let CI do it: the `emulator` job of `phone.yml` runs on every pull request that
-  touches `mygo/phone/` or `mygo/pair/`, and uploads `memory-android` and
-  `screenshot-android`.
-- `vfxtool measure-apk` needs only `adb` on `PATH` (`sudo apt install adb`) and a
-  device that `adb devices` lists: a phone with wireless debugging (`adb pair`, then
+  changes what that workflow watches (see
+  [Continuous integration](contributing.md#continuous-integration)), and uploads
+  `memory-android`, `screenshot-android`, `phone-e2e-android` and `phone-pictures`.
+- `vfxtool measure-apk` needs `adb` on `PATH` (`sudo apt install adb`), the `aapt2` of the
+  build tools of the Android SDK (it looks in `$ANDROID_HOME/build-tools`, or takes the
+  one that `--aapt2` names) and a device that `adb devices` lists: a phone with wireless debugging (`adb pair`, then
   `adb connect`), or an emulator that runs on the Windows side and is reached
   through an adb server there (set `ANDROID_ADB_SERVER_ADDRESS` and
   `ANDROID_ADB_SERVER_PORT` in WSL, let that server listen with `adb -a nodaemon
@@ -373,6 +380,8 @@ With an emulator that has booted (`adb devices` lists it), build the phone app a
 it, then pair it with the application on your machine:
 
 ```sh
+# once, from the root of the repository (the dev container has done it)
+vfxtool prepare --root mygo && vfxtool appicon mygo/phone/resources
 cd mygo/phone && mygo build -platform android/amd64
 adb install -r dist/android/*.apk
 ```

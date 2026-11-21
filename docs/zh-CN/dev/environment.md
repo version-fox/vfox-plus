@@ -39,8 +39,8 @@ vfxtool sandbox all
 ## 开发容器
 
 [`.devcontainer`](../../../.devcontainer) 描述了一个容器，下面各节要装的东西它都有，所以你什么都不用装：
-Ubuntu 26.04，固定版本的 Go、golangci-lint 与 vfox，CI 安装的软件包，一块虚拟显示，JDK 与 Android SDK，
-以及 Docker。VS Code（装有 Dev Containers 扩展）、GitHub Codespaces 与
+Ubuntu 26.04，固定版本的 Go、golangci-lint 与 vfox，CI 安装的软件包，一块虚拟显示，JDK、带 NDK 的 Android SDK、
+mygo CLI，以及 Docker。VS Code（装有 Dev Containers 扩展）、GitHub Codespaces 与
 [开发容器 CLI](https://github.com/devcontainers/cli) 都能打开它。镜像面向 x86-64，与它所装的压缩包一致；
 在别的处理器上，Docker 以模拟方式运行它。
 
@@ -83,7 +83,8 @@ Dockerfile 在构建镜像时读取 `mygo/versions.env` 与 `mygo/phone/versions
 
 沙箱的那些变量在这里同样有效。在启动编辑器或 CLI 的环境里设置 `SANDBOX_UBUNTU_MIRROR`（构建镜像时用）、
 `SANDBOX_GOPROXY` 与 `SANDBOX_NPM_REGISTRY`（它们以 `GOPROXY` 与 `VFOX_PLUS_NPM_REGISTRY` 进入容器）。
-Go、golangci-lint、vfox 与 Android 命令行工具分别来自 go.dev、GitHub 与 dl.google.com，Docker feature 来自 ghcr.io，
+Go、golangci-lint、vfox 与 Android 命令行工具分别来自 go.dev、GitHub 与 dl.google.com，mygo CLI 来自 Go 模块代理
+（`SANDBOX_GOPROXY` 只在容器运行时到达它，构建镜像时不到），各个 feature 来自 ghcr.io，
 它们都没有可指定的镜像（连不上 ghcr.io 时怎么办，见[容器里的 Docker](#容器里的-docker)）。
 你的 `~/.gradle` 不是容器的：mygo 为安卓工程运行的 Gradle 在容器里的用户目录是 `/home/vscode/.gradle`（`$GRADLE_USER_HOME`），它的下载镜像要放在那里，而不是仓库里（见[构建](packaging-android.md#构建)）。
 
@@ -99,11 +100,13 @@ Rootless Docker 把容器的 root 映射为你，把其余用户都映射为从�
 
 Docker Engine 在容器里运行，有自己的镜像，靠
 [`docker-in-docker`](https://github.com/devcontainers/features/tree/main/src/docker-in-docker)
-feature，它让容器成为特权容器。本仓库用到 Docker 的三件事在里面照写的样子就能工作：`vfxtool sandbox`，
-以及[参与贡献](contributing.md#markdown)里的许可证头检查与 Markdown 检查。容器本身已经是带有沙箱工具的用后即弃环境，
+feature，它让容器成为特权容器。`vfxtool sandbox`，以及[参与贡献](contributing.md#markdown)里的许可证头检查与
+Markdown 检查，在里面照写的样子就能工作（CI 就在里面跑这两项检查）。场景 `tray-gnome` 与网关镜像也要用 Docker，
+还没有在容器里试过。容器本身已经是带有沙箱工具的用后即弃环境，
 所以只有沙箱固定下来的那些才需要在里面再用沙箱：装进干净 Ubuntu 的安装测试（`package`）、内存（`measure`）与桌面应用的截图
-（`screenshots`）。不允许特权容器、或连不上 ghcr.io（feature 的来源）的地方，从 `devcontainer.json` 里删掉
-`features`；其余一切都不需要它。
+（`screenshots`）。不允许特权容器、或连不上 ghcr.io（feature 的来源）的地方，从 `devcontainer.json` 的 `features`
+里删掉 `docker-in-docker` 一项；其余一切都不需要它。`node` 一项也来自 ghcr.io：连不上时把它一并删掉，
+自己装 Node.js 22.12 或更高版本，`mygo/web` 要用。
 
 ### 限制
 
@@ -184,8 +187,9 @@ CI 构建页面、跑它的测试，构建产物与提交的不一致就失败�
 手机端应用用 mygo CLI 构建，mygo 为安卓工程运行 Gradle。它需要 JDK 17（CI 用 Temurin：Gradle 8.14.3 不能在 JDK 25 上运行）、platform 36 与 build-tools 36.0.0 和 35.0.0（后者是 Android Gradle 插件要的）的 Android SDK，以及 NDK 28.2.13676358（应用的 Go 代码由它编译）。这些版本钉在 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 里。设好 `ANDROID_HOME` 之后，按钉住的版本装好软件包与 CLI：
 
 ```sh
-sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "ndk;28.2.13676358"
 . ./mygo/phone/versions.env
+sdkmanager platform-tools "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" \
+  "build-tools;$ANDROID_GRADLE_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
 go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
 ```
 
@@ -261,9 +265,11 @@ Windows 11 的累积更新 KB5127648（2026 年 10 月；版本 26100.9711，25H
 
 ### 没有 KVM 时
 
-- 让 CI 来做：`phone.yml` 的 `emulator` 任务在每个改动 `mygo/phone/` 或 `mygo/pair/` 的 Pull Request 上运行，
-  并上传 `memory-android` 与 `screenshot-android`。
-- `vfxtool measure-apk` 只需要 `PATH` 上有 `adb`（`sudo apt install adb`）和 `adb devices` 列得出的一台
+- 让 CI 来做：`phone.yml` 的 `emulator` 任务在每个改动了该工作流所监视路径的 Pull Request 上运行
+  （见[持续集成](contributing.md#持续集成)），并上传 `memory-android`、`screenshot-android`、
+  `phone-e2e-android` 与 `phone-pictures`。
+- `vfxtool measure-apk` 需要 `PATH` 上有 `adb`（`sudo apt install adb`）、Android SDK 构建工具里的 `aapt2`
+  （它在 `$ANDROID_HOME/build-tools` 里找，或用 `--aapt2` 指定的那个）和 `adb devices` 列得出的一台
   设备：开了无线调试的手机（`adb pair`，再 `adb connect`），或运行在 Windows 一侧、经那里的 adb 服务器连上的
   模拟器（在 WSL 里设置 `ANDROID_ADB_SERVER_ADDRESS` 与 `ANDROID_ADB_SERVER_PORT`，让那台服务器用
   `adb -a nodaemon server` 监听，并让 Windows 防火墙放行）。它的数字属于那台设备，不能与 CI 的模拟器比较。
@@ -295,6 +301,8 @@ adb wait-for-device && adb shell getprop sys.boot_completed   # 启动完成后�
 模拟器启动后（`adb devices` 能列出它），构建手机端应用并安装，然后与你机器上的应用配对：
 
 ```sh
+# 只需一次，在仓库根目录（开发容器里已经做过）
+vfxtool prepare --root mygo && vfxtool appicon mygo/phone/resources
 cd mygo/phone && mygo build -platform android/amd64
 adb install -r dist/android/*.apk
 ```

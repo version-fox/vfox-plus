@@ -53,11 +53,13 @@
 手机端应用是 [`mygo/phone`](../../../mygo/phone)，由 mygo CLI 为安卓构建（见[手机端打包](packaging-android.md)）。在装好了 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 所钉住工具的机器上，或在已装好它们的[开发容器](environment.md#开发容器)里，于仓库根目录构建：
 
 ```sh
+vfxtool prepare --root mygo
 vfxtool appicon mygo/phone/resources
 cd mygo/phone && mygo build -platform android/amd64
 ```
 
-`vfxtool appicon` 写出图标（被 git 忽略）。APK 与 AAB 在 `mygo/phone/dist/android/` 里，用本机的 debug 密钥签名。要在 Linux 上不用模拟器看屏幕，于 `mygo/` 运行 `go run ./phone`，应用会在手机大小的窗口里打开。要在模拟器上与桌面应用配对，见[运行 App](environment.md#运行-app)。
+`vfxtool prepare` 收集 `mygo` 模块编译进去、手机端应用会引入的翻译、图标与许可证，`vfxtool appicon` 写出应用的图标；
+git 都忽略它们（开发容器创建时两个都已运行过）。APK 与 AAB 在 `mygo/phone/dist/android/` 里，用本机的 debug 密钥签名。要在 Linux 上不用模拟器看屏幕，于 `mygo/` 运行 `go run ./phone`，应用会在手机大小的窗口里打开。要在模拟器上与桌面应用配对，见[运行 App](environment.md#运行-app)。
 
 ## 持续集成
 
@@ -212,7 +214,7 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 **桌面应用。** `vfxtool sandbox screenshots` 可复现地把图渲染到
 `dist/sandbox/mygo/screenshots/`：Metacity 加 Yaru 主题画出 Ubuntu 26.04 GNOME
 X11 会话的标题栏，
-Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动七遍，经 mygo 的自动化插件
+Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动八遍，经 mygo 的自动化插件
 把它带到每个页面，页面沉降后用 ImageMagick 截取屏幕：
 
 | 运行 | 拍什么 |
@@ -231,19 +233,18 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 自己地址的沙箱，也就有了一个可以给手机配对的地址。
 
 要多拍一张，就在 `shared/tooling/internal/screenshots/screenshots.go` 里该运行的函数
-（`pages`、`installing`、`profiles`、`compactPages` 或 `compactProfiles`）加一句
+（`pages`、`installing`、`profiles`、`pythonPages`、`compactPages`、`compactProfiles` 或 `webInterface`）加一句
 `c.shot(s, "名称")`。它之前的步骤像用屏幕阅读器的人一样点击、等待，靠用户看到的名字
 （按钮的标签，或组件给它的 key）找控件，所以改了名的按钮会让场景失败，而不是拍出一张错的图。
 
 README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-available`、`installing`、
-`tasks`、`plugins`、`zh-settings`、`compact-home`、`compact-detail`、`java-choose`、
+`tasks`、`plugins`、`settings`（简体中文是 `zh-settings`）、`compact-home`、`compact-detail`、`java-choose`、
 `java-temurin`、`flutter-available` 与 `options`，以及手机上的网页界面 `webapp-en` 与
 `web-phone-java-temurin`（简体中文是 `webapp-zh` 与 `web-phone-zh-java-temurin`，见下）。
 [使用说明](../user/using.md)引用 `java-install-name` 与 `options-mirror`，中文版引用
-`zh-java-available` 与 `zh-options`。[其他设备指南](../user/remote.md)引用 `web-interface`、`web-allow`、
-`web-remote` 与 `web-pair`（简体中文加前缀 `zh-`），以及手机上的网页界面：`webapp-en`、
-`web-phone-java-temurin`、`web-connections` 与 `web-connections-pair`（简体中文是 `webapp-zh`、
-`web-phone-zh-java-temurin`、`web-zh-connections` 与 `web-zh-connections-pair`）。
+`zh-java-available` 与 `zh-options`。[其他设备指南](../user/remote.md)引用 `web-allow`、
+`web-remote` 与 `web-pair`（简体中文加前缀 `zh-`），以及手机上的网页界面：`web-connections-pair` 与
+`web-connections`（简体中文是 `web-zh-connections-pair` 与 `web-zh-connections`）。
 [安卓 App 指南](../user/android.md)引用 App 的图，[网关指南](../user/gateway.md)引用网关的图（见下）。其余的图
 是改界面时用来看的，没有文档引用它们。
 
