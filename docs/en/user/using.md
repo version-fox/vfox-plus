@@ -268,7 +268,9 @@ interfaces, with the limits that their lists have today:
   names such as `4.0.33`, but not partial names such as `4`, and its list sorts each
   pre-release below its release. Deno also takes a line such as `2` or `2.1`, which installs
   the newest release of that line. Zig offers no `latest`, because its list can put a
-  development build first, and the first line of the etcd list has no download.
+  development build first. etcd takes full names such as `3.7.3`, with or without a `v`, but
+  not partial names such as `3.5`, and it offers no `latest`, because its version list comes
+  through a CDN that can keep an older copy.
 - **Archive mirror.** The **Archive mirror** option of Groovy offers two mirrors of the Apache
   archive, dlcdn.apache.org and a Tsinghua mirror, for when archive.apache.org is slow. Both
   keep only the current releases, so older versions do not appear in the list. The Tsinghua
@@ -280,19 +282,24 @@ interfaces, with the limits that their lists have today:
 - **Java.** Groovy and Scala need a JDK to run, and the plugins install none.
 - **Checksums.** Deno and Groovy check each archive against its checksum file when the release
   has one: `.sha256sum` for Deno and `.sha256` for Groovy. They say so when a release has none.
-  An etcd release without a `SHA256SUMS` file, such as 0.3.0, is not verified either.
+  etcd checks each archive against the `SHA256SUMS` file of its release. A release before 3.4.0
+  that publishes no such file, such as 0.3.0, is checked against checksums that the plugin pins,
+  and the install says so; a release from 3.4.0 on without the file is refused.
 - **Deno.** The list starts at 0.36.0, which is the first release with a download for Linux on
   x86-64. Release 0.36.0 installs, but its binary cannot run: the archive has no execute bit,
   and the plugin does not set one.
 - **Zig.** The list merges ziglang.org with machengine.org and needs both: when machengine.org
   cannot be reached, the whole list fails. A name that the list does not show can report
   success without installing anything.
-- **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT`, installs the main
-  branch of etcd whatever version is chosen, so the **Options** tab offers no switch for it.
-  Set the variable in *Settings → Environment variables* only if you want that build.
+- **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
+  you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
+  takes a few minutes. It was checked on Linux only: 3.4.32 and 3.5.12 build with failpoints,
+  3.5.5 fails, and 3.6.0 finishes without failpoints. Check the result with `GOFAIL_HTTP`. The
+  **Options** tab offers no switch for it.
 - **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
-  English and in Simplified Chinese, and to its README. The **Options** tabs of vfox-deno and
-  vfox-groovy link their documents, in English and in Simplified Chinese, and their README.
+  English and in Simplified Chinese, then to its documents and its README. The **Options** tabs
+  of vfox-deno and vfox-groovy link their documents, in English and in Simplified Chinese, and
+  their README.
 
 ## Plugins
 

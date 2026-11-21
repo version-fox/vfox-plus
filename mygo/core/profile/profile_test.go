@@ -841,8 +841,8 @@ func isPluginDocument(link Link, plugin string) bool {
 
 func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
 	// The names to install were installed with vfox 1.1.0 and each plugin. latest
-	// is left out where vfox resolves it to a development build (zig) or to a
-	// version without a download (etcd).
+	// is left out where vfox resolves it to a development build (zig), or where
+	// the version list can lag behind the releases (etcd).
 	names := map[string][]string{
 		"etcd":   nil,
 		"erlang": {"latest"},
@@ -871,7 +871,7 @@ func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
 	if _, ok := lookup(t, "clang").Variable("GITHUB_URL"); ok {
 		t.Error("GITHUB_URL has no checked mirror, so it is a tip and no variable")
 	}
-	// etcd offers no failpoint switch: its build installs the main branch.
+	// etcd offers no failpoint switch: only some releases build with failpoints.
 	if _, ok := lookup(t, "etcd").Variable("BUILD_WITH_FAILPOINT"); ok {
 		t.Error("the failpoint build is a tip, not a variable")
 	}
