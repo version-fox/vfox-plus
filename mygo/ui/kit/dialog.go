@@ -141,6 +141,14 @@ func (d *dialogEntry) layout(c Ctx) bool {
 		Elevation(c, panel, 3)
 		panel.Children(func() {
 			defer reg.EnterScope("dialog")()
+			// The key back closes the dialog, as Escape does, and it is the window that takes it. Android sends Escape and then Back, and
+			// takes the app out of the front on a Back that no shortcut of the window claims: the shortcut of an overlay, which is
+			// Escape's, does not count (egoist/mygo#2088, in 0.10.0). A dialog that only had its Escape closed, and the app went with it.
+			// The window's shortcut is made from here, inside the dialog: while a dialog is modal, a Shortcut from the page behind it
+			// registers nothing.
+			if c.Shortcut(0, ui.KeyBack) {
+				closeDialog()
+			}
 			centred := spec.Icon != ""
 			if centred {
 				iconColor := cs.Secondary

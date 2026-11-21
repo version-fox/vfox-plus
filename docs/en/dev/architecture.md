@@ -34,7 +34,7 @@ config:
 ---
 flowchart TB
     accTitle: Repository layout
-    accDescr: docs holds the documentation, shared the resources used by the application, mygo the application and the gateway of the Docker image, android the Android client, and .github the CI workflows.
+    accDescr: docs holds the documentation, shared the resources used by the application, mygo the application, the gateway of the Docker image and the phone app, and .github the CI workflows.
     subgraph docs["<b>docs/</b> · all documentation, by language, then by audience"]
         direction LR
         d1("<b>en/user/</b><br/>user guides: install, use,<br/>remote and Android") ~~~ d2("<b>en/dev/</b><br/>developer specification<br/>(this document lives here)") ~~~ d3("<b>zh-CN/user/</b><br/>Simplified Chinese<br/>user guides") ~~~ d4("<b>zh-CN/dev/</b><br/>Simplified Chinese<br/>developer specification")
@@ -46,7 +46,7 @@ flowchart TB
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
         direction LR
-        m("<b>mygo/</b><br/>the desktop application and its web<br/>interface (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>android/</b><br/>the Android remote client<br/>(WebView around the web interface)") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+        m("<b>mygo/</b><br/>the desktop application and its server<br/>for other devices (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>mygo/phone/</b><br/>the phone app: a native application<br/>of mygo for Android") ~~~ g("<b>.github/</b><br/>CI and release workflows: repository<br/>checks, the build, the phone app,<br/>the memory report, the dev container,<br/>the sandbox and the release")
     end
     docs ~~~ shared ~~~ code
 
@@ -242,9 +242,9 @@ Settings of the GUI itself are stored as JSON:
 | `vfoxExecutable`   | string          | absent       | Path of vfox; absent means "detect".                       |
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
 | `railExpanded`     | boolean         | `false`      | Whether the navigation rail shows its labels.              |
-| `webInterface`     | boolean         | `false`      | Serve the web interface to the browsers of this computer, on a loopback server, while the application runs. Read from `remoteAccess`, its old name, when absent. |
-| `lightweight`      | boolean         | `false`      | Closing the window leaves the application running without it, while the web interface is up. |
-| `webRemote`        | boolean         | `false`      | Also let other devices on the network connect, over HTTPS. Only means something while `webInterface` is on. |
+| `lightweight`      | boolean         | `false`      | Closing the window leaves the application running without it, while other devices may connect. |
+| `webRemote`        | boolean         | `false`      | Let other devices on the network connect, over HTTPS: the Docker gateway, phones and other computers. |
+| `webInterface`, `remoteAccess` | boolean | absent | Retired: the application serves no web interface on its computer. Read only, so that they are dropped from the file, and never written. |
 | `webPort`          | integer         | absent       | The port that other devices connect to, from 1024 to 65535; absent means 8369. |
 | `webCertificate`, `webKey` | string  | absent       | The PEM files of the certificate and the private key that other devices get; absent means a certificate that the application makes for itself. |
 | `searches`         | object          | `{}`         | What was chosen to list for a plugin, by its name: `{"java": "tem"}`. The default has no entry. |
@@ -313,7 +313,7 @@ the Go modules it links are purego under the Apache License 2.0, the text
 shaper `go-text/typesetting` under the Unlicense or a BSD license, and the
 `golang.org/x` modules under BSD licenses, as is the Go standard library; the
 QR encoder `skip2/go-qrcode` (MIT) encodes the pairing link of the settings as a
-QR code for the Android app to scan; the
+QR code for the phone app to scan, and the QR decoder `makiuchi-d/gozxing` (MIT, a Go port of ZXing) reads the QR code of a photo for the phone app to pair with; the
 ports in `mygo/ui/mcu` and `mygo/ui/shapes` are of libraries under the Apache
 License 2.0 and the MIT license, and their notices ship with the application
 ([`mygo/NOTICE.txt`](../../../mygo/NOTICE.txt)). The application does not link GTK 3,
@@ -353,7 +353,7 @@ Low memory use is a goal of the project. The application:
 - keeps the newest 500 lines of each finished task in memory (2000 while it
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
-- ships only the icons it uses (61 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
+- ships only the icons it uses (63 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
 - stops animations that are not visible, and asks for less motion on the desktop
   whatever the platform asks (see [the design system](design-system.md#motion));
 - avoids caching data that vfox can produce again cheaply;
@@ -366,9 +366,11 @@ Low memory use is a goal of the project. The application:
 ## Remote front ends
 
 The application is a desktop application and has no command line: it takes no arguments, and
-what else it does is a matter of its settings. The web interface is one of those things. The
-package `mygo/pair` holds its servers, and a `Host` runs them as the settings say; the window
-and the pages of the web interface itself both write those settings.
+what else it does is a matter of its settings. One of them is whether other devices may connect.
+The package `mygo/pair` holds the server for them, and a `Host` runs it as the settings say; the
+window and the pages of the paired devices both write those settings. The application shows no
+web interface on the computer it runs on: the Docker gateway serves the interface to browsers, and the
+phone app is a native client of the same API, with screens of its own.
 
 ```mermaid
 ---
@@ -392,52 +394,41 @@ config:
       bottom: 8
 ---
 flowchart TB
-    accTitle: How the settings decide which servers run
-    accDescr: The settings webInterface, webRemote, webPort and lightweight are read by the Host. With webInterface on, it runs a loopback server for the browsers of this computer. With webRemote on as well, it runs a second server over HTTPS for phones and other computers. Both serve the same application state. The window makes links for both and the pages of the web interface change the settings.
-    set(["<b>Settings</b><br/>webInterface · webRemote<br/>webPort · lightweight"]) --> host("<b>pair.Host</b><br/>follows the settings,<br/>starts and stops at once")
-    subgraph servers["<b>Servers</b> · both serve the one application state (<code>AppModel</code>)"]
-        loc("<b>Local server</b><br/>127.0.0.1, any free port,<br/>plain HTTP,<br/>sessions as long as it runs")
-        rem("<b>Remote server</b><br/>0.0.0.0, the port of the settings,<br/>HTTPS only,<br/>sessions of 24 hours")
-    end
-    host -->|webInterface| loc
-    host -->|"webInterface and webRemote"| rem
-    loc --> b1(["<b>Browsers</b><br/>of this computer"])
-    rem --> b2(["<b>Phones, other computers</b><br/>and the Android app"])
-    win(["<b>The window</b><br/>Open in browser · Pair a phone"]) -->|"LocalLink · RemoteLink"| host
-    web(["<b>The web interface</b><br/>Other devices · Lightweight mode · Quit"]) -->|"PUT /api/web · POST /api/quit"| set
+    accTitle: How the settings decide whether other devices connect
+    accDescr: The settings webRemote, webPort and the certificate are read by the Host. With webRemote on, it runs a server over HTTPS for the Docker gateway, phones and other computers. The window makes the pairing links, and the paired pages change the settings.
+    set(["<b>Settings</b><br/>webRemote · webPort<br/>webCertificate · lightweight"]) --> host("<b>pair.Host</b><br/>follows the settings,<br/>starts and stops at once")
+    rem("<b>Remote server</b><br/>0.0.0.0, the port of the settings,<br/>HTTPS only,<br/>sessions of 24 hours")
+    host -->|webRemote| rem
+    rem --> b2(["<b>The gateway, phones<br/>and other computers</b>"])
+    win(["<b>The window</b><br/>Pair a phone"]) -->|"RemoteLink"| host
+    web(["<b>Paired pages</b><br/>Other devices · Lightweight mode · Quit"]) -->|"PUT /api/web · POST /api/quit"| set
 
     classDef cfg fill:#E4E0FF,stroke:#5A4BE8,color:#1E1470,stroke-width:1.5px
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
     classDef client fill:#17123F,stroke:#17123F,color:#FFFFFF,stroke-width:1.5px
     class set,win,web cfg
-    class host,loc,rem own
-    class b1,b2 client
-    style servers fill:#F4F2FF,stroke:#B9B3F5,stroke-width:1.5px,rx:16,ry:16
+    class host,rem own
+    class b2 client
     linkStyle default stroke-width:2px
 ```
 
-- **The web interface** (`webInterface`) starts the local server on the loopback interface, on a free
-  port, over plain HTTP: browsers treat loopback origins as trustworthy, so the session cookie,
-  which is always `Secure`, is kept there. The window's *Open in browser* mints a one-time link
-  for it in the process (`Host.LocalLink`) and opens it in the browser; the link answers with
-  the session cookie and a redirect to `/app`.
-- **Other devices** (`webRemote`) start a second server on `0.0.0.0` and the port of the settings, which
+- **Other devices** (`webRemote`) start a server on `0.0.0.0` and the port of the settings, which
   speaks HTTPS only, and which `pair.NewServer` refuses to start without a certificate. The
   certificate is the one of `webCertificate` and `webKey`, or one that the application makes for
   itself next to the settings (`EnsureServerCert`), whose fingerprint the settings show for
   comparison. *Pair a phone* mints a link for it (`Host.RemoteLink`), with an address of the computer
   that the user chooses in it, and draws it as a QR code (`pair.QRMatrix`). Turning it off closes
-  the server and every connection it holds, the server-sent events of the paired pages
-  included, and with it the sessions. A port that is taken, or a certificate that does not
-  load, does not stop the local server: the settings say why other devices cannot connect.
+  the server and every connection it holds, the server-sent events of the paired pages included,
+  and with it the sessions. A port that is taken, or a certificate that does not load, is what the
+  settings report: `Status.RemoteError`.
 - **Settings are applied at once.** `Host` listens to the settings and applies the difference
-  (`Host.Apply`); it notifies its own listeners, which the window redraws on and the pages
-  of the web interface learn of by a `web` event.
-- **The two servers are two security domains**: each has its own one-time tokens and sessions, so a
-  link for the browsers of this computer does not pair a phone, and the other way round. The pages
-  of the web interface can change how other devices connect and quit the application
-  (`PUT /api/web`, `POST /api/quit`, same-origin and paired only), but not turn the web interface
-  off, which would cut the connection they use.
+  (`Host.Apply`); it notifies its own listeners, which the window redraws on and the paired pages
+  learn of by a `web` event.
+- **The paired pages** can change how other devices connect, and quit the application
+  (`PUT /api/web`, `POST /api/quit`, same-origin and paired only).
+- **The end-to-end build** (the `e2e` tag) also starts a loopback server (`LocalLink`), when `VFOX_PLUS_E2E_LINK`
+  names the file for its link. That link pairs the gateway that the tools picture and measure the interface through. The builds that are released have none
+  (`mygo/pair/loopback_e2e.go` and `loopback_off.go`).
 
 ### The window and the lightweight mode
 
@@ -469,11 +460,11 @@ config:
 ---
 stateDiagram-v2
     accTitle: The window and the lightweight mode
-    accDescr: The application starts with its window. When the window is closed it quits, unless the lightweight mode is on and the web interface is up, in which case it keeps running without a window, releasing what the window held and putting an icon in the tray. Choosing Open in the menu of the icon, or starting the application again, opens the window again; quitting from the menu of the icon, from the settings, from a paired page or by a signal ends it.
+    accDescr: The application starts with its window. When the window is closed it quits, unless the lightweight mode is on and other devices may connect, in which case it keeps running without a window, releasing what the window held and putting an icon in the tray. Choosing Open in the menu of the icon, or starting the application again, opens the window again; quitting from the menu of the icon, from the settings, from a paired page or by a signal ends it.
     direction LR
     [*] --> window: start
-    window --> quit: window closed,<br/>lightweight off<br/>or no web interface
-    window --> background: window closed,<br/>lightweight on and<br/>web interface up
+    window --> quit: window closed,<br/>lightweight off<br/>or no other devices
+    window --> background: window closed,<br/>lightweight on and<br/>other devices allowed
     background --> window: tray icon ·<br/>started again
     background --> quit: Quit · signal
     window --> quit: Quit
@@ -487,13 +478,13 @@ stateDiagram-v2
 ```
 
 Closing the last window (`OnWindowAllClosed`) quits the application, unless
-`Settings.Lightweight` is on and `Host.Status().Running`. Then `App.releaseWindow` lets go of
+`Settings.Lightweight` is on and `Host.Status().Remote`. Then `App.releaseWindow` lets go of
 everything that the window held (the widgets, the page, the lists, the listeners on the tasks,
 the work that was meant for the window), puts the icon in the tray (see [The tray](#the-tray)), and
 returns the memory of Go to the system, and two seconds later, if the window is still closed, tells the
 system that it does not want the pages of its files (`App.scheduleTrim`, see
 [Memory](memory.md#what-the-application-does-about-the-pages-of-files)); a window opened later starts from a clean state. Tasks,
-the web interface and its sessions go on, since they are not the window's. The toolkit of mygo (GTK 3 and its libraries) stays loaded, which is
+the server for other devices and its sessions go on, since they are not the window's. The toolkit of mygo (GTK 3 and its libraries) stays loaded, which is
 why the lightweight mode saves a few MB and not the most of the memory (see
 [Memory](memory.md#the-lightweight-mode)).
 
@@ -511,8 +502,7 @@ extension). Others are not supported: KDE Plasma and the desktops whose tray is 
 are for the user to leave for GNOME, or to do without the icon, as the application then runs without
 it. The code does not refuse them (on Linux the icon is made wherever a StatusNotifierWatcher is on the
 session bus, and on macOS it is in the menu bar), and nothing of it is tested or promised.
-Its menu has *Open vfox+*, *Open the web interface* (the browser of this computer, paired
-with a one-time link) and *Quit vfox+*. It is the way back to the window, and the way to end the
+Its menu has *Open vfox+* and *Quit vfox+*. It is the way back to the window, and the way to end the
 application, that a process without a window would otherwise lack. The code is `mygo/ui/tray.go`, with
 the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tray_other.go`.
 
@@ -547,14 +537,13 @@ the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tr
   When the watcher has an owner, the icon connects and is shown, and from then on it is taken again each time
   that the watcher starts over, as a shell does when it restarts with none of the icons it had (`watchOwners`).
 - **A missing tray is not an error.** No session bus, or a registration that fails: one line in the log ("no icon
-  in the tray: ..."), and the application goes on without it. Starting it again, or the web interface, are
-  still the ways back.
+  in the tray: ..."), and the application goes on without it. Starting it again is still the way back.
 - **Removal.** The icon is removed by a goroutine after the choice that asked for the window returns, because
   the libraries of the desktop do not expect the owner of a menu item to disappear in the handler of the item
   (`hideTray`), and at once when the application ends (`OnWillQuit` → `removeTray`), because Windows shows the
   icon of a program that is gone until the pointer passes over it. On Linux, giving the name up takes the icon
   away in the same way.
-- **Language.** The labels are in the language of the settings, which the web interface can
+- **Language.** The labels are in the language of the settings, which another device can
   change while there is no window to draw it: a listener on the settings (`refreshTray`) writes
   the menu again when the language changed.
 - **The picture.** `tray.png`, 32 by 32 pixels, is the fox of the application icon without its
@@ -575,8 +564,8 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   (godbus, BSD-2-Clause, is its one dependency). `vfxtool e2e-run tray`, a step of the `build` job,
   closes the window and checks the icon, its ID, its tool tip, its picture (the pixels that the item carries:
   a 32 by 32 fox, with no plate) and its menu, chooses *Open vfox+* (the window comes back and the item
-  leaves the bus), chooses *Open the web interface* (a stand-in for the browser of the user, registered as the
-  handler of the links of the web, gets a link that pairs), and quits from the menu (the application ends with
+  leaves the bus), checks that the application opens no link (a stand-in for the browser of the user, registered as the
+  handler of the links, records none), and quits from the menu (the application ends with
   the code 0, and its item leaves the bus). The host also leaves the bus and comes up again, as a shell does when it restarts: the icon takes
   its place with the new host. Then the application runs where no host has come up yet, and a host that comes up
   after the window has closed takes the icon (`tray-late`).
@@ -585,7 +574,7 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   of `shared/sandbox/gnome.Dockerfile`, and `vfxtool e2e-run tray-gnome`, which the `tray-gnome` job runs, is the
   scenario against it: the application closes its window, and the shell puts an indicator for it in its panel,
   makes the menu of it (what it makes is read with `org.gnome.Shell.Eval`, which the shell serves in unsafe mode),
-  chooses *Open vfox+*, *Open the web interface* and *Quit vfox+* as the user does, by having the extension send
+  chooses *Open vfox+* and *Quit vfox+* as the user does, by having the extension send
   the event of the click, and the application does what they say. The shell hides the icon when the window comes
   back. Each time the window closes, the panel shows the one icon of the application, and the indicator of the
   appearance before is gone. The shell drops the icon when the application ends, and is still up after it all.
@@ -608,28 +597,35 @@ into it, and the application does what the user does with the close button and w
 menu, and removes it. The automation plugin of mygo has no way to close a window, and Windows has no signal to
 send for it.
 
-### The web interface and the Android client
+### The servers and the phone app
 
-The servers (package `mygo/pair`) serve one-time links and expiring
-sessions. A paired browser gets the full web interface at `/app`:
-installed SDKs with install/use/uninstall, the plugin registry with
-add/update/remove, tasks with live progress and logs over server-sent events,
-and the settings. The HTTP surface the web interface uses is specified in
-[the remote protocol](remote-protocol.md).
+The server for other devices (package `mygo/pair`) serves one-time links and expiring
+sessions. A paired device gets the API of the server: installed SDKs with
+install/use/uninstall, the plugin registry with add/update/remove, tasks with live
+progress and logs over server-sent events, and the settings. The server serves no
+page: the interface is the gateway's (see below). The HTTP surface that the interface
+uses is specified in [the remote protocol](remote-protocol.md).
 
-The Android client (`android/`) connects to the same server: it is a WebView
-around `/app`, with a native Material 3 Expressive pairing flow (paste or scan the
-pairing link of the settings, compare the certificate fingerprint), so a phone drives the
-vfox-plus instance on a PC. The web interface itself follows the
-[design system](design-system.md) (seed colour, shapes, motion) with inlined
-assets, the favicon among them, because the servers serve a single
-embedded page with no external requests. A web app manifest at
-`/manifest.webmanifest` lets Chromium browsers install the page as an application
+The phone app (`mygo/phone`) is a native client of the same API, and it has no page of
+its own. It is a mygo application for Android, whose screens are built from the components
+of `ui/kit` in the theme of the desktop application (seed colour `#F28C1B`). It pairs with a
+computer through the pairing link of the computer's settings, after the person has compared
+the certificate fingerprint on both screens, and then drives the vfox-plus instance on that
+computer. The [remote protocol](remote-protocol.md#the-phone-app) specifies how it pairs,
+keeps its session and makes its calls. Its packages are `remote` (the client of the API),
+`pairing` (the link and the fingerprint), `store` (the saved computer and its session),
+`app` (the connection and the data that the screens show), `screens` (the interface) and `i18n` (its
+texts, in English and Simplified Chinese).
+
+The web interface follows the [design system](design-system.md) (seed colour, shapes, motion)
+with inlined assets, the favicon among them, because the gateway serves a single
+embedded page with no external requests. The gateway serves a web app manifest at
+`/manifest.webmanifest`, which lets Chromium browsers install the page as an application
 with the same icon.
 
 ### The gateway
 
-The Docker image (`mygo/Dockerfile`) is a second client of the remote server, next to the Android app,
+The Docker image (`mygo/Dockerfile`) is a second client of the remote server, next to the phone app,
 and not an instance of the application. Its program is `mygo/cmd/vfox-plus-gateway`, which takes no
 arguments, and its package is `mygo/gateway`. It uses `mygo/pair` for the certificates and their
 fingerprints and nothing of the window, the toolkit or vfox, so it builds without cgo into one static
@@ -660,8 +656,8 @@ config:
 ---
 flowchart LR
     accTitle: The two pairings of the gateway
-    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, with the certificate that a person compared as the only root, and holds the cookie vfox-plus-session. The gateway serves pages of its own and forwards the page and the API of the instance.
-    b(["<b>Browser</b>"]) -->|"HTTPS, the certificate of the gateway<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>gateway</b><br/>pages of its own,<br/>and a reverse proxy")
+    accDescr: A browser pairs with the gateway over HTTPS with the certificate of the gateway, and holds the cookie vfox-plus-gateway. The gateway pairs with the remote server of an instance over HTTPS, with the certificate that a person compared as the only root, and holds the cookie vfox-plus-session. The gateway serves pages of its own and the page of the interface, and forwards the API of the instance.
+    b(["<b>Browser</b>"]) -->|"HTTPS, the certificate of the gateway<br/>cookie <code>vfox-plus-gateway</code>"| g("<b>gateway</b><br/>its pages and the interface,<br/>and a reverse proxy")
     g -->|"HTTPS, the certificate that<br/>a person compared is the root<br/>cookie <code>vfox-plus-session</code>"| r("<b>Remote server</b><br/>of an instance")
 
     classDef own fill:#FFE9D0,stroke:#F28C1B,color:#3B2200,stroke-width:1.5px,rx:12,ry:12
@@ -675,7 +671,7 @@ flowchart LR
   (`/auth/connect/<token>`, five minutes, printed when the gateway starts) and holds a session of its
   own. Its cookie is `vfox-plus-gateway` and not `vfox-plus-session`: cookies belong to a host and
   not to a port, so the cookie of a gateway and that of an instance on the same host would be one. The
-  gateway pairs with an instance as the Android app does: a person pastes a pairing link of the instance
+  gateway pairs with an instance as the phone app does: a person pastes a pairing link of the instance
   on the page of the gateway, the gateway looks at the certificate (`certificateOf`), and the session
   cookie it gets is the gateway's. A certificate that the roots of the system vouch for is trusted;
   the one that the application makes for itself is shown as a fingerprint to compare with the settings
@@ -688,7 +684,7 @@ flowchart LR
   in it, and the gateway may reach the computer by another). The certificate that was shown is the one
   that is trusted: it is looked at again when the person agrees, and a different one is refused. A
   certificate that changes later is not served with the session of the gateway, and is asked about again
-  with a warning. Plain HTTP is for loopback addresses only, where the application serves it. The address
+  with a warning. Plain HTTP is for loopback addresses only, and only the end-to-end build serves it, for the tools. The address
   in the pasted link is checked for its form (`hostPattern`, `checkAddress`): a host name or an IP address
   and a port from 1 to 65535, which the numbers that a resolver reads as addresses of forms of their own
   (`127.1`, `2130706433`, `0x7f.1`) are not, nor are characters that a host name has no use for. That is
@@ -696,11 +692,12 @@ flowchart LR
   be anywhere, and the people who are paired with the gateway are trusted with that (the user guide says
   so); a list of the targets that the person who runs the gateway authorizes would restrict it, and the
   gateway has none.
-- **What the gateway serves, and what is the instance's.** The page `/`, `/auth/connect/`, `/api/token`
-  and the forms under `/gateway/` are the gateway's (see [the remote protocol](remote-protocol.md#the-gateway)).
-  `/app`, `/api/*` and `/manifest.webmanifest` are the instance's, forwarded by `httputil.ReverseProxy`
-  with the session of the gateway, so the page is the instance's own and always matches the routes it
-  calls. The events are flushed as they come. The proxy takes out of the request what is the browser's
+- **What the gateway serves, and what is the instance's.** The page `/`, `/auth/connect/`, `/api/token`,
+  the forms under `/gateway/`, the page of the interface at `/app` and its manifest at `/manifest.webmanifest`
+  are the gateway's (see [the remote protocol](remote-protocol.md#the-gateway)). The instance serves no page.
+  The routes of `/api/*` are the instance's, forwarded by `httputil.ReverseProxy` with the session of the
+  gateway. The page calls them, and it is built from the same sources as the gateway, so a gateway and an
+  instance of different versions may disagree about the routes. The events are flushed as they come. The proxy takes out of the request what is the browser's
   and the gateway's and not the instance's (the cookies, `Origin`, `Referer`, `Authorization`,
   `Forwarded`, `X-Forwarded-*`, `X-Real-Ip` and `Sec-Fetch-*`: the instance refuses a change whose origin
   names another host, and the gateway has checked the origin against its own, with

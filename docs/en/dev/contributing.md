@@ -59,17 +59,39 @@ container, see [Development environment](environment.md).
 4. Describe what changed and how you tested it in the pull request. Include
    screenshots for visual changes, in light and dark themes.
 
+## The phone app
+
+The phone app is [`mygo/phone`](../../../mygo/phone), built for Android by the mygo CLI
+([Packaging the phone app](packaging-android.md)). On a machine that has the tools that
+[`mygo/phone/versions.env`](../../../mygo/phone/versions.env) pins, or in the
+[dev container](environment.md#the-dev-container), which has them, build it from the root of
+the repository:
+
+```sh
+vfxtool prepare --root mygo
+vfxtool appicon mygo/phone/resources
+cd mygo/phone && mygo build -platform android/amd64
+```
+
+`vfxtool prepare` collects the translations, the icons and the licenses that the `mygo` module compiles in
+and the phone app imports, and `vfxtool appicon` writes the icons of the app; git ignores both (the dev
+container runs both when it is created). The APK and the AAB land in
+`mygo/phone/dist/android/`, signed with the debug key of the machine. To look at the screens on
+Linux without an emulator, `go run ./phone` from `mygo/` opens the app in a window of a phone's
+size. To pair it with the desktop application on an emulator, see
+[Run the app](environment.md#run-the-app).
+
 ## Continuous integration
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | every change | License headers (SkyWalking Eyes), workflows (actionlint), vfxtool (`gofmt`, `go vet`, `go test`), documentation languages and links (`vfxtool docs-check`), Markdown (markdownlint), shared JSON, no committed binary files |
-| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the build workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
+| [`memory.yml`](../../../.github/workflows/memory.yml) | the end of the `mygo` or `phone` workflow, on pull requests | One comment on the pull request with the memory of the application, and the difference from `main` (see [Memory in pull requests](memory.md#memory-in-pull-requests)) |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`, `shared/` | Formatting and lint (golangci-lint, with and without the end-to-end build tag), unit tests with the race detector and the coverage gates, the licenses of the Go modules, end-to-end scenarios that drive the built application against captured output and against the real vfox, the Docker image of the gateway built and run against the application, the memory measurement, the census of the screens of the desktop on Linux, on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel), release build with a smoke test, `.deb` and `.tar.gz` for amd64 validated with lintian and installed into a clean Ubuntu container, the classic snap packed from that `.deb` on core26 and started, and the arm64 `.deb` and `.tar.gz` validated with lintian and by the machine type of their program, as no arm64 machine installs them, unsigned `.msix` and `.msixbundle` for Windows 11 (x64 and arm64) validated with `vfxtool validate-msix` on Linux, and validated plus installed/uninstalled on Windows Server 2025 (x64) and Windows 11 on ARM (arm64) |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`, `mygo/versions.env`, `shared/sandbox/`, `shared/tooling/` | Builds the Docker sandbox and runs its parts in it (`vfxtool sandbox check`, `e2e` and `package`, and the four groups of the census), each in a job of its own |
-| [`android.yml`](../../../.github/workflows/android.yml) | `android/`, `mygo/pair/`, `mygo/VERSION` | Builds the release APK, signed with a key that the job makes and throws away, and uploads it as `vfox-plus-android` |
-| [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `android/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the Android build, and the checks that use Docker |
-| [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the Android APK and the Linux arm64 packages |
+| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`, `mygo/pair/`, `mygo/ui/kit/`, `mygo/VERSION`, `mygo/go.mod`, `mygo/go.sum`, `mygo/versions.env`, `shared/tooling/`, `shared/icons.json`, `shared/scripts/sign-apk.ps1` | Builds the APK and the AAB of the [phone app](#the-phone-app) for the x86_64 emulator, signed with the debug key, and drives it on an emulator against the fake vfox: it pairs the app with the desktop application through the deep link, visits its five tabs, measures it cold (the median of five starts) and paired (see [The phone app](memory.md#the-phone-app)) and takes the pictures of its guide ([Screenshots](#screenshots)). A job on a Windows runner rehearses the signing of the APK of the release ([Signing status](packaging-android.md#signing-status)) |
+| [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`, `mygo/versions.env`, `mygo/phone/versions.env` | Builds the [dev container](environment.md#the-dev-container), starts it the way an editor does and uses it: the tools against the pinned versions, lint, the end-to-end scenarios in the virtual display, the build of the phone app, and the checks that use Docker |
+| [`release.yml`](../../../.github/workflows/release.yml) | by hand, from `main`, or a `v*` tag | Sets the version and commits it to `main`, tags `v<version>`, packages and publishes the GitHub release that the self-update check reads, with the phone app's APK and the Linux arm64 packages |
 
 Dependabot keeps the Go modules and the GitHub Actions up to date; actions are
 pinned to commit SHAs.
@@ -101,12 +123,12 @@ A release is one manual run of the Release workflow:
    yet. The last `mygo` run on `main` must have passed: the release vets and
    smoke-tests the build, but runs no tests.
 3. The build job sets the version in `mygo/VERSION`, in the `Version` constant of
-   `mygo/ui/app.go` and in the `<releases>` list of the
+   `mygo/ui/app.go`, in the `version` of `mygo/phone/mygo.json`, and in the `<releases>` list of the
    [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml), and
    commits that in the name of the person who started the run. It builds the
    packages that [`mygo.yml`](#continuous-integration) builds, for amd64 and for
    arm64, the Windows `.msix` packages with the publisher of their certificate, the
-   Android APK unsigned, and the classic snap from `snap/snapcraft.yaml`. It pushes
+   APK of the phone app, which the next step signs, and the classic snap from `snap/snapcraft.yaml`. It pushes
    nothing.
 4. The `sign-windows` job, which waits for the approval, signs the Windows packages
    with Artifact Signing and installs the bundle to check it ([Signing the
@@ -121,10 +143,14 @@ A release is one manual run of the Release workflow:
    `.deb` or the `.tar.gz` of the platform, and the `.msix` or the `.msixbundle`;
    the rest is for manual use.
 
-The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before the signing: the publishing follows without a second approval. An administrator may start it without the approval.
+The APK is signed with the release key, the same one for every release (see [Signing status](packaging-android.md#signing-status)): a release installs over the one before it, and the job refuses to run without the key. The secrets of the release and the signing identity are in the `release` environment. A run waits there once, for an approval from a member of `@version-fox/vfox-maintainers` or `@version-fox/vfox-committers`, before `sign-windows` signs the Windows packages and the APK: the publishing follows without a second approval. An administrator may start it without the approval.
 
 Set `dry-run` to build, sign and install everything without pushing, tagging or
-publishing. Start a release that way first when its signing or its secrets change.
+publishing. Start a release that way first when its signing or its secrets change. The signing
+of the APK is rehearsed before that, on every change, by the `signing` job of
+[`phone.yml`](../../../.github/workflows/phone.yml), with the script of the release and a key
+that the job makes: what a dry run adds is what only the release has, its secrets, the steps of
+Azure and the approval ([Signing status](packaging-android.md#signing-status)).
 
 The version commit starts no CI run on `main`, because GitHub starts no workflow
 for a push made with a workflow's own token. So no test runs on that commit: the
@@ -154,7 +180,7 @@ keeping code blocks, command lines, file paths and the glossary of
 | `docs/en/dev/*.md` | `docs/zh-CN/dev/*.md` (same base name) |
 
 User guides (`user/`) are for people who run vfox-plus: installing, using the
-desktop application, the browser and the Android client. They never mention
+desktop application, the browser and the phone app. They never mention
 building from source, the repository layout, the vfox CLI contract or any
 other developer topic. Developer specification (`dev/`) is for contributors:
 architecture, contracts, UI and design specifications, packaging and tooling.
@@ -208,12 +234,10 @@ name that describes its meaning, with the name of the symbol as at
 added: `vfxtool prepare` cuts the SVGs out of the pinned npm package when it builds,
 and fails, naming the icons, for a symbol that the package does not have.
 
-The Android app does not take its icons from the package: its build imports the
-Android XML that google/material-design-icons publishes ([Icons](design-system.md#icons)
-says how). To add one, add a line to the list `materialSymbols` in
-`android/app/build.gradle.kts`: the name of the drawable, the symbol, and `"fill1"` if
-the filled variant is wanted. To move to a newer commit of that repository, change
-`materialSymbolsCommit` there. Nothing is copied or committed.
+The phone app takes its symbols from the same package, through the same embedded icons, so nothing is
+added for it. Its launcher icon is drawn by `vfxtool appicon mygo/phone/resources`: the files
+`icon.png` and `icon-foreground.png`, which [`mygo/phone/mygo.json`](../../../mygo/phone/mygo.json)
+names (see [Application icon](design-system.md#application-icon)).
 
 To move to a newer version of the package, change `version` and `sha512` in the
 `source` of that file. The registry says the checksum in base64; the file wants it
@@ -228,12 +252,12 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
 ### Web interface
 
 The web interface is TypeScript built with Vite, in [`mygo/web`](../../../mygo/web).
-Its build bundles the page into the single `mygo/pair/webapp.html` that the Go
-server embeds: edit the sources, run `npm run build` there, and commit the page
+Its build bundles the page into the single `mygo/gateway/webapp.html` that the gateway
+embeds: edit the sources, run `npm run build` there, and commit the page
 with them. `npm test` runs the unit tests of the page; `npm run dev` serves it
 with hot reload against a running application (see
 [Node and the web interface](environment.md#node-and-the-web-interface)).
-The Go tests in `mygo/pair` still guard the contract of the built page: the
+The Go tests in `mygo/gateway` still guard the contract of the built page: the
 design tokens and the springs, which fail when the theme moves without them,
 and the favicon placeholders. Copy of the page lives in its i18n catalogs
 (`mygo/web/src/i18n-*`), typed per language, not in `shared/i18n`.
@@ -275,7 +299,7 @@ account, and linked.
 into `dist/sandbox/mygo/screenshots/`, reproducibly: with the title bar of an
 Ubuntu 26.04 GNOME session on X11, drawn by Metacity with the Yaru theme, over the default wallpaper of
 Ubuntu instead of the black of a bare X server. It starts the end-to-end build
-seven times against the fake vfox, drives it to every page through the automation plugin
+eight times against the fake vfox, drives it to every page through the automation plugin
 of mygo, and captures the screen with ImageMagick when the page has settled:
 
 | Run | What it shows |
@@ -286,7 +310,7 @@ of mygo, and captures the screen with ImageMagick when the page has settled:
 | `VFOX_PLUS_FAKE_INVENTORY=python` | a machine that has Python installed next to the others, and the options of Python with the filter of the GraalPy builds: `python-options`, `python-install-method` and `python-graalpy-community`, and in the dark theme `dark-python-options` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | the compact layout, where the window is narrower than 600 dp: `compact-home`, `compact-detail` |
 | both of the above | the distributions of Java in the compact layout: `compact-java` |
-| the setting `webInterface`, and `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of the web interface, as a person goes through them: the switch that is on with its address, the question that asks before other devices may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
+| `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | the settings of other devices, as a person goes through them: the section while other devices are not allowed, the question that asks before they may connect, the settings that come with them, and the code that pairs a phone: `web-interface`, `web-allow`, `web-remote`, `web-pair` |
 | the same, with the language chosen first | the same four in Simplified Chinese: `zh-web-interface`, `zh-web-allow`, `zh-web-remote`, `zh-web-pair` |
 
 The end-to-end build can be told the addresses of the computer with `VFOX_PLUS_E2E_ADDRESSES`, a list
@@ -296,23 +320,22 @@ a sandbox that has no network, and so no address of its own, still has one to pa
 
 To take another picture, add a `c.shot(s, "name")` to the function of the run in
 `shared/tooling/internal/screenshots/screenshots.go` (`pages`, `installing`, `profiles`,
-`compactPages`, `compactProfiles` or `webInterface`). The steps before it click and wait the way a
+`pythonPages`, `compactPages`, `compactProfiles` or `webInterface`). The steps before it click and wait the way a
 person with a screen reader does, through the names that the user sees (the label
 of a button, the key that a component gave it), so a renamed button fails the
 scenario instead of taking a wrong picture.
 
 The README and the [user guide](../user/index.md) link `home`, `sdks`,
-`dark-available`, `installing`, `tasks`, `plugins`, `zh-settings`, `compact-home`,
-`compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`, and
+`dark-available`, `installing`, `tasks`, `plugins`, `settings` (`zh-settings` in Simplified Chinese),
+`compact-home`, `compact-detail`, `java-choose`, `java-temurin`, `flutter-available` and `options`, and
 the web interface on a phone, `webapp-en` and `web-phone-java-temurin` (`webapp-zh` and
 `web-phone-zh-java-temurin` in Simplified Chinese; see below). The
 [usage guide](../user/using.md) links `java-install-name` and `options-mirror`,
 and `zh-java-available` and `zh-options` in Simplified Chinese. The
-[guide to the web interface](../user/remote.md) links `web-interface`, `web-allow`, `web-remote` and
-`web-pair` (with the prefix `zh-` in Simplified Chinese), and the web interface on a phone:
-`webapp-en`, `web-phone-java-temurin`, `web-connections` and `web-connections-pair` (`webapp-zh`,
-`web-phone-zh-java-temurin`, `web-zh-connections` and `web-zh-connections-pair` in Simplified Chinese).
-The [guide to the Android app](../user/android.md) links the pictures of the app, and the
+[guide to other devices](../user/remote.md) links `web-allow`, `web-remote` and `web-pair`
+(with the prefix `zh-` in Simplified Chinese), and the web interface on a phone:
+`web-connections-pair` and `web-connections` (`web-zh-connections-pair` and `web-zh-connections`
+in Simplified Chinese). The [guide to the Android app](../user/android.md) links the pictures of the app, and the
 [guide to the gateway](../user/gateway.md) the pictures of the gateway (see below). The other
 pictures are there to look at when the interface changes; nothing links them.
 
@@ -323,14 +346,16 @@ that `--scene` plays: `home`, `connections`, `connections-pair`, `flutter-chips`
 `java-choose`, `java-temurin`, `java-install-name`, `options`, `options-mirror`, `options-aliases`,
 `options-legacy`, `settings-languages`, `alias-set`, `link-manual`, `python-options` and `python-available` (see
 `shared/tooling/internal/webheap/scenes.go`, whose test checks the elements that the
-scenes click against `mygo/pair/webapp.html`). A scene ends by waiting for the page to fit its
+scenes click against `mygo/gateway/webapp.html`). A scene ends by waiting for the page to fit its
 window, so a layout that overflows fails the shot instead of making a picture. Every picture gets
 an application and a home of its own, because choosing a distribution is kept in the settings of
 the application, and a scene that chooses one would change every picture after it. The application
-serves its web interface because its settings say so, and allows other devices, which the
-connections and the code that pairs a phone need (`{"webInterface":true,"webRemote":true}`); it is
+allows other devices, which the connections and the code that pairs a phone need
+(`{"webRemote":true}`); it is
 told the addresses of the documentation (see above); and the end-to-end build writes a pairing link
-to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The
+to the file that `VFOX_PLUS_E2E_LINK` names, because it has no command line to print it on. The pictures are of the pages that the gateway serves,
+so `shoot` starts the gateway as well: it pairs with the application by that link, as a person does on the
+page of the gateway (`--application`). The
 scenes of Java need a machine that has Java and Flutter installed, the scenes of Python one that has
 Python, and the home page needs one that has not, which is why the inventory of the fake vfox is a
 variable of the call:
@@ -338,6 +363,7 @@ variable of the call:
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
 /tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
+go -C mygo build -o /tmp/vfox-plus-gateway ./cmd/vfox-plus-gateway
 
 # shoot NAME LANGUAGE WIDTH,HEIGHT [options of webheap]
 # INVENTORY=profiles shoot ... plays a machine that has Java and Flutter.
@@ -346,7 +372,7 @@ shoot() {
   home=/tmp/shot-home
   rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
   cp /tmp/vfxtool $home/bin/vfox
-  echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
+  echo '{"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
       VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
@@ -360,9 +386,20 @@ shoot() {
     [ -n "$LINK" ] && break
     sleep 1
   done
-  /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
-    --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
+  # The gateway serves the page: it runs with a home of its own, and prints the link that pairs a browser with it.
+  gw=/tmp/shot-gateway
+  rm -rf $gw && mkdir -p $gw/config
+  (export HOME=$gw XDG_CONFIG_HOME=$gw/config; exec /tmp/vfox-plus-gateway >$gw/log 2>&1) &
+  gateway=$!
+  for i in $(seq 1 30); do
+    PAIR="$(grep -o 'https://localhost:8080/auth/connect/[A-Za-z0-9_-]*' $gw/log 2>/dev/null | head -1)"
+    [ -n "$PAIR" ] && break
+    sleep 1
+  done
+  /tmp/vfxtool webheap --server https://localhost:8080 --pairing "$PAIR" --application "$LINK" \
+    --output /tmp/shot.txt --screenshot "$name.png" \
     --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
+  kill $gateway; wait $gateway 2>/dev/null
   kill -- -$app
 }
 shoot webapp-en en 412,915
@@ -419,56 +456,65 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 (The build of the application is the one above, run from the root of the repository, which the
 command needs for the fixtures of the fake vfox; `--chrome` names the Chrome as it does for `webheap`.)
 
-**Android.** CI takes one picture, `screenshot-android`: the `measure` job of
-`android.yml` runs the release APK on an emulator, `vfxtool measure-apk` captures the
-cold start, and the job uploads it as an artifact (`gh run download`). The nine
-pictures of the [guide to the Android app](../user/android.md) are taken on an emulator of
-your own ([An emulator of your own](environment.md#an-emulator-of-your-own): API 36, 1080 by 2400
-at 420 dpi), with the release APK of the build that CI makes (its artifact `vfox-plus-android`),
-and with the application of the PC that [Run the app](environment.md#run-the-app) describes: the
-end-to-end build against the fake vfox of `VFOX_PLUS_FAKE_INVENTORY=profiles`, with the web interface and the
-other devices on, the port 8080 and `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, the address at which the emulator
-reaches the computer. The pairing screen, the links and the certificate then name the address that runs,
-and there is no certificate to make. The nine are `android-pairing`, `android-scan`, `android-trust`,
-`android-home`, `android-sdk`, `android-settings`, `android-dark-pairing`, `android-dark-home` and
-`android-unreachable`; the guide links all of them, in English for both languages. What makes the
-pictures alike, and what goes wrong:
+**Android.** The `emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) takes the
+pictures of the [guide to the phone app](../user/android.md), in the session that drives the app. It
+starts the end-to-end build of the desktop application against the fake vfox, as the pictures of the
+desktop are taken: a copy of `vfxtool` named `vfox` first on the `PATH`, `VFOX_PLUS_FIXTURES` and
+`VFOX_PLUS_FAKE_INVENTORY=profiles`, and a home of its own, so that the tabs show Node.js, Java and
+Flutter installed and a registry of plugins, as a person's do. `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` is the
+address at which the emulator reaches the runner. The job runs `vfxtool phone-link` (which allows other
+devices and writes a pairing link for `10.0.2.2`), and then `vfxtool measure-apk --pictures DIR`. The
+tool installs the APK, starts the app cold, and pairs it through the deep link `vfoxplus://pair?link=…`:
+it taps *Trust and pair*, visits the five tabs, and keeps a screenshot and a dump of the accessibility
+tree of each. Once the pairing succeeds, the app writes the line
+`vfoxplus: paired host=… fingerprint=…` to its log, and `measure-apk` waits for that line. The first
+screen is the artifact `screenshot-android`. The screenshots and dumps of the tabs, the log of the app,
+the log of the desktop application and the memory after pairing are the artifact `phone-e2e-android`.
 
-- The demo mode of the status bar fixes the clock and shows a full battery and
-  wifi and no notifications: `adb shell settings put global sysui_demo_allowed 1`,
-  then `adb shell am broadcast -a com.android.systemui.demo -e command` with `enter`,
-  `clock -e hhmm 1000`, `battery -e level 100 -e plugged false`,
-  `network -e wifi show -e level 4 -e fully true`, `network -e mobile hide` (its icons
-  come out white on the light theme) and `notifications -e visible false`.
-- Android shows a green indicator in the status bar while the camera is open, in place of the wifi and
-  battery icons, in the picture of the scanner. Turn it off with `adb root`, then
-  `adb shell device_config put privacy camera_mic_icons_enabled false` (the shell may not write
-  that flag, root may).
-- The language and the theme are the ones of the app and of the system:
-  `adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` and
-  `adb shell cmd uimode night yes`. Clear the data between runs (`pm clear`) and grant
-  the camera again, which `pm clear` drops, or the system dialog covers the scanner.
-- The views of the app are found by their ids in `adb exec-out uiautomator dump /dev/tty`
-  (`scanButton`, `manualButton`, `linkField`, `connectButton`, `reconnectButton`). The web interface in
-  the WebView is not in the dump: the bar at the bottom is tapped by its position, with
-  `adb shell input tap X 2205` for X = 125, 332, 540, 749 and 956 (Home, SDKs, Plugins, Tasks, Settings),
-  and flutter is the first of the plugins, at `540 682`.
-- Type the pairing link with the app in English (`adb shell input text`). With the app in Chinese Gboard turns
-  to Pinyin and writes the link with full-width punctuation and "author" for "auth";
-  the field keeps its text when the language is changed back before *Connect*. The keyboard covers
-  the button: close it with BACK (`adb shell input keyevent 4`) before.
-- The dialog of the fingerprint and the settings are taken in one run of the application: it makes its
-  certificate again at every run, and the two show the same fingerprint only within one. Choose
-  *Trust once*, and wait for the page to load before the picture of the home page.
-- To see the page that says the PC cannot be reached, end the application of the PC and open the app
-  again: it opens on the pairing screen, with the last server, and *Reconnect* shows the page.
-- Take the picture with `adb exec-out screencap -p > NAME.png` when the screen has
-  settled. The scanner shows the living room of the emulator (`hw.camera.back=virtualscene`), as there
-  is no code to point it at.
+The pictures are taken on the way, the dark ones in the dark theme of the system, which the tool gives
+back when it ends. There are eleven:
 
-The pictures are 1080 by 2400 as they come. `vfxtool frame-phone NAME.png OUT.png` gives them the
-rounded corners of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px
-(`#7A7A84`) over the edge: the cream screens of the light theme have no edge against the white page of GitHub.
+| Picture | What it shows |
+| --- | --- |
+| `android-pairing`, `android-dark-pairing` | the pairing page, in the light theme and in the dark one |
+| `android-trust` | the question *Trust this computer?*, with the fingerprint, before its button is tapped |
+| `android-home`, `android-sdks`, `android-plugins`, `android-tasks`, `android-settings` | the five tabs |
+| `android-sdk` | the page of an SDK (`nodejs`), which the key BACK closes |
+| `android-add-plugin` | the dialog that adds a plugin, with the source and the upload of a file |
+| `android-dark-home` | the home page, in the dark theme |
+
+What makes the pictures alike is the tool's work, because the app and the system draw what they show seconds after they are
+asked, and an emulator is slow. After each change of theme it looks at the screen under the status bar until the screen has changed
+and has then stayed as it is for four looks in a row, not for a time that a slower emulator would overrun. It closes the soft keyboard
+that an emulator without a hardware keyboard shows over the dialog that adds a plugin: the key of Android that goes back closes the
+keyboard and keeps the dialog. It takes a picture again, up to three times, while the app shows the strip that says that the computer
+did not answer, which it does for a moment after a change of theme on a slow emulator. And when the system covers the screen with the
+dialog of a process that does not answer (*System UI isn't responding*, which a loaded machine makes it show), it taps *Wait* as a
+person does, wherever it is looking at the screen.
+
+The artifact `phone-pictures` has each of them twice: in `raw/` as it came, 1080 by 2400, with the status bar of
+the emulator, and in `framed/`. `vfxtool frame-phone --top 118 NAME.png OUT.png` makes the framed one. It cuts off the
+status bar, which is 118 px high on this emulator: it shows the real time, and what the system draws there is not the
+same from one run to the next (the demo mode of Android, which would fix it, throws an exception in System UI at every
+`enter` and `exit` on the image of CI, and leaves some of what listens to it out of the demo mode, at random: two icons
+of the wifi in one run and one in the next). What the guide shows is the app. (The picture of the dialog that adds a plugin is cut
+at 168 px, under the bar that Android keeps over the page of a tab, which the shade of the dialog does not cover.) Then it gives the
+picture the rounded corners
+of a phone display (a radius of 96 px, transparent outside) and a grey border of 5 px (`#7A7A84`) over the edge, as the
+cream screens of the light theme have no edge against the white page of GitHub. The pictures are in English, which both
+guides use. CI uploads nothing to the image host: download the artifact from the run of the pull request
+(`gh run download RUN -n phone-pictures`), upload the pictures of `framed/` as below, and replace the links in the two guides.
+
+To take them on an emulator of your own ([An emulator of your own](environment.md#an-emulator-of-your-own):
+API 36, 1080 by 2400 at 420 dpi), do what the job does: start the end-to-end build against the fake vfox, as
+above, from the root of the repository, write the pairing link with `vfxtool phone-link`, and run
+`vfxtool measure-apk` on the APK that CI makes (its artifact `vfox-plus-android-amd64`), with the options of
+[The phone app](memory.md#the-phone-app) and `--pictures DIR`. The loopback link of the end-to-end build
+works once, so start the application again for every run, and uninstall the app first
+(`adb uninstall dev.vfox.vfoxplus`) when one that another key signed is on the emulator. The controls that
+the tool taps are in the accessibility tree (`adb exec-out uiautomator dump /dev/tty`), found by their
+labels in English and in Simplified Chinese: when the app changes a label, the tool changes with it
+([Notes for maintainers](packaging-android.md#notes-for-maintainers)).
 
 **Uploading.** Upload a new image with
 

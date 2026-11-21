@@ -25,7 +25,7 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
-// How the gateway is paired with an instance, as the Android app is: the person pastes a pairing link that
+// How the gateway is paired with an instance, as the phone app is: the person pastes a pairing link that
 // the instance made for another device. The gateway looks at the certificate of an HTTPS instance first. A
 // certificate that the roots of the system vouch for is trusted; one that nobody signed, which is what the
 // application makes for itself, is shown to the person as a fingerprint to compare with the one in the

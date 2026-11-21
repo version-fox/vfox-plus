@@ -112,32 +112,6 @@ func webPost(t *testing.T, server *pair.Server, session, path, body, origin stri
 	return response.StatusCode, string(content)
 }
 
-func TestWebAppNeedsPairing(t *testing.T) {
-	model := testModel(t, testsupport.FixtureRunner())
-	server := webServer(t, model)
-	nofollow := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}}
-	response, err := nofollow.Get(server.BaseURL() + "/app")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode != http.StatusFound {
-		t.Errorf("unpaired browsers must be redirected, got %d", response.StatusCode)
-	}
-	session := webSession(t, server)
-	status, body := webGet(t, server.BaseURL()+"/app", session)
-	if status != http.StatusOK {
-		t.Fatalf("got %d", status)
-	}
-	for _, want := range []string{"vfox-plus", "/api/events", "taskCount", "sdkList"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page must contain %q", want)
-		}
-	}
-}
-
 func TestWebInventory(t *testing.T) {
 	model := testModel(t, testsupport.FixtureRunner())
 	server := webServer(t, model)

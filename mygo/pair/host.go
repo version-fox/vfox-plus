@@ -29,8 +29,6 @@ import (
 
 // The reasons that a link cannot be made.
 var (
-	// ErrNotServing means that the web interface is off.
-	ErrNotServing = errors.New("the web interface is off")
 	// ErrNoRemote means that no server listens for other devices.
 	ErrNoRemote = errors.New("other devices cannot connect")
 	// ErrNoAddress means that this computer has no address on a network, or not
@@ -38,14 +36,8 @@ var (
 	ErrNoAddress = errors.New("this computer has no such address on a network")
 )
 
-// Status describes the servers of the web interface, as the settings made them.
+// Status describes the server for other devices, as the settings made it.
 type Status struct {
-	// Running reports whether the web interface is served on this computer.
-	Running bool
-	// LocalURL is the address of that server, like http://127.0.0.1:41233.
-	LocalURL string
-	// Error says why the web interface cannot be served, when it is on and is not.
-	Error string
 	// Remote reports whether other devices can connect now.
 	Remote bool
 	// Port is the port that other devices connect to, whether they can now or not.
@@ -80,43 +72,43 @@ type HostOptions struct {
 	Addresses func() []string
 }
 
-// webConfig is what the servers are started for: the part of the settings that
-// they depend on.
+// webConfig is what the server for other devices is started for: the part of the
+// settings that it depends on.
 type webConfig struct {
-	on, remote       bool
+	remote           bool
 	port             int
 	certificate, key string
 }
 
 func webConfigOf(current settings.AppSettings) webConfig {
 	return webConfig{
-		on:          current.WebInterface,
-		remote:      current.WebInterface && current.WebRemote,
+		remote:      current.WebRemote,
 		port:        current.EffectiveWebPort(),
 		certificate: current.WebCertificate,
 		key:         current.WebKey,
 	}
 }
 
-// Host runs the web interface of the application as its settings say, and
-// follows them: with the web interface on, a server on the loopback interface
-// serves the browsers of this computer, and with other devices allowed, a
-// second one serves the network over HTTPS. Turning either off stops it at
-// once, together with the connections it holds. The servers share the
-// application state; each has its own pairing links and sessions.
+// Host runs the server for other devices as its settings say, and follows them:
+// with other devices allowed, a server on the network serves them over HTTPS, and
+// turning that off stops it at once, together with the connections it holds. The
+// application shows no web interface on this computer: the Docker gateway, and a
+// phone that pairs with the application, are the clients of that server.
 //
-// A Host is also a Listenable: it notifies its listeners when its status may
-// have changed.
+// A Host is also a Listenable: it notifies its listeners when its status may have
+// changed.
 type Host struct {
 	state.Notifier
 	model   *state.AppModel
 	options HostOptions
+	// loopback is the server of this computer that only the end-to-end tests have,
+	// see loopback_e2e.go: the application has none in the builds that are released.
+	loopback loopbackState
 
 	// applyMu serializes Apply.
 	applyMu sync.Mutex
 	// mu guards the fields below.
 	mu      sync.Mutex
-	local   *Server
 	remote  *Server
 	applied webConfig
 	status  Status
@@ -127,13 +119,14 @@ type Host struct {
 	tunnel *Tunnel
 }
 
-// NewHost creates the host of the web interface. Nothing is served until Start.
+// NewHost creates the host of the server for other devices. Nothing is served
+// until Start.
 func NewHost(model *state.AppModel, options HostOptions) *Host {
 	return &Host{model: model, options: options}
 }
 
-// Start serves the web interface as the settings say, and follows the settings
-// from now on. The settings must be loaded.
+// Start serves other devices as the settings say, and follows the settings from
+// now on. The settings must be loaded.
 func (h *Host) Start() {
 	h.Apply()
 	h.mu.Lock()
@@ -144,8 +137,9 @@ func (h *Host) Start() {
 	h.stop = h.model.Settings.AddListener(func() { go h.Apply() })
 }
 
-// Apply makes the servers match the settings now: it starts what they ask for
-// and stops what they no longer do. It does nothing when they already match.
+// Apply makes the server match the settings now: it starts it when other devices
+// may connect and stops it when they may not. It does nothing when they already
+// match.
 func (h *Host) Apply() {
 	h.applyMu.Lock()
 	defer h.applyMu.Unlock()
@@ -155,37 +149,24 @@ func (h *Host) Apply() {
 		h.mu.Unlock()
 		return
 	}
-	previous, local, remote := h.applied, h.local, h.remote
+	previous, remote := h.applied, h.remote
 	h.mu.Unlock()
 
 	status := Status{Port: config.port}
-	// The tunnel publishes the server for other devices, so it ends when that
-	// server does or when it is replaced: a tunnel reaches one port.
-	endTunnel := !config.on
-	if !config.on {
-		closeServer(local)
+	// Other devices connect again when anything about the connection changed, and
+	// the tunnel publishes that server: it ends with the server, since a tunnel
+	// reaches one port.
+	changed := previous.remote != config.remote || previous.port != config.port ||
+		previous.certificate != config.certificate || previous.key != config.key
+	endTunnel := !config.remote || changed
+	if remote != nil && (changed || !config.remote) {
 		closeServer(remote)
-		local, remote = nil, nil
-	} else {
-		if local == nil {
-			var err error
-			if local, err = NewServer(Options{Model: h.model, Control: h}); err != nil {
-				status.Error = err.Error()
-			}
-		}
-		// Other devices connect again when anything about the connection changed.
-		changed := previous.remote != config.remote || previous.port != config.port ||
-			previous.certificate != config.certificate || previous.key != config.key
-		if (changed || !config.remote) && remote != nil {
-			closeServer(remote)
-			remote = nil
-		}
-		endTunnel = endTunnel || !config.remote || changed
-		if config.remote && remote == nil && local != nil {
-			var err error
-			if remote, status.Fingerprint, status.SelfSigned, err = h.startRemote(config); err != nil {
-				status.RemoteError = err.Error()
-			}
+		remote = nil
+	}
+	if config.remote && remote == nil {
+		var err error
+		if remote, status.Fingerprint, status.SelfSigned, err = h.startRemote(config); err != nil {
+			status.RemoteError = err.Error()
 		}
 	}
 	if endTunnel {
@@ -199,14 +180,10 @@ func (h *Host) Apply() {
 	h.mu.Lock()
 	if h.closed {
 		h.mu.Unlock()
-		closeServer(local)
 		closeServer(remote)
 		return
 	}
-	h.local, h.remote, h.applied = local, remote, config
-	if local != nil {
-		status.Running, status.LocalURL = true, local.BaseURL()
-	}
+	h.remote, h.applied = remote, config
 	if remote != nil {
 		status.Remote = true
 	} else {
@@ -245,7 +222,6 @@ func (h *Host) startRemote(config webConfig) (server *Server, fingerprint string
 		Model:            h.model,
 		TLSCertFile:      certFile,
 		TLSKeyFile:       keyFile,
-		Fingerprint:      fingerprint,
 		Control:          h,
 	})
 	if err != nil {
@@ -260,24 +236,24 @@ func closeServer(server *Server) {
 	}
 }
 
-// Close stops the servers, together with the connections they hold, and stops
+// Close stops the server, together with the connections it holds, and stops
 // following the settings.
 func (h *Host) Close() {
 	h.mu.Lock()
 	h.closed = true
-	local, remote, stop, tunnel := h.local, h.remote, h.stop, h.tunnel
-	h.local, h.remote, h.stop, h.tunnel = nil, nil, nil, nil
+	remote, stop, tunnel := h.remote, h.stop, h.tunnel
+	h.remote, h.stop, h.tunnel = nil, nil, nil
 	h.status = Status{}
 	h.mu.Unlock()
 	if stop != nil {
 		stop()
 	}
 	tunnel.Stop()
-	closeServer(local)
 	closeServer(remote)
+	h.loopback.close()
 }
 
-// Publish starts the public tunnel of a server for other devices, and returns
+// Publish starts the public tunnel of the server for other devices, and returns
 // the address where it serves it. A tunnel that already runs is kept.
 func (h *Host) Publish() (string, error) {
 	h.mu.Lock()
@@ -320,7 +296,7 @@ func (h *Host) Unpublish() {
 	h.NotifyListeners()
 }
 
-// Status implements Control: it describes the servers now.
+// Status implements Control: it describes the server now.
 func (h *Host) Status() Status {
 	h.mu.Lock()
 	status := h.status
@@ -329,18 +305,6 @@ func (h *Host) Status() Status {
 		status.Addresses = h.networkAddresses()
 	}
 	return status
-}
-
-// LocalLink makes a pairing link for a browser on this computer.
-func (h *Host) LocalLink() (string, error) {
-	h.mu.Lock()
-	local := h.local
-	h.mu.Unlock()
-	if local == nil {
-		return "", ErrNotServing
-	}
-	_, link, err := local.NewToken()
-	return link, err
 }
 
 // RemoteLink implements Control: it makes a pairing link for a device on the
@@ -365,7 +329,7 @@ func (h *Host) RemoteLink(host string) (string, error) {
 	switch {
 	case host == "":
 		// The address that a phone reaches first: the public one when the user
-		// published the interface, and else the likeliest address at home.
+		// published the server, and else the likeliest address at home.
 		if public != "" {
 			host = public
 		} else if len(addresses) > 0 {
@@ -430,5 +394,5 @@ func networkAddresses(addresses []string) []string {
 
 // String describes the status for logs and test failures.
 func (s Status) String() string {
-	return fmt.Sprintf("running=%t local=%q remote=%t port=%d error=%q remoteError=%q", s.Running, s.LocalURL, s.Remote, s.Port, s.Error, s.RemoteError)
+	return fmt.Sprintf("remote=%t port=%d error=%q", s.Remote, s.Port, s.RemoteError)
 }

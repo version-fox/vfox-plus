@@ -60,7 +60,7 @@ type run struct {
 	scenario func(*appsession.Session, shooter)
 }
 
-// documentationAddress is the address of the computer in the pictures of the web interface: the
+// documentationAddress is the address of the computer in the pictures of the settings of other devices: the
 // one that the end-to-end build is told (VFOX_PLUS_E2E_ADDRESSES), an address of the kind that a home
 // network has, the same at every run, and the address of no machine.
 const documentationAddress = "192.168.1.20"
@@ -76,12 +76,13 @@ var runs = []run{
 	// The compact layout is that of a window less than 600 dp wide.
 	{name: "compact pages", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800"}, scenario: compactPages},
 	{name: "compact profiles", env: []string{"VFOX_PLUS_E2E_WINDOW=412x800", "VFOX_PLUS_FAKE_INVENTORY=profiles"}, scenario: compactProfiles},
-	// The settings of the web interface: it is on, as a person turns it on, and the computer has an address to pair a phone with.
-	// The pictures for the guide in Simplified Chinese are the same in that language, which the run chooses first, as a person does.
+	// The settings of other devices: they are off at first, as a person finds them, and the computer has an address to pair
+	// a phone with. The pictures for the guide in Simplified Chinese are the same in that language, which the run chooses first,
+	// as a person does.
 	{name: "web interface", env: []string{"VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
-		settings: map[string]any{"webInterface": true}, scenario: webInterface(english)},
+		scenario: webInterface(english)},
 	{name: "web interface in Simplified Chinese", env: []string{"VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
-		settings: map[string]any{"webInterface": true}, scenario: webInterface(chinese)},
+		scenario: webInterface(chinese)},
 }
 
 // Run implements `screenshots <output-dir> <app command...>`,
@@ -194,11 +195,11 @@ type words struct {
 }
 
 var (
-	english = words{"", "", "Web interface", "Allow other devices?", "Pair a phone", "Show code", "New code"}
-	chinese = words{"zh-", "simplifiedChinese", "网页界面", "允许其他设备？", "配对手机", "显示二维码", "换一个二维码"}
+	english = words{"", "", "Other devices", "Allow other devices?", "Pair a phone", "Show code", "New code"}
+	chinese = words{"zh-", "simplifiedChinese", "其他设备", "允许其他设备？", "配对手机", "显示二维码", "换一个二维码"}
 )
 
-// webInterface shows what the settings say of the web interface, as a person goes through it: the
+// webInterface shows what the settings say of other devices, as a person goes through them: the
 // switch that is on and the address that serves, the dialog that asks before other devices may connect,
 // the settings that come with them, and the code that pairs a phone.
 func webInterface(w words) func(*appsession.Session, shooter) {
@@ -208,11 +209,10 @@ func webInterface(w words) func(*appsession.Session, shooter) {
 			s.PressKey(w.language)
 		}
 		s.WaitForText(w.section)
-		// The page is scrolled to its end and back up to the row of the language, so that the window starts there, with
-		// the group of the web interface after it, as the pictures that follow do: scrolling shows an element with
-		// as little movement as it takes, which puts one that is above the window at the top of it.
-		scrollTo(s, "licenses")
-		scrollTo(s, "english")
+		// The first two pictures are of the page as a person finds it, at its top. The group of other devices is short
+		// while they are not allowed, and a page that is scrolled down to it shows, under the group of vfox, the section of
+		// the updates, whose check says what a sandbox with no network can say of it: the error of the lookup, with the
+		// address of the resolver of the machine that took the picture.
 		c.shot(s, w.prefix+"web-interface")
 
 		s.PressKey("web-remote")

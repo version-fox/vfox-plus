@@ -135,13 +135,13 @@ func TestRunScenarioStartsTheApplicationAndRemovesItsSandbox(t *testing.T) {
 func TestTheSettingsOfTheScenarioAreAddedToTheDefaultOnes(t *testing.T) {
 	captureReports(t)
 	config := helperConfig(t, "serve")
-	config.Settings = map[string]any{"webInterface": true, "lightweight": true, "language": "simplifiedChinese"}
+	config.Settings = map[string]any{"webRemote": true, "lightweight": true, "language": "simplifiedChinese"}
 	err := RunScenario(config, "helper", func(s *Session) {
 		content, err := os.ReadFile(filepath.Join(SettingsDir(s.Home), "settings.json"))
 		s.Check(err == nil, "the application has settings")
 		var settings map[string]any
 		s.Check(json.Unmarshal(content, &settings) == nil, "the settings are JSON")
-		s.Check(settings["webInterface"] == true && settings["lightweight"] == true, "the settings of the scenario are there")
+		s.Check(settings["webRemote"] == true && settings["lightweight"] == true, "the settings of the scenario are there")
 		s.Check(settings["language"] == "simplifiedChinese", "the scenario chooses the language")
 		s.Check(settings["vfoxExecutable"] == "/bin/true", "the vfox to use is still named")
 	})

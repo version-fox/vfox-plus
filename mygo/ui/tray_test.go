@@ -25,16 +25,19 @@ import (
 	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
+	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
 	"github.com/version-fox/vfox-plus/mygo/pair"
 )
 
-// lightweightApp is an application with its window open, whose web interface is up and whose
+// lightweightApp is an application with its window open, whose other devices may connect and whose
 // lightweight mode is on: closing the window leaves it running.
 func lightweightApp(t *testing.T) *testApp {
 	t.Helper()
 	ta := defaultApp(t)
-	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface, s.Lightweight = true, true })
-	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
+	ta.updateSettings(func(s *settings.AppSettings) {
+		s.WebRemote, s.WebPort, s.Lightweight = true, testsupport.FreePort(t), true
+	})
+	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.app.openWindow()
 	return ta
 }
@@ -83,10 +86,10 @@ func TestClosingTheWindowInTheLightweightModeLeavesAnIconInTheTray(t *testing.T)
 	if toolTip != "vfox+ is running in the background" || destroyed {
 		t.Errorf("tool tip %q, destroyed %t", toolTip, destroyed)
 	}
-	if got, want := labels(entries), []string{"Open vfox+", "Open the web interface", "", "Quit vfox+"}; strings.Join(got, "|") != strings.Join(want, "|") {
+	if got, want := labels(entries), []string{"Open vfox+", "", "Quit vfox+"}; strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("menu = %q, want %q", got, want)
 	}
-	if entries[2].click != nil {
+	if entries[1].click != nil {
 		t.Error("the empty entry is a separator, which does nothing")
 	}
 	// The picture is the one that was drawn when the application was built: a PNG of the
@@ -115,20 +118,21 @@ func TestClosingTheWindowQuitsWithoutAnIconWhenTheApplicationHasNothingToKeepRun
 	}
 }
 
-func TestTheMenuOfTheIconBringsTheWindowBackOpensTheWebInterfaceAndQuits(t *testing.T) {
+func TestTheMenuOfTheIconBringsTheWindowBackAndQuits(t *testing.T) {
 	ta := lightweightApp(t)
 	a := ta.app
 	a.windowsClosed()
 	tray := ta.desktop.trays[0]
 
-	if !tray.choose("Open the web interface") {
-		t.Fatal("there is no item to open the web interface")
+	// The menu opens no web interface on this computer: it has no item for one.
+	if tray.choose("Open the web interface") {
+		t.Error("the menu has no web interface to open on this computer")
 	}
-	if len(ta.desktop.opened) != 1 || !strings.HasPrefix(ta.desktop.opened[0], ta.web.Status().LocalURL+"/auth/connect/") {
-		t.Errorf("the browser opens a link that pairs it: %v", ta.desktop.opened)
+	if len(ta.desktop.opened) != 0 {
+		t.Errorf("no browser of this computer is opened: %v", ta.desktop.opened)
 	}
 	if len(ta.desktop.windows) != 1 || ta.desktop.quits != 0 {
-		t.Error("opening the web interface leaves the application as it is")
+		t.Error("the menu leaves the application as it is")
 	}
 
 	if !tray.choose("Quit vfox+") || ta.desktop.quits != 1 {
@@ -186,12 +190,11 @@ func TestTheMenuOfTheIconFollowsTheLanguageThatTheSettingsChooseWhileTheWindowIs
 	a.windowsClosed()
 	tray := ta.desktop.trays[0]
 
-	// The web interface changes the language: there is no window to draw it, and the menu
-	// follows it all the same.
+	// The settings change the language: there is no window to draw it, and the menu follows it all the same.
 	ta.updateSettings(func(s *settings.AppSettings) { s.Language = settings.LanguageSimplifiedChinese })
 	waitForTray(t, func() bool { toolTip, _, _ := tray.state(); return toolTip == "vfox+ 正在后台运行" })
 	_, entries, _ := tray.state()
-	if got, want := labels(entries), []string{"打开 vfox+", "打开网页界面", "", "退出 vfox+"}; strings.Join(got, "|") != strings.Join(want, "|") {
+	if got, want := labels(entries), []string{"打开 vfox+", "", "退出 vfox+"}; strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("menu = %q, want %q", got, want)
 	}
 	updates := tray.updates
@@ -252,28 +255,6 @@ func TestADesktopWithoutATrayStillRunsTheApplicationWithoutItsWindow(t *testing.
 	a.windowsClosed()
 	if len(ta.desktop.trays) != 1 {
 		t.Errorf("the icon is in the tray: %d", len(ta.desktop.trays))
-	}
-}
-
-func TestTheWebInterfaceThatCannotBeOpenedFromTheTrayIsLogged(t *testing.T) {
-	ta := lightweightApp(t)
-	a := ta.app
-	a.windowsClosed()
-	tray := ta.desktop.trays[0]
-	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface = false })
-	ta.waitFor("the web interface to stop", func(status pair.Status) bool { return !status.Running })
-	var logged bytes.Buffer
-	log.SetOutput(&logged)
-	t.Cleanup(func() { log.SetOutput(os.Stderr) })
-
-	if !tray.choose("Open the web interface") {
-		t.Fatal("the item is in the menu")
-	}
-	if len(ta.desktop.opened) != 0 {
-		t.Errorf("there is no link to open: %v", ta.desktop.opened)
-	}
-	if !strings.Contains(logged.String(), "cannot open the web interface") {
-		t.Errorf("there is no window to say so, the log does: %q", logged.String())
 	}
 }
 

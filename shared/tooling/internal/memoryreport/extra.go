@@ -27,7 +27,7 @@ import (
 
 // The artifacts of the measurements beyond the desktop table, by upload name:
 // the application in the lightweight mode from the mygo
-// workflow, the APK from the android workflow. The private memory of the
+// workflow, the APK from the phone workflow. The private memory of the
 // lightweight mode is an artifact of its own, so that memory-lightweight keeps
 // the one format that the report has always read.
 const (
@@ -52,7 +52,7 @@ type LightweightMemory struct {
 	Loaded Point
 }
 
-// AndroidMemory is what the measure job of android.yml writes.
+// AndroidMemory is what the emulator job of phone.yml writes.
 type AndroidMemory struct {
 	Cold Point
 }
@@ -385,7 +385,7 @@ func collectLightweight(ctx context.Context, repo *Repository, run *github.Workf
 // collectAndroid collects the APK section from the android run.
 func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowRun, defaultBranch string) (Extra, error) {
 	extra := Extra{
-		Title: "Android client",
+		Title: "Phone app",
 		Intro: "What the release APK uses cold-started on an emulator, in MB from `dumpsys meminfo` after " +
 			"settling: `apk-cold`. Emulator boots vary, so only differences of more than 5 MB and 10% count " +
 			"as changes.",
@@ -446,14 +446,14 @@ func collectAndroid(ctx context.Context, repo *Repository, run *github.WorkflowR
 
 // CollectExtras returns the sections of the report beyond the desktop table:
 // the lightweight mode from the mygo run, the APK from the
-// android run. A section with neither numbers nor baseline is left out.
+// phone run. A section with neither numbers nor baseline is left out.
 func CollectExtras(ctx context.Context, repo *Repository, runs map[string]*github.WorkflowRun, defaultBranch string) ([]Extra, error) {
 	var extras []Extra
 	lightweight, err := collectLightweight(ctx, repo, runs[workflowPath("mygo")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}
-	android, err := collectAndroid(ctx, repo, runs[workflowPath("android")], defaultBranch)
+	android, err := collectAndroid(ctx, repo, runs[workflowPath("phone")], defaultBranch)
 	if err != nil {
 		return nil, err
 	}

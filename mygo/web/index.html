@@ -28,20 +28,6 @@
 <title>vfox-plus</title>
 <!--favicon-->
 <link rel="manifest" href="/manifest.webmanifest">
-<script>
-/* In the Android app (WebBridge.kt) the page keeps clear of the system bars by the insets that the app reports: top, right, bottom,
-   left and the height of the keyboard, in CSS pixels. The app calls window.vfoxInsets again whenever they change. */
-(function () {
-  var bridge = window.vfoxAndroid;
-  if (!bridge) return;
-  window.vfoxInsets = function () {
-    var v = String(bridge.insets()).split(","), root = document.documentElement;
-    ["top", "right", "bottom", "left"].forEach(function (side, i) { root.style.setProperty("--sai-" + side, (parseFloat(v[i]) || 0) + "px"); });
-    root.classList.toggle("kb", (parseFloat(v[4]) || 0) > 0);
-  };
-  window.vfoxInsets();
-})();
-</script>
 <script type="module" src="/src/main.ts"></script>
 </head>
 <body>
@@ -123,10 +109,6 @@
   </section>
   <section class="page" id="tab-settings">
     <h1 class="pagetitle" id="h-settings">Settings</h1>
-    <div class="card" id="phoneCard" hidden><div class="t-title-m" id="h-phone">This phone</div>
-      <div class="phone"><span class="avatar av-p av-3" aria-hidden="true"><svg class="ic"><use href="#i-devices"/></svg></span><div><div class="t-label muted" id="phoneLead">Connected to</div><div class="phone-server" id="phoneServer"></div></div></div>
-      <div class="row"><button class="btn" id="phonePair"><svg class="ic sm"><use href="#i-link"/></svg><span>Pair a new link</span></button><button class="btn danger" id="phoneOut"><svg class="ic sm"><use href="#i-link-off"/></svg><span>Disconnect</span></button></div>
-    </div>
     <div class="sectionlabel" id="h-web">Connections</div>
     <div class="pane" id="webCard"><div class="list" id="webList"></div><div class="pairbox" id="pairBox" hidden></div></div>
     <div class="sectionlabel" id="h-gui">Application</div>
@@ -200,7 +182,6 @@
 <symbol id="i-keyboard-arrow-down" viewBox="0 -960 960 960"><path d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></symbol>
 <symbol id="i-history" viewBox="0 -960 960 960"><path d="M480-120q-126 0-223-76.5T131-392q-4-15 6-27.5t27-14.5q16-2 29 6t18 24q24 90 99 147t170 57q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h70q17 0 28.5 11.5T360-600q0 17-11.5 28.5T320-560H160q-17 0-28.5-11.5T120-600v-160q0-17 11.5-28.5T160-800q17 0 28.5 11.5T200-760v54q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm40-376 100 100q11 11 11 28t-11 28q-11 11-28 11t-28-11L452-452q-6-6-9-13.5t-3-15.5v-159q0-17 11.5-28.5T480-680q17 0 28.5 11.5T520-640v144Z"/></symbol>
 <symbol id="i-link" viewBox="0 0 24 24"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol>
-<symbol id="i-link-off" viewBox="0 0 24 24"><path d="m19.25 16.45l-1.5-1.55q1-.275 1.625-1.063T20 12q0-1.25-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12q0 1.425-.737 2.625T19.25 16.45M15.85 13l-2-2H16v2zm3.95 9.6L1.4 4.2l1.4-1.4l18.4 18.4zM11 17H7q-2.075 0-3.537-1.463T2 12q0-1.725 1.05-3.075t2.7-1.775L7.6 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h1.625l1.975 2z"/></symbol>
 <symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h6l2 2h8q.825 0 1.413.588T22 8v10q0 .825-.587 1.413T20 20z"/></symbol>
 <symbol id="i-eco" viewBox="0 0 24 24"><path d="m10.825 16.325l4.6-4.1q.225-.2.125-.475t-.4-.325l-3.6-.35L13.7 8.1q.075-.125.088-.238T13.7 7.65q-.1-.125-.25-.112t-.275.112L8.6 11.75q-.225.2-.125.475t.4.325l3.6.35l-2.175 2.975q-.075.125-.075.237t.1.213t.238.1t.262-.1M12 20q-1.4 0-2.637-.438T7.1 18.325L5.725 19.7q-.15.15-.337.225T5 20q-.425 0-.712-.288T4 19q0-.2.075-.387t.225-.338L5.675 16.9q-.8-1.025-1.237-2.262T4 12q0-3.35 2.325-5.675T12 4h8v8q0 3.35-2.325 5.675T12 20"/></symbol>
 <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 22q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12q0-2.1.788-3.912t2.137-3.163l1.4 1.4q-1.1 1.1-1.712 2.55T4 12q0 3.35 2.325 5.675T12 20t5.675-2.325T20 12q0-1.675-.612-3.125t-1.713-2.55l1.4-1.4q1.35 1.35 2.138 3.163T22 12q0 2.075-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m-1-9V2h2v11z"/></symbol>

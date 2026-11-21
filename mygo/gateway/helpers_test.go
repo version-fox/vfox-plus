@@ -93,7 +93,7 @@ func testModel(t *testing.T) *state.AppModel {
 	return model
 }
 
-// instance is a real server of the application, the way the application serves its web interface: on the
+// instance is a real server of the application, the way the application serves other devices: on the
 // loopback address in plain HTTP, or in HTTPS with the certificate that the application makes for itself.
 type instance struct {
 	t      *testing.T
@@ -129,7 +129,7 @@ func startSecureInstance(t *testing.T, dir string, port int) *instance {
 	model := testModel(t)
 	server, err := pair.NewServer(pair.Options{
 		Bind: "127.0.0.1", AllowNonLoopback: true, Port: port,
-		Model: model, TLSCertFile: certFile, TLSKeyFile: keyFile, Fingerprint: fingerprint,
+		Model: model, TLSCertFile: certFile, TLSKeyFile: keyFile,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -283,10 +283,7 @@ func (f *fakeInstance) serve(writer http.ResponseWriter, request *http.Request) 
 			return
 		}
 		http.SetCookie(writer, &http.Cookie{Name: instanceCookie, Value: session, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-		http.Redirect(writer, request, "/app", http.StatusSeeOther)
-	case request.URL.Path == "/manifest.webmanifest":
-		writer.Header().Set("Content-Type", "application/manifest+json")
-		_, _ = io.WriteString(writer, `{"name":"vfox+"}`)
+		writer.WriteHeader(http.StatusNoContent)
 	case !paired:
 		http.Error(writer, "Not paired. Open a pairing link first.", http.StatusUnauthorized)
 	case request.URL.Path == "/api/token":
@@ -302,11 +299,11 @@ func (f *fakeInstance) serve(writer http.ResponseWriter, request *http.Request) 
 		f.mu.Unlock()
 		writer.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(map[string]string{"url": "http://" + request.Host + pairingPath + token})
-	case request.URL.Path == "/app":
-		// The instance sets a cookie of its own with the page, which the browser must not get.
+	case request.URL.Path == "/api/cookies":
+		// The instance sets a cookie of its own with its answer, which the browser must not get.
 		http.SetCookie(writer, &http.Cookie{Name: "leak", Value: "1", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-		writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = io.WriteString(writer, "<html><body>the page of the instance</body></html>")
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(writer, `{}`)
 	case request.URL.Path == "/api/echo":
 		writer.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(map[string]string{"method": request.Method, "body": string(body)})

@@ -53,8 +53,9 @@ A sideloaded snap does not refresh itself: download the `.snap` of the new
 release and install it again the same way.
 
 vfox-plus is a desktop application: it takes no arguments, and needs a desktop session
-to show its window. To use it from a browser or a phone as well, turn on its web
-interface in its settings (see [The web interface and other devices](remote.md)).
+to show its window. To use it from a browser or a phone as well, allow other devices in its
+settings (see [Other devices and the lightweight mode](remote.md)); a browser reaches it
+through the [gateway](gateway.md).
 
 ## Windows 11
 
@@ -78,7 +79,18 @@ Remove-AppxPackage -Package <PackageFullName>
 
 ## Android
 
-Download the `.apk` of the latest GitHub release to your phone and install it. A newer release installs over the one on the phone and keeps the pairing with the PC; only an APK signed with another key, such as a development build, must be uninstalled first. Then pair it with the vfox-plus on your PC. See [The Android app](android.md).
+Download `vfox-plus_<version>.apk` from the [latest GitHub release](https://github.com/version-fox/vfox-plus/releases/latest)
+to your phone, open it, and allow the installation when Android asks. The APK is
+signed with the release key of the project, the same key for every release: a newer
+release installs over the one on the phone and keeps its data and the pairing with
+your PC. (The earlier Android client, which this app replaces, kept its pairing in
+another form, so the first install over it needs a new pairing: see
+[The phone app](android.md#install).) An APK signed with another key, such as a
+development build, does not install over it: uninstall that one first, which forgets the
+pairing. To install from a computer instead, turn on USB debugging and run
+`adb install -r vfox-plus_<version>.apk`.
+
+Then pair the app with the vfox-plus on your PC. See [The phone app](android.md).
 
 ## Docker
 

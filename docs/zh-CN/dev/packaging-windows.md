@@ -79,6 +79,8 @@ CI 运行的 `vfox-plus-windows` 构件里是未签名的 bundle，旁边是暂�
 4. 用 `vfxtool install-check --trusted` 安装 bundle（不带 `-AllowUnsigned`），然后卸载。只有签名与发布者都成立，
    Windows 才接受这次安装；运行器的证书库不受影响。
 
+同一个任务之后还用发布密钥签名手机端的 APK：`zipalign` 与 `apksigner` 替换它的 debug 签名（见[签名状态](packaging-android.md#签名状态)）。
+
 服务给包加了时间戳，所以证书过期后签名依然有效；这些证书只有几天的寿命。
 
 设置只做一次，由掌握 Azure 订阅的维护者完成：

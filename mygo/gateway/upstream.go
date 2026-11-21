@@ -90,8 +90,8 @@ type upstream struct {
 	renewedAt time.Time
 
 	transport *http.Transport
-	// client does what is not forwarded (pairing and renewing): it follows no redirect, for the redirect
-	// of the instance is its answer to a link, and it has a limit of time.
+	// client does what is not forwarded (pairing and renewing): it follows no redirect, for the instance
+	// answers a link with its cookie and no content, and it has a limit of time.
 	client *http.Client
 }
 
@@ -264,13 +264,13 @@ func (u *upstream) unreachable(err error) error {
 	}
 	message := fmt.Sprintf("cannot reach vfox+ at %s: %v", u.base.Host, err)
 	if isLoopback(u.base.Hostname()) {
-		message += " (inside a container, 127.0.0.1 is the container itself: run it with --network host, or use the pairing link for other devices)"
+		message += " (inside a container, 127.0.0.1 is the container itself: pair the gateway with the link that the computer shows for other devices, which holds an address of the computer on the network)"
 	}
 	return errors.New(message)
 }
 
 // pairWith pairs the gateway with the instance by a token of a pairing link, and returns the session that
-// the instance gives it.
+// the instance gives it: the instance answers the link with the cookie of the session and no content.
 func (u *upstream) pairWith(ctx context.Context, token string) (string, error) {
 	// The address is the one that the person who is paired with the gateway gave it, to pair with it, and what
 	// it can be is narrow: HTTP or HTTPS, the path of a pairing link with a token of its pattern, no redirect
@@ -288,7 +288,7 @@ func (u *upstream) pairWith(ctx context.Context, token string) (string, error) {
 	switch {
 	case response.StatusCode == http.StatusForbidden:
 		return "", errRefused
-	case response.StatusCode != http.StatusSeeOther:
+	case response.StatusCode != http.StatusNoContent:
 		return "", fmt.Errorf("vfox+ answered %s to the pairing link, which is not what an instance of vfox+ does", response.Status)
 	}
 	for _, cookie := range response.Cookies() {

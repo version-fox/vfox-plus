@@ -47,11 +47,11 @@ func (ta *testApp) mustTextWith(prefix string) string {
 	return text
 }
 
-// openSettings goes to the settings, scrolled to the web interface.
+// openSettings goes to the settings, where the section of other devices is.
 func (ta *testApp) openSettings() {
 	ta.t.Helper()
 	ta.button("Settings")
-	ta.mustText("Web interface")
+	ta.mustText("Other devices")
 }
 
 // listItem is the item of a list, if the user can reach it.
@@ -70,93 +70,61 @@ func (ta *testApp) waitFor(description string, condition func(pair.Status) bool)
 	ta.settle()
 }
 
-func TestTheWebInterfaceIsOffUntilTheUserTurnsItOnAndThenItOpensInTheBrowser(t *testing.T) {
+// The application shows no web interface on this computer: its settings have no switch for one, and no browser of this
+// computer is opened with a link that pairs it. Other devices are the way in, through the Docker gateway or a phone.
+func TestTheApplicationShowsNoWebInterfaceOnThisComputer(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openSettings()
+	if _, ok := ta.listItem("Web interface"); ok {
+		t.Fatal("there is no switch for a web interface on this computer")
+	}
 	if _, ok := ta.listItem("Open in browser"); ok {
-		t.Fatal("there is no browser to open while the web interface is off")
+		t.Fatal("there is no browser to open")
 	}
-	if status := ta.web.Status(); status.Running {
-		t.Fatalf("the web interface is off by default: %v", status)
-	}
-
-	ta.item("Web interface")
-	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
-	if !ta.app.model.Settings.Settings().WebInterface {
-		t.Error("the switch is the setting")
-	}
-	status := ta.web.Status()
-	ta.mustText("Serving at " + status.LocalURL)
-	if !strings.HasPrefix(status.LocalURL, "http://127.0.0.1:") {
-		t.Errorf("this computer is served on the loopback interface: %q", status.LocalURL)
+	if status := ta.web.Status(); status.Remote {
+		t.Fatalf("other devices are not allowed by default: %v", status)
 	}
 
-	ta.buttonNear("Open in browser", "Open")
-	if len(ta.desktop.opened) != 1 || !strings.HasPrefix(ta.desktop.opened[0], status.LocalURL+"/auth/connect/") {
-		t.Fatalf("the browser gets a link that pairs it with the server of this computer, got %q", ta.desktop.opened)
-	}
-	ta.buttonNear("Open in browser", "Copy link")
-	if len(ta.desktop.copied) != 1 || !strings.HasPrefix(ta.desktop.copied[0], status.LocalURL+"/auth/connect/") || ta.desktop.copied[0] == ta.desktop.opened[0] {
-		t.Fatalf("a link of its own, for the clipboard, got %q", ta.desktop.copied)
-	}
-	ta.mustText("Copied to the clipboard")
-	ta.snapshot("settings-web")
-
-	ta.item("Web interface")
-	ta.waitFor("the web interface to stop", func(status pair.Status) bool { return !status.Running })
-	if _, ok := ta.listItem("Open in browser"); ok {
-		t.Error("nothing to open once the web interface is off")
-	}
-}
-
-func TestTheWebInterfaceSaysWhyItCannotBeServed(t *testing.T) {
-	ta := defaultApp(t)
-	ta.openSettings()
-	// Nothing to open a browser on: the links of a server that is not there are errors, not crashes.
-	ta.app.openWeb()
-	ta.app.copyWebLink()
-	ta.settle()
-	ta.mustText("Cannot make a link: the web interface is off")
+	ta.updateSettings(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, testsupport.FreePort(t) })
+	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	if len(ta.desktop.opened) != 0 || len(ta.desktop.copied) != 0 {
-		t.Errorf("no link, so nothing opened or copied: %q %q", ta.desktop.opened, ta.desktop.copied)
+		t.Errorf("no browser of this computer is opened or given a link: %q %q", ta.desktop.opened, ta.desktop.copied)
 	}
 }
 
-func TestTheLightweightModeAndTheDevicesNeedTheWebInterface(t *testing.T) {
+// The lightweight mode keeps the application running for other devices, so it needs them to be allowed.
+func TestTheLightweightModeNeedsOtherDevices(t *testing.T) {
 	ta := defaultApp(t)
 	ta.openSettings()
-	for _, name := range []string{"Lightweight mode", "Other devices"} {
-		item, ok := ta.listItem(name)
-		if !ok {
-			t.Fatalf("no item %q: %q", name, ta.texts())
-		}
-		if item.Click != nil {
-			t.Errorf("%s cannot be switched while the web interface is off", name)
-		}
+	item, ok := ta.listItem("Lightweight mode")
+	if !ok {
+		t.Fatalf("no item %q: %q", "Lightweight mode", ta.texts())
 	}
-	if count := strings.Count(strings.Join(ta.texts(), "\n"), "Turn on the web interface first."); count != 2 {
-		t.Errorf("both say what they need, got %d: %q", count, ta.texts())
+	if item.Click != nil {
+		t.Error("the lightweight mode cannot be switched while other devices are not allowed")
 	}
-	ta.item("Web interface")
-	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
-	for _, name := range []string{"Lightweight mode", "Other devices"} {
-		if item, _ := ta.listItem(name); item == nil || item.Click == nil {
-			t.Errorf("%s can be switched now", name)
-		}
+	if count := strings.Count(strings.Join(ta.texts(), "\n"), "Turn on other devices first."); count != 1 {
+		t.Errorf("it says what it needs, got %d: %q", count, ta.texts())
 	}
-	if _, ok := ta.textWith("Turn on the web interface first."); ok {
+
+	ta.updateSettings(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, testsupport.FreePort(t) })
+	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
+	if item, _ := ta.listItem("Lightweight mode"); item == nil || item.Click == nil {
+		t.Error("the lightweight mode can be switched now")
+	}
+	if _, ok := ta.textWith("Turn on other devices first."); ok {
 		t.Error("the hint is gone with the reason for it")
 	}
 	ta.item("Lightweight mode")
 	if !ta.app.model.Settings.Settings().Lightweight {
 		t.Error("the switch is the setting")
 	}
-	// The application stays only while it has something to keep up.
+	// The application stays while it has other devices to keep up for.
 	ta.mustText("Quit vfox+")
-	ta.item("Web interface")
-	ta.waitFor("the web interface to stop", func(status pair.Status) bool { return !status.Running })
+	ta.updateSettings(func(s *settings.AppSettings) { s.WebRemote = false })
+	ta.waitFor("other devices to be shut out", func(status pair.Status) bool { return !status.Remote })
 	if _, ok := ta.listItem("Quit vfox+"); ok {
-		t.Error("with the web interface off, closing the window quits, and there is nothing else to quit")
+		t.Error("with other devices shut out, closing the window quits, and there is nothing else to quit")
 	}
 }
 
@@ -173,16 +141,16 @@ func TestClosingTheWindowQuitsUnlessTheLightweightModeKeepsTheApplicationRunning
 	if ta.desktop.quits != 1 {
 		t.Fatalf("closing the window quits, got %d", ta.desktop.quits)
 	}
-	// So it does with the lightweight mode on and nothing to keep up.
+	// So it does with the lightweight mode on and no device to keep up for.
 	ta.updateSettings(func(s *settings.AppSettings) { s.Lightweight = true })
 	a.windowsClosed()
 	if ta.desktop.quits != 2 || a.window() == nil {
-		t.Fatalf("without the web interface there is nothing to keep running, got %d quits", ta.desktop.quits)
+		t.Fatalf("without other devices there is nothing to keep running, got %d quits", ta.desktop.quits)
 	}
 
-	// With the web interface up, the application goes on without its window.
-	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface = true })
-	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
+	// With other devices allowed, the application goes on without its window.
+	ta.updateSettings(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, testsupport.FreePort(t) })
+	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	a.navigate(destSettings)
 	a.pages.portText = "stale"
 	a.post(func() {})
@@ -204,8 +172,8 @@ func TestClosingTheWindowQuitsUnlessTheLightweightModeKeepsTheApplicationRunning
 		t.Errorf("the work for a window that is gone was kept: %d", len(a.pending))
 	}
 	a.invalidate() // No window to ask for a frame.
-	if !ta.web.Status().Running {
-		t.Error("the web interface is what the application kept running for")
+	if !ta.web.Status().Remote {
+		t.Error("other devices are what the application kept running for")
 	}
 
 	// Starting the application again opens the window again, in the state of a new start.
@@ -243,8 +211,7 @@ func TestTheTitleOfTheWindowFollowsTheLanguage(t *testing.T) {
 func TestOtherDevicesAreAllowedOnlyAfterAConfirmation(t *testing.T) {
 	ta := defaultApp(t)
 	port := testsupport.FreePort(t)
-	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface, s.WebPort = true, port })
-	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
+	ta.updateSettings(func(s *settings.AppSettings) { s.WebPort = port })
 	ta.openSettings()
 	ta.mustText("Other devices")
 	if _, ok := ta.listItem("Port"); ok {
@@ -299,8 +266,8 @@ func TestOtherDevicesThatCannotConnectSayWhy(t *testing.T) {
 	if !settings.ValidWebPort(port) {
 		t.Skipf("the system gave the port %d, which the settings do not accept", port)
 	}
-	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface, s.WebRemote, s.WebPort = true, true, port })
-	ta.waitFor("the verdict on the port", func(status pair.Status) bool { return status.Running && status.RemoteError != "" })
+	ta.updateSettings(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, port })
+	ta.waitFor("the verdict on the port", func(status pair.Status) bool { return status.RemoteError != "" })
 	ta.openSettings()
 	ta.mustTextWith("Other devices cannot connect: ")
 	for _, name := range []string{"Pair a phone", "Certificate"} {
@@ -316,7 +283,7 @@ func TestOtherDevicesThatCannotConnectSayWhy(t *testing.T) {
 func TestThePortIsChosenInTheSettingsAndOnlyAPortThatCanBeUsed(t *testing.T) {
 	ta := defaultApp(t)
 	ta.updateSettings(func(s *settings.AppSettings) {
-		s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(t)
+		s.WebRemote, s.WebPort = true, testsupport.FreePort(t)
 	})
 	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.openSettings()
@@ -334,7 +301,7 @@ func TestThePortIsChosenInTheSettingsAndOnlyAPortThatCanBeUsed(t *testing.T) {
 			t.Errorf("the field goes back to the port in use, got %q", ta.app.pages.portText)
 		}
 	}
-	// A page of the web interface that changes the port changes what the field shows.
+	// A page that changes the port changes what the field shows.
 	elsewhere := testsupport.FreePort(t)
 	ta.updateSettings(func(s *settings.AppSettings) { s.WebPort = elsewhere })
 	if ta.app.pages.portText != strconv.Itoa(elsewhere) {
@@ -353,7 +320,7 @@ func TestThePortIsChosenInTheSettingsAndOnlyAPortThatCanBeUsed(t *testing.T) {
 func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	ta := defaultApp(t)
 	ta.updateSettings(func(s *settings.AppSettings) {
-		s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(t)
+		s.WebRemote, s.WebPort = true, testsupport.FreePort(t)
 	})
 	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.openSettings()
@@ -368,7 +335,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 		return "https://" + net.JoinHostPort(address, strconv.Itoa(status.Port)) + "/auth/connect/"
 	}
 	first := ta.mustTextWith(link(status.Addresses[0]))
-	ta.mustTextWith("Scan with the Android app")
+	ta.mustTextWith("Take a photo of this code with the vfox+ phone app")
 	if ta.app.pages.pairing == nil || len(ta.app.pages.pairing.matrix) < 29 {
 		t.Fatalf("the code is drawn from a matrix of modules: %+v", ta.app.pages.pairing)
 	}
@@ -388,7 +355,7 @@ func TestAPhoneIsPairedWithTheCodeOfTheSettings(t *testing.T) {
 	if ta.app.pages.pairing != nil {
 		t.Error("a closed dialog keeps no link")
 	}
-	if _, ok := ta.textWith("Scan with the Android app"); ok {
+	if _, ok := ta.textWith("Take a photo of this code with the vfox+ phone app"); ok {
 		t.Error("the dialog is gone")
 	}
 }
@@ -397,7 +364,7 @@ func TestTheSettingsSayWhenThisComputerHasNoNetworkAddress(t *testing.T) {
 	ta := defaultApp(t)
 	ta.setAddresses()
 	ta.updateSettings(func(s *settings.AppSettings) {
-		s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(t)
+		s.WebRemote, s.WebPort = true, testsupport.FreePort(t)
 	})
 	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.openSettings()
@@ -443,7 +410,7 @@ func TestTheCertificateOfTheUserIsChosenWithItsKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	ta.updateSettings(func(s *settings.AppSettings) {
-		s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(t)
+		s.WebRemote, s.WebPort = true, testsupport.FreePort(t)
 	})
 	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.openSettings()
@@ -485,8 +452,10 @@ func TestTheCertificateOfTheUserIsChosenWithItsKey(t *testing.T) {
 
 func TestTheApplicationIsQuitFromTheSettingsWhenTheWindowDoesNotQuitIt(t *testing.T) {
 	ta := defaultApp(t)
-	ta.updateSettings(func(s *settings.AppSettings) { s.WebInterface, s.Lightweight = true, true })
-	ta.waitFor("the web interface", func(status pair.Status) bool { return status.Running })
+	ta.updateSettings(func(s *settings.AppSettings) {
+		s.WebRemote, s.WebPort, s.Lightweight = true, testsupport.FreePort(t), true
+	})
+	ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 	ta.openSettings()
 	ta.mustText("Quit vfox+")
 	ta.buttonNear("Quit vfox+", "Quit")
@@ -519,17 +488,23 @@ func TestAFingerprintBreaksIntoLinesOfWholeBytes(t *testing.T) {
 	}
 }
 
-func TestTheApplicationNeedsAWebInterface(t *testing.T) {
+func TestTheApplicationNeedsItsServerForOtherDevices(t *testing.T) {
 	model := defaultApp(t).app.model
 	if _, err := New(Options{Model: model, Environment: map[string]string{}}); err == nil {
-		t.Error("the settings switch the web interface; without one there is nothing to switch")
+		t.Error("the settings switch the server for other devices; without one there is nothing to switch")
 	}
 }
 
-func TestOldSettingsOfTheRemoteSwitchKeepTheWebInterface(t *testing.T) {
+// The switch of the first versions, remoteAccess, turned on the web interface of this computer. It turns on nothing now.
+func TestTheRetiredRemoteAccessSwitchTurnsNothingOn(t *testing.T) {
 	store := settings.NewMemorySettingsStore(settings.SettingsFromJSON(map[string]interface{}{"remoteAccess": true}))
 	ta := newTestApp(t, testsupport.FixtureRunner(), windowWidth, windowHeight, store)
 	ta.app.model.Settings.Load()
 	ta.web.Apply()
-	ta.waitFor("the web interface of the last run", func(status pair.Status) bool { return status.Running })
+	if status := ta.web.Status(); status.Remote {
+		t.Errorf("the old switch serves nothing: %v", status)
+	}
+	if ta.app.model.Settings.Settings().WebRemote {
+		t.Error("the old switch allows no device")
+	}
 }

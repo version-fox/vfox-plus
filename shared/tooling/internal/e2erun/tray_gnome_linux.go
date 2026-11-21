@@ -164,12 +164,9 @@ func gnomeScenario(s *appsession.Session, host *trayhost.Host, sh shellOf) {
 	poll(s, "the shell to show the new icon", trayWait, func() bool { return visible(s, sh, secondKey) })
 	poll(s, "the shell to make the menu of the new icon", trayWait, func() bool { return menuOf(s, sh, secondKey) == strings.Join(trayMenu, "|") })
 
-	s.Step("the shell chooses Open the web interface")
-	click(s, sh, secondKey, menuWeb)
-	link := waitForTheBrowser(s)
-	s.Check(strings.HasPrefix(link, "http://127.0.0.1:") && strings.Contains(link, "/auth/connect/"), "the browser is told to open a link that pairs it: "+link)
-	checkLink(s, link)
-	s.Check(!s.HasWindow() && s.Alive(), "opening the web interface leaves the application as it is")
+	s.Step("the application opens no browser of this computer")
+	expectNoBrowser(s)
+	s.Check(!s.HasWindow() && s.Alive(), "the application is as it was")
 
 	s.Step("the shell chooses Quit vfox+")
 	click(s, sh, secondKey, menuQuit)

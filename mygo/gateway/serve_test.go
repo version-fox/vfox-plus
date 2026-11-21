@@ -170,7 +170,7 @@ func TestTheGatewayServesHTTPSAndSaysHowToPairABrowser(t *testing.T) {
 	}
 	page, _ = io.ReadAll(response.Body)
 	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK || !strings.Contains(string(page), "the page of the instance") {
+	if response.StatusCode != http.StatusOK || !strings.Contains(string(page), "/api/events") {
 		t.Errorf("after pairing the gateway: %d %.300s", response.StatusCode, page)
 	}
 	if response.Request.URL.Path != "/app" {

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # The memory of the implementation in a pull request. The workflows of mygo
-# and android measure the application and upload the results as the artifacts
+# and phone measure the application and upload the results as the artifacts
 # memory-mygo, memory-lightweight, memory-lightweight-private and memory-android.
 # When the runs have ended for the latest commit of a pull request, this workflow
 # writes one comment on it: the memory with the difference from the latest numbers of
@@ -34,8 +34,8 @@ on:
   workflow_run:
     # The workflows that measure the implementation, by name. Keep this in sync
     # with MEMORY_IMPLEMENTATIONS below, which has its file name, and with the
-    # android workflow, whose run carries the APK section of the report.
-    workflows: [mygo, android]
+    # phone workflow, whose run carries the APK section of the report.
+    workflows: [mygo, phone]
     types: [completed]
   workflow_dispatch:
     inputs:

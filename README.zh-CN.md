@@ -24,7 +24,7 @@
 
 从[用户指南](docs/zh-CN/user/index.md)（[English](docs/en/user/index.md)）开始：
 功能、[安装](docs/zh-CN/user/install.md)、[使用](docs/zh-CN/user/using.md)、
-[网页界面](docs/zh-CN/user/remote.md)、[安卓 App](docs/zh-CN/user/android.md) 与
+[其他设备](docs/zh-CN/user/remote.md)、[手机端 App](docs/zh-CN/user/android.md) 与
 [网关](docs/zh-CN/user/gateway.md)（Docker）。
 
 ## 截图
@@ -41,7 +41,7 @@
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![插件](https://iili.io/nmPmysS.png) | ![设置](https://iili.io/nyiMbzQ.png) |
+| ![插件](https://iili.io/nmPmysS.png) | ![设置](https://iili.io/oFDBArX.png) |
 
 | 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |

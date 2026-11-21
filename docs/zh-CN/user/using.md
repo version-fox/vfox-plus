@@ -34,14 +34,14 @@
 [vfox-flutter](https://github.com/version-fox/vfox-flutter)、
 [vfox-gradle](https://github.com/version-fox/vfox-gradle)、
 [vfox-golang](https://github.com/version-fox/vfox-golang) 与 [vfox-python](https://github.com/version-fox/vfox-python) 的功能不止列出版本，vfox-plus
-把这些功能都提供出来，桌面应用、Web 界面和安卓应用都一样。用别名添加的插件，如
+把这些功能都提供出来：桌面应用与网关的 Web 界面都有，手机端 App 也有，差别见[与桌面应用的区别](android.md#与桌面应用的区别)。用别名添加的插件，如
 `vfox add --alias coffee java`，与它所自出的插件提供同样的功能：
 
 - **Java 的发行版。** 单独的 `vfox search java` 只列出 jdk.java.net 上的 OpenJDK。列表上方的
   按钮（**发行版：OpenJDK**）会打开 31 个发行版的列表，例如 Temurin、Zulu、Liberica、Corretto 与
   GraalVM，可以按名称、简称或厂商筛选；**全部发行版**一次列出所有发行版约 2700 个版本，并标明每个版本
   属于哪个发行版。你的选择会被记住，下次打开该插件和重启之后仍然生效；它保存在桌面应用的设置里，所以
-  Web 界面和安卓应用显示的是同一个选择。这和 `vfox search java tem` 是一回事。
+  Web 界面和手机端 App 显示的是同一个选择。这和 `vfox search java tem` 是一回事。
 - **筛选 Chip。** 列表上方的 Chip 按插件对版本的说明来收窄列表：Java 有 LTS 与 JavaFX，Node.js 有 LTS，
   Flutter 有通道（stable、beta、dev、OpenHarmony）与架构（x64、arm64），Python 有 GraalPy 与 GraalPy Community 两种实现。同一行的 Chip 是“或”的关系，
   不同行互相收窄。
@@ -70,7 +70,7 @@
 
 ### Maven 与 PHP
 
-插件 [vfox-maven](https://github.com/version-fox/vfox-maven) 与 [vfox-php](https://github.com/version-fox/vfox-php) 的功能同样不止列出版本，桌面应用、Web 界面和安卓应用都一样：
+插件 [vfox-maven](https://github.com/version-fox/vfox-maven) 与 [vfox-php](https://github.com/version-fox/vfox-php) 的功能同样不止列出版本：桌面应用与 Web 界面都有，手机端 App 也有：
 
 - **按名称安装。** `latest` 安装最新的稳定版；预发布版按名称安装，如 `4.0.0-rc-7`。PHP 的 `latest` 是最新的发行版，在 Windows 上是它的线程安全构建。
 - **PHP 的构建。** 在 Linux 和 macOS 上，不带后缀的版本是非线程安全构建，`-zts` 名称指线程安全构建，如 `8.5.12-zts`；`vfox search php` 不列出 `-zts` 构建。在 Windows 上，不带后缀的版本是线程安全构建，`-nts` 指非线程安全构建。
@@ -119,9 +119,8 @@
 ## 设置
 
 - **外观**：浅色、深色或跟随系统；用桌面强调色或自选色板；语言（English 或简体中文）。
-- **网页界面**：vfox-plus 是否同时向本机浏览器提供它的界面，没有窗口时是否继续运行
-  （轻量模式），以及同一网络中的手机和其他电脑是否可以通过 HTTPS 连接。见
-  [网页界面与其他设备](remote.md)。
+- **其他设备**：同一网络中的手机、网关和其他电脑是否可以通过 HTTPS 连接，没有窗口时是否为它们
+  继续运行（轻量模式）。见[其他设备与轻量模式](remote.md)。
 - **vfox**：用哪个可执行文件（自动探测，也可自选）与下载镜像等额外环境变量。
 - **vfox 配置**：代理、仓库源、存储目录、旧版版本文件、缓存与超时、诊断（`diagnostics.onUse`）与 PATH 顺序（默认 `path.mode` 为 `baseline`，`path.preserve`）——开关、菜单与
   文本框；清空文本框即恢复默认。别名（`vfox alias`）与链接版本（`vfox link`）从 vfox 读取。

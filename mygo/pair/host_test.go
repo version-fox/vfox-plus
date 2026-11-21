@@ -67,45 +67,24 @@ func (f *hostFixture) set(change func(*settings.AppSettings)) {
 	f.host.Apply()
 }
 
-func TestTheWebInterfaceIsServedOnlyWhileTheSettingsSayAndNeverToTheNetworkByDefault(t *testing.T) {
+// Nothing is served to other devices by default, and no link can be made for them until the settings allow it: the
+// application shows no web interface on this computer at all, whatever the settings say.
+func TestOtherDevicesAreAllowedOnlyWhileTheSettingsSayAndNotByDefault(t *testing.T) {
 	f := newHost(t)
 	f.host.Start()
-	if status := f.host.Status(); status.Running || status.Remote || status.LocalURL != "" {
+	if status := f.host.Status(); status.Remote || len(status.Addresses) != 0 {
 		t.Fatalf("nothing is served by default: %v", status)
 	}
-	if _, err := f.host.LocalLink(); !errors.Is(err, pair.ErrNotServing) {
-		t.Errorf("no link without a server, got %v", err)
-	}
 	if _, err := f.host.RemoteLink(""); !errors.Is(err, pair.ErrNoRemote) {
-		t.Errorf("no link for other devices without a server for them, got %v", err)
+		t.Fatalf("no link is made before other devices are allowed, got %v", err)
 	}
-
-	f.set(func(s *settings.AppSettings) { s.WebInterface = true })
-	status := f.host.Status()
-	if !status.Running || !strings.HasPrefix(status.LocalURL, "http://127.0.0.1:") || status.Remote || status.Error != "" {
-		t.Fatalf("the web interface listens on the loopback interface only: %v", status)
+	f.set(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, testsupport.FreePort(t) })
+	if status := f.host.Status(); !status.Remote || status.RemoteError != "" {
+		t.Fatalf("other devices are served once they are allowed: %v", status)
 	}
-	if len(status.Addresses) != 0 || status.Fingerprint != "" {
-		t.Errorf("a server on this computer has no addresses of the network and no certificate: %+v", status)
-	}
-	link, err := f.host.LocalLink()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.HasPrefix(link, status.LocalURL+"/auth/connect/") {
-		t.Errorf("got %q", link)
-	}
-	response := request(t, link, "")
-	if response.StatusCode != http.StatusSeeOther || sessionOf(response.Cookies()) == "" {
-		t.Fatalf("the link pairs a browser, got %d", response.StatusCode)
-	}
-
-	f.set(func(s *settings.AppSettings) { s.WebInterface = false })
-	if status := f.host.Status(); status.Running || status.LocalURL != "" {
-		t.Errorf("turning the web interface off stops it: %v", status)
-	}
-	if _, err := http.Get(link); err == nil { //nolint:gosec,noctx // The test asks the server it stopped.
-		t.Error("the server still answers after it was turned off")
+	f.set(func(s *settings.AppSettings) { s.WebRemote = false })
+	if status := f.host.Status(); status.Remote {
+		t.Errorf("the server stops when other devices are not allowed: %v", status)
 	}
 }
 
@@ -118,11 +97,11 @@ func TestTheHostFollowsTheSettingsAndTellsWhoListens(t *testing.T) {
 
 	// Whoever changes the settings, such as the window or the page, does not wait for the host.
 	f.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
-		current.WebInterface = true
+		current.WebRemote, current.WebPort = true, testsupport.FreePort(t)
 		return current
 	})
 	deadline := time.Now().Add(5 * time.Second)
-	for !f.host.Status().Running {
+	for !f.host.Status().Remote {
 		if time.Now().After(deadline) {
 			t.Fatal("the host did not follow the settings")
 		}
@@ -139,12 +118,12 @@ func TestTheHostFollowsTheSettingsAndTellsWhoListens(t *testing.T) {
 	}
 	stop()
 	f.host.Close()
-	if status := f.host.Status(); status.Running {
+	if status := f.host.Status(); status.Remote {
 		t.Errorf("a closed host serves nothing: %v", status)
 	}
 	f.set(func(s *settings.AppSettings) { s.RailExpanded = false; s.Searches = map[string]string{"java": "tem"} })
 	f.host.Apply()
-	if status := f.host.Status(); status.Running {
+	if status := f.host.Status(); status.Remote {
 		t.Errorf("a closed host stays closed: %v", status)
 	}
 }
@@ -157,7 +136,7 @@ func TestAHostThatIsToldTheAddressesOfTheComputerHasThoseAndNoOthers(t *testing.
 	addresses := []string{"2001:db8::17", "192.0.2.17", "192.0.2.17", "198.51.100.23", "not an address"}
 	f := newHostWith(t, pair.HostOptions{Addresses: func() []string { return addresses }})
 	port := testsupport.FreePort(t)
-	f.set(func(s *settings.AppSettings) { s.WebInterface, s.WebRemote, s.WebPort = true, true, port })
+	f.set(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, port })
 
 	status := f.host.Status()
 	if want := []string{"192.0.2.17", "198.51.100.23", "2001:db8::17"}; !slices.Equal(status.Addresses, want) {
@@ -187,14 +166,14 @@ func TestAHostThatIsToldTheAddressesOfTheComputerHasThoseAndNoOthers(t *testing.
 	}
 }
 
-func TestStartingTheHostWithTheWebInterfaceAlreadyOnServesAtOnce(t *testing.T) {
+func TestStartingTheHostWithOtherDevicesAlreadyAllowedServesAtOnce(t *testing.T) {
 	f := newHost(t)
 	f.model.Settings.Update(func(current settings.AppSettings) settings.AppSettings {
-		current.WebInterface = true
+		current.WebRemote, current.WebPort = true, testsupport.FreePort(t)
 		return current
 	})
 	f.host.Start()
-	if !f.host.Status().Running {
+	if !f.host.Status().Remote {
 		t.Error("the settings of the last run are served at start")
 	}
 	f.host.Start() // A second start follows the settings once.
@@ -203,22 +182,17 @@ func TestStartingTheHostWithTheWebInterfaceAlreadyOnServesAtOnce(t *testing.T) {
 func TestOtherDevicesConnectOverHTTPSAndOnlyWhileAllowed(t *testing.T) {
 	f := newHost(t)
 	port := testsupport.FreePort(t)
-	f.set(func(s *settings.AppSettings) { s.WebInterface = true })
-	// Allowing other devices is not enough without the web interface: it is off here.
-	f.set(func(s *settings.AppSettings) { s.WebInterface, s.WebRemote, s.WebPort = false, true, port })
-	if status := f.host.Status(); status.Running || status.Remote {
-		t.Fatalf("other devices cannot connect to a web interface that is off: %v", status)
+	f.set(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = false, port })
+	if status := f.host.Status(); status.Remote {
+		t.Fatalf("other devices cannot connect before they are allowed: %v", status)
 	}
-	f.set(func(s *settings.AppSettings) { s.WebInterface = true })
+	f.set(func(s *settings.AppSettings) { s.WebRemote = true })
 	status := f.host.Status()
-	if !status.Running || !status.Remote || status.Port != port || status.RemoteError != "" {
+	if !status.Remote || status.Port != port || status.RemoteError != "" {
 		t.Fatalf("got %v", status)
 	}
 	if !status.SelfSigned || len(strings.ReplaceAll(status.Fingerprint, ":", "")) != 64 {
 		t.Errorf("the application makes a certificate for itself and shows its fingerprint: %+v", status)
-	}
-	if status.LocalURL == "" || strings.HasPrefix(status.LocalURL, "https") {
-		t.Errorf("this computer keeps its own server in the clear: %q", status.LocalURL)
 	}
 	if _, err := filepath.Glob(filepath.Join(f.dir, "*.pem")); err != nil {
 		t.Fatal(err)
@@ -242,7 +216,7 @@ func TestOtherDevicesConnectOverHTTPSAndOnlyWhileAllowed(t *testing.T) {
 			t.Fatal(err)
 		}
 		_ = response.Body.Close()
-		if response.StatusCode != http.StatusSeeOther || sessionOf(response.Cookies()) == "" {
+		if response.StatusCode != http.StatusNoContent || sessionOf(response.Cookies()) == "" {
 			t.Errorf("the link pairs a device over TLS, got %d", response.StatusCode)
 		}
 		if _, err := f.host.RemoteLink("203.0.113.77"); !errors.Is(err, pair.ErrNoAddress) {
@@ -268,19 +242,10 @@ func TestOtherDevicesConnectOverHTTPSAndOnlyWhileAllowed(t *testing.T) {
 		}
 	}
 
-	// A device on the network is paired with its own server: the links of this computer do not pair it.
-	local, err := f.host.LocalLink()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(local, strconv.Itoa(port)) {
-		t.Errorf("the link for this computer is for its own server: %q", local)
-	}
-
 	// Turning the access off closes the server, with the connections that it holds.
 	f.set(func(s *settings.AppSettings) { s.WebRemote = false })
-	if status := f.host.Status(); !status.Running || status.Remote || len(status.Addresses) != 0 || status.Fingerprint != "" {
-		t.Errorf("only the server for other devices stops: %v", status)
+	if status := f.host.Status(); status.Remote || len(status.Addresses) != 0 || status.Fingerprint != "" {
+		t.Errorf("the server stops when the access of other devices is turned off: %v", status)
 	}
 	if _, err := f.host.RemoteLink(""); !errors.Is(err, pair.ErrNoRemote) {
 		t.Errorf("got %v", err)
@@ -297,7 +262,7 @@ func hostPort(host string, port int) string { return net.JoinHostPort(host, strc
 func TestTurningTheAccessOffEndsTheConnectionOfADeviceThatUsesIt(t *testing.T) {
 	f := newHost(t)
 	port := testsupport.FreePort(t)
-	f.set(func(s *settings.AppSettings) { s.WebInterface, s.WebRemote, s.WebPort = true, true, port })
+	f.set(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, port })
 	if !f.host.Status().Remote {
 		t.Fatalf("got %v", f.host.Status())
 	}
@@ -378,9 +343,9 @@ func TestOtherDevicesCannotConnectWhenThePortIsTakenOrTheCertificateIsWrong(t *t
 	if !settings.ValidWebPort(port) {
 		t.Skipf("the system gave the port %d, which the settings do not accept", port)
 	}
-	f.set(func(s *settings.AppSettings) { s.WebInterface, s.WebRemote, s.WebPort = true, true, port })
+	f.set(func(s *settings.AppSettings) { s.WebRemote, s.WebPort = true, port })
 	status := f.host.Status()
-	if !status.Running || status.Remote || status.RemoteError == "" {
+	if status.Remote || status.RemoteError == "" {
 		t.Fatalf("a port in use is no reason to stop the web interface for this computer, but it is a reason to say so: %v", status)
 	}
 	if _, err := f.host.RemoteLink(""); !errors.Is(err, pair.ErrNoRemote) {
@@ -401,7 +366,7 @@ func TestOtherDevicesCannotConnectWhenThePortIsTakenOrTheCertificateIsWrong(t *t
 	} {
 		f.set(func(s *settings.AppSettings) { s.WebCertificate, s.WebKey = "", "" })
 		f.set(change)
-		if status := f.host.Status(); !status.Running || status.Remote || status.RemoteError == "" {
+		if status := f.host.Status(); status.Remote || status.RemoteError == "" {
 			t.Errorf("%s: %v", name, status)
 		}
 	}
@@ -419,7 +384,7 @@ func TestTheCertificateOfTheUserIsTheOneThatOtherDevicesGet(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.set(func(s *settings.AppSettings) {
-		s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(t)
+		s.WebRemote, s.WebPort = true, testsupport.FreePort(t)
 		s.WebCertificate, s.WebKey = certFile, keyFile
 	})
 	status := f.host.Status()

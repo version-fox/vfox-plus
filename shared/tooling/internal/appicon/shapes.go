@@ -29,9 +29,9 @@ const (
 	foxScale = 0.96
 )
 
-// The same fox on the adaptive icon of Android (ic_launcher_foreground.xml and
-// ic_launcher_background.xml), where the launcher crops the canvas to a circle or a squircle
-// of 72 of its 108 dp, so that the fox is smaller and the halo too.
+// The same fox on the adaptive icon of the phone app (the foreground that RenderAdaptiveForeground
+// draws, see phone.go), where the launcher crops the canvas to a circle or a squircle of 72 of its
+// 108 dp, so that the fox is smaller and the halo too.
 const (
 	androidHaloScale = 0.7
 	androidFoxX      = 65.6
@@ -39,8 +39,9 @@ const (
 	androidFoxScale  = 0.78
 )
 
-// androidBackground is the plate of the adaptive icon, which has no rounded corners.
-const androidBackground = "M0,0H256V256H0Z"
+// androidBackground is the plate of the adaptive icon, which has no rounded corners. It is written
+// with the commands that parsePath reads, as the other shapes are.
+const androidBackground = "M0,0L256,0L256,256L0,256Z"
 
 var (
 	plate = shape{id: "plate-shape", fill: "url(#plate)", d: "M66,8 L190,8 C222,8 248,34 248,66 L248,190 C248,222 222,248 190,248 L66,248 C34,248 8,222 8,190 L8,66 C8,34 34,8 66,8 Z"}
@@ -58,10 +59,6 @@ var (
 		{id: "spark-right", fill: "#FFFFFF", d: "M109.8,81.6 C109.8,79.7 111.3,78.2 113.2,78.2 C115.1,78.2 116.6,79.7 116.6,81.6 C116.6,83.5 115.1,85 113.2,85 C111.3,85 109.8,83.5 109.8,81.6 Z"},
 		{id: "nose", fill: "#17123F", d: "M77.4,124 L82.6,124 C87.2,124 89.8,129.3 87,133 L86.3,133.9 C83.1,138 76.9,138 73.7,133.9 L73,133 C70.2,129.3 72.8,124 77.4,124 Z"},
 	}
-
-	// maskMono is the fur of the monochrome icon: it stops above the nose, which is cut out of the
-	// cheeks only. The Android icon is the only one that has it.
-	maskMono = "M71,35.5 L64.7,32.4 C62.9,31.5 61.3,30.3 59.9,28.8 L42,10.5 C33,1.3 17.5,5.2 13.8,17.5 L4.9,47.7 C3.7,51.7 4.4,56 6.7,59.5 L26.6,88.9 C28.8,92.3 31.9,95 35.4,96.8 L72.6,116.2 C77.2,118.6 82.8,118.6 87.4,116.2 L124.6,96.8 C128.1,95 131.2,92.3 133.4,88.9 L153.3,59.5 C155.6,56 156.3,51.7 155.1,47.7 L146.2,17.5 C142.5,5.2 127,1.3 118,10.5 L100.1,28.8 C98.7,30.3 97.1,31.5 95.3,32.4 L89,35.5 C83.3,38.3 76.7,38.3 71,35.5 Z"
 
 	gradients = []gradient{
 		{id: "plate", x1: 8, y1: 8, x2: 248, y2: 248, stops: []stop{{0, "#5444E4", 1}, {1, "#1B1268", 1}}},

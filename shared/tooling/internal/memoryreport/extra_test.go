@@ -71,18 +71,18 @@ func TestParseExtras(t *testing.T) {
 	}
 }
 
-// extrasFixture builds the API with the mygo and android workflows, one pull
+// extrasFixture builds the API with the mygo and phone workflows, one pull
 // request, and baselines on main for the two extra artifacts.
 func extrasFixture() *FakeAPI {
 	f := newFakeAPI()
 	f.addWorkflow("mygo", "mygo", "")
-	f.addWorkflow("android", "android", "")
+	f.addWorkflow("phone", "phone", "")
 	f.addPullRequest(7, "", "")
 	f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{11, 10, 1}, [3]int{12, 11, 1})},
 		artifactOptions{name: LightweightArtifact})
 	f.addArtifact("mygo", map[string]string{"memory.txt": privateText(14336, 14848)},
 		artifactOptions{name: LightweightPrivateArtifact})
-	f.addArtifact("android", map[string]string{"memory.txt": androidText([3]int{200, 180, 1})},
+	f.addArtifact("phone", map[string]string{"memory.txt": androidText([3]int{200, 180, 1})},
 		artifactOptions{name: AndroidArtifact})
 	return f
 }
@@ -113,8 +113,8 @@ func TestCollectExtras(t *testing.T) {
 			artifactOptions{runID: mygo, name: LightweightArtifact, branch: "feature", sha: testHead})
 		f.addArtifact("mygo", map[string]string{"memory.txt": privateText(14848, 19456)},
 			artifactOptions{runID: mygo, name: LightweightPrivateArtifact, branch: "feature", sha: testHead})
-		android := f.addRun("android", runOptions{})
-		f.addArtifact("android", map[string]string{"memory.txt": androidText([3]int{205, 182, 1})},
+		android := f.addRun("phone", runOptions{})
+		f.addArtifact("phone", map[string]string{"memory.txt": androidText([3]int{205, 182, 1})},
 			artifactOptions{runID: android, name: AndroidArtifact, branch: "feature", sha: testHead})
 		repo := f.repository(t)
 		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
@@ -142,7 +142,7 @@ func TestCollectExtras(t *testing.T) {
 		if loaded := lightweight.Rows[5]; loaded.PR != "19.0 MB (**+4.5**)" || loaded.Main != "14.5 MB" {
 			t.Fatalf("loaded private = %+v", loaded)
 		}
-		apk := findExtra(extras, "Android client")
+		apk := findExtra(extras, "Phone app")
 		if apk == nil || len(apk.Rows) != 2 {
 			t.Fatalf("apk = %+v", apk)
 		}
@@ -162,13 +162,13 @@ func TestCollectExtras(t *testing.T) {
 
 	t.Run("running run is pending", func(t *testing.T) {
 		f := extrasFixture()
-		f.addRun("android", runOptions{status: "in_progress", conclusion: ""})
+		f.addRun("phone", runOptions{status: "in_progress", conclusion: ""})
 		repo := f.repository(t)
 		extras, err := CollectExtras(context.Background(), repo, extrasRuns(t, repo), "main")
 		if err != nil {
 			t.Fatal(err)
 		}
-		apk := findExtra(extras, "Android client")
+		apk := findExtra(extras, "Phone app")
 		if apk == nil || apk.Note != "Still running; the report is written again when it ends." {
 			t.Fatalf("apk = %+v", apk)
 		}
@@ -177,7 +177,7 @@ func TestCollectExtras(t *testing.T) {
 	t.Run("missing numbers fail, missing everything is left out", func(t *testing.T) {
 		f := newFakeAPI()
 		f.addWorkflow("mygo", "mygo", "")
-		f.addWorkflow("android", "android", "")
+		f.addWorkflow("phone", "phone", "")
 		f.addPullRequest(7, "", "")
 		f.addRun("mygo", runOptions{})
 		repo := f.repository(t)
@@ -192,9 +192,9 @@ func TestCollectExtras(t *testing.T) {
 		if lightweight == nil || lightweight.Note != "No numbers: the job did not upload them." {
 			t.Fatalf("lightweight = %+v", lightweight)
 		}
-		// No android run and no android baseline: no section.
-		if findExtra(extras, "Android client") != nil {
-			t.Fatal("want no android section")
+		// No phone run and no phone baseline: no section.
+		if findExtra(extras, "Phone app") != nil {
+			t.Fatal("want no Android section")
 		}
 	})
 
@@ -237,7 +237,7 @@ func TestCollectExtras(t *testing.T) {
 	t.Run("no baseline says so", func(t *testing.T) {
 		f := newFakeAPI()
 		f.addWorkflow("mygo", "mygo", "")
-		f.addWorkflow("android", "android", "")
+		f.addWorkflow("phone", "phone", "")
 		f.addPullRequest(7, "", "")
 		mygo := f.addRun("mygo", runOptions{})
 		f.addArtifact("mygo", map[string]string{"memory.txt": lightweightText([3]int{12, 10, 1}, [3]int{13, 12, 1})},
@@ -283,14 +283,14 @@ func TestRenderInsertExtras(t *testing.T) {
 	}
 }
 
-func TestReportWaitsForAndroid(t *testing.T) {
+func TestReportWaitsForPhone(t *testing.T) {
 	f := newFakeAPI()
 	f.addWorkflow("mygo", "mygo", "")
-	f.addWorkflow("android", "android", "")
+	f.addWorkflow("phone", "phone", "")
 	f.addPullRequest(7, "", "")
 	f.addArtifact("mygo", map[string]string{"memory.txt": defaultMemoryText()}, artifactOptions{})
 	mygo := f.addRun("mygo", runOptions{hasText: true, text: defaultMemoryText()})
-	f.addRun("android", runOptions{status: "in_progress", conclusion: ""})
+	f.addRun("phone", runOptions{status: "in_progress", conclusion: ""})
 	var outBuffer, errBuffer bytes.Buffer
 	oldOut, oldErr := stdout, stderr
 	stdout, stderr = &outBuffer, &errBuffer
@@ -298,7 +298,7 @@ func TestReportWaitsForAndroid(t *testing.T) {
 	if _, err := Report(context.Background(), f.repository(t), []string{"mygo"}, map[string]string{}, &mygo, 0, false); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(errBuffer.String(), "Waiting for android") {
+	if !strings.Contains(errBuffer.String(), "Waiting for phone") {
 		t.Fatalf("errors = %q", errBuffer.String())
 	}
 	if len(f.comments) != 0 {

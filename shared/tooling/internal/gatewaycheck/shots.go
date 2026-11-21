@@ -34,7 +34,7 @@ import (
 
 // `vfxtool gateway-shots` takes the pictures of the pages of the gateway for the documentation. It does what
 // `gateway-check` does, with a browser in the place of the person's: the end-to-end build of the application with
-// the web interface and "other devices" switched on, the program of the gateway, and a headless Chrome that pairs
+// "other devices" switched on, the program of the gateway, and a headless Chrome that pairs
 // itself with the gateway, pastes the link of the application, compares the fingerprint and uses the interface.
 // The pictures are what that Chrome shows at each step.
 
@@ -141,9 +141,9 @@ func Shots(args []string) error {
 	}
 	return appsession.RunScenario(appsession.Config{
 		Name: "gateway-shots", Command: command, Fixtures: appsession.FixturesDir(root),
-		// The settings that a person switches on: the web interface and other devices, on the port that vfox-plus
-		// has until it is changed, which the pictures show.
-		Settings: map[string]any{"webInterface": true, "webRemote": true},
+		// The settings that a person switches on: other devices, on the port that vfox-plus has until it is
+		// changed, which the pictures show.
+		Settings: map[string]any{"webRemote": true},
 		Env:      []string{"VFOX_PLUS_E2E_LINK=" + taker.linkFile, "VFOX_PLUS_E2E_ADDRESSES=" + documentationAddress},
 	}, "gateway-shots", taker.scenario)
 }

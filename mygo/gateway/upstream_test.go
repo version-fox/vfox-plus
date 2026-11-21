@@ -156,17 +156,21 @@ func TestWhatAnInstanceAnswersToAPairingLinkThatIsNotAPairingIsSaid(t *testing.T
 		is     error
 	}{
 		"a refusal": {func(w http.ResponseWriter, r *http.Request) { http.Error(w, "no", http.StatusForbidden) }, "", errRefused},
-		"a page that is not a redirect": {func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("hello")) },
+		"a page instead of no content": {func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("hello")) },
 			"is not what an instance of vfox+ does", nil},
-		"a redirect without a session": {func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/app", http.StatusSeeOther) },
+		"a redirect, even with a session": {func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{Name: instanceCookie, Value: "session", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+			http.Redirect(w, r, "/app", http.StatusSeeOther)
+		}, "is not what an instance of vfox+ does", nil},
+		"no content without a session": {func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) },
 			"gave the gateway no session", nil},
-		"a redirect with another cookie": {func(w http.ResponseWriter, r *http.Request) {
+		"no content with another cookie": {func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{Name: "other", Value: "x", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-			http.Redirect(w, r, "/app", http.StatusSeeOther)
+			w.WriteHeader(http.StatusNoContent)
 		}, "gave the gateway no session", nil},
-		"a redirect with an empty session": {func(w http.ResponseWriter, r *http.Request) {
+		"no content with an empty session": {func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{Name: instanceCookie, Value: "", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-			http.Redirect(w, r, "/app", http.StatusSeeOther)
+			w.WriteHeader(http.StatusNoContent)
 		}, "gave the gateway no session", nil},
 	}
 	for name, c := range cases {
@@ -186,9 +190,10 @@ func TestWhatAnInstanceAnswersToAPairingLinkThatIsNotAPairingIsSaid(t *testing.T
 }
 
 func TestAPairingLinkIsNotFollowedWhereTheInstanceSendsIt(t *testing.T) {
-	// The answer of the instance is the redirect, and the cookie it sets is what is wanted; following it
-	// would go where the instance says, which is of no use and, for an address that is not an instance, a way to
-	// make the gateway ask for pages.
+	// An instance answers a link with its cookie and no content. A redirect is not that answer, and it is not
+	// followed either: following it would go where the instance says, which is of no use and, for an address that
+	// is not an instance, a way to make the gateway ask for pages. So the pairing is refused, and nothing is asked
+	// of the address that the redirect names.
 	visited := make(chan string, 4)
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { visited <- r.URL.Path }))
 	defer target.Close()
@@ -198,8 +203,8 @@ func TestAPairingLinkIsNotFollowedWhereTheInstanceSendsIt(t *testing.T) {
 	}))
 	defer fake.Close()
 	session, err := newUpstream(mustURL(t, fake.URL), nil, nil).pairWith(context.Background(), "abcdefgh12345678")
-	if err != nil || session != "session" {
-		t.Fatalf("pairWith = %q, %v", session, err)
+	if err == nil || session != "" {
+		t.Fatalf("pairWith = %q, %v, want the redirect refused", session, err)
 	}
 	select {
 	case path := <-visited:

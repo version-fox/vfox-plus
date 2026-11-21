@@ -31,11 +31,14 @@ import (
 // annotation, so that vfxtool does not print it a second time.
 var ErrReported = errors.New("reported as an annotation")
 
-// The files that carry the version, from the root of the checkout.
+// The files that carry the version, from the root of the checkout. PhoneConfigFile is
+// the configuration of the phone app, which mygo builds: its version is the one of the
+// desktop, so that the APK is named and numbered as the release is.
 const (
-	VersionFile  = "mygo/VERSION"
-	AppFile      = "mygo/ui/app.go"
-	MetainfoFile = "shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml"
+	VersionFile     = "mygo/VERSION"
+	AppFile         = "mygo/ui/app.go"
+	MetainfoFile    = "shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml"
+	PhoneConfigFile = "mygo/phone/mygo.json"
 )
 
 // EventManual is the event of a run that someone starts by hand, with the

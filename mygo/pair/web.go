@@ -15,31 +15,17 @@
 package pair
 
 import (
-	"bytes"
-	_ "embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/state"
 )
 
-//go:embed webapp.html
-var webappHTML []byte
-
-// The page around its two placeholders: the favicon link in the head, and the
-// icon in the brand mark of the navigation rail. The page is written in
-// pieces, so that serving it copies nothing.
-var (
-	webappHead, webappRest, _   = bytes.Cut(webappHTML, []byte(faviconPlaceholder))
-	webappMiddle, webappTail, _ = bytes.Cut(webappRest, []byte(logoPlaceholder))
-)
-
-// Web UI routes served by Server when it owns an AppModel:
+// Routes served by Server when it owns an AppModel. The page of the interface
+// is not one of them: the gateway serves it, and makes the calls below:
 //
-//	/app                  the single-page interface (paired browsers only)
 //	/api/inventory        installed SDKs, registry plugins and vfox config
 //	/api/sdks/<name>/info    plugin metadata
 //	/api/sdks/<name>/versions  installable versions
@@ -58,26 +44,11 @@ var (
 //	/api/quit             end the application (POST)
 //	/api/events           server-sent events: task, inventory, vfox and web
 //
-// Every route except the intro and the pairing links needs a paired session.
-// State-changing routes additionally refuse the cross-origin requests of
-// browsers (see requireSameOrigin), so that a foreign page cannot drive a paired
-// browser. Requests that no browser sent, like curl, are allowed through: the
-// session cookie is the credential.
-func (s *Server) serveApp(writer http.ResponseWriter, request *http.Request) {
-	if !s.hasSession(request) {
-		http.Redirect(writer, request, "/", http.StatusFound)
-		return
-	}
-	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	writer.Header().Set("Cache-Control", "no-store")
-	_, _ = writer.Write(webappHead)
-	_, _ = io.WriteString(writer, faviconLink)
-	_, _ = writer.Write(webappMiddle)
-	_, _ = io.WriteString(writer, faviconURI)
-	_, _ = writer.Write(webappTail)
-}
-
-// requireSession rejects unpaired browsers.
+// requireSession rejects unpaired browsers. Every route of the API needs a paired
+// session, except the pairing links. State-changing routes additionally refuse
+// the cross-origin requests of browsers (see requireSameOrigin), so that a
+// foreign page cannot drive a paired browser. Requests that no browser sent, like
+// curl, are allowed through: the session cookie is the credential.
 func (s *Server) requireSession(writer http.ResponseWriter, request *http.Request) bool {
 	if !s.hasSession(request) {
 		http.Error(writer, "Not paired. Open a pairing link first.", http.StatusUnauthorized)

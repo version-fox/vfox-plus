@@ -48,17 +48,30 @@
 
 4. 在 Pull Request 中说明改了什么、怎么测试的。界面变化附浅色和深色主题截图。
 
+## 手机端应用
+
+手机端应用是 [`mygo/phone`](../../../mygo/phone)，由 mygo CLI 为安卓构建（见[手机端打包](packaging-android.md)）。在装好了 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 所钉住工具的机器上，或在已装好它们的[开发容器](environment.md#开发容器)里，于仓库根目录构建：
+
+```sh
+vfxtool prepare --root mygo
+vfxtool appicon mygo/phone/resources
+cd mygo/phone && mygo build -platform android/amd64
+```
+
+`vfxtool prepare` 收集 `mygo` 模块编译进去、手机端应用会引入的翻译、图标与许可证，`vfxtool appicon` 写出应用的图标；
+git 都忽略它们（开发容器创建时两个都已运行过）。APK 与 AAB 在 `mygo/phone/dist/android/` 里，用本机的 debug 密钥签名。要在 Linux 上不用模拟器看屏幕，于 `mygo/` 运行 `go run ./phone`，应用会在手机大小的窗口里打开。要在模拟器上与桌面应用配对，见[运行 App](environment.md#运行-app)。
+
 ## 持续集成
 
 | 工作流 | 触发 | 检查 |
 | --- | --- | --- |
 | [`repository.yml`](../../../.github/workflows/repository.yml) | 每次变更 | 许可证头（SkyWalking Eyes）、工作流（actionlint）、vfxtool（`gofmt`、`go vet`、`go test`）、文档语言与链接（`vfxtool docs-check`）、Markdown（markdownlint）、共享 JSON、无二进制文件 |
-| [`memory.yml`](../../../.github/workflows/memory.yml) | 构建工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
+| [`memory.yml`](../../../.github/workflows/memory.yml) | `mygo` 或 `phone` 工作流结束、Pull Request | 在 Pull Request 下评论应用内存及与 `main` 的差异（见[内存评论](memory.md#pull-request-中的内存)） |
 | [`mygo.yml`](../../../.github/workflows/mygo.yml) | `mygo/`、`shared/` | 格式化与 lint（golangci-lint，含端到端构建标签）、带竞态检测的单元测试与覆盖率门禁、Go 模块许可证、驱动构建好的应用的端到端场景（夹具与真实 vfox）、构建并对着应用运行的网关 Docker 镜像、内存测量、在 Linux、Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取桌面应用各屏幕的普查、发布构建与冒烟测试、amd64 的 `.deb` 与 `.tar.gz`（lintian 校验并装入干净 Ubuntu 容器），由这个 `.deb` 打包的 core26 classic snap（装好并启动），arm64 的 `.deb` 与 `.tar.gz`（lintian 校验，并核对程序的机器类型；没有 arm64 机器装它们），以及 Windows 11 未签名 `.msix` 和 `.msixbundle`（x64 与 arm64，Linux 上 `vfxtool validate-msix` 校验，Windows Server 2025（x64）与 ARM 版 Windows 11（arm64）上校验并安装/卸载） |
 | [`sandboxes.yml`](../../../.github/workflows/sandboxes.yml) | `mygo/sandbox/`、`mygo/versions.env`、`shared/sandbox/`、`shared/tooling/` | 构建 Docker 沙箱并在其中分别跑各部分（`vfxtool sandbox check`、`e2e`、`package` 与普查的四组），每部分一个任务 |
-| [`android.yml`](../../../.github/workflows/android.yml) | `android/`、`mygo/pair/`、`mygo/VERSION` | 构建 release APK（用任务临时生成并丢弃的密钥签名）并作为 `vfox-plus-android` 上传 |
-| [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`android/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、Android 构建，以及用到 Docker 的检查 |
-| [`release.yml`](../../../.github/workflows/release.yml) | 在 `main` 上手动，或 `v*` 标签 | 设定版本并提交到 `main`，打 `v<版本>` 标签，打包（含 Linux arm64 与 APK）并发布 GitHub release，自更新检查读取的就是它 |
+| [`phone.yml`](../../../.github/workflows/phone.yml) | `mygo/phone/`、`mygo/pair/`、`mygo/ui/kit/`、`mygo/VERSION`、`mygo/go.mod`、`mygo/go.sum`、`mygo/versions.env`、`shared/tooling/`、`shared/icons.json`、`shared/scripts/sign-apk.ps1` | 为 x86_64 模拟器构建[手机端应用](#手机端应用)的 APK 与 AAB（用 debug 密钥签名），并在模拟器上对着假 vfox 驱动它：经深链与桌面应用配对，逐个访问五个标签页，冷启动测五次取中位数、配对后测一次（见[手机端应用](memory.md#手机端应用)），并拍下它的指南用的图（[截图](#截图)）。Windows 运行器上的一个任务演练发布用的 APK 的签名（见[签名状态](packaging-android.md#签名状态)） |
+| [`devcontainer.yml`](../../../.github/workflows/devcontainer.yml) | `.devcontainer/`、`mygo/versions.env`、`mygo/phone/versions.env` | 构建[开发容器](environment.md#开发容器)，像编辑器那样启动并使用它：对照固定版本的工具、lint、虚拟显示里的端到端场景、手机端应用的构建，以及用到 Docker 的检查 |
+| [`release.yml`](../../../.github/workflows/release.yml) | 在 `main` 上手动，或 `v*` 标签 | 设定版本并提交到 `main`，打 `v<版本>` 标签，打包（含 Linux arm64 与手机端 APK）并发布 GitHub release，自更新检查读取的就是它 |
 
 Dependabot 负责 Go 模块和 GitHub Actions 的更新；action 按提交 SHA 锁定。
 
@@ -79,13 +92,13 @@ Ubuntu 包：下载的压缩包按包列表和周做缓存，每次 8 个文件�
 
 1. Actions、Release、Run workflow。分支保持为 `main`，任务会拒绝其他分支。输入不带 `v` 的版本号，例如 `1.0.0`。
 2. 任务在改动任何东西之前先检查请求：版本须是 `major.minor.patch` 的形式，比最新的标签新，且还没有对应的标签。`main` 上最近一次 `mygo` 运行必须已通过：发布只做 `go vet` 和冒烟测试，不跑测试。
-3. 构建任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），Windows 的 `.msix` 包以其证书的发布者构建，Android APK 不带密钥构建，外加 `snap/snapcraft.yaml` 的 classic snap。它不推送任何东西。
+3. 构建任务把版本写入 `mygo/VERSION`、`mygo/ui/app.go` 的 `Version` 常量、`mygo/phone/mygo.json` 的 `version`，以及 [metainfo](../../../shared/packaging/linux/dev.vfox.VfoxPlus.metainfo.xml) 的 `<releases>` 列表，并以发起运行的人的名义提交。它构建 [`mygo.yml`](#持续集成) 里那些打包的产物（amd64 与 arm64），Windows 的 `.msix` 包以其证书的发布者构建，手机端的 APK 用 debug 密钥构建（发布时由下一步替换），外加 `snap/snapcraft.yaml` 的 classic snap。它不推送任何东西。
 4. `sign-windows` 任务等待批准，然后用 Artifact Signing 给 Windows 包签名，并安装 bundle 来检查（见[发布的签名](packaging-windows.md#发布的签名)），再用发布密钥签名 APK（见[签名状态](packaging-android.md#签名状态)）。
 5. 发布任务给 Linux 的包做构建证明，并检查发布的文件。只有这之后，它才把提交推到 `main`、打 `v<版本>` 标签，并以 `--generate-notes` 发布 GitHub release。release 含 Linux 的 `.deb` 与 `.tar.gz`（amd64 与 arm64）、APK、snap（amd64），以及每个架构已签名的 `.msix` 与已签名的 `.msixbundle`。自更新检查只读当前平台的 `.deb` 或 `.tar.gz`，以及 `.msix` 或 `.msixbundle`；其余供手动使用。
 
-APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。发布的 secret 与 Windows 签名的身份都在 `release` 环境里。运行要在签名之前等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次；发布紧接着进行，不再等第二次。仓库管理员发起的运行可以跳过审批。
+APK 用发布密钥签名，每个 release 都是同一把（见[签名状态](packaging-android.md#签名状态)），所以新版本直接装在旧版本上；任务没有这把密钥就拒绝运行。发布的 secret 与 Windows 签名的身份都在 `release` 环境里。运行要在 `sign-windows` 签名 Windows 包与 APK 之前，等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次；发布紧接着进行，不再等第二次。仓库管理员发起的运行可以跳过审批。
 
-勾选 `dry-run` 则构建、签名并安装全部东西，但不推送、不打标签、不发布。签名或 secret 有改动时，先这样运行一次。
+勾选 `dry-run` 则构建、签名并安装全部东西，但不推送、不打标签、不发布。签名或 secret 有改动时，先这样运行一次。在那之前，APK 的签名每次有改动都已由 [`phone.yml`](../../../.github/workflows/phone.yml) 的 `signing` 任务用发布的脚本和任务自己生成的密钥演练过：dry run 多出来的，是只有发布才有的部分，即它的 secret、Azure 的步骤与批准（见[签名状态](packaging-android.md#签名状态)）。
 
 版本提交不会在 `main` 上启动 CI 运行：工作流自己的令牌推送的提交，GitHub 不会启动任何工作流。所以那个提交上不跑测试：它之前最近一次 `mygo` 运行才算数，这就是任务要检查它的原因。
 
@@ -105,7 +118,7 @@ Pull Request 提交。中文逐节对照，代码块、命令行、文件路径�
 | `docs/en/dev/*.md` | `docs/zh-CN/dev/*.md`（同名） |
 
 用户指南（`user/`）给运行 vfox-plus 的人看：安装、使用桌面应用、浏览器与
-Android 客户端，绝不涉及源码构建、仓库布局、vfox CLI 契约等开发者话题。
+手机端应用，绝不涉及源码构建、仓库布局、vfox CLI 契约等开发者话题。
 开发者规约（`dev/`）给贡献者看：架构、契约、界面与设计规约、打包与工具链。
 
 仓库根与源码目录只保留薄入口
@@ -151,10 +164,8 @@ docker run --rm --volume "$PWD:/workdir" \
 <https://fonts.google.com/icons>（`history`、`folder_open`），其余不用加：构建时 `vfxtool prepare`
 从锁定的 npm 包切出 SVG；包里没有的符号会失败并列出这些图标。
 
-Android 应用不用这个包里的图标：它的构建导入 google/material-design-icons 发布的 Android XML
-（做法见[图标](design-system.md#图标)）。要添加一个，在 `android/app/build.gradle.kts` 的 `materialSymbols` 列表里加一行：
-drawable 的名字、符号，要填充变体就再写 `"fill1"`。要换到该仓库更新的提交，改那里的 `materialSymbolsCommit`。
-不用复制，也不用提交任何文件。
+手机端应用用同一个包里的符号，经同样内嵌的图标使用它们，所以不需要为它另外添加任何东西。它的启动器图标另有来源：
+由 `vfxtool appicon mygo/phone/resources` 写出 `icon.png` 与 `icon-foreground.png`，由 [`mygo/phone/mygo.json`](../../../mygo/phone/mygo.json) 指定（见[应用图标](design-system.md#应用图标)）。
 
 要换新版本的包，改该文件 `source` 里的 `version` 与 `sha512`。注册表给的校验和是 base64，文件里要十六进制：
 
@@ -167,10 +178,10 @@ curl -fsS "https://registry.npmjs.org/@iconify-json%2fmaterial-symbols/$version"
 ### Web 界面
 
 Web 界面是 TypeScript 加 Vite，源码在 [`mygo/web`](../../../mygo/web)。
-构建把它打成 `mygo/pair/webapp.html` 这单个文件供 Go 服务嵌入：改源码，在那里跑
+构建把它打成 `mygo/gateway/webapp.html` 这单个文件供网关嵌入：改源码，在那里跑
 `npm run build`，页面与源码一起提交。`npm test` 跑页面的单元测试；`npm run dev`
 对着运行中的应用以热重载供页面（见[Node 与 Web 界面](environment.md#node-与-web-界面)）。
-`mygo/pair` 的 Go 测试继续守构建产物的契约：设计 token 与弹簧（主题动了它们会失败），
+`mygo/gateway` 的 Go 测试继续守构建产物的契约：设计 token 与弹簧（主题动了它们会失败），
 以及 favicon 占位符。页面的文案放在它自己的 i18n catalog（`mygo/web/src/i18n-*`），按语言做类型检查，
 不在 `shared/i18n` 里。
 
@@ -203,7 +214,7 @@ vfox 变化时用 `vfxtool capture` 重抓夹具，按
 **桌面应用。** `vfxtool sandbox screenshots` 可复现地把图渲染到
 `dist/sandbox/mygo/screenshots/`：Metacity 加 Yaru 主题画出 Ubuntu 26.04 GNOME
 X11 会话的标题栏，
-Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动七遍，经 mygo 的自动化插件
+Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建启动八遍，经 mygo 的自动化插件
 把它带到每个页面，页面沉降后用 ImageMagick 截取屏幕：
 
 | 运行 | 拍什么 |
@@ -214,7 +225,7 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 | `VFOX_PLUS_FAKE_INVENTORY=python` | 一台装着 Python 与其他插件的机器，以及 Python 的选项与 GraalPy 构建的筛选：`python-options`、`python-install-method` 与 `python-graalpy-community`，深色主题下为 `dark-python-options` |
 | `VFOX_PLUS_E2E_WINDOW=412x800` | 窄布局（窗口窄于 600 dp）：`compact-home`、`compact-detail` |
 | 上面两个一起 | 窄布局下 Java 的发行版：`compact-java` |
-| 设置 `webInterface`，以及 `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 网页界面的设置，像用户操作那样一步步走：已开启的开关与它的地址、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
+| `VFOX_PLUS_E2E_ADDRESSES=192.168.1.20` | 其他设备的设置，像用户操作那样一步步走：尚未允许时的分区、允许其他设备连接前的询问、随之出现的设置，以及给手机配对的二维码：`web-interface`、`web-allow`、`web-remote`、`web-pair` |
 | 同上，先选好语言 | 同样四张的简体中文版：`zh-web-interface`、`zh-web-allow`、`zh-web-remote`、`zh-web-pair` |
 
 端到端构建可以用 `VFOX_PLUS_E2E_ADDRESSES`（逗号分隔的列表）被告知这台电脑的地址，而不是从网卡上读。图里
@@ -222,19 +233,18 @@ Ubuntu 默认壁纸而非裸 X 的黑色。它对着假 vfox 把端到端构建�
 自己地址的沙箱，也就有了一个可以给手机配对的地址。
 
 要多拍一张，就在 `shared/tooling/internal/screenshots/screenshots.go` 里该运行的函数
-（`pages`、`installing`、`profiles`、`compactPages`、`compactProfiles` 或 `webInterface`）加一句
+（`pages`、`installing`、`profiles`、`pythonPages`、`compactPages`、`compactProfiles` 或 `webInterface`）加一句
 `c.shot(s, "名称")`。它之前的步骤像用屏幕阅读器的人一样点击、等待，靠用户看到的名字
 （按钮的标签，或组件给它的 key）找控件，所以改了名的按钮会让场景失败，而不是拍出一张错的图。
 
 README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-available`、`installing`、
-`tasks`、`plugins`、`zh-settings`、`compact-home`、`compact-detail`、`java-choose`、
+`tasks`、`plugins`、`settings`（简体中文是 `zh-settings`）、`compact-home`、`compact-detail`、`java-choose`、
 `java-temurin`、`flutter-available` 与 `options`，以及手机上的网页界面 `webapp-en` 与
 `web-phone-java-temurin`（简体中文是 `webapp-zh` 与 `web-phone-zh-java-temurin`，见下）。
 [使用说明](../user/using.md)引用 `java-install-name` 与 `options-mirror`，中文版引用
-`zh-java-available` 与 `zh-options`。[网页界面指南](../user/remote.md)引用 `web-interface`、`web-allow`、
-`web-remote` 与 `web-pair`（简体中文加前缀 `zh-`），以及手机上的网页界面：`webapp-en`、
-`web-phone-java-temurin`、`web-connections` 与 `web-connections-pair`（简体中文是 `webapp-zh`、
-`web-phone-zh-java-temurin`、`web-zh-connections` 与 `web-zh-connections-pair`）。
+`zh-java-available` 与 `zh-options`。[其他设备指南](../user/remote.md)引用 `web-allow`、
+`web-remote` 与 `web-pair`（简体中文加前缀 `zh-`），以及手机上的网页界面：`web-connections-pair` 与
+`web-connections`（简体中文是 `web-zh-connections-pair` 与 `web-zh-connections`）。
 [安卓 App 指南](../user/android.md)引用 App 的图，[网关指南](../user/gateway.md)引用网关的图（见下）。其余的图
 是改界面时用来看的，没有文档引用它们。
 
@@ -243,16 +253,18 @@ README 与[用户指南](../user/index.md)引用 `home`、`sdks`、`dark-availab
 `home`、`connections`、`connections-pair`、`flutter-chips`、`java-available`、`java-choose`、`java-temurin`、
 `java-install-name`、`options`、`options-mirror`、`options-aliases`、`options-legacy`、`settings-languages`、
 `alias-set`、`link-manual`、`python-options` 与 `python-available`（见 `shared/tooling/internal/webheap/scenes.go`，它的测试会对照
-`mygo/pair/webapp.html` 检查场景点击的元素）。场景的最后一步会等页面不比窗口宽，所以溢出的布局会让截图失败，而不是
+`mygo/gateway/webapp.html` 检查场景点击的元素）。场景的最后一步会等页面不比窗口宽，所以溢出的布局会让截图失败，而不是
 拍出一张图。每张图都用自己的应用与 HOME，因为所选发行版保存在应用的
-设置里，选了发行版的场景会改变它之后的每一张图。应用因为设置而提供它的网页界面，并允许其他设备（连接卡片与给
-手机配对的二维码需要它：`{"webInterface":true,"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
-命令行可打印链接，所以把配对链接写进 `VFOX_PLUS_E2E_LINK` 指定的文件。Java 的场景需要一台装着 Java 和 Flutter 的
+设置里，选了发行版的场景会改变它之后的每一张图。应用允许其他设备（连接卡片与给
+手机配对的二维码需要它：`{"webRemote":true}`）；它被告知文档用的地址（见上）；端到端构建没有
+命令行可打印链接，所以把配对链接写进 `VFOX_PLUS_E2E_LINK` 指定的文件。页面是网关提供的，所以 `shoot`
+也启动网关：它用这个链接，像人在网关页面上那样与应用配对（`--application`）。Java 的场景需要一台装着 Java 和 Flutter 的
 机器，Python 的场景需要一台装着 Python 的机器，主页需要一台没装的，所以假 vfox 的库存是调用时给的变量：
 
 ```sh
 go -C shared/tooling build -o /tmp/vfxtool ./cmd/vfxtool
 /tmp/vfxtool prepare --root mygo && /tmp/vfxtool build --e2e --root mygo /tmp/vfox-plus-e2e
+go -C mygo build -o /tmp/vfox-plus-gateway ./cmd/vfox-plus-gateway
 
 # shoot 名称 语言 宽,高 [webheap 的其他选项]
 # INVENTORY=profiles shoot ... 让假 vfox 成为装着 Java 与 Flutter 的机器。
@@ -261,7 +273,7 @@ shoot() {
   home=/tmp/shot-home
   rm -rf $home && mkdir -p $home/bin $home/run $home/.config/vfox-plus && chmod 700 $home/run
   cp /tmp/vfxtool $home/bin/vfox
-  echo '{"webInterface":true,"webRemote":true}' > $home/.config/vfox-plus/settings.json
+  echo '{"webRemote":true}' > $home/.config/vfox-plus/settings.json
   (
     export HOME=$home XDG_CONFIG_HOME=$home/.config XDG_RUNTIME_DIR=$home/run PATH=$home/bin:$PATH NO_COLOR=1 \
       VFOX_PLUS_FIXTURES=$PWD/shared/fixtures/vfox-1.1.0 VFOX_PLUS_E2E_LINK=$home/link.txt \
@@ -275,9 +287,20 @@ shoot() {
     [ -n "$LINK" ] && break
     sleep 1
   done
-  /tmp/vfxtool webheap --server "${LINK%%/auth/connect/*}" \
-    --pairing "$LINK" --output /tmp/shot.txt --screenshot "$name.png" \
+  # 网关提供页面：它用自己的 HOME 运行，并打印把浏览器与它配对的链接。
+  gw=/tmp/shot-gateway
+  rm -rf $gw && mkdir -p $gw/config
+  (export HOME=$gw XDG_CONFIG_HOME=$gw/config; exec /tmp/vfox-plus-gateway >$gw/log 2>&1) &
+  gateway=$!
+  for i in $(seq 1 30); do
+    PAIR="$(grep -o 'https://localhost:8080/auth/connect/[A-Za-z0-9_-]*' $gw/log 2>/dev/null | head -1)"
+    [ -n "$PAIR" ] && break
+    sleep 1
+  done
+  /tmp/vfxtool webheap --server https://localhost:8080 --pairing "$PAIR" --application "$LINK" \
+    --output /tmp/shot.txt --screenshot "$name.png" \
     --lang "$lang" --window "$window" --idle 0 --chrome "$(which google-chrome)" "$@"
+  kill $gateway; wait $gateway 2>/dev/null
   kill -- -$app
 }
 shoot webapp-en en 412,915
@@ -324,40 +347,24 @@ unshare -rn sh -c 'ip link set lo up && ip addr add 192.168.1.20/32 dev lo &&
 
 （应用的构建就是上面那个；要在仓库根目录运行，命令靠它找假 vfox 的夹具；`--chrome` 和 `webheap` 一样指定 Chrome。）
 
-**Android。** CI 拍一张图 `screenshot-android`：`android.yml` 的 `measure` 任务在模拟器跑 release APK，
-`vfxtool measure-apk` 截冷启动，任务把它上传为构件（`gh run download`）。[安卓 App 指南](../user/android.md)里的
-九张图是在你自己的模拟器上拍的（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），
-用 CI 构建出来的 release APK（它的构件 `vfox-plus-android`），以及[运行 App](environment.md#运行-app)里描述的 PC 端应用：
-对着 `VFOX_PLUS_FAKE_INVENTORY=profiles` 的假 vfox 的端到端构建，开启网页界面和其他设备，端口为 8080，并设
-`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`——模拟器访问这台电脑用的地址。配对屏、链接和证书就都写着实际使用的地址，
-也不必自己生成证书。这九张是 `android-pairing`、`android-scan`、`android-trust`、`android-home`、`android-sdk`、
-`android-settings`、`android-dark-pairing`、`android-dark-home` 与 `android-unreachable`；指南全部引用，两种语言的指南
-都用英文版。让图保持一致的做法以及容易出错的地方：
+**Android。** [`phone.yml`](../../../.github/workflows/phone.yml) 的 `emulator` 任务，在驱动应用的那次会话里，拍[手机端 App 指南](../user/android.md)用的图。它对着假 vfox 启动桌面应用的端到端构建，做法与拍桌面图相同：一份名为 `vfox` 的 `vfxtool` 副本排在 `PATH` 最前，设 `VFOX_PLUS_FIXTURES` 与 `VFOX_PLUS_FAKE_INVENTORY=profiles`，家目录独立，于是各标签页显示的是已安装的 Node.js、Java、Flutter 和一个插件仓库，与真人看到的一样。`VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` 是模拟器访问运行器用的地址。任务运行 `vfxtool phone-link`（允许其他设备，并为 `10.0.2.2` 写出配对链接），然后运行 `vfxtool measure-apk --pictures DIR`。后者安装 APK，冷启动应用，再经深链 `vfoxplus://pair?link=…` 与它配对：点按*信任并配对*，逐个访问五个标签页，并为每个标签页保存一张截图与一份无障碍树的导出。配对成功后，应用在日志里写一行 `vfoxplus: paired host=… fingerprint=…`，`measure-apk` 等的就是这一行。首屏是构件 `screenshot-android`；标签页的截图与导出、应用的日志、桌面应用的日志，以及配对后的内存，是构件 `phone-e2e-android`。
 
-- 状态栏的演示模式固定时钟，显示满电与 Wi-Fi、没有通知：`adb shell settings put global sysui_demo_allowed 1`，
-  再 `adb shell am broadcast -a com.android.systemui.demo -e command`，依次接 `enter`、`clock -e hhmm 1000`、
-  `battery -e level 100 -e plugged false`、`network -e wifi show -e level 4 -e fully true`、
-  `network -e mobile hide`（它的图标在浅色主题下是白的）与 `notifications -e visible false`。
-- 相机打开时，Android 会在状态栏里显示一个绿色指示，顶掉 Wi-Fi 和电池图标，扫码界面的图上就有它。用 `adb root`，再
-  `adb shell device_config put privacy camera_mic_icons_enabled false` 关掉（shell 用户不能写这个开关，root 可以）。
-- 语言与主题是 App 与系统的：`adb shell cmd locale set-app-locales dev.vfox.vfoxplus --locales zh-CN` 与
-  `adb shell cmd uimode night yes`。每轮之间清数据（`pm clear`），并重新授予相机权限（`pm clear` 会收回它），
-  否则系统对话框会盖住扫码界面。
-- App 里的控件用 `adb exec-out uiautomator dump /dev/tty` 里的 id 找（`scanButton`、`manualButton`、`linkField`、
-  `connectButton`、`reconnectButton`）。WebView 里的网页界面不在导出里：底部的栏按位置点，
-  `adb shell input tap X 2205`，X 依次取 125、332、540、749、956（主页、SDK、插件、任务、设置），
-  flutter 是插件列表里的第一个，在 `540 682`。
-- 配对链接要在 App 为英文时输入（`adb shell input text`）。App 为中文时 Gboard 会转成拼音，把链接写成全角标点，还把 `auth` 联想成
-  `author`；在点*连接*之前把语言改回来，输入框的文字会保留。键盘会盖住按钮：输入后先按返回键
-  （`adb shell input keyevent 4`）收起它。
-- 指纹对话框与设置要在应用的同一次运行里拍：应用每次运行都重新生成证书，两处的指纹只在同一次运行里一致。选*信任一次*，
-  拍主页之前要等页面加载完。
-- 想拍“连不上 PC”的页面，就结束 PC 端的应用，再打开 App：它先打开带“上次的服务器”的配对界面，选*重新连接*就出现那个页面。
-- 界面稳定后用 `adb exec-out screencap -p > NAME.png` 截图。扫码界面拍到的是模拟器的客厅
-  （`hw.camera.back=virtualscene`），因为没有二维码可对。
+图是顺带拍下的，深色的图在系统的深色主题下拍，工具结束时会把主题还原。一共十一张：
 
-图保持截下来的 1080×2400。`vfxtool frame-phone NAME.png OUT.png` 给它们加上手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px
-的灰色边框（`#7A7A84`）：浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。
+| 图 | 内容 |
+| --- | --- |
+| `android-pairing`、`android-dark-pairing` | 配对界面，浅色主题与深色主题 |
+| `android-trust` | *信任这台电脑吗？*，带着指纹，在点按它的按钮之前 |
+| `android-home`、`android-sdks`、`android-plugins`、`android-tasks`、`android-settings` | 五个标签页 |
+| `android-sdk` | 一个 SDK（`nodejs`）的页面，用返回键关闭 |
+| `android-add-plugin` | 添加插件的对话框，有来源，也有上传文件 |
+| `android-dark-home` | 深色主题下的主页 |
+
+让图保持一致靠的是工具的做法，因为应用和系统在被要求之后要过几秒才画出图里的内容，而模拟器又慢。每次切换主题之后，它不断查看状态栏以下的屏幕，直到屏幕变了、并且连续四次查看都不再变化为止，而不是等一个更慢的模拟器会超过的固定时间。没有硬件键盘的模拟器会在添加插件的对话框上弹出软键盘，工具把它收起来：安卓的返回键先关键盘，对话框保留。应用显示“电脑没有响应”的提示条时（在慢模拟器上切换主题之后会短暂出现），它会把这张图重新拍一遍，最多三次。系统用某个进程“没有响应”的对话框盖住屏幕时（*System UI isn't responding*，机器负载高时会出现），工具在读屏幕的任何地方都像人那样点*Wait*。
+
+构件 `phone-pictures` 里每张图都有两份：`raw/` 里是截下来的原样，1080×2400，带着模拟器的状态栏；`framed/` 里是加了框的，由 `vfxtool frame-phone --top 118 NAME.png OUT.png` 生成。它先裁掉状态栏（在这台模拟器上高 118 px）：状态栏显示的是真实时间，系统在那里画的东西每次运行也不一样（Android 的演示模式本可以固定它，但在 CI 的镜像上每次 `enter` 与 `exit` 都会让 System UI 抛异常，并随机让一部分监听者留在演示模式之外：一次运行里是两个 Wi-Fi 图标，下一次是一个）。指南展示的是应用本身。（添加插件对话框那张图裁到 168 px，在 Android 盖在标签页上的那条栏之下，因为对话框的遮罩盖不到它。）然后给图加上手机屏幕的圆角（半径 96 px，圆角外透明）与 5 px 的灰色边框（`#7A7A84`），因为浅色主题的米色屏幕在 GitHub 的白色页面上没有边缘。图都是英文的，两种语言的指南共用。CI 不往图床上传任何东西：从 Pull Request 那次运行下载构件（`gh run download RUN -n phone-pictures`），按下面的方法上传 `framed/` 里的图，并替换两份指南里的链接。
+
+要在自己的模拟器上拍（[自己的模拟器](environment.md#自己的模拟器)：API 36，1080×2400，420 dpi），就做任务做的事：在仓库根目录对着假 vfox 启动端到端构建（如上），用 `vfxtool phone-link` 写出配对链接，再对 CI 构建出来的 APK（它的构件 `vfox-plus-android-amd64`）运行 `vfxtool measure-apk`，用[手机端应用](memory.md#手机端应用)里给出的选项，再加 `--pictures DIR`。端到端构建的回环链接只能用一次，所以每次运行都要重新启动应用；模拟器上装着别的密钥签名的版本时，先卸载它（`adb uninstall dev.vfox.vfoxplus`）。工具点按的控件在无障碍树里（`adb exec-out uiautomator dump /dev/tty`），按英文与简体中文的标签查找：应用改了标签，工具要随之改（见[维护者注记](packaging-android.md#维护者注记)）。
 
 **上传。** 上传新图：
 

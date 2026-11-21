@@ -29,7 +29,7 @@
     "source=vfox-plus-devcontainer-go,target=/home/vscode/go,type=volume",
     "source=vfox-plus-devcontainer-gradle,target=/home/vscode/.gradle,type=volume"
   ],
-  "postCreateCommand": "go -C shared/tooling build -o \"$GOPATH/bin/vfxtool\" ./cmd/vfxtool && go -C mygo mod download && MYGO_SKIP_LICENSES=1 vfxtool prepare --root mygo",
+  "postCreateCommand": "go -C shared/tooling build -o \"$GOPATH/bin/vfxtool\" ./cmd/vfxtool && go -C mygo mod download && MYGO_SKIP_LICENSES=1 vfxtool prepare --root mygo && vfxtool appicon mygo/phone/resources",
   "customizations": {
     "vscode": {
       "extensions": [

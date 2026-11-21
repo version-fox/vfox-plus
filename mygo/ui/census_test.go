@@ -303,14 +303,14 @@ var censusScenes = []censusScene{
 	{name: "settings", tall: true, reach: func(ta *testApp) { ta.button("Settings") }},
 	{name: "settings-web", tall: true, reach: func(ta *testApp) {
 		ta.updateSettings(func(s *settings.AppSettings) {
-			s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(ta.t)
+			s.WebRemote, s.WebPort = true, testsupport.FreePort(ta.t)
 		})
 		ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 		ta.openSettings()
 	}},
 	{name: "pairing", modal: true, reach: func(ta *testApp) {
 		ta.updateSettings(func(s *settings.AppSettings) {
-			s.WebInterface, s.WebRemote, s.WebPort = true, true, testsupport.FreePort(ta.t)
+			s.WebRemote, s.WebPort = true, testsupport.FreePort(ta.t)
 		})
 		ta.waitFor("other devices", func(status pair.Status) bool { return status.Remote })
 		ta.openSettings()

@@ -117,7 +117,7 @@ func TestTheWebInterfaceReadsAndWritesHowOtherDevicesConnect(t *testing.T) {
 
 	// What the servers made of the settings is what the page is told.
 	control.mu.Lock()
-	control.status = pair.Status{Running: true, Remote: true, Port: 9000, Addresses: []string{"192.168.1.5"}, Fingerprint: "AB:CD", SelfSigned: true, RemoteError: "x"}
+	control.status = pair.Status{Remote: true, Port: 9000, Addresses: []string{"192.168.1.5"}, Fingerprint: "AB:CD", SelfSigned: true, RemoteError: "x"}
 	control.mu.Unlock()
 	_, body = webGet(t, url, session)
 	decodeJSON(t, body, &dto)

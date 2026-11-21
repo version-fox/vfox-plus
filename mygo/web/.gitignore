@@ -1,7 +1,7 @@
 # dependencies
 node_modules/
 
-# build output (npm run build copies dist/index.html over mygo/pair/webapp.html)
+# build output (npm run build copies dist/index.html over mygo/gateway/webapp.html)
 dist/
 dist-ssr/
 *.local

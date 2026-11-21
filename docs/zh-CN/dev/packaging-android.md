@@ -1,125 +1,85 @@
-# Android 打包
+# 手机端打包
 
 > [English](../../en/dev/packaging-android.md)
 
-本目录是安卓远端客户端：包住 PC 上应用网页界面的 WebView，原生
-Material 3 Expressive 配对流程。它按[远端协议](remote-protocol.md)编程，不直连
-Go 代码。用户装 `.apk` 后与 PC 配对；见[安卓 App](../user/android.md)。
+手机端是 [`mygo/phone`](../../../mygo/phone)：mygo 的安卓原生应用。它的屏幕是 mygo 的原生用户界面，既不是 Android View，也不是 WebView。它与运行 vfox-plus 的电脑配对，然后经[远端协议](remote-protocol.md)显示那台电脑上的 SDK、插件与任务。用户装好 `.apk` 后与电脑配对，见[安装](../user/install.md#安卓)与[安卓 App](../user/android.md)。
+
+应用由 mygo 构建：`mygo build -platform android` 从 `mygo/phone` 写出安卓工程，运行 Gradle，并把 APK 与 AAB 写到 `mygo/phone/dist/android/`。仓库里没有安卓工程。
 
 ## 布局
 
 | 路径 | 内容 |
 | --- | --- |
-| `settings.gradle.kts`、`build.gradle.kts`、`gradle.properties` | 工程配置；插件版本 pin 在此。 |
-| `gradlew`、`gradlew.bat`、`gradlew.ps1`、`gradle/wrapper/` | Gradle wrapper（[Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)）；`gradle-wrapper.properties` 连同 SHA-256 pin 住 Gradle。 |
-| `versions.env` | CI 与[开发容器](environment.md#开发容器)读取的工具 pin（Java、Android SDK 的命令行工具与软件包、AGP、Material）。 |
-| `app/build.gradle.kts` | 应用 ID `dev.vfox.vfoxplus`、`minSdk 26`、`targetSdk 36`；`versionName` 从 `mygo/VERSION` 读取，手机与桌面显示同一版本。CameraX 1.6.2 与 zxing core 3.5.4（均为 Apache-2.0）扫二维码。Material Symbols 也是导入的，来自 google/material-design-icons（见[设计系统](design-system.md#图标)）。 |
-| `app/src/main/` | Kotlin 源码（`dev.vfox.vfoxplus`）、布局、Material 3 Expressive 主题与[设计系统](design-system.md#颜色)的颜色（`values/colors.xml`、`values-night/colors.xml`）、英/中字符串、启动图标（自适应，含供主题图标用的单色层；见[设计系统](design-system.md#应用图标)）。 |
+| `main.go` | 入口。在 Linux 上，于 `mygo/` 目录运行 `go run ./phone`，即可在手机大小的窗口里打开应用，供开发用。 |
+| `app/` | 应用的模型：屏幕所显示的页面、标签页与后端。 |
+| `screens/` | 由 mygo 绘制的屏幕：配对屏，以及五个标签页：主页、SDK、插件、任务与设置。 |
+| `pairing/` | 配对链接、电脑证书的指纹，以及从照片中读出承载链接的二维码。 |
+| `remote/` | [远端协议](remote-protocol.md)的客户端。 |
+| `store/` | 应用在两次启动之间保存的内容。 |
+| `i18n/` | 文本，英文与简体中文。 |
+| `resources/` | 图标的源文件。`vfxtool appicon` 在构建前写出它们（见[图标](#图标)）。 |
+| `mygo.json` | 应用本身：名称、标识 `dev.vfox.vfoxplus`、slug、版本、URL 协议 `vfoxplus`，以及安卓的自适应图标。 |
+| `versions.env` | 钉住的版本（见[钉住的版本](#钉住的版本)）。 |
 
-## App 行为
+## 配对
 
-- **配对**（`PairingFragment`）是原生的：9 瓣 cookie 形状上的狐狸、PC 上哪里能找到配对（*设置 → 网页界面 → 配对手机*）、
-  扫描 PC 上二维码的按钮，以及一次性链接的输入框（框尾的图标在框为空时粘贴、不为空时清除）。配对过一次后，
-  屏幕把上次的服务器放在最前，一个按钮即可重连。连接时收起键盘，用加载指示器代替按钮，并且不论 Go 键或
-  “连接”被按了几次，只打开一个会话。
-- **扫码**（`ScanFragment`）是 CameraX 预览加 zxing 解码：解出的链接填入配对框并立即连接。画面在一个 32 dp 圆角的
-  方框之外变暗，方框带四个角标（`ViewfinderView`），启动时按 default spatial 弹簧落定；浮动工具栏提供手电筒（手机有
-  闪光灯时）与“手动输入”。`CAMERA` 按非必需申请——无相机或拒绝权限时粘贴链接即可。
-- **会话**（`ViewerFragment`）是 `/app` 的 WebView，会话 cookie 跨启动持久化，打开文件上传（供插件 `.zip`/`.lua` 文件）、
-  下拉刷新，页面加载时顶部有波浪进度条。一次性链接种下 cookie 后客户端自行进入 `/app`，并让页面的历史从那里开始，所以
-  返回不会再次加载已用掉的链接。只有 App 能做的两件事——配对新链接与断开——在页面设置的**这台手机**卡片上：App 给页面
-  一个对象 `window.vfoxAndroid`（[桥](remote-protocol.md#android-客户端)），页面看到它才显示这张卡片。连不上服务器时显示
-  原生状态（错误形状、“重试”“配对新链接”），而不是 WebView 的错误页。WebView 内无法下载文件，失败任务完整日志的网页下载
-  按钮只在浏览器里出现。窗口始终停在已配对的服务器上：页面链到其它站点的地址（插件主页、文档）在手机的浏览器里打开
-  （`shouldOverrideUrlLoading`；页面为它们点击一个链接，而不调用 `window.open`，后者 WebView 不会上报）。
-- **TLS**（`onReceivedSslError`）在信任自签名证书前弹出 SHA-256 指纹对话框——与 PC 上 vfox-plus 设置里显示的是同一个，每行八个字节，
-  方便一眼对照。PC 端自带证书可免去警告。
-- **返回键**先走 WebView 历史，再退出会话；App 启用预测性返回动画（`enableOnBackInvokedCallback`）。
-- **新的 Activity**（深色主题、换语言、转屏）会拿回页面与它的历史：会话页保存 WebView 的状态。
+配对从一条配对链接开始。`vfoxplus://pair?link=<链接>`（协议名取自 `mygo.json`）打开配对屏，链接已经填好。用户核对证书的指纹，然后点*信任并配对*（英文界面为 Trust and pair）。这是唯一信任证书、并完成配对的按钮。配对成功时，应用记一行日志：`vfoxplus: paired host=<主机> fingerprint=<指纹>`。
 
-## 应用里的设计系统
-
-App 与其它界面一样遵循[设计系统](design-system.md)。下面是它在 `android/` 里的落点。
-
-- **边到边。** `MainActivity` 调用 `enableEdgeToEdge()`，App 画到系统栏下面。屏幕用 `padToSafeArea`（`Insets.kt`：
-  系统栏、刘海与键盘变成内边距）避开它们；滚动视图还会把有焦点的输入框滚到键盘之上，因为系统不会为边到边的窗口
-  调整大小。WebView 里的页面以 CSS 变量 `--sai-*` 得到同样的边距（[桥](remote-protocol.md#android-客户端)）。
-- **主题。** `Theme.VfoxPlus` 继承 `Theme.Material3Expressive.DayNight.NoActionBar`。`values/colors.xml` 与
-  `values-night/colors.xml` 存放种子 `#F28C1B` 的配色方案的 48 个角色（主题把其中 46 个映射到属性，shadow 与 scrim 没有
-  对应属性），字面值与 Web 界面的 `--m3-*` 变量相同。`mygo/pair` 的一个测试（`webapp_design_test.go`）用 `mygo/ui/mcu`
-  计算该方案，页面或这些文件与之不同时失败。Expressive 样式（`Widget.Material3Expressive.*`）是主题的默认值，主题不为任何
-  组件指定样式。布局需要别的变体时，写 Expressive 样式（`Widget.Material3Expressive.Button.TextButton`）或主题属性
-  （`?attr/materialButtonTonalStyle`），并用 `materialSizeOverlay` 设按钮的尺寸。布局不写基线的 `Widget.Material3.*` 样式，
-  因为它会盖掉形状形变与尺寸；扫码页的浮动工具栏除外：Material 1.14.0 没有它的 Expressive 样式，所以用
-  `Widget.Material3.FloatingToolbar.*`。
-- **图标。** Material Symbols Rounded，是 Google 为它们发布的矢量图，由构建原样导入
-  （[图标](design-system.md#图标)）。
-- **动效。** 弹簧取自主题的 `motionSpring*` 属性（`Motion.kt`）。`springIn` 让屏幕的各部分依次进入，按 default spatial
-  弹簧上升、按 default effects 弹簧淡入；屏幕之间的转场是 slow effects 弹簧上的 shared axis，弹簧被采样为 settle 时间内
-  的曲线（`SpringInterpolator`）。每个屏幕的根视图是 transition group（`android:transitionGroup`），整屏作为一块滑动：否则
-  各部分各自滑动，而轮廓文本框按布局那一刻输入框的位置摆放标签，会把滑到一半时摆下的标签留在原地。用户关闭动画时，一切
-  直接到位。
-- **形状。** 形状库的 cookie 与 soft burst（`ExpressiveShapes`，由 `PolygonDrawable` 绘制）用
-  `androidx.graphics:graphics-shapes` 的公开 API 构造：Material 1.14.0 的 `MaterialShapes` 限于库组内部使用，它的
-  drawable 什么也不画。
-
-## 为什么用 View 而不是 Compose
-
-各屏用 View 与 Material Components 1.14.0 写，不是 Compose。内存没有起决定作用：配对屏两种写法占用相当，差别在测量的噪声
-之内（[Android 应用用 View 还是 Compose](memory.md#android-应用用-view-还是-compose)）。起决定作用的是：
-
-- **Material 3 Expressive 在 View 里用锁定的工具链就能做到。**Material Components 1.14.0 是稳定版，带 Expressive 主题、
-  有形状形变的按钮、浮动工具栏、加载指示器与波浪进度指示器，用 AGP 9.5.1 与 compileSdk 37.2 就能构建。在 Compose 里
-  （2026-10-30 核对）：稳定版 Material 3 1.4.0 把 Expressive 主题、动效方案与强调字体样式留作 `internal`，其形状库也用不了；
-  Material 3 1.5.0-beta02 是 beta，需要 AGP 9.1.0、compileSdk 37 与 Compose 1.12.0，最新的 Compose 1.12.1 对 AGP 与
-  compileSdk 的要求相同。用 Compose 就要引入预发布依赖。
-- **APK 更小。**加上 Compose 会让 APK 多 1.2 MB（37%）。
-- **原生部分小。**App 是包住 WebView 的三个屏：用户操作的是 Web 界面，任何工具包都不会改变它。
-
-等 Compose 的 Material 3 在能用锁定工具链构建的稳定版里提供 Expressive 时，按[内存页](memory.md#android-应用用-view-还是-compose)
-所述再测一次。那时要比较的是 APK 体积与迁移成本，而不是内存。
+`vfxtool measure-apk` 走的就是这条路径。它查找那行日志，以及按钮与标签页的文字（见[维护者注记](#维护者注记)）。
 
 ## 构建
 
-需要 JDK 25 与 Android SDK（platform 37.2、build-tools 36.0.0；后者是所 pin AGP
-的默认值）。CI 会装，[开发容器](environment.md#开发容器)也会装并设好 `ANDROID_HOME`；本地把
-`ANDROID_HOME` 指向 SDK（或把 `sdk.dir` 写进被 git 忽略的 `local.properties`）；缺少的包要先接受其许可（`sdkmanager --licenses`）
-Gradle 才会安装。wrapper 会下载 `gradle/wrapper/gradle-wrapper.properties` pin
-住的 Gradle，不必另装 Gradle：
+构建需要 [`mygo/phone/versions.env`](../../../mygo/phone/versions.env) 钉住的工具（见[钉住的版本](#钉住的版本)）：JDK 17、平台 36 与构建工具 36.0.0 和 35.0.0 的 Android SDK、NDK 28.2.13676358（应用的 Go 代码由它的 clang 为各个 ABI 编译），以及 mygo CLI。[安卓](environment.md#android)一节说明怎样安装它们，[开发容器](environment.md#开发容器)里则全部装好了。mygo 为安卓工程运行的 Gradle，首次构建时要下载它的发行版与依赖，需要几分钟；它们留在 Gradle 的用户目录里：本机是 `~/.gradle`，容器里是 `/home/vscode/.gradle`。
+
+在仓库根目录，用[沙箱](environment.md#沙箱)所说的方法构建 `vfxtool`，然后运行：
 
 ```sh
-cd android
-./gradlew :app:assembleRelease
+vfxtool prepare --root mygo
+vfxtool appicon mygo/phone/resources
+cd mygo/phone
+mygo build -platform android
 ```
 
-构建不需要 KVM；在模拟器上运行 APK 才需要（见[模拟器与 KVM](environment.md#模拟器与-kvm)）。首次运行要用 JDK 编译 `GradleWrapperNeo.java`，并下载 Gradle 与依赖，需要几分钟。
-`services.gradle.org` 慢的地方，请给你的用户而不是给项目配置下载镜像；见 Neo
-README 的 “Configure download mirrors”。
+`mygo build -platform android` 生成 APK（发布签名并发布的就是它）与 AAB。`-platform android/amd64` 只生成 x86_64 的那一对，模拟器运行的就是它，CI 构建的也是它。资源要先准备、图标要先写，并且都要在仓库根目录做：手机端应用会编译 `mygo` 模块，它内嵌 `mygo/assets`，所以要先运行 `vfxtool prepare`（开发容器创建时已运行过）；`vfxtool appicon` 的路径相对于仓库根目录，若在 `mygo/phone` 里运行，图标会写到 `mygo/phone/mygo/phone` 下面。
 
-release APK 落在 `app/build/outputs/apk/release/app-release.apk`（约 3.2 MB），
-环境里给了发布密钥时用它签名，否则用本机的 debug 密钥（见[签名状态](#签名状态)）。发布时按版本改名：
+配置里没有 keystore，所以 `mygo build` 用本机的 debug 密钥签名（Gradle 在首次构建时生成它）。这样的 APK 只供测试：发布时会替换它的签名（见[签名状态](#签名状态)）。产物在 `mygo/phone/dist/` 中，被 git 忽略。要把 APK 装到模拟器或手机上，用 `adb install -r`，见[运行 App](environment.md#运行-app)。
 
-```sh
-cp app/build/outputs/apk/release/app-release.apk \
-  vfox-plus_$(tr -d '[:space:]' < ../mygo/VERSION).apk
-```
+在 Linux 上，于 `mygo/` 目录运行 `go run ./phone`，会在手机大小的窗口里打开同一个应用，看屏幕时比模拟器快。
 
-装到手机（提示时允许安装未知应用），按[安卓 App](../user/android.md)配对。
+## 钉住的版本
 
-## 构建变体
+| 变量 | 钉住的内容 |
+| --- | --- |
+| `MYGO_VERSION` | mygo CLI，用 `go install github.com/egoist/mygo/cmd/mygo@v<版本>` 安装。它必须与 `mygo/go.mod` 中 `mygo` 模块的版本一致。 |
+| `JAVA_VERSION` | JDK，17：mygo 运行的 Gradle 8.14.3 不能在 JDK 25 上运行。CI 用 Temurin 17，开发容器用 Ubuntu 软件源里的 OpenJDK 17。 |
+| `ANDROID_CMDLINE_TOOLS_BUILD`、`ANDROID_CMDLINE_TOOLS_SHA256` | 开发容器安装的 SDK 命令行工具：dl.google.com 发布的 zip 文件名中的构建号，及其校验和。 |
+| `ANDROID_SDK_PLATFORM`、`ANDROID_SDK_BUILD_TOOLS` | 平台 `android-36` 与构建工具 36.0.0，后者含 `aapt2` 与 `apksigner`。 |
+| `ANDROID_GRADLE_BUILD_TOOLS` | 构建工具 35.0.0：Android Gradle 插件除上面那些之外还要它，缺了它会在构建中途下载，而在 SDK 不可写的地方（如开发容器）下载会失败。 |
+| `ANDROID_NDK_VERSION` | NDK，28.2.13676358。 |
+| `ANDROID_EMULATOR_API`、`ANDROID_SYSTEM_IMAGE_TARGET` | [CI](#持续集成) 的模拟器：API 36，x86_64 的 `google_apis`。 |
 
-只有一个客户端：配对会话是系统 WebView 里的服务端网页界面。CI 构建并测量它；
-本地配对行按[内存页](memory.md#配对后的会话)跑 `vfxtool measure-apk --pair-url`。
+CI、开发容器及其检查（[`devcontainer.yml`](../../../.github/workflows/devcontainer.yml)）都读取这个文件，所以改动会传到它们全部。
+
+## 图标
+
+仓库里不放二进制文件。`vfxtool appicon mygo/phone/resources` 从应用图标的路径绘制 `icon.png` 与 `icon-foreground.png`（见[应用图标](design-system.md#应用图标)），两者都被 git 忽略。自适应图标的背景是 `#1B1268`，由 `mygo.json` 指定。CI 与[开发容器](environment.md#开发容器)在构建前写出图标。
 
 ## 签名状态
 
-安卓只把更新装在用同一把密钥签名的应用上，遇到别的密钥会拒绝（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。所以 vfox-plus 的每个 release 都用**发布密钥**签名：一把密钥，存为仓库 `release` 环境里的 secret，每次 release 都用它。新版本直接装在旧版本上，应用数据与 PC 的配对都保留。
+安卓只会把更新装在用同一把密钥签名的应用上，遇到别的密钥会拒绝（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。所以 vfox-plus 的每个发布版本都用**发布密钥**签名：一把密钥，存为仓库 `release` 环境里的 secret，每次发布都用它。新版本直接装在旧版本上，应用数据与电脑的配对都保留。
 
-发布的 sign-windows 任务没有这把密钥就拒绝运行。它需要的四个 secret 是 `ANDROID_RELEASE_KEYSTORE_BASE64`（base64 编码的 keystore）、`ANDROID_RELEASE_STORE_PASSWORD`、`ANDROID_RELEASE_KEY_ALIAS` 与 `ANDROID_RELEASE_KEY_PASSWORD`。Gradle 构建（`app/build.gradle.kts`）环境里给了发布密钥（`ANDROID_RELEASE_KEYSTORE` 与三个口令）就用它签名；否则本机构建用这台机器的 debug 密钥，Gradle 在首次构建时创建，每台机器各有一把：两台机器构建的 APK 互相不能升级，所以 debug 密钥只用于本机构建。[`android.yml`](../../../.github/workflows/android.yml) 的 APK 用任务临时生成、用完即丢的密钥签名，这样每次改动都会走一遍发布的签名路径。发布的 APK 由构建任务不带密钥地构建（`ANDROID_RELEASE_UNSIGNED`），再由 sign-windows 任务用 `apksigner` 与同一把密钥签名（先经 `zipalign` 对齐），密钥因此不进入构建任务。
+APK 分两步签名，见 [`release.yml`](../../../.github/workflows/release.yml)：
 
-这四个 secret 只放在 `release` 环境里，仓库里没有。只有发布的 sign-windows 任务读取它们。运行要在签名（Windows 包与 APK）之前等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次，仓库管理员发起的运行可以跳过审批；环境只允许 `main` 分支与 `v*` 标签使用。secret 的值不对任何人显示，维护者也不分享。如需这四个 secret 的实际值，请联系 <https://github.com/linghengqian>。
+- `build` 任务用 mygo 生成 APK，用运行器的 debug 密钥签名，并以 `vfox-plus-android-unsigned` 上传。这个任务没有任何 secret，所以发布密钥不会到达它。
+- `sign-windows` 任务在批准之后用 [`shared/scripts/sign-apk.ps1`](../../../shared/scripts/sign-apk.ps1) 签名 APK。`zipalign -f -P 16 4` 重新对齐（原生库按 16 KB 页对齐），`apksigner sign` 用发布密钥替换 debug 签名。脚本随后检查签名，检查证书里已没有 `CN=Android Debug`，并用 `zipalign -c` 检查签名之后对齐仍然成立。任务把 APK 写到 `dist-android/vfox-plus_<版本>.apk`。`vfxtool check-assets` 在发布之前要求这样的文件恰有一个。
 
-设置发布密钥只需一次。先在仓库设置里建 `release` 环境（Environments）：Required reviewers 选两个团队 `vfox-maintainers` 与 `vfox-committers`，勾选 “Allow administrators to bypass configured protection rules”，Deployment branches and tags 只允许 `main` 与 `v*`。然后把 keystore 与口令放进密码管理器，并另存一份：没有它们，以后的任何 release 都不能升级已装的应用。
+**演练。** 发布在合并之前无法试：它从 `main` 手动发起，发布密钥又在只有 `main` 与标签能用的环境里。所以每当手机端应用或这个脚本有改动，[`phone.yml`](../../../.github/workflows/phone.yml) 的 `signing` 任务就像发布那样在 Windows 运行器上运行同一个脚本。密钥由任务自己生成（一个口令谁也不知道的 PKCS12 keystore），APK 是 `build` 任务用 debug 密钥生成的那个。任务先检查构建出的 APK 确实是 mygo 的 debug 签名，再签名，最后检查结果带的是演练的证书，没有 debug 证书。演练够不到的是只属于发布的部分：密钥从哪里来（下面四个 secret）、给 Windows 包签名的 Azure 步骤、批准，以及版本。这些靠在 `main` 上对 Release 工作流做一次 dry run 来试：Actions，Release，Run workflow，勾选 `dry-run`（构建并签名一切，不推送任何东西）。改过签名之后做一次，设置好环境之后也做一次。
+
+没有下面四个 secret，任务拒绝运行：`ANDROID_RELEASE_KEYSTORE_BASE64`（base64 编码的 keystore）、`ANDROID_RELEASE_STORE_PASSWORD`、`ANDROID_RELEASE_KEY_ALIAS` 与 `ANDROID_RELEASE_KEY_PASSWORD`。它们只放在 `release` 环境里，仓库其他地方没有，也只有 `sign-windows` 读取。keystore 写到运行器的临时文件中，无论结果如何都会删除。
+
+运行要在 `sign-windows` 签名 Windows 包与 APK 之前，等 `@version-fox/vfox-maintainers` 或 `@version-fox/vfox-committers` 的成员批准一次；批准之后发布紧接着进行，不再等第二次。仓库管理员发起的运行可以跳过审批。只有来自 `main` 或 `v*` 标签的运行能使用这个环境。GitHub 不显示 secret 的值，维护者也不分享。如需这四个 secret 的实际值，请联系 <https://github.com/linghengqian>。
+
+设置发布密钥只需一次。先在仓库设置里建 `release` 环境（Environments）：Required reviewers 选两个团队 `vfox-maintainers` 与 `vfox-committers`，勾选 "Allow administrators to bypass configured protection rules"，Deployment branches and tags 只允许 `main` 与 `v*`。然后把 keystore 与口令放进密码管理器，并另存一份：没有它们，以后的任何发布都不能升级已装的应用。
 
 ```sh
 keytool -genkeypair -v -keystore vfox-plus-release.jks -alias vfox-plus \
@@ -130,26 +90,26 @@ gh secret set ANDROID_RELEASE_KEY_ALIAS --env release -R version-fox/vfox-plus
 gh secret set ANDROID_RELEASE_KEY_PASSWORD --env release -R version-fox/vfox-plus
 ```
 
-`.jks` 文件不要放进仓库：`*.jks` 与 `*.keystore` 已被忽略。这把密钥之前，用 debug 密钥签的 APK 不能被 release 升级，要先卸载一次。版本码由版本号推导（1.2.3 为 10203），因为安卓只接受更高版本码的更新。
+`.jks` 文件不要放进仓库：`*.jks` 与 `*.keystore` 已被忽略。
+
+## 版本与更新
+
+安卓只接受用同一把签名密钥、且 `versionCode` 更高的更新。发布时，版本写进带有它的文件，其中包括 `mygo/VERSION` 与 `mygo/phone/mygo.json` 的 `version`（由 `vfxtool set-version` 完成），所以手机显示的版本与桌面应用相同。`versionCode` 是 mygo 的默认值，即 `主版本 × 10000 + 次版本 × 100 + 补丁号`，1.2.3 为 10203。因此次版本号与补丁号必须小于 100，否则版本码就不再随版本递增。
+
+由 debug 密钥签名的 APK，例如 CI 或你本机的 `mygo build` 生成的，不是发布版本：它不能升级到发布版本，发布版本也不能升级它。先卸载它，这同时也会忘掉与电脑的配对。
+
+## 持续集成
+
+[`phone.yml`](../../../.github/workflows/phone.yml) 构建应用，并在模拟器上驱动它。应用、它所配对的代码、共享工具与钉住的版本有改动时运行：
+
+- `build` 任务生成 x86_64 的 APK 与 AAB，用 debug 密钥签名，以 `vfox-plus-android-amd64` 上传。
+- `emulator` 任务在虚拟显示中，对着假 vfox 启动桌面应用的端到端构建，并设 `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`（模拟器访问运行器的地址）：各标签页里有的，与真人看到的一样，是已安装的 SDK 和可安装的插件。它启动模拟器（API 36、`google_apis`、x86_64，软件 GPU），运行 `vfxtool phone-link`（与桌面应用配对，并写出给 `10.0.2.2` 的配对链接）以及 `vfxtool measure-apk`。后者安装 APK，冷启动五次并在每次启动后测量（那一行取中位数，见[手机端应用](memory.md#手机端应用)），在配对对话框开着时按返回键（对话框必须关上，应用必须仍在前台，`--check-back-key`），读配对链接的输入框向键盘要的是什么（地址键盘、不自动大写、不纠错，`--check-input-type`），然后经深链配对，逐个访问五个标签页并截图，顺带拍下[手机端 App 指南](../user/android.md)用的图（`--pictures`，见[截图](contributing.md#截图)），应用的日志里有错误则失败。配对对话框说电脑没有响应时（模拟器的网络还没起来就可能这样），它关掉对话框并重新打开链接，一共最多试三次，并在输出里说明。失败的运行会保留屏幕、应用的日志，以及设备对自己网络的说法。冷启动的测量是构件 `memory-android`；截图、应用日志、失败的证据、配对后的测量，以及五次冷启动的读数与每次完整的 `dumpsys meminfo` 报告，是构件 `phone-e2e-android`；指南用的图是构件 `phone-pictures`。
+- `signing` 任务在 Windows 运行器上用发布用的脚本和它自己生成的密钥演练发布的签名（见[签名状态](#签名状态)）。`shared/scripts/sign-apk.ps1` 有改动时它也运行。
+
+[`release.yml`](../../../.github/workflows/release.yml) 生成发布用的 APK 并签名（见[签名状态](#签名状态)）。[`memory.yml`](../../../.github/workflows/memory.yml) 在 `mygo` 或 `phone` 结束时报告 Pull Request 的内存（见[Pull Request 中的内存](memory.md#pull-request-中的内存)）。
 
 ## 维护者注记
 
-- 明文 HTTP 只允许 `127.0.0.1` 与 `localhost`（`res/xml/network_security_config.xml`），
-  用于调试版经 `adb reverse` 的配对会话。其他地方一律 HTTPS：PC 侧在非回环监听上只提供
-  HTTPS，会话 cookie 带 `Secure`，浏览器与 WebView 不会在纯 HTTP 的其他主机上保存它。
-  备份已关闭（`allowBackup="false"`）：会话 cookie 是凭证，恢复备份不能把它带到另一台设备上。
-- WebView 拒绝一切发往其他站点的请求（`shouldInterceptRequest`，返回 403）：桥对每个框架都可见，
-  其他站点的框架或脚本就能拿到它。链接指向的其他站点页面改由系统浏览器打开。
-- `vfxtool measure-apk --pair-url` 用 `run-as` 把配对链接放进应用的私有 files 目录，`run-as` 只有可调试的构建
-  允许；然后启动启动器，由它取走链接并删除文件。其他应用无法写入这个目录，也没有导出的组件接受链接，所以不会在应用里
-  打开其他应用指定的页面。发布版拒绝 `run-as`，`vfxtool measure-apk --pair-url` 遇到非调试版的 APK 会直接报错。
-- wrapper 是 [Gradle Wrapper Neo](https://github.com/Glavo/gradle-wrapper-neo)
-  0.4.0（Apache-2.0）：官方的 `gradle-wrapper.jar` 是二进制，仓库拒绝二进制文件，
-  Neo 用一个 Java 源文件做同样的事，由 `gradlew` 首次使用时编译。`gradlew`、
-  `gradlew.bat`、`gradlew.ps1` 与 `GradleWrapperNeo.java` 保持发布版原样（所以
-  `.licenserc.yaml` 跳过它们的文件头）；升级时按其 README 从新发布版下载这四个
-  文件。`.gitattributes` 让 `*.bat` 保持 CRLF，`gradlew.bat` 在 Windows 上需要。
-- 换 Gradle 要改 `gradle/wrapper/gradle-wrapper.properties` 里的
-  `distributionUrl` 与 `distributionSha256Sum`（校验值：
-  <https://gradle.org/release-checksums/>）。pin 在 9.9.1，是 AGP 9.5.1 构建时用的版本；
-  AGP 与 Gradle 一起升。
+- `vfxtool measure-apk` 查找应用显示与记录的文字，英文与简体中文都有：确认按钮的标签、电脑没有响应的提示与关闭它的按钮的标签、配对链接输入框的标签（`--check-input-type`）、五个标签页的标签，以及配对时记下的那行日志（见 `shared/tooling/internal/measureapk/measureapk.go`）。拍图的那次运行还要找它打开的那个 SDK 的行（`nodejs`），以及添加插件对话框里的按钮*从来源添加*（Add from source）与*取消*（Cancel）（在紧挨着它的 `pictures.go` 里）。改应用里的这些文字时，要与这些文件在同一次提交中一起改，否则测量失败。
+- `mygo/phone/versions.env` 与 `mygo/go.mod` 钉住同一个 mygo 版本。`JAVA_VERSION` 跟随 mygo 为项目运行的 Gradle：只有连同能运行新 JDK 的 Gradle 的 mygo 一起升级时，才提高它。
+- 不要手改 `mygo.json` 的 `version`：`vfxtool set-version` 会与 `mygo/VERSION` 一起写它。

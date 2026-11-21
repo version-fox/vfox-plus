@@ -111,8 +111,8 @@ func (t *fakeTray) choose(label string) bool {
 
 // fakeWindow is a window that shows nothing, and notes what the application asks of it. The application
 // asks it from any goroutine, as it asks the window of the toolkit, which allows that: a change of the
-// settings asks for a frame from the goroutine that made it and from the one of the web interface that
-// follows it.
+// settings asks for a frame from the goroutine that made it and from the one of the server for other
+// devices that follows it.
 type fakeWindow struct {
 	mu                        sync.Mutex
 	title                     string
@@ -144,9 +144,9 @@ type testApp struct {
 	tester  *mui.Tester
 	desktop *recorder
 	web     *pair.Host
-	// settingsDir holds the certificate that the web interface makes for other devices.
+	// settingsDir holds the certificate that the server for other devices makes.
 	settingsDir string
-	// addresses are the addresses that the web interface says this computer has.
+	// addresses are the addresses that the server for other devices says this computer has.
 	addresses *atomic.Pointer[[]string]
 	// endless says that the page has a list with more rows than any window shows (censusScene.endless).
 	endless bool

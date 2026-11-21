@@ -16,11 +16,11 @@
 // with a Material 3 Expressive cookie shape as a halo.
 //
 // The master of the icon is the SVG of the Linux desktop entry,
-// shared/packaging/linux/dev.vfox.VfoxPlus.svg. The Android launcher icon repeats its
-// paths as vector drawables, and this package repeats them as Go data so that the Windows
-// logos, which a build draws as PNG files because the repository holds no binary files,
-// show the same fox. The tests compare all three, so that a change of the master that
-// forgets one of the others fails.
+// shared/packaging/linux/dev.vfox.VfoxPlus.svg. This package repeats its paths as Go data,
+// and draws them as PNG files, because the repository holds no binary files: the Windows
+// logos, the tray icon, and the icons of the phone app (phone.go, which mygo reads from
+// mygo/phone/resources at build time) show the same fox. The tests compare the data with
+// the master, so that a change of the master that forgets this package fails.
 package appicon
 
 import (
@@ -129,6 +129,11 @@ func (a affine) compose(inner affine) affine {
 
 // fill draws the shape on img, its units transformed by tr.
 func fill(img *image.NRGBA, s shape, tr affine) {
+	fillWith(img, s, tr, paintOf(s.fill, tr))
+}
+
+// fillWith draws the shape on img, its units transformed by tr, in paint.
+func fillWith(img *image.NRGBA, s shape, tr affine, paint image.Image) {
 	cmds, err := parsePath(s.d)
 	if err != nil {
 		panic(fmt.Sprintf("appicon: path %s: %v", s.id, err)) // The data is part of the source.
@@ -152,7 +157,7 @@ func fill(img *image.NRGBA, s shape, tr affine) {
 			z.ClosePath()
 		}
 	}
-	z.Draw(img, b, paintOf(s.fill, tr), image.Point{})
+	z.Draw(img, b, paint, image.Point{})
 }
 
 // paintOf is the colour or the gradient of a fill, placed on the image by tr.
@@ -218,7 +223,7 @@ type command struct {
 }
 
 // parsePath reads SVG path data made of the absolute commands M, L, C and Z, which is all
-// that the icon uses (the same data is valid in an Android vector drawable).
+// that the icon uses.
 func parsePath(d string) ([]command, error) {
 	var cmds []command
 	var nums []float64

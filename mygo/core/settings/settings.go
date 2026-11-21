@@ -82,17 +82,12 @@ type AppSettings struct {
 	ExtraEnvironment map[string]string
 	// Whether the navigation rail shows labels next to the icons.
 	RailExpanded bool
-	// Whether the application serves its web interface on this machine while it
-	// runs: browsers on this machine pair with it through a loopback server.
-	// Off by default.
-	WebInterface bool
 	// Whether closing the window keeps the application running without it, with
-	// the web interface still served, instead of quitting. It only means something
-	// while the web interface is on.
+	// the other devices still connected, instead of quitting. It only means
+	// something while other devices may connect.
 	Lightweight bool
-	// Whether other devices on the network, such as a phone, may connect to the
-	// web interface too, over HTTPS. Off by default, and only while the web
-	// interface is on.
+	// Whether other devices on the network, such as a phone or the Docker
+	// gateway, may connect to the application over HTTPS. Off by default.
 	WebRemote bool
 	// The port that other devices connect to, or 0 for DefaultWebPort. A port
 	// that is not between MinWebPort and MaxWebPort is treated as 0.
@@ -101,7 +96,7 @@ type AppSettings struct {
 	// get over HTTPS, or empty for a certificate that the application makes for
 	// itself and signs itself.
 	WebCertificate, WebKey string
-	// The address at which something else publishes the web interface — a
+	// The address at which something else publishes the server for other devices — a
 	// reverse proxy, a tunnel or the gateway — such as https://vfox.example.com.
 	// Pairing links and the code a phone scans carry it instead of the address of
 	// this computer on the network. Empty when the interface is only reachable
@@ -129,8 +124,8 @@ const (
 	MaxWebPort     = 65535
 )
 
-// ValidWebPort reports whether port is one that the web interface may listen
-// on for other devices.
+// ValidWebPort reports whether port is one that the server for other devices may
+// listen on.
 func ValidWebPort(port int) bool { return port >= MinWebPort && port <= MaxWebPort }
 
 // ValidWebAddress reports whether address is a URL that a pairing link can name:
@@ -177,8 +172,9 @@ func DefaultSettings() AppSettings {
 	}
 }
 
-// knownKeys are the keys that this version reads. remoteAccess is the old name
-// of webInterface: it is read when webInterface is absent, and no longer written.
+// knownKeys are the keys that this version reads. webInterface and remoteAccess are
+// retired: the application shows no web interface on this computer any more. They
+// are read only so that they are not kept as unknown keys, and they are never written.
 var knownKeys = map[string]bool{
 	"theme": true, "useSystemColor": true, "seedColor": true, "language": true,
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
@@ -248,11 +244,6 @@ func SettingsFromJSON(data interface{}) AppSettings {
 	if expanded, ok := object["railExpanded"].(bool); ok && expanded {
 		settings.RailExpanded = true
 	}
-	if web, ok := object["webInterface"].(bool); ok {
-		settings.WebInterface = web
-	} else if legacy, ok := object["remoteAccess"].(bool); ok {
-		settings.WebInterface = legacy
-	}
 	if lightweight, ok := object["lightweight"].(bool); ok {
 		settings.Lightweight = lightweight
 	}
@@ -304,7 +295,6 @@ func settingsJSON(settings AppSettings) string {
 	}
 	fmt.Fprintf(&out, ",%q:%s", "extraEnvironment", environment)
 	fmt.Fprintf(&out, ",%q:%v", "railExpanded", settings.RailExpanded)
-	fmt.Fprintf(&out, ",%q:%v", "webInterface", settings.WebInterface)
 	fmt.Fprintf(&out, ",%q:%v", "lightweight", settings.Lightweight)
 	fmt.Fprintf(&out, ",%q:%v", "webRemote", settings.WebRemote)
 	if ValidWebPort(settings.WebPort) {
@@ -363,7 +353,7 @@ func (s AppSettings) Equal(other AppSettings) bool {
 	if s.Theme != other.Theme || s.UseSystemColor != other.UseSystemColor ||
 		s.SeedColor != other.SeedColor || s.Language != other.Language ||
 		s.VfoxExecutable != other.VfoxExecutable || s.RailExpanded != other.RailExpanded ||
-		s.WebInterface != other.WebInterface || s.Lightweight != other.Lightweight ||
+		s.Lightweight != other.Lightweight ||
 		s.WebRemote != other.WebRemote || s.EffectiveWebPort() != other.EffectiveWebPort() ||
 		s.WebCertificate != other.WebCertificate || s.WebKey != other.WebKey ||
 		s.EffectiveWebAddress() != other.EffectiveWebAddress() ||

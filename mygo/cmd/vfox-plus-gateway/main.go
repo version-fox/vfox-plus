@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Command vfox-plus-gateway is the program of the Docker image of the same name: the web interface of
-// one vfox+, served from another place (see package gateway). It is a client of vfox+, as the Android
+// one vfox+, served from another place (see package gateway). It is a client of vfox+, as the phone
 // app is, and not vfox+ in another mode: it has no vfox, no window and no state of vfox.
 //
 // It takes no arguments and reads no environment switch. It serves HTTPS on port 8080, prints the link

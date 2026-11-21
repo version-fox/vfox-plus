@@ -15,7 +15,7 @@
 // Command vfox-plus is the desktop application for vfox, built with mygo.
 //
 // It is an application and not a command: it takes no arguments, and everything
-// that it can do is in its settings, the web interface among it (see package
+// that it can do is in its settings, other devices among them (see package
 // pair). Starting it again brings its window back.
 package main
 
@@ -74,9 +74,9 @@ func main() {
 		TaskLogDir:    taskLogDir,
 		ProfilesDir:   profile.ProfilesDir(settingsPath),
 	})
-	// The web interface is off until the user turns it on in the settings, and
-	// is served from then on by the application, for as long as it runs. The
-	// settings are loaded before it starts, so that it starts as they say.
+	// Other devices may connect once the user allows them in the settings, and the
+	// application serves them for as long as it runs. The settings are loaded before
+	// it starts, so that it starts as they say.
 	model.Settings.Load()
 	web := pair.NewHost(model, pair.HostOptions{SettingsDir: settingsDir, Quit: mygo.App.Quit})
 	application, err := ui.New(ui.Options{Model: model, Environment: environment, Web: web})

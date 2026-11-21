@@ -984,7 +984,7 @@ func Report(ctx context.Context, repo *Repository, implementations []string, tec
 		logMessage(fmt.Sprintf("No open pull request has %s as its latest commit; there is nothing to report on.", shortSHA(headSHA)))
 		return 0, nil
 	}
-	workflows, err := ActiveWorkflows(ctx, repo, append(append([]string{}, implementations...), "android"))
+	workflows, err := ActiveWorkflows(ctx, repo, append(append([]string{}, implementations...), "phone"))
 	if err != nil {
 		return 0, err
 	}
@@ -1003,9 +1003,9 @@ func Report(ctx context.Context, repo *Repository, implementations []string, tec
 				ordered = append(ordered, implementation)
 			}
 		}
-		// The android workflow has no row of its own, but its run carries
+		// The phone workflow has no row of its own, but its run carries
 		// the APK section, so the report waits for it like for the rest.
-		if waiting := Unfinished(append(ordered, "android"), workflows, runs, runID); len(waiting) > 0 {
+		if waiting := Unfinished(append(ordered, "phone"), workflows, runs, runID); len(waiting) > 0 {
 			logMessage(fmt.Sprintf("Waiting for %s; the report is written when they have ended.", strings.Join(waiting, ", ")))
 			return 0, nil
 		}

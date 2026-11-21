@@ -30,10 +30,10 @@
 // of a plugin, and how its version names are put together.
 //
 // A profile is plain data without a user interface framework. The desktop
-// interface, the web interface and the Android app (a web view of it) show the
+// interface, the web interface and the phone app show the
 // same profiles; the texts that a profile carries are written in both
 // languages of the application next to the data they describe, because the
-// web interface gets them over HTTP. Plugins without a profile are listed,
+// web interface and the phone app get them over HTTP. Plugins without a profile are listed,
 // installed and selected as before, with facets and variables inferred from
 // what the plugin reports (see infer.go) and with optional profile files
 // (see external.go) overlaying the built-in ones without a code change.

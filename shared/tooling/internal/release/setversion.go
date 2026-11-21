@@ -16,21 +16,24 @@ package release
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
 
 // SetVersion writes version into the files that carry it, in the checkout at root:
-// mygo/VERSION, the Version constant of mygo/ui/app.go, and the release list of the
-// metainfo. The metainfo gets an entry dated date unless it has one for version
-// already. The files are read back to check them, and the metainfo must stay
-// well-formed XML.
+// mygo/VERSION, the Version constant of mygo/ui/app.go, the version of the phone app's
+// configuration (PhoneConfigFile), and the release list of the metainfo. The metainfo
+// gets an entry dated date unless it has one for version already. The files are read
+// back to check them, and the metainfo must stay well-formed XML.
 func SetVersion(root, version, date string) error {
 	if !versionPattern.MatchString(version) {
 		return fmt.Errorf("Not a version (major.minor.patch, without v): %s", version)
@@ -40,10 +43,8 @@ func SetVersion(root, version, date string) error {
 	}
 	path := func(file string) string { return filepath.Join(root, filepath.FromSlash(file)) }
 
-	if err := os.WriteFile(path(VersionFile), []byte(version+"\n"), 0o644); err != nil {
-		return err
-	}
-
+	// Every file is read and changed in memory first, so that a file that cannot be
+	// changed leaves the checkout as it was.
 	app, err := os.ReadFile(path(AppFile))
 	if err != nil {
 		return err
@@ -52,14 +53,21 @@ func SetVersion(root, version, date string) error {
 		return fmt.Errorf("%s must have one Version constant, found %d", AppFile, n)
 	}
 	app = versionConst.ReplaceAllLiteral(app, []byte(`const Version = "`+version+`"`))
-	if err := os.WriteFile(path(AppFile), app, 0o644); err != nil {
+
+	phone, err := os.ReadFile(path(PhoneConfigFile))
+	if err != nil {
 		return err
+	}
+	phone, err = setPhoneVersion(phone, version)
+	if err != nil {
+		return fmt.Errorf("%s: %w", PhoneConfigFile, err)
 	}
 
 	metainfo, err := os.ReadFile(path(MetainfoFile))
 	if err != nil {
 		return err
 	}
+	metainfoChanged := false
 	if !bytes.Contains(metainfo, []byte(`<release version="`+version+`"`)) {
 		const releases = "<releases>\n"
 		if !bytes.Contains(metainfo, []byte(releases)) {
@@ -67,6 +75,19 @@ func SetVersion(root, version, date string) error {
 		}
 		entry := `    <release version="` + version + `" date="` + date + `"/>` + "\n"
 		metainfo = bytes.Replace(metainfo, []byte(releases), []byte(releases+entry), 1)
+		metainfoChanged = true
+	}
+
+	if err := os.WriteFile(path(VersionFile), []byte(version+"\n"), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(path(AppFile), app, 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(path(PhoneConfigFile), phone, 0o644); err != nil {
+		return err
+	}
+	if metainfoChanged {
 		if err := os.WriteFile(path(MetainfoFile), metainfo, 0o644); err != nil {
 			return err
 		}
@@ -90,6 +111,63 @@ func verify(root, version string) error {
 		return err
 	}
 	return wellFormed(metainfo)
+}
+
+// phoneVersionField matches the "version" line of the phone app's configuration: one line
+// of the file, as the configuration is written by hand, with its indentation kept.
+var phoneVersionField = regexp.MustCompile(`(?m)^([ \t]*)"version"([ \t]*):([ \t]*)"[^"]*"`)
+
+// phoneConfig is the part of the phone app's configuration that the release reads.
+type phoneConfig struct {
+	Version string `json:"version"`
+}
+
+// phoneConfigVersion returns the version of the phone app's configuration text.
+func phoneConfigVersion(text string) (string, error) {
+	var config phoneConfig
+	if err := json.Unmarshal([]byte(text), &config); err != nil {
+		return "", fmt.Errorf("cannot read the version, which is JSON with a string: %w", err)
+	}
+	return config.Version, nil
+}
+
+// setPhoneVersion returns the configuration with its version set to version, and nothing
+// else changed: the text keeps its order and layout, only the value of the one "version"
+// line moves, and the result must decode to the same fields as before.
+func setPhoneVersion(config []byte, version string) ([]byte, error) {
+	before, err := phoneConfigVersion(string(config))
+	if err != nil {
+		return nil, err
+	}
+	if n := len(phoneVersionField.FindAllIndex(config, -1)); n != 1 {
+		return nil, fmt.Errorf("must have one version field, found %d", n)
+	}
+	updated := phoneVersionField.ReplaceAll(config, []byte(`${1}"version"${2}:${3}"`+version+`"`))
+	if after, err := phoneConfigVersion(string(updated)); err != nil || after != version {
+		return nil, fmt.Errorf("the version did not change to %s (it is %q, was %q)", version, after, before)
+	}
+	if err := sameFieldsExceptVersion(config, updated); err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+// sameFieldsExceptVersion reports an error unless the two configurations decode to the same
+// fields, without the version.
+func sameFieldsExceptVersion(old, updated []byte) error {
+	var a, b map[string]any
+	if err := json.Unmarshal(old, &a); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(updated, &b); err != nil {
+		return err
+	}
+	delete(a, "version")
+	delete(b, "version")
+	if !reflect.DeepEqual(a, b) {
+		return errors.New("the change would alter other fields of the configuration")
+	}
+	return nil
 }
 
 // wellFormed reports an error unless text is well-formed XML.

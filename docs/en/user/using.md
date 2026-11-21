@@ -51,8 +51,10 @@ The plugins [vfox-java](https://github.com/version-fox/vfox-java),
 [vfox-flutter](https://github.com/version-fox/vfox-flutter),
 [vfox-gradle](https://github.com/version-fox/vfox-gradle),
 [vfox-golang](https://github.com/version-fox/vfox-golang) and [vfox-python](https://github.com/version-fox/vfox-python) do more than list
-versions, and vfox-plus offers all of it, in the desktop application, in the web
-interface and in the Android app alike. A plugin that you added under another
+versions, and vfox-plus offers all of it in the desktop application and in the web
+interface of the gateway. The phone app has the same SDK pages, except for the
+differences that [What differs from the desktop application](android.md#what-differs-from-the-desktop-application)
+lists. A plugin that you added under another
 name, as `vfox add --alias coffee java` does, offers the same as the plugin it was
 made from:
 
@@ -62,8 +64,8 @@ made from:
   GraalVM, which you filter by name, short name or maker; **All distributions**
   lists every one of them, about 2,700 versions, and says which each is of. The
   choice is remembered, for the next time you open the plugin and after a restart; it
-  is kept in the settings of the desktop application, so the web interface and the
-  Android app show the same one. It is the same as `vfox search java tem`.
+  is kept in the settings of the desktop application, so the gateway and the phone app show
+  the same one. It is the same as `vfox search java tem`.
 - **Filter chips.** Chips above the list narrow it by what the plugin says of its
   versions: LTS and JavaFX for Java, LTS for Node.js, the channels (stable, beta,
   dev, OpenHarmony) and the architectures (x64, arm64) for Flutter, and GraalPy and GraalPy Community for Python. Chips of one
@@ -112,7 +114,8 @@ The **Options** tab holds what is particular to the plugin:
 
 The plugins [vfox-maven](https://github.com/version-fox/vfox-maven) and
 [vfox-php](https://github.com/version-fox/vfox-php) do more than list versions too; the
-three interfaces offer it alike:
+desktop application and the web interface offer it alike, and the phone app offers it
+too:
 
 - **Install by name.** `latest` installs the newest stable release. A pre-release installs
   by its name, such as `4.0.0-rc-7`. For PHP, `latest` is the newest release, which on
@@ -221,10 +224,9 @@ a task finishes while you look at another page, a message reports it.
 
 - **Appearance**: light, dark or follow the system; use the desktop accent
   colour or pick one of the swatches; the language (English or 简体中文).
-- **Web interface**: whether vfox-plus also serves its interface to a browser on this
-  computer, whether it keeps running without its window (lightweight mode), and
-  whether phones and other computers on the network may connect, over HTTPS. See
-  [The web interface and other devices](remote.md).
+- **Other devices**: whether phones, the gateway and other computers on the network may
+  connect, over HTTPS, and whether vfox-plus keeps running without its window for them
+  (lightweight mode). See [Other devices and the lightweight mode](remote.md).
 - **vfox**: which executable is used (detected automatically, or pick your
   own) and extra environment variables such as download mirrors.
 - **vfox configuration**: proxy, registry, storage directory, legacy version

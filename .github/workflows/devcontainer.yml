@@ -26,13 +26,13 @@ on:
     paths:
       - .devcontainer/**
       - mygo/versions.env
-      - android/versions.env
+      - mygo/phone/versions.env
       - .github/workflows/devcontainer.yml
   pull_request:
     paths:
       - .devcontainer/**
       - mygo/versions.env
-      - android/versions.env
+      - mygo/phone/versions.env
       - .github/workflows/devcontainer.yml
   workflow_dispatch:
 
@@ -63,13 +63,16 @@ jobs:
         run: |
           devcontainer exec --workspace-folder . bash -eu <<'EOF'
           . mygo/versions.env
-          . android/versions.env
+          . mygo/phone/versions.env
           test "$(go env GOVERSION)" = "go$GO_VERSION"
           golangci-lint version | grep -F "has version $GOLANGCI_LINT_VERSION "
           vfox --version | grep -F "version $VFOX_VERSION"
           java -version 2>&1 | grep -F "version \"$JAVA_VERSION."
           test -d "$ANDROID_HOME/platforms/android-$ANDROID_SDK_PLATFORM"
           test -d "$ANDROID_HOME/build-tools/$ANDROID_SDK_BUILD_TOOLS"
+          test -d "$ANDROID_HOME/build-tools/$ANDROID_GRADLE_BUILD_TOOLS"
+          test -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          mygo version | grep -F "$MYGO_VERSION"
           command -v vfxtool
           EOF
       - name: Lint, and compile the tests with the race detector
@@ -89,11 +92,14 @@ jobs:
               vfxtool e2e-run "$scenario" build/vfox-plus-e2e
           done
           EOF
-      - name: Build the Android client
+      - name: Build the phone app for the emulator
+        # mygo builds the Go code of the app for x86_64 and the Android project with Gradle; the
+        # icons come first, as phone.yml writes them (the repository holds no binary files).
         run: |
           devcontainer exec --workspace-folder . bash -eu <<'EOF'
-          cd android
-          ./gradlew :app:assembleRelease
+          vfxtool appicon mygo/phone/resources
+          cd mygo/phone
+          mygo build -platform android/amd64
           EOF
       - name: Run the checks that use Docker
         # The Markdown check and the license headers, as docs/en/dev/contributing.md

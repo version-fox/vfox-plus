@@ -26,10 +26,10 @@ The build that is measured is the end-to-end build: the release build with the i
 of the native user interface and the automation plugin of mygo, which the measuring drives
 it through. They take up to 1 MB of PSS, which the release build does not.
 
-The Android client (`android/`) is not in this table: it is a WebView around
-the web interface, so its memory is the system WebView's plus the page, and it
-is measured on the device, not with this method. What its toolkit costs is in
-[Views or Compose in the Android app](#views-or-compose-in-the-android-app).
+The phone app (`mygo/phone`) is not in this table: it runs on Android, where
+`vfxtool measure-apk` measures it on an emulator, cold and paired (see
+[The phone app](#the-phone-app)). Its numbers come from another system and another
+method, so they are compared only with each other.
 
 ## Motion and memory
 
@@ -45,7 +45,7 @@ measured that way.
 
 ## The lightweight mode
 
-With the web interface and the lightweight mode on, closing the window leaves the
+With other devices allowed and the lightweight mode on, closing the window leaves the
 application running without it (see [the architecture](architecture.md#the-window-and-the-lightweight-mode)).
 `vfxtool measure-lightweight` measures it the same way as the table above — one process,
 smaps_rollup, a fresh home directory with the fake vfox, settled after start — on the
@@ -53,7 +53,7 @@ same WSL2 host, on 2026-11-04:
 
 | State | RSS | PSS |
 | --- | ---: | ---: |
-| Window open, Home page, web interface on | 62 MB | 48 MB |
+| Window open, Home page, other devices allowed | 62 MB | 48 MB |
 | Window closed (`lightweight-idle`) | 46 MB | 33 MB |
 | Window closed, a browser paired and past its first inventory (`lightweight-loaded`) | 50 MB | 37 MB |
 
@@ -77,7 +77,7 @@ The rest is clean pages of files, which the system can take back whenever it nee
 of the executable that was touched (17 MB: a Go executable is mapped whole, and the system maps
 sixteen pages around every one that runs), the fonts that the toolkit mapped (10 MB), GTK 3 and the
 libraries it loads. A desktop application keeps them for as long as it runs, so the lightweight mode
-saved a few MB, and its point is not memory: it is that the web interface, its sessions and the tasks that
+saved a few MB, and its point is not memory: it is that the server for other devices, its sessions and the tasks that
 run go on without a window, and that the window comes back from the icon in the tray or by starting the
 application again.
 
@@ -90,7 +90,7 @@ no page that the process wrote. The system takes them back at once instead of wh
 of another program, and then the resident set is what the application runs. The pages that other programs
 map too, as those of the libraries of the desktop, are left where they are by the system, which pages out
 only what one process maps. A window that opens in the two seconds, which needs them, cancels it; and the
-pages come back when something runs them: the first request that the web interface got after a minute of
+pages come back when something runs them: the first request that the server for other devices got after a minute of
 idleness took 14 ms in one measurement and under 1 ms in the next, where it took 1 ms before, and a window
 opened from the icon in the tray took 0.15 to 0.25 s, as it did (0.19 s). Sampled for three minutes the
 resident set does not creep back.
@@ -176,7 +176,7 @@ CI keeps the cost where it is. `vfxtool measure-lightweight --tray` (the last st
 runs the application twice in the same way, where nothing shows an icon and against the stand-in host, and fails the job
 when the icon costs more than 5 MB of resident or 1.5 MB of private memory: room for the noise of a runner, and
 less than the fallback costs, so that an icon made the way the fallback makes it is caught. It does not use the
-automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray-late`) checks that the application runs
+automation plugin, for the glyph atlas above. Where there is no host, the scenario of the icon (`vfxtool e2e-run tray`, in its part `tray-late`) checks that the application runs
 on, and that the icon takes its place when a host comes up. Of the other ways to win the 0.4 MB back that were measured, none is in the code except the
 two above: `malloc_trim` after the window closes changed nothing, `MALLOC_ARENA_MAX=1` saved 0.1 MB, and a
 second `debug.FreeOSMemory` a few seconds after the first saved 0.2 MB of private memory and nothing of
@@ -192,13 +192,13 @@ with a browser paired, where the table has 46 and 33, and 50 and 37; and the ico
 ## Beyond the desktop
 
 The pull-request comment also tracks what the desktop table does not: the
-lightweight mode and the Android APK. Each has its own
+lightweight mode and the phone app. Each has its own
 method, units and noise; compare the rows of one comment, as with the table
 above.
 
 - **Lightweight mode.** `vfxtool measure-lightweight` starts the end-to-end build of the
   application under a display (`xvfb-run`) with a fresh home directory, the fake vfox, and
-  settings with the web interface and the lightweight mode on. The end-to-end build writes a
+  settings with other devices allowed and the lightweight mode on. The end-to-end build writes a
   pairing link to the file that `VFOX_PLUS_E2E_LINK` names and closes its window on `SIGUSR1`,
   which a release build has no code for. The tool closes the window five seconds after the
   pairing link is written, once the window has loaded what it loads when it starts, and prints
@@ -207,101 +207,116 @@ above.
   first inventory over server-sent events. Only the private memory is judged (see
   [Memory in pull requests](#memory-in-pull-requests)). With `--tray` it measures instead what the
   icon in the tray costs (see [The tray icon](#the-tray-icon)).
-- **Android client.** The `measure` job of `android.yml` installs the release
-  APK on an emulator (API 36, x86_64), cold-starts it through the launcher,
-  settles, and reads `dumpsys meminfo`: `apk-cold`, in MB. Emulator boots vary
-  more than GitHub runners, so a change counts only past 5 MB and 10%.
+- **Phone app.** The `emulator` job of `phone.yml` installs the APK on an emulator
+  (API 36, x86_64), cold-starts it five times, settles after each start, and reads
+  `dumpsys meminfo`: `memory (apk-cold)` is the median of the five, in MB (see
+  [The phone app](#the-phone-app)). Emulator boots vary more than GitHub runners, so a change
+  counts only past 5 MB and 10%.
 
 In CI the `measure-remote` job of `mygo.yml` uploads `memory-lightweight` and `memory-lightweight-private`,
-the `measure` job of `android.yml` uploads `memory-android`,
+the `emulator` job of `phone.yml` uploads `memory-android`,
 and `memory.yml` reports when either workflow ends, waiting for a still
-running Android run like for the rest. The sections render below the desktop
+running phone run like for the rest. The sections render below the desktop
 table with the numbers of the pull request next to `main`.
 
-Coverage gaps: `apk-cold` never loads the system WebView (it is the unpaired
-first screen). `vfxtool webheap` can still read the JavaScript heap of the paired `/app`
-page locally (next to a screenshot), for diagnosis only, not for the CI
+Coverage gaps: the emulator is not a phone, and it draws with a software GPU
+(`swiftshader_indirect`), so the numbers of the phone app are not those of a device.
+`vfxtool webheap` can still read the JavaScript heap of the paired `/app`
+page of the gateway locally (next to a screenshot), for diagnosis only, not for the CI
 report: it never measures the browser process around the page, so the heap
-numbers do not stand for the browser or the Android client.
+numbers do not stand for the browser or the phone app.
 
-### The paired session
+### The phone app
 
-The client is a WebView around `/app`: the whole session is the shared web
-frontend, so there is exactly one implementation to measure. `vfxtool
-measure-apk --pair-url` hands the one-time link to the debuggable app with
-`run-as` (the app's own files, which only a debuggable build allows), starts the launcher,
-which opens the same session as pasting the link and tapping connect, settles again, and
-appends the `memory (apk-paired)` line. No other application can write there, and no exported
-component takes the link. The release APK that CI measures refuses `run-as`, so the paired
-line needs a debug APK (`./gradlew assembleDebug`).
-Pair against the end-to-end build of the
-application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, which
-makes its certificate and its pairing link name the address where the emulator
-reaches the computer; read the link from the file that `VFOX_PLUS_E2E_LINK`
-names and mint a fresh one per run by restarting the application. The paired
-line is local diagnosis only: never upload a two-line file, and CI keeps
-measuring the cold start.
+`vfxtool measure-apk` measures the phone app on an emulator (API 36, `google_apis`, x86_64,
+with a software GPU), with `dumpsys meminfo` after 20 seconds of settling. When a report holds no
+memory (`dumpsys meminfo` can answer `DUMP TIMEOUT` right after the boot of an emulator), the
+reading is asked for again, up to four times and five seconds apart; the start is not repeated.
+One run gives two numbers, in MB:
 
-Measured 2026-11-08 on one emulator (API 36, x86_64, no GPU) against the fake
-vfox with the Java and Flutter profiles, release build with R8, `dumpsys
-meminfo` after 20 seconds of settling, paired over plain HTTP through `adb
-reverse` so that no trust tap is needed:
+- `memory (apk-cold)`: the first screen, after a cold start through the launcher. With
+  `--cold-runs N` the app is started cold N times, each start settles for the 20 seconds, and the
+  line is the median of the N readings (the PSS and the RSS each have a median of their own); CI
+  asks for five. It is the line of the report, in the artifact `memory-android`. Beside it the
+  run writes the readings in the order of the starts (`memory-cold-samples.txt`) and the whole
+  report of `dumpsys meminfo` of every start (`meminfo-cold-N.txt`), and that of the paired reading
+  (`meminfo-paired.txt`), which show which category of memory moved when two runs differ. CI keeps
+  them in the artifact `phone-e2e-android`, in `memory-android/`.
+- `memory (apk-paired)`: the same process once it is paired, with the five tabs visited. CI
+  keeps that line in the artifact `phone-e2e-android`, with the screenshots and the log of the
+  app. The report reads one line, from `memory-android`, so this one is not in it.
 
-| Build | `apk-cold` PSS | `apk-paired` PSS |
-| --- | ---: | ---: |
-| WebView client | 38 MB | 87 MB |
+The paired session starts with the deep link `vfoxplus://pair?link=…`, which opens the pairing
+screen with the one-time link filled in. `measure-apk` then taps the confirmation (when the
+dialog says that the computer did not answer, it closes the dialog and opens the link again; it
+tries three times in all), waits for the app to log the pairing, takes a screenshot and a dump of each tab, and
+fails when the log of the app has an error. With `--check-back-key` it first presses the key back with
+the dialog of the trust open: the dialog must close and the app must stay in front, which no test of
+the screens can see (mygo takes a back that nothing of the window claims as the end of the app, and a
+dialog does not claim it: [egoist/mygo#2088](https://github.com/egoist/mygo/issues/2088)). With
+`--check-input-type` it then focuses the field of the pairing link and reads, from the input method
+service, what the app asked the keyboard for: the keyboard of addresses, with no capitalization and
+suggestions off, which the fields of the web interface have (a plain field of mygo gets the capitalization
+of sentences and the corrections of the keyboard on Android). It needs no debuggable build and no `run-as`: the link reaches the app the way
+a link opened on the phone does. The desktop application of CI runs against the fake vfox, so the tabs
+that the paired line is measured on hold SDKs and plugins, as a person's do
+([Screenshots](contributing.md#screenshots)). To run it yourself, start the end-to-end build of the
+desktop application with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2`, write its pairing link for the emulator with
+`vfxtool phone-link` (see [the packaging page](packaging-android.md#continuous-integration)), and run:
 
-The cold start never loads the WebView. The paired session costs the system
-WebView about 49 MB PSS here, with the whole session loaded: home, SDKs with
-their versions and options, plugins, tasks and settings, with live events
-streaming. An earlier A/B against a native control build measured 37/84 MB
-against 38/39 MB cold/paired, so the WebView accounts for nearly all of the
-paired cost and a native session would add only about 1 MB over its own cold
-start. That build was dropped anyway: a second, hand-duplicated UI that has
-to stay pixel- and copy-identical with the web frontend costs more than the
-megabytes, and the design language and the copy now live in exactly one
-place. (An earlier run the same day read 32/68 MB and 31/32 MB; compare rows
-measured back to back.)
+```sh
+vfxtool measure-apk --apk APK --output DIR --screenshot DIR/first.png \
+  --pair-link-file LINK --shots DIR/shots
+```
 
-### Views or Compose in the Android app
+With `--pictures DIR` the same run takes the pictures of the guide to the phone app, in the paired
+session ([Screenshots](contributing.md#screenshots)).
 
-The Android app is written in Views, with Material Components. To see what Compose
-would cost, its pairing screen was written a second time in Compose, with the same
-strings, colours, icons and shapes, and the apps were run on one emulator (API 36,
-x86_64, no GPU) as release builds with R8: installed, started through the launcher,
-settled for 12 seconds, and the PSS read from `dumpsys meminfo`, three rounds of each
-app in turn, on 2026-10-30. "Fresh" is right after the install, where the code is
-interpreted and compiled just in time; "compiled" is after
-`cmd package compile -m speed -f`, which compiles all of the app ahead of time.
+The paired line is for diagnosis. Its numbers do not compare with the desktop table either: they
+come from `dumpsys meminfo` on an emulator, where the desktop table reads `smaps_rollup` on a
+computer. Compare the rows of one report with each other.
 
-| App | APK (bytes) | PSS fresh (MB) | PSS compiled (MB) |
+#### The first screen, against the client it replaced
+
+One cold start of an emulator is a poor reading. In the runs of CI that kept their number, the first
+screen of the phone app read between 29 and 49 MB of PSS (nine runs of its branch, whose code changed
+little in between, one start each, before `--cold-runs`), and the Kotlin client that it replaced
+between 26 and 37 MB (eighteen runs of `main` before this change, one start each):
+
+| PSS in MB, one start per run | Runs | Lowest | Median | Highest |
+| --- | ---: | ---: | ---: | ---: |
+| The Kotlin client, on `main` before this change | 18 | 26 | 31.5 | 37 |
+| The phone app | 9 | 29 | 46 | 49 |
+
+Eight of the nine readings of the phone app are above the highest of the eighteen of the client, so
+the 14.5 MB between the medians is not noise: at its first screen the process of the phone app holds
+about 15 MB more than the client's did. The two apps run one after the other on one emulator (four
+starts of the client and six of the phone app, medians, in MB) read as follows, and the table says
+where the difference is:
+
+| MB | Client | Phone app | Difference |
 | --- | ---: | ---: | ---: |
-| Views, before the rebuild in Material 3 Expressive | 3,176,011 | 40.8 | 44.5 |
-| Views, rebuilt in Material 3 Expressive | 3,228,463 | 43.5 | 46.9 |
-| Compose, the pairing screen only | 3,589,067 | 44.4 | 47.4 |
+| Java heap | 4.9 | 5.6 | +0.7 |
+| Native heap | 11.1 | 16.4 | +5.3 |
+| Code | 9.1 | 17.1 | +8.0 |
+| Stack | 0.4 | 0.5 | +0.1 |
+| Private other | 2.0 | 6.9 | +4.9 |
+| System | 8.3 | 4.7 | −3.6 |
+| **PSS** | **36.0** | **51.2** | **+15.3** |
+| RSS | 167 | 178 | +10.5 |
 
-- **Memory does not tell them apart.** The Compose screen took 0.9 MB (fresh) and
-  0.5 MB (compiled) more than the Views app, which is the size of the noise: in six
-  fresh runs it read between 43.1 and 45.1 MB (its native heap alternated between 9.8
-  and 11.5 MB), where the Views app read between 43.4 and 43.6 MB. The rebuild of the
-  Views app changed more (+2.4 to +2.7 MB). Memory is no reason to choose either
-  toolkit.
-- **The size of the APK does.** Adding Compose to the Views app makes it 4,434,858
-  bytes, 1.2 MB (37 %) more, and the Compose screen alone, without the scanner, the
-  session screen, CameraX and zxing, is already larger than the whole Views app.
-- **Compare apps that carry only what they run.** The first Compose build still had
-  the Views screens in it, which never ran, and read about 3 MB (fresh) and 6 MB
-  (compiled) more than the Views app: code that is in the APK costs memory once the
-  system has compiled it.
-- **The Compose screen** used the Compose BOM 2026.06.01 (Compose 1.11.4 and
-  Material 3 1.4.0, stable API only), activity-compose 1.13.0 and the Compose
-  compiler plugin of Kotlin 2.1.20, which the build pinned then.
-- **The absolute numbers belong to this session**: an earlier one read 30 to 34 MB
-  for the Views apps. Compare the rows of the table.
-- **Not measured:** Compose with the Expressive components, which the pinned
-  toolchain cannot build (see [Why Views and not
-  Compose](packaging-android.md#why-views-and-not-compose)), the session screen with
-  its WebView, and a phone.
+(The differences are those of the medians before rounding, so they are not always those of the
+numbers printed.) The pages of the Go program (Code) and its heap (Native heap) are most of the difference. In that
+run five of the six starts of the phone app read 51.1 to 51.4 MB of PSS and one read 46.8 MB, so the
+median of several starts is steadier than a start, which is why the line is one. In CI the five
+starts of one session read 44 to 48, 31 to 50, 31 to 48, 34 to 51 and 28 to 50 MB of PSS in the five
+runs of this branch that took five, and the medians were 44, 44, 46, 40 and 43 MB.
+
+What the comparison leaves out. The client was measured at its first screen only, and no process
+of a web page was running then (`ps` showed the `webview_zygote` and `webview_service` of the
+system and no renderer). A paired client shows its page in a WebView, whose renderer is a process of
+its own, and no run of `main` before this change measured a paired client, so what the two apps cost in use is not
+known. And the emulator is x86_64 and draws with software, where a phone is arm64 and has a GPU.
 
 ## How it is measured
 
@@ -361,11 +376,11 @@ commit replaces that comment instead of adding another one.
   uploads the lines that it prints as the artifact `memory-mygo`. `vfxtool measure`
   writes them to the file named in `VFOX_PLUS_MEASURE_OUTPUT` as well. The same
   workflow's `measure-remote` job uploads `memory-lightweight` and `memory-lightweight-private`, and the
-  `measure` job of [`android.yml`](../../../.github/workflows/android.yml) uploads
+  `emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml) uploads
   `memory-android`; the comment renders them as the [Beyond the desktop](#beyond-the-desktop)
   sections below the table.
-- [`memory.yml`](../../../.github/workflows/memory.yml) starts when that workflow ends
-  and runs `vfxtool memory-report`. It compares
+- [`memory.yml`](../../../.github/workflows/memory.yml) starts when the `mygo` or the `phone`
+  workflow ends and runs `vfxtool memory-report`. It compares
   the artifact of the pull request with the latest run of the same workflow on
   `main` and writes the comment. The workflow runs in the context of `main`, which
   is what lets it comment on pull requests of forks, and it reads nothing but two
@@ -390,10 +405,16 @@ judges them as follows:
   than the larger of 2 MB and 5 % of the number on `main`. The resident and the proportional memory are shown with
   their difference, without bold. The 2 MB is a first estimate from runs on the devcontainer, where the private
   memory of one build moved by about 1 MB before the wait; CI has not measured it over several runs yet.
+- The phone app: the line is the median of five cold starts, and a difference counts as a change
+  only when it is more than the larger of 5 MB and 10 % of the number on `main`. In nine runs of
+  one start each, on a branch whose code changed little in between, the first screen read from 29 to
+  49 MB of PSS ([the table](#the-first-screen-against-the-client-it-replaced)); the five readings of
+  each run are in the artifact `phone-e2e-android`.
 
 The number of processes never varied, so a different number is a change too. The sample is small: if the comment
 reports a change that the commit cannot have caused, measure how much identical code varies again and adjust
-`Tolerances`, or `MinPrivateChangeKB` and `PrivateTolerance` for the lightweight mode, in `vfxtool memory-report`.
+`MinChangeMB` and `DefaultTolerance` (`Tolerances` for one implementation only), `androidNoise` for the phone app, or
+`MinPrivateChangeKB` and `PrivateTolerance` for the lightweight mode, in `vfxtool memory-report`.
 
 ### Using it
 

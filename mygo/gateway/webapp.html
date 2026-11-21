@@ -1,0 +1,754 @@
+<!--
+  ~ Copyright 2026 Han Li and contributors
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~   http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--  ~ Material Symbols Rounded icons below (symbols i-*) are by Google under
+  ~ the Apache License 2.0; colour tokens (--m3-*) are generated from the
+  ~ vfox orange seed with the project's own Material colour utilities
+  ~ (mygo/ui/mcu, tonal spot), the same scheme as the desktop application.
+  -->
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#88521c">
+<title>vfox-plus</title>
+<!--favicon-->
+<link rel="manifest" href="/manifest.webmanifest">
+  <script type="module" crossorigin>(function(){let e=document.createElement(`link`).relList;if(e&&e.supports&&e.supports(`modulepreload`))return;for(let e of document.querySelectorAll(`link[rel="modulepreload"]`))n(e);new MutationObserver(e=>{for(let t of e)if(t.type===`childList`)for(let e of t.addedNodes)e.tagName===`LINK`&&e.rel===`modulepreload`&&n(e)}).observe(document,{childList:!0,subtree:!0});function t(e){let t={};return e.integrity&&(t.integrity=e.integrity),e.referrerPolicy&&(t.referrerPolicy=e.referrerPolicy),t.credentials=e.crossOrigin===`use-credentials`?`include`:e.crossOrigin===`anonymous`?`omit`:`same-origin`,t}function n(e){if(e.ep)return;e.ep=!0;let n=t(e);fetch(e.href,n)}})();function e(e){return String(e??``).replace(/[&<>"']/g,e=>({"&":`&amp;`,"<":`&lt;`,">":`&gt;`,'"':`&quot;`,"'":`&#39;`})[e])}function t(e,t){return`<svg class="ic`+(t?` `+t:``)+`" aria-hidden="true"><use href="#i-`+e+`"/></svg>`}function n(e){let t=0;for(let n of e)t=t*31+n.codePointAt(0)>>>0;return t}function r(t,r){let i=n(t);return`<span class="avatar `+[`av-p`,`av-s`,`av-t`][i%3]+` av-`+i%12+(r?` lg`:``)+`" aria-hidden="true">`+e((t||`?`)[0].toUpperCase())+`</span>`}function i(e,t){return e?typeof e==`string`?e:(t===`zh`&&e.zh?e.zh:e.en)||``:``}function a(e){let t=document.getElementById(e);if(!t)throw Error(`missing element #`+e);return t}function o(e,t,n){return e.filter(e=>e.sdk===t&&(e.target===t+`@`+n||e.target===n)).map(e=>`@`+e.alias).join(`, `)}var s={webH:`Connections`,webRemote:`Other devices`,webRemoteTitle:`Allow other devices?`,webRemoteBody:`Phones and other computers on your network will be able to connect to vfox+ with a pairing link. Links work once, and the connection uses HTTPS. Only allow this in a network you trust.`,webRemoteOk:`Allow`,webPort:`Port`,webPortHelp:`Allow it in the firewall.`,webFingerprint:`Certificate fingerprint. Compare it on the other device.`,webError:`Other devices cannot connect:`,webPairBtn:`Pair a phone`,webCopyLink:`Copy link`,webLight:`Lightweight mode`,webLightHelp:`Keeps running after the window closes.`,webQuit:`Quit vfox+`,webQuitBtn:`Quit`,webQuitTitle:`Quit vfox+?`,webQuitBody:`vfox+ ends on the computer, and this connection with it. Tasks that are running are cancelled.`,webQuitting:`vfox+ is quitting…`,home:`Home`,sdks:`SDKs`,plugins:`Plugins`,tasks:`Tasks`,settings:`Settings`,installed:`Installed`,add:`Add a plugin`,tasksH:`Tasks`,clear:`Clear finished`,app:`Application`,config:`vfox config`,install:`Install`,use:`Use globally`,unuse:`Unuse`,uninstall:`Uninstall`,installUse:`Install and use`,link:`Link`,linkDetect:`Detect and link`,aliasSet:`Name alias`,aliasUnset:`Remove alias`,doctorAdopt:`Adopt`,taskAliasSet:`Name alias {alias} for {subject}`,taskAliasUnset:`Remove alias {alias} of {subject}`,linkConfirm:`Link`,linkManual:`Link existing…`,linkPathTitle:`Link existing SDK`,linkVersionField:`Version name`,linkPathField:`SDK directory`,linkPathHelp:`The directory that holds the SDK, with its bin directory.`,linkForce:`Repoint if linked`,aliasTitle:`Aliases`,aliasField:`Alias`,doctorTitle:`Health`,doctorNoProblems:`No problems found.`,versionReinstall:`Reinstall`,installUseAfter:`Use after install`,update:`Update`,remove:`Remove`,cancel:`Cancel`,retry:`Retry`,save:`Save`,versions:`Available versions`,search:`Search versions…`,searchSdks:`Search SDKs…`,searchPlugins:`Search plugins…`,noSdks:`No SDKs installed yet.`,noSdkMatch:`No plugin matches.`,noPlugins:`No plugins match.`,noTasks:`No tasks yet.`,current:`current`,updateAll:`Update all`,uploadAdd:`Upload & add`,needSession:`Not paired. Open a pairing link first.`,failed:`Request failed.`,vfoxMissing:`vfox is missing or broken.`,info:`Plugin info`,homepage:`Homepage`,log:`Log`,state:`State`,close:`Close`,loading:`Loading…`,key:`Key`,value:`Value`,actions:`Actions`,edit:`Edit`,reset:`Reset`,empty:`—`,official:`official`,versionsN:`Versions`,active:`In use`,activeEmpty:`No version in use yet.`,added:`Open`,homepageOpen:`Homepage`,linkRefused:`This address is not a web address, so it is not opened.`,copied:`Copied.`,refresh:`Refresh`,taskSucceeded:`Task succeeded.`,taskFailed:`Task failed.`,view:`View`,all:`All`,community:`Community`,droppedHead:``,droppedTail:` earlier lines dropped`,downloadLog:`Download full log`,availableTab:`Available`,optionsTab:`Options`,noVersions:`No versions installed yet.`,browse:`Browse versions`,fetching:`Fetching the available versions…`,installByName:`Install by name…`,moreWays:`More ways to add`,nVersions:`{n} versions`,noMatch:`No version matches.`,showMore:`Show {n} more`,chooseHint:`Search by name or short name`,chooseEmpty:`Nothing matches.`,default:`Default`,installNameTitle:`Install {name} by name`,versionName:`Version name`,namesToTry:`Names to try`,nameRequired:`Type a version name.`,nameInvalid:`A version name has no spaces and does not start with a dash.`,pluginVariables:`Plugin variables`,unset:`Default`,advanced:`Advanced`,change:`Change`,legacyTitle:`Version files`,legacyEnable:`Read legacy version files`,legacyStrategy:`Version used from legacy files`,strategySpecified:`As written`,strategyInstalled:`Latest installed`,strategyAvailable:`Latest available`,tips:`Notes`,docs:`Documentation`,address:`Address`,quickPicks:`Quick picks`,defaultOption:`Default (not set)`,saved:`Saved`,pageLang:`Page language`,language:`Language`,extraEnv:`Environment variables`,langSystem:`system`,addFromSource:`Add from source`,addPluginTitle:`Add a plugin`,sourceUrl:`Source URL`,aliasLabel:`Alias (optional)`,vfoxExecutable:`vfox executable`,applicationLanguage:`Application language`,statusQueued:`Queued`,statusRunning:`Running`,statusDone:`Done`,statusFailed:`Failed`,statusCancelled:`Cancelled`,pairDetails:`Link and certificate`,pairScan:`Take a photo of this code with the vfox+ phone app, or pick it from your photos.`,pairShowCode:`Show code`},c={en:s,zh:{webH:`连接`,webRemote:`其他设备`,webRemoteTitle:`允许其他设备？`,webRemoteBody:`同一网络中的手机和其他电脑将能用配对链接连接 vfox+。链接一次性有效，连接使用 HTTPS。请只在可信网络中允许。`,webRemoteOk:`允许`,webPort:`端口`,webPortHelp:`需要在防火墙中放行。`,webFingerprint:`证书指纹，请在另一台设备上核对。`,webError:`其他设备无法连接：`,webPairBtn:`配对手机`,webCopyLink:`复制链接`,webLight:`轻量模式`,webLightHelp:`窗口关闭后继续在后台运行。`,webQuit:`退出 vfox+`,webQuitBtn:`退出`,webQuitTitle:`退出 vfox+？`,webQuitBody:`电脑上的 vfox+ 会结束，这个连接也会断开。正在运行的任务会被取消。`,webQuitting:`vfox+ 正在退出…`,home:`主页`,sdks:`SDK`,plugins:`插件`,tasks:`任务`,settings:`设置`,installed:`已安装`,add:`添加插件`,tasksH:`任务`,clear:`清除已完成`,app:`应用`,config:`vfox 配置`,install:`安装`,use:`设为全局`,unuse:`取消使用`,installUse:`安装并使用`,link:`链接`,linkDetect:`探测并链接`,aliasSet:`命名别名`,aliasUnset:`删除别名`,doctorAdopt:`纳入`,taskAliasSet:`为 {subject} 命名别名 {alias}`,taskAliasUnset:`删除 {subject} 的别名 {alias}`,linkConfirm:`链接`,uninstall:`卸载`,linkManual:`链接已有…`,linkPathTitle:`链接已有 SDK`,linkVersionField:`版本名称`,linkPathField:`SDK 目录`,linkPathHelp:`放 SDK 的目录，含其 bin 目录。`,linkForce:`重指已链接版本`,aliasTitle:`别名`,aliasField:`别名`,doctorTitle:`健康检查`,doctorNoProblems:`未发现问题。`,versionReinstall:`重装`,installUseAfter:`安装后使用`,update:`更新`,remove:`移除`,cancel:`取消`,retry:`重试`,save:`保存`,versions:`可安装版本`,search:`搜索版本…`,searchSdks:`搜索 SDK…`,searchPlugins:`搜索插件…`,noSdks:`暂无已安装的 SDK。`,noSdkMatch:`没有匹配的插件。`,noPlugins:`没有匹配的插件。`,noTasks:`暂无任务。`,current:`当前`,updateAll:`全部更新`,uploadAdd:`上传并添加`,needSession:`未配对，请先打开配对链接。`,failed:`请求失败。`,vfoxMissing:`vfox 缺失或损坏。`,info:`插件信息`,homepage:`主页`,log:`日志`,state:`状态`,close:`关闭`,loading:`加载中…`,key:`键`,value:`值`,actions:`操作`,edit:`修改`,reset:`重置`,empty:`—`,official:`官方`,versionsN:`版本`,active:`在用`,activeEmpty:`暂无在用版本。`,added:`打开`,homepageOpen:`主页`,linkRefused:`这个地址不是网页地址，所以不会打开。`,copied:`已复制。`,refresh:`刷新`,taskSucceeded:`任务成功。`,taskFailed:`任务失败。`,view:`查看`,all:`全部`,community:`社区`,droppedHead:`更早的 `,droppedTail:` 行日志已丢弃`,downloadLog:`下载完整日志`,availableTab:`可安装`,optionsTab:`选项`,noVersions:`还没有安装任何版本。`,browse:`浏览版本`,fetching:`正在获取可安装的版本…`,installByName:`按名称安装…`,moreWays:`更多添加方式`,nVersions:`{n} 个版本`,noMatch:`没有匹配的版本。`,showMore:`再显示 {n} 个`,chooseHint:`按名称或简称搜索`,chooseEmpty:`没有匹配项。`,default:`默认`,installNameTitle:`按名称安装 {name}`,versionName:`版本名称`,namesToTry:`可以试试这些名称`,nameRequired:`请输入版本名称。`,nameInvalid:`版本名称不能含空格，也不能以短横线开头。`,pluginVariables:`插件变量`,unset:`默认`,advanced:`高级`,change:`更改`,legacyTitle:`版本文件`,legacyEnable:`读取旧版版本文件`,legacyStrategy:`旧版版本文件中的版本`,strategySpecified:`按文件所写`,strategyInstalled:`最新已安装`,strategyAvailable:`最新可用`,tips:`须知`,docs:`文档`,address:`地址`,quickPicks:`快速选择`,defaultOption:`默认（不设置）`,saved:`已保存`,pageLang:`页面语言`,language:`语言`,extraEnv:`环境变量`,langSystem:`跟随系统`,addFromSource:`从来源添加`,addPluginTitle:`添加插件`,sourceUrl:`来源地址`,aliasLabel:`别名（可选）`,vfoxExecutable:`vfox 可执行文件`,applicationLanguage:`应用语言`,statusQueued:`排队中`,statusRunning:`进行中`,statusDone:`完成`,statusFailed:`失败`,statusCancelled:`已取消`,pairDetails:`链接与证书`,pairScan:`用 vfox+ 手机端拍照或从相册选择这个二维码。`,pairShowCode:`显示二维码`}},l=`en`;function u(e){l=e}function d(){return l}function f(){try{return(navigator.language||`en`).toLowerCase().startsWith(`zh`)?`zh`:`en`}catch{return`en`}}function p(e){return c[l][e]??s[e]??e}function m(e){let t;try{t=new URL(e.trim())}catch{return null}return t.protocol===`https:`||t.protocol===`http:`?t.href:null}async function h(e,t){let n={...t||{},headers:{"Content-Type":`application/json`,...t&&t.headers||{}},credentials:`same-origin`},r=await fetch(e,n);if(r.status===401)throw location.href=`/`,Error(p(`needSession`));if(!r.ok){let e=await r.text();throw Error(e||p(`failed`))}return r.status===204?null:r.json()}function g(e){let t=document.getElementById(`error`);t&&(t.textContent=e,t.style.display=`block`,window.clearTimeout(g.t),g.t=window.setTimeout(()=>{t.style.display=`none`},4e3))}function _(e){let t=m(e);if(t===null){y(p(`linkRefused`));return}let n=document.createElement(`a`);n.href=t,n.target=`_blank`,n.rel=`noopener noreferrer`,document.body.appendChild(n),n.click(),n.remove()}async function v(e){try{await navigator.clipboard.writeText(e),y(p(`copied`))}catch{g(p(`failed`))}}function y(t,n,r){let i=document.getElementById(`snacks`);if(!i)return;let a=document.createElement(`div`);if(a.className=`snack`,a.innerHTML=`<span>`+e(t)+`</span>`+(n?`<button>`+e(n)+`</button>`:``),n){let e=a.querySelector(`button`);e&&(e.onclick=()=>{s(),r&&r()})}i.appendChild(a);let o=!1,s=()=>{o||(o=!0,a.remove())};window.setTimeout(s,n?8e3:4e3)}function b(e,t,n,r){return new Promise(i=>{let a=document.getElementById(`scrim`);if(!a)return i(!1);document.getElementById(`dlgTitle`).textContent=e,document.getElementById(`dlgBody`).textContent=t;let o=document.getElementById(`dlgOk`);o.textContent=n,o.className=`btn `+(r?`danger`:`primary`),a.classList.add(`open`);let s=e=>{a.classList.remove(`open`),o.onclick=null,document.getElementById(`dlgCancel`).onclick=null,a.onclick=null,i(e)};o.onclick=()=>s(!0),document.getElementById(`dlgCancel`).textContent=p(`cancel`),document.getElementById(`dlgCancel`).onclick=()=>s(!1),a.onclick=e=>{e.target===a&&s(!1)}})}var x={tab:null,inventory:null,tasks:[],prevTasks:{},detail:null,detailName:null,web:null,pairing:null,live:!1,langMode:`system`};function S(e){x.live=e;let t=document.getElementById(`live`);t&&(t.className=`live`+(e?` on`:``));let n=document.getElementById(`liveText`);n&&(n.textContent=e?`live`:`…`)}var ee=window.matchMedia(`(prefers-reduced-motion: reduce)`).matches,te=[`home`,`sdks`,`plugins`,`tasks`,`settings`];function ne(e,t,n){if(x.tab===e)return;x.tab=e,document.body.dataset.tab=e,document.querySelectorAll(`.dest`).forEach(t=>{t instanceof HTMLElement&&t.setAttribute(`aria-current`,String(t.dataset.tab===e))}),document.querySelectorAll(`.page`).forEach(e=>e.classList.remove(`active`,`enter`));let r=document.getElementById(`tab-`+e);r&&(r.classList.add(`active`),ee||r.classList.add(`enter`));let i=document.getElementById(`pageTitle`);i&&(i.textContent=p(e===`sdks`?`sdks`:e)),t!==!1&&location.hash!==`#/`+e&&history.pushState({tab:e},``,`#/`+e),n&&n(e)}function re(){let e=(location.hash||`#/home`).slice(2).split(`/`);return e[0]===`sdk`&&e[1]?{tab:`sdks`,sdk:e[1]}:te.includes(e[0])?{tab:e[0]}:{tab:`home`}}function C(e,t){if(t)return`<div class="wavy ind" role="progressbar"><div class="fill" style="color:var(--m3-primary)"><svg width="120" height="8" viewBox="0 0 120 8" preserveAspectRatio="none"><path d="M0 4 Q 10 0 20 4 T 40 4 T 60 4 T 80 4 T 100 4 T 120 4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></div></div>`;let n=Math.max(0,Math.min(1,e??0));return`<div class="wavy" role="progressbar" aria-valuenow="`+Math.round(n*100)+`"><div class="fill" style="--p:1;width:`+n*100+`%;color:var(--m3-primary)"><svg width="120" height="8" viewBox="0 0 120 8" preserveAspectRatio="none"><path d="M0 4 Q 10 0 20 4 T 40 4 T 60 4 T 80 4 T 100 4 T 120 4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></div>`+(n>.02&&n<.999?`<span class="stop"></span>`:``)+`</div>`}function w(){return`<div class="loader" role="progressbar" aria-label="`+e(p(`loading`))+`"><div class="blob"></div></div>`}function T(n,r,i,a,o){return`<div class="state`+(n===`err`?` err`:``)+`"><div class="shape">`+t(r)+`</div><h3>`+e(i)+`</h3><div class="t-body">`+a+`</div>`+(o?`<button class="btn" data-act="1">`+e(o)+`</button>`:``)+`</div>`}function ie(t){return t?t.loading&&(!t.value||!t.value.length)?w():t.error&&(!t.value||!t.value.length)?T(`err`,`error`,p(`failed`),e(t.error),p(`refresh`)):``:`<p class="muted">`+e(p(`loading`))+`</p>`}function E(e,t){let n=e.querySelector(`[data-act]`);n&&(n.onclick=t)}function D(t,n){return`<div class="t-title-m" style="margin-top:20px">`+e(t)+`</div><div class="list">`+n+`</div>`}function O(n,r,i,a){return`<button class="chip" `+(a||``)+` data-id="`+e(n)+`" aria-pressed="`+(i?`true`:`false`)+`"><span class="ck">`+t(`check`,`sm`)+`</span><span>`+e(r)+`</span></button>`}function k(t){return t.filter(Boolean).map(t=>`<span class="tag">`+e(t)+`</span>`).join(` `)}function ae(e,t){if(!e)return``;let n=[];if(e.source){let r=e.source.name;n.push(t===`zh`&&r.zh?r.zh:r.en)}for(let t of e.flavors||[])n.push(t);return n.filter(Boolean).join(` · `)}function A(n,r){let i=document.getElementById(`menu`);if(!i)return;i.innerHTML=``,r.forEach(n=>{let r=document.createElement(`button`);n.danger&&(r.className=`danger`),n.id&&r.setAttribute(`data-item`,n.id),r.innerHTML=t(n.icon)+`<span>`+e(n.label)+`</span>`,r.onclick=()=>{j(),n.onclick&&n.onclick()},i.appendChild(r)});let a=n.getBoundingClientRect();i.classList.add(`open`);let o=r.length*48+16;i.style.minWidth=`220px`;let s=Math.min(a.left,window.innerWidth-220-8),c=a.bottom+6;c+o>window.innerHeight-8&&(c=Math.max(8,a.top-o-6)),i.style.left=Math.max(8,s)+`px`,i.style.top=c+`px`,window.setTimeout(()=>document.addEventListener(`click`,j,{once:!0}),0)}function j(){document.getElementById(`menu`)?.classList.remove(`open`)}function M(e,n,r){let i=document.getElementById(`sheet`),a=document.getElementById(`sheetBody`);if(!i||!a)return()=>{};document.getElementById(`sheetIcon`).innerHTML=n?t(n):``,document.getElementById(`sheetTitle`).textContent=e,a.innerHTML=``;let o=()=>{i.classList.remove(`open`),i.onclick=null,document.removeEventListener(`keydown`,s)},s=e=>{e.key===`Escape`&&o()};return document.addEventListener(`keydown`,s),i.onclick=e=>{e.target===i&&o()},i.classList.add(`open`),r(a,o),o}function oe(e){return{queued:`hourglass-empty`,running:`schedule`,succeeded:`task-alt`,failed:`error`,cancelled:`close`}[e]||`info`}function se(e){let t={queued:`statusQueued`,running:`statusRunning`,succeeded:`statusDone`,failed:`statusFailed`,cancelled:`statusCancelled`};return t[e]?p(t[e]):e}function ce(e){let t=e.operation||``;if(t===`aliasSet`||t===`aliasUnset`){let n=e.sdk+(e.version?`@`+e.version:``);return p(t===`aliasSet`?`taskAliasSet`:`taskAliasUnset`).replace(`{alias}`,e.alias||``).replace(`{subject}`,n)}let n=[`install`,`installUse`,`uninstall`,`update`,`remove`,`use`,`unuse`,`add`,`link`,`linkDetect`,`aliasSet`,`aliasUnset`,`doctorAdopt`].includes(t)?p(t):t,r=e.sdk+(e.version?`@`+e.version:``);return(n.charAt(0).toUpperCase()+n.slice(1)+(r?` `+r:``)).trim()}function le(){let n=a(`taskList`);[`taskCount`,`taskCountM`].forEach(e=>{let t=document.getElementById(e);if(t){let e=x.tasks.filter(e=>[`queued`,`running`].includes(e.status)).length;t.hidden=e===0,t.textContent=String(e)}}),x.tasks.length?(n.innerHTML=x.tasks.map(n=>{let r=n.progress==null?``:Math.round(n.progress*100)+`%`,i=[`queued`,`running`].includes(n.status);return`<button class="taskrow" data-open="`+n.id+`" aria-expanded="false">`+t(oe(n.status))+`<span class="grow"><b>`+e(ce(n))+`</b><span class="muted">`+e(se(n.status)+(r?` · `+r:``))+`</span>`+(i&&n.progress!=null?C(n.progress,!1):``)+(i&&n.progress==null?C(0,!0):``)+`</span>`+t(`keyboard-arrow-down`,`sm muted`)+`</button><div class="tasklog" data-log="`+n.id+`" hidden></div>`}).join(``),n.querySelectorAll(`[data-open]`).forEach(e=>e.onclick=()=>{ue(parseInt(e.dataset.open||`0`,10))})):n.innerHTML=T(`empty`,`pending-actions`,p(`noTasks`),``,null)}async function ue(n){let r=document.querySelector(`[data-log='`+n+`']`),i=document.querySelector(`[data-open='`+n+`']`);if(r){if(!r.hidden)r.hidden=!0,r.innerHTML=``,i&&i.setAttribute(`aria-expanded`,`false`);else try{let a=await h(`/api/tasks/`+n);i&&i.setAttribute(`aria-expanded`,`true`),r.hidden=!1,r.innerHTML=`<p class='muted'><code>`+e(a.commandLine)+`</code></p>`+(a.droppedLines?`<p class='muted'>`+e(p(`droppedHead`)+a.droppedLines+p(`droppedTail`))+`</p>`:``)+(a.hasFullLog?`<div class='row'><a class='btn text' download href='/api/tasks/`+a.id+`/log'>`+e(p(`downloadLog`))+`</a></div>`:``)+`<pre class='log'>`+e(a.log.join(`
+`))+`</pre><div class='row'>`+([`queued`,`running`].includes(a.status)?`<button class='btn danger' data-cancel='`+a.id+`'>`+e(p(`cancel`))+`</button>`:``)+([`failed`,`cancelled`].includes(a.status)?`<button class='btn' data-retry='`+a.id+`'>`+e(p(`retry`))+`</button>`:``)+`<span class="grow"></span><button class="iconbtn sm" data-copy="1" title="`+e(p(`log`))+`">`+t(`content-copy`,`sm`)+`</button></div>`;let o=r.querySelector(`[data-copy]`);o&&(o.onclick=()=>v(a.log.join(`
+`)));let s=r.querySelector(`[data-cancel]`);s&&(s.onclick=async()=>{await h(`/api/tasks/`+n+`/cancel`,{method:`POST`}),Z(!1)});let c=r.querySelector(`[data-retry]`);c&&(c.onclick=async()=>{await h(`/api/tasks/`+n+`/retry`,{method:`POST`}),Z(!1)})}catch(e){g(e instanceof Error?e.message:String(e))}}}async function N(e){try{await h(`/api/tasks`,{method:`POST`,body:JSON.stringify(e)}),location.hash=`#/tasks`,await Z(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}function de(e){e.forEach(e=>{let t=x.prevTasks[e.id];t&&[`queued`,`running`].includes(t)&&[`succeeded`].includes(e.status)&&y(p(`taskSucceeded`),p(`view`),()=>location.hash=`#/tasks`),t&&[`queued`,`running`].includes(t)&&[`failed`,`cancelled`].includes(e.status)&&y(e.errorMessage||p(`taskFailed`),p(`view`),()=>location.hash=`#/tasks`)}),x.prevTasks={},e.forEach(e=>x.prevTasks[e.id]=e.status)}function fe(){a(`clearBtn`).onclick=async()=>{try{await h(`/api/tasks/finished`,{method:`DELETE`}),Z(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}}function pe(n){let i=(n.installed&&n.installed.value||[]).filter(e=>e.HasCurrent),o=a(`homeActive`);o.innerHTML=i.length?i.map(n=>`<button class="item" data-sdk="`+e(n.Name)+`">`+r(n.Name)+`<span class="grow"><b>`+e(n.Name)+`</b><br><span class="muted t-label">`+e(n.Current)+`</span></span>`+t(`chevron-right`,`sm muted`)+`</button>`).join(``):`<p class="muted">`+e(p(`activeEmpty`))+`</p>`,o.querySelectorAll(`[data-sdk]`).forEach(e=>e.onclick=()=>location.hash=`#/sdk/`+encodeURIComponent(e.dataset.sdk||``)),me()}async function me(){let n=document.getElementById(`homeDoctor`);if(n){n.innerHTML=`<p class="muted">`+e(p(`loading`))+`</p>`;try{let r=await h(`/api/doctor`);if(!r.findings.length){n.innerHTML=`<div class='item'>`+t(`verified`)+`<span>`+e(p(`doctorNoProblems`))+`</span></div>`;return}n.innerHTML=r.findings.slice(0,5).map(t=>`<div class='item'><span style='flex:1'><b>`+e(t.message||t.id)+`</b><br><span class='muted t-label'>`+e([t.sdk,t.version].filter(Boolean).join(`@`)+` · `+t.severity)+`</span></span>`+(t.id===`sdk.no-receipt`?`<button class='btn tonal' data-adopt-sdk='`+e(t.sdk)+`' data-adopt-ver='`+e(t.version)+`'>`+e(p(`doctorAdopt`))+`</button>`:t.id===`sdk.drift`?`<button class='btn tonal' data-reinstall-sdk='`+e(t.sdk)+`' data-reinstall-ver='`+e(t.version)+`'>`+e(p(`versionReinstall`))+`</button>`:``)+`</div>`).join(``),n.querySelectorAll(`[data-adopt-sdk]`).forEach(e=>e.onclick=()=>N({operation:`doctorAdopt`,sdk:e.dataset.adoptSdk||``,version:e.dataset.adoptVer||``})),n.querySelectorAll(`[data-reinstall-sdk]`).forEach(e=>e.onclick=()=>N({operation:`install`,sdk:e.dataset.reinstallSdk||``,version:e.dataset.reinstallVer||``,reinstall:!0}))}catch(t){n.innerHTML=`<div class='item'><span class='bad'>`+e(t instanceof Error?t.message:String(t))+`</span></div>`}}}function he(){a(`homeRefresh`).onclick=()=>{let e=a(`homeRefresh`).querySelector(`.ic`);e?.classList.add(`spin`),setTimeout(()=>e?.classList.remove(`spin`),650),Z(!0)},a(`shellCopy`).onclick=async()=>{let e=a(`shellCopy`);await v(document.getElementById(`shellCmd`).textContent||``);let t=e.querySelector(`use`),n=t?.getAttribute(`href`)||``;t?.setAttribute(`href`,`#i-check`),setTimeout(()=>t?.setAttribute(`href`,n),1200)}}function ge(){return document.querySelector(`#pluginFilter [aria-pressed=true]`)?.dataset?.f||`all`}function _e(e){let t=/^https?:\/\/github\.com\/([^/?#]+)\/([^/?#]+)/i.exec(e||``);return t?t[1]+`/`+t[2].replace(/\.git$/i,``):(e||``).replace(/^https?:\/\//i,``).replace(/\/$/,``)}function P(){let n=x.inventory;if(!n)return;let i=a(`pluginList`),o=n.registry,s=ie(o);if(s){i.innerHTML=``;let e=document.createElement(`div`);e.innerHTML=s,i.appendChild(e),E(e,()=>Z(!0));return}let c=(document.getElementById(`pluginSearch`).value||``).toLowerCase(),l=ge(),u=new Set((o.value&&n.installed.value||[]).map(e=>e.Name)),d=(o.value||[]).filter(e=>l===`official`&&!e.Official||l===`community`&&e.Official?!1:!c||e.Name.toLowerCase().includes(c)||(e.Homepage||``).toLowerCase().includes(c));d.length?(i.innerHTML=d.map(n=>{let i=_e(n.Homepage),a=n.Homepage?`<button class="iconbtn sm" data-home="`+e(n.Homepage)+`" title="`+e(p(`homepage`))+`">`+t(`open-in-new`,`sm`)+`</button>`:``,o=u.has(n.Name)?`<button class="btn tonal" data-open="`+e(n.Name)+`">`+e(p(`added`))+`</button>`:`<button class="btn tonal" data-addname="`+e(n.Name)+`">`+t(`add`,`sm`)+`<span>`+e(p(`install`))+`</span></button>`;return`<div class="pcard"><div class="lead">`+r(n.Name)+`<span class="names"><b class="nameline"><code>`+e(n.Name)+`</code>`+(n.Official?`<span class="seal" title="`+e(p(`official`))+`">`+t(`verified`,`sm`)+`</span>`:``)+`</b>`+(i?`<span class="muted">`+e(i)+`</span>`:``)+`</span></div><div class="actions">`+a+`<span class="grow"></span>`+o+`</div></div>`}).join(``),i.querySelectorAll(`[data-home]`).forEach(e=>e.onclick=()=>_(e.dataset.home||``)),i.querySelectorAll(`[data-open]`).forEach(e=>e.onclick=()=>location.hash=`#/sdk/`+encodeURIComponent(e.dataset.open||``)),i.querySelectorAll(`[data-addname]`).forEach(e=>e.onclick=()=>N({operation:`add`,source:e.dataset.addname||``})),i.querySelectorAll(`[data-update]`).forEach(e=>e.onclick=()=>N({operation:`update`,sdk:e.dataset.update||``})),i.querySelectorAll(`[data-remove]`).forEach(e=>e.onclick=()=>F(e.dataset.remove||``))):i.innerHTML=T(`empty`,`search-off`,p(`noPlugins`),``,null)}async function F(e){await b(p(`remove`),e,p(`remove`),!0)&&N({operation:`remove`,sdk:e})}function ve(){M(p(`addPluginTitle`),`add`,(t,n)=>{t.innerHTML=`<div class="field"><label for="addSource">`+e(p(`sourceUrl`))+`</label><input id="addSource" placeholder="https://…" autocomplete="off" spellcheck="false"></div><div class="field"><label for="addAlias">`+e(p(`aliasLabel`))+`</label><input id="addAlias" autocomplete="off" spellcheck="false"></div><div class="actions"><button class="btn text" id="addCancel">`+e(p(`cancel`))+`</button><button class="btn primary" id="addBtn">`+e(p(`add`))+`</button></div><div class="muted t-label" style="margin:16px 0 8px">`+e(p(`uploadAdd`))+`</div><div class="row"><input type="file" id="addFile" accept=".zip,.lua"></div>`,document.getElementById(`addCancel`).onclick=n,document.getElementById(`addBtn`).onclick=()=>{let e=(document.getElementById(`addSource`).value||``).trim(),t=(document.getElementById(`addAlias`).value||``).trim();e&&(n(),h(`/api/plugins`,{method:`POST`,body:JSON.stringify({source:e,alias:t})}).then(()=>{location.hash=`#/tasks`,Z(!1)}).catch(e=>g(e instanceof Error?e.message:String(e))))};let r=document.getElementById(`addFile`);r.onchange=()=>{let e=r.files&&r.files[0];if(!e)return;let t=new FormData;t.append(`file`,e),t.append(`alias`,(document.getElementById(`addAlias`).value||``).trim()),n(),fetch(`/api/plugins`,{method:`POST`,body:t,credentials:`same-origin`}).then(async e=>{if(!e.ok)throw Error(await e.text());return e.json()}).then(()=>{location.hash=`#/tasks`,Z(!1)}).catch(e=>g(e instanceof Error?e.message:String(e)))},window.setTimeout(()=>document.getElementById(`addSource`).focus(),50)})}function ye(){document.getElementById(`pluginSearch`).oninput=()=>P(),document.querySelectorAll(`#pluginFilter button`).forEach(e=>e.onclick=()=>{document.querySelectorAll(`#pluginFilter button`).forEach(t=>t.setAttribute(`aria-pressed`,String(t===e))),P()}),a(`regRefresh`).onclick=()=>Z(!0),a(`addPluginBtn`).onclick=()=>ve(),a(`updateAllBtn`).onclick=()=>N({operation:`update`})}var I=`(min-width: 900px)`;function L(){let n=x.inventory;if(!n)return;let i=a(`sdkList`),o=n.installed,s=ie(o.value?{value:o.value,loading:o.loading,error:o.error}:o);if(s){i.innerHTML=s,E(i,()=>Z(!0));return}let c=o.value||[];document.querySelector(`#tab-sdks`)?.classList.toggle(`none`,!c.length);let l=(document.getElementById(`sdkSearch`).value||``).toLowerCase(),u=c.filter(e=>!l||e.Name.toLowerCase().includes(l));if(u.length)i.innerHTML=u.map(n=>`<button class="item" data-sdk="`+e(n.Name)+`" aria-current="`+(x.detailName===n.Name)+`">`+r(n.Name)+`<span style='flex:1;min-width:0'><b><code>`+e(n.Name)+`</code></b><br><span class='muted t-label'>`+(n.HasCurrent?``:e(p(`empty`))+` · `)+(n.Versions||[]).length+` `+e(p(`versionsN`))+`</span>`+(n.HasCurrent?`<br><span class="tag cur">`+e(n.Current)+`</span>`:``)+`</span>`+t(`chevron-right`,`sm muted`)+`</button>`).join(``),i.querySelectorAll(`[data-sdk]`).forEach(e=>e.onclick=()=>location.hash=`#/sdk/`+encodeURIComponent(e.dataset.sdk||``)),x.tab===`sdks`&&!x.detail&&matchMedia(I).matches&&V((u.find(e=>e.HasCurrent)||u[0]).Name);else{if(c.length){i.innerHTML=T(`empty`,`search-off`,p(`noSdkMatch`),``,null);return}i.innerHTML=T(`empty`,`inventory-2`,p(`noSdks`),``,p(`add`));let e=i.querySelector(`[data-act]`);e&&(e.onclick=()=>location.hash=`#/plugins`)}}function R(e){document.querySelector(`#tab-sdks`)?.classList.remove(`detail-open`),x.detail=null,x.detailName=null,L(),e!==!1&&location.hash!==`#/sdks`&&history.pushState({tab:`sdks`},``,`#/sdks`)}function z(e){let t=x.inventory;return(t&&t.installed.value||[]).find(t=>t.Name===e)}function B(e){let t=x.inventory,n=t&&t.config,r=(n&&n.value||[]).find(t=>t.Key===e);return r?r.Value:``}async function be(e,t){return t==null?h(`/api/config?key=`+encodeURIComponent(e),{method:`DELETE`}):h(`/api/config`,{method:`PUT`,body:JSON.stringify({key:e,value:t})})}async function V(e,t){x.detail={name:e,tab:t&&x.detail&&x.detail.name===e?x.detail.tab:`installed`,info:null,profile:null,versions:null,error:null,search:``,facets:{},query:``,limit:200,loading:!1,token:0},x.detailName=e,document.querySelector(`#tab-sdks`)?.classList.add(`detail-open`),L();let n=a(`sdkDetail`);n.innerHTML=w();let[r,i]=await Promise.all([h(`/api/sdks/`+encodeURIComponent(e)+`/info`).catch(()=>null),h(`/api/sdks/`+encodeURIComponent(e)+`/profile`).catch(()=>null)]),o=x.detail;if(!o||o.name!==e)return;o.info=r,o.profile=i;let s=i&&i.search;o.search=s&&s.current!==s.default?s.current:``,xe(),L()}function xe(){let n=x.detail;if(!n)return;let i=a(`sdkDetail`),o=z(n.name),s=n.info,c=`<div class="row"><button class="iconbtn sm" id="detailBack" title="`+e(p(`close`))+`">`+t(`arrow-back`,`sm`)+`</button>`+r(n.name,!0)+`<span style='flex:1;min-width:0'><span class='t-title-l'><code>`+e(n.name)+`</code></span>`+(o&&o.HasCurrent?` <span class="tag cur">`+e(o.Current)+`</span>`:``)+`</span>`+(s&&s.Homepage?`<button class="iconbtn sm" id="detailHome" title="`+e(p(`homepage`))+`">`+t(`open-in-new`,`sm`)+`</button>`:``)+`<button class="iconbtn sm" id="detailMenu" title="…">`+t(`more-vert`,`sm`)+`</button></div>`;c+=`<div class="seg" id="detailTabs" role="tablist"></div><div id="detailBody"></div>`,i.innerHTML=c,a(`detailBack`).onclick=()=>R(!0);let l=document.getElementById(`detailHome`);l&&s&&s.Homepage&&(l.onclick=()=>_(s.Homepage)),a(`detailMenu`).onclick=e=>{let t=[];s&&s.Homepage&&t.push({icon:`open-in-new`,label:p(`homepageOpen`),onclick:()=>_(s.Homepage)}),t.push({icon:`delete`,label:p(`remove`),danger:!0,onclick:()=>F(n.name)}),A(e.currentTarget,t)},H(),U(!1)}function H(){let n=x.detail;if(!n)return;let r=z(n.name),i=[[`installed`,p(`installed`)+` (`+(r&&r.Versions||[]).length+`)`,`deployed-code`],[`available`,p(`availableTab`),`download`]];n.profile&&i.push([`options`,p(`optionsTab`),`tune`]);let a=document.getElementById(`detailTabs`);a&&(a.innerHTML=i.map(r=>`<button role="tab" data-tab="`+r[0]+`" aria-pressed="`+(n.tab===r[0])+`">`+t(r[2],`sm`)+`<span>`+e(r[1])+`</span></button>`).join(``),a.querySelectorAll(`button`).forEach(e=>e.onclick=()=>{let t=e.dataset.tab;n.tab!==t&&x.detail&&(x.detail.tab=t,H(),U(!0))}))}function U(e){let t=document.getElementById(`detailBody`);if(!t)return;t.className=`tabpane`+(e?` enter`:``);let n=x.detail;n&&(n.tab===`available`?Te(t):n.tab===`options`?Fe(t):Se(t))}function Se(n){let r=x.detail;if(!r)return;let i=z(r.name),a=i&&i.Versions||[];if(!a.length){n.innerHTML=T(`empty`,`download`,p(`noVersions`),``,p(`browse`));let e=n.querySelector(`[data-act]`);e&&(e.onclick=()=>{x.detail&&(x.detail.tab=`available`,H(),U(!0))});return}let o=`<div class='list'>`;a.forEach(n=>{let a=!!i&&i.HasCurrent&&i.Current===n,s=r.profile&&r.profile.installed&&r.profile.installed[n],c=s?ae(s,d()):``;o+=`<div class='item'><span style='flex:1;min-width:0' data-alias-of='`+e(n)+`'><code>`+e(n)+`</code>`+(a?` <span class="tag cur">`+e(p(`current`))+`</span>`:``)+(c?`<br><span class='muted t-label'>`+e(c)+`</span>`:``)+`</span>`+(a?``:`<button class='btn tonal' data-use='`+e(n)+`'>`+t(`check`,`sm`)+`<span>`+e(p(`use`))+`</span></button>`)+`<button class="iconbtn sm" data-more-version="`+e(n)+`" title="`+e(p(`actions`))+`">`+t(`more-vert`,`sm`)+`</button></div>`}),n.innerHTML=o+`</div>`,Ce(n),n.querySelectorAll(`[data-use]`).forEach(e=>e.onclick=()=>N({operation:`use`,sdk:r.name,version:e.dataset.use||``,scope:`global`})),n.querySelectorAll(`[data-more-version]`).forEach(e=>e.onclick=t=>{let n=e.dataset.moreVersion||``;A(t.currentTarget,[{icon:`refresh`,label:p(`versionReinstall`),onclick:()=>N({operation:`install`,sdk:r.name,version:n,reinstall:!0})},{icon:`label`,label:p(`aliasSet`),onclick:()=>Le(n)},{icon:`delete`,label:p(`uninstall`),danger:!0,onclick:async()=>{await b(p(`uninstall`),n,p(`uninstall`),!0)&&N({operation:`uninstall`,sdk:r.name,version:n})}}])})}async function Ce(t){let n=x.detail;if(!n)return;let r=n.name;try{let n=await h(`/api/sdks/`+encodeURIComponent(r)+`/aliases`);if(!x.detail||x.detail.name!==r)return;t.querySelectorAll(`[data-alias-of]`).forEach(t=>{let i=o(n,r,t.dataset.aliasOf||``);if(!i)return;let a=t.querySelector(`.t-label`);a?a.textContent=(a.textContent?a.textContent+` · `:``)+i:t.insertAdjacentHTML(`beforeend`,`<br><span class='muted t-label'>`+e(i)+`</span>`)})}catch{}}function we(){let e=x.detail,t=e&&e.profile&&e.profile.search;if(!t)return null;let n=e&&e.search||t.default;return t.choices.find(e=>e.value===n)||null}async function W(){let e=x.detail;if(!e)return;e.token=(e.token||0)+1;let t=e.token,n=e.name,r=e.search;e.versions=null,e.error=null,e.facets={},e.limit=200,e.loading=!0,G();let i=e.profile&&e.profile.search,a=i?`?search=`+encodeURIComponent(r||i.default):``;try{let r=await h(`/api/sdks/`+encodeURIComponent(n)+`/versions`+a);if(x.detail!==e||e.token!==t)return;e.versions=r||[]}catch(n){if(x.detail!==e||e.token!==t)return;e.error=n instanceof Error?n.message:String(n)}e.loading=!1,G()}function Te(n){let r=x.detail;if(!r)return;let o=we();n.innerHTML=`<div class="row actions">`+(r.profile&&r.profile.search?`<button class="btn tonal" id="chooseBtn">`+t(`hub`,`sm`)+`<span>`+e(o?i(o.name,d()):r.search)+`</span>`+t(`keyboard-arrow-down`,`sm`)+`</button>`:``)+`<button class="iconbtn" id="addMore" title="`+e(p(`moreWays`))+`" aria-label="`+e(p(`moreWays`))+`" aria-haspopup="menu">`+t(`add`)+`</button></div><div id="availBody"></div>`;let s=document.getElementById(`chooseBtn`);s&&(s.onclick=()=>Oe()),a(`addMore`).onclick=e=>A(e.currentTarget,[{id:`by-name`,icon:`terminal`,label:p(`installByName`),onclick:()=>Ne(``)},{id:`link-detect`,icon:`link`,label:p(`linkDetect`),onclick:()=>N({operation:`linkDetect`,sdk:r.name,yes:!0})},{id:`link-manual`,icon:`folder`,label:p(`linkManual`),onclick:()=>Pe()}]),r.versions===null&&!r.error&&!r.loading?W():G()}function G(){let n=x.detail,r=document.getElementById(`availBody`);if(r&&n&&n.tab===`available`){if(n.error){r.innerHTML=T(`err`,`error`,p(`failed`),e(n.error),p(`retry`));let t=r.querySelector(`[data-act]`);t&&(t.onclick=()=>W())}else if(n.versions===null)r.innerHTML=w()+`<p class="muted t-body" style="text-align:center">`+e(p(`fetching`))+`</p>`;else{if(!document.getElementById(`vSearch`)){r.innerHTML=`<div class='row'><div class='search' style='flex:1;margin:0;min-width:200px'>`+t(`search`,`sm muted`)+`<input id='vSearch' placeholder='`+e(p(`search`))+`'></div></div><div class='filterline'><div class='row chips' id='vChips'></div><span class='muted t-label' id='vCount'></span></div><div id='vList' class='list'></div>`;let i=document.getElementById(`vSearch`);i.value=n.query,i.oninput=()=>{x.detail&&(x.detail.query=i.value,x.detail.limit=200,K())}}De(),K()}}}function Ee(){let e=x.detail,t=[];return e&&(e.profile&&e.profile.facets||[]).forEach(n=>{let r={};(e.versions||[]).forEach(e=>(e.facets&&e.facets[n.id]||[]).forEach(e=>{r[e]=(r[e]||0)+1}));let i=n.values.filter(e=>r[e]);i.length&&t.push({id:n.id,label:n.label,values:i})}),t}function De(){let t=x.detail,n=document.getElementById(`vChips`);if(!n||!t)return;let r=Ee(),i=``;r.forEach(n=>{n.values.forEach(r=>{let a=!!(t.facets[n.id]&&t.facets[n.id][r]);i+=O(n.id+`:`+r,r,a,`data-g="`+e(n.id)+`" data-v="`+e(r)+`"`)})}),n.innerHTML=i,n.querySelectorAll(`.chip`).forEach(e=>e.onclick=()=>{if(!x.detail)return;let t=x.detail,n=e.dataset.g||``,r=e.dataset.v||``;t.facets[n]=t.facets[n]||{},t.facets[n][r]?delete t.facets[n][r]:t.facets[n][r]=!0,t.limit=200,e.setAttribute(`aria-pressed`,String(!!t.facets[n][r])),K()})}function K(){let n=x.detail,r=document.getElementById(`vList`),a=document.getElementById(`vCount`);if(!r||!n)return;let o=(n.query||``).toLowerCase(),s=we(),c=!!(s&&s.everything),l=new Set((z(n.name)||{}).Versions||[]),u=(n.versions||[]).filter(e=>{for(let t of Object.keys(n.facets)){let r=Object.keys(n.facets[t]);if(r.length&&!r.some(n=>(e.facets&&e.facets[t]||[]).includes(n)))return!1}return!o||e.Version.toLowerCase().includes(o)||(e.Note||``).toLowerCase().includes(o)});if(a&&(a.textContent=p(`nVersions`).replace(`{n}`,String(u.length))),!u.length){r.innerHTML=T(`empty`,`search-off`,p(`noMatch`),``,null);return}let f=u.slice(0,n.limit);r.innerHTML=f.map(n=>{let r=c&&n.parts&&n.parts.source?i(n.parts.source.name,d()):``;return`<div class='item vrow'><span style='flex:1;min-width:0'><code>`+e(n.Version)+`</code>`+(r?` `+k([r]):``)+(n.HasNote?` <span class="tag">`+e(n.Note)+`</span>`:``)+((n.Additions||[]).length?` <span class="muted t-label">`+e(n.Additions.map(e=>e.Version?e.Name+` `+e.Version:e.Name).join(`, `))+`</span>`:``)+(l.has(n.Version)?` <span class="tag">✓</span>`:``)+`</span>`+(l.has(n.Version)?``:`<span class='split'><button class='btn tonal' data-install='`+e(n.Version)+`'>`+e(p(`install`))+`</button><button class='btn tonal' data-install-more='`+e(n.Version)+`' aria-haspopup='menu' title='`+e(p(`actions`))+`'>`+t(`keyboard-arrow-down`,`sm`)+`</button></span>`)+`</div>`}).join(``)+(u.length>f.length?`<button class='btn' id='showMore' style='margin-top:8px'>`+e(p(`showMore`).replace(`{n}`,String(u.length-f.length)))+`</button>`:``),r.querySelectorAll(`[data-install]`).forEach(e=>e.onclick=()=>N({operation:`install`,sdk:n.name,version:e.dataset.install||``})),r.querySelectorAll(`[data-install-more]`).forEach(e=>e.onclick=t=>{let r=e.dataset.installMore||``;A(t.currentTarget,[{icon:`check`,label:p(`installUse`),onclick:()=>N({operation:`install`,sdk:n.name,version:r,use:!0})}])});let m=document.getElementById(`showMore`);m&&(m.onclick=()=>{x.detail&&(x.detail.limit+=400,K())})}function Oe(){let n=x.detail;if(!n||!n.profile||!n.profile.search)return;let r=n.profile.search;M(i(r.label,d()),`hub`,(a,o)=>{a.innerHTML=`<div class="search">`+t(`search`,`sm muted`)+`<input id="chQuery" placeholder="`+e(p(`chooseHint`))+`"></div><div class="list choices" id="chList"></div><div class="actions"><button class="btn text" id="chClose">`+e(p(`close`))+`</button></div>`,document.getElementById(`chClose`).onclick=o;let s=document.getElementById(`chQuery`),c=document.getElementById(`chList`),l=n.search||r.default,u=(e,t)=>!t||[e.value,...e.aliases||[],e.name.en,e.name.zh,e.maker.en,e.maker.zh].some(e=>(e||``).toLowerCase().includes(t)),f=()=>{let a=s.value.trim().toLowerCase(),f=r.choices.filter(e=>u(e,a));c.innerHTML=f.length?f.map(n=>`<button class='item' data-v='`+e(n.value)+`' aria-current='`+(n.value===l)+`'><span class='lead'>`+(n.value===l?t(`check`):``)+`</span><span style='flex:1;min-width:0'><b>`+e(i(n.name,d()))+`</b><br><span class='muted t-label'>`+e([i(n.maker,d()),n.value].filter(Boolean).join(` · `))+`</span></span>`+(n.value===r.default?`<span class="tag">`+e(p(`default`))+`</span>`:``)+`</button>`).join(``):T(`empty`,`search-off`,p(`chooseEmpty`),``,null),c.querySelectorAll(`[data-v]`).forEach(e=>e.onclick=async()=>{o();try{let t=await h(`/api/sdks/`+encodeURIComponent(n.name)+`/search`,{method:`PUT`,body:JSON.stringify({value:e.dataset.v})});r.current=t.value}catch(e){g(e instanceof Error?e.message:String(e));return}x.detail===n&&(n.search=r.current===r.default?``:r.current,U(!1),W())})};s.oninput=f,f(),window.setTimeout(()=>s.focus(),50)})}function ke(e){return!!e&&!/^[-\s@]/.test(e)}function Ae(t,n){return`<div class="row" style="justify-content:space-between;margin:12px 0 0"><span>`+e(n)+`</span><button class="switch" role="switch" id="`+t+`" aria-checked="false" aria-label="`+e(n)+`"></button></div>`}function je(e){let t=document.getElementById(e);t&&(t.onclick=()=>t.setAttribute(`aria-checked`,String(t.getAttribute(`aria-checked`)!==`true`)))}function Me(e){let t=document.getElementById(e);return!!t&&t.getAttribute(`aria-checked`)===`true`}function Ne(n){let r=x.detail;if(!r)return;let a=r.profile;M(p(`installNameTitle`).replace(`{name}`,r.name),`terminal`,(o,s)=>{o.innerHTML=`<div class="field"><label for="nameIn">`+e(p(`versionName`))+`</label><input id="nameIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label" id="nameHelp"></div></div>`+(a&&a.shorthands.length?`<div class="muted t-label chiplabel">`+e(p(`namesToTry`))+`</div><div class="row chips" id="nameChips"></div><div class="t-body" id="nameMeaning" style="margin-top:8px"></div>`:``)+Ae(`nameUse`,p(`installUseAfter`))+`<div class="actions"><button class="btn text" id="nameCancel">`+e(p(`cancel`))+`</button><button class="btn primary" id="nameOk">`+t(`download`,`sm`)+`<span>`+e(p(`install`))+`</span></button></div>`;let c=document.getElementById(`nameIn`),l=document.getElementById(`nameHelp`),u=()=>a&&(a.guide.en||a.guide.zh)?i(a.guide,d()):``;l.textContent=u(),c.value=n||``;let f=()=>{let t=c.value.trim();if(a){let n=document.getElementById(`nameChips`);n&&(n.innerHTML=a.shorthands.map(n=>O(n.name,n.name,n.name===t,`data-name="`+e(n.name)+`"`)).join(``),n.querySelectorAll(`.chip`).forEach(e=>e.onclick=()=>{c.value=e.dataset.name||``,l.textContent=u(),l.classList.remove(`bad`),f()}));let r=a.shorthands.find(e=>e.name===t);document.getElementById(`nameMeaning`).textContent=r?i(r.meaning,d()):``}},m=()=>{let e=c.value.trim();if(!e){l.textContent=p(`nameRequired`),l.classList.add(`bad`);return}if(!ke(e)){l.textContent=p(`nameInvalid`),l.classList.add(`bad`);return}let t=Me(`nameUse`);s(),N({operation:`install`,sdk:r.name,version:e,use:t})};c.oninput=()=>{l.textContent=u(),l.classList.remove(`bad`),f()},c.onkeydown=e=>{e.key===`Enter`&&m()},document.getElementById(`nameOk`).onclick=m,document.getElementById(`nameCancel`).onclick=s,je(`nameUse`),f(),window.setTimeout(()=>c.focus(),50)})}function Pe(){let n=x.detail;n&&M(p(`linkPathTitle`),`link`,(r,i)=>{r.innerHTML=`<div class="field"><label for="linkVer">`+e(p(`linkVersionField`))+`</label><input id="linkVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="17-system"></div><div class="field"><label for="linkPath">`+e(p(`linkPathField`))+`</label><input id="linkPath" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="muted t-label">`+e(p(`linkPathHelp`))+`</div></div>`+Ae(`linkForce`,p(`linkForce`))+`<div class="actions"><button class="btn text" id="linkCancel">`+e(p(`cancel`))+`</button><button class="btn primary" id="linkOk">`+t(`link`,`sm`)+`<span>`+e(p(`linkConfirm`))+`</span></button></div>`;let a=document.getElementById(`linkVer`),o=document.getElementById(`linkPath`),s=()=>{let e=a.value.trim(),t=o.value.trim();if(!e||!t)return;let r=Me(`linkForce`);i(),N({operation:`link`,sdk:n.name,version:e,path:t,force:r})};a.onkeydown=e=>{e.key===`Enter`&&s()},o.onkeydown=e=>{e.key===`Enter`&&s()},document.getElementById(`linkOk`).onclick=s,document.getElementById(`linkCancel`).onclick=i,je(`linkForce`),window.setTimeout(()=>a.focus(),50)})}function Fe(n){let r=x.detail;if(!r)return;let a=r.profile;if(!a){n.innerHTML=``;return}let o=``;if(a.variables.length&&(o+=D(p(`pluginVariables`),a.variables.map(t=>{let n=(t.presets||[]).find(e=>e.value===t.value),r=t.value?(n?i(n.name,d())+` · `:``)+t.value:p(`unset`);return`<div class='item'><span style='flex:1;min-width:0'><b>`+e(i(t.label,d()))+`</b>`+(t.advanced?` `+k([p(`advanced`)]):``)+`<br><span class="muted t-label"><code>`+e(t.key)+`</code><br>`+e(r)+`</span></span><button class='btn tonal' data-var='`+e(t.key)+`'>`+e(p(`change`))+`</button></div>`}).join(``))),a.legacyFiles.length){let t=B(`legacyVersionFile.enable`)===`true`;if(o+=`<div class="t-title-m" id="legacyHead" style="margin-top:20px">`+e(p(`legacyTitle`))+`</div><div class="list"><div class="item"><span style="flex:1"><b>`+e(p(`legacyEnable`))+`</b><br>`+k(a.legacyFiles)+`</span><button class="switch" role="switch" id="legacySwitch" aria-checked="`+t+`" aria-label="`+e(p(`legacyEnable`))+`"></button></div>`,a.legacyStrategy){let t=B(`legacyVersionFile.strategy`);o+=`<div class="item"><div class="grow stack"><b id="legacyStrategyLabel">`+e(p(`legacyStrategy`))+`</b><div class="seg" id="legacyStrategy" role="group" aria-labelledby="legacyStrategyLabel">`+[[`specified`,p(`strategySpecified`)],[`installed`,p(`strategyInstalled`)],[`available`,p(`strategyAvailable`)]].map(n=>`<button data-s='`+n[0]+`' aria-pressed='`+(t===n[0])+`'>`+e(n[1])+`</button>`).join(``)+`</div></div></div>`}o+=`</div>`}o+=`<div class="t-title-m" id="aliasHead" style="margin-top:20px">`+e(p(`aliasTitle`))+`</div><div class="list" id="aliasList"><div class="item"><span class="muted">…</span></div></div>`,a.tips.length&&(o+=D(p(`tips`),a.tips.map(t=>`<div class='item'><span style='flex:1'>`+e(i(t,d()))+`</span></div>`).join(``))),a.docs.length&&(o+=D(p(`docs`),a.docs.map(n=>`<button class='item' data-doc='`+e(i(n.url,d()))+`'><span style='flex:1'>`+e(i(n.title,d()))+`</span>`+t(`open-in-new`,`sm muted`)+`</button>`).join(``))),n.innerHTML=o,n.querySelectorAll(`[data-var]`).forEach(e=>e.onclick=()=>{let t=a.variables.find(t=>t.key===e.dataset.var);t&&Re(t)}),n.querySelectorAll(`[data-doc]`).forEach(e=>e.onclick=()=>_(e.dataset.doc||``));let s=document.getElementById(`legacySwitch`);s&&(s.onclick=async()=>{try{await be(`legacyVersionFile.enable`,s.getAttribute(`aria-checked`)===`true`?`false`:`true`),await Z(!1),U(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}),n.querySelectorAll(`#legacyStrategy button`).forEach(e=>e.onclick=async()=>{try{await be(`legacyVersionFile.strategy`,e.dataset.s||``),await Z(!1),U(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}),Ie()}async function Ie(){let n=x.detail,r=document.getElementById(`aliasList`);if(n&&r)try{r.innerHTML=(await h(`/api/sdks/`+encodeURIComponent(n.name)+`/aliases`)).map(t=>`<div class='item'><span style='flex:1'><code>`+e(t.alias)+`</code><br><span class='muted t-label'>`+e(t.target)+`</span></span><button class='btn text' data-unalias='`+e(t.alias)+`'>`+e(p(`aliasUnset`))+`</button></div>`).join(``),r.innerHTML+=`<div class='item'><span style='flex:1'></span><button class='btn tonal' id='aliasAdd'>`+t(`add`,`sm`)+`<span>`+e(p(`aliasSet`))+`</span></button></div>`,r.querySelectorAll(`[data-unalias]`).forEach(e=>e.onclick=()=>N({operation:`aliasUnset`,sdk:n.name,alias:e.dataset.unalias||``})),document.getElementById(`aliasAdd`).onclick=()=>Le()}catch(t){r.innerHTML=`<div class='item'><span class='bad'>`+e(t instanceof Error?t.message:String(t))+`</span></div>`}}function Le(n){let r=x.detail;r&&M(p(`aliasSet`),`label`,(i,a)=>{i.innerHTML=`<div class="field"><label for="aliasIn">`+e(p(`aliasField`))+`</label><input id="aliasIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="j17"></div><div class="field"><label for="aliasVer">`+e(p(`linkVersionField`))+`</label><input id="aliasVer" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="17-system"></div><div class="actions"><button class="btn text" id="aliasCancel">`+e(p(`cancel`))+`</button><button class="btn primary" id="aliasOk">`+t(`add`,`sm`)+`<span>`+e(p(`aliasSet`))+`</span></button></div>`;let o=document.getElementById(`aliasIn`),s=document.getElementById(`aliasVer`),c=z(r.name);s.value=n||(c&&c.HasCurrent?c.Current:c&&c.Versions&&c.Versions[0]||``);let l=()=>{let e=o.value.trim(),t=s.value.trim();e&&t&&(a(),N({operation:`aliasSet`,sdk:r.name,alias:e,version:t}))};o.onkeydown=e=>{e.key===`Enter`&&l()},s.onkeydown=e=>{e.key===`Enter`&&l()},document.getElementById(`aliasOk`).onclick=l,document.getElementById(`aliasCancel`).onclick=a,window.setTimeout(()=>o.focus(),50)})}function Re(t){let n=x.detail;n&&M(i(t.label,d()),`download`,(r,a)=>{r.innerHTML=`<p class="muted t-body" style="margin:0">`+e(i(t.help,d()))+`</p><p class="muted t-label"><code>`+e(t.key)+`</code></p>`+(t.kind===`url`?`<div class="field"><label for="varIn">`+e(p(`address`))+`</label><input id="varIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="`+e(t.example||``)+`"><div class="muted t-label" id="varHelp"></div></div>`:`<div class="muted t-label" id="varHelp"></div>`)+`<div class="muted t-label chiplabel">`+e(p(`quickPicks`))+`</div><div class="row chips" id="varChips"></div><div class="actions"><button class="btn text" id="varCancel">`+e(p(`cancel`))+`</button><button class="btn primary" id="varOk">`+e(p(`save`))+`</button></div>`;let o=t.value||``,s=document.getElementById(`varIn`),c=document.getElementById(`varHelp`),l=()=>{s&&(s.value=o);let n=document.getElementById(`varChips`);if(!n)return;let r=o.trim();n.innerHTML=O(``,p(`defaultOption`),r===``,`data-value=""`)+t.presets.map(t=>O(t.value,i(t.name,d()),r===t.value,`data-value="`+e(t.value)+`"`)).join(``),n.querySelectorAll(`.chip`).forEach(e=>e.onclick=()=>{o=e.dataset.value||``,c.textContent=``,c.classList.remove(`bad`),l()})};s&&(s.oninput=()=>{o=s.value,c.textContent=``,c.classList.remove(`bad`),u()});let u=()=>{let e=o.trim();document.querySelectorAll(`#varChips .chip`).forEach(t=>t.setAttribute(`aria-pressed`,String(t.dataset.value===e)))},f=async()=>{try{t.value=(await h(`/api/sdks/`+encodeURIComponent(n.name)+`/variables`,{method:`PUT`,body:JSON.stringify({key:t.key,value:o.trim()})})).value||``,a(),y(p(`saved`)),x.detail===n&&n.tab===`options`&&U(!1)}catch(e){c.textContent=e instanceof Error?e.message:String(e),c.classList.add(`bad`)}};document.getElementById(`varOk`).onclick=f,document.getElementById(`varCancel`).onclick=a,s&&(s.onkeydown=e=>{e.key===`Enter`&&f()}),l(),s&&window.setTimeout(()=>s.focus(),50)})}function ze(){let e=x.detail;if(!e||!e.profile&&!e.info&&!document.getElementById(`detailTabs`))return;H();let t=z(e.name),n=(t&&t.Versions||[]).join(`
+`);if(e.installedKey!==void 0&&e.installedKey!==n&&e.profile&&h(`/api/sdks/`+encodeURIComponent(e.name)+`/profile`).then(t=>{x.detail===e&&(e.profile=t,e.installedKey=n,e.tab!==`available`&&U(!1))}).catch(()=>{}),e.installedKey=n,e.tab===`installed`){let e=document.getElementById(`detailBody`);e&&Se(e)}else e.tab===`available`&&K()}function Be(){document.getElementById(`sdkSearch`).oninput=()=>L(),a(`sdkRefresh`).onclick=()=>Z(!0),matchMedia(I).addEventListener(`change`,()=>L())}function Ve(){We(),h(`/api/settings`).then(e=>{document.activeElement!==document.getElementById(`setVfox`)&&(document.getElementById(`setVfox`).value=e.vfoxExecutable||``),document.querySelectorAll(`#langSeg button`).forEach(t=>t.setAttribute(`aria-pressed`,String(t.dataset.l===(e.language||`system`)))),document.activeElement!==document.getElementById(`setEnv`)&&(document.getElementById(`setEnv`).value=Object.entries(e.extraEnvironment||{}).map(([e,t])=>e+`=`+t).join(`
+`))}).catch(()=>{});let n=x.inventory,r=a(`configList`);if(!n)return;let i=n.config;!i||i.loading&&!i.value&&!i.error?r.innerHTML=`<p class="muted">`+e(p(`loading`))+`</p>`:i.error&&(!i.value||!i.value.length)?r.innerHTML=`<p class="bad">`+e(i.error)+`</p>`:(r.innerHTML=(i.value||[]).map(n=>`<div class="confrow"><span class="grow"><code>`+e(n.Key)+`</code><span class="muted">`+e(n.Value||p(`empty`))+`</span></span><button class="iconbtn sm" data-more="`+e(n.Key)+`" title="`+e(p(`actions`))+`">`+t(`more-vert`,`sm`)+`</button></div>`).join(``),r.querySelectorAll(`[data-more]`).forEach(e=>e.onclick=t=>{let n=e.dataset.more||``,r=((i.value||[]).find(e=>e.Key===n)||{}).Value||``;A(t.currentTarget,[{icon:`tune`,label:p(`edit`),onclick:async()=>{let e=prompt(n,r);if(e!=null)try{await He(n,e),Z(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}},{icon:`history`,label:p(`reset`),danger:!0,onclick:async()=>{try{await He(n,null),Z(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}}])}))}async function He(e,t){return t==null?h(`/api/config?key=`+encodeURIComponent(e),{method:`DELETE`}):h(`/api/config`,{method:`PUT`,body:JSON.stringify({key:e,value:t})})}function q(n,r,i,a,o){return`<div class="rowitem"><span class="icon-tile">`+t(n)+`</span><span class="grow"><span class="t-title-m">`+e(r)+`</span>`+(o?`<span class="muted t-body">`+e(o)+`</span>`:``)+(a||``)+`</span>`+i+`</div>`}function Ue(t,n,r){return`<button class='switch' role='switch' id='`+t+`' aria-checked='`+(n?`true`:`false`)+`' aria-label='`+e(r)+`'></button>`}function We(){h(`/api/web`).then(e=>{x.web=e,Ge()}).catch(()=>{})}async function J(e){try{x.web=await h(`/api/web`,{method:`PUT`,body:JSON.stringify(e)})}catch(e){g(e instanceof Error?e.message:String(e))}Ge()}function Ge(){let t=x.web;if(!t)return;let n=q(`devices`,p(`webRemote`),Ue(`webRemote`,t.remote,p(`webRemote`)));t.remote&&(n+=q(`tune`,p(`webPort`),`<input id='webPort' type='number' min='1024' max='65535' value='`+e(t.port)+`' aria-label='`+e(p(`webPort`))+`'>`,``,p(`webPortHelp`)),t.error?n+=`<div class="rowitem"><span class="bad t-label">`+e(p(`webError`))+` `+e(t.error)+`</span></div>`:t.listening&&(n+=q(`hub`,p(`webPairBtn`),`<button class='btn tonal' id='webPair'>`+e(p(`pairShowCode`))+`</button>`))),n+=q(`eco`,p(`webLight`),Ue(`webLight`,t.lightweight,p(`webLight`)),``,p(`webLightHelp`)),n+=q(`power`,p(`webQuit`),`<button class='btn danger' id='webQuit'>`+e(p(`webQuitBtn`))+`</button>`),a(`webList`).innerHTML=n,a(`webRemote`).onclick=async()=>{(t.remote||await b(p(`webRemoteTitle`),p(`webRemoteBody`),p(`webRemoteOk`),!1))&&(x.pairing=null,J({remote:!t.remote}))},a(`webLight`).onclick=()=>J({lightweight:!t.lightweight}),a(`webQuit`).onclick=async()=>{if(await b(p(`webQuitTitle`),p(`webQuitBody`),p(`webQuitBtn`),!0))try{await h(`/api/quit`,{method:`POST`}),y(p(`webQuitting`))}catch(e){g(e instanceof Error?e.message:String(e))}};let r=document.getElementById(`webPort`);r&&(r.onchange=()=>J({port:parseInt(r.value,10)||0}));let i=document.getElementById(`webPair`);i&&(i.onclick=()=>Ke(``)),Y()}async function Ke(e){try{let t=x.web,n=await h(`/api/web/pairing`,{method:`POST`,body:JSON.stringify({host:e})});n.host=e||t&&(t.publicAddress||t.addresses[0])||``,x.pairing=n}catch(e){x.pairing=null,g(e instanceof Error?e.message:String(e))}Y()}function Y(){let t=a(`pairBox`),n=x.pairing,r=x.web;if(!n||!r||!r.listening){t.hidden=!0,t.innerHTML=``;return}let i=[];r.publicAddress&&i.push({value:r.publicAddress,label:r.publicAddress.replace(/^https?:\/\//,``)}),r.addresses.forEach(e=>i.push({value:e,label:e}));let o=i.length>1?`<div class='seg' id='pairHosts'>`+i.map(t=>`<button data-host='`+e(t.value)+`' aria-pressed='`+(t.value===n.host)+`'>`+e(t.label)+`</button>`).join(``)+`</div>`:``;t.innerHTML=`<div class='qr'>`+n.svg+`</div><div class="muted t-label">`+e(p(`pairScan`))+`</div>`+o+`<div class="row"><button class="btn text" id="pairCopy">`+e(p(`webCopyLink`))+`</button><button class="btn text" id="pairClose">`+e(p(`close`))+`</button></div><details class="tech"><summary>`+e(p(`pairDetails`))+`</summary><code>`+e(n.url)+`</code><p class="muted t-label">`+e(p(`webFingerprint`))+`</p><code>`+e(r.fingerprint)+`</code></details>`,t.hidden=!1,a(`pairCopy`).onclick=()=>v(n.url),a(`pairClose`).onclick=()=>{x.pairing=null,Y()},t.querySelectorAll(`[data-host]`).forEach(e=>e.onclick=()=>Ke(e.dataset.host||``))}function qe(e){x.langMode=e,u(e===`system`?f():e);try{localStorage.setItem(`vfox-plus-lang`,e)}catch{}}function Je(e,t){document.querySelectorAll(`#pageLangSeg button`).forEach(n=>n.onclick=async()=>{qe(n.dataset.l||`system`),e(),t(!0)}),document.querySelectorAll(`#langSeg button`).forEach(e=>e.onclick=async()=>{try{await h(`/api/settings`,{method:`PUT`,body:JSON.stringify({language:e.dataset.l})})}catch(e){g(e instanceof Error?e.message:String(e))}})}function Ye(){a(`saveVfox`).onclick=async()=>{try{await h(`/api/settings`,{method:`PUT`,body:JSON.stringify({vfoxExecutable:a(`setVfox`).value.trim()})}),Z(!1)}catch(e){g(e instanceof Error?e.message:String(e))}},a(`saveEnv`).onclick=async()=>{let e={};(a(`setEnv`).value||``).split(`
+`).forEach(t=>{let n=t.indexOf(`=`);n>0&&(e[t.slice(0,n).trim()]=t.slice(n+1))});try{await h(`/api/settings`,{method:`PUT`,body:JSON.stringify({extraEnvironment:e})}),Z(!1)}catch(e){g(e instanceof Error?e.message:String(e))}}}function X(e,t){let n=document.getElementById(e);n&&(n.textContent=t)}function Xe(){let e={home:p(`home`),sdks:p(`sdks`),plugins:p(`plugins`),tasks:p(`tasks`),settings:p(`settings`)};document.querySelectorAll(`.dest`).forEach(t=>{let n=t.querySelector(`.lbl`),r=t.dataset.tab;n&&r&&e[r]&&(n.textContent=e[r])}),X(`homeTitle`,`vfox+`),X(`h-installed`,p(`sdks`)),X(`h-add`,p(`plugins`)),X(`addPluginLabel`,p(`addFromSource`)),X(`h-tasks`,p(`tasksH`)),X(`h-settings`,p(`settings`)),X(`h-web`,p(`webH`)),X(`h-gui`,p(`app`)),X(`h-config`,p(`config`)),X(`l-vfox`,p(`vfoxExecutable`)),X(`l-lang`,p(`applicationLanguage`)),X(`l-pageLang`,p(`pageLang`)),X(`l-env`,p(`extraEnv`)),X(`h-active`,p(`active`)),X(`h-doctor`,p(`doctorTitle`));let t=p(`langSystem`),n=document.querySelector(`#langSeg [data-l="system"]`);n&&(n.textContent=t);let r=document.querySelector(`#pageLangSeg [data-l="system"]`);r&&(r.textContent=t),document.querySelectorAll(`#pageLangSeg button`).forEach(e=>e.setAttribute(`aria-pressed`,String(e.dataset.l===x.langMode)));let i=document.querySelector(`#updateAllBtn span`);i&&(i.textContent=p(`updateAll`));let o=document.getElementById(`saveVfox`);o&&(o.textContent=p(`save`));let s=document.getElementById(`saveEnv`);s&&(s.textContent=p(`save`));let c=document.querySelector(`#clearBtn span`);c&&(c.textContent=p(`clear`)),document.querySelectorAll(`#fabAdd span:last-child, #fabAddM span:last-child`).forEach(e=>{e.textContent=p(`add`)}),document.getElementById(`sdkSearch`).placeholder=p(`searchSdks`),document.getElementById(`pluginSearch`).placeholder=p(`searchPlugins`),a(`liveText`).textContent=x.live?`live`:`…`;let l=document.getElementById(`pageTitle`);l&&(l.textContent=p(x.tab===`sdks`?`sdks`:x.tab||`home`))}async function Z(e){try{let e=await h(`/api/inventory`);x.inventory=e;let t=document.getElementById(`vfoxVer`);t&&(t.textContent=e.vfox.version?`vfox `+e.vfox.version:e.vfox.availability||``),pe(e),L(),P(),Ve();let n=document.getElementById(`homeSub`);n&&(n.textContent=e.vfox.version?`vfox `+e.vfox.version:p(`vfoxMissing`))}catch(e){g(e instanceof Error?e.message:String(e))}try{let e=await h(`/api/tasks`);de(e),x.tasks=e,le()}catch(e){g(e instanceof Error?e.message:String(e))}e&&x.detail?V(x.detail.name,!0):x.detail&&ze()}function Ze(){let e;try{e=new EventSource(`/api/events`)}catch{S(!1);return}e.onopen=()=>S(!0),e.onerror=()=>{S(!1),e.close(),window.setTimeout(Ze,3e3)},e.addEventListener(`task`,()=>Z(!1)),e.addEventListener(`inventory`,()=>Z(!1)),e.addEventListener(`vfox`,()=>Z(!1)),e.addEventListener(`web`,()=>We()),e.addEventListener(`hello`,()=>Z(!0))}function Q(){let e=re();e.sdk?(V(decodeURIComponent(e.sdk),!1),ne(`sdks`,!1)):(ne(e.tab,!1),e.tab===`sdks`&&R(!1))}function $(){let e=window.matchMedia(`(prefers-color-scheme: dark)`).matches;document.documentElement.dataset.theme=e?`dark`:`light`}$();try{window.matchMedia(`(prefers-color-scheme: dark)`).addEventListener(`change`,$)}catch{}{let e=null;try{e=localStorage.getItem(`vfox-plus-lang`)}catch{}let t=e||`system`;x.langMode=t,u(t===`system`?f():t)}Xe(),Je(Xe,Z),he(),Be(),ye(),fe(),Ye(),document.querySelectorAll(`.dest`).forEach(e=>{e.onclick=()=>{let t=e.dataset.tab;t===`sdks`?location.hash=`#/sdks`:location.hash=`#/`+t}}),[`fabAdd`,`fabAddM`].forEach(e=>{let t=document.getElementById(e);t&&(t.onclick=()=>{location.hash=`#/plugins`,window.setTimeout(()=>document.getElementById(`addSource`).focus(),60)})}),document.getElementById(`railToggle`).onclick=()=>document.getElementById(`rail`)?.classList.toggle(`expanded`),addEventListener(`hashchange`,Q),addEventListener(`popstate`,Q),Q(),Z(!0),Ze();</script>
+  <style rel="stylesheet" crossorigin>/*
+ * Copyright 2026 Han Li and contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* The page styles, moved verbatim from the single file so that
+   webapp_design_test.go keeps checking the exact tokens and springs. */
+
+:root[data-theme=light] {
+  --m3-background: #fff8f5;
+  --m3-on-background: #221a14;
+  --m3-surface: #fff8f5;
+  --m3-surface-dim: #e6d7cd;
+  --m3-surface-bright: #fff8f5;
+  --m3-surface-container-lowest: #ffffff;
+  --m3-surface-container-low: #fff1e8;
+  --m3-surface-container: #fbebe1;
+  --m3-surface-container-high: #f5e5db;
+  --m3-surface-container-highest: #efe0d6;
+  --m3-on-surface: #221a14;
+  --m3-on-surface-variant: #51443b;
+  --m3-outline: #837469;
+  --m3-outline-variant: #d6c3b6;
+  --m3-inverse-surface: #372f28;
+  --m3-inverse-on-surface: #feeee4;
+  --m3-primary: #88521c;
+  --m3-on-primary: #ffffff;
+  --m3-primary-container: #ffdcc1;
+  --m3-on-primary-container: #6b3b04;
+  --m3-primary-fixed: #ffdcc1;
+  --m3-primary-fixed-dim: #ffb779;
+  --m3-on-primary-fixed: #2e1500;
+  --m3-on-primary-fixed-variant: #6b3b04;
+  --m3-inverse-primary: #ffb779;
+  --m3-secondary: #745943;
+  --m3-on-secondary: #ffffff;
+  --m3-secondary-container: #ffdcc1;
+  --m3-on-secondary-container: #5a422e;
+  --m3-secondary-fixed: #ffdcc1;
+  --m3-secondary-fixed-dim: #e3c0a5;
+  --m3-on-secondary-fixed: #2a1707;
+  --m3-on-secondary-fixed-variant: #5a422e;
+  --m3-tertiary: #5b6237;
+  --m3-on-tertiary: #ffffff;
+  --m3-tertiary-container: #e0e7b1;
+  --m3-on-tertiary-container: #434a22;
+  --m3-tertiary-fixed: #e0e7b1;
+  --m3-tertiary-fixed-dim: #c3cb97;
+  --m3-on-tertiary-fixed: #181e00;
+  --m3-on-tertiary-fixed-variant: #434a22;
+  --m3-error: #ba1a1a;
+  --m3-on-error: #ffffff;
+  --m3-error-container: #ffdad6;
+  --m3-on-error-container: #93000a;
+  --m3-surface-variant: #f3dfd1;
+  --m3-shadow: #000000;
+  --m3-scrim: #000000;
+}
+:root[data-theme=dark] {
+  --m3-background: #19120c;
+  --m3-on-background: #efe0d6;
+  --m3-surface: #19120c;
+  --m3-surface-dim: #19120c;
+  --m3-surface-bright: #413731;
+  --m3-surface-container-lowest: #140d08;
+  --m3-surface-container-low: #221a14;
+  --m3-surface-container: #261e18;
+  --m3-surface-container-high: #312822;
+  --m3-surface-container-highest: #3c332c;
+  --m3-on-surface: #efe0d6;
+  --m3-on-surface-variant: #d6c3b6;
+  --m3-outline: #9e8e82;
+  --m3-outline-variant: #51443b;
+  --m3-inverse-surface: #efe0d6;
+  --m3-inverse-on-surface: #372f28;
+  --m3-primary: #ffb779;
+  --m3-on-primary: #4c2700;
+  --m3-primary-container: #6b3b04;
+  --m3-on-primary-container: #ffdcc1;
+  --m3-primary-fixed: #ffdcc1;
+  --m3-primary-fixed-dim: #ffb779;
+  --m3-on-primary-fixed: #2e1500;
+  --m3-on-primary-fixed-variant: #6b3b04;
+  --m3-inverse-primary: #88521c;
+  --m3-secondary: #e3c0a5;
+  --m3-on-secondary: #412c19;
+  --m3-secondary-container: #5a422e;
+  --m3-on-secondary-container: #ffdcc1;
+  --m3-secondary-fixed: #ffdcc1;
+  --m3-secondary-fixed-dim: #e3c0a5;
+  --m3-on-secondary-fixed: #2a1707;
+  --m3-on-secondary-fixed-variant: #5a422e;
+  --m3-tertiary: #c3cb97;
+  --m3-on-tertiary: #2d330e;
+  --m3-tertiary-container: #434a22;
+  --m3-on-tertiary-container: #e0e7b1;
+  --m3-tertiary-fixed: #e0e7b1;
+  --m3-tertiary-fixed-dim: #c3cb97;
+  --m3-on-tertiary-fixed: #181e00;
+  --m3-on-tertiary-fixed-variant: #434a22;
+  --m3-error: #ffb4ab;
+  --m3-on-error: #690005;
+  --m3-error-container: #93000a;
+  --m3-on-error-container: #ffdad6;
+  --m3-surface-variant: #51443b;
+  --m3-shadow: #000000;
+  --m3-scrim: #000000;
+}
+
+/* The safe area: what the system bars and a display cutout cover, reported by the browser as env(). */
+:root{color-scheme:light dark;--sai-top:env(safe-area-inset-top,0px);--sai-right:env(safe-area-inset-right,0px);--sai-bottom:env(safe-area-inset-bottom,0px);--sai-left:env(safe-area-inset-left,0px)}
+/* ---------- motion: the springs of Material 3 Expressive ---------- */
+/* docs/en/dev/design-system.md#motion. CSS has no spring, so each one is its step response, sampled into linear() over the time
+   that it needs to settle (the -t variable); webapp_design_test.go recomputes both from the damping ratio and the stiffness.
+   Spatial springs move and reshape and overshoot, effects springs fade and recolour and do not. A browser without linear()
+   keeps the curves that this page had before. */
+:root{
+  --sp-fast-spatial-t:408ms;--sp-fast-spatial:cubic-bezier(.34,1.3,.64,1);
+  --sp-default-spatial-t:487ms;--sp-default-spatial:cubic-bezier(.34,1.2,.64,1);
+  --sp-slow-spatial-t:654ms;--sp-slow-spatial:cubic-bezier(.34,1.2,.64,1);
+  --sp-fast-effects-t:183ms;--sp-fast-effects:cubic-bezier(.2,0,0,1);
+  --sp-default-effects-t:267ms;--sp-default-effects:cubic-bezier(.2,0,0,1);
+  --sp-slow-effects-t:367ms;--sp-slow-effects:cubic-bezier(.2,0,0,1);
+}
+@supports (transition-timing-function:linear(0,1)){:root{
+  --sp-fast-spatial:linear(0,.025,.091,.185,.294,.411,.527,.638,.738,.827,.902,.963,1.011,1.047,1.071,1.086,1.094,1.094,1.091,1.083,1.074,1.063,1.052,1.041,1.031,1.022,1.014,1.007,1.002,.998,.995,.993,.992,.991,.991,.992,.992,.993,.994,.995,.996,.997,.998,.999,1,1,1,1.001,1.001,1);
+  --sp-default-spatial:linear(0,.024,.084,.166,.26,.358,.455,.545,.628,.702,.767,.821,.867,.905,.935,.959,.977,.99,1,1.007,1.011,1.014,1.015,1.015,1.014,1.013,1.012,1.011,1.009,1.008,1.006,1.005,1.004,1.003,1.002,1.002,1.001,1.001,1.001,1,1,1);
+  --sp-slow-spatial:linear(0,.025,.087,.172,.269,.37,.468,.56,.643,.717,.78,.834,.879,.915,.943,.966,.982,.995,1.003,1.009,1.013,1.015,1.015,1.015,1.014,1.013,1.011,1.01,1.008,1.007,1.006,1.004,1.003,1.003,1.002,1.001,1.001,1.001,1,1);
+  --sp-fast-effects:linear(0,.025,.084,.163,.25,.338,.423,.502,.573,.637,.693,.741,.783,.819,.849,.875,.897,.915,.93,.942,.953,.961,.968,.974,.979,.983,.986,.989,.991,.993,.994,.995,.996,.997,.997,.998,.998,.999,.999,.999,.999,.999,1,1,1,1,1,1);
+  --sp-default-effects:linear(0,.026,.089,.171,.261,.352,.438,.518,.59,.653,.709,.756,.797,.832,.861,.886,.906,.923,.937,.949,.958,.966,.972,.978,.982,.985,.988,.991,.992,.994,.995,.996,.997,.997,.998,.998,.999,.999,.999,.999,.999,1,1,1);
+  --sp-slow-effects:linear(0,.025,.085,.164,.251,.34,.424,.503,.575,.638,.694,.743,.784,.82,.85,.876,.898,.915,.93,.943,.953,.962,.969,.974,.979,.983,.986,.989,.991,.993,.994,.995,.996,.997,.997,.998,.998,.999,.999,.999,.999,.999,1,1);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--m3-surface);color:var(--m3-on-surface);font:400 14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--m3-on-surface);background:var(--m3-surface-container-highest);border:1px solid var(--m3-outline-variant);border-radius:12px;padding:10px 14px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--m3-primary);outline-offset:2px}
+a{color:var(--m3-primary)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+.ic{width:24px;height:24px;flex:none;fill:currentColor;display:inline-block;vertical-align:middle}
+.ic.sm{width:20px;height:20px}
+/* ---------- type scale (M3 Expressive, emphasized titles) ---------- */
+.t-display{font-size:45px;line-height:1.15;font-weight:500;letter-spacing:-.25px}
+.t-headline{font-size:28px;line-height:1.2;font-weight:500}
+.t-title-l{font-size:22px;line-height:1.25;font-weight:500}
+.t-title-l code{font-size:inherit}
+.t-title-m{font-size:16px;line-height:1.4;font-weight:700}
+.t-title-s{font-size:14px;line-height:1.4;font-weight:700}
+.t-body{font-size:14px;line-height:1.5;font-weight:400}
+.t-label{font-size:12px;line-height:1.35;font-weight:500}
+.muted{color:var(--m3-on-surface-variant)}
+/* ---------- app frame ---------- */
+.app{display:flex;min-height:100vh}
+/* nav rail: 96 collapsed, 240 expanded */
+.rail{position:sticky;top:0;height:100vh;width:calc(96px + var(--sai-left));flex:none;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:calc(16px + var(--sai-top)) 12px calc(16px + var(--sai-bottom)) calc(12px + var(--sai-left));background:var(--m3-surface-container-low);transition:width var(--sp-default-spatial-t) var(--sp-default-spatial)}
+.rail.expanded{width:calc(240px + var(--sai-left))}
+.rail .brand{display:flex;align-items:center;gap:12px;padding:4px 8px 12px}
+.rail .mark{width:44px;height:44px;flex:none;display:block}
+.rail .wordmark{display:none;font-size:16px;font-weight:500;white-space:nowrap}
+.rail.expanded .wordmark{display:block}
+.rail .iconbtn{align-self:flex-start}
+.rail nav{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.dest{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 8px;border-radius:16px;color:var(--m3-on-surface-variant);min-height:64px;justify-content:center}
+.rail.expanded .dest{flex-direction:row;justify-content:flex-start;gap:12px;padding:0 16px 0 0;min-height:56px;border-radius:28px}
+.dest .pill{position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:32px;border-radius:16px;transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects),border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.rail.expanded .dest .pill{width:56px}
+.dest .pill .ic{position:absolute;transition:opacity var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.dest .pill .fill{opacity:0}
+.dest[aria-current="true"]{color:var(--m3-on-surface)}
+.dest[aria-current="true"] .pill{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+.dest[aria-current="true"] .pill .fill{opacity:1}
+.dest[aria-current="true"] .pill .line{opacity:0}
+.dest:active .pill{border-radius:8px}
+.dest .lbl{font-size:12px;font-weight:500;line-height:1.2}
+.rail.expanded .dest .lbl{font-size:14px}
+.dest .bdg{position:absolute;top:2px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--m3-error);color:var(--m3-on-error);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.dest .bdg[hidden]{display:none}
+.rail.expanded .dest .bdg{right:8px;top:calc(50% - 9px)}
+.rail .fab{margin-top:auto;align-self:center;display:flex;align-items:center;gap:8px;height:56px;min-width:56px;padding:0 16px;border-radius:16px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.rail .fab:hover{border-radius:20px}
+.rail .fab span:last-child{display:none}
+.rail.expanded .fab span:last-child{display:inline;font-weight:500}
+.rail.expanded .fab,.rail.expanded .iconbtn{align-self:flex-start}
+/* icon buttons: expressive sizes/shapes */
+.iconbtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;color:var(--m3-on-surface-variant);transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects),border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.iconbtn:hover{background:color-mix(in srgb,var(--m3-on-surface) 8%,transparent)}
+.iconbtn:active{border-radius:12px}
+.iconbtn.sm{width:40px;height:40px}
+.iconbtn.toggled{color:var(--m3-primary)}
+/* top bar */
+.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(10px + var(--sai-top)) calc(20px + var(--sai-right)) 10px 20px;background:var(--m3-surface);border-bottom:1px solid var(--m3-outline-variant)}
+.topbar h1{font-size:16px;font-weight:500;margin:0}
+.topbar .sp{flex:1}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--m3-on-surface-variant)}
+.live .dot{width:9px;height:9px;border-radius:50%;background:var(--m3-outline)}
+.live.on .dot{background:#1a7f37}
+@media (prefers-color-scheme:dark){.live.on .dot{background:#6fdc8c}}
+.ver{font-size:12px;color:var(--m3-on-surface-variant)}
+/* pages */
+main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + var(--sai-bottom)) 20px;max-width:1120px;margin:0 auto;width:100%}
+.page{display:none}
+.page.active{display:block}
+.page.enter{animation:fadeThrough var(--sp-slow-effects-t) var(--sp-slow-effects)}
+@keyframes fadeThrough{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+/* cards & panes: page panes on surface-container-low */
+.card{background:var(--m3-surface-container-low);border-radius:16px;padding:16px;margin-bottom:12px}
+.pane{background:var(--m3-surface-container-low);border-radius:28px;padding:20px}
+.card h3,.pane h3{margin:0 0 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* buttons: full at rest, 8dp corners while pressed */
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 20px;border-radius:20px;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.btn:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
+.btn:active{border-radius:8px}
+.btn.primary{background:var(--m3-primary);color:var(--m3-on-primary)}
+.btn.primary:hover{background:color-mix(in srgb,var(--m3-on-primary) 8%,var(--m3-primary))}
+.btn.danger{background:transparent;color:var(--m3-error);border:1px solid var(--m3-outline-variant)}
+.btn.text{background:transparent;color:var(--m3-primary);padding:0 12px}
+.btn:disabled{opacity:.45;cursor:default}
+/* segmented buttons */
+/* A segmented control never outgrows its container: the buttons that do not fit in a line go on to the next one, whole,
+   and those of a line share its width. */
+.seg{display:inline-flex;flex-wrap:wrap;max-width:100%;background:var(--m3-surface-container-highest);border-radius:20px;padding:2px;gap:2px}
+.seg button{display:inline-flex;flex:1 1 auto;justify-content:center;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:18px;color:var(--m3-on-surface-variant);font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.seg button[aria-pressed="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:18px}
+.seg button:active{border-radius:8px}
+/* A label and its choice in one column: the choice goes under the label and starts at the same edge, at every width. A
+   choice of a few buttons does not fit beside a label on a phone; here it has the column to itself. */
+.stack{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+/* search bar: full pill */
+.search{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:28px;padding:4px 16px 4px 12px;margin-bottom:12px}
+.search input{flex:1;background:none;border:0;padding:10px 0;outline:none;min-width:0}
+/* segmented lists: 20 outer / 4 inner, inner grows to 12 on hover */
+.list{display:flex;flex-direction:column}
+.list .item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--m3-surface-container);padding:12px 16px;color:var(--m3-on-surface);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.list .item:first-child{border-radius:20px 20px 4px 4px}
+.list .item:last-child{border-radius:4px 4px 20px 20px}
+.list .item:only-child{border-radius:20px}
+.list .item:not(:first-child):not(:last-child){border-radius:4px}
+.list .item:hover .inner,.list .item:hover{border-radius:12px}
+.list .item[aria-current="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+/* plugin cards grid */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+/* content-visibility: the cards below the screen are not laid out, so that opening the page takes one frame */
+.pcard{background:var(--m3-surface-container);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px;content-visibility:auto;contain-intrinsic-size:auto 150px}
+/* avatars: expressive shapes by hash, 3 tone pairs */
+.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:22px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.avatar:hover{transform:rotate(30deg)}
+.avatar.lg{width:72px;height:72px;font-size:28px}
+.av-p{background:var(--m3-primary-fixed);color:var(--m3-on-primary-fixed)}
+.av-s{background:var(--m3-secondary-fixed);color:var(--m3-on-secondary-fixed)}
+.av-t{background:var(--m3-tertiary-fixed);color:var(--m3-on-tertiary-fixed)}
+.av-0{border-radius:50% 38% 55% 45%/48% 55% 45% 52%}
+.av-1{border-radius:38% 62% 42% 58%/58% 42% 58% 42%}
+.av-2{border-radius:62% 38% 60% 40%/40% 60% 38% 62%}
+.av-3{border-radius:45% 55% 38% 62%/62% 38% 62% 38%}
+.av-4{border-radius:55% 45% 62% 38%/42% 58% 40% 60%}
+.av-5{border-radius:42% 58% 48% 52%/55% 42% 58% 45%}
+.av-6{border-radius:58% 42% 55% 45%/45% 52% 48% 55%}
+.av-7{border-radius:40% 60% 45% 55%/52% 45% 60% 40%}
+.av-8{border-radius:52% 48% 40% 60%/45% 55% 42% 58%}
+.av-9{border-radius:48% 52% 58% 42%/58% 40% 55% 48%}
+.av-10{border-radius:60% 40% 45% 55%/42% 58% 48% 52%}
+.av-11{border-radius:45% 55% 52% 48%/50% 48% 52% 50%}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 10px;border-radius:8px;background:var(--m3-surface-container-highest);color:var(--m3-on-surface-variant)}
+.tag.cur{background:var(--m3-primary);color:var(--m3-on-primary);border-radius:12px}
+/* empty & error states: icon on large shape */
+.state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:36px 16px;text-align:center;color:var(--m3-on-surface-variant)}
+.state .shape{width:96px;height:96px;display:flex;align-items:center;justify-content:center;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:48% 52% 55% 45%/52% 45% 55% 48%}
+.state .shape .ic{width:40px;height:40px}
+.state.err .shape{background:var(--m3-error-container);color:var(--m3-on-error-container)}
+.state h3{margin:8px 0 0;color:var(--m3-on-surface);font-size:16px;font-weight:700}
+/* wavy progress: 4dp, primary on secondary-container, stop dot */
+.wavy{position:relative;height:8px;border-radius:4px;background:var(--m3-secondary-container);overflow:hidden;min-width:120px}
+.wavy .fill{position:absolute;inset:0 auto 0 0;width:calc(var(--p,0)*100%);overflow:hidden}
+.wavy .fill svg{position:absolute;top:0;left:0;height:8px}
+.wavy.ind .fill{width:40%;animation:slide 1.1s linear infinite}
+/* transform, not left: the compositor moves it, so it runs at the display's rate */
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.wavy .stop{position:absolute;right:2px;top:3px;width:2px;height:2px;border-radius:1px;background:var(--m3-primary)}
+/* loading indicator: morph + slow rotation */
+.loader{width:48px;height:48px;margin:0 auto;animation:spin 4666ms linear infinite}
+.loader .blob{width:100%;height:100%;background:var(--m3-primary);animation:morph 650ms ease-in-out infinite alternate}
+@keyframes morph{from{border-radius:50% 38% 55% 45%/48% 55% 45% 52%}50%{border-radius:38% 62% 42% 58%/58% 42% 58% 42%}to{border-radius:20px}}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* dialogs: scale spring + fade */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:20px}
+.scrim.open{display:flex}
+.dialog{background:var(--m3-surface-container-high);border-radius:28px;padding:24px;max-width:440px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.scrim.open .dialog{animation:scaleIn var(--sp-default-spatial-t) var(--sp-default-spatial),fadeIn var(--sp-default-effects-t) var(--sp-default-effects)}
+@keyframes scaleIn{from{transform:scale(.8)}to{transform:scale(1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.dialog h3{margin:0 0 8px;font-size:22px;font-weight:500}
+.dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+/* menus */
+.menu{position:fixed;z-index:40;background:var(--m3-surface-container-high);border-radius:12px;padding:8px 0;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none}
+.menu.open{display:block;animation:scaleIn var(--sp-fast-spatial-t) var(--sp-fast-spatial),fadeIn var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 16px;border-radius:4px}
+.menu button:hover{background:color-mix(in srgb,var(--m3-on-surface) 8%,transparent)}
+.menu button.danger{color:var(--m3-error)}
+/* snackbar */
+#snacks{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + var(--sai-bottom));z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92vw}
+.snack{display:flex;align-items:center;gap:12px;background:var(--m3-inverse-surface);color:var(--m3-inverse-on-surface);border-radius:12px;padding:12px 16px;box-shadow:0 4px 16px rgba(0,0,0,.35);animation:riseIn var(--sp-default-spatial-t) var(--sp-default-spatial),fadeIn var(--sp-default-effects-t) var(--sp-default-effects)}
+@keyframes riseIn{from{transform:translateY(16px)}to{transform:none}}
+.snack button{color:var(--m3-inverse-primary);font-weight:500}
+/* stat tiles: container colour + decorative shape */
+/* switch */
+.switch{position:relative;width:52px;height:32px;flex:none;border-radius:16px;background:var(--m3-outline-variant);transition:background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--m3-on-surface-variant);transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.switch[aria-checked="true"]{background:var(--m3-primary)}
+.switch[aria-checked="true"]::after{transform:translateX(20px);background:var(--m3-on-primary)}
+/* fields */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.field label{font-size:12px;font-weight:500;color:var(--m3-on-surface-variant)}
+.qr{width:min(248px,100%);border-radius:12px;overflow:hidden;background:#fff;line-height:0}
+.qr svg{display:block;width:100%;height:auto}
+.pairbox{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-top:12px}
+.pairbox code{overflow-wrap:anywhere}
+.list .item input[type=number]{width:96px;flex:none}
+.list .item>span{min-width:0}
+.list .item code{overflow-wrap:anywhere}
+/* table */
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--m3-outline-variant);vertical-align:middle}
+pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+@media (prefers-color-scheme:dark){pre.log{background:#000}}
+.sdk-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px}
+/* with no plugin at all there is nothing for a second pane to show: the list has the page */
+#tab-sdks.none .sdk-grid{grid-template-columns:minmax(0,1fr)}
+#tab-sdks.none .pane-detail{display:none}
+#tab-sdks.none .pane-list .search{display:none}
+/* master/detail as two screens where two panes would leave the detail too little room for its tabs and its rows: it has
+   the window less 488 px (the rail, the list and the paddings), which is 412 px at 900 and 213 px at 701 */
+@media (max-width:899px){
+  .sdk-grid{grid-template-columns:minmax(0,1fr)}
+  .pane-detail{display:none}
+  #tab-sdks.detail-open .pane-list{display:none}
+  #tab-sdks.detail-open .pane-detail{display:block;animation:sharedX var(--sp-slow-effects-t) var(--sp-slow-effects)}
+  /* the details are a screen of their own and the bar of the details is its header: the title of the page and the refresh
+     above it are not there */
+  #tab-sdks.detail-open>.pagehead{display:none}
+}
+/* the list is beside the details, so there is nothing to go back to */
+@media (min-width:900px){
+  #detailBack{display:none}
+}
+@keyframes sharedX{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.navbar{display:none}
+#error{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + var(--sai-bottom));background:var(--m3-error);color:var(--m3-on-error);padding:10px 18px;border-radius:12px;display:none;max-width:88vw;z-index:60}
+.mfab{display:none}
+/* ---------- plugin profiles: tabs, chips, sheets ---------- */
+.btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+/* a split button: the action, and the way to the others, 2 px apart; the corners that face each other are small */
+.split{display:inline-flex;gap:2px;flex:none}
+.split>.btn{border-radius:4px 999px 999px 4px;padding:0 10px;min-width:40px}
+.split>.btn:first-child{border-radius:999px 4px 4px 999px;padding:0 16px}
+.btn.outline{background:transparent;border:1px solid var(--m3-outline);color:var(--m3-on-surface-variant)}
+.btn.outline:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
+.btn .ic.sm{width:20px;height:20px}
+#detailTabs{margin:8px 0 16px}
+/* the ways to add an SDK besides the list are one menu, at the end of the row of the distribution */
+#addMore{margin-left:auto}
+/* The three tabs of a plugin are 356 px wide with their icons, and a phone leaves 32 px less than its width: on the
+   narrow ones the tabs keep their labels and lose the icons, which fit in a line. */
+@media (max-width:400px){
+  #detailTabs .ic{display:none}
+}
+.tabpane.enter{animation:fadeThrough var(--sp-slow-effects-t) var(--sp-slow-effects)}
+.actions.row,.row.actions{margin-bottom:12px;gap:12px}
+.chips{gap:8px;align-items:center;margin:0 0 8px}
+.chiplabel{margin:0 4px 0 0}
+.chip{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--m3-outline-variant);color:var(--m3-on-surface-variant);font-size:14px;font-weight:500;transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects),border-color var(--sp-fast-effects-t) var(--sp-fast-effects),color var(--sp-fast-effects-t) var(--sp-fast-effects)}
+.chip .ck{display:inline-flex;width:0;opacity:0;overflow:hidden;margin-right:0;transition:width var(--sp-fast-spatial-t) var(--sp-fast-spatial),opacity var(--sp-fast-effects-t) var(--sp-fast-effects),margin var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.chip .ck .ic{width:18px;height:18px}
+.chip:hover{background:color-mix(in srgb,var(--m3-on-surface-variant) 8%,transparent)}
+.chip[aria-pressed="true"]{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-color:transparent;border-radius:16px}
+.chip[aria-pressed="true"] .ck{width:18px;opacity:1;margin-right:8px}
+.chip[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
+.chip:active{border-radius:4px}
+.list .item .tag{vertical-align:middle}
+.vrow code{overflow-wrap:anywhere}
+.dialog.sheet{max-width:560px;max-height:min(88vh,720px);display:flex;flex-direction:column;overflow:hidden}
+.dialog.sheet h3{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;margin-bottom:12px}
+.dialog.sheet h3 .ic{width:28px;height:28px;color:var(--m3-secondary)}
+#sheetBody{overflow-y:auto;min-height:0;flex:1;padding:2px}
+.choices{max-height:46vh;overflow-y:auto;border-radius:20px}
+.choices .item{text-align:left;font:inherit}
+.t-label.bad,.bad{color:var(--m3-error)}
+input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+@media (max-width:700px){
+  .rail{display:none}
+  /* app bar: flat, large title, status as a dot only */
+  .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left));border-bottom:0;background:var(--m3-surface)}
+  .topbar h1{font-size:28px;line-height:36px;font-weight:500}
+  body:has(#tab-sdks.active.detail-open) .topbar h1{display:none}
+  .live,.ver{display:none}
+  .live .dot{width:10px;height:10px}
+  main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
+  /* navigation bar: 80dp, pill indicator, labels always shown */
+  .navbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--m3-surface-container);padding:12px calc(8px + var(--sai-right)) calc(16px + var(--sai-bottom)) calc(8px + var(--sai-left));justify-content:space-around}
+  /* the five destinations share the bar: at 64 px each they needed 336 px, and a phone of 320 px lost the edge of the last */
+  .navbar .dest{min-height:56px;flex:1 1 0;min-width:0;padding:0}
+  /* extended FAB above the bar on the pages where adding makes sense */
+  .mfab{position:fixed;right:calc(16px + var(--sai-right));bottom:calc(96px + var(--sai-bottom));z-index:9;display:none;align-items:center;gap:12px;height:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.28);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+  .mfab span:last-child{display:none}
+  .mfab{padding:0 16px}
+  .mfab:active{border-radius:28px}
+  body[data-tab=home] .mfab,body[data-tab=sdks] .mfab{display:inline-flex}
+  /* flat content: lists and panes sit directly on the surface, no card in a card */
+  .pane,.card{background:none;padding:0;border-radius:0;margin-bottom:20px}
+  .pane-list{padding:0}
+  .card.row,.row .card{background:none}
+  .t-title-m{font-size:14px;font-weight:500;color:var(--m3-primary);letter-spacing:.1px;margin:4px 4px 8px}
+  .list .item{padding:14px 16px}
+  /* sdk detail: the avatar and the name make one headline, and the version goes under it */
+  .avatar.lg{width:56px;height:56px;font-size:24px}
+  #sdkDetail .t-title-l{display:block}
+  /* fields take the width of the screen instead of their size= */
+  .row>input:not([type=file]){flex:1 1 200px;min-width:0}
+  .row>input[type=file],textarea{width:100%}
+  /* home: version line instead of a hero card, tiles in one row */
+  #homeTitle{display:none}
+  #tab-home>.pane{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  #tab-home>.pane>.row{margin:0 0 0 auto!important}
+  #homeSub{font-size:14px}
+  /* terminal hint and cards: tonal containers where there is content to group */
+  #snacks{bottom:calc(176px + var(--sai-bottom))}
+  #error{bottom:calc(176px + var(--sai-bottom))}
+  .scrim{align-items:flex-end;padding:0}
+  .scrim .dialog{max-width:none;border-radius:28px 28px 0 0;padding:24px 24px calc(24px + var(--sai-bottom))}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+
+/* ---------- the desktop's layout, at web widths ---------- */
+/* A page names itself once. The top bar keeps the page name on phones only,
+   where the content's own title is hidden to save the row. */
+@media (min-width:701px){
+  .topbar h1{display:none}
+  .topbar{justify-content:flex-end}
+}
+.pagetitle{font-size:28px;line-height:36px;font-weight:500;margin:0 0 12px}
+.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.pagehead .sp{flex:1}
+.pagehead .pagetitle{margin:0}
+.pagehead .grow{min-width:0}
+.pagehead .muted{margin-top:2px}
+.sectionlabel{font-size:12px;font-weight:500;color:var(--m3-primary);margin:16px 4px 6px}
+.grow{flex:1;min-width:0}
+.hero .t-title-l{line-height:1.2}
+.hero .row{align-items:flex-start}
+.seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
+.taskrow:first-child{border-radius:20px 20px 4px 4px}
+.taskrow:last-child{border-radius:4px 4px 20px 20px}
+.taskrow:only-of-type{border-radius:20px}
+.taskrow+.tasklog:last-child{border-radius:0 0 20px 20px}
+.icon-tile{width:40px;height:40px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
+.icon-tile .ic{width:22px;height:22px}
+.pane>.row:first-child{margin-bottom:6px}
+.shell{display:flex;align-items:center;gap:12px;background:var(--m3-surface-container-low);border-radius:20px;padding:10px 10px 10px 12px;margin-top:12px}
+.shell code{flex:1;min-width:0;overflow-wrap:anywhere}
+.shell .iconbtn{flex:none}
+.shell .iconbtn:active{background:var(--m3-surface-container-high)}
+.list .item:active{background:var(--m3-surface-container-high)}
+.spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
+.filterline{display:flex;align-items:center;gap:12px;margin:8px 4px 8px;min-height:32px}
+.filterline #vChips{flex:1;min-width:0;margin:0}
+.filterline #vCount{margin-left:auto;white-space:nowrap}
+.searchrow{align-items:center;gap:12px}
+.searchrow .search{margin:0}
+.rowitem{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--m3-outline-variant)}
+.rowitem:last-child{border-bottom:0}
+.rowitem .grow{display:flex;flex-direction:column;gap:6px}
+.rowitem.col{flex-direction:column;align-items:stretch}
+.rowitem.col .row{gap:14px;align-items:center}
+.rowitem textarea{width:100%}
+.rowitem code,.pane code{overflow-wrap:anywhere}
+.rowitem input.mono{width:100%}
+/* segmented buttons: the choice is the filled one, as in the desktop */
+.seg button[aria-pressed="true"]{background:var(--m3-primary);color:var(--m3-on-primary)}
+.pcard{justify-content:space-between}
+.pcard .lead{display:flex;align-items:center;gap:12px;min-width:0}
+.pcard .lead .avatar{width:40px;height:40px;font-size:16px}
+.pcard .lead .names{min-width:0;display:flex;flex-direction:column}
+.pcard .lead .names b{font-weight:500}
+.pcard .lead .names .nameline{display:flex;align-items:center;gap:6px}
+.pcard .lead .names .muted{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.pcard .actions .grow{flex:1}
+.btn.tonal{background:var(--m3-secondary-container);color:var(--m3-on-secondary-container);border-radius:999px;min-height:40px}
+.btn.tonal:hover{background:color-mix(in srgb,var(--m3-on-secondary-container) 8%,var(--m3-secondary-container))}
+/* task rows */
+.taskrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;background:var(--m3-surface-container)}
+.taskrow .grow{display:flex;flex-direction:column;gap:2px}
+.taskrow .muted{font-size:12px}
+.taskrow[aria-expanded="true"]{border-radius:20px}
+.tasklog{padding:0 16px 14px;background:var(--m3-surface-container);border-radius:0 0 20px 20px}
+/* config rows */
+.confrow{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--m3-surface-container)}
+.confrow .grow{min-width:0;display:flex;flex-direction:column;gap:2px}
+.confrow .muted{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* page switch: shared axis, as the desktop between destinations */
+@keyframes sharedAxisPage{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.page.enter{animation:sharedAxisPage var(--sp-default-spatial-t) var(--sp-default-spatial)}
+@media (max-width:700px){
+  .pagetitle{display:none}
+  .pagehead{margin-bottom:8px}
+  .pagehead .grow .t-body{display:none}
+  .sectionlabel{margin:12px 4px 4px}
+  .rowitem{flex-wrap:wrap}
+}
+/* ---------- phones: one column, the page title lives in the top bar ---------- */
+@media (max-width:700px){
+  #tab-home>.pane{display:block}
+  #tab-home>.pane .row{margin:0!important}
+  .hero{padding:0 0 6px!important}
+  .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
+  .hero .t-title-l{display:none}
+  .hero .iconbtn{margin-left:auto}
+  .list .item{padding:14px 14px}
+  .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
+  .pagehead .grow{display:none}
+  .pagehead .iconbtn{width:36px;height:36px}
+  .pagehead .btn{min-height:36px;padding:0 12px}
+  .searchrow{flex-direction:column;align-items:stretch;gap:8px}
+  .searchrow .seg{align-self:flex-start}
+  .rowitem{padding:12px 0}
+  /* the label of a row starts where the control of the row starts; the margin of .t-title-m on a phone is for a heading */
+  .rowitem .t-title-m{margin:0}
+}
+@media (max-width:700px){
+  /* the bar already has the plugins destination; the floating button only ate the corner */
+  .mfab{display:none!important}
+  main{padding-bottom:calc(104px + var(--sai-bottom))}
+}
+
+/* The pairing box: the code first, the link and the fingerprint folded away */
+.pairbox .qr{max-width:240px}
+.pairbox .tech{margin-top:4px;font-size:12px;color:var(--m3-on-surface-variant);max-width:100%}
+.pairbox .tech summary{cursor:pointer;font-weight:500;color:var(--m3-primary);padding:4px 0}
+.pairbox .tech code{display:block;overflow-wrap:anywhere;margin:4px 0 8px}
+.pairbox .tech p{margin:0}
+/*$vite$:1*/</style>
+</head>
+<body>
+<div class="app">
+<aside class="rail" id="rail" aria-label="Navigation">
+  <div class="brand"><img class="mark" src="<!--logo-->" width="44" height="44" alt=""><div class="wordmark">vfox-plus</div></div>
+  <button class="iconbtn" id="railToggle" title="Menu"><svg class="ic"><use href="#i-more-vert"/></svg></button>
+  <nav id="railNav">
+    <button class="dest" data-tab="home"><span class="pill"><svg class="ic line"><use href="#i-home"/></svg><svg class="ic fill"><use href="#i-home-fill"/></svg></span><span class="lbl">Home</span></button>
+    <button class="dest" data-tab="sdks"><span class="pill"><svg class="ic line"><use href="#i-deployed-code"/></svg><svg class="ic fill"><use href="#i-deployed-code-fill"/></svg></span><span class="lbl">SDKs</span></button>
+    <button class="dest" data-tab="plugins"><span class="pill"><svg class="ic line"><use href="#i-extension"/></svg><svg class="ic fill"><use href="#i-extension-fill"/></svg></span><span class="lbl">Plugins</span></button>
+    <button class="dest" data-tab="tasks"><span class="pill"><svg class="ic line"><use href="#i-pending-actions"/></svg><svg class="ic fill"><use href="#i-pending-actions-fill"/></svg></span><span class="lbl">Tasks</span><span class="bdg" id="taskCount" hidden></span></button>
+    <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings-fill"/></svg></span><span class="lbl">Settings</span></button>
+  </nav>
+  <button class="fab" id="fabAdd"><svg class="ic"><use href="#i-add"/></svg><span>Add</span></button>
+</aside>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+<header class="topbar">
+  <h1 id="pageTitle">vfox-plus</h1>
+  <span class="sp"></span>
+  <span class="live" id="live"><span class="dot" id="liveDot"></span><span id="liveText">…</span></span>
+  <span class="ver" id="vfoxVer"></span>
+</header>
+<main>
+  <section class="page" id="tab-home">
+    <div class="pane hero">
+      <div class="row">
+        <div class="grow">
+          <div class="t-title-l" id="homeTitle">vfox+</div>
+          <div class="muted t-body" id="homeSub"></div>
+        </div>
+        <button class="iconbtn" id="homeRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+      </div>
+    </div>
+    <div class="sectionlabel" id="h-active">In use</div>
+    <div class="list grouped" id="homeActive"></div>
+    <div class="sectionlabel" id="h-doctor">Health</div>
+    <div class="list grouped" id="homeDoctor"></div>
+    <div class="shell" role="group">
+      <span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span>
+      <code id="shellCmd">eval "$(vfox activate bash)"</code>
+      <button class="iconbtn sm" id="shellCopy" title="Copy"><svg class="ic sm"><use href="#i-content-copy"/></svg></button>
+    </div>
+  </section>
+  <section class="page" id="tab-sdks">
+    <div class="pagehead">
+      <h1 class="pagetitle" id="h-installed">SDKs</h1>
+      <span class="sp"></span>
+      <button class="iconbtn" id="sdkRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+    </div>
+    <div class="sdk-grid" id="sdkGrid">
+      <div class="pane pane-list">
+        <div class="search"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="sdkSearch" placeholder="Search…"></div>
+        <div class="list" id="sdkList"></div>
+      </div>
+      <div class="pane pane-detail"><div id="sdkDetail"></div></div>
+    </div>
+  </section>
+  <section class="page" id="tab-plugins">
+    <div class="pagehead">
+      <div class="grow"><h1 class="pagetitle" id="h-add">Plugins</h1></div>
+      <button class="btn text" id="updateAllBtn"><svg class="ic sm"><use href="#i-update"/></svg><span>Update all</span></button>
+      <button class="iconbtn" id="regRefresh" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+      <button class="btn tonal" id="addPluginBtn"><svg class="ic sm"><use href="#i-add"/></svg><span id="addPluginLabel">Add from source</span></button>
+    </div>
+    <div class="row searchrow">
+      <div class="search grow"><svg class="ic sm muted"><use href="#i-search"/></svg><input id="pluginSearch" placeholder="Search…"></div>
+      <div class="seg" id="pluginFilter"><button data-f="all" aria-pressed="true">All</button><button data-f="official" aria-pressed="false">Official</button><button data-f="community" aria-pressed="false">Community</button></div>
+    </div>
+    <div class="grid-cards" id="pluginList"></div>
+  </section>
+  <section class="page" id="tab-tasks">
+    <div class="pagehead">
+      <h1 class="pagetitle" id="h-tasks">Tasks</h1>
+      <span class="sp"></span>
+      <button class="btn text" id="clearBtn"><svg class="ic sm"><use href="#i-check-circle"/></svg><span>Clear finished</span></button>
+    </div>
+    <div class="list grouped" id="taskList"></div>
+  </section>
+  <section class="page" id="tab-settings">
+    <h1 class="pagetitle" id="h-settings">Settings</h1>
+    <div class="sectionlabel" id="h-web">Connections</div>
+    <div class="pane" id="webCard"><div class="list" id="webList"></div><div class="pairbox" id="pairBox" hidden></div></div>
+    <div class="sectionlabel" id="h-gui">Application</div>
+    <div class="pane">
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-terminal"/></svg></span><span class="grow"><span class="t-title-m" id="l-vfox">vfox executable</span><input id="setVfox" class="mono" size="30"></span><button id="saveVfox" class="btn tonal">Save</button></div>
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-translate"/></svg></span><div class="grow stack"><span class="t-title-m" id="l-lang">Application language</span><div class="seg" id="langSeg" role="group" aria-labelledby="l-lang"><button data-l="system">system</button><button data-l="english">english</button><button data-l="simplifiedChinese">简体中文</button></div></div></div>
+      <div class="rowitem"><span class="icon-tile"><svg class="ic"><use href="#i-language"/></svg></span><div class="grow stack"><span class="t-title-m" id="l-pageLang">Page language</span><div class="seg" id="pageLangSeg" role="group" aria-labelledby="l-pageLang"><button data-l="system">system</button><button data-l="en">English</button><button data-l="zh">简体中文</button></div></div></div>
+      <div class="rowitem col"><span class="row"><span class="icon-tile"><svg class="ic"><use href="#i-data-object"/></svg></span><span class="t-title-m" id="l-env">Extra environment</span></span><textarea id="setEnv" rows="3" placeholder="KEY=value"></textarea><div><button id="saveEnv" class="btn tonal">Save</button></div></div>
+    </div>
+    <div class="sectionlabel" id="h-config">vfox config</div>
+    <div class="pane"><div class="list" id="configList"></div></div>
+  </section>
+</main>
+</div>
+</div>
+<button class="mfab" id="fabAddM"><svg class="ic"><use href="#i-add"/></svg><span>Add</span></button>
+<nav class="navbar" id="barNav" aria-label="Navigation">
+  <button class="dest" data-tab="home"><span class="pill"><svg class="ic line"><use href="#i-home"/></svg><svg class="ic fill"><use href="#i-home-fill"/></svg></span><span class="lbl">Home</span></button>
+  <button class="dest" data-tab="sdks"><span class="pill"><svg class="ic line"><use href="#i-deployed-code"/></svg><svg class="ic fill"><use href="#i-deployed-code-fill"/></svg></span><span class="lbl">SDKs</span></button>
+  <button class="dest" data-tab="plugins"><span class="pill"><svg class="ic line"><use href="#i-extension"/></svg><svg class="ic fill"><use href="#i-extension-fill"/></svg></span><span class="lbl">Plugins</span></button>
+  <button class="dest" data-tab="tasks"><span class="pill"><svg class="ic line"><use href="#i-pending-actions"/></svg><svg class="ic fill"><use href="#i-pending-actions-fill"/></svg></span><span class="lbl">Tasks</span><span class="bdg" id="taskCountM" hidden></span></button>
+  <button class="dest" data-tab="settings"><span class="pill"><svg class="ic line"><use href="#i-settings"/></svg><svg class="ic fill"><use href="#i-settings-fill"/></svg></span><span class="lbl">Settings</span></button>
+</nav>
+<div class="scrim" id="scrim"><div class="dialog" role="alertdialog" aria-modal="true"><h3 id="dlgTitle"></h3><div class="t-body" id="dlgBody"></div><div class="actions"><button class="btn text" id="dlgCancel">Cancel</button><button class="btn primary" id="dlgOk">OK</button></div></div></div>
+<div class="scrim" id="sheet"><div class="dialog sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><h3><span id="sheetIcon"></span><span id="sheetTitle"></span></h3><div id="sheetBody"></div></div></div>
+<div class="menu" id="menu"></div>
+<div id="snacks"></div>
+<div id="error"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-home" viewBox="0 -960 960 960"><path d="M220-180h150v-220q0-12.75 8.63-21.38Q387.25-430 400-430h160q12.75 0 21.38 8.62Q590-412.75 590-400v220h150v-390L480-765 220-570v390Zm-60 0v-390q0-14.25 6.38-27 6.37-12.75 17.62-21l260-195q15.68-12 35.84-12Q500-825 516-813l260 195q11.25 8.25 17.63 21 6.37 12.75 6.37 27v390q0 24.75-17.62 42.37Q764.75-120 740-120H560q-12.75 0-21.37-8.63Q530-137.25 530-150v-220H430v220q0 12.75-8.62 21.37Q412.75-120 400-120H220q-24.75 0-42.37-17.63Q160-155.25 160-180Zm320-293Z"/></symbol>
+<symbol id="i-home-fill" viewBox="0 -960 960 960"><path d="M160-180v-390q0-14.25 6.38-27 6.37-12.75 17.62-21l260-195q15.68-12 35.84-12Q500-825 516-813l260 195q11.25 8.25 17.63 21 6.37 12.75 6.37 27v390q0 24.75-17.62 42.37Q764.75-120 740-120H590q-12.75 0-21.37-8.63Q560-137.25 560-150v-220q0-12.75-8.62-21.38Q542.75-400 530-400H430q-12.75 0-21.37 8.62Q400-382.75 400-370v220q0 12.75-8.62 21.37Q382.75-120 370-120H220q-24.75 0-42.37-17.63Q160-155.25 160-180Z"/></symbol>
+<symbol id="i-deployed-code" viewBox="0 -960 960 960"><path d="M450-154v-309L180-619v309l270 156Zm60 0 270-156v-310L510-463.16V-154Zm-30-360 266-155-266-154-267 154 267 155ZM150-258q-14.25-8.43-22.12-22.21Q120-294 120-310v-340q0-16 7.88-29.79Q135.75-693.57 150-702l300-173q14.33-8 30.16-8 15.84 0 29.84 8l300 173q14.25 8.43 22.13 22.21Q840-666 840-650v340q0 16-7.87 29.79Q824.25-266.43 810-258L510-85q-14.33 8-30.16 8Q464-77 450-85L150-258Zm330-222Z"/></symbol>
+<symbol id="i-deployed-code-fill" viewBox="0 -960 960 960"><path d="M450-85 150-258q-14.25-8.43-22.12-22.21Q120-294 120-310v-340q0-16 7.88-29.79Q135.75-693.57 150-702l300-173q14.33-8 30.16-8 15.84 0 29.84 8l300 173q14.25 8.43 22.13 22.21Q840-666 840-650v340q0 16-7.87 29.79Q824.25-266.43 810-258L510-85q-14.33 8-30.16 8Q464-77 450-85Zm0-378v309l30 17 30-17v-309.16L780-620v-30l-34-19-266 155-267-155-33 18.66V-619l270 156Z"/></symbol>
+<symbol id="i-extension" viewBox="0 -960 960 960"><path d="M180-180h560v-173q0-9 4.5-16t12.5-11l24-11q19-8 30.5-27t11.5-40q0-21.43-11.5-39.72Q800-516 781-525l-24-11q-8.13-3.75-12.57-10.88Q740-554 740-563v-177H564q-10.66 0-18.83-7-8.17-7-10.17-18.33L530-791q-5-27-24.67-45.5-19.68-18.5-45.91-18.5Q432-855 412-836.5T387-791l-5 25.67Q380-754 371.83-747q-8.17 7-18.83 7H181v110q55 20 89 66.78t34 105.5q0 59.72-34 107.22T180-287v107Zm11 60q-29 0-50-21t-21-51v-121q0-8 5-13t13-7q45-9 75.5-43.08T244-458q0-48.03-30-82.52Q184-575 139-583q-8-2-13-7t-5-13v-126q0-30 20.5-50.5T192-800h136q6.63-48.88 43.58-81.94Q408.53-915 458.74-915q49.26 0 86.45 33.06Q582.37-848.88 590-800h139q30 0 50.5 20.5T800-729v147q38 18 60.5 49.5T883-458q0 43-22.5 75T800-334v142q0 30-20.5 51T729-120H191Zm311-338Z"/></symbol>
+<symbol id="i-extension-fill" viewBox="0 -960 960 960"><path d="M191-120q-29 0-50-21t-21-51v-121q0-8 5-13t13-7q45-9 75.5-43t30.5-82q0-48-30-82.5T139-583q-8-2-13-7t-5-13v-126q0-30 20.5-50.5T192-800h136q7-49 44-82t87-33q49 0 86 33t45 82h139q30 0 50.5 20.5T800-729v147q38 18 60.5 49.5T883-458q0 43-22.5 75T800-334v142q0 30-20.5 51T729-120H191Z"/></symbol>
+<symbol id="i-pending-actions" viewBox="0 -960 960 960"><path d="M557.5-135.5Q502-191 502-269t55.5-133.5Q613-458 691-458t133.5 55.5Q880-347 880-269t-55.5 133.5Q769-80 691-80t-133.5-55.5ZM702-271v-92.92q0-8.08-5.5-13.58T683-383q-8 0-14 6t-6 14v94q0 5.57 2 10.78 2 5.22 6 10.22l64 66q6 6 14 6t14-6q6-6 6-14t-6-14l-61-61ZM180-120q-24.75 0-42.37-17.63Q120-155.25 120-180v-600q0-26 17-43t43-17h202q7-35 34.5-57.5T480-920q36 0 63.5 22.5T578-840h202q26 0 43 17t17 43v239q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63-8.5-8.62-8.5-21.37v-239h-60v60q0 12.75-8.62 21.37Q702.75-690 690-690H270q-12.75 0-21.37-8.63Q240-707.25 240-720v-60h-60v600h258q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H180Zm328.5-671.5Q520-803 520-820t-11.5-28.5Q497-860 480-860t-28.5 11.5Q440-837 440-820t11.5 28.5Q463-780 480-780t28.5-11.5Z"/></symbol>
+<symbol id="i-pending-actions-fill" viewBox="0 -960 960 960"><path d="M557.5-135.5Q502-191 502-269t55.5-133.5Q613-458 691-458t133.5 55.5Q880-347 880-269t-55.5 133.5Q769-80 691-80t-133.5-55.5ZM702-271v-92.92q0-8.08-5.5-13.58T683-383q-8 0-14 6t-6 14v94q0 5.57 2 10.78 2 5.22 6 10.22l64 66q6 6 14 6t14-6q6-6 6-14t-6-14l-61-61ZM180-120q-24.75 0-42.37-17.63Q120-155.25 120-180v-600q0-26 17-43t43-17h202q7-35 34.5-57.5T480-920q36 0 63.5 22.5T578-840h202q26 0 43 17t17 43v239q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63-8.5-8.62-8.5-21.37v-239h-60v60q0 12.75-8.62 21.37Q702.75-690 690-690H270q-12.75 0-21.37-8.63Q240-707.25 240-720v-60h-60v600h258q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H180Zm328.5-671.5Q520-803 520-820t-11.5-28.5Q497-860 480-860t-28.5 11.5Q440-837 440-820t11.5 28.5Q463-780 480-780t28.5-11.5Z"/></symbol>
+<symbol id="i-settings" viewBox="0 -960 960 960"><path d="M421-80q-14 0-25-9t-13-23l-15-94q-19-7-40-19t-37-25l-86 40q-14 6-28 1.5T155-226L97-330q-8-13-4.5-27t15.5-23l80-59q-2-9-2.5-20.5T185-480q0-9 .5-20.5T188-521l-80-59q-12-9-15.5-23t4.5-27l58-104q8-13 22-17.5t28 1.5l86 40q16-13 37-25t40-18l15-95q2-14 13-23t25-9h118q14 0 25 9t13 23l15 94q19 7 40.5 18.5T669-710l86-40q14-6 27.5-1.5T804-734l59 104q8 13 4.5 27.5T852-580l-80 57q2 10 2.5 21.5t.5 21.5q0 10-.5 21t-2.5 21l80 58q12 8 15.5 22.5T863-330l-58 104q-8 13-22 17.5t-28-1.5l-86-40q-16 13-36.5 25.5T592-206l-15 94q-2 14-13 23t-25 9H421Zm15-60h88l14-112q33-8 62.5-25t53.5-41l106 46 40-72-94-69q4-17 6.5-33.5T715-480q0-17-2-33.5t-7-33.5l94-69-40-72-106 46q-23-26-52-43.5T538-708l-14-112h-88l-14 112q-34 7-63.5 24T306-642l-106-46-40 72 94 69q-4 17-6.5 33.5T245-480q0 17 2.5 33.5T254-413l-94 69 40 72 106-46q24 24 53.5 41t62.5 25l14 112Zm44-210q54 0 92-38t38-92q0-54-38-92t-92-38q-54 0-92 38t-38 92q0 54 38 92t92 38Zm0-130Z"/></symbol>
+<symbol id="i-refresh" viewBox="0 -960 960 960"><path d="M480-160q-133 0-226.5-93.5T160-480q0-133 93.5-226.5T480-800q85 0 149 34.5T740-671v-99q0-13 8.5-21.5T770-800q13 0 21.5 8.5T800-770v194q0 13-8.5 21.5T770-546H576q-13 0-21.5-8.5T546-576q0-13 8.5-21.5T576-606h138q-38-60-97-97t-137-37q-109 0-184.5 75.5T220-480q0 109 75.5 184.5T480-220q75 0 140-39.5T717-366q5-11 16.5-16.5t22.5-.5q12 5 16 16.5t-1 23.5q-39 84-117.5 133.5T480-160Z"/></symbol>
+<symbol id="i-search" viewBox="0 -960 960 960"><path d="M378-329q-108.16 0-183.08-75Q120-479 120-585t75-181q75-75 181.5-75t181 75Q632-691 632-584.85 632-542 618-502q-14 40-42 75l242 240q9 8.56 9 21.78T818-143q-9 9-22.22 9-13.22 0-21.78-9L533-384q-30 26-69.96 40.5Q423.08-329 378-329Zm-1-60q81.25 0 138.13-57.5Q572-504 572-585t-56.87-138.5Q458.25-781 377-781q-82.08 0-139.54 57.5Q180-666 180-585t57.46 138.5Q294.92-389 377-389Z"/></symbol>
+<symbol id="i-add" viewBox="0 -960 960 960"><path d="M450-450H230q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h220v-220q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v220h220q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H510v220q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63-8.5-8.62-8.5-21.37v-220Z"/></symbol>
+<symbol id="i-download" viewBox="0 -960 960 960"><path d="M469-327q-5-2-10-7L308-485q-9-9.27-8.5-21.64.5-12.36 9.11-21.36 9.39-9 21.89-9t21.5 9l98 99v-341q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v341l99-99q8.8-9 20.9-8.5 12.1.5 21.49 9.5 8.61 9 8.61 21.5t-9 21.5L501-334q-5 5-10.13 7-5.14 2-11 2-5.87 0-10.87-2ZM220-160q-24 0-42-18t-18-42v-113q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v113h520v-113q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v113q0 24-18 42t-42 18H220Z"/></symbol>
+<symbol id="i-delete" viewBox="0 -960 960 960"><path d="M261-120q-24.75 0-42.37-17.63Q201-155.25 201-180v-570h-11q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h158q0-13 8.63-21.5 8.62-8.5 21.37-8.5h204q12.75 0 21.38 8.62Q612-822.75 612-810h158q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5h-11v570q0 24.75-17.62 42.37Q723.75-120 699-120H261Zm438-630H261v570h438v-570ZM418.5-274.63q8.5-8.62 8.5-21.37v-339q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v339q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63Zm166 0q8.5-8.62 8.5-21.37v-339q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v339q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63ZM261-750v570-570Z"/></symbol>
+<symbol id="i-update" viewBox="0 -960 960 960"><path d="M483-120q-75 0-141-28.5T226.5-226q-49.5-49-78-115T120-482q0-75 28.5-140t78-113.5Q276-784 342-812t141-28q80 0 151.5 35T758-709v-76q0-13 8.5-21.5T788-815q13 0 21.5 8.5T818-785v148q0 13-8.5 21.5T788-607H639q-13 0-21.5-8.5T609-637q0-13 8.5-21.5T639-667h75q-44-51-103.5-82T483-780q-125 0-214 85.5T180-485q0 127 88 216t215 89q117 0 201-78t95-193q2-13 10.5-21.5T810-481q13 0 21.5 9t7.5 21q-11 140-112.5 235.5T483-120Zm28-374 115 113q9 9 9 21.5t-9 21.5q-9 9-21 9t-21-9L460-460q-5-5-7-10.5t-2-11.5v-171q0-13 8.5-21.5T481-683q13 0 21.5 8.5T511-653v159Z"/></symbol>
+<symbol id="i-replay" viewBox="0 -960 960 960"><path d="M339.5-108Q274-136 225-185t-77-114.5Q120-365 120-440q0-13 8.5-21.5T150-470q13 0 21.5 8.5T180-440q0 125 87.5 212.5T480-140q125 0 212.5-87.5T780-440q0-125-85-212.5T485-740h-22l52 52q9 9 9 21t-9 21q-9 9-21 9t-21-9L368-751q-9-9-9-21t9-21l106-106q8-8 20.5-8t20.5 8q8 8 8 20.5t-8 20.5l-58 58h23q75 0 140.5 28T735-695q49 49 77 114.5T840-440q0 75-28 140.5T735-185q-49 49-114.5 77T480-80q-75 0-140.5-28Z"/></symbol>
+<symbol id="i-close" viewBox="0 -960 960 960"><path d="M480-438 270-228q-9 9-21 9t-21-9q-9-9-9-21t9-21l210-210-210-210q-9-9-9-21t9-21q9-9 21-9t21 9l210 210 210-210q9-9 21-9t21 9q9 9 9 21t-9 21L522-480l210 210q9 9 9 21t-9 21q-9 9-21 9t-21-9L480-438Z"/></symbol>
+<symbol id="i-check" viewBox="0 -960 960 960"><path d="m378-332 363-363q9-9 21.5-9t21.5 9q9 9 9 21.5t-9 21.5L399-267q-9 9-21 9t-21-9L175-449q-9-9-8.5-21.5T176-492q9-9 21.5-9t21.5 9l159 160Z"/></symbol>
+<symbol id="i-check-circle" viewBox="0 -960 960 960"><path d="m421-389-98-98q-9-9-22-9t-23 10q-9 9-9 22t9 22l122 123q9 9 21 9t21-9l239-239q10-10 10-23t-10-23q-10-9-23.5-8.5T635-603L421-389Zm59 309q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Zm0-60q142 0 241-99.5T820-480q0-142-99-241t-241-99q-141 0-240.5 99T140-480q0 141 99.5 240.5T480-140Zm0-340Z"/></symbol>
+<symbol id="i-error" viewBox="0 -960 960 960"><path d="M503.5-289.48q9.5-9.48 9.5-23.5t-9.48-23.52q-9.48-9.5-23.5-9.5t-23.52 9.48q-9.5 9.48-9.5 23.5t9.48 23.52q9.48 9.5 23.5 9.5t23.52-9.48Zm1-152.15q8.5-8.62 8.5-21.37v-193q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v193q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63ZM480.27-80q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34Q80-397.68 80-480.5t31.5-155.66Q143-709 197.5-763t127.34-85.5Q397.68-880 480.5-880t155.66 31.5Q709-817 763-763t85.5 127Q880-563 880-480.27q0 82.74-31.5 155.5Q817-252 763-197.68q-54 54.31-127 86Q563-80 480.27-80Zm.23-60Q622-140 721-239.5t99-241Q820-622 721.19-721T480-820q-141 0-240.5 98.81T140-480q0 141 99.5 240.5t241 99.5Zm-.5-340Z"/></symbol>
+<symbol id="i-info" viewBox="0 -960 960 960"><path d="M504.5-288.63q8.5-8.62 8.5-21.37v-180q0-12.75-8.68-21.38-8.67-8.62-21.5-8.62-12.82 0-21.32 8.62-8.5 8.63-8.5 21.38v180q0 12.75 8.68 21.37 8.67 8.63 21.5 8.63 12.82 0 21.32-8.63Zm-1-314.57q9.5-9.2 9.5-22.8 0-14.45-9.48-24.22-9.48-9.78-23.5-9.78t-23.52 9.78Q447-640.45 447-626q0 13.6 9.48 22.8 9.48 9.2 23.5 9.2t23.52-9.2ZM480.27-80q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34Q80-397.68 80-480.5t31.5-155.66Q143-709 197.5-763t127.34-85.5Q397.68-880 480.5-880t155.66 31.5Q709-817 763-763t85.5 127Q880-563 880-480.27q0 82.74-31.5 155.5Q817-252 763-197.68q-54 54.31-127 86Q563-80 480.27-80Zm.23-60Q622-140 721-239.5t99-241Q820-622 721.19-721T480-820q-141 0-240.5 98.81T140-480q0 141 99.5 240.5t241 99.5Zm-.5-340Z"/></symbol>
+<symbol id="i-arrow-back" viewBox="0 -960 960 960"><path d="m274-450 227 227q9 9 9 21t-9 21q-9 9-21 9t-21-9L181-459q-5-5-7-10t-2-11q0-6 2-11t7-10l278-278q9-9 21-9t21 9q9 9 9 21t-9 21L274-510h496q13 0 21.5 8.5T800-480q0 13-8.5 21.5T770-450H274Z"/></symbol>
+<symbol id="i-more-vert" viewBox="0 -960 960 960"><path d="M479.86-160Q460-160 446-174.14t-14-34Q432-228 446.14-242t34-14Q500-256 514-241.86t14 34Q528-188 513.86-174t-34 14Zm0-272Q460-432 446-446.14t-14-34Q432-500 446.14-514t34-14Q500-528 514-513.86t14 34Q528-460 513.86-446t-34 14Zm0-272Q460-704 446-718.14t-14-34Q432-772 446.14-786t34-14Q500-800 514-785.86t14 34Q528-732 513.86-718t-34 14Z"/></symbol>
+<symbol id="i-content-copy" viewBox="0 -960 960 960"><path d="M300-200q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560ZM180-80q-24 0-42-18t-18-42v-590q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v590h470q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32Q662.75-80 650-80H180Zm120-180v-560 560Z"/></symbol>
+<symbol id="i-open-in-new" viewBox="0 -960 960 960"><path d="M180-120q-24 0-42-18t-18-42v-600q0-24 18-42t42-18h249q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H180v600h600v-249q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v249q0 24-18 42t-42 18H180Zm600-617L403-360q-9 9-21 8.5t-21-9.5q-9-9-9-21t9-21l377-377H549q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h261q12.75 0 21.38 8.62Q840-822.75 840-810v261q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63-8.5-8.62-8.5-21.37v-188Z"/></symbol>
+<symbol id="i-verified" viewBox="0 -960 960 960"><path d="m437-433-73-76q-9-10-22-10t-23 9q-10 10-10 23t10 23l97 96q9 9 21 9t21-9l183-182q9-9 9-22t-10-22q-9-8-21.5-7.5T598-593L437-433ZM332-84l-62-106-124-25q-11-2-18.5-12t-5.5-21l14-120-79-92q-8-8-8-20t8-20l79-91-14-120q-2-11 5.5-21t18.5-12l124-25 62-107q6-10 17-14t22 1l109 51 109-51q11-5 22-1.5t17 13.5l63 108 123 25q11 2 18.5 12t5.5 21l-14 120 79 91q8 8 8 20t-8 20l-79 92 14 120q2 11-5.5 21T814-215l-123 25-63 107q-6 10-17 13.5T589-71l-109-51-109 51q-11 5-22 1t-17-14Zm41-55 107-45 110 45 67-100 117-30-12-119 81-92-81-94 12-119-117-28-69-100-108 45-110-45-67 100-117 28 12 119-81 94 81 92-12 121 117 28 70 100Zm107-341Z"/></symbol>
+<symbol id="i-tune" viewBox="0 -960 960 960"><path d="M435.5-128.63Q427-137.25 427-150v-165q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v53h323q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H487v52q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63ZM150-202q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h187q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H150Zm165.5-174.63Q307-385.25 307-398v-52H150q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h157v-54q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v166q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63ZM457-450q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h353q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H457Zm144.5-173.63Q593-632.25 593-645v-165q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v52h157q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H653v53q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63ZM150-698q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h353q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H150Z"/></symbol>
+<symbol id="i-hourglass-empty" viewBox="0 -960 960 960"><path d="M308-140h344v-127q0-72-50-121.5T480-438q-72 0-122 49.5T308-267v127Zm294-432q50-50 50-122v-126H308v126q0 72 50 122t122 50q72 0 122-50ZM190-80q-13 0-21.5-8.5T160-110q0-13 8.5-21.5T190-140h58v-127q0-71 40-129t106-84q-66-27-106-85t-40-129v-126h-58q-13 0-21.5-8.5T160-850q0-13 8.5-21.5T190-880h580q13 0 21.5 8.5T800-850q0 13-8.5 21.5T770-820h-58v126q0 71-40 129t-106 85q66 26 106 84t40 129v127h58q13 0 21.5 8.5T800-110q0 13-8.5 21.5T770-80H190Z"/></symbol>
+<symbol id="i-task-alt" viewBox="0 -960 960 960"><path d="M480-80q-85 0-158-30.5T195-195q-54-54-84.5-127T80-480q0-84 30.5-157T195-764q54-54 127-85t158-31q60 0 117 17.5T704-811q11 7 13.5 19t-5.5 22q-8 10-20 11t-23-6q-42-27-90-41t-99-14q-145 0-242.5 97.5T140-480q0 145 97.5 242.5T480-140q145 0 242.5-97.5T820-480q0-19-1.5-37t-5.5-35q-2-13 4-24t18-13q13-3 24 4.5t13 20.5q4 20 6 41t2 43q0 85-31 158t-85 127q-54 54-127 84.5T480-80Zm-59-309 392-392q9-9 22-9t23 9q10 10 10 23t-10 23L442-319q-9 9-21 9t-21-9L278-442q-9-9-8.5-22.5T279-487q9-9 22.5-9t22.5 9l97 98Z"/></symbol>
+<symbol id="i-search-off" viewBox="0 -960 960 960"><path d="m270-245 57 57q5 5 11.5 4.5T350-189q5-5 5-11.5t-5-11.5l-58-57 60-60q5-5 5-11.5t-5-11.5q-5-5-11.5-5t-11.5 5l-59 59-59-59q-5-5-11-5t-11 5q-5 5-5 11.5t5 11.5l58 59-58 58q-5 5-5 12t5 12q5 5 12 5t12-5l57-57ZM136-136q-56-56-56-134t56-134q56-56 134-56t134 56q56 56 56 134t-56 134q-56 56-134 56t-134-56Zm437-247q-14 11-31.5 21.5T508-344q-5-14-11-28.5T483-399q54-21 91.5-69.5T612-584q0-81-57-138.5T417-780q-82 0-139.5 57.5T220-584q0 17 3.5 35.5T232-517q-13 2-29 6.5T174-500q-7-18-10.5-40t-3.5-44q0-107 75-181.5T417-840q106 0 180.5 75T672-584q0 43-15 85t-41 73l242 240q9 9 9 22t-9 22q-9 9-22 9t-22-9L573-383Z"/></symbol>
+<symbol id="i-inventory-2" viewBox="0 -960 960 960"><path d="M180-80q-24.75 0-42.37-17.63Q120-115.25 120-140v-483q-17-6-28.5-21.39T80-680v-140q0-24.75 17.63-42.38Q115.25-880 140-880h680q24.75 0 42.38 17.62Q880-844.75 880-820v140q0 20.22-11.5 35.61T840-623v483q0 24.75-17.62 42.37Q804.75-80 780-80H180Zm0-540v480h600v-480H180Zm-40-60h680v-140H140v140Zm250 260h180q12.75 0 21.38-8.68 8.62-8.67 8.62-21.5 0-12.82-8.62-21.32-8.63-8.5-21.38-8.5H390q-12.75 0-21.37 8.68-8.63 8.67-8.63 21.5 0 12.82 8.63 21.32 8.62 8.5 21.37 8.5Zm90 40Z"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 -960 960 960"><path d="M530-481 353-658q-9-9-8.5-21t9.5-21q9-9 21.5-9t21.5 9l198 198q5 5 7 10t2 11q0 6-2 11t-7 10L396-261q-9 9-21 8.5t-21-9.5q-9-9-9-21.5t9-21.5l176-176Z"/></symbol>
+<symbol id="i-data-object" viewBox="0 -960 960 960"><path d="M600-160q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h90q21.25 0 35.63-14.38Q740-248.75 740-270v-100q0-37 22.5-66t57.5-40v-8q-35-10-57.5-39.5T740-590v-100q0-21.25-14.37-35.63Q711.25-740 690-740h-90q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h90q45.83 0 77.92 32.08Q800-735.83 800-690v100q0 21.25 14.38 35.62Q828.75-540 850-540q12.75 0 21.38 8.65 8.62 8.64 8.62 21.42v60.15q0 12.78-8.62 21.28-8.63 8.5-21.38 8.5-21.25 0-35.62 14.37Q800-391.25 800-370v100q0 45.83-32.08 77.92Q735.83-160 690-160h-90Zm-330 0q-45.83 0-77.92-32.08Q160-224.17 160-270v-100q0-21.25-14.37-35.63Q131.25-420 110-420q-12.75 0-21.37-8.65Q80-437.29 80-450.07v-60.15q0-12.78 8.63-21.28Q97.25-540 110-540q21.25 0 35.63-14.38Q160-568.75 160-590v-100q0-45.83 32.08-77.92Q224.17-800 270-800h90q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5h-90q-21.25 0-35.62 14.37Q220-711.25 220-690v100q0 37-22.5 66.5T140-484v8q35 11 57.5 40t22.5 66v100q0 21.25 14.38 35.62Q248.75-220 270-220h90q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5h-90Z"/></symbol>
+<symbol id="i-translate" viewBox="0 -960 960 960"><path d="m584-197-38 98q-3 8-10.5 13.5T519-80q-16 0-25-13t-3-28l160-415q4-11 13.5-17.5T685-560h29q11 0 20.5 6.5T748-536l160 415q6 15-3 28t-25 13q-10 0-17.5-5.5T852-100l-38-97H584ZM363-401 183-222q-9 8-21 8.5t-21-8.5q-9-9-9-21t9-21l180-180q-51-53-85.5-107.5T183-660h65q16 43 43.5 85t72.5 88q46-48 85-117.5T505-740H70q-13 0-21.5-8.5T40-770q0-13 8.5-21.5T70-800h260v-50q0-13 8.5-21.5T360-880q13 0 21.5 8.5T390-850v50h260q13 0 21.5 8.5T680-770q0 13-8.5 21.5T650-740h-83q-17 78-61.5 159.5T406-443l102 104-24 63-121-125Zm242 149h188l-94-248-94 248Z"/></symbol>
+<symbol id="i-menu-book" viewBox="0 -960 960 960"><path d="M248-300q53.57 0 104.28 12.5Q403-275 452-250v-427q-45-30-97.62-46.5Q301.76-740 248-740q-38 0-74.5 9.5T100-707v434q31-14 70.5-20.5T248-300Zm264 50q50-25 98-37.5T712-300q38 0 78.5 6t69.5 16v-429q-34-17-71.82-25-37.82-8-76.18-8-54 0-104.5 16.5T512-677v427Zm-44.5 77.5Q461-174 456-178q-47-29-99.85-45-52.84-16-108.15-16-36.54 0-71.77 9T106-208q-23.1 11-44.55-3Q40-225 40-251v-463q0-15 7-27.5T68-761q42-20 87.39-29.5 45.4-9.5 92.61-9.5 63 0 122.5 17T482-731q51-35 109.5-52T712-800q46.87 0 91.93 9.5Q849-781 891-761q14 7 21.5 19.5T920-714v463q0 27.89-22.5 42.45Q875-194 853-208q-34-14-69.23-22.5Q748.54-239 712-239q-54.27 0-106.14 16Q554-207 508-178q-5 4-11.5 5.5T482-171q-8 0-14.5-1.5ZM276-489Zm284-119q0-5.52 4.02-11.34 4.03-5.82 8.98-7.66 30-11 61.34-17 31.33-6 65.91-6 21.61 0 42.68 2.5T784-640q6 2 11 7.4 5 5.39 5 12.13 0 11.47-7.5 17.47-7.5 6-18.5 3-16.8-5-35.4-7.5Q720-610 700-610q-29 0-56 5.5T591-588q-14 5-22.5-.5T560-608Zm0 220q0-5.81 4.02-11.94 4.03-6.12 8.98-8.06 30-11 61.34-16.5 31.33-5.5 65.91-5.5 21.61 0 42.68 2.5T784-420q6 2 11 7.4 5 5.39 5 12.13 0 11.47-7.5 17.47-7.5 6-18.5 3-16.8-5-35.4-7.5Q720-390 700-390q-29 0-56 5t-53 16q-14 5-22.5 0t-8.5-19Zm0-110q0-5.52 4.02-11.34 4.03-5.82 8.98-7.66 30-11 61.34-17 31.33-6 65.91-6 21.61 0 42.68 2.5T784-530q6 2 11 7.4 5 5.39 5 12.13 0 11.47-7.5 17.47-7.5 6-18.5 3-16.8-5-35.4-7.5Q720-500 700-500q-29 0-56 5.5T591-478q-14 5-22.5-.5T560-498Z"/></symbol>
+<symbol id="i-terminal" viewBox="0 -960 960 960"><path d="M140-160q-24 0-42-18t-18-42v-520q0-24 18-42t42-18h680q24 0 42 18t18 42v520q0 24-18 42t-42 18H140Zm0-60h680v-436H140v436Zm221-218-83-83q-9-9-8.5-21t9.5-21q9-9 21-9t21 9l104 104q9 9 9 21t-9 21L321-313q-9 9-21 9t-21-9q-9-9-9-21t9-21l82-83Zm159 150q-13 0-21.5-8.5T490-318q0-13 8.5-21.5T520-348h160q13 0 21.5 8.5T710-318q0 13-8.5 21.5T680-288H520Z"/></symbol>
+<symbol id="i-explore" viewBox="0 -960 960 960"><path d="m330-311 213-66q14-5 24-15t15-24l66-213q3-8.64-3.5-15.32T629-648l-213 66q-14 5-24 15t-15 24l-66 213q-3 8.64 3.5 15.32T330-311Zm149.76-129q-16.76 0-28.26-11.74-11.5-11.73-11.5-28.5 0-16.76 11.74-28.26 11.73-11.5 28.5-11.5 16.76 0 28.26 11.74 11.5 11.73 11.5 28.5 0 16.76-11.74 28.26-11.73 11.5-28.5 11.5Zm.51 360q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34Q80-397.68 80-480.5t31.5-155.66Q143-709 197.5-763t127.34-85.5Q397.68-880 480.5-880t155.66 31.5Q709-817 763-763t85.5 127Q880-563 880-480.27q0 82.74-31.5 155.5Q817-252 763-197.68q-54 54.31-127 86Q563-80 480.27-80Zm.22-60Q622-140 721-239.49q99-99.48 99-241Q820-622 721-721t-240.51-99q-141.52 0-241 99Q140-622 140-480.49q0 141.52 99.49 241 99.48 99.49 241 99.49ZM480-480Z"/></symbol>
+<symbol id="i-schedule" viewBox="0 -960 960 960"><path d="M513-492v-171q0-13-8.5-21.5T483-693q-13 0-21.5 8.5T453-663v183q0 6 2 11t6 10l144 149q9 10 22.5 9.5T650-310q9-9 9-22t-9-22L513-492ZM480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-82 31.5-155t86-127.5Q252-817 325-848.5T480-880q82 0 155 31.5t127.5 86Q817-708 848.5-635T880-480q0 82-31.5 155t-86 127.5Q708-143 635-111.5T480-80Zm0-400Zm0 340q140 0 240-100t100-240q0-140-100-240T480-820q-140 0-240 100T140-480q0 140 100 240t240 100Z"/></symbol>
+<symbol id="i-label" viewBox="0 -960 960 960"><path d="M140-160q-24.75 0-42.37-17.63Q80-195.25 80-220v-520q0-24.75 17.63-42.38Q115.25-800 140-800h471q14.25 0 27 6.37 12.75 6.38 21 17.63l195 260q12 15.68 12 35.84Q866-460 854-444L660-184q-8.25 11.25-21 17.62-12.75 6.38-27 6.38H140Zm0-60h471l195-260-195-260H140v520Zm333-260Z"/></symbol>
+<symbol id="i-hub" viewBox="0 -960 960 960"><path d="M240-40q-50 0-85-35t-35-85q0-50 35-85t85-35q14 0 26 3t23 8l57-71q-28-31-39-70t-5-78l-81-27q-17 25-43 40t-58 15q-50 0-85-35T0-580q0-50 35-85t85-35q50 0 85 35t35 85v8l81 28q20-36 53.5-61t75.5-32v-87q-39-11-64.5-42.5T360-840q0-50 35-85t85-35q50 0 85 35t35 85q0 42-26 73.5T510-724v87q42 7 75.5 32t53.5 61l81-28v-8q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35q-32 0-58.5-15T739-515l-81 27q6 39-5 77.5T614-340l57 70q11-5 23-7.5t26-2.5q50 0 85 35t35 85q0 50-35 85t-85 35q-50 0-85-35t-35-85q0-20 6.5-38.5T624-232l-57-71q-41 23-87.5 23T392-303l-56 71q11 15 17.5 33.5T360-160q0 50-35 85t-85 35ZM120-540q17 0 28.5-11.5T160-580q0-17-11.5-28.5T120-620q-17 0-28.5 11.5T80-580q0 17 11.5 28.5T120-540Zm120 420q17 0 28.5-11.5T280-160q0-17-11.5-28.5T240-200q-17 0-28.5 11.5T200-160q0 17 11.5 28.5T240-120Zm240-680q17 0 28.5-11.5T520-840q0-17-11.5-28.5T480-880q-17 0-28.5 11.5T440-840q0 17 11.5 28.5T480-800Zm0 440q42 0 71-29t29-71q0-42-29-71t-71-29q-42 0-71 29t-29 71q0 42 29 71t71 29Zm240 240q17 0 28.5-11.5T760-160q0-17-11.5-28.5T720-200q-17 0-28.5 11.5T680-160q0 17 11.5 28.5T720-120Zm120-420q17 0 28.5-11.5T880-580q0-17-11.5-28.5T840-620q-17 0-28.5 11.5T800-580q0 17 11.5 28.5T840-540ZM480-840ZM120-580Zm360 120Zm360-120ZM240-160Zm480 0Z"/></symbol>
+<symbol id="i-keyboard-arrow-down" viewBox="0 -960 960 960"><path d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></symbol>
+<symbol id="i-history" viewBox="0 -960 960 960"><path d="M480-120q-126 0-223-76.5T131-392q-4-15 6-27.5t27-14.5q16-2 29 6t18 24q24 90 99 147t170 57q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h70q17 0 28.5 11.5T360-600q0 17-11.5 28.5T320-560H160q-17 0-28.5-11.5T120-600v-160q0-17 11.5-28.5T160-800q17 0 28.5 11.5T200-760v54q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm40-376 100 100q11 11 11 28t-11 28q-11 11-28 11t-28-11L452-452q-6-6-9-13.5t-3-15.5v-159q0-17 11.5-28.5T480-680q17 0 28.5 11.5T520-640v144Z"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h6l2 2h8q.825 0 1.413.588T22 8v10q0 .825-.587 1.413T20 20z"/></symbol>
+<symbol id="i-eco" viewBox="0 0 24 24"><path d="m10.825 16.325l4.6-4.1q.225-.2.125-.475t-.4-.325l-3.6-.35L13.7 8.1q.075-.125.088-.238T13.7 7.65q-.1-.125-.25-.112t-.275.112L8.6 11.75q-.225.2-.125.475t.4.325l3.6.35l-2.175 2.975q-.075.125-.075.237t.1.213t.238.1t.262-.1M12 20q-1.4 0-2.637-.438T7.1 18.325L5.725 19.7q-.15.15-.337.225T5 20q-.425 0-.712-.288T4 19q0-.2.075-.387t.225-.338L5.675 16.9q-.8-1.025-1.237-2.262T4 12q0-3.35 2.325-5.675T12 4h8v8q0 3.35-2.325 5.675T12 20"/></symbol>
+<symbol id="i-power" viewBox="0 0 24 24"><path d="M12 22q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12q0-2.1.788-3.912t2.137-3.163l1.4 1.4q-1.1 1.1-1.712 2.55T4 12q0 3.35 2.325 5.675T12 20t5.675-2.325T20 12q0-1.675-.612-3.125t-1.713-2.55l1.4-1.4q1.35 1.35 2.138 3.163T22 12q0 2.075-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m-1-9V2h2v11z"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h7v2H5v14h7v2zm11-4l-1.375-1.45l2.55-2.55H9v-2h8.175l-2.55-2.55L16 7l5 5z"/></symbol>
+<symbol id="i-devices" viewBox="0 0 24 24"><path d="M5 17q-.825 0-1.412-.587T3 15V6q0-.825.588-1.412T5 4h14q.825 0 1.413.588T21 6h-5.5q-1.45 0-2.475 1.025T12 9.5V17zm10.5 3q-.625 0-1.062-.437T14 18.5v-9q0-.625.438-1.062T15.5 8h5q.625 0 1.063.438T22 9.5v9q0 .625-.437 1.063T20.5 20zM2 20v-2h10v2zm16-7.5q.325 0 .538-.225t.212-.525q0-.325-.213-.537T18 11q-.3 0-.525.213t-.225.537q0 .3.225.525T18 12.5"/></symbol>
+<symbol id="i-language" viewBox="0 0 24 24"><path d="M8.125 21.213q-1.825-.788-3.187-2.15t-2.15-3.188T2 11.988t.788-3.875t2.15-3.175t3.187-2.15T12.013 2t3.875.788t3.175 2.15t2.15 3.175t.787 3.875t-.787 3.887t-2.15 3.188t-3.175 2.15t-3.875.787t-3.888-.787M12 19.95q.65-.9 1.125-1.875T13.9 16h-3.8q.3 1.1.775 2.075T12 19.95m-2.6-.4q-.45-.825-.787-1.713T8.05 16H5.1q.725 1.25 1.813 2.175T9.4 19.55m5.2 0q1.4-.45 2.488-1.375T18.9 16h-2.95q-.225.95-.562 1.838T14.6 19.55M4.25 14h3.4q-.075-.5-.112-.987T7.5 12t.038-1.012T7.65 10h-3.4q-.125.5-.187.988T4 12t.063 1.013t.187.987m5.4 0h4.7q.075-.5.113-.987T14.5 12t-.038-1.012T14.35 10h-4.7q-.075.5-.112.988T9.5 12t.038 1.013t.112.987m6.7 0h3.4q.125-.5.188-.987T20 12t-.062-1.012T19.75 10h-3.4q.075.5.113.988T16.5 12t-.038 1.013t-.112.987m-.4-6h2.95q-.725-1.25-1.812-2.175T14.6 4.45q.45.825.788 1.713T15.95 8M10.1 8h3.8q-.3-1.1-.775-2.075T12 4.05q-.65.9-1.125 1.875T10.1 8m-5 0h2.95q.225-.95.563-1.838T9.4 4.45Q8 4.9 6.912 5.825T5.1 8"/></symbol>
+</defs></svg>
+</body>
+</html>

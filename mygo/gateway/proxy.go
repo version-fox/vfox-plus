@@ -48,7 +48,7 @@ func (instanceRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	return up.transport.RoundTrip(request)
 }
 
-// newProxy makes the proxy that forwards the page and the routes of the instance.
+// newProxy makes the proxy that forwards the routes of the API of the instance.
 func (g *Gateway) newProxy() *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
 		Rewrite:        rewrite,
@@ -98,22 +98,16 @@ func (g *Gateway) modify(response *http.Response) error {
 	return nil
 }
 
-// fail answers a request whose instance could not be reached: the page with a page that says so, and the
-// routes of the API in the form that the web interface shows the message of.
+// fail answers a request whose instance could not be reached, in the form that the web interface shows the
+// message of.
 func (g *Gateway) fail(writer http.ResponseWriter, request *http.Request, err error) {
 	if errors.Is(err, context.Canceled) {
 		return // The browser left, and there is no one to tell.
 	}
 	up := upstreamOf(request)
 	message := err.Error()
-	address := ""
 	if up != nil {
 		message = up.unreachable(err).Error()
-		address = up.base.Host
-	}
-	if request.URL.Path == "/app" {
-		render(writer, http.StatusBadGateway, view{Page: pageFailed, Address: address, Error: sentence(message)})
-		return
 	}
 	writeError(writer, http.StatusBadGateway, sentence(message))
 }
@@ -135,41 +129,21 @@ func sentence(message string) string {
 	return string(unicode.ToUpper(first)) + message[size:]
 }
 
-// serveInstance forwards the page and the routes of the API to the instance for a browser that is paired
-// with the gateway, and sends everyone else to the page of the gateway or answers that they are not paired.
+// serveInstance forwards a route of the API to the instance for a browser that is paired with the gateway, and
+// answers everyone else that they are not paired.
 func (g *Gateway) serveInstance(writer http.ResponseWriter, request *http.Request) {
-	isPage := request.URL.Path == "/app"
 	if !g.browsers.paired(request) {
-		if isPage {
-			http.Redirect(writer, request, "/", http.StatusFound)
-			return
-		}
 		http.Error(writer, "Not paired. Open a pairing link first.", http.StatusUnauthorized)
 		return
 	}
 	up := g.current()
 	if !up.connected() {
-		if isPage {
-			http.Redirect(writer, request, "/", http.StatusFound)
-			return
-		}
 		// 401, as for a browser that is not paired: the web interface goes to the page of the gateway.
 		writeError(writer, http.StatusUnauthorized, "The gateway is not paired with a vfox+. Open its page and pair it.")
 		return
 	}
 	if err := g.crossOrigin.Check(request); err != nil {
 		http.Error(writer, "Cross-site requests are not allowed.", http.StatusForbidden)
-		return
-	}
-	g.forward(writer, request, up)
-}
-
-// serveManifest forwards the manifest of the web interface, which the instance serves to anyone: a
-// browser may fetch it without the cookie, and it names the application and its start page and nothing else.
-func (g *Gateway) serveManifest(writer http.ResponseWriter, request *http.Request) {
-	up := g.current()
-	if up == nil {
-		http.NotFound(writer, request)
 		return
 	}
 	g.forward(writer, request, up)

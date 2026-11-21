@@ -17,9 +17,9 @@
 # The development container (docs/en/dev/environment.md#the-dev-container):
 # Ubuntu 26.04 with what CI installs to build, test and package the application,
 # the pinned vfox of the end-to-end tests against the real vfox, and what the
-# Android client needs to build (a JDK and the Android SDK, but no emulator).
+# phone app needs to build (the mygo CLI, a JDK and the Android SDK, but no emulator).
 #
-# Every version comes from mygo/versions.env or android/versions.env, which the
+# Every version comes from mygo/versions.env or mygo/phone/versions.env, which the
 # steps below read, so the container moves with CI and the sandbox. The build
 # context is the root of the repository, which Dockerfile.dockerignore reduces
 # to those two files. Each step is its own layer, so that changing one input
@@ -78,11 +78,18 @@ EOF
 
 # The Android SDK. The JDK is the one of JAVA_VERSION (CI uses Temurin, another
 # build of OpenJDK; the Ubuntu archive has this one, with its updates), the
-# command-line tools are verified against the checksum that android/versions.env
-# pins, and the packages are the ones that the build uses, so that the first build
-# downloads no package of the SDK. The SDK belongs to root: the build only reads it.
+# command-line tools are verified against the checksum that mygo/phone/versions.env
+# pins, and the packages are the ones that the build uses, the NDK included, so that
+# the first build downloads no package of the SDK, which it could not install: the SDK
+# belongs to root, and the build only reads it and runs what is in it. Gradle asks for the
+# build tools of ANDROID_GRADLE_BUILD_TOOLS as well, and fails when they are missing. sdkmanager unpacks the files that run (the clang
+# of the NDK, aapt2, apksigner) with the mode 744, which no other user can run, so the
+# last steps give every user the right to run what its owner can, and check that the
+# user of the container can run the tools that the build starts: a file that cannot be
+# run shows up in the build as "cgo: C compiler not found: permission denied", far from
+# its cause.
 ENV ANDROID_HOME=/opt/android-sdk
-RUN --mount=type=bind,source=android/versions.env,target=/tmp/android.env <<EOF
+RUN --mount=type=bind,source=mygo/phone/versions.env,target=/tmp/android.env <<EOF
 set -eu
 . /tmp/android.env
 test -n "$JAVA_VERSION"
@@ -90,6 +97,8 @@ test -n "$ANDROID_CMDLINE_TOOLS_BUILD"
 test -n "$ANDROID_CMDLINE_TOOLS_SHA256"
 test -n "$ANDROID_SDK_PLATFORM"
 test -n "$ANDROID_SDK_BUILD_TOOLS"
+test -n "$ANDROID_NDK_VERSION"
+test -n "$ANDROID_GRADLE_BUILD_TOOLS"
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "openjdk-$JAVA_VERSION-jdk-headless"
 rm -rf /var/lib/apt/lists/*
@@ -102,7 +111,18 @@ mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/late
 rm /tmp/cmdline-tools.zip
 sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 yes | "$sdkmanager" --licenses > /dev/null
-"$sdkmanager" "platform-tools" "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS"
+"$sdkmanager" "platform-tools" "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" \
+  "build-tools;$ANDROID_GRADLE_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
+chmod -R a+rX "$ANDROID_HOME"
+for tool in \
+  "ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" \
+  "ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android26-clang" \
+  "build-tools/$ANDROID_SDK_BUILD_TOOLS/aapt2" \
+  "build-tools/$ANDROID_SDK_BUILD_TOOLS/apksigner" \
+  "build-tools/$ANDROID_GRADLE_BUILD_TOOLS/aapt2" \
+  "platform-tools/adb"; do
+  runuser -u vscode -- test -x "$ANDROID_HOME/$tool" || { echo "vscode cannot run $ANDROID_HOME/$tool" >&2; exit 1; }
+done
 EOF
 
 # Go, verified against the published checksum.
@@ -121,6 +141,20 @@ curl -4 -fsSL --retry 5 --retry-all-errors -o /tmp/go.tar.gz \
 echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum --check --strict -
 tar -xzf /tmp/go.tar.gz -C /usr/local
 rm /tmp/go.tar.gz
+EOF
+
+# The mygo CLI that builds the phone app, from the release that mygo/phone/versions.env
+# pins, built with the Go above and installed in /usr/local/bin. Its module cache and
+# its build cache are removed with the layer.
+RUN --mount=type=bind,source=mygo/phone/versions.env,target=/tmp/phone.env <<EOF
+set -eu
+. /tmp/phone.env
+test -n "$MYGO_VERSION"
+export PATH=/usr/local/go/bin:$PATH
+GOBIN=/usr/local/bin GOPATH=/tmp/gopath GOCACHE=/tmp/gocache GOTOOLCHAIN=local \
+  go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
+rm -rf /tmp/gopath /tmp/gocache
+mygo version | grep -F "$MYGO_VERSION"
 EOF
 
 # golangci-lint, verified against the published checksum.

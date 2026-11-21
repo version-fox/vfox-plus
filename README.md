@@ -26,7 +26,7 @@ audience:
 
 Start with the [user guide](docs/en/user/index.md) ([简体中文](docs/zh-CN/user/index.md)):
 what it does, [install](docs/en/user/install.md), [use](docs/en/user/using.md),
-the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/android.md) and the
+[other devices](docs/en/user/remote.md), the [phone app](docs/en/user/android.md) and the
 [gateway](docs/en/user/gateway.md) (Docker).
 
 ## Screenshots
@@ -43,7 +43,7 @@ the [web interface](docs/en/user/remote.md), the [Android app](docs/en/user/andr
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nmPmysS.png) | ![Settings](https://iili.io/nyiMQ5b.png) |
+| ![Plugins](https://iili.io/nmPmysS.png) | ![Settings](https://iili.io/oFDBHXV.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |

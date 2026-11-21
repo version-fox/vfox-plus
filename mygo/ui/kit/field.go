@@ -64,6 +64,9 @@ type TextFieldSpec struct {
 	Disabled bool
 	// AutoFocus gives the field the focus when it first appears.
 	AutoFocus bool
+	// Keyboard is the layout of the on-screen keyboard of a phone or a tablet, the one for text by default: a field that holds an
+	// address or a number says so. Desktops type as they do, and ignore it.
+	Keyboard ui.KeyboardType
 }
 
 // fieldState is what a field keeps between builds.
@@ -205,6 +208,7 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 					input = ui.TextAreaBase(c.Context, buf).Lines(lines, maxLines)
 				}
 				input.MinWidth(0).Label(firstNonEmpty(f.Label, f.Hint))
+				keyboardTraits(input).Keyboard(f.Keyboard)
 				input.Draw(func(_ *ui.Painter, r ui.Rect) { st.width = r.W })
 				if c.Env.Reg.CollectText {
 					// The line of text is what the label must stay clear of, and the census asks where it is. A field that is empty
@@ -287,6 +291,15 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 	})
 }
 
+// keyboardTraits tells the on-screen keyboards of phones not to capitalize what a field holds, nor to correct it, and returns the
+// input. What the fields of the application hold is names, versions, addresses and paths, which a keyboard that capitalizes the
+// first letter ("Https://") or corrects a word that it does not know does harm to, and which the web interface sets
+// autocapitalize="off" and spellcheck="false" on. On Android, a plain field is given the capitalization of sentences and the
+// corrections that the keyboard has, so the application has to turn them off. Desktops type as they do, and ignore them.
+func keyboardTraits(input ui.Element) ui.Element {
+	return input.Capitalize(ui.CapitalizeNone).Autocorrect(false)
+}
+
 func firstNonEmpty(values ...string) string {
 	for _, v := range values {
 		if v != "" {
@@ -343,6 +356,7 @@ func SearchBar(c Ctx, s SearchBarSpec) ui.Element {
 	box.Children(func() {
 		Icon(c, "search", 24, cs.OnSurfaceVariant, 0)
 		input = ui.TextInputBase(c.Context, buf).Grow(1).Shrink(1).Label(s.Hint)
+		keyboardTraits(input)
 		if s.Hint != "" {
 			input.Placeholder(s.Hint)
 		}

@@ -105,31 +105,28 @@ func (a *App) reportTray(icon trayIcon) {
 	}()
 }
 
-// writeLink writes a link that pairs a browser with the web interface to the file that
-// VFOX_PLUS_E2E_LINK names, once the web interface is up. The web interface is switched on
-// by the settings and has no command line to print the link on, so the tools that measure
-// the page of the web interface (`vfxtool measure-lightweight`, `vfxtool webheap`) read it
-// from there.
+// writeLink writes a link that pairs a browser with the loopback server of the tests to the file that
+// VFOX_PLUS_E2E_LINK names. The tools that picture and measure the pages of the application read it from
+// there: the application shows no web interface on this computer in the builds that are released.
 func (a *App) writeLink() {
 	path := a.environment["VFOX_PLUS_E2E_LINK"]
 	if path == "" {
 		return
 	}
+	local, ok := a.web.(interface{ LocalLink() (string, error) })
+	if !ok {
+		return
+	}
 	go func() {
-		for deadline := time.Now().Add(time.Minute); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
-			if !a.web.Status().Running {
-				continue
-			}
-			link, err := a.web.LocalLink()
-			if err != nil {
-				return
-			}
-			// The file appears whole: a tool that polls for it must not read half a link.
-			temporary := filepath.Join(filepath.Dir(path), ".link.tmp")
-			if os.WriteFile(temporary, []byte(link+"\n"), 0o600) == nil {
-				_ = os.Rename(temporary, path)
-			}
+		link, err := local.LocalLink()
+		if err != nil {
+			log.Printf("e2e: no link for a browser: %v", err)
 			return
+		}
+		// The file appears whole: a tool that polls for it must not read half a link.
+		temporary := filepath.Join(filepath.Dir(path), ".link.tmp")
+		if os.WriteFile(temporary, []byte(link+"\n"), 0o600) == nil {
+			_ = os.Rename(temporary, path)
 		}
 	}()
 }

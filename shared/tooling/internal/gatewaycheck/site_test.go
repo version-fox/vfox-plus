@@ -145,11 +145,11 @@ func TestABrowserIsPairedWithTheApplicationByItsLink(t *testing.T) {
 		switch r.URL.Path {
 		case "/auth/connect/good":
 			http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: "s3", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-			http.Redirect(w, r, "/app", http.StatusSeeOther)
+			w.WriteHeader(http.StatusNoContent)
 		case "/auth/connect/page":
 			_, _ = io.WriteString(w, "a page")
 		case "/auth/connect/nocookie":
-			http.Redirect(w, r, "/app", http.StatusSeeOther)
+			w.WriteHeader(http.StatusNoContent)
 		case "/api/web":
 			if r.Header.Get("Cookie") != sessionCookie+"=s3" {
 				http.Error(w, "Not paired", http.StatusUnauthorized)
@@ -166,7 +166,7 @@ func TestABrowserIsPairedWithTheApplicationByItsLink(t *testing.T) {
 	if err != nil || !status.Listening || status.Fingerprint != "AA:BB" || !status.SelfSigned || len(status.Addresses) != 1 || status.Addresses[0] != "10.1.2.3" {
 		t.Errorf("the session is sent by hand, as the cookie is Secure: %+v, %v", status, err)
 	}
-	for path, want := range map[string]string{"/auth/connect/page": "want 303", "/auth/connect/nocookie": "no session"} {
+	for path, want := range map[string]string{"/auth/connect/page": "want 204", "/auth/connect/nocookie": "no session"} {
 		if _, err := pairPlain(server.URL + path); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: %v, want an error that says %q", path, err, want)
 		}

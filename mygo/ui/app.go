@@ -53,7 +53,7 @@ type Options struct {
 	Model *state.AppModel
 	// Environment is the environment variables of the process.
 	Environment map[string]string
-	// Web is the web interface, which the settings switch on and off.
+	// Web is the server for other devices, which the settings switch on and off.
 	Web Web
 }
 
@@ -145,7 +145,7 @@ type themeKey struct {
 // New creates the application.
 func New(options Options) (*App, error) {
 	if options.Web == nil {
-		return nil, fmt.Errorf("ui: the application needs a web interface to switch on and off")
+		return nil, fmt.Errorf("ui: the application needs the server for other devices to switch on and off")
 	}
 	table, err := assets.Files.ReadFile("icons.json")
 	if err != nil {
@@ -239,7 +239,7 @@ func (a *App) Run() {
 	if !a.allowsSeveralInstances() && !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
-	// Only the application that runs serves the web interface.
+	// Only the application that runs serves other devices.
 	a.web.Start()
 	defer a.web.Close()
 	mygo.App.OnWindowAllClosed(a.windowsClosed)
@@ -290,9 +290,9 @@ func (a *App) showWindow() {
 }
 
 // windowsClosed runs when the last window has been closed. The application
-// quits, unless the lightweight mode is on and the web interface is up, which
+// quits, unless the lightweight mode is on and other devices may connect, which
 // is what it would keep running for: then the application goes on without its
-// window, and the web interface and the tasks with it.
+// window, and the server for other devices and the tasks with it.
 func (a *App) windowsClosed() {
 	if !a.keepsRunning() {
 		a.desktop.quit()
@@ -303,7 +303,7 @@ func (a *App) windowsClosed() {
 
 // keepsRunning tells whether closing the window leaves the application running.
 func (a *App) keepsRunning() bool {
-	return a.model.Settings.Settings().Lightweight && a.web.Status().Running
+	return a.model.Settings.Settings().Lightweight && a.web.Status().Remote
 }
 
 // releaseWindow lets go of everything that the window held: its widgets, the

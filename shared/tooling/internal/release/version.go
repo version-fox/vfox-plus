@@ -61,8 +61,8 @@ func CheckVersion(req Request, repo Repository) (string, error) {
 	}
 	if !manual {
 		if err := checkFiles(version, repo.ReadFile); err != nil {
-			return "", fmt.Errorf("The commit of v%s must say %s in %s, %s and the metainfo: %w",
-				version, version, VersionFile, AppFile, err)
+			return "", fmt.Errorf("The commit of v%s must say %s in %s, %s, %s and the metainfo: %w",
+				version, version, VersionFile, AppFile, PhoneConfigFile, err)
 		}
 		return version, nil
 	}
@@ -97,6 +97,10 @@ func checkFiles(version string, read func(path string) (string, error)) error {
 	if err != nil {
 		return err
 	}
+	phone, err := read(PhoneConfigFile)
+	if err != nil {
+		return err
+	}
 	metainfo, err := read(MetainfoFile)
 	if err != nil {
 		return err
@@ -106,6 +110,9 @@ func checkFiles(version string, read func(path string) (string, error)) error {
 	}
 	if !strings.Contains(app, `const Version = "`+version+`"`) {
 		return fmt.Errorf("%s does not say %s", AppFile, version)
+	}
+	if said, err := phoneConfigVersion(phone); err != nil || said != version {
+		return fmt.Errorf("%s does not say %s", PhoneConfigFile, version)
 	}
 	if !strings.Contains(metainfo, `<release version="`+version+`"`) {
 		return fmt.Errorf("%s has no release %s", MetainfoFile, version)

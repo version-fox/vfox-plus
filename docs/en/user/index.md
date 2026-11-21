@@ -20,7 +20,7 @@ colour.
 
 | The plugin registry | Settings in Simplified Chinese |
 | --- | --- |
-| ![Plugins](https://iili.io/nmPmysS.png) | ![Settings](https://iili.io/nyiMQ5b.png) |
+| ![Plugins](https://iili.io/nmPmysS.png) | ![Settings](https://iili.io/oFDBHXV.png) |
 
 | Home in a compact window | An SDK in a compact window |
 | --- | --- |
@@ -59,9 +59,9 @@ colour.
 - Installs and uses a version in one step, links SDKs that are already on the
   machine, names aliases for versions and checks the health of vfox and the
   installed SDKs, which vfox 1.1.0 can do.
-- Serves the same interface to a browser, and, if you allow it, to phones and other
-  computers on your network over HTTPS; can keep running without its window, see
-  [The web interface and other devices](remote.md).
+- Lets phones, the gateway and other computers on your network connect over HTTPS, if you
+  allow it, and keeps running without its window for them, see
+  [Other devices and the lightweight mode](remote.md).
 
 vfox-plus drives the vfox command line tool, which must be installed
 separately (see the [vfox installation guide](https://vfox.dev/guides/quick-start.html)).
@@ -72,8 +72,8 @@ separately (see the [vfox installation guide](https://vfox.dev/guides/quick-star
 | --- | --- |
 | [Install](install.md) | Get vfox-plus on Linux, Windows 11 or Android. |
 | [Use](using.md) | The desktop application: Home, SDKs, plugins, tasks and settings. |
-| [The web interface and other devices](remote.md) | Use vfox-plus from a browser, keep it running without its window, let phones and other computers connect. |
-| [The Android app](android.md) | Drive the vfox-plus on your PC from your phone. |
+| [Other devices and the lightweight mode](remote.md) | Let the gateway, phones and other computers connect, and keep vfox-plus running without its window. |
+| [The phone app](android.md) | Drive the vfox-plus on your PC from your phone. |
 | [The gateway (Docker)](gateway.md) | Show the interface of a vfox-plus in the browsers that you pair with a container. |
 
 ## License

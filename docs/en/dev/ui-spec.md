@@ -19,7 +19,7 @@ The application has five top-level destinations:
 | SDKs        | `navSdks`     | `sdks`     | Installed plugins and their versions.                |
 | Plugins     | `navPlugins`  | `plugins`  | The plugin registry.                                 |
 | Tasks       | `navTasks`    | `tasks`    | Running and finished operations. Shows a badge with the number of queued and running tasks. |
-| Settings    | `navSettings` | `settings` | Appearance, language, web interface, vfox executable, vfox configuration, about. |
+| Settings    | `navSettings` | `settings` | Appearance, language, other devices, vfox executable, vfox configuration, about. |
 
 The layout follows the Material 3 window size classes of the window width:
 
@@ -31,9 +31,9 @@ The layout follows the Material 3 window size classes of the window width:
   that opens Plugins.
 
 Pages sit on rounded panes, 16 dp from the window edges. Switching destinations
-fades through where the interface draws transitions, and switches at once on the
-desktop (see [the design system](design-system.md#motion)). The selected destination's
-icon is filled;
+fades through where the interface draws transitions (the web interface), and switches
+at once on the desktop and in the phone app (see [the design system](design-system.md#motion)).
+The selected destination's icon is filled;
 the others are outlined.
 
 The minimum window size is 360 × 480 dp. The default size is 1280 × 820 dp.
@@ -296,23 +296,25 @@ Grouped in segmented lists:
   (choosing one turns the desktop colour off; the selected swatch morphs into a
   flower shape), and the language (`languageSystem` / `English` / `简体中文`;
   language names are always written in their own language).
-- **Web interface**: a switch that serves the interface to the browsers of this computer
-  (`settingsWebInterface`; its subtitle says where, `webServing`, or why it cannot,
-  `webCannotServe`), with *Open in browser* (`webOpen`: a button that opens the link in the browser
-  and one that copies it) once it is up; the lightweight mode (`settingsLightweight`, a switch that
-  keeps the application running without its window; needs the web interface, which its subtitle says
-  when it is off); other devices (`settingsRemote`, a switch that asks for a confirmation first, since
-  it opens the computer to the network; needs the web interface). While other devices are allowed,
-  the list adds the port (`settingsWebPort`, a text field saved on Enter or when leaving the field,
-  and refused when it is not a port from 1024 to 65535), *Pair a phone* (`webPair`: the addresses of
+- **Other devices**: a section whose first switch lets the Docker gateway, phones and other
+  computers connect (`settingsRemote`, a switch that asks for a confirmation first, since it opens
+  the computer to the network; its subtitle says why it cannot, `webRemoteFailed`, when the port is
+  taken). The application shows no web interface on its own computer, so there is no switch for one.
+  The lightweight mode (`settingsLightweight`, a switch that keeps the application running without
+  its window for the other devices; needs other devices, which its subtitle says when they are off,
+  `settingsNeedsOtherDevices`). While other devices are allowed, the list adds the port (`settingsWebPort`, a text field saved on Enter or when leaving the field,
+  and refused when it is not a port from 1024 to 65535), the public address (`settingsWebPublicAddress`, a
+  text field for the address at which a reverse proxy, a tunnel or the gateway publishes the application,
+  which the pairing links and the code then carry), the public tunnel (`settingsPublish`, a switch that
+  asks for a confirmation first: a Cloudflare quick tunnel), *Pair a phone* (`webPair`: the addresses of
   the computer, and a dialog with the QR code of a pairing link, the link, the choice among the
   addresses when there are several, and `webPairNew`) and the certificate (`webCertificate`: made by
   the application, or the files of the user, with the SHA-256 fingerprint in lines that can be
-  selected). While the lightweight mode is on and the web interface is up, *Quit vfox+* (`webQuit`,
+  selected). While the lightweight mode is on and other devices are allowed, *Quit vfox+* (`webQuit`,
   after a confirmation) ends the application, which closing the window no longer does. With no
   window, the application has an icon in the tray (`trayToolTip` says what it is) whose menu has
-  *Open vfox+* (`trayOpen`), *Open the web interface* (`trayOpenWeb`) and *Quit vfox+* (`webQuit`,
-  without a confirmation: there is no window to ask in). The icon is the fox of the application
+  *Open vfox+* (`trayOpen`) and *Quit vfox+* (`webQuit`, without a confirmation: there is no window
+  to ask in). The icon is the fox of the application
   icon without its plate; see [the architecture](architecture.md#the-tray).
 - **vfox**: the executable with its origin (`settingsExecutableDetected`,
   `settingsExecutableCustom` or `settingsExecutableMissing`) and version, a
@@ -338,5 +340,37 @@ Grouped in segmented lists:
 - Selected items, toggles and button groups expose their selected state.
 - Headers are marked as headers.
 - All motion stops or becomes instantaneous when the platform asks for reduced
-  motion.
+  motion; the desktop always does (see [the design system](design-system.md#motion)).
 - Text follows the platform text scale; layouts wrap rather than clip.
+
+## Phone app
+
+The phone app ([`mygo/phone`](../../../mygo/phone)) shows the five tabs of the window with the same
+names and icons: Home, SDKs, Plugins, Tasks and Settings. On a phone they are a navigation bar at the
+bottom of the screen, as the compact layout above describes. The tasks tab shows the same badge of
+queued and running tasks.
+
+The pages above the tabs are the detail of an SDK, a task with its output, the full log of a task, and
+the pairing page. A paired phone shows nothing above the tabs, except while it checks the saved computer
+(*Connecting to the computer…*, with a progress indicator). When the computer does not answer, a bar above
+the tabs says *The computer did not answer. Check the network, and that vfox+ runs on the computer.* and
+offers *Retry*; the tabs stay on the screen.
+
+The pairing page is shown when the phone has no computer, when it must pair again (*This phone must pair
+again*), when the computer's certificate changed (*The computer's certificate changed*), and as a page above
+the tabs for *Pair a new link*. It has a short explanation (*How to pair*) and a field for the pairing link,
+which three buttons fill: *Paste*, *Photo* (the camera reads the code) and *Picture* (an image of the code).
+*Connect* checks the computer and opens the dialog *Trust this computer?*. The dialog shows
+*Checking the computer…* while the check runs, then the fingerprint of the certificate, with *Cancel* and
+*Trust and pair*. A line in red warns when the fingerprint is not the one paired before. The phone pairs
+only when the person chooses *Trust and pair*.
+
+Settings holds the card *This phone* (the computer it is paired with, *Pair a new link* and *Disconnect*),
+the connections of other devices (*Connections*: *Other devices*, with the port and the lightweight mode;
+*Pair a phone*; and *Quit vfox+*, which quits the application on the computer), *Application* (*vfox
+executable*, *Application language*, *Interface language* and *Environment variables*) and *vfox config*,
+the configuration of vfox. The application language is the computer's, and the phone sets it there. The
+interface language is a preference of the phone's own, which changes only its screens: it follows the
+system's languages, or is one of English and Simplified Chinese.
+
+Its components, colours, shapes and springs are the desktop's; see [the design system](design-system.md#phone-app).

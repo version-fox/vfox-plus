@@ -64,21 +64,9 @@ type trayIcon interface {
 func (a *App) trayEntries() []trayEntry {
 	return []trayEntry{
 		{label: a.T("trayOpen"), click: a.showWindow},
-		{label: a.T("trayOpenWeb"), click: a.openWebFromTray},
 		{},
 		{label: a.T("webQuit"), click: a.desktop.quit},
 	}
-}
-
-// openWebFromTray opens the web interface in the browser, paired. There is no window to tell
-// the user what went wrong, so the log does.
-func (a *App) openWebFromTray() {
-	link, err := a.web.LocalLink()
-	if err != nil {
-		log.Printf("cannot open the web interface: %v", err)
-		return
-	}
-	a.openURL(link)
 }
 
 // showTray puts the icon of the application in the tray, if the desktop has one, and the
@@ -96,7 +84,7 @@ func (a *App) showTray() {
 		return
 	}
 	// Nothing has drawn a frame since the window closed, which is when the language is
-	// loaded again: the settings may have changed it from the web interface.
+	// loaded again: the settings may have changed it from another device.
 	a.syncLanguage()
 	tray, err := a.desktop.newTray(trayOptions{
 		icon: picture, toolTip: a.T("trayToolTip"), entries: a.trayEntries(), activate: a.showWindow,
@@ -112,7 +100,7 @@ func (a *App) showTray() {
 }
 
 // refreshTray writes the menu of the icon again when the language of the settings has
-// changed, which the web interface can do while the application has no window to show it.
+// changed, which another device can do while the application has no window to show it.
 func (a *App) refreshTray() {
 	a.trayMu.Lock()
 	tray := a.tray

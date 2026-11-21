@@ -34,7 +34,7 @@ func testServer(t *testing.T) *pair.Server {
 }
 
 // noRedirect is a client that shows the answer of the server and does not follow
-// where it sends the browser: pairing answers with the cookie and a redirect.
+// where it sends the browser: pairing answers with the cookie and no content.
 var noRedirect = &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 
 // request sends a GET without following redirects.
@@ -74,7 +74,7 @@ func sessionOf(cookies []*http.Cookie) string {
 	return ""
 }
 
-func TestPairLinkWorksOnceAndTakesTheBrowserToTheInterface(t *testing.T) {
+func TestPairLinkWorksOnceAndIssuesASession(t *testing.T) {
 	server := testServer(t)
 	_, url, err := server.NewToken()
 	if err != nil {
@@ -84,8 +84,8 @@ func TestPairLinkWorksOnceAndTakesTheBrowserToTheInterface(t *testing.T) {
 		t.Fatalf("got %q", url)
 	}
 	response := request(t, url, "")
-	if response.StatusCode != http.StatusSeeOther || response.Header.Get("Location") != "/app" {
-		t.Fatalf("pairing takes the browser to the interface, got %d to %q", response.StatusCode, response.Header.Get("Location"))
+	if response.StatusCode != http.StatusNoContent || response.Header.Get("Location") != "" {
+		t.Fatalf("pairing answers 204 No Content with no redirect, got %d to %q", response.StatusCode, response.Header.Get("Location"))
 	}
 	session := sessionOf(response.Cookies())
 	if session == "" {
@@ -95,19 +95,13 @@ func TestPairLinkWorksOnceAndTakesTheBrowserToTheInterface(t *testing.T) {
 	if status, body, _ := get(t, url, ""); status != http.StatusForbidden || strings.Contains(body, "vfox-plus pair") {
 		t.Errorf("a used link must be rejected, and not by sending the user to a command, got %d: %s", status, body)
 	}
-	// The session unlocks the interface and its API.
-	if status, _, _ := get(t, server.BaseURL()+"/app", session); status != http.StatusOK {
-		t.Errorf("the paired browser gets the interface, got %d", status)
-	}
+	// The session unlocks the API.
 	if status, body, _ := get(t, server.BaseURL()+"/api/inventory", session); status != http.StatusOK || !strings.Contains(body, "24.11.1") {
 		t.Errorf("got %d: %q", status, body)
 	}
-	// Without the session the API refuses, and the interface sends the browser to the intro.
+	// Without the session the API refuses.
 	if status, _, _ := get(t, server.BaseURL()+"/api/inventory", ""); status != http.StatusUnauthorized {
 		t.Errorf("got %d", status)
-	}
-	if response := request(t, server.BaseURL()+"/app", ""); response.StatusCode != http.StatusFound || response.Header.Get("Location") != "/" {
-		t.Errorf("an unpaired browser goes to the intro, got %d to %q", response.StatusCode, response.Header.Get("Location"))
 	}
 	// A link that was never made does not pair.
 	if status, _, cookies := get(t, server.BaseURL()+"/auth/connect/0123", ""); status != http.StatusForbidden || sessionOf(cookies) != "" {
@@ -200,7 +194,7 @@ func TestPairedBrowserMintsLinks(t *testing.T) {
 		t.Errorf("got %q", minted.URL)
 	}
 	// The minted link pairs once.
-	if status, _, _ := get(t, minted.URL, ""); status != http.StatusSeeOther {
+	if status, _, _ := get(t, minted.URL, ""); status != http.StatusNoContent {
 		t.Errorf("got %d", status)
 	}
 	if status, _, _ := get(t, minted.URL, ""); status != http.StatusForbidden {
@@ -208,22 +202,16 @@ func TestPairedBrowserMintsLinks(t *testing.T) {
 	}
 }
 
-func TestTheIntroPageSaysWhereToGetALink(t *testing.T) {
+// The server serves no page: the interface is the gateway's, and a browser that asks this server for a page
+// gets a not found, with or without a session.
+func TestTheServerServesNoPage(t *testing.T) {
 	server := testServer(t)
-	status, body, _ := get(t, server.BaseURL()+"/", "")
-	if status != http.StatusOK {
-		t.Fatalf("got %d", status)
-	}
-	for _, want := range []string{"Settings", "Open in browser", "设置", "在浏览器中打开"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the intro page names %q, so that people find the link: %s", want, body)
+	session := webSession(t, server)
+	for _, path := range []string{"/", "/app", "/manifest.webmanifest", "/nothing"} {
+		for _, cookie := range []string{"", session} {
+			if status, _, _ := get(t, server.BaseURL()+path, cookie); status != http.StatusNotFound {
+				t.Errorf("%s answers %d, want 404", path, status)
+			}
 		}
-	}
-	// The application has no command line, and the page must not send anyone to one.
-	if strings.Contains(body, "vfox-plus pair") || strings.Contains(body, "terminal") || strings.Contains(body, "auth/connect") {
-		t.Errorf("the intro page names a command or a token: %s", body)
-	}
-	if status, _, _ := get(t, server.BaseURL()+"/nothing", ""); status != http.StatusNotFound {
-		t.Errorf("got %d", status)
 	}
 }

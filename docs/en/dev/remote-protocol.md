@@ -2,72 +2,69 @@
 
 > [简体中文](../../zh-CN/dev/remote-protocol.md)
 
-This document specifies the HTTP surface of the servers of the web interface
-(`mygo/pair`, run by the application when its settings say so): the contract the web
-interface (`mygo/pair/webapp.html`) and the Android client (`android/`) program
-against. The implementation is `mygo/pair/pair.go` (`Server`), `host.go` (`Host`),
-`web.go` and `webapi.go`.
+This document specifies the HTTP surface of the server for other devices
+(`mygo/pair`, run by the application when its settings say so): the contract that the Docker
+gateway (`mygo/gateway`) and the phone app (`mygo/phone`) program against. The server serves
+the API only. The web interface is a single page that the gateway serves (see
+[the web interface](#web-interface)). The implementation is `mygo/pair/pair.go` (`Server`),
+`host.go` (`Host`), `web.go` and `webapi.go`.
 
 ## Concepts
 
 - A **pairing link** is a one-time URL `/auth/connect/<token>`. Tokens work
   once and expire after 5 minutes. Opening one pairs the browser: the server
-  answers `Set-Cookie: vfox-plus-session=<session>` (`Secure`, `HttpOnly`,
-  `SameSite=Lax`) and a redirect (`303`) to `/app`. The application makes the links:
-  *Open in browser* and *Copy link* in its settings for the browsers of its computer,
-  *Pair a phone* for the devices of the network.
-- A **session** cookie authenticates every route except `/`,
-  `/auth/connect/*` and `/manifest.webmanifest`. The sessions of the server for other devices
-  expire after 24 hours; the sessions of the server of this computer last as long as the
-  application runs. Expired sessions answer 401 and must pair again.
+  answers `204 No Content` with `Set-Cookie: vfox-plus-session=<session>` (`Secure`,
+  `HttpOnly`, `SameSite=Lax`) and no redirect, since it serves no page to go on to (see
+  [the web interface](#web-interface)). The application makes the links:
+  *Pair a phone* in its settings, for the devices of the network, which copy the link to the
+  gateway or scan its code.
+- A **session** cookie authenticates every route except `/auth/connect/*`. The sessions of the
+  server for other devices expire after 24 hours. Expired sessions answer 401 and must pair again.
 - State-changing routes additionally refuse the cross-origin requests of
   browsers, with the cross-origin protection of `net/http`: a request whose
   `Sec-Fetch-Site` is not `same-origin` (or `none`), or, without that header,
   whose `Origin` names another host than the one asked, answers 403. Requests with
   neither header (like curl) are allowed through with the session cookie.
-- Two **servers** serve the one application state, each with its own tokens and
-  sessions (see [the architecture](architecture.md#remote-front-ends)). The
-  **local server** listens on `127.0.0.1` on a free port, in plain HTTP, whenever the
-  setting `webInterface` is on. The **remote server** listens on `0.0.0.0` on the
-  port of the setting `webPort` (8369 by default), over HTTPS only, while `webRemote` is
-  on as well. Turning a setting off closes its server and every connection it holds;
-  the sessions of that server end with it. Pairing does not survive a restart of the
-  application.
-- The pages of the web interface can read and change how other devices connect and whether
-  the application stays up without its window, and can quit the application (`/api/web`,
-  `/api/quit`); they cannot turn the web interface itself off.
+- The **remote server** is the one server of the builds that are released (the end-to-end
+  build also starts a loopback server for the tools), and it shares the application state with
+  nothing else (see [the architecture](architecture.md#remote-front-ends)). It listens on
+  `0.0.0.0` on the port of the setting `webPort` (8369 by default), over HTTPS only, while
+  `webRemote` is on. Turning the setting off closes the server and every connection it holds;
+  the sessions end with it. Pairing does not survive a restart of the application.
+- The web interface can read and change how other devices connect and whether the
+  application stays up without its window, and can quit the application (`/api/web`,
+  `/api/quit`).
 
 ## Pairing
 
 | Method and path | Auth | Meaning |
 | --- | --- | --- |
-| `GET /` | none | Intro page: says where to get a link (the settings of the application). Never mentions tokens. |
-| `GET /auth/connect/<token>` | token | Consume the token, set the session cookie, redirect to `/app`. Invalid, reused or expired tokens answer 403. |
+| `GET /auth/connect/<token>` | token | Consume the token, set the session cookie, answer `204 No Content`. Invalid, reused or expired tokens answer 403. |
 | `GET /api/token` | session | Mint another one-time pairing link for a second browser: `{url}` rendered with the caller's host. |
 
 The pairing code of the settings is the pairing link of the remote server, with an
 address of the computer on a network in it (`Host.RemoteLink`), as a QR code
 (`mygo/pair.QRMatrix`; the page of the web interface gets it as an SVG from
-`POST /api/web/pairing`), so that the Android app scans instead of typing.
+`POST /api/web/pairing`), so that the phone app reads it from a photo or a picture instead of typing.
 Other devices are off by default: the settings ask for a confirmation before they
 open the computer to the network.
 
 ## Web interface
 
-`GET /app` (session only, otherwise redirected to `/`) serves the single
-embedded page: no external requests, all assets inlined, `Cache-Control:
-no-store`. It follows the [design system](design-system.md) (seed colour,
-shapes, motion) with inlined SVG icons.
+The server serves no page: the web interface is a single embedded page, with no
+external requests and all assets inlined, and the gateway serves it at `GET /app`
+(see [the gateway](#the-gateway)). It follows the [design system](design-system.md)
+(seed colour, shapes, motion) with inlined SVG icons, and calls the routes of this
+document. This server answers `404` for `/`, `/app` and `/manifest.webmanifest`.
 
-`GET /manifest.webmanifest` (no session) serves the web app manifest of the web
-interface (`application/manifest+json`, `Cache-Control: no-cache`): `name` and
-`short_name` `vfox+`, `id` and `start_url` `/app`, `scope` `/`, `display`
-`standalone`, the colours of the page, and one icon, the favicon as an
-SVG data URI of the size `any`. Chromium browsers offer to install the web interface
-as an application with it. It needs no session because it names only the
-application and its start page, and because a browser may process a manifest without
-the page that links it (the specification mentions installing from a sync service),
-and so without the session cookie.
+The web app manifest of the page is the gateway's too: `GET /manifest.webmanifest` on
+the gateway (no session) serves `application/manifest+json`, `Cache-Control: no-cache`:
+`name` and `short_name` `vfox+`, `id` and `start_url` `/app`, `scope` `/`, `display`
+`standalone`, the colours of the page, and one icon, the favicon as an SVG data URI of
+the size `any`. Chromium browsers offer to install the web interface as an application
+with it. It needs no session because it names only the application and its start page,
+and because a browser may process a manifest without the page that links it (the
+specification mentions installing from a sync service), and so without the session cookie.
 
 ## Inventory
 
@@ -236,9 +233,9 @@ private directory with mode `0600` and deleted by the task finalizer. Answers
 | --- | --- |
 | `GET /api/settings` | The editable GUI settings: `{vfoxExecutable, extraEnvironment, language, updateMirror}`. The mirror prefixes GitHub downloads of releases and plugin profiles, e.g. `https://gh-proxy.org/`. |
 | `PUT /api/settings` | Update them (`language` is `system`, `english` or `simplifiedChinese`). Unknown languages answer 400. |
-| `GET /api/web` | How other devices connect, and whether the application stays up without its window: `{remote, port, lightweight, listening, addresses[], fingerprint, selfSigned, error}`. `remote`, `port` and `lightweight` are the settings `webRemote`, `webPort` and `lightweight`; the rest says what the remote server made of them: whether it `listening`, the `addresses` of the computer on its networks (IPv4 first), the SHA-256 `fingerprint` of its certificate and whether the application made it (`selfSigned`), and `error` when other devices are allowed and cannot connect (the port is taken, the certificate does not load). |
+| `GET /api/web` | How other devices connect, and whether the application stays up without its window: `{remote, port, lightweight, listening, addresses[], publicAddress, tunnel, fingerprint, selfSigned, error}`. `remote`, `port` and `lightweight` are the settings `webRemote`, `webPort` and `lightweight`; the rest says what the remote server made of them: whether it is `listening`, the `addresses` of the computer on its networks (IPv4 first), the `publicAddress` at which something else publishes the server (the setting `webPublicAddress`, or the address of the Cloudflare quick tunnel while the application publishes it through one, in which case `tunnel` is true; empty when there is none), the SHA-256 `fingerprint` of its certificate and whether the application made it (`selfSigned`), and `error` when other devices are allowed and cannot connect (the port is taken, the certificate does not load). |
 | `PUT /api/web` | Change any of `{remote, port, lightweight}` (same-origin). A `port` outside 1024 to 65535 answers 400. The answer is the new `GET /api/web`, which may still show the servers as they were: they follow the settings at once, and the page learns of it by the `web` event. |
-| `POST /api/web/pairing` | Make a pairing link for a device on the network (same-origin): the body may name the `host`, one of the `addresses`, and answers `{url, svg}`, the link and its QR code as an SVG. 409 when other devices cannot connect or the address is none of the computer's. |
+| `POST /api/web/pairing` | Make a pairing link for a device on the network (same-origin): the body may name the `host`, one of the `addresses` or the `publicAddress`, and answers `{url, svg}`, the link and its QR code as an SVG. 409 when other devices cannot connect or the address is none of the computer's. |
 | `POST /api/quit` | Quit the application (same-origin): answers 202 `{quitting: true}` and quits shortly after. Cancels the tasks that run. |
 | `PUT /api/config` | Set one vfox key: `{key, value}`. vfox failures answer 502 with its message. |
 | `DELETE /api/config?key=<key>` | Reset one vfox key to its default. |
@@ -257,38 +254,68 @@ The remote server always speaks HTTPS, and `NewServer` refuses to listen beyond 
 without a certificate. Without `webCertificate` and `webKey` in the settings, the
 application generates a self-signed pair next to the settings the first time
 that other devices are allowed (`mygo/pair/tlscert.go`) and the settings show its SHA-256
-fingerprint. Clients — the browser and the Android app — must show that fingerprint for
+fingerprint. Clients — the browser and the phone app — must show that fingerprint for
 comparison before trusting the certificate. Bringing your own certificate avoids the warning.
 The session cookie is always `Secure`: loopback origins are trustworthy, so
-browsers send it back over plain HTTP there.
+browsers send it back over plain HTTP there, which only the end-to-end build serves, for the tools.
 
-## Android client
+## The phone app
 
-`android/` is a thin native wrapper around this protocol:
+`mygo/phone` is a native client of this API, for Android. It has no page and no web view: its
+screens are mygo's own, and it reads and changes the computer through the routes of this document.
+It keeps one computer.
 
-- The **pairing flow** is native (Material 3 Expressive): paste the pairing
-  link (or scan it), show the TLS fingerprint for comparison, persist the
-  session cookie.
-- The **main content** is a WebView of `/app` with file upload enabled (for
-  plugin `.zip`/`.lua` files) and pull handling left to the page.
-- The page and the app talk through `window.vfoxAndroid`, an object that the app
-  adds to the WebView (`WebBridge`) and that no other client has, so that a page
-  that finds it knows that it runs in the app:
-  - `insets()` returns the safe area as `"top,right,bottom,left,keyboard"` in CSS
-    pixels: what the system bars and a display cutout cover, and the height of the
-    keyboard while it is open. The page puts the first four into the CSS
-    variables `--sai-top`, `--sai-right`, `--sai-bottom` and `--sai-left` (in a
-    browser they are `env(safe-area-inset-*)`, and a WebView does not give
-    that in every version), and marks the root element `kb` while the keyboard
-    is open. The app calls `window.vfoxInsets()` again whenever the insets
-    change.
-  - `server()` returns the address of the paired server, scheme and authority.
-  - `pairNew()` and `disconnect()` leave the session for the pairing screen;
-    the second forgets the server and the session cookie first. The settings of
-    the page offer both on the **This phone** card, which only the app shows.
-- It programs against this document, not against the Go code: inventory for
-  lists, `/api/tasks` + `/api/events` for progress, `POST` routes for
-  actions.
+- **Pairing.** The person gives the phone the pairing link that the computer shows under
+  *Settings → Other devices → Pair a phone → Show code*: by pasting it, by reading its QR code
+  with the camera (*Photo*) or from a picture of it (*Picture*), or by opening the deep link
+  `vfoxplus://pair?link=…`. A deep link only fills in the link and starts the check; the phone
+  pairs when the person chooses *Trust and pair*. A link is `https://host[:port]/auth/connect/<token>`,
+  and a bare `host[:port]/auth/connect/<token>` is read as https. A query, a fragment, user
+  information or another path is refused before any request is made.
+- **Fingerprint.** Before it trusts the computer, the phone looks at its certificate. No connection
+  of the phone skips the verification of a certificate (`InsecureSkipVerify` is not used): the phone
+  connects over TLS and verifies the certificate as any is verified, with the roots of the system. The
+  certificate that the computer makes for itself fails that, and the error of a connection that is
+  verified and fails has the certificate that was presented, which the phone shows by its SHA-256
+  fingerprint in the form that the computer shows: 32 pairs of upper-case hexadecimal digits
+  separated by colons. The person compares it with the fingerprint under *Other devices* on the
+  computer. *Trust and pair* then calls `GET /auth/connect/<token>` over a connection whose only
+  root is that certificate: it is verified as any certificate is, its dates and its use included, for
+  a name that it has, since the computer names its own addresses in it and the phone may reach it by
+  another. The phone saves the host, the address, the fingerprint and that certificate, which is
+  public, in the record of the computer, and every later connection has the same only root. A
+  certificate that is another one is refused, and the pairing page says that the computer's
+  certificate changed. A certificate that the roots of the system vouch for (a computer behind a
+  public name) is trusted as it is and is not pinned, so that its renewal needs no pairing. The
+  gateway trusts a certificate the same way (see [the gateway](#the-gateway)).
+- **Session.** A successful pairing answers `204 No Content` with the session cookie
+  `vfox-plus-session`. The phone keeps its value in a file of its private directory, with mode
+  `0600`, apart from the saved address and fingerprint, which hold no secret. It sends the cookie
+  with every call and with the event stream, and it does not follow redirects, so the cookie goes
+  only to the address of the computer. *Disconnect* (in *Settings → This phone*) forgets the
+  computer and the session on the phone. The API has no call that ends a session on the computer,
+  so the phone does not ask the computer to end it.
+- **Events.** While the app is in the foreground, the phone keeps `GET /api/events` open with the
+  session and reads its `event:` lines. Each kind marks what it names as out of date: `hello`
+  (everything, and the phone is paired), `task` (the tasks), `inventory` (the inventory, the
+  doctor, and the versions, profiles, aliases and plugin information of the SDKs), `vfox` (the
+  inventory and the doctor) and `web` (how other devices connect). The events carry no data: a
+  resource is loaded again when the screen reads it next. The stream ends when the app goes to the
+  background; when the app comes back, the phone connects again and loads everything anew. A broken
+  stream is tried again after three seconds. An answer of `401` means that the computer no longer
+  accepts the session, and the phone asks the person to pair again.
+- **Calls.** The phone reads `GET /api/inventory`, `GET /api/doctor`, the `info`, `versions`,
+  `profile` and `aliases` routes of an SDK, `GET /api/tasks` with `GET /api/tasks/<id>` and its
+  `/log`, and `GET /api/settings` and `GET /api/web`. It changes the computer with the other routes
+  of this document: `POST /api/tasks` starts a task, such as an install, a use or an uninstall (see
+  [Tasks](#tasks)); `POST /api/plugins` adds a plugin, from a source URL or from the file that the person chose with the picker of the system (a `.zip` or a `.lua` of at most 32 MiB, sent as the form that [Plugins](#plugins) describes, with its length declared); `PUT /api/sdks/<name>/search` and
+  `PUT /api/sdks/<name>/variables` set an SDK's search and environment variables; `PUT` and
+  `DELETE /api/config` set and reset a vfox key; `PUT /api/settings` and `PUT /api/web` change the
+  settings and how other devices connect; `POST /api/web/pairing` makes a pairing link for another
+  device, which the phone shows as text and as a QR code; and `POST /api/quit` quits the application
+  on the computer, after the person confirms it. A call waits for its answer for at most 150 seconds,
+  which is longer than the two minutes that the server waits for vfox before it answers `504`. The
+  phone accepts an answer of up to 64 MiB, the size of the largest answer, a full task log.
 
 ## The gateway
 
@@ -296,7 +323,7 @@ browsers send it back over plain HTTP there.
 of one instance to the browsers that are paired with it, over HTTPS on port 8080. It speaks this
 protocol twice. To its browsers it is a server: the same one-time links (`/auth/connect/<token>`, five
 minutes) and sessions (24 hours), with the cookie `vfox-plus-gateway`. To the remote server of an
-instance it is a client, as the Android app is: a pairing link that a person pasted, the session cookie
+instance it is a client, as the phone app is: a pairing link that a person pasted, the session cookie
 `vfox-plus-session`, and the certificate trusted by the roots or by a fingerprint.
 
 | Route | Answered by | Notes |
@@ -308,12 +335,14 @@ instance it is a client, as the Android app is: a pairing link that a person pas
 | `POST /gateway/trust` | the gateway | `link` and `fingerprint`, from the page that shows it: pairs with the certificate that has that fingerprint (`409` when the certificate at the address is not the one that was shown). |
 | `POST /gateway/invite` | the gateway | A page with a link for another browser. |
 | `POST /gateway/forget` | the gateway | Forgets the instance and the session at it; `303` to `/`. |
-| `/app`, `/api/*`, `/manifest.webmanifest` | the instance | Forwarded with the session of the gateway (the manifest also to a browser that is not paired, as the instance serves it). |
+| `GET /app` | the gateway | The single page of the interface, for a browser that is paired with the gateway while the gateway holds a session at an instance: `200`, `Cache-Control: no-store`, and no request to the instance (the page makes its calls to `/api/*`). Any other browser is redirected to `/` (`302`). |
+| `GET /manifest.webmanifest` | the gateway | The web app manifest of the page, to any browser, with no session. `GET` and `HEAD`; another method answers `405` with `Allow: GET, HEAD`. |
+| `/api/*` | the instance | Forwarded with the session of the gateway. |
 
 The forms of the gateway need a paired browser (`401`), the origin of the gateway (`403`) and at most 8 KiB
-(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401` (and `/app`
-is a redirect to `/`), and so is every route when the gateway is paired with no instance or its session
-ended: the answer says so in the form that the interface reads errors in, `{"error": "…"}`. When the
-instance cannot be reached the API answers `502` in the same form and `/app` answers `502` with a page.
+(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401` with a message in
+plain text; and so is every route when the gateway is paired with no instance or its session ended, but then the
+answer says so in the form that the interface reads errors in, `{"error": "…"}`. When the instance cannot be reached the API answers `502` in the same
+form, and the page of the interface is still served: it shows what its calls get.
 Everything of the browser that identifies it (its cookies, `Origin`, `Referer`, the `Forwarded` headers)
 stays with the gateway, and the `Set-Cookie` of the instance does not reach the browser.

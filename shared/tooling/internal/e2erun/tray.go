@@ -34,20 +34,19 @@ const trayToolTip = "vfox+ is running in the background"
 
 // trayMenu is the menu of the icon, in English, which the scenario chooses by position and
 // checks by label. The empty one is the separator.
-var trayMenu = []string{"Open vfox+", "Open the web interface", "", "Quit vfox+"}
+var trayMenu = []string{"Open vfox+", "", "Quit vfox+"}
 
 // The positions of the entries that the scenario chooses.
 const (
 	menuOpen = 0
-	menuWeb  = 1
-	menuQuit = 3
+	menuQuit = 2
 )
 
 // How long what the scenario waits for may take: the window to close or to open, the icon to come
 // or to go, the application to end.
 const trayWait = 30 * time.Second
 
-// trayConfig is how the application starts for the scenario: with the web interface and the
+// trayConfig is how the application starts for the scenario: with other devices allowed and the
 // lightweight mode on, which is what keeps it running without its window.
 func trayConfig(command []string) (appsession.Config, error) {
 	root, err := appsession.FindRepoRoot()
@@ -56,7 +55,7 @@ func trayConfig(command []string) (appsession.Config, error) {
 	}
 	return appsession.Config{
 		Name: "tray", Command: command, Fixtures: appsession.FixturesDir(root),
-		Settings: map[string]any{"webInterface": true, "lightweight": true},
+		Settings: map[string]any{"webRemote": true, "lightweight": true},
 	}, nil
 }
 

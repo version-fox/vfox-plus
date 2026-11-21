@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && cp dist/index.html ../pair/webapp.html",
+    "build": "tsc --noEmit && vite build && cp dist/index.html ../gateway/webapp.html",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

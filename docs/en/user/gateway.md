@@ -3,10 +3,12 @@
 > [简体中文](../../zh-CN/user/gateway.md)
 
 The Docker image is not vfox-plus in a container: it has no vfox, no window and no SDKs of
-its own, and it takes no arguments. It is a *gateway*. Like the [Android app](android.md), it
-connects to one vfox-plus that runs on a computer (with the web interface and *Other devices*
-turned on, see [The web interface and other devices](remote.md)), and shows the interface of
-that vfox-plus to the browsers that you pair with the gateway. Use it to put the interface at
+its own, and it takes no arguments. It is a *gateway*. Like the [phone app](android.md), it
+connects to one vfox-plus that runs on a computer (with *Other devices* turned on, see
+[Other devices and the lightweight mode](remote.md)), and shows the interface of that vfox-plus
+to the browsers that you pair with the gateway. To those browsers it is a server: it serves
+the web interface, and it forwards what that interface asks to the vfox-plus. To the
+computer it is a client, as the phone app is. Use it to put the interface at
 an address of your choice, for example on a container host that your browsers reach and your
 phone does not.
 
@@ -36,7 +38,7 @@ from nothing each time the container is made.
    ![The page of the gateway for a browser that is not paired, with the fingerprint of its certificate](https://iili.io/nyiVeEP.png)
 
 2. **Pair the gateway with vfox-plus.** The page of the gateway has a field for the pairing
-   link of a vfox-plus. On the PC, choose *Settings → Web interface → Pair a phone → Show
+   link of a vfox-plus. On the PC, choose *Settings → Other devices → Pair a phone → Show
    code → Copy link*, and paste the link there. The gateway then shows the fingerprint of the
    certificate of vfox-plus: compare it with the one in the settings of vfox-plus
    (*Certificate*), and choose *They are the same: trust and pair*. From then on the gateway
@@ -50,7 +52,8 @@ from nothing each time the container is made.
    ![The page that asks to compare the fingerprint of the certificate of vfox-plus with the one in its settings](https://iili.io/nyiVSYg.png)
 
 3. **Use it.** The browser is taken to the interface of vfox-plus: the one a paired browser
-   has, served by that vfox-plus itself, so the page always fits the version that runs. Pair
+   has, served by the gateway itself: keep the gateway at the version of the vfox-plus that it pairs
+   with, since a page of another version may call routes that the running vfox-plus does not have. Pair
    more browsers with *Pair another browser* on the page of the gateway, and pair the gateway
    with another vfox-plus by pasting its link there (*Forget this vfox+* lets go of the one it
    has).
@@ -66,11 +69,11 @@ not running, the interface says that it cannot be reached.
 
 Good to know:
 
-- **A vfox-plus on the same computer.** The link for other devices works from the container:
-  it is an address of the PC on the network. The *Open in browser* link
-  (`http://127.0.0.1:…`) names the container itself when it is pasted into the gateway. On
-  Linux, run the container with `--network host` instead of `-p` to reach the loopback address
-  of the computer; the gateway then listens on port 8080 of the computer.
+- **A vfox-plus on the same computer.** It needs no `--network host`: keep the mapped port
+  (`-p`). Its pairing link names an address of the computer on the network, never `127.0.0.1`
+  or `localhost`, which would name the container itself, so the container reaches the computer
+  with that address, as it reaches any other computer. If the firewall of the computer blocks
+  the container, allow the port of other devices (8369 by default) for it too.
 - **A certificate of your own.** Put a certificate that browsers trust in the volume, as
   `cert.pem` and `key.pem` (PEM files), and the gateway serves with it and makes none of its
   own.

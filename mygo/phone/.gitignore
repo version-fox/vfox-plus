@@ -1,0 +1,4 @@
+# The Android build of `mygo build -platform android` (dist/), and the temporary
+# directory of mygo's development runs (.mygo/).
+/dist/
+/.mygo/

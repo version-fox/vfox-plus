@@ -11,12 +11,12 @@ depends on what you do:
 | Have every tool in your editor at once, and change nothing on your machine | Docker, and an editor that opens dev containers ([The dev container](#the-dev-container)) |
 | Run every check, the end-to-end tests and the packaging, and change nothing on your machine | Docker, and Go to build `vfxtool` ([The sandbox](#the-sandbox)) |
 | Edit and test the Go code quickly | Go, a few packages and golangci-lint ([Go and the native tools](#go-and-the-native-tools)) |
-| Build the Android client | A JDK 25 and the Android SDK ([Android](#android)) |
-| Run the Android client on an emulator | KVM, an adb device, or CI ([The emulator and KVM](#the-emulator-and-kvm)) |
+| Build the phone app | A JDK 17, the Android SDK and the NDK ([Android](#android)) |
+| Run the phone app on an emulator | KVM, an adb device, or CI ([The emulator and KVM](#the-emulator-and-kvm)) |
 
 The pinned versions live in
 [`mygo/versions.env`](../../../mygo/versions.env) and
-[`android/versions.env`](../../../android/versions.env). The commands below read
+[`mygo/phone/versions.env`](../../../mygo/phone/versions.env). The commands below read
 them, so that this page does not go stale when one changes, and so does the image of
 the dev container when it is built.
 
@@ -45,7 +45,7 @@ Behind a slow connection, set `SANDBOX_UBUNTU_MIRROR`, `SANDBOX_GOPROXY` and `SA
 [`.devcontainer`](../../../.devcontainer) describes a container that has what the
 sections below install, so that you install none of it: Ubuntu 26.04 with Go,
 golangci-lint and vfox in the pinned versions, the packages that CI installs, a
-virtual display, a JDK and the Android SDK, and Docker. VS Code (with the Dev
+virtual display, a JDK, the Android SDK with the NDK, the mygo CLI, and Docker. VS Code (with the Dev
 Containers extension), GitHub Codespaces and the [dev container
 CLI](https://github.com/devcontainers/cli) open it. The image is for x86-64, like
 the archives it installs; Docker runs it under emulation on another processor.
@@ -65,7 +65,8 @@ The first start builds the image, which takes minutes, downloads about 1 GB and 
 into `/home/vscode/go/bin` (`~/go/bin` of the user, on the `PATH`), downloads the Go
 modules and prepares the assets that the application embeds (without the licenses of
 the Go modules, which only a package needs; `vfxtool prepare` without
-`MYGO_SKIP_LICENSES` collects them). After that the commands of [the mygo
+`MYGO_SKIP_LICENSES` collects them), and writes the icons of the phone app
+(`vfxtool appicon mygo/phone/resources`). After that the commands of [the mygo
 guide](implementation-mygo.md#everyday-commands) and of
 [Contributing](contributing.md#workflow) run as they are written:
 
@@ -78,8 +79,8 @@ xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run real 
 
 `VFOX_PLUS_E2E_VFOX` names the vfox that the image installs, in the version that
 `mygo/versions.env` pins, so the scenario against the real vfox needs no prefix and
-has no `~/.vfox` of yours to touch. `ANDROID_HOME` is set, and `cd android &&
-./gradlew :app:assembleRelease` builds the Android client ([Android](#android)).
+has no `~/.vfox` of yours to touch. `ANDROID_HOME` is set, and `cd mygo/phone &&
+mygo build -platform android` builds the phone app ([Android](#android)).
 
 The container runs with an init process (`init`), which reaps the processes that the
 tests leave behind, and with 1 GB of shared memory (`--shm-size`), because software
@@ -88,14 +89,14 @@ container by default. The sandbox runs its containers the same way.
 
 ### Rebuilding
 
-The Dockerfile reads `mygo/versions.env` and `android/versions.env` while the image is
+The Dockerfile reads `mygo/versions.env` and `mygo/phone/versions.env` while the image is
 built, as CI and the sandbox do, so a version that changes there (in a `git pull`,
 say) reaches the container when you rebuild it: *Dev Containers: Rebuild Container*,
 or `devcontainer up --workspace-folder . --remove-existing-container`. The
 tools are in `/usr/local` and `/opt`, for the user to use and not to change. What
 the user downloads lives under `/home/vscode`, and two Docker volumes keep it when the
 container is rebuilt: `vfox-plus-devcontainer-go` (the modules and the build cache of
-Go) and `vfox-plus-devcontainer-gradle` (Gradle, and the libraries of the Android
+Go) and `vfox-plus-devcontainer-gradle` (Gradle, and the libraries of the phone
 app). `docker volume rm` deletes them.
 
 ### Behind a slow connection
@@ -104,12 +105,13 @@ The variables of the sandbox work here too. Set `SANDBOX_UBUNTU_MIRROR` (for the
 build of the image), `SANDBOX_GOPROXY` and `SANDBOX_NPM_REGISTRY` (they reach the
 container as `GOPROXY` and `VFOX_PLUS_NPM_REGISTRY`) in the environment that starts the
 editor or the CLI. Go, golangci-lint, vfox and the Android command-line tools come
-from go.dev, GitHub and dl.google.com, and the Docker feature from ghcr.io, with no
-mirror to name for any of them ([Docker inside](#docker-inside) says what to do where
-ghcr.io cannot be reached). Your `~/.gradle` is not
-the container's: the download mirror that the Gradle wrapper reads from
-`gradle-wrapper-neo.json` ([Building](packaging-android.md#building)) belongs in the
-Gradle user home of the container, `/home/vscode/.gradle` (`$GRADLE_USER_HOME`).
+from go.dev, GitHub and dl.google.com, the mygo CLI from the Go module proxy (which
+`SANDBOX_GOPROXY` reaches only when the container runs, not when the image is built),
+and the features from ghcr.io, with no mirror to name for any of them
+([Docker inside](#docker-inside) says what to do where ghcr.io cannot be reached). Your `~/.gradle` is not
+the container's: Gradle, which mygo runs for the Android project, keeps its user home in the
+container, `/home/vscode/.gradle` (`$GRADLE_USER_HOME`): a download mirror for it
+belongs there, not in the repository ([Building](packaging-android.md#building)).
 
 ### Rootless Docker
 
@@ -126,23 +128,26 @@ your uid (`updateRemoteUserUID`).
 
 Docker Engine runs in the container, with images of its own (the
 [`docker-in-docker`](https://github.com/devcontainers/features/tree/main/src/docker-in-docker)
-feature, which makes the container privileged). The three things of this
-repository that use Docker work in it as they are written: `vfxtool sandbox`, and the
-license header check and the Markdown check of [Contributing](contributing.md#markdown).
+feature, which makes the container privileged). `vfxtool sandbox`, and the license
+header check and the Markdown check of [Contributing](contributing.md#markdown), work
+in it as they are written (CI runs the two checks in it). The scenario `tray-gnome` and
+the image of the gateway need Docker too, and have not been tried in the container.
 The container already is a throw-away environment with the tools of the sandbox, so
 you need the sandbox inside it only for what it fixes: the installation into a clean
 Ubuntu (`package`), the memory (`measure`) and the screenshots of the desktop
 application (`screenshots`). Where privileged containers are not allowed, or ghcr.io
-(where the feature comes from) cannot be reached, delete `features` from
-`devcontainer.json`; nothing else needs it.
+(where the feature comes from) cannot be reached, delete the `docker-in-docker` entry of
+`features` from `devcontainer.json`; nothing else needs it. The `node` entry comes from
+ghcr.io too: where that cannot be reached, delete it as well and install Node.js 22.12 or
+later yourself, which `mygo/web` needs.
 
 ### Limits
 
 - There is no emulator and no KVM ([The emulator and KVM](#the-emulator-and-kvm)): use
-  the `measure` job of CI, or an adb device, as in [Without KVM](#without-kvm).
+  the `emulator` job of CI, or an adb device, as in [Without KVM](#without-kvm).
 - There is no display. The window of the application needs one: the tests run in
-  `xvfb`, and to use the application, run `vfox-plus-serve` and pair a browser outside
-  the container.
+  `xvfb`; the end-to-end build serves its own loopback link to the tools, so no browser is needed
+  for the tests.
 - There is no Chrome, which `vfxtool webheap` drives ([Go and the native
   tools](#go-and-the-native-tools)). Install one and name it with `--chrome`.
 - A git worktree is a folder whose `.git` is a file that points into the clone it
@@ -207,7 +212,7 @@ sandbox, which brings its own pinned vfox, so that nothing touches your `~/.vfox
 
 The web interface is TypeScript built with Vite, in `mygo/web` (Node 22.12 or
 later; the dev container and CI install Node 26). Its build bundles the page
-into the single `mygo/pair/webapp.html` that the Go server embeds, so the
+into the single `mygo/gateway/webapp.html` that the gateway embeds, so the
 checked-in page is generated: edit the sources, not the page.
 
 ```sh
@@ -215,7 +220,7 @@ cd mygo/web
 npm ci                  # once, or when package-lock.json changes
 npm run dev             # develop against a running application, see below
 npm test                # the unit tests of the page (esc, i18n helpers)
-npm run build           # type-check, bundle, and write ../pair/webapp.html
+npm run build           # type-check, bundle, and write ../gateway/webapp.html
 ```
 
 `npm run dev` serves the page with hot reload and proxies `/api` to a running
@@ -227,16 +232,29 @@ it together with its sources.
 
 ## Android
 
-The build needs a JDK 25 (CI uses Temurin) and the Android SDK with platform 37.2 and
-build-tools 36.0.0, and runs through the committed wrapper; see
-[Packaging Android](packaging-android.md#building). That needs no KVM. The
+The phone app is built with the mygo CLI, which runs Gradle for the Android project. It
+needs a JDK 17 (CI uses Temurin: Gradle 8.14.3 does not run on JDK 25), the Android SDK
+with platform 36 and build-tools 36.0.0 and 35.0.0 (the Android Gradle plugin asks for the
+second), and the NDK 28.2.13676358, which compiles the Go code of the app.
+[`mygo/phone/versions.env`](../../../mygo/phone/versions.env) pins them.
+With `ANDROID_HOME` set, install the packages and the CLI at the pinned versions:
+
+```sh
+. ./mygo/phone/versions.env
+sdkmanager platform-tools "platforms;android-$ANDROID_SDK_PLATFORM" "build-tools;$ANDROID_SDK_BUILD_TOOLS" \
+  "build-tools;$ANDROID_GRADLE_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
+go install "github.com/egoist/mygo/cmd/mygo@v$MYGO_VERSION"
+```
+
+The CLI goes to `$(go env GOPATH)/bin`, which must be on your `PATH`. Then build the app as
+[Packaging the phone app](packaging-android.md#building) describes. That needs no KVM. The
 emulator does.
 
 ## The emulator and KVM
 
-The `measure` job of [`android.yml`](../../../.github/workflows/android.yml)
-installs the release APK on an emulator (API 36, `google_apis`, x86_64) and runs
-`vfxtool measure-apk` there. The emulator will not start an x86_64 image without
+The `emulator` job of [`phone.yml`](../../../.github/workflows/phone.yml)
+installs the phone app on an emulator (API 36, `google_apis`, x86_64) and runs
+`vfxtool phone-link` and `vfxtool measure-apk` there. The emulator will not start an x86_64 image without
 hardware acceleration, which on Linux is KVM, so to do the same on your machine
 `/dev/kvm` must work. CI enables it with a udev rule on the runner. Nothing else
 in this repository needs KVM.
@@ -316,11 +334,13 @@ and does not help.
 
 ### Without KVM
 
-- Let CI do it: the `measure` job of `android.yml` runs on every pull request that
-  touches `android/` or `mygo/pair/`, and uploads `memory-android` and
-  `screenshot-android`.
-- `vfxtool measure-apk` needs only `adb` on `PATH` (`sudo apt install adb`) and a
-  device that `adb devices` lists: a phone with wireless debugging (`adb pair`, then
+- Let CI do it: the `emulator` job of `phone.yml` runs on every pull request that
+  changes what that workflow watches (see
+  [Continuous integration](contributing.md#continuous-integration)), and uploads
+  `memory-android`, `screenshot-android`, `phone-e2e-android` and `phone-pictures`.
+- `vfxtool measure-apk` needs `adb` on `PATH` (`sudo apt install adb`), the `aapt2` of the
+  build tools of the Android SDK (it looks in `$ANDROID_HOME/build-tools`, or takes the
+  one that `--aapt2` names) and a device that `adb devices` lists: a phone with wireless debugging (`adb pair`, then
   `adb connect`), or an emulator that runs on the Windows side and is reached
   through an adb server there (set `ANDROID_ADB_SERVER_ADDRESS` and
   `ANDROID_ADB_SERVER_PORT` in WSL, let that server listen with `adb -a nodaemon
@@ -330,7 +350,7 @@ and does not help.
 ### An emulator of your own
 
 With KVM working, the emulator needs the command-line tools of the SDK, the build that
-`android/versions.env` pins (the zip `commandlinetools-linux-<build>_latest.zip` of
+`mygo/phone/versions.env` pins (the zip `commandlinetools-linux-<build>_latest.zip` of
 dl.google.com, checked against its checksum, unpacked to `$ANDROID_HOME/cmdline-tools/latest`), and
 three packages. The download is about 3 GB, and `sdkmanager` asks you to accept the licenses of the
 Android SDK:
@@ -345,28 +365,30 @@ emulator -avd pixel6 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swifts
 adb wait-for-device && adb shell getprop sys.boot_completed   # 1 once it has booted, about a minute
 ```
 
-The profile `pixel_6` is 1080 by 2400 at 420 dpi, as the emulator of CI is. The back camera of the
-scanner shows a living room when `hw.camera.back=virtualscene` is in
+The profile `pixel_6` is 1080 by 2400 at 420 dpi, as the emulator of CI is. The back camera shows a
+living room when `hw.camera.back=virtualscene` is in
 `~/.android/avd/pixel6.avd/config.ini` (`avdmanager` writes `emulated`, which shows a
-plain animation); `hw.ramSize=3072M` is a better size than its 1536M for the WebView. Leave out `-no-window` to see the
-emulator on a display (WSLg). To install the release APK that CI has built, without building it,
-download it from the run of the pull request: `gh run download RUN -n vfox-plus-android`.
+plain animation). The phone app draws its interface with the GPU, so the emulator needs one:
+keep `-gpu swiftshader_indirect`, the software GPU that CI uses, or use `-gpu host` for the GPU
+of your machine. Leave out `-no-window` to see the emulator on a display (WSLg). To install the
+APK that CI has built, without building it, download it from the run of the pull request:
+`gh run download RUN -n vfox-plus-android-amd64`.
 
 ### Run the app
 
-With an emulator that has booted (`adb devices` lists it), build the app, install
-it and pair it with the application on your machine:
+With an emulator that has booted (`adb devices` lists it), build the phone app and install
+it, then pair it with the application on your machine:
 
 ```sh
-cd android && ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell pm grant dev.vfox.vfoxplus android.permission.CAMERA   # for the scanner
+# once, from the root of the repository (the dev container has done it)
+vfxtool prepare --root mygo && vfxtool appicon mygo/phone/resources
+cd mygo/phone && mygo build -platform android/amd64
+adb install -r dist/android/*.apk
 ```
 
-The emulator reaches your machine as `10.0.2.2`. The session cookie of the servers is
-`Secure`, and a WebView keeps it for `https://` and for loopback only, so pairing over
-`http://10.0.2.2:PORT` does not work; the server for other devices speaks HTTPS anyway. Make a
-self-signed certificate that names `10.0.2.2`, and give it to the application:
+The emulator reaches your machine as `10.0.2.2`. The link of the server for other devices is
+an `https://` one, so the certificate must name `10.0.2.2`. Make a self-signed certificate that
+names `10.0.2.2`, and give it to the application:
 
 ```sh
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
@@ -375,9 +397,9 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
 ```
 
 Start the application (`vfxtool build build/vfox-plus && build/vfox-plus`) and, in its settings,
-turn on the web interface and *Other devices*, then choose *Certificate → Browse…* and the
+turn on *Other devices*, then choose *Certificate → Browse…* and the
 files `cert.pem` and `key.pem`. (The same settings can be written to
-`~/.config/vfox-plus/settings.json` before the start: `"webInterface": true`, `"webRemote": true`,
+`~/.config/vfox-plus/settings.json` before the start: `"webRemote": true`,
 `"webCertificate": "/path/cert.pem"` and `"webKey": "/path/key.pem"`.)
 
 The end-to-end build (`vfxtool build --e2e`) needs neither the certificate nor the replacing of the address:
@@ -385,13 +407,20 @@ with `VFOX_PLUS_E2E_ADDRESSES=10.0.2.2` in its environment, the certificate that
 `10.0.2.2`, and so do the settings and the link that *Show code* gives. That is how the pictures of the guide
 are taken ([Screenshots](contributing.md#screenshots)).
 
-Choose *Show code* next to *Pair a phone*, copy the link, and type it into the app, with the
-address of your machine replaced by `10.0.2.2`. The app shows the fingerprint of the
-certificate; it has to be the one that the settings show and that
-`openssl x509 -in cert.pem -noout -fingerprint -sha256` prints.
+Choose *Show code* next to *Pair a phone*, and copy the link. Replace the address of your
+machine in it with `10.0.2.2`, and open it on the emulator as a deep link:
 
-`vfxtool measure-apk` runs on the same emulator. It installs without `-r`, so
-uninstall the app first (`adb uninstall dev.vfox.vfoxplus`).
+```sh
+adb shell am start -a android.intent.action.VIEW -d "vfoxplus://pair?link=https://10.0.2.2:PORT/auth/connect/TOKEN"
+```
+
+The app opens its pairing screen with the link filled in. Check that the fingerprint it shows is
+the one that the settings show and that `openssl x509 -in cert.pem -noout -fingerprint -sha256`
+prints, then choose *Trust and pair*.
+
+`vfxtool measure-apk` runs on the same emulator. It installs the APK over the app that is there
+(`-r`), starts it cold, and, given a pairing link, pairs it through the deep link: see
+[The phone app](memory.md#the-phone-app) in the memory page.
 
 ## WSL2
 
