@@ -263,14 +263,14 @@ The plugins [vfox-etcd](https://github.com/version-fox/vfox-etcd),
 [vfox-zig](https://github.com/version-fox/vfox-zig) offer these extras in all three
 interfaces, with the limits that their lists have today:
 
-- **Names.** `latest` installs the first version of the list for Deno, Groovy and Scala, and
-  `nightly` installs the development build of the master branch of Zig. Groovy takes full
+- **Names.** `latest` installs the first version of the list for Deno, Groovy, Scala and Zig,
+  and `nightly` installs the development build of the master branch of Zig. Groovy takes full
   names such as `4.0.33`, but not partial names such as `4`, and its list sorts each
   pre-release below its release. Deno also takes a line such as `2` or `2.1`, which installs
-  the newest release of that line. Zig offers no `latest`, because its list can put a
-  development build first. etcd takes full names such as `3.7.3`, with or without a `v`, but
-  not partial names such as `3.5`, and it offers no `latest`, because its version list comes
-  through a CDN that can keep an older copy.
+  the newest release of that line. Zig takes full names such as `0.17.1`, and the names of Mach
+  builds such as `mach-latest`, but not partial names such as `0.17`. etcd takes full names such
+  as `3.7.3`, with or without a `v`, but not partial names such as `3.5`, and it offers no
+  `latest`, because its version list comes through a CDN that can keep an older copy.
 - **Archive mirror.** The **Archive mirror** option of Groovy offers two mirrors of the Apache
   archive, dlcdn.apache.org and a Tsinghua mirror, for when archive.apache.org is slow. Both
   keep only the current releases, so older versions do not appear in the list. The Tsinghua
@@ -288,9 +288,12 @@ interfaces, with the limits that their lists have today:
 - **Deno.** The list starts at 0.36.0, which is the first release with a download for Linux on
   x86-64. The plugin sets the execute bit on Deno after it unpacks an archive, so 0.36.0 runs.
   An install of 0.36.0 made by a plugin before 0.2.3 keeps the bit off: reinstall it.
-- **Zig.** The list merges ziglang.org with machengine.org and needs both: when machengine.org
-  cannot be reached, the whole list fails. A name that the list does not show can report
-  success without installing anything.
+- **Zig.** The list needs ziglang.org: when it cannot be reached, the whole list fails.
+  machengine.org is optional: without it the list shows the official releases, with a warning.
+  A name that the list does not show is refused, and nothing is installed. vfox 1.1.0 `exec`
+  does not take `latest`, `nightly` or a Mach name, so give it the version name that `vfox list`
+  shows; `vfox use` takes these names. A Mach build that ziglang.org does not publish is
+  downloaded from pkg.hexops.org, and its checksum is still checked.
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
   you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
   takes a few minutes. It was checked on Linux only: 3.4.32 and 3.5.12 build with failpoints,

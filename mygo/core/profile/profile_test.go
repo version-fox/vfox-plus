@@ -841,15 +841,14 @@ func isPluginDocument(link Link, plugin string) bool {
 
 func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
 	// The names to install were installed with vfox 1.1.0 and each plugin. latest
-	// is left out where vfox resolves it to a development build (zig), or where
-	// the version list can lag behind the releases (etcd).
+	// is left out where the version list can lag behind the releases (etcd).
 	names := map[string][]string{
 		"etcd":   nil,
 		"erlang": {"latest"},
 		"deno":   {"latest"},
 		"groovy": {"latest"},
 		"scala":  {"latest"},
-		"zig":    {"nightly"},
+		"zig":    {"latest", "nightly"},
 		"clang":  {"latest"},
 		"elixir": {"latest"},
 	}
