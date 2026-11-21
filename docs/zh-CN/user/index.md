@@ -46,7 +46,7 @@ vfox-plus 是 [vfox](https://vfox.dev)（跨平台版本管理器）的图形化
   等额外环境变量。
 - 提供 vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang、vfox-python、vfox-maven、vfox-php、vfox-dart、vfox-kotlin、vfox-dotnet 与 vfox-cmake 在普通列表之外的功能：选择要列出的 Java
   发行版（共 31 个）、筛选 Chip（LTS、JavaFX、通道、架构、GraalPy，Windows 上 PHP 的 TS 与 NTS 构建，.NET 的发行版，以及 CMake 的候选版）、按名称安装与下载镜像，见
-  [Java、Node.js、Flutter、Gradle、Go 与 Python](using.md#javanodejsfluttergradlego-与-python)。
+  [Java、Node.js、Flutter、Gradle、Go 与 Python](using.md#javanodejsfluttergradlego-与-python)。vfox-erlang、vfox-clang、vfox-etcd、vfox-deno、vfox-groovy、vfox-scala 与 vfox-zig 各有一节：[Erlang 与 Clang](using.md#erlang-与-clang) 与 [etcd、Deno、Groovy、Scala 与 Zig](using.md#etcddenogroovyscala-与-zig)。
 - 一步安装并使用某个版本、把机器上已有的 SDK 链接进来、给版本起别名、检查 vfox 与已安装 SDK 的健康状况，
   这些都是 vfox 1.1.0 才有的功能。
 - 你允许的话，同一网络里的手机、网关和其他电脑可以连接它（走 HTTPS）；还可以不留窗口地在后台

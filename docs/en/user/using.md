@@ -201,6 +201,61 @@ all three interfaces:
   version files, so its **Options** tab carries only the guide, the names and the
   documentation.
 
+### Erlang and Clang
+
+The plugins [vfox-erlang](https://github.com/version-fox/vfox-erlang) and
+[vfox-clang](https://github.com/version-fox/vfox-clang) offer these extras in all three
+interfaces. Both were checked on Linux only.
+
+- **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu
+  release, 20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead
+  of compiling it. The version list then holds the prebuilt builds, whose names carry the
+  `OTP-` prefix, such as `OTP-29.1.2`, and the list may not show the newest of them. Leave
+  the option empty to compile from the source, which takes several minutes and needs the
+  tools listed in the plugin's README. With a prebuilt build selected, `latest` is the
+  master branch, which is not a release.
+- **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
+  `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
+  *Settings → Environment variables* as `KEY=VALUE`.
+- **Clang.** `latest` installs the version that the list marks as latest. The **Conda
+  channel** option picks the conda channel that pixi installs clang from; its presets are
+  prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
+  downloads pixi first, which takes about a minute.
+- **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
+  the pixi download. It has no preset, so set it in *Settings → Environment variables* to
+  a mirror that keeps GitHub's paths.
+- **Home directory.** Both plugins fail to install when the path of the home directory has
+  a space in it.
+
+### etcd, Deno, Groovy, Scala and Zig
+
+The plugins [vfox-etcd](https://github.com/version-fox/vfox-etcd),
+[vfox-deno](https://github.com/version-fox/vfox-deno),
+[vfox-groovy](https://github.com/version-fox/vfox-groovy),
+[vfox-scala](https://github.com/version-fox/vfox-scala) and
+[vfox-zig](https://github.com/version-fox/vfox-zig) offer these extras in all three
+interfaces, with the limits that their lists have today:
+
+- **Names.** `latest` installs the first version of the list for Deno and Scala, and
+  `nightly` installs the development build of the master branch of Zig. Deno also takes
+  a line such as `2` or `2.1`, which installs the newest release of that line. Groovy and
+  Zig offer no `latest`, because their lists put a pre-release or a development build
+  first, and the first line of the etcd list has no download.
+- **Downloads.** Scala 2.10.4 to 2.13 come from downloads.lightbend.com, which refused
+  every download when this was checked, so those versions cannot be installed for now.
+  Scala 3.9.0, which the list shows as LTS, installs under its number. Some Groovy versions
+  in the list have no download, such as `2.4.5-incubating`, and neither do the Deno
+  releases before 0.36.0.
+- **Java.** Groovy and Scala need a JDK to run, and the plugins install none.
+- **Checksums.** Deno gives no checksum, so vfox does not verify its archives. An etcd
+  release without a `SHA256SUMS` file, such as 0.3.0, is not verified either.
+- **Zig.** The list merges ziglang.org with machengine.org and needs both: when
+  machengine.org cannot be reached, the whole list fails. A name that the list does not
+  show can report success without installing anything.
+- **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT`, installs the main
+  branch of etcd whatever version is chosen, so the **Options** tab offers no switch for
+  it. Set the variable in *Settings → Environment variables* only if you want that build.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.

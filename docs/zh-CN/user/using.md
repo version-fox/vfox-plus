@@ -102,6 +102,27 @@
 - **探测并链接。** 会纳入 `PATH`、`CMAKE_HOME`、常见的系统位置里的 CMake，以及 Homebrew、Scoop 或 Chocolatey 装的 CMake。`CMAKE_HOME` 请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置：应用会把这一列表传给每条 vfox 命令。
 - **要求。** 插件需要 vfox 1.1.0 或更高版本，并要能访问 jsDelivr（版本列表）与 cmake.org（安装包），没有可设置的镜像。它不读取变量，也没有旧版版本文件，所以**选项**页签只有说明、可安装的名称与文档。
 
+### Erlang 与 Clang
+
+插件 [vfox-erlang](https://github.com/version-fox/vfox-erlang) 与 [vfox-clang](https://github.com/version-fox/vfox-clang) 在三个界面里也提供这些功能。两者都只在 Linux 上检查过。
+
+- **预编译的 Erlang/OTP。** 在 Linux 上，**预编译构建**选项选一个 Ubuntu 版本（20.04、22.04 或 24.04），就用它的预编译构建安装 Erlang/OTP，而不从源码编译。此时版本列表是预编译构建，名称带 `OTP-` 前缀，如 `OTP-29.1.2`，列表可能不显示其中最新的构建。选项留空则从源码编译，需要几分钟，并需要插件 README 中列出的编译工具。选择了预编译构建时，`latest` 是 master 分支，不是发行版。
+- **Erlang 的设置。** `OTP_CONFIGURE_ARGS` 把参数传给 configure，如 `--without-javac`；`MAKEFLAGS` 设置 make 的选项，如 `-j8`。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置。
+- **Clang。** `latest` 安装列表中标为 latest 的版本。**Conda 频道**选项选择 pixi 安装 clang 所用的 conda 频道，预设为 prefix.dev 与清华镜像；留空则为 conda-forge。每次安装先下载 pixi，通常需要约一分钟。
+- **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。
+- **家目录。** 两个插件在家目录的路径含空格时都无法安装。
+
+### etcd、Deno、Groovy、Scala 与 Zig
+
+插件 [vfox-etcd](https://github.com/version-fox/vfox-etcd)、[vfox-deno](https://github.com/version-fox/vfox-deno)、[vfox-groovy](https://github.com/version-fox/vfox-groovy)、[vfox-scala](https://github.com/version-fox/vfox-scala) 与 [vfox-zig](https://github.com/version-fox/vfox-zig) 在三个界面里也提供这些功能，但受限于它们当前的列表：
+
+- **名称。** Deno 与 Scala 的 `latest` 安装列表中的第一个版本，Zig 的 `nightly` 安装其 master 分支的开发版。Deno 还接受 `2`、`2.1` 这样的版本线，安装该线上最新的发行版。Groovy 与 Zig 不提供 `latest`，因为它们的列表把预发布版或开发版排在前面；etcd 列表的第一行没有可下载的文件。
+- **下载。** Scala 2.10.4 至 2.13 的版本从 downloads.lightbend.com 下载，检查时该站拒绝了所有下载，这些版本暂时无法安装。列表中标为 LTS 的 Scala 3.9.0 以其版本号安装。列表中有些 Groovy 版本没有下载文件，如 `2.4.5-incubating`；Deno 0.36.0 之前的发行版也没有。
+- **JDK。** Groovy 与 Scala 运行需要 JDK，插件都不安装。
+- **校验和。** Deno 不提供校验和，所以 vfox 不校验它的安装包；没有 `SHA256SUMS` 文件的 etcd 发行版（如 0.3.0）同样不做校验。
+- **Zig。** 列表同时需要 ziglang.org 与 machengine.org：machengine.org 无法访问时，整个列表都会失败。列表中没有的名称可能报告安装成功，却什么也没有安装。
+- **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT` 开启，它会构建 etcd 的 main 分支，与所选版本无关，所以**选项**页签不为它提供开关。只有在需要那种构建时，才在*设置 → 环境变量*中设置该变量。
+
 ## 插件
 
 - 搜索仓库，按官方/社区过滤。

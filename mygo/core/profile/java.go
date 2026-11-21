@@ -172,3 +172,10 @@ func docs(repository, page string, title Text) Link {
 	base := "https://github.com/version-fox/" + repository + "/blob/main/docs/"
 	return Link{Title: title, URL: Text{EN: base + page + ".md", ZH: base + "zh-CN/" + page + ".md"}}
 }
+
+// readme links the README of a plugin of the version-fox organisation, for a
+// plugin that has no documents folder. The page is the same in both languages.
+func readme(repository string, title Text) Link {
+	url := "https://github.com/version-fox/" + repository + "/blob/main/README.md"
+	return Link{Title: title, URL: Text{EN: url, ZH: url}}
+}

@@ -37,7 +37,7 @@ Start from the environment of the GUI, then:
 | `__VFOX_SHELL`, `__VFOX_PID`, `__VFOX_CURTMPPATH`, `__VFOX_INITIALIZED` | remove      | Set by an activated shell. A GUI started from such a terminal would otherwise act on that terminal's session scope.                   |
 | user-defined variables (`extraEnvironment` setting)      | add         | Download mirrors such as `VFOX_NODEJS_MIRROR` live in shell profiles, which desktop launchers do not read.                           |
 | `NO_COLOR`                                                | set to `1`  | Disables colours in most output (<https://no-color.org>).                                                                             |
-| `__VFOX_SHELL`                                            | set to `bash`, for `vfox use` only | See [Selecting a version](#selecting-a-version).                                                                  |
+| `__VFOX_SHELL`                                            | set to `bash`, for `vfox use` and `vfox uninstall` | See [Selecting a version](#selecting-a-version).                                                                  |
 
 Everything else passes through, including `VFOX_HOME`: when it is set, vfox
 keeps plugins, caches and its configuration in that shared directory rather than
@@ -331,7 +331,7 @@ output streamed to the user.
 | Install          | `vfox install --yes <name>@<version>`                | `/`               | Progress on standard error. Without a version vfox fails (`install-without-version`). The version may be any name the plugin resolves, see [Names that the plugin resolves](#names-that-the-plugin-resolves). |
 | Install and use  | `vfox install --yes --use <name>@<version>`          | `/`               | Like Install, then switches to it in the session scope like `vfox use`. Needs `__VFOX_SHELL` for the switch; without one the install succeeds and the switch fails. |
 | Reinstall        | `vfox install --yes --reinstall <name>@<version>`    | `/`               | Replaces an installed version with a fresh copy, for drifted SDKs (`flutter upgrade` moved it in place). Refuses linked versions. |
-| Uninstall        | `vfox uninstall <name>@<version>`                    | `/`               | Accepts a leading `v` (`v24.11.1`). Uninstalling the current version makes vfox switch to another installed one, removing aliases that point at it. |
+| Uninstall        | `vfox uninstall <name>@<version>`                    | `/`               | Accepts a leading `v` (`v24.11.1`). Uninstalling the current version makes vfox switch to another installed one, removing aliases that point at it. The switch needs `__VFOX_SHELL`; without it vfox exits with status 1 after the uninstall. |
 | Use (global)     | `vfox use --global <name>@<version>`                 | `/`               | Needs `__VFOX_SHELL`, see below. Aliases work as versions (`java@j17`). Prints shadow and drift warnings (disable with `diagnostics.onUse false`). |
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
 | Stop using       | `vfox unuse --global <name>`                         | `/` or project    | |
@@ -360,7 +360,7 @@ under the name of that release; vfox-java takes a version and a distribution
 (`28.ea-open`); vfox-gradle takes `latest` besides the listed releases;
 vfox-golang takes `latest` and release candidates such as `1.27rc3`; vfox-python takes `latest`, a partial release such as `3.13` or `3.13t`, and the full name of a GraalPy release such as `graalpy-24.2.0`. vfox-maven and vfox-php take `latest` besides the listed releases;
 vfox-php takes `-zts` names on Linux and macOS, such as `8.5.12-zts`, and `-nts` names on
-Windows. vfox-dart takes the channels `stable`, `dev` and `beta`, which resolve to the newest version on that channel, and lists a version once for every channel it is published on, every one of those rows installing the same name; vfox-kotlin takes `latest`, which is the newest release, and the whole name of a release; vfox-dotnet takes a channel or a release (`8`, `8.0`, `8.0.34`) with an optional `-runtime` or `-aspnetcore` suffix, and an exact version for a preview such as `11.0.0-rc.3`; a channel and `latest` take the newest stable release, and a preview only when the channel has none; vfox-cmake takes `latest`, which is the newest release (a candidate is listed below its release), and the whole name of a release, never a line such as `3.31`. The
+Windows. vfox-dart takes the channels `stable`, `dev` and `beta`, which resolve to the newest version on that channel, and lists a version once for every channel it is published on, every one of those rows installing the same name; vfox-kotlin takes `latest`, which is the newest release, and the whole name of a release; vfox-dotnet takes a channel or a release (`8`, `8.0`, `8.0.34`) with an optional `-runtime` or `-aspnetcore` suffix, and an exact version for a preview such as `11.0.0-rc.3`; a channel and `latest` take the newest stable release, and a preview only when the channel has none; vfox-cmake takes `latest`, which is the newest release (a candidate is listed below its release), and the whole name of a release, never a line such as `3.31`. vfox-erlang takes the names of its list: a release such as `29.1.2` for a source build, and an `OTP-` name such as `OTP-29.1.2` with `USE_PREBUILT_OTP`; `master` and the `maint-` branches are not tags, so a source install of them fails. vfox-clang takes `latest`, the version its list marks as latest. vfox-deno takes `latest` and a line such as `2` or `2.1`, which resolves to the newest release of that line. vfox-scala takes `latest`, the first version of its list, and the LTS release 3.9.0 by its number. vfox-zig takes `nightly`, the development build of its master branch, and no `latest`, because vfox takes the first line of its list for it and that line can be a development build. vfox-etcd and vfox-groovy take no name besides the listed releases, and a listed release can have no download. The
 application therefore installs whatever name the user types,
 checked like any other version (not empty, not starting with `-`, no whitespace, no
 `@`), and takes the installed names from `vfox list` afterwards, since a channel
@@ -383,8 +383,15 @@ options of vfox-php on Linux and macOS. Before PHP 7.4, PEAR is built by default
 same list. `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take
 free text, so the Options tab does not offer them: they are set in Settings, under
 Environment variables, as `KEY=VALUE`, and the application passes that list to every vfox
-command. vfox-dart, vfox-kotlin, vfox-dotnet and vfox-cmake read none of these variables: their
-Options tab carries the guide, the names to install and the documentation only. The Detect
+command. vfox-dart, vfox-kotlin, vfox-dotnet, vfox-cmake, vfox-deno, vfox-groovy, vfox-scala and
+vfox-zig read none of these variables: their Options tab carries the guide, the names to
+install and the documentation only. vfox-erlang reads `USE_PREBUILT_OTP` (on Linux, its
+Options tab offers `ubuntu-20.04`, `ubuntu-22.04` and `ubuntu-24.04`), while
+`OTP_CONFIGURE_ARGS` and `MAKEFLAGS` take free text and are set in Settings. vfox-clang
+reads `Conda_Forge`, which its Options tab offers with two mirrors, and `GITHUB_URL`, which
+is set in Settings and has no preset. vfox-etcd reads `BUILD_WITH_FAILPOINT`, which its
+Options tab does not offer, because that build installs the main branch whatever version
+is chosen. The Detect
 hook of vfox-cmake reads `CMAKE_HOME`, which is set in Settings, under Environment variables,
 like `PHP_CONFIGURE_OPTIONS`. vfox keeps the
 answer of a search per list of arguments for
@@ -412,8 +419,10 @@ vfox only checks that `__VFOX_SHELL` is non-empty. With `--global` or
 `--project`, `use` then updates the corresponding `.vfox.toml` and the symlinks
 in `~/.vfox/sdks` or `<project>/.vfox/sdks` — exactly what a GUI needs — and
 prints `Now using maven@3.9.16.` The GUI therefore sets `__VFOX_SHELL=bash` for
-`vfox use` (and only for it). It never uses the session scope, which has no
-meaning without a shell. Fixtures: `use-global`, `use-without-hook`.
+`vfox use` and for `vfox uninstall` (and only for them). Uninstalling the current
+version switches to another installed one only with it: without it, vfox prints
+the switch, exits with status 1 and leaves no current version. It never uses the
+session scope, which has no meaning without a shell. Fixtures: `use-global`, `use-without-hook`.
 
 Shells started *afterwards* pick up the global versions once vfox is activated
 in them (`eval "$(vfox activate bash)"`); the GUI tells the user so.
