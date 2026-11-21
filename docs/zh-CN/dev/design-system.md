@@ -49,7 +49,7 @@ mygo：`mygo/ui/kit/draw.go` 的 `Corner*` 常量。
 形状赋予界面个性：
 
 - **插件头像**按插件名稳定哈希取形（9 边 cookie、4 叶草、sunny、soft burst、
-  6 边 cookie、gem、五边形、花、puffy diamond、4 边 cookie、arch、12 叶草），配三组
+  6 边 cookie、gem、五边形、花、puffy diamond、4 边 cookie、arch、8 叶草），配三组
   颜色之一：primary fixed dim、secondary 与 tertiary 容器。不用 secondary 容器（选中列表项）
   与 primary 容器（vfox 橙等种子下太浅）。悬停旋转 30°，fast spatial 弹簧。
 - **空与错误状态**图标置于大形状上。
@@ -308,7 +308,7 @@ grade 0、optical size 24：选中导航目的地图标填充（`FILL` 1），�
 （Apache-2.0，1.3 MB；锁定其版本与 tarball 的 SHA-512）。`vfxtool prepare` 首次把它下载到缓存、
 校验后切出所用符号的 SVG（`SYMBOL.svg` 描边、`SYMBOL-fill.svg` 填充），所以仓库里不提交任何图标。
 mygo 以文本颜色绘制 SVG（`ui.Icon`），应用因此不带图标字体；导航与按钮的填充动画是描边与填充两个图标的
-交叉淡入淡出，SVG（共约 60 KB）在首次绘制某图标时才解析。
+交叉淡入淡出，SVG（共约 70 KB）在首次绘制某图标时才解析。
 
 手机端应用用同样的 SVG 画同一套符号：它的构建与桌面应用一样内嵌 `shared/icons.json` 所指定的图标，`ui/kit` 以文本颜色绘制它们，
 所以手机端应用不需要为此添加任何东西。它的启动器图标另有来源，由 `vfxtool appicon` 绘制（见[应用图标](#应用图标)）。

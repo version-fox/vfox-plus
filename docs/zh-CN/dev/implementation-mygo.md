@@ -19,6 +19,9 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 | [`ui/shapes/`](../../../mygo/ui/shapes) | 形状：`androidx.graphics.shapes` 圆角多边形及其形变的 Go 移植 |
 | [`assets/`](../../../mygo/assets) | 二进制嵌入物：图标、翻译与许可证（构建时收集） |
 | [`pair/`](../../../mygo/pair) | 给其他设备用的服务器：按设置通过 HTTPS 运行它的 `Host`、一次性配对链接及其二维码，以及配对后的设备得到的 API（SDK、仓库、带实时日志的任务、设置）。服务器不提供页面：界面（`/app`）由 Docker 网关提供给浏览器 |
+| [`gateway/`](../../../mygo/gateway) 与 [`cmd/vfox-plus-gateway/`](../../../mygo/cmd/vfox-plus-gateway) | Docker 网关：把界面（`/app`，嵌入为单个页面）提供给与它配对的浏览器，并把它们的调用转发给它所配对的 vfox+ |
+| [`web/`](../../../mygo/web) | 网页界面的源码（TypeScript、Vite）：构建写出 `gateway/webapp.html`，即网关嵌入的那个单页 |
+| [`phone/`](../../../mygo/phone) | 手机端应用，mygo 的安卓原生应用，有自己的包（见[手机端打包](packaging-android.md)） |
 | [`main.go`](../../../mygo/main.go) | 组装模型、给其他设备用的服务器与窗口。应用不接受任何参数 |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | 仅在构建标签 `e2e` 下链接 mygo 的自动化插件：端到端测试、内存测量与截图经它驱动应用 |
 
@@ -84,9 +87,9 @@ Go 模块与构建缓存。
 | --- | --- |
 | `vfxtool sandbox check` | 格式化、golangci-lint（含端到端标签）、`go vet`、带竞态检测的单元测试与覆盖率门禁 |
 | `vfxtool sandbox e2e` | 端到端场景，夹具与真实 vfox 各一 |
-| `vfxtool sandbox package` | 发布构建与冒烟测试、`.deb`、`.tar.gz`、`.msix`/`.msixbundle`（lintian 检查），再装入干净 Ubuntu 26.04 容器 |
+| `vfxtool sandbox package` | 发布构建与冒烟测试，`.deb` 与 `.tar.gz`（另有 arm64 的 `.deb`，由 lintian 检查），未签名的 `.msix`/`.msixbundle`（由 `validate-msix` 检查），再装入干净 Ubuntu 26.04 容器 |
 | `vfxtool sandbox measure` | Home 页与列出 Node.js 版本时的内存 |
-| `vfxtool sandbox screenshots` | 各页截图，Java、Flutter 与 Node.js 选项的截图，以及网页界面设置的截图 |
+| `vfxtool sandbox screenshots` | 各页截图，Java、Flutter 与 Node.js 选项的截图，以及其他设备设置（允许它们的提问、配对手机的二维码）的截图 |
 | `vfxtool sandbox census <组>` | 普查的一组屏幕，用容器自己的字体：`census`、`widest`、`sweep-wide` 或 `sweep-rest`。CI 每组跑在一个任务里 |
 | `vfxtool sandbox all` | `check`、普查的四组、`e2e` 与 `package` |
 | `vfxtool sandbox shell` | 沙箱内交互 shell |
@@ -113,7 +116,7 @@ Go 模块与构建缓存。
   尺寸 2% 内一致。各 `testdata` 说明重生成方法：配色需 Node.js 跑 JS 参考实现，形状
   `go run generate.go` 即可，无需 Node.js。
 - **端到端场景**从外部驱动构建好的应用，像辅助技术那样。`vfxtool build --e2e` 以标签 `e2e`
-  构建，链接 mygo 的[自动化插件](https://github.com/egoist/mygo/blob/v0.9.1/docs/plugins/automation.md)
+  构建，链接 mygo 的[自动化插件](https://github.com/egoist/mygo/blob/v0.10.0/docs/plugins/automation.md)
   （[`automation_e2e.go`](../../../mygo/automation_e2e.go)）：`MYGO_AUTOMATION` 指定 Unix 套接字时，
   应用在其上监听，应答这些请求：列出窗口元素（给屏幕阅读器的那些，带组件设的 key）、按下元素、
   填写输入框、发送按键、截取窗口。场景在 [`shared/tooling`](../../../shared/tooling)
@@ -255,13 +258,14 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **标题栏是桌面的。**GTK 画标题栏（GNOME Wayland 客户端侧、X11 窗口管理器），随桌面风格；
   mygo 可把标题栏交给应用，本实现暂未用。
 - **缩放**走 GTK 3：整数倍，来自 `GDK_SCALE` 或桌面，加桌面文本缩放。
-- **mygo 年轻**（写作时 v0.9.1，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
+- **mygo 年轻**（写作时 v0.10.0，API 尚变）：版本锁 [`go.mod`](../../../mygo/go.mod)，页面跟现行版本。
 - **无障碍**走 mygo ATK 对象，GTK 桥到 AT-SPI，Orca 读窗口。端到端场景经自动化插件读的是同一批
   元素，所以组件给它们命名（图标按钮 tooltip 即其名；任务行说出它的状态）。mygo 读屏支持未在此用
   Orca 试过。
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
-  Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 11 打包为
+  Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 在 CI 的 `run-windows`
+  任务里跑 `fake`、`python` 与 `tray` 场景。Windows 11 打包为
   未签名 `.msixbundle`（x64 与 arm64），CI 校验，发布时签名；CI 的包用 `Add-AppxPackage -AllowUnsigned` 安装
   屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
   一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔

@@ -19,7 +19,7 @@ The application has five top-level destinations:
 | SDKs        | `navSdks`     | `sdks`     | Installed plugins and their versions.                |
 | Plugins     | `navPlugins`  | `plugins`  | The plugin registry.                                 |
 | Tasks       | `navTasks`    | `tasks`    | Running and finished operations. Shows a badge with the number of queued and running tasks. |
-| Settings    | `navSettings` | `settings` | Appearance, language, web interface, vfox executable, vfox configuration, about. |
+| Settings    | `navSettings` | `settings` | Appearance, language, other devices, vfox executable, vfox configuration, about. |
 
 The layout follows the Material 3 window size classes of the window width:
 
@@ -31,9 +31,9 @@ The layout follows the Material 3 window size classes of the window width:
   that opens Plugins.
 
 Pages sit on rounded panes, 16 dp from the window edges. Switching destinations
-fades through where the interface draws transitions, and switches at once on the
-desktop (see [the design system](design-system.md#motion)). The selected destination's
-icon is filled;
+fades through where the interface draws transitions (the web interface), and switches
+at once on the desktop and in the phone app (see [the design system](design-system.md#motion)).
+The selected destination's icon is filled;
 the others are outlined.
 
 The minimum window size is 360 × 480 dp. The default size is 1280 × 820 dp.
@@ -303,7 +303,10 @@ Grouped in segmented lists:
   The lightweight mode (`settingsLightweight`, a switch that keeps the application running without
   its window for the other devices; needs other devices, which its subtitle says when they are off,
   `settingsNeedsOtherDevices`). While other devices are allowed, the list adds the port (`settingsWebPort`, a text field saved on Enter or when leaving the field,
-  and refused when it is not a port from 1024 to 65535), *Pair a phone* (`webPair`: the addresses of
+  and refused when it is not a port from 1024 to 65535), the public address (`settingsWebPublicAddress`, a
+  text field for the address at which a reverse proxy, a tunnel or the gateway publishes the application,
+  which the pairing links and the code then carry), the public tunnel (`settingsPublish`, a switch that
+  asks for a confirmation first: a Cloudflare quick tunnel), *Pair a phone* (`webPair`: the addresses of
   the computer, and a dialog with the QR code of a pairing link, the link, the choice among the
   addresses when there are several, and `webPairNew`) and the certificate (`webCertificate`: made by
   the application, or the files of the user, with the SHA-256 fingerprint in lines that can be
@@ -337,7 +340,7 @@ Grouped in segmented lists:
 - Selected items, toggles and button groups expose their selected state.
 - Headers are marked as headers.
 - All motion stops or becomes instantaneous when the platform asks for reduced
-  motion.
+  motion; the desktop always does (see [the design system](design-system.md#motion)).
 - Text follows the platform text scale; layouts wrap rather than clip.
 
 ## Phone app
@@ -362,10 +365,12 @@ which three buttons fill: *Paste*, *Photo* (the camera reads the code) and *Pict
 *Trust and pair*. A line in red warns when the fingerprint is not the one paired before. The phone pairs
 only when the person chooses *Trust and pair*.
 
-Settings holds the connections of other devices (*Connections*: *Other devices*, with the port and the
-lightweight mode; *Pair a phone*; and *Quit vfox+*, which quits the application on the computer), the card
-*This phone* (the computer it is paired with, *Pair a new link* and *Disconnect*), and the language of the
-phone. The language of the phone is a preference of its own: it follows the system's languages, or one of
-English and Simplified Chinese. The language of the computer is set on the computer.
+Settings holds the card *This phone* (the computer it is paired with, *Pair a new link* and *Disconnect*),
+the connections of other devices (*Connections*: *Other devices*, with the port and the lightweight mode;
+*Pair a phone*; and *Quit vfox+*, which quits the application on the computer), *Application* (*vfox
+executable*, *Application language*, *Interface language* and *Environment variables*) and *vfox config*,
+the configuration of vfox. The application language is the computer's, and the phone sets it there. The
+interface language is a preference of the phone's own, which changes only its screens: it follows the
+system's languages, or is one of English and Simplified Chinese.
 
 Its components, colours, shapes and springs are the desktop's; see [the design system](design-system.md#phone-app).

@@ -46,7 +46,7 @@ flowchart TB
     end
     subgraph code["<b>Applications</b> and <b>automation</b>"]
         direction LR
-        m("<b>mygo/</b><br/>the desktop application and its server<br/>for other devices (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>mygo/phone/</b><br/>the phone app: a native application<br/>of mygo for Android") ~~~ g("<b>.github/</b><br/>CI workflows: repository checks,<br/>the build, the memory report<br/>and the sandbox")
+        m("<b>mygo/</b><br/>the desktop application and its server<br/>for other devices (Go; it takes no arguments),<br/>and the gateway of the Docker image") ~~~ a("<b>mygo/phone/</b><br/>the phone app: a native application<br/>of mygo for Android") ~~~ g("<b>.github/</b><br/>CI and release workflows: repository<br/>checks, the build, the phone app,<br/>the memory report, the dev container,<br/>the sandbox and the release")
     end
     docs ~~~ shared ~~~ code
 
@@ -353,7 +353,7 @@ Low memory use is a goal of the project. The application:
 - keeps the newest 500 lines of each finished task in memory (2000 while it
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
-- ships only the icons it uses (61 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
+- ships only the icons it uses (63 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
 - stops animations that are not visible, and asks for less motion on the desktop
   whatever the platform asks (see [the design system](design-system.md#motion));
 - avoids caching data that vfox can produce again cheaply;
@@ -426,8 +426,8 @@ flowchart TB
   learn of by a `web` event.
 - **The paired pages** can change how other devices connect, and quit the application
   (`PUT /api/web`, `POST /api/quit`, same-origin and paired only).
-- **The end-to-end build** (the `e2e` tag) also starts a loopback server (`LocalLink`). Its link pairs the gateway that
-  the tools picture and measure the interface through. The builds that are released have none
+- **The end-to-end build** (the `e2e` tag) also starts a loopback server (`LocalLink`), when `VFOX_PLUS_E2E_LINK`
+  names the file for its link. That link pairs the gateway that the tools picture and measure the interface through. The builds that are released have none
   (`mygo/pair/loopback_e2e.go` and `loopback_off.go`).
 
 ### The window and the lightweight mode
@@ -537,8 +537,7 @@ the icon of Linux in `mygo/ui/tray_linux.go` and the icon of mygo in `mygo/ui/tr
   When the watcher has an owner, the icon connects and is shown, and from then on it is taken again each time
   that the watcher starts over, as a shell does when it restarts with none of the icons it had (`watchOwners`).
 - **A missing tray is not an error.** No session bus, or a registration that fails: one line in the log ("no icon
-  in the tray: ..."), and the application goes on without it. Starting it again, or the web interface, are
-  still the ways back.
+  in the tray: ..."), and the application goes on without it. Starting it again is still the way back.
 - **Removal.** The icon is removed by a goroutine after the choice that asked for the window returns, because
   the libraries of the desktop do not expect the owner of a menu item to disappear in the handler of the item
   (`hideTray`), and at once when the application ends (`OnWillQuit` → `removeTray`), because Windows shows the
@@ -615,7 +614,8 @@ the certificate fingerprint on both screens, and then drives the vfox-plus insta
 computer. The [remote protocol](remote-protocol.md#the-phone-app) specifies how it pairs,
 keeps its session and makes its calls. Its packages are `remote` (the client of the API),
 `pairing` (the link and the fingerprint), `store` (the saved computer and its session),
-`app` (the connection and the data that the screens show) and `screens` (the interface).
+`app` (the connection and the data that the screens show), `screens` (the interface) and `i18n` (its
+texts, in English and Simplified Chinese).
 
 The web interface follows the [design system](design-system.md) (seed colour, shapes, motion)
 with inlined assets, the favicon among them, because the gateway serves a single
@@ -684,7 +684,7 @@ flowchart LR
   in it, and the gateway may reach the computer by another). The certificate that was shown is the one
   that is trusted: it is looked at again when the person agrees, and a different one is refused. A
   certificate that changes later is not served with the session of the gateway, and is asked about again
-  with a warning. Plain HTTP is for loopback addresses only, where the application serves it. The address
+  with a warning. Plain HTTP is for loopback addresses only, and only the end-to-end build serves it, for the tools. The address
   in the pasted link is checked for its form (`hostPattern`, `checkAddress`): a host name or an IP address
   and a port from 1 to 65535, which the numbers that a resolver reads as addresses of forms of their own
   (`127.1`, `2130706433`, `0x7f.1`) are not, nor are characters that a host name has no use for. That is

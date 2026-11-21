@@ -16,7 +16,7 @@
 - 写操作路由另外拒绝浏览器的跨源请求，用 `net/http` 的跨源保护：`Sec-Fetch-Site`
   不是 `same-origin`（或 `none`），或没有该头时 `Origin` 的主机与所请求的主机不同，
   返回 403。两个头都不带（如 curl）的请求凭会话 cookie 直接放行。
-- **远端服务器**是唯一的服务器，它的应用状态只与应用共享（见[架构](architecture.md#远端前端)）。它在 `webRemote`
+- **远端服务器**是发布的构建里唯一的服务器（端到端构建还会为工具启动一个回环服务器），它的应用状态只与应用共享（见[架构](architecture.md#远端前端)）。它在 `webRemote`
   开启时监听 `0.0.0.0` 和设置 `webPort`（默认 8369）的端口，仅 HTTPS。关闭该设置会关掉服务器和它持有的所有连接；
   会话随之结束。重启应用后配对不保留。
 - Web 界面可以读取并修改其他设备如何连接、应用在没有窗口时是否继续运行，也可以退出应用
@@ -161,7 +161,7 @@ stateDiagram-v2
 | 方法与路径 | 含义 |
 | --- | --- |
 | `GET /api/tasks` | 列出任务，最新在前，每条带最新 50 行日志。 |
-| `POST /api/tasks` | 启动任务：`{operation, sdk?, version?, scope?, source?, alias?}`。201 返回该任务。 |
+| `POST /api/tasks` | 启动任务：`{operation, sdk?, version?, scope?, source?, alias?, path?, force?, yes?, use?, reinstall?}`。201 返回该任务。 |
 | `GET /api/tasks/<id>` | 单条任务，带最新 500 行日志。 |
 | `GET /api/tasks/<id>/log` | 失败任务保留的完整日志，纯文本（未保留返回 404）。 |
 | `POST /api/tasks/<id>/cancel` | 取消排队或运行中的任务。 |
@@ -200,9 +200,9 @@ stateDiagram-v2
 | --- | --- |
 | `GET /api/settings` | 可编辑的 GUI 设置：`{vfoxExecutable, extraEnvironment, language, updateMirror}`。镜像给 GitHub 下载加前缀，如 `https://gh-proxy.org/`，用于自身更新与插件配置档案。 |
 | `PUT /api/settings` | 更新它们（`language` 为 `system`、`english` 或 `simplifiedChinese`）。未知语言 400。 |
-| `GET /api/web` | 其他设备如何连接，以及应用没有窗口时是否继续运行：`{remote, port, lightweight, listening, addresses[], fingerprint, selfSigned, error}`。`remote`、`port` 与 `lightweight` 是设置 `webRemote`、`webPort` 与 `lightweight`；其余是远端服务器据此做成的样子：是否 `listening`、本机在各网络上的 `addresses`（IPv4 在前）、其证书的 SHA-256 `fingerprint` 以及是否由应用自己生成（`selfSigned`），以及允许其他设备却连不上时的 `error`（端口被占用、证书加载失败）。 |
+| `GET /api/web` | 其他设备如何连接，以及应用没有窗口时是否继续运行：`{remote, port, lightweight, listening, addresses[], publicAddress, tunnel, fingerprint, selfSigned, error}`。`remote`、`port` 与 `lightweight` 是设置 `webRemote`、`webPort` 与 `lightweight`；其余是远端服务器据此做成的样子：是否 `listening`、本机在各网络上的 `addresses`（IPv4 在前）、别的东西发布该服务器所用的 `publicAddress`（设置 `webPublicAddress`，或应用经 Cloudflare 快速隧道发布它时隧道的地址，此时 `tunnel` 为 true；没有则为空）、其证书的 SHA-256 `fingerprint` 以及是否由应用自己生成（`selfSigned`），以及允许其他设备却连不上时的 `error`（端口被占用、证书加载失败）。 |
 | `PUT /api/web` | 修改 `{remote, port, lightweight}` 中的任意项（同源）。`port` 不在 1024 到 65535 内返回 400。应答是新的 `GET /api/web`，它可能还显示服务器原来的样子：服务器立即跟随设置，页面通过 `web` 事件得知。 |
-| `POST /api/web/pairing` | 为网络中的设备生成配对链接（同源）：请求体可以指定 `host`，即 `addresses` 之一；应答 `{url, svg}`，链接与 SVG 形式的二维码。其他设备连不上，或该地址不属于本机，返回 409。 |
+| `POST /api/web/pairing` | 为网络中的设备生成配对链接（同源）：请求体可以指定 `host`，即 `addresses` 之一或 `publicAddress`；应答 `{url, svg}`，链接与 SVG 形式的二维码。其他设备连不上，或该地址不属于本机，返回 409。 |
 | `POST /api/quit` | 退出应用（同源）：应答 202 `{quitting: true}`，随后很快退出。运行中的任务会被取消。 |
 | `PUT /api/config` | 设置一个 vfox 键：`{key, value}`。vfox 失败 502 并带其消息。 |
 | `DELETE /api/config?key=<key>` | 重置一个 vfox 键为默认。 |
@@ -219,7 +219,7 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
 与 `webKey` 时，应用在第一次允许其他设备时在设置旁生成自签名证书对
 （`mygo/pair/tlscert.go`），设置里显示它的 SHA-256 指纹。浏览器与手机端应用在
 信任证书前必须展示该指纹供核对。自带证书可免去警告。会话 cookie 恒为
-`Secure`：回环来源可信，浏览器在纯 HTTP 回环上也会送回它。
+`Secure`：回环来源可信，浏览器在纯 HTTP 回环上也会送回它；只有端到端构建提供这种回环服务，供工具使用。
 
 ## 手机端应用
 
@@ -273,7 +273,7 @@ JSON 负载；客户端按类型重拉变化的内容。类型：`hello`（连�
 | `/api/*` | 实例 | 带着网关的会话转发。 |
 
 网关的表单需要已配对的浏览器（`401`）、网关自己的来源（`403`），且不超过 8 KiB（`400`）。实例的路由，对没有与网关
-配对的浏览器是 `401`；网关没有配对任何实例或会话已结束时，每个路由也是：应答用界面读取错误的形式说明，
-`{"error": "…"}`。连不上实例时，API 以同样的形式应答 `502`，界面的页面仍然提供，并显示它的调用得到的结果。
+配对的浏览器是 `401`，带一条纯文本消息；网关没有配对任何实例或会话已结束时，每个路由也是 `401`，但这时应答用界面
+读取错误的形式说明，`{"error": "…"}`。连不上实例时，API 以同样的形式应答 `502`，界面的页面仍然提供，并显示它的调用得到的结果。
 浏览器上能认出它的东西（cookie、`Origin`、`Referer`、`Forwarded` 头）都留在网关里，实例的 `Set-Cookie` 不会到达
 浏览器。

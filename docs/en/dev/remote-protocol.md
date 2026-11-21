@@ -25,7 +25,8 @@ the API only. The web interface is a single page that the gateway serves (see
   `Sec-Fetch-Site` is not `same-origin` (or `none`), or, without that header,
   whose `Origin` names another host than the one asked, answers 403. Requests with
   neither header (like curl) are allowed through with the session cookie.
-- The **remote server** is the one server, and it shares the application state with
+- The **remote server** is the one server of the builds that are released (the end-to-end
+  build also starts a loopback server for the tools), and it shares the application state with
   nothing else (see [the architecture](architecture.md#remote-front-ends)). It listens on
   `0.0.0.0` on the port of the setting `webPort` (8369 by default), over HTTPS only, while
   `webRemote` is on. Turning the setting off closes the server and every connection it holds;
@@ -232,9 +233,9 @@ private directory with mode `0600` and deleted by the task finalizer. Answers
 | --- | --- |
 | `GET /api/settings` | The editable GUI settings: `{vfoxExecutable, extraEnvironment, language, updateMirror}`. The mirror prefixes GitHub downloads of releases and plugin profiles, e.g. `https://gh-proxy.org/`. |
 | `PUT /api/settings` | Update them (`language` is `system`, `english` or `simplifiedChinese`). Unknown languages answer 400. |
-| `GET /api/web` | How other devices connect, and whether the application stays up without its window: `{remote, port, lightweight, listening, addresses[], fingerprint, selfSigned, error}`. `remote`, `port` and `lightweight` are the settings `webRemote`, `webPort` and `lightweight`; the rest says what the remote server made of them: whether it `listening`, the `addresses` of the computer on its networks (IPv4 first), the SHA-256 `fingerprint` of its certificate and whether the application made it (`selfSigned`), and `error` when other devices are allowed and cannot connect (the port is taken, the certificate does not load). |
+| `GET /api/web` | How other devices connect, and whether the application stays up without its window: `{remote, port, lightweight, listening, addresses[], publicAddress, tunnel, fingerprint, selfSigned, error}`. `remote`, `port` and `lightweight` are the settings `webRemote`, `webPort` and `lightweight`; the rest says what the remote server made of them: whether it is `listening`, the `addresses` of the computer on its networks (IPv4 first), the `publicAddress` at which something else publishes the server (the setting `webPublicAddress`, or the address of the Cloudflare quick tunnel while the application publishes it through one, in which case `tunnel` is true; empty when there is none), the SHA-256 `fingerprint` of its certificate and whether the application made it (`selfSigned`), and `error` when other devices are allowed and cannot connect (the port is taken, the certificate does not load). |
 | `PUT /api/web` | Change any of `{remote, port, lightweight}` (same-origin). A `port` outside 1024 to 65535 answers 400. The answer is the new `GET /api/web`, which may still show the servers as they were: they follow the settings at once, and the page learns of it by the `web` event. |
-| `POST /api/web/pairing` | Make a pairing link for a device on the network (same-origin): the body may name the `host`, one of the `addresses`, and answers `{url, svg}`, the link and its QR code as an SVG. 409 when other devices cannot connect or the address is none of the computer's. |
+| `POST /api/web/pairing` | Make a pairing link for a device on the network (same-origin): the body may name the `host`, one of the `addresses` or the `publicAddress`, and answers `{url, svg}`, the link and its QR code as an SVG. 409 when other devices cannot connect or the address is none of the computer's. |
 | `POST /api/quit` | Quit the application (same-origin): answers 202 `{quitting: true}` and quits shortly after. Cancels the tasks that run. |
 | `PUT /api/config` | Set one vfox key: `{key, value}`. vfox failures answer 502 with its message. |
 | `DELETE /api/config?key=<key>` | Reset one vfox key to its default. |
@@ -256,7 +257,7 @@ that other devices are allowed (`mygo/pair/tlscert.go`) and the settings show it
 fingerprint. Clients — the browser and the phone app — must show that fingerprint for
 comparison before trusting the certificate. Bringing your own certificate avoids the warning.
 The session cookie is always `Secure`: loopback origins are trustworthy, so
-browsers send it back over plain HTTP there.
+browsers send it back over plain HTTP there, which only the end-to-end build serves, for the tools.
 
 ## The phone app
 
@@ -339,9 +340,9 @@ instance it is a client, as the phone app is: a pairing link that a person paste
 | `/api/*` | the instance | Forwarded with the session of the gateway. |
 
 The forms of the gateway need a paired browser (`401`), the origin of the gateway (`403`) and at most 8 KiB
-(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401`, and so is every
-route when the gateway is paired with no instance or its session ended: the answer says so in the form that the
-interface reads errors in, `{"error": "…"}`. When the instance cannot be reached the API answers `502` in the same
+(`400`). A route of the instance, for a browser that is not paired with the gateway, is `401` with a message in
+plain text; and so is every route when the gateway is paired with no instance or its session ended, but then the
+answer says so in the form that the interface reads errors in, `{"error": "…"}`. When the instance cannot be reached the API answers `502` in the same
 form, and the page of the interface is still served: it shows what its calls get.
 Everything of the browser that identifies it (its cookies, `Origin`, `Referer`, the `Forwarded` headers)
 stays with the gateway, and the `Set-Cookie` of the instance does not reach the browser.

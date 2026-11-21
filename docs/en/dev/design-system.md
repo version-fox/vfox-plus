@@ -89,7 +89,7 @@ Interactive elements change shape as they are used:
 
 ## Typography
 
-The application uses the platform's sans-serif font (Ubuntu on Ubuntu, with
+The application uses the platform's sans-serif font (Ubuntu Sans on Ubuntu, with
 Noto Sans CJK for Chinese) and the Material 3 type scale. Material 3 Expressive
 adds an **emphasized** variant of each role with a heavier weight, used for page
 titles, list titles that need attention (the current
@@ -407,7 +407,7 @@ out of it, `SYMBOL.svg` outlined and `SYMBOL-fill.svg` filled, so that no icon i
 committed. mygo draws an SVG in the colour of the text (`ui.Icon`), so the
 application carries no icon font; the fill that the navigation and the buttons
 animate is the cross-fade of the outlined and the filled icon, and the SVGs
-(about 60 KB) are parsed when an icon is first drawn.
+(about 70 KB) are parsed when an icon is first drawn.
 
 The phone app draws the same symbols from the same SVGs: its build embeds the icons that
 `shared/icons.json` names, as the desktop application does, and `ui/kit` draws them in the colour

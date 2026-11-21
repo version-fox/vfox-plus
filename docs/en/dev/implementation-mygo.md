@@ -23,6 +23,9 @@ project, in Go:
 | [`ui/shapes/`](../../../mygo/ui/shapes) | The shapes: a Go port of the rounded polygons and their morphs of `androidx.graphics.shapes` |
 | [`assets/`](../../../mygo/assets) | What the binary embeds: the icons, the translations and the licenses (all collected at build time) |
 | [`pair/`](../../../mygo/pair) | The server for other devices: the `Host` that runs it over HTTPS as the settings say, one-time pairing links and their QR codes, and the API that a paired device gets (SDKs, registry, tasks with live logs, settings). The server serves no page: the Docker gateway serves the interface (`/app`) to a browser |
+| [`gateway/`](../../../mygo/gateway) and [`cmd/vfox-plus-gateway/`](../../../mygo/cmd/vfox-plus-gateway) | The Docker gateway: serves the web interface (`/app`, embedded as one page) to the browsers that pair with it, and forwards their calls to the vfox+ that it is paired with |
+| [`web/`](../../../mygo/web) | The source of the web interface (TypeScript, Vite): its build writes `gateway/webapp.html`, the single page that the gateway embeds |
+| [`phone/`](../../../mygo/phone) | The phone app, a native Android application of mygo with packages of its own (see [Packaging the phone app](packaging-android.md)) |
 | [`main.go`](../../../mygo/main.go) | Assembles the model, the server for other devices and the window. The application takes no arguments |
 | [`automation_e2e.go`](../../../mygo/automation_e2e.go) | Links the automation plugin of mygo, only with the build tag `e2e`: the end-to-end tests, the memory measurement and the screenshots drive the application through it |
 
@@ -82,7 +85,7 @@ mirror of the registry), and for `go mod download`, which the licenses of the Go
 `//go:embed` in [`assets/assets.go`](../../../mygo/assets/assets.go) fails the build if it is missing.
 
 The release binary is built with `CGO_ENABLED=0`, position independent
-(`-buildmode=pie`), stripped, without the inspector of mygo's native user
+(`-buildmode=pie`, except on Windows), stripped, without the inspector of mygo's native user
 interface, and about 18 MB.
 
 ## Sandbox
@@ -98,9 +101,9 @@ the Go module and build caches in Docker volumes.
 | --- | --- |
 | `vfxtool sandbox check` | Formatting, golangci-lint (also with the end-to-end tag), `go vet`, the unit tests with the race detector and the coverage gates |
 | `vfxtool sandbox e2e` | The end-to-end scenarios, against the fixtures and against the real vfox |
-| `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` checked by lintian, then an installation into a clean Ubuntu 26.04 container |
+| `vfxtool sandbox package` | Release build with a smoke test, `.deb` and `.tar.gz` (and the `.deb` for arm64) checked by lintian, the unsigned `.msix` and `.msixbundle` checked by `validate-msix`, then an installation into a clean Ubuntu 26.04 container |
 | `vfxtool sandbox measure` | The memory use on the Home page and with the versions of Node.js listed |
-| `vfxtool sandbox screenshots` | Screenshots of every page, of Java, Flutter and the options of Node.js, and of the settings of the web interface |
+| `vfxtool sandbox screenshots` | Screenshots of every page, of Java, Flutter and the options of Node.js, and of the settings of other devices (the question that allows them, the code that pairs a phone) |
 | `vfxtool sandbox census <group>` | One group of the census of the screens, in the fonts of the container: `census`, `widest`, `sweep-wide` or `sweep-rest`. CI runs each group in a job of its own |
 | `vfxtool sandbox all` | `check`, the four groups of the census, `e2e` and `package` |
 | `vfxtool sandbox shell` | A shell in the sandbox |
@@ -141,7 +144,7 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   plain `go run generate.go`, no Node.js required.
 - **End-to-end scenarios** drive the built application from outside, the way
   assistive technology does. `vfxtool build --e2e` builds it with the tag `e2e`, which links the
-  [automation plugin](https://github.com/egoist/mygo/blob/v0.9.1/docs/plugins/automation.md) of
+  [automation plugin](https://github.com/egoist/mygo/blob/v0.10.0/docs/plugins/automation.md) of
   mygo ([`automation_e2e.go`](../../../mygo/automation_e2e.go)): when `MYGO_AUTOMATION` names a Unix
   socket, the application listens on it and answers requests to list the elements of its window
   (the ones it gives screen readers, with the keys that the components set), to press them, to
@@ -337,7 +340,7 @@ adds 5 MB because only the rows in view are built.
   does not use yet.
 - **Scaling** is the one of GTK 3: whole numbers, from `GDK_SCALE` or the
   desktop, and the text scale of the desktop.
-- **mygo is young** (v0.9.1 at the time of writing, with a changing API): the
+- **mygo is young** (v0.10.0 at the time of writing, with a changing API): the
   version is pinned in [`go.mod`](../../../mygo/go.mod), and the pages follow what that
   version offers.
 - **Accessibility** goes through mygo's ATK objects, which GTK bridges to AT-SPI,
@@ -346,9 +349,10 @@ adds 5 MB because only the rows in view are built.
   tooltip of an icon button is its name; the row of a task says its status). mygo's
   screen reader support has not been tried with Orca here.
 - **Input methods** are the ones of GTK 3 (IBus, Fcitx, the Wayland text input).
-- **Only Linux on x86-64 is run and tested end to end.** mygo has its own backends
+- **Linux on x86-64 is the platform that is run and tested in full.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on
-  arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows 11
+  arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows runs the
+  scenarios `fake`, `python` and `tray` in CI (the job `run-windows`). Windows 11
   is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI, and
   the release signs it; a CI package installs with `Add-AppxPackage -AllowUnsigned`. The census of
   the screens is taken on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel) in CI too
