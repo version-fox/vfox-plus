@@ -113,17 +113,30 @@
 - **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。
 - **家目录。** 两个插件在家目录的路径含空格时都无法安装。
 
+### Elixir
+
+插件 [vfox-elixir](https://github.com/version-fox/vfox-elixir) 在三个界面里提供这些功能。它只在 Linux 上检查过。
+
+- **先装 Erlang/OTP。** Elixir 用 Erlang/OTP 编译，运行时也需要 PATH 上有 `erl`。vfox 不会为 Elixir 安装 Erlang/OTP，已安装的 Erlang/OTP 也不会加入 Elixir 构建的 PATH。请先用 erlang 插件安装它，再与 Elixir 一起运行，例如 `vfox exec erlang@OTP-28.4.2 elixir@1.20.5 -- elixir --version`。单独运行 `vfox exec elixir@1.20.5 -- elixir --version` 会以 `exec: erl: not found` 失败。
+- **预编译构建。** 在 Linux 上，**预编译构建**选项用 hex.pm 的预编译构建安装 Elixir，而不从源码编译，版本列表也随之显示这些构建。它们的名称带 Erlang/OTP 的主版本，如 `1.20.5-otp-28`。选项留空则从源码编译：源码构建约需一分钟，并且家目录的路径中不能有空格；预编译构建不受此限制。
+- **版本。** `latest` 是列表的第一行：Linux 上是 `1.20-latest`，检查时它运行为 1.20.5。使用预编译构建时，`latest` 是 `main` 分支，那不是发行版。请完整写出版本，如 `1.20.5`；`1.16` 这样的部分版本号不被接受。
+- **切换选项。** vfox 对插件的版本列表最多缓存 12 小时，而且缓存不随选项区分。切换选项后，列表在这段时间里可能仍显示旧选项的构建。
+- **文档。** **选项**页签链接到 vfox-elixir 的文档网站（英文与简体中文），以及它的 README。
+
 ### etcd、Deno、Groovy、Scala 与 Zig
 
 插件 [vfox-etcd](https://github.com/version-fox/vfox-etcd)、[vfox-deno](https://github.com/version-fox/vfox-deno)、[vfox-groovy](https://github.com/version-fox/vfox-groovy)、[vfox-scala](https://github.com/version-fox/vfox-scala) 与 [vfox-zig](https://github.com/version-fox/vfox-zig) 在三个界面里也提供这些功能，但受限于它们当前的列表：
 
-- **名称。** Deno 与 Scala 的 `latest` 安装列表中的第一个版本，Zig 的 `nightly` 安装其 master 分支的开发版。Deno 还接受 `2`、`2.1` 这样的版本线，安装该线上最新的发行版。Groovy 与 Zig 不提供 `latest`，因为它们的列表把预发布版或开发版排在前面；etcd 列表的第一行没有可下载的文件。
-- **下载。** Scala 2.10.4 至 2.13 的版本从 downloads.lightbend.com 下载，检查时该站拒绝了所有下载，这些版本暂时无法安装。列表中标为 LTS 的 Scala 3.9.0 以其版本号安装。列表中有些 Groovy 版本没有下载文件，如 `2.4.5-incubating`；Deno 0.36.0 之前的发行版也没有。
+- **名称。** Deno、Groovy 与 Scala 的 `latest` 安装列表中的第一个版本，Zig 的 `nightly` 安装其 master 分支的开发版。Groovy 接受完整的版本名，如 `4.0.33`，不接受 `4` 这样的部分版本号；它的列表把每个预发布版排在对应的正式版之下。Deno 还接受 `2`、`2.1` 这样的版本线，安装该线上最新的发行版。Zig 不提供 `latest`，因为它的列表可能把开发版排在前面；etcd 列表的第一行没有可下载的文件。
+- **归档镜像。** Groovy 的**归档镜像**选项提供两个 Apache 归档的镜像：dlcdn.apache.org 与清华镜像，archive.apache.org 较慢时可以使用。两者都只保留当前的发行版，所以较旧的版本不会出现在列表中；清华镜像没有校验和文件，所以它的安装不做校验。
+- **阶段。** Groovy 的**阶段**筛选可以选出预发布版或孵化版。
+- **下载。** Scala 2.10.4 至 2.13 的版本从 downloads.lightbend.com 下载，检查时该站拒绝了所有下载，这些版本暂时无法安装。列表中标为 LTS 的 Scala 3.9.0 以其版本号安装。
 - **JDK。** Groovy 与 Scala 运行需要 JDK，插件都不安装。
-- **校验和。** Deno 不提供校验和，所以 vfox 不校验它的安装包；没有 `SHA256SUMS` 文件的 etcd 发行版（如 0.3.0）同样不做校验。
+- **校验和。** Deno 与 Groovy 在发行版提供校验文件时据此校验（Deno 为 `.sha256sum`，Groovy 为 `.sha256`），没有时会说明未校验。没有 `SHA256SUMS` 文件的 etcd 发行版（如 0.3.0）同样不做校验。
+- **Deno。** 列表从 0.36.0 开始，它是 Linux x86-64 上第一个有下载文件的发行版。0.36.0 可以安装，但二进制无法运行：压缩包没有可执行位，而插件不会设置它。
 - **Zig。** 列表同时需要 ziglang.org 与 machengine.org：machengine.org 无法访问时，整个列表都会失败。列表中没有的名称可能报告安装成功，却什么也没有安装。
 - **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT` 开启，它会构建 etcd 的 main 分支，与所选版本无关，所以**选项**页签不为它提供开关。只有在需要那种构建时，才在*设置 → 环境变量*中设置该变量。
-- **文档。** **选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文），以及它的 README。
+- **文档。** **选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文），以及它的 README。vfox-deno 与 vfox-groovy 的**选项**页签链接各自的文档（英文与简体中文）以及 README。
 
 ## 插件
 

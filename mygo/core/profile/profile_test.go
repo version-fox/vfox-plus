@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -216,13 +216,14 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"etcd":    {nil, nil},
 		"erlang":  {[]string{"USE_PREBUILT_OTP"}, nil},
 		"deno":    {nil, nil},
-		"groovy":  {nil, nil},
+		"groovy":  {[]string{"VFOX_GROOVY_MIRROR"}, nil},
 		"scala":   {nil, nil},
 		"zig":     {nil, nil},
 		"clang":   {[]string{"Conda_Forge"}, nil},
+		"elixir":  {[]string{"VFOX_ELIXIR_MIRROR"}, nil},
 	}
 	// These plugins take no name to install besides the versions they list.
-	noNames := map[string]bool{"etcd": true, "groovy": true}
+	noNames := map[string]bool{"etcd": true}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
 		var keys []string
@@ -840,16 +841,17 @@ func isPluginDocument(link Link, plugin string) bool {
 
 func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
 	// The names to install were installed with vfox 1.1.0 and each plugin. latest
-	// is left out where the plugin resolves it to a development build (zig) or to
-	// a release candidate (groovy).
+	// is left out where vfox resolves it to a development build (zig) or to a
+	// version without a download (etcd).
 	names := map[string][]string{
 		"etcd":   nil,
 		"erlang": {"latest"},
 		"deno":   {"latest"},
-		"groovy": nil,
+		"groovy": {"latest"},
 		"scala":  {"latest"},
 		"zig":    {"nightly"},
 		"clang":  {"latest"},
+		"elixir": {"latest"},
 	}
 	for plugin, want := range names {
 		var got []string
@@ -875,7 +877,7 @@ func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
 	}
 	// None of these has filters: deno and etcd have no notes, and the notes of
 	// zig join with | and the filters split only at commas and semicolons.
-	for _, plugin := range []string{"etcd", "erlang", "deno", "groovy", "scala", "zig", "clang"} {
+	for _, plugin := range []string{"etcd", "erlang", "deno", "scala", "zig", "clang", "elixir"} {
 		if len(lookup(t, plugin).Facets) != 0 {
 			t.Errorf("%s offers filters, but its notes give none", plugin)
 		}
@@ -911,8 +913,8 @@ func TestThePluginsWithADocumentationWebsiteLinkIt(t *testing.T) {
 	// they were checked on 2026-11-21: vfox-erlang and vfox-etcd have one, and
 	// the other plugins with a profile have none. A website comes first in the
 	// documents, in English under /en/ and in Chinese at the root.
-	withWebsite := map[string]bool{"erlang": true, "etcd": true}
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang"} {
+	withWebsite := map[string]bool{"elixir": true, "erlang": true, "etcd": true}
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"} {
 		profile := lookup(t, plugin)
 		base := "https://version-fox.github.io/vfox-" + plugin + "/"
 		websites := 0
@@ -927,6 +929,74 @@ func TestThePluginsWithADocumentationWebsiteLinkIt(t *testing.T) {
 		}
 		if (websites != 0) != withWebsite[plugin] {
 			t.Errorf("%s links %d documentation websites, want a website: %v", plugin, websites, withWebsite[plugin])
+		}
+	}
+}
+
+func TestGroovyFiltersItsStagesAndOffersItsMirror(t *testing.T) {
+	// The notes of vfox-groovy mark its pre-releases and its incubator releases.
+	// VFOX_GROOVY_MIRROR is offered with the two mirrors that were checked: both
+	// keep only the current releases, and the Tsinghua mirror has no checksum files.
+	groovy := lookup(t, "groovy")
+	versions := []core.AvailableVersion{
+		{Version: "6.0.0"},
+		{Version: "6.0.0-RC-2", Note: "pre-release", HasNote: true},
+		{Version: "2.4.5-incubating", Note: "incubating", HasNote: true},
+	}
+	groups := groovy.Groups(versions)
+	wantGroups := []Group{{ID: "stage", Label: groovy.Facets[0].Label, Chips: []Chip{{"pre-release", 1}, {"incubating", 1}}}}
+	if !reflect.DeepEqual(groups, wantGroups) {
+		t.Fatalf("groups = %+v, want %+v", groups, wantGroups)
+	}
+	kept := func(value string) []string {
+		var names []string
+		for _, version := range versions {
+			if groovy.Matches(Selection{}.Toggled("stage", value), version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept("pre-release"); !reflect.DeepEqual(got, []string{"6.0.0-RC-2"}) {
+		t.Errorf("pre-release = %v", got)
+	}
+	if got := kept("incubating"); !reflect.DeepEqual(got, []string{"2.4.5-incubating"}) {
+		t.Errorf("incubating = %v", got)
+	}
+	mirror, ok := groovy.Variable("VFOX_GROOVY_MIRROR")
+	if !ok {
+		t.Fatal("no mirror variable for groovy")
+	}
+	var values []string
+	for _, preset := range mirror.Presets {
+		values = append(values, preset.Value)
+	}
+	wantValues := []string{"https://dlcdn.apache.org/groovy", "https://mirrors.tuna.tsinghua.edu.cn/apache/groovy"}
+	if !reflect.DeepEqual(values, wantValues) {
+		t.Errorf("mirror presets = %v, want %v", values, wantValues)
+	}
+}
+
+func TestElixirOffersThePrebuiltBuildsOnLinuxOnly(t *testing.T) {
+	// The pre-built builds of hex.pm were checked on Linux. The installer of
+	// Windows runs before the hex check, and the macOS builds were not checked.
+	want := map[string][]string{"linux": {"hex"}, "darwin": nil, "windows": nil}
+	for goos, expected := range want {
+		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("elixir")
+		if !ok {
+			t.Fatal("no profile for elixir")
+		}
+		var values []string
+		for _, variable := range profile.Variables {
+			if variable.Key != "VFOX_ELIXIR_MIRROR" {
+				t.Errorf("%s offers %s", goos, variable.Key)
+			}
+			for _, preset := range variable.Presets {
+				values = append(values, preset.Value)
+			}
+		}
+		if !reflect.DeepEqual(values, expected) {
+			t.Errorf("%s presets = %v, want %v", goos, values, expected)
 		}
 	}
 }

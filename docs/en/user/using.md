@@ -229,6 +229,31 @@ interfaces. Both were checked on Linux only.
 - **Home directory.** Both plugins fail to install when the path of the home directory has
   a space in it.
 
+### Elixir
+
+The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers these extras in all
+three interfaces. It was checked on Linux only.
+
+- **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
+  does not install Erlang/OTP for Elixir, and an installed Erlang/OTP is not put on the `PATH`
+  of an Elixir build. Install it first with the erlang plugin, and run Elixir together with it,
+  for example `vfox exec erlang@OTP-28.4.2 elixir@1.20.5 -- elixir --version`. Run alone,
+  `vfox exec elixir@1.20.5 -- elixir --version` fails with `exec: erl: not found`.
+- **Pre-built builds.** On Linux, the **Pre-built builds** option installs Elixir from the
+  pre-built builds of hex.pm instead of compiling it, and the version list then shows those
+  builds. Their names carry the Erlang/OTP major version, such as `1.20.5-otp-28`. Leave the
+  option empty to compile from the source. A source build takes about a minute and needs a
+  home directory whose path has no spaces; a pre-built build works with such a path.
+- **Versions.** `latest` is the first line of the list: `1.20-latest` on Linux, which ran as
+  1.20.5 when checked. With pre-built builds, `latest` is the `main` branch, which is not a
+  release. Write a version in full, such as `1.20.5`; a partial name such as `1.16` is not
+  accepted.
+- **Changing the option.** vfox caches a plugin's version list for up to 12 hours, and the
+  cache does not depend on the option. After you change the option, the list can therefore
+  still show the builds of the old option for that time.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
+  in English and in Simplified Chinese, and to its README.
+
 ### etcd, Deno, Groovy, Scala and Zig
 
 The plugins [vfox-etcd](https://github.com/version-fox/vfox-etcd),
@@ -238,27 +263,36 @@ The plugins [vfox-etcd](https://github.com/version-fox/vfox-etcd),
 [vfox-zig](https://github.com/version-fox/vfox-zig) offer these extras in all three
 interfaces, with the limits that their lists have today:
 
-- **Names.** `latest` installs the first version of the list for Deno and Scala, and
-  `nightly` installs the development build of the master branch of Zig. Deno also takes
-  a line such as `2` or `2.1`, which installs the newest release of that line. Groovy and
-  Zig offer no `latest`, because their lists put a pre-release or a development build
-  first, and the first line of the etcd list has no download.
-- **Downloads.** Scala 2.10.4 to 2.13 come from downloads.lightbend.com, which refused
-  every download when this was checked, so those versions cannot be installed for now.
-  Scala 3.9.0, which the list shows as LTS, installs under its number. Some Groovy versions
-  in the list have no download, such as `2.4.5-incubating`, and neither do the Deno
-  releases before 0.36.0.
+- **Names.** `latest` installs the first version of the list for Deno, Groovy and Scala, and
+  `nightly` installs the development build of the master branch of Zig. Groovy takes full
+  names such as `4.0.33`, but not partial names such as `4`, and its list sorts each
+  pre-release below its release. Deno also takes a line such as `2` or `2.1`, which installs
+  the newest release of that line. Zig offers no `latest`, because its list can put a
+  development build first, and the first line of the etcd list has no download.
+- **Archive mirror.** The **Archive mirror** option of Groovy offers two mirrors of the Apache
+  archive, dlcdn.apache.org and a Tsinghua mirror, for when archive.apache.org is slow. Both
+  keep only the current releases, so older versions do not appear in the list. The Tsinghua
+  mirror has no checksum files, so its installs are not verified.
+- **Stages.** The **Stage** filter of Groovy picks the pre-releases or the incubator releases.
+- **Downloads.** Scala 2.10.4 to 2.13 come from downloads.lightbend.com, which refused every
+  download when this was checked, so those versions cannot be installed for now. Scala 3.9.0,
+  which the list shows as LTS, installs under its number.
 - **Java.** Groovy and Scala need a JDK to run, and the plugins install none.
-- **Checksums.** Deno gives no checksum, so vfox does not verify its archives. An etcd
-  release without a `SHA256SUMS` file, such as 0.3.0, is not verified either.
-- **Zig.** The list merges ziglang.org with machengine.org and needs both: when
-  machengine.org cannot be reached, the whole list fails. A name that the list does not
-  show can report success without installing anything.
+- **Checksums.** Deno and Groovy check each archive against its checksum file when the release
+  has one: `.sha256sum` for Deno and `.sha256` for Groovy. They say so when a release has none.
+  An etcd release without a `SHA256SUMS` file, such as 0.3.0, is not verified either.
+- **Deno.** The list starts at 0.36.0, which is the first release with a download for Linux on
+  x86-64. Release 0.36.0 installs, but its binary cannot run: the archive has no execute bit,
+  and the plugin does not set one.
+- **Zig.** The list merges ziglang.org with machengine.org and needs both: when machengine.org
+  cannot be reached, the whole list fails. A name that the list does not show can report
+  success without installing anything.
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT`, installs the main
-  branch of etcd whatever version is chosen, so the **Options** tab offers no switch for
-  it. Set the variable in *Settings → Environment variables* only if you want that build.
-- **Documentation.** The **Options** tab links to the documentation website of vfox-etcd,
-  in English and in Simplified Chinese, and to its README.
+  branch of etcd whatever version is chosen, so the **Options** tab offers no switch for it.
+  Set the variable in *Settings → Environment variables* only if you want that build.
+- **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
+  English and in Simplified Chinese, and to its README. The **Options** tabs of vfox-deno and
+  vfox-groovy link their documents, in English and in Simplified Chinese, and their README.
 
 ## Plugins
 
