@@ -102,6 +102,42 @@
 - **探测并链接。** 会纳入 `PATH`、`CMAKE_HOME`、常见的系统位置里的 CMake，以及 Homebrew、Scoop 或 Chocolatey 装的 CMake。`CMAKE_HOME` 请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置：应用会把这一列表传给每条 vfox 命令。
 - **要求。** 插件需要 vfox 1.1.0 或更高版本，并要能访问 jsDelivr（版本列表）与 cmake.org（安装包），没有可设置的镜像。它不读取变量，也没有旧版版本文件，所以**选项**页签只有说明、可安装的名称与文档。
 
+### Erlang 与 Clang
+
+插件 [vfox-erlang](https://github.com/version-fox/vfox-erlang) 与 [vfox-clang](https://github.com/version-fox/vfox-clang) 在三个界面里也提供这些功能。两者都只在 Linux 上检查过。
+
+- **预编译的 Erlang/OTP。** 在 Linux 上，**预编译构建**选项选一个 Ubuntu 版本（20.04、22.04 或 24.04），就用它的预编译构建安装 Erlang/OTP，而不从源码编译。此时版本列表是预编译构建，名称带 `OTP-` 前缀，如 `OTP-29.1.2`，列表可能不显示其中最新的构建。选项留空则从源码编译，需要几分钟，并需要插件 README 中列出的编译工具。选择了预编译构建时，`latest` 是 master 分支，不是发行版。
+- **Erlang 的设置。** `OTP_CONFIGURE_ARGS` 把参数传给 configure，如 `--without-javac`；`MAKEFLAGS` 设置 make 的选项，如 `-j8`。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置。
+- **文档。** **选项**页签链接到 vfox-erlang 的文档网站（英文与简体中文），以及它的 README。
+- **Clang。** `latest` 安装列表中标为 latest 的版本。**Conda 频道**选项选择 pixi 安装 clang 所用的 conda 频道，预设为 prefix.dev 与清华镜像；留空则为 conda-forge。每次安装先下载 pixi，通常需要约一分钟。
+- **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。
+- **家目录。** 两个插件在家目录的路径含空格时都无法安装。
+
+### Elixir
+
+插件 [vfox-elixir](https://github.com/version-fox/vfox-elixir) 在三个界面里提供这些功能。它只在 Linux 上检查过。
+
+- **先装 Erlang/OTP。** Elixir 用 Erlang/OTP 编译，运行时也需要 PATH 上有 `erl`。vfox 不会为 Elixir 安装 Erlang/OTP，已安装的 Erlang/OTP 也不会加入 Elixir 构建的 PATH。请先用 erlang 插件安装它，再与 Elixir 一起运行，例如 `vfox exec erlang@OTP-28.4.2 elixir@1.20.5 -- elixir --version`。单独运行 `vfox exec elixir@1.20.5 -- elixir --version` 会以 `exec: erl: not found` 失败。
+- **预编译构建。** 在 Linux 上，**预编译构建**选项用 hex.pm 的预编译构建安装 Elixir，而不从源码编译，版本列表也随之显示这些构建。它们的名称带 Erlang/OTP 的主版本，如 `1.20.5-otp-28`。选项留空则从源码编译：源码构建约需一分钟，并且家目录的路径中不能有空格；预编译构建不受此限制。
+- **版本。** `latest` 是列表的第一行：Linux 上是 `1.20-latest`，检查时它运行为 1.20.5。使用预编译构建时，`latest` 是 `main` 分支，那不是发行版。请完整写出版本，如 `1.20.5`；`1.16` 这样的部分版本号不被接受。
+- **切换选项。** vfox 对插件的版本列表最多缓存 12 小时，而且缓存不随选项区分。切换选项后，列表在这段时间里可能仍显示旧选项的构建。
+- **文档。** **选项**页签链接到 vfox-elixir 的文档网站（英文与简体中文），以及它的 README。
+
+### etcd、Deno、Groovy、Scala 与 Zig
+
+插件 [vfox-etcd](https://github.com/version-fox/vfox-etcd)、[vfox-deno](https://github.com/version-fox/vfox-deno)、[vfox-groovy](https://github.com/version-fox/vfox-groovy)、[vfox-scala](https://github.com/version-fox/vfox-scala) 与 [vfox-zig](https://github.com/version-fox/vfox-zig) 在三个界面里也提供这些功能，但受限于它们当前的列表：
+
+- **名称。** Deno、Groovy、Scala 与 Zig 的 `latest` 安装列表中的第一个版本（Zig 的 `latest` 是最新的稳定版），Zig 的 `nightly` 安装其 master 分支的开发版。Groovy 接受完整的版本名，如 `4.0.33`，不接受 `4` 这样的部分版本号；它的列表把每个预发布版排在对应的正式版之下。Deno 还接受 `2`、`2.1` 这样的版本线，安装该线上最新的发行版。Zig 接受完整的版本名，如 `0.17.1`，以及备注中的 Mach 名称，如 `mach-latest`，不接受 `0.17` 这样的部分版本号。etcd 接受完整的版本名，如 `3.7.3`，可以带 `v`，但不接受 `3.5` 这样的部分版本号；它不提供 `latest`，因为版本列表经 CDN 读取，CDN 可能保留旧副本。
+- **归档镜像。** Groovy 的**归档镜像**选项提供两个 Apache 归档的镜像：dlcdn.apache.org 与清华镜像，archive.apache.org 较慢时可以使用。两者都只保留当前的发行版，所以较旧的版本不会出现在列表中；清华镜像没有校验和文件，所以它的安装不做校验。
+- **阶段。** Groovy 的**阶段**筛选可以选出预发布版或孵化版。
+- **下载。** Scala 2.10.4 至 2.13 的版本从 downloads.lightbend.com 下载，检查时该站拒绝了所有下载，这些版本暂时无法安装。列表中标为 LTS 的 Scala 3.9.0 以其版本号安装。
+- **JDK。** Groovy 与 Scala 运行需要 JDK，插件都不安装。
+- **校验和。** Deno 与 Groovy 在发行版提供校验文件时据此校验（Deno 为 `.sha256sum`，Groovy 为 `.sha256`），没有时会说明未校验。etcd 用其发行版的 `SHA256SUMS` 文件校验。没有该文件的 3.4.0 之前的发行版（如 0.3.0），会用插件固定的校验和检查，安装时会说明；3.4.0 及以后没有该文件的发行版会被拒绝。
+- **Deno。** 列表从 0.36.0 开始，它是 Linux x86-64 上第一个有下载文件的发行版。插件在解压后为 Deno 设置可执行位，所以 0.36.0 可以运行。0.2.3 之前的插件安装的 0.36.0 没有可执行位：请重新安装它。
+- **Zig。** 列表需要 ziglang.org：它无法访问时，整个列表都会失败。machengine.org 是可选的：无法访问时，列表只显示官方发行版，并给出警告。列表中没有的名称会被拒绝，什么也不会安装。vfox 1.1.0 的 `exec` 不接受 `latest`、`nightly` 或 Mach 名称，请用 `vfox list` 显示的版本名；`vfox use` 可以接受这些名称。ziglang.org 没有发布的 Mach 构建从 pkg.hexops.org 下载，仍然按索引中的校验和检查。
+- **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT=yes` 开启，它会按所选版本从源码构建，并启用 failpoint。需要 PATH 上有 Git、Go 和 GNU Make，构建需要几分钟。仅在 Linux 上检查过：3.4.32 与 3.5.12 的构建带有 failpoint，3.5.5 会失败，3.6.0 构建完成但没有 failpoint。请用 `GOFAIL_HTTP` 检查结果。**选项**页签不为它提供开关。
+- **文档。** etcd 的**选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文）、它的文档与 README。vfox-deno 与 vfox-groovy 的**选项**页签链接各自的文档（英文与简体中文）以及 README。
+
 ## 插件
 
 - 搜索仓库，按官方/社区过滤。

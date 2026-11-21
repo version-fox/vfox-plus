@@ -115,7 +115,9 @@ type Profile struct {
 	Guide Text
 	// Tips are things that are good to know before the first install.
 	Tips []Text
-	// Docs are the pages of the plugin's documentation worth opening.
+	// Docs are the pages of the plugin's documentation worth opening: a page of
+	// its docs folder, its README, or its documentation website, which comes first
+	// when the plugin publishes one.
 	Docs []Link
 }
 
@@ -215,13 +217,13 @@ type Registry struct {
 
 // NewRegistry creates a registry with the profiles of the plugins of the
 // version-fox organisation: java, nodejs, flutter, gradle, golang, python, maven,
-// php, dart, kotlin, dotnet and cmake. The platform decides what a search of
-// java offers: the Loongnix JDKs on Linux for loong64, the distributions of
-// Foojay everywhere else; and which build options of php exist: those of the
-// source builds of Linux and macOS.
+// php, dart, kotlin, dotnet, cmake, etcd, erlang, deno, groovy, scala, zig, clang
+// and elixir. The platform decides what a search of java offers: the Loongnix JDKs on
+// Linux for loong64, the distributions of Foojay everywhere else; and which build
+// options of php exist: those of the source builds of Linux and macOS.
 func NewRegistry(platform Platform) *Registry {
 	registry := &Registry{profiles: make(map[string]Profile)}
-	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile(), gradleProfile(), golangProfile(), pythonProfile(platform), mavenProfile(), phpProfile(platform), dartProfile(), kotlinProfile(), dotnetProfile(), cmakeProfile()} {
+	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile(), gradleProfile(), golangProfile(), pythonProfile(platform), mavenProfile(), phpProfile(platform), dartProfile(), kotlinProfile(), dotnetProfile(), cmakeProfile(), etcdProfile(), erlangProfile(platform), denoProfile(), groovyProfile(), scalaProfile(), zigProfile(), clangProfile(), elixirProfile(platform)} {
 		registry.profiles[profile.Plugin] = profile
 	}
 	return registry

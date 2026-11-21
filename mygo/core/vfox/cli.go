@@ -336,6 +336,11 @@ func (c *Client) InstallWithOptions(name, version string, options InstallOptions
 }
 
 // Uninstall uninstalls version of name.
+//
+// Uninstalling the current version makes vfox switch to another installed one,
+// and that switch needs the shell hook, as use does. Without it vfox prints the
+// switch, exits with status 1 and leaves no current version, so the command
+// runs with the hook environment.
 func (c *Client) Uninstall(name, version string) (VfoxCommand, error) {
 	checkedName, err := checkName(name)
 	if err != nil {
@@ -346,10 +351,11 @@ func (c *Client) Uninstall(name, version string) (VfoxCommand, error) {
 		return VfoxCommand{}, err
 	}
 	return VfoxCommand{
-		Operation: OperationUninstall,
-		Arguments: []string{"uninstall", checkedName + "@" + checkedVersion},
-		Sdk:       name,
-		Version:   version,
+		Operation:               OperationUninstall,
+		Arguments:               []string{"uninstall", checkedName + "@" + checkedVersion},
+		Sdk:                     name,
+		Version:                 version,
+		RequiresHookEnvironment: true,
 	}, nil
 }
 

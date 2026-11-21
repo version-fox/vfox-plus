@@ -337,6 +337,11 @@ func TestOtherCommands(t *testing.T) {
 	if !reflect.DeepEqual(uninstall.Arguments, []string{"uninstall", "java@21"}) {
 		t.Errorf("got %q", uninstall.Arguments)
 	}
+	// Uninstalling the current version switches to another one, which vfox
+	// only does from an activated shell.
+	if !uninstall.RequiresHookEnvironment || vfox.VfoxEnvironment(testConfig(), uninstall.RequiresHookEnvironment)["__VFOX_SHELL"] != "bash" {
+		t.Error("uninstall runs with the shell hook, so that vfox switches to another version")
+	}
 	remove, _ := cli.RemovePlugin("java")
 	if !reflect.DeepEqual(remove.Arguments, []string{"remove", "--yes", "java"}) {
 		t.Errorf("got %q", remove.Arguments)

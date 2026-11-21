@@ -201,6 +201,109 @@ all three interfaces:
   version files, so its **Options** tab carries only the guide, the names and the
   documentation.
 
+### Erlang and Clang
+
+The plugins [vfox-erlang](https://github.com/version-fox/vfox-erlang) and
+[vfox-clang](https://github.com/version-fox/vfox-clang) offer these extras in all three
+interfaces. Both were checked on Linux only.
+
+- **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu
+  release, 20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead
+  of compiling it. The version list then holds the prebuilt builds, whose names carry the
+  `OTP-` prefix, such as `OTP-29.1.2`, and the list may not show the newest of them. Leave
+  the option empty to compile from the source, which takes several minutes and needs the
+  tools listed in the plugin's README. With a prebuilt build selected, `latest` is the
+  master branch, which is not a release.
+- **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
+  `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
+  *Settings → Environment variables* as `KEY=VALUE`.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-erlang,
+  in English and in Simplified Chinese, and to its README.
+- **Clang.** `latest` installs the version that the list marks as latest. The **Conda
+  channel** option picks the conda channel that pixi installs clang from; its presets are
+  prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
+  downloads pixi first, which takes about a minute.
+- **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
+  the pixi download. It has no preset, so set it in *Settings → Environment variables* to
+  a mirror that keeps GitHub's paths.
+- **Home directory.** Both plugins fail to install when the path of the home directory has
+  a space in it.
+
+### Elixir
+
+The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers these extras in all
+three interfaces. It was checked on Linux only.
+
+- **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
+  does not install Erlang/OTP for Elixir, and an installed Erlang/OTP is not put on the `PATH`
+  of an Elixir build. Install it first with the erlang plugin, and run Elixir together with it,
+  for example `vfox exec erlang@OTP-28.4.2 elixir@1.20.5 -- elixir --version`. Run alone,
+  `vfox exec elixir@1.20.5 -- elixir --version` fails with `exec: erl: not found`.
+- **Pre-built builds.** On Linux, the **Pre-built builds** option installs Elixir from the
+  pre-built builds of hex.pm instead of compiling it, and the version list then shows those
+  builds. Their names carry the Erlang/OTP major version, such as `1.20.5-otp-28`. Leave the
+  option empty to compile from the source. A source build takes about a minute and needs a
+  home directory whose path has no spaces; a pre-built build works with such a path.
+- **Versions.** `latest` is the first line of the list: `1.20-latest` on Linux, which ran as
+  1.20.5 when checked. With pre-built builds, `latest` is the `main` branch, which is not a
+  release. Write a version in full, such as `1.20.5`; a partial name such as `1.16` is not
+  accepted.
+- **Changing the option.** vfox caches a plugin's version list for up to 12 hours, and the
+  cache does not depend on the option. After you change the option, the list can therefore
+  still show the builds of the old option for that time.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
+  in English and in Simplified Chinese, and to its README.
+
+### etcd, Deno, Groovy, Scala and Zig
+
+The plugins [vfox-etcd](https://github.com/version-fox/vfox-etcd),
+[vfox-deno](https://github.com/version-fox/vfox-deno),
+[vfox-groovy](https://github.com/version-fox/vfox-groovy),
+[vfox-scala](https://github.com/version-fox/vfox-scala) and
+[vfox-zig](https://github.com/version-fox/vfox-zig) offer these extras in all three
+interfaces, with the limits that their lists have today:
+
+- **Names.** `latest` installs the first version of the list for Deno, Groovy, Scala and Zig,
+  and `nightly` installs the development build of the master branch of Zig. Groovy takes full
+  names such as `4.0.33`, but not partial names such as `4`, and its list sorts each
+  pre-release below its release. Deno also takes a line such as `2` or `2.1`, which installs
+  the newest release of that line. Zig takes full names such as `0.17.1`, and the names of Mach
+  builds such as `mach-latest`, but not partial names such as `0.17`. etcd takes full names such
+  as `3.7.3`, with or without a `v`, but not partial names such as `3.5`, and it offers no
+  `latest`, because its version list comes through a CDN that can keep an older copy.
+- **Archive mirror.** The **Archive mirror** option of Groovy offers two mirrors of the Apache
+  archive, dlcdn.apache.org and a Tsinghua mirror, for when archive.apache.org is slow. Both
+  keep only the current releases, so older versions do not appear in the list. The Tsinghua
+  mirror has no checksum files, so its installs are not verified.
+- **Stages.** The **Stage** filter of Groovy picks the pre-releases or the incubator releases.
+- **Downloads.** Scala 2.10.4 to 2.13 come from downloads.lightbend.com, which refused every
+  download when this was checked, so those versions cannot be installed for now. Scala 3.9.0,
+  which the list shows as LTS, installs under its number.
+- **Java.** Groovy and Scala need a JDK to run, and the plugins install none.
+- **Checksums.** Deno and Groovy check each archive against its checksum file when the release
+  has one: `.sha256sum` for Deno and `.sha256` for Groovy. They say so when a release has none.
+  etcd checks each archive against the `SHA256SUMS` file of its release. A release before 3.4.0
+  that publishes no such file, such as 0.3.0, is checked against checksums that the plugin pins,
+  and the install says so; a release from 3.4.0 on without the file is refused.
+- **Deno.** The list starts at 0.36.0, which is the first release with a download for Linux on
+  x86-64. The plugin sets the execute bit on Deno after it unpacks an archive, so 0.36.0 runs.
+  An install of 0.36.0 made by a plugin before 0.2.3 keeps the bit off: reinstall it.
+- **Zig.** The list needs ziglang.org: when it cannot be reached, the whole list fails.
+  machengine.org is optional: without it the list shows the official releases, with a warning.
+  A name that the list does not show is refused, and nothing is installed. vfox 1.1.0 `exec`
+  does not take `latest`, `nightly` or a Mach name, so give it the version name that `vfox list`
+  shows; `vfox use` takes these names. A Mach build that ziglang.org does not publish is
+  downloaded from pkg.hexops.org, and its checksum is still checked.
+- **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
+  you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
+  takes a few minutes. It was checked on Linux only: 3.4.32 and 3.5.12 build with failpoints,
+  3.5.5 fails, and 3.6.0 finishes without failpoints. Check the result with `GOFAIL_HTTP`. The
+  **Options** tab offers no switch for it.
+- **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
+  English and in Simplified Chinese, then to its documents and its README. The **Options** tabs
+  of vfox-deno and vfox-groovy link their documents, in English and in Simplified Chinese, and
+  their README.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.

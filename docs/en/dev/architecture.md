@@ -174,7 +174,8 @@ the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/
 
 A *profile* (`core/profile`) writes it down, as plain data that the three
 interfaces share, for `java`, `nodejs`, `flutter`, `gradle`, `golang`, `python`,
-`maven`, `php`, `dart`, `kotlin`, `dotnet` and `cmake`:
+`maven`, `php`, `dart`, `kotlin`, `dotnet`, `cmake`, `etcd`, `erlang`, `deno`, `groovy`,
+`scala`, `zig`, `clang` and `elixir`:
 
 | Part | What it is |
 | --- | --- |
@@ -184,7 +185,7 @@ interfaces share, for `java`, `nodejs`, `flutter`, `gradle`, `golang`, `python`,
 | Version files | The files vfox reads through the plugin, and whether the vfox setting `legacyVersionFile.strategy` matters for them |
 | Facets | The filters that suit the notes and the names of the listed versions: `LTS`, `JavaFX`, the channels and the architectures of Flutter |
 | Naming | How a version name is put together, so that `21.0.12.1+1-tem` shows Temurin and `3.47.7-x64` shows x64 |
-| Guide, tips, docs | A few sentences on the names, the things that surprise people and links to the documentation of the plugin |
+| Guide, tips, docs | A few sentences on the names, the things that surprise people and links to the documentation of the plugin: a page of its docs folder, its README, or its documentation website. A plugin that publishes a website with GitHub Pages has it linked first, in English under `/en/` and in Simplified Chinese at the root |
 
 The texts of a profile are written in both languages next to the data, not in
 the catalogues, because the web interface gets them over HTTP and the page does not

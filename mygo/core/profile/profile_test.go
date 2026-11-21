@@ -48,7 +48,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
 	registry := NewRegistry(linux())
-	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake"} {
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
 		}
@@ -213,7 +213,17 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"kotlin":  {nil, nil},
 		"dotnet":  {nil, nil},
 		"cmake":   {nil, nil},
+		"etcd":    {nil, nil},
+		"erlang":  {[]string{"USE_PREBUILT_OTP"}, nil},
+		"deno":    {nil, nil},
+		"groovy":  {[]string{"VFOX_GROOVY_MIRROR"}, nil},
+		"scala":   {nil, nil},
+		"zig":     {nil, nil},
+		"clang":   {[]string{"Conda_Forge"}, nil},
+		"elixir":  {[]string{"VFOX_ELIXIR_MIRROR"}, nil},
 	}
+	// These plugins take no name to install besides the versions they list.
+	noNames := map[string]bool{"etcd": true}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
 		var keys []string
@@ -239,8 +249,11 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		if !reflect.DeepEqual(profile.LegacyFiles, expected.legacy) {
 			t.Errorf("%s legacy files = %v, want %v", plugin, profile.LegacyFiles, expected.legacy)
 		}
-		if profile.Guide.EN == "" || profile.Guide.ZH == "" || len(profile.Tips) == 0 || len(profile.Shorthands) == 0 || len(profile.Docs) == 0 {
-			t.Errorf("%s needs a guide, tips, shorthands and documents", plugin)
+		if profile.Guide.EN == "" || profile.Guide.ZH == "" || len(profile.Tips) == 0 || len(profile.Docs) == 0 {
+			t.Errorf("%s needs a guide, tips and documents", plugin)
+		}
+		if (len(profile.Shorthands) == 0) != noNames[plugin] {
+			t.Errorf("%s has %d names to install, want none: %v", plugin, len(profile.Shorthands), noNames[plugin])
 		}
 		for _, tip := range profile.Tips {
 			if tip.EN == "" || tip.ZH == "" {
@@ -253,8 +266,7 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 			}
 		}
 		for _, link := range profile.Docs {
-			if !strings.HasPrefix(link.URL.EN, "https://github.com/version-fox/vfox-"+plugin+"/blob/main/docs/") ||
-				!strings.Contains(link.URL.ZH, "/docs/zh-CN/") || link.Title.EN == "" {
+			if !isPluginDocument(link, plugin) || link.Title.EN == "" {
 				t.Errorf("%s has a bad link %+v", plugin, link)
 			}
 		}
@@ -805,5 +817,185 @@ func TestFlutterNamesAreTakenApart(t *testing.T) {
 	}
 	if _, ok := lookup(t, "nodejs").Describe("24.22.0"); ok {
 		t.Error("the names of nodejs have no structure to read")
+	}
+}
+
+// isPluginDocument tells whether a link goes to the documentation of the plugin:
+// a page of its docs folder with a Chinese counterpart, its README, which has no
+// translation, or its documentation site, whose English pages are under /en/
+// and whose root is the Chinese one.
+func isPluginDocument(link Link, plugin string) bool {
+	repository := "https://github.com/version-fox/vfox-" + plugin + "/blob/main/"
+	site := "https://version-fox.github.io/vfox-" + plugin + "/"
+	switch {
+	case strings.HasPrefix(link.URL.EN, repository+"docs/"):
+		return strings.Contains(link.URL.ZH, "/docs/zh-CN/")
+	case link.URL.EN == repository+"README.md":
+		return link.URL.ZH == link.URL.EN
+	case strings.HasPrefix(link.URL.EN, site+"en/"):
+		return link.URL.ZH == site
+	default:
+		return false
+	}
+}
+
+func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
+	// The names to install were installed with vfox 1.1.0 and each plugin. latest
+	// is left out where the version list can lag behind the releases (etcd).
+	names := map[string][]string{
+		"etcd":   nil,
+		"erlang": {"latest"},
+		"deno":   {"latest"},
+		"groovy": {"latest"},
+		"scala":  {"latest"},
+		"zig":    {"latest", "nightly"},
+		"clang":  {"latest"},
+		"elixir": {"latest"},
+	}
+	for plugin, want := range names {
+		var got []string
+		for _, shorthand := range lookup(t, plugin).Shorthands {
+			got = append(got, shorthand.Name)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s offers %v to install, want %v", plugin, got, want)
+		}
+	}
+	// Only the mirrors of the conda channel that were checked are offered, and
+	// GITHUB_URL, which has none, is named in a tip instead.
+	conda, ok := lookup(t, "clang").Variable("Conda_Forge")
+	if !ok || len(conda.Presets) != 2 || conda.Presets[0].Value != "https://prefix.dev/conda-forge" {
+		t.Fatalf("Conda_Forge = %+v", conda)
+	}
+	if _, ok := lookup(t, "clang").Variable("GITHUB_URL"); ok {
+		t.Error("GITHUB_URL has no checked mirror, so it is a tip and no variable")
+	}
+	// etcd offers no failpoint switch: only some releases build with failpoints.
+	if _, ok := lookup(t, "etcd").Variable("BUILD_WITH_FAILPOINT"); ok {
+		t.Error("the failpoint build is a tip, not a variable")
+	}
+	// None of these has filters: deno and etcd have no notes, and the notes of
+	// zig join with | and the filters split only at commas and semicolons.
+	for _, plugin := range []string{"etcd", "erlang", "deno", "scala", "zig", "clang", "elixir"} {
+		if len(lookup(t, plugin).Facets) != 0 {
+			t.Errorf("%s offers filters, but its notes give none", plugin)
+		}
+	}
+}
+
+func TestErlangOffersItsPrebuiltBuildsOnLinuxOnly(t *testing.T) {
+	// The prebuilt builds were checked on Linux, for three Ubuntu releases. The
+	// plugin reads no variable on Windows, and the macOS builds were not checked.
+	want := map[string][]string{"linux": {"ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04"}, "darwin": nil, "windows": nil}
+	for goos, expected := range want {
+		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("erlang")
+		if !ok {
+			t.Fatal("no profile for erlang")
+		}
+		var values []string
+		for _, variable := range profile.Variables {
+			if variable.Key != "USE_PREBUILT_OTP" {
+				t.Errorf("%s offers %s", goos, variable.Key)
+			}
+			for _, preset := range variable.Presets {
+				values = append(values, preset.Value)
+			}
+		}
+		if !reflect.DeepEqual(values, expected) {
+			t.Errorf("%s presets = %v, want %v", goos, values, expected)
+		}
+	}
+}
+
+func TestThePluginsWithADocumentationWebsiteLinkIt(t *testing.T) {
+	// The documentation websites that the plugins publish with GitHub Pages, as
+	// they were checked on 2026-11-21: vfox-erlang and vfox-etcd have one, and
+	// the other plugins with a profile have none. A website comes first in the
+	// documents, in English under /en/ and in Chinese at the root.
+	withWebsite := map[string]bool{"elixir": true, "erlang": true, "etcd": true}
+	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"} {
+		profile := lookup(t, plugin)
+		base := "https://version-fox.github.io/vfox-" + plugin + "/"
+		websites := 0
+		for i, link := range profile.Docs {
+			if !strings.HasPrefix(link.URL.EN, base) {
+				continue
+			}
+			websites++
+			if i != 0 || link.URL.EN != base+"en/" || link.URL.ZH != base {
+				t.Errorf("%s: the website comes first, in English under /en/ and in Chinese at the root: %+v", plugin, link)
+			}
+		}
+		if (websites != 0) != withWebsite[plugin] {
+			t.Errorf("%s links %d documentation websites, want a website: %v", plugin, websites, withWebsite[plugin])
+		}
+	}
+}
+
+func TestGroovyFiltersItsStagesAndOffersItsMirror(t *testing.T) {
+	// The notes of vfox-groovy mark its pre-releases and its incubator releases.
+	// VFOX_GROOVY_MIRROR is offered with the two mirrors that were checked: both
+	// keep only the current releases, and the Tsinghua mirror has no checksum files.
+	groovy := lookup(t, "groovy")
+	versions := []core.AvailableVersion{
+		{Version: "6.0.0"},
+		{Version: "6.0.0-RC-2", Note: "pre-release", HasNote: true},
+		{Version: "2.4.5-incubating", Note: "incubating", HasNote: true},
+	}
+	groups := groovy.Groups(versions)
+	wantGroups := []Group{{ID: "stage", Label: groovy.Facets[0].Label, Chips: []Chip{{"pre-release", 1}, {"incubating", 1}}}}
+	if !reflect.DeepEqual(groups, wantGroups) {
+		t.Fatalf("groups = %+v, want %+v", groups, wantGroups)
+	}
+	kept := func(value string) []string {
+		var names []string
+		for _, version := range versions {
+			if groovy.Matches(Selection{}.Toggled("stage", value), version) {
+				names = append(names, version.Version)
+			}
+		}
+		return names
+	}
+	if got := kept("pre-release"); !reflect.DeepEqual(got, []string{"6.0.0-RC-2"}) {
+		t.Errorf("pre-release = %v", got)
+	}
+	if got := kept("incubating"); !reflect.DeepEqual(got, []string{"2.4.5-incubating"}) {
+		t.Errorf("incubating = %v", got)
+	}
+	mirror, ok := groovy.Variable("VFOX_GROOVY_MIRROR")
+	if !ok {
+		t.Fatal("no mirror variable for groovy")
+	}
+	var values []string
+	for _, preset := range mirror.Presets {
+		values = append(values, preset.Value)
+	}
+	wantValues := []string{"https://dlcdn.apache.org/groovy", "https://mirrors.tuna.tsinghua.edu.cn/apache/groovy"}
+	if !reflect.DeepEqual(values, wantValues) {
+		t.Errorf("mirror presets = %v, want %v", values, wantValues)
+	}
+}
+
+func TestElixirOffersThePrebuiltBuildsOnLinuxOnly(t *testing.T) {
+	// The pre-built builds of hex.pm were checked on Linux. The installer of
+	// Windows runs before the hex check, and the macOS builds were not checked.
+	want := map[string][]string{"linux": {"hex"}, "darwin": nil, "windows": nil}
+	for goos, expected := range want {
+		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("elixir")
+		if !ok {
+			t.Fatal("no profile for elixir")
+		}
+		var values []string
+		for _, variable := range profile.Variables {
+			if variable.Key != "VFOX_ELIXIR_MIRROR" {
+				t.Errorf("%s offers %s", goos, variable.Key)
+			}
+			for _, preset := range variable.Presets {
+				values = append(values, preset.Value)
+			}
+		}
+		if !reflect.DeepEqual(values, expected) {
+			t.Errorf("%s presets = %v, want %v", goos, values, expected)
+		}
 	}
 }
