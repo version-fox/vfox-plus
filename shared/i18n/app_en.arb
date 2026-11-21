@@ -933,7 +933,7 @@
   "@webQuitAction": { "description": "Button that ends the application." },
   "webQuitConfirmTitle": "Quit vfox+?",
   "@webQuitConfirmTitle": { "description": "Title of the dialog that asks whether to end the application." },
-  "webQuitConfirmBody": "vfox+ ends, and the web interface with it. Tasks that are running are cancelled.",
+  "webQuitConfirmBody": "vfox+ ends, and the connections of other devices with it. Tasks that are running are cancelled.",
   "@webQuitConfirmBody": { "description": "Warns about what quitting means." },
   "trayToolTip": "vfox+ is running in the background",
   "@trayToolTip": { "description": "Hover text of the icon in the tray, which stands for the application while its window is closed." },

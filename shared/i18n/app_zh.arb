@@ -206,7 +206,7 @@
   "webQuit": "退出 vfox+",
   "webQuitAction": "退出",
   "webQuitConfirmTitle": "退出 vfox+？",
-  "webQuitConfirmBody": "vfox+ 会结束，网页界面也随之结束。正在运行的任务会被取消。",
+  "webQuitConfirmBody": "vfox+ 会结束，其他设备的连接也随之断开。正在运行的任务会被取消。",
   "trayToolTip": "vfox+ 正在后台运行",
   "trayOpen": "打开 vfox+",
   "settingsExecutable": "可执行文件",
