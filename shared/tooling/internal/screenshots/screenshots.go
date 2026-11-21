@@ -60,7 +60,7 @@ type run struct {
 	scenario func(*appsession.Session, shooter)
 }
 
-// documentationAddress is the address of the computer in the pictures of the web interface: the
+// documentationAddress is the address of the computer in the pictures of the settings of other devices: the
 // one that the end-to-end build is told (VFOX_PLUS_E2E_ADDRESSES), an address of the kind that a home
 // network has, the same at every run, and the address of no machine.
 const documentationAddress = "192.168.1.20"
@@ -209,11 +209,10 @@ func webInterface(w words) func(*appsession.Session, shooter) {
 			s.PressKey(w.language)
 		}
 		s.WaitForText(w.section)
-		// The page is scrolled to its end and back up to the row of the language, so that the window starts there, with
-		// the group of the web interface after it, as the pictures that follow do: scrolling shows an element with
-		// as little movement as it takes, which puts one that is above the window at the top of it.
-		scrollTo(s, "licenses")
-		scrollTo(s, "english")
+		// The first two pictures are of the page as a person finds it, at its top. The group of other devices is short
+		// while they are not allowed, and a page that is scrolled down to it shows, under the group of vfox, the section of
+		// the updates, whose check says what a sandbox with no network can say of it: the error of the lookup, with the
+		// address of the resolver of the machine that took the picture.
 		c.shot(s, w.prefix+"web-interface")
 
 		s.PressKey("web-remote")
