@@ -36,11 +36,11 @@ that you trust.
   (PEM files).
 - *Pair a phone* shows the **QR code** of a pairing link. Read it with the
   [phone app](android.md) (a photo of the code, or a picture of it), or paste the link into
-  the [phone app](android.md) or the [gateway](gateway.md). The link is
-  under *Link and certificate*, with the fingerprint of the certificate for whoever wants to
-  check it. A computer that is on more than one network, or that has a public address, offers
-  each address above the code: choose the one that the phone reaches. The link works once and
-  expires after five minutes.
+  the [phone app](android.md) or the [gateway](gateway.md). The link is shown under the
+  code, and *Copy link* copies it; the fingerprint of the certificate, for whoever wants to
+  check it, is in the *Certificate* row of the settings. A computer that is on more than one
+  network, or that has a public address, offers each address under the code: choose the one
+  that the phone reaches. The link works once and expires after five minutes.
 - A paired device keeps its session for 24 hours. Turning *Other devices* off, or closing
   vfox-plus, ends the connections of all of them at once, and they have to pair again.
 

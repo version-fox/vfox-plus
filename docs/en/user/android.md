@@ -12,9 +12,10 @@ open in the browser of the phone.
 
 Install the `.apk` of the latest GitHub release, as [Install](install.md#android)
 describes. The phone app has the package name `dev.vfox.vfoxplus`, the same as the
-earlier Android client, which showed the web interface in a window. If Android
-refuses to install over that client, uninstall it first; that forgets the pairing,
-so pair the phone again afterwards.
+earlier Android client, which showed the web interface in a window. The phone app
+does not take over what that client kept, so once it has replaced that client you
+pair the phone again. If Android refuses to install over that client, uninstall it
+first.
 
 ## Pair the phone
 
@@ -45,11 +46,11 @@ The phone must reach the PC, on the same Wi-Fi or on another network route.
 
 5. The app checks the PC and shows *Trust this computer?* (信任这台电脑吗？) with the
    SHA-256 fingerprint of the certificate of the PC. Compare it with the fingerprint
-   that the PC shows in *Settings → Other devices*, under *Link and certificate*
-   (链接与证书), after **Show code**.
+   that the PC shows in *Settings → Other devices*, in the *Certificate* (证书) row.
 6. Only when the two fingerprints match, tap **Trust and pair** (信任并配对). The app
-   saves the address and the fingerprint of the PC and pins its certificate: from then
-   on it accepts that certificate only, and refuses any other one.
+   saves the address and the fingerprint of the PC and, unless Android already trusts
+   its certificate, pins it: from then on the app accepts that certificate only, and
+   refuses any other one.
 
 | The pairing page | The question that asks to trust the computer | The home page, once the phone is paired |
 | --- | --- | --- |
@@ -131,7 +132,8 @@ or running finishes while you look at another tab, a message says so, with **Vie
   the screens of this phone. Both offer *system* (跟随系统), *English* and *简体中文*. Then
   come **Environment variables** (环境变量), one `KEY=value` per line, saved with **Save**
   (保存).
-- **vfox config** (vfox 配置): the settings of vfox on the PC; tap one to change it.
+- **vfox config** (vfox 配置): the settings of vfox on the PC. Open the **Actions** (操作)
+  menu of one and choose **Edit** (修改) to change it, or **Reset** (重置) to remove it.
 
 The app follows the dark theme of the phone, and its text size and motion follow the
 system's settings.

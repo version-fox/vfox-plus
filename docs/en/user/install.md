@@ -83,9 +83,12 @@ Download `vfox-plus_<version>.apk` from the [latest GitHub release](https://gith
 to your phone, open it, and allow the installation when Android asks. The APK is
 signed with the release key of the project, the same key for every release: a newer
 release installs over the one on the phone and keeps its data and the pairing with
-your PC. An APK signed with another key, such as a development build, does not install
-over it: uninstall that one first, which forgets the pairing. To install from a computer
-instead, turn on USB debugging and run `adb install -r vfox-plus_<version>.apk`.
+your PC. (The earlier Android client, which this app replaces, kept its pairing in
+another form, so the first install over it needs a new pairing: see
+[The phone app](android.md#install).) An APK signed with another key, such as a
+development build, does not install over it: uninstall that one first, which forgets the
+pairing. To install from a computer instead, turn on USB debugging and run
+`adb install -r vfox-plus_<version>.apk`.
 
 Then pair the app with the vfox-plus on your PC. See [The phone app](android.md).
 
