@@ -19,7 +19,7 @@ that you trust.
 
 | The question that comes first | What the settings show once it is allowed |
 | --- | --- |
-| ![The question that asks whether other devices may connect](https://iili.io/nyiVCLN.png) | ![The settings with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/nyiVRpf.png) |
+| ![The question that asks whether other devices may connect](https://iili.io/oFDBQQp.png) | ![The settings with other devices allowed: the port, the code that pairs a phone and the certificate](https://iili.io/oFDCMtR.png) |
 
 - vfox-plus listens on the **port** that the settings show, 8369 unless you change it. The
   firewall of this computer has to allow it.
@@ -46,7 +46,7 @@ that you trust.
 
 | The code and the link of *Pair a phone*, on the computer | The same code, in the settings of the interface that the gateway shows |
 | --- | --- |
-| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/nyiVG2e.png) | ![The code that pairs a phone, in the settings of the interface](https://iili.io/nmiAZPI.png) |
+| ![The code that pairs a phone, with its link, in the window of vfox-plus](https://iili.io/oFDnBxR.png) | ![The code that pairs a phone, in the settings of the interface](https://iili.io/oFDo8Cl.png) |
 
 The settings of the phone app and of the interface that the gateway shows have the same
 switches: from a paired device you can allow

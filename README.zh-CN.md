@@ -41,7 +41,7 @@
 
 | 插件仓库 | 简体中文设置 |
 | --- | --- |
-| ![插件](https://iili.io/nmPmysS.png) | ![设置](https://iili.io/nyiMbzQ.png) |
+| ![插件](https://iili.io/nmPmysS.png) | ![设置](https://iili.io/oFDBArX.png) |
 
 | 窄窗口主页 | 窄窗口 SDK 页 |
 | --- | --- |
