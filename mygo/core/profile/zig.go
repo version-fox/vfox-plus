@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-zig (https://github.com/version-fox/vfox-zig), written
-// from its code at release 0.1.3, which its main branch shares.
+// from its code at release 0.1.4, which its main branch shares.
 
 // zigProfile is the profile of vfox-zig. The list needs ziglang.org, and
 // machengine.org is optional: without it the list shows the official releases,
@@ -44,8 +44,8 @@ func zigProfile() Profile {
 				"列表中没有的名称会被拒绝，什么也不会安装。",
 			),
 			text(
-				"vfox 1.1.0 exec does not take latest, nightly or a Mach name. Give the version name that vfox list shows, such as 0.18.0-dev.1260+833623422. vfox use takes these names.",
-				"vfox 1.1.0 的 exec 不接受 latest、nightly 或 Mach 名称。请用 vfox list 显示的版本名，如 0.18.0-dev.1260+833623422。vfox use 可以接受这些名称。",
+				"vfox 1.1.0 exec does not take latest, nightly or a Mach name. Give the version name that vfox list shows, such as 0.18.0-dev.1272+2ff397f75. vfox use takes these names.",
+				"vfox 1.1.0 的 exec 不接受 latest、nightly 或 Mach 名称。请用 vfox list 显示的版本名，如 0.18.0-dev.1272+2ff397f75。vfox use 可以接受这些名称。",
 			),
 			text(
 				"A Mach build that ziglang.org does not publish, such as 2024.5.0-mach, is downloaded from pkg.hexops.org, and its checksum from the index is still checked.",
