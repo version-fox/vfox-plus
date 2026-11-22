@@ -230,7 +230,7 @@ interfaces. Both were checked on Linux only.
 - **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
   the pixi download. It has no preset, so set it in *Settings → Environment variables* to
   a mirror that keeps GitHub's paths.
-- **Home directory.** A source build of Erlang/OTP stops before configure when the path of the home directory contains an apostrophe, a double quote, a dollar sign or a backtick, and it fails in configure when the path contains a space. The refusal names `VFOX_HOME`: with `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path. Clang fails when the path of the home directory has a space in it.
+- **Home directory.** A source build of Erlang/OTP stops before configure, once it has downloaded the source, when the path of `VFOX_HOME` contains an apostrophe, a double quote, a dollar sign, a backtick or a space; the refusal names the character. With `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path. Clang fails when the path of the home directory has a space in it.
 
 ### Elixir
 
