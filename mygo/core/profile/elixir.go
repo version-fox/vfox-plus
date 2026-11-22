@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-elixir (https://github.com/version-fox/vfox-elixir),
-// written from its code at release 1.0.2.
+// written from its code at release 1.0.3.
 
 // elixirProfile is the profile of vfox-elixir. The plugin builds Elixir from its
 // source release, or installs a pre-built build from hex.pm when
