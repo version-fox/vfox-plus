@@ -259,7 +259,7 @@ three interfaces. It was checked on Linux only.
 - **Searching.** `vfox search elixir` lists the releases whatever the option is, and
   `vfox search elixir hex` lists the pre-built builds. The plugin's documentation says that vfox
   keeps each list for up to 12 hours.
-- **Detect and link.** `vfox link --detect elixir` finds the Elixir installations already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. An installation whose `elixir` is not executable is listed but cannot be linked yet. It needs vfox 1.1.0 or later, and it was checked on Linux only.
+- **Detect and link.** `vfox link --detect elixir` finds the Elixir installations already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. It needs vfox 1.1.0 or later, and it was checked on Linux only.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
   in English and in Simplified Chinese, and to its README.
 
@@ -306,6 +306,7 @@ interfaces, with the limits that their lists have today:
   does not take `latest`, `nightly` or a Mach name, so give it the version name that `vfox list`
   shows; `vfox use` takes these names. A Mach build that ziglang.org does not publish is
   downloaded from pkg.hexops.org, and its checksum is still checked.
+- **Detect and link.** `vfox link --detect zig` finds the Zig installations already on the machine, from asdf, mise, zvm, Scoop, the system directories and PATH, and links them instead of installing another copy. A zig that cannot run is not listed, and neither are the installs that vfox manages or anything under VFOX_HOME. It needs vfox 1.1.0 or later, and it was checked on Linux only.
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
   you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
   takes longer than an install from a release. It was checked on Linux only: 3.5.12 builds with

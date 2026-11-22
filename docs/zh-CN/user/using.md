@@ -122,7 +122,7 @@
 - **预编译构建。** 在 Linux 上，**预编译构建**选项用 hex.pm 的预编译构建安装 Elixir，而不从源码编译。构建名称带有它所需的 Erlang/OTP 版本，如 `1.20.5-otp-29`，`vfox search elixir hex` 只列出这样的名称。不带 `-otp-N` 后缀的名称（如 `1.20.5`）不会列出；如果手动输入，安装会打印警告，并且这个构建可能无法用你的 Erlang/OTP 运行。选项不改变 `vfox search elixir`，它列出的是发行版。选项留空则从源码编译：源码构建约需一分钟，`VFOX_HOME` 的路径中不能有空格，也不能有引号、美元符号或 & 这样的 shell 字符；预编译构建不受此限制。
 - **版本。** `latest` 是列表的第一行：Linux 上是 `1.20-latest`，检查时它运行为 1.20.5。使用预编译构建时，`latest` 会在下载前停止，请输入 `1.20.5-otp-29` 这样的构建名称。请完整写出版本，如 `1.20.5`。源码构建中，`1.16` 这样的部分版本号不是发行版，因为它的标签不存在。
 - **搜索。** 无论选项如何，`vfox search elixir` 都列出发行版；`vfox search elixir hex` 列出预编译构建。插件文档说 vfox 对每次搜索的列表最多保留 12 小时。
-- **探测并链接。** `vfox link --detect elixir` 会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。`elixir` 不可执行的安装会被列出，但暂时无法链接。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。
+- **探测并链接。** `vfox link --detect elixir` 会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。
 - **文档。** **选项**页签链接到 vfox-elixir 的文档网站（英文与简体中文），以及它的 README。
 
 ### etcd、Deno、Groovy、Scala 与 Zig
@@ -137,6 +137,7 @@
 - **校验和。** Deno 与 Groovy 在发行版提供校验文件时据此校验（Deno 为 `.sha256sum`，Groovy 为 `.sha256`），没有时会说明未校验。etcd 用其发行版的 `SHA256SUMS` 文件校验。没有该文件的 3.4.0 之前的发行版（如 0.3.0），会用插件固定的校验和检查，安装时会说明；3.4.0 及以后没有该文件的发行版会被拒绝。
 - **Deno。** 列表从 0.36.0 开始，它是 Linux x86-64 上第一个有下载文件的发行版。插件在解压后为 Deno 设置可执行位，所以 0.36.0 可以运行。0.2.3 之前的插件安装的 0.36.0 没有可执行位：请重新安装它。
 - **Zig。** 列表需要 ziglang.org：它无法访问时，整个列表都会失败。machengine.org 是可选的：无法访问时，列表只显示官方发行版，并给出警告。列表中没有的名称会被拒绝，什么也不会安装。vfox 1.1.0 的 `exec` 不接受 `latest`、`nightly` 或 Mach 名称，请用 `vfox list` 显示的版本名；`vfox use` 可以接受这些名称。ziglang.org 没有发布的 Mach 构建从 pkg.hexops.org 下载，仍然按索引中的校验和检查。
+- **探测并链接。** `vfox link --detect zig` 会找出机器上已有的 Zig 安装，来自 asdf、mise、zvm、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。无法运行的 zig 不会被列出，vfox 管理的安装与 VFOX_HOME 下的任何内容也不会被列出。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。
 - **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT=yes` 开启，它会按所选版本从源码构建，并启用 failpoint。需要 PATH 上有 Git、Go 和 GNU Make，并且比安装发行版耗时更长。仅在 Linux 上检查过：3.5.12 能构建出带 failpoint 的版本，3.5.5 会失败。请用 `GOFAIL_HTTP` 检查结果。只有值 `yes` 会开启该构建：`1` 与 `YES` 会被拒绝，`no` 或留空则安装官方构建。**选项**页签不为它提供开关。
 - **文档。** etcd 的**选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文）、它的文档与 README。vfox-deno 与 vfox-groovy 的**选项**页签链接各自的文档（英文与简体中文）以及 README。
 

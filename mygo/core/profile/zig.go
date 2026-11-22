@@ -15,14 +15,14 @@
 package profile
 
 // The profile of vfox-zig (https://github.com/version-fox/vfox-zig), written
-// from its code at release 0.1.2, which its main branch shares.
+// from its code at release 0.1.3, which its main branch shares.
 
 // zigProfile is the profile of vfox-zig. The list needs ziglang.org, and
 // machengine.org is optional: without it the list shows the official releases,
 // with a warning. latest is the newest stable release, and nightly is the
 // development build of the master branch. vfox 1.1.0 exec takes a version name
 // and not these names, so the tips say which name to give it. The plugin reads
-// no variable.
+// no variable of its own; its link detection reads VFOX_HOME, PATH and HOME.
 func zigProfile() Profile {
 	return Profile{
 		Plugin: "zig",
@@ -50,6 +50,10 @@ func zigProfile() Profile {
 			text(
 				"A Mach build that ziglang.org does not publish, such as 2024.5.0-mach, is downloaded from pkg.hexops.org, and its checksum from the index is still checked.",
 				"ziglang.org 没有发布的 Mach 构建（如 2024.5.0-mach）从 pkg.hexops.org 下载，仍然按索引中的校验和检查。",
+			),
+			text(
+				"Detect and link finds the Zig installations that are already on the machine, from asdf, mise, zvm, Scoop, the system directories and PATH, and links them instead of installing another copy. A zig that cannot run is not listed, and neither are the installs that vfox manages or anything under VFOX_HOME. It needs vfox 1.1.0 or later, and it was checked on Linux only.",
+				"探测并链接会找出机器上已有的 Zig 安装，来自 asdf、mise、zvm、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。无法运行的 zig 不会被列出，vfox 管理的安装与 VFOX_HOME 下的任何内容也不会被列出。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。",
 			),
 		},
 		Docs: []Link{
