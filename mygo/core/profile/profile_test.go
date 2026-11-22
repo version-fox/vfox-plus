@@ -222,8 +222,8 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 		"clang":   {[]string{"Conda_Forge"}, nil},
 		"elixir":  {[]string{"VFOX_ELIXIR_MIRROR"}, nil},
 	}
-	// These plugins take no name to install besides the versions they list.
-	noNames := map[string]bool{"etcd": true}
+	// Every plugin offers at least one name to install, such as latest.
+	noNames := map[string]bool{}
 	for plugin, expected := range want {
 		profile := lookup(t, plugin)
 		var keys []string
@@ -841,9 +841,9 @@ func isPluginDocument(link Link, plugin string) bool {
 
 func TestTheNewPluginsOfferWhatTheyWork(t *testing.T) {
 	// The names to install were installed with vfox 1.1.0 and each plugin. latest
-	// is left out where the version list can lag behind the releases (etcd).
+	// is the first line of each list.
 	names := map[string][]string{
-		"etcd":   nil,
+		"etcd":   {"latest"},
 		"erlang": {"latest"},
 		"deno":   {"latest"},
 		"groovy": {"latest"},

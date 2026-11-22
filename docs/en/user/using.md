@@ -272,8 +272,8 @@ interfaces, with the limits that their lists have today:
   names such as `3` or `2.13`. Deno also takes a line such as `2` or `2.1`, which installs
   the newest release of that line. Zig takes full names such as `0.17.1`, and the names of Mach
   builds such as `mach-latest`, but not partial names such as `0.17`. etcd takes full names such
-  as `3.7.3`, with or without a `v`, but not partial names such as `3.5`, and it offers no
-  `latest`, because its version list comes through a CDN that can keep an older copy.
+  as `3.7.3`, with or without a `v`, but not partial names such as `3.5`. `latest` installs the
+  first line of its list, the newest release.
 - **Archive mirror.** The **Archive mirror** option of Groovy offers dlcdn.apache.org, another
   copy of the Apache archive, for when archive.apache.org is slow. It keeps only the current
   releases, so older versions do not appear in the list. A Tsinghua mirror is not offered: its
@@ -301,8 +301,9 @@ interfaces, with the limits that their lists have today:
   downloaded from pkg.hexops.org, and its checksum is still checked.
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
   you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
-  takes a few minutes. It was checked on Linux only: 3.4.32 and 3.5.12 build with failpoints,
-  3.5.5 fails, and 3.6.0 finishes without failpoints. Check the result with `GOFAIL_HTTP`. The
+  takes longer than an install from a release. It was checked on Linux only: 3.5.12 builds with
+  failpoints, and 3.5.5 fails. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build
+  on: `1` and `YES` are refused, and `no` or an empty value installs the official build. The
   **Options** tab offers no switch for it.
 - **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
   English and in Simplified Chinese, then to its documents and its README. The **Options** tabs
