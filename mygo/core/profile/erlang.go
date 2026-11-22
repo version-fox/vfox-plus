@@ -15,14 +15,15 @@
 package profile
 
 // The profile of vfox-erlang (https://github.com/version-fox/vfox-erlang),
-// written from its code at release 1.2.0, which its main branch shares.
+// written from its code at release 1.2.1, which its main branch shares.
 
 // erlangProfile is the profile of vfox-erlang. With USE_PREBUILT_OTP set to an
 // Ubuntu release, the plugin installs a prebuilt build and lists the prebuilt
-// builds instead of the source releases. The variable is offered on Linux only:
-// the prebuilt builds of macOS were not checked, and the plugin reads no variable
-// on Windows. OTP_CONFIGURE_ARGS and MAKEFLAGS take free text, so the tips name
-// them instead.
+// builds instead of the source releases; the names are the release numbers, and
+// OTP-29.1.2 also installs the prebuilt build of that release. The variable is
+// offered on Linux only: the prebuilt builds of macOS were not checked, and the
+// plugin reads no variable on Windows. OTP_CONFIGURE_ARGS and MAKEFLAGS take
+// free text, so the tips name them instead.
 func erlangProfile(platform Platform) Profile {
 	var variables []Variable
 	if platform.OS == "linux" {
@@ -45,17 +46,17 @@ func erlangProfile(platform Platform) Profile {
 	return Profile{
 		Plugin: "erlang",
 		Shorthands: []Shorthand{
-			{Name: "latest", Meaning: text("The newest release in the list; with a prebuilt build selected, the master branch", "列表中最新的发行版；选择了预编译构建时为 master 分支")},
+			{Name: "latest", Meaning: text("The newest release in the list", "列表中最新的发行版")},
 		},
 		Variables: variables,
 		Guide: text(
-			"Write the release as the list shows it, such as 29.1.2. With a prebuilt build selected, the names carry the OTP- prefix, such as OTP-29.1.2.",
-			"按列表中的样子写版本，如 29.1.2。选择了预编译构建后，名称带 OTP- 前缀，如 OTP-29.1.2。",
+			"Write the release as the list shows it, such as 29.1.2. With a prebuilt build selected, OTP-29.1.2 also installs the prebuilt build of that release.",
+			"按列表中的样子写版本，如 29.1.2。选择了预编译构建后，OTP-29.1.2 也会安装该发行版的预编译构建。",
 		),
 		Tips: []Text{
 			text(
-				"Building from source takes several minutes and needs the tools that the plugin's README lists.",
-				"从源码编译需要几分钟，并需要插件 README 中列出的编译工具。"),
+				"Building from source takes a long time and needs the tools that the plugin's source-build page lists.",
+				"从源码编译需要很长时间，并需要插件源码编译页面中列出的编译工具。"),
 			text(
 				"OTP_CONFIGURE_ARGS, set in Settings under Environment variables, passes arguments to configure, such as --without-javac.",
 				"在“设置”的“环境变量”中设置 OTP_CONFIGURE_ARGS，可把参数传给 configure，如 --without-javac。"),
@@ -63,14 +64,16 @@ func erlangProfile(platform Platform) Profile {
 				"MAKEFLAGS, set in Settings under Environment variables, runs make in parallel, such as -j8.",
 				"在“设置”的“环境变量”中设置 MAKEFLAGS，可让 make 并行编译，如 -j8。"),
 			text(
-				"The list of prebuilt builds may not show the newest ones.",
-				"预编译构建的列表可能不显示最新的构建。"),
+				"vfox keeps one search cache per plugin, and the cache does not depend on USE_PREBUILT_OTP. Turn the search cache off before you use prebuilt releases, as the plugin's prebuilt page says.",
+				"vfox 为每个插件保留一份搜索缓存，而且缓存与 USE_PREBUILT_OTP 无关。使用预编译构建前请关闭搜索缓存，见插件的预编译页面。"),
 			text(
-				"An install fails when the path of the home directory has a space.",
-				"家目录的路径含空格时，安装会失败。"),
+				"A source build fails when the path of the home directory contains an apostrophe. A prebuilt build works with a space in the path.",
+				"家目录的路径含单引号时，源码编译会失败。预编译构建可以在含空格的路径下安装。"),
 		},
 		Docs: []Link{
 			website("vfox-erlang", text("Documentation website", "文档网站")),
+			docs("vfox-erlang", "prebuilt", text("Prebuilt builds", "预编译构建")),
+			docs("vfox-erlang", "source-build", text("Building from source", "从源码编译")),
 			readme("vfox-erlang", text("Plugin README", "插件说明")),
 		},
 	}

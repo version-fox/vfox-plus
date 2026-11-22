@@ -207,18 +207,19 @@ The plugins [vfox-erlang](https://github.com/version-fox/vfox-erlang) and
 [vfox-clang](https://github.com/version-fox/vfox-clang) offer these extras in all three
 interfaces. Both were checked on Linux only.
 
-- **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu
-  release, 20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead
-  of compiling it. The version list then holds the prebuilt builds, whose names carry the
-  `OTP-` prefix, such as `OTP-29.1.2`, and the list may not show the newest of them. Leave
-  the option empty to compile from the source, which takes several minutes and needs the
-  tools listed in the plugin's README. With a prebuilt build selected, `latest` is the
-  master branch, which is not a release.
+- **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu release,
+  20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead of compiling
+  it. The version list then holds the prebuilt builds under the release numbers, such as
+  `29.1.2`; the name `OTP-29.1.2` also installs the prebuilt build of that release. Leave the
+  option empty to compile from the source, which takes a long time and needs the tools that the
+  plugin's source-build page lists. With a prebuilt build selected, `latest` is the newest
+  release in the list. The search cache is kept per plugin and does not depend on the option,
+  so turn it off before you use prebuilt releases, as the plugin's prebuilt page says.
 - **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
   `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
   *Settings → Environment variables* as `KEY=VALUE`.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-erlang,
-  in English and in Simplified Chinese, and to its README.
+  in English and in Simplified Chinese, and to its prebuilt and source-build pages and its README.
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
   channel** option picks the conda channel that pixi installs clang from; its presets are
   prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
@@ -226,8 +227,9 @@ interfaces. Both were checked on Linux only.
 - **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
   the pixi download. It has no preset, so set it in *Settings → Environment variables* to
   a mirror that keeps GitHub's paths.
-- **Home directory.** Both plugins fail to install when the path of the home directory has
-  a space in it.
+- **Home directory.** A source build of Erlang/OTP fails when the path of the home directory
+  contains an apostrophe, and a prebuilt build works with a space in the path. Clang fails when
+  the path of the home directory has a space in it.
 
 ### Elixir
 
