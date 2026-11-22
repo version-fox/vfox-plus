@@ -210,11 +210,14 @@ interfaces. Both were checked on Linux only.
 - **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu release,
   20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead of compiling
   it. The version list then holds the prebuilt builds under the release numbers, such as
-  `29.1.2`; the name `OTP-29.1.2` also installs the prebuilt build of that release. Leave the
+  `29.1.2`, and its newest build depends on the release: on Ubuntu 20.04 it is 28.4.2. The name
+  `OTP-29.1.2` also installs the prebuilt build of that release. vfox records the install under
+  the release number, so run it as `erlang@29.1.2`: `vfox exec erlang@OTP-29.1.2` does not find
+  it and starts an install of it, which is a source build without `USE_PREBUILT_OTP`. Leave the
   option empty to compile from the source, which takes a long time and needs the tools that the
-  plugin's source-build page lists. With a prebuilt build selected, `latest` is the newest
-  release in the list. The search cache is kept per plugin and does not depend on the option,
-  so turn it off before you use prebuilt releases, as the plugin's prebuilt page says.
+  plugin's source-build page lists. With a prebuilt build selected, `latest` is the newest release
+  in the list. The search cache is kept per plugin and does not depend on the option, so turn it
+  off before you use prebuilt releases, as the plugin's prebuilt page says.
 - **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
   `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
   *Settings → Environment variables* as `KEY=VALUE`.
@@ -227,9 +230,7 @@ interfaces. Both were checked on Linux only.
 - **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
   the pixi download. It has no preset, so set it in *Settings → Environment variables* to
   a mirror that keeps GitHub's paths.
-- **Home directory.** A source build of Erlang/OTP fails when the path of the home directory
-  contains an apostrophe, and a prebuilt build works with a space in the path. Clang fails when
-  the path of the home directory has a space in it.
+- **Home directory.** A source build of Erlang/OTP stops before configure when the path of the home directory contains an apostrophe, a double quote, a dollar sign or a backtick, and it fails in configure when the path contains a space. The refusal names `VFOX_HOME`: with `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path. Clang fails when the path of the home directory has a space in it.
 
 ### Elixir
 
