@@ -268,20 +268,23 @@ interfaces, with the limits that their lists have today:
 - **Names.** `latest` installs the first version of the list for Deno, Groovy, Scala and Zig,
   and `nightly` installs the development build of the master branch of Zig. Groovy takes full
   names such as `4.0.33`, but not partial names such as `4`, and its list sorts each
-  pre-release below its release. Deno also takes a line such as `2` or `2.1`, which installs
+  pre-release below its release. Scala takes full names such as `3.10.1`, but not partial
+  names such as `3` or `2.13`. Deno also takes a line such as `2` or `2.1`, which installs
   the newest release of that line. Zig takes full names such as `0.17.1`, and the names of Mach
   builds such as `mach-latest`, but not partial names such as `0.17`. etcd takes full names such
   as `3.7.3`, with or without a `v`, but not partial names such as `3.5`, and it offers no
   `latest`, because its version list comes through a CDN that can keep an older copy.
-- **Archive mirror.** The **Archive mirror** option of Groovy offers two mirrors of the Apache
-  archive, dlcdn.apache.org and a Tsinghua mirror, for when archive.apache.org is slow. Both
-  keep only the current releases, so older versions do not appear in the list. The Tsinghua
-  mirror has no checksum files, so its installs are not verified.
+- **Archive mirror.** The **Archive mirror** option of Groovy offers dlcdn.apache.org, another
+  copy of the Apache archive, for when archive.apache.org is slow. It keeps only the current
+  releases, so older versions do not appear in the list. A Tsinghua mirror is not offered: its
+  list works, but its downloads were refused when this was checked.
 - **Stages.** The **Stage** filter of Groovy picks the pre-releases or the incubator releases.
-- **Downloads.** Scala 2.10.4 to 2.13 come from downloads.lightbend.com, which refused every
-  download when this was checked, so those versions cannot be installed for now. Scala 3.9.0,
-  which the list shows as LTS, installs under its number.
-- **Java.** Groovy and Scala need a JDK to run, and the plugins install none.
+- **Downloads.** Scala 2.10.4 and older download from scala-lang.org; Scala 2.10.5 and later,
+  and all of Scala 3, download from GitHub. A GitHub download is checked against the `.sha256`
+  file next to it when Scala publishes one, and the install says so when it does not. Scala
+  3.9.0, which the list shows as LTS, installs under its number.
+- **Java.** Groovy and Scala need a JDK to run, and the plugins install none. Scala 2.10.4 did
+  not run on the JDK 25 that was checked.
 - **Checksums.** Deno and Groovy check each archive against its checksum file when the release
   has one: `.sha256sum` for Deno and `.sha256` for Groovy. They say so when a release has none.
   etcd checks each archive against the `SHA256SUMS` file of its release. A release before 3.4.0

@@ -15,15 +15,16 @@
 package profile
 
 // The profile of vfox-groovy (https://github.com/version-fox/vfox-groovy),
-// written from its code and its documents at release 0.1.1, which its main
+// written from its code and its documents at release 0.1.2, which its main
 // branch shares.
 
 // groovyProfile is the profile of vfox-groovy. The plugin sorts a pre-release
 // below the release that it precedes, so the first line of the list is the
 // newest release and latest installs it. The plugin reads one variable,
-// VFOX_GROOVY_MIRROR, for a mirror of the Apache archive; the mirrors that were
-// checked keep only the current releases. Its notes mark the pre-releases and
-// the incubator releases, which the stage filter picks.
+// VFOX_GROOVY_MIRROR, for a mirror of the Apache archive. The profile offers
+// dlcdn.apache.org only: the Tsinghua mirror lists the releases, but it refused
+// the SDK downloads of vfox's client with HTTP 403. The notes of the plugin mark
+// the pre-releases and the incubator releases, which the stage filter picks.
 func groovyProfile() Profile {
 	return Profile{
 		Plugin: "groovy",
@@ -35,13 +36,12 @@ func groovyProfile() Profile {
 				Key:   "VFOX_GROOVY_MIRROR",
 				Label: text("Archive mirror", "归档镜像"),
 				Help: text(
-					"Reads the archive from another copy of the Apache archive that keeps the same layout, for when archive.apache.org is slow. Empty reads archive.apache.org.",
-					"从保持相同布局的 Apache 归档副本读取，适用于 archive.apache.org 较慢的情况。留空则读取 archive.apache.org。"),
+					"Reads the archive from dlcdn.apache.org, another copy of the Apache archive that keeps the same layout, for when archive.apache.org is slow. Empty reads archive.apache.org.",
+					"从 dlcdn.apache.org 读取，它是保持相同布局的 Apache 归档副本，适用于 archive.apache.org 较慢的情况。留空则读取 archive.apache.org。"),
 				Kind:    VariableURL,
 				Example: "https://dlcdn.apache.org/groovy",
 				Presets: []Preset{
 					{Value: "https://dlcdn.apache.org/groovy", Name: plain("dlcdn.apache.org")},
-					{Value: "https://mirrors.tuna.tsinghua.edu.cn/apache/groovy", Name: text("Tsinghua mirror", "清华镜像")},
 				},
 			},
 		},
@@ -57,8 +57,8 @@ func groovyProfile() Profile {
 				"The plugin installs no JDK, and Groovy needs one to run.",
 				"插件不安装 JDK，而 Groovy 运行需要 JDK。"),
 			text(
-				"The mirrors that were checked keep only the current releases, so older versions do not show in the list.",
-				"检查过的镜像只保留当前的发行版，所以较旧的版本不会出现在列表中。"),
+				"With dlcdn.apache.org, the list holds only the current releases, so older versions do not show.",
+				"使用 dlcdn.apache.org 时，列表只有当前的发行版，较旧的版本不会出现。"),
 			text(
 				"A release without a .sha256 file installs without a checksum check, and vfox says so.",
 				"没有 .sha256 文件的发行版安装时不做校验和检查，vfox 会说明这一点。"),

@@ -934,8 +934,8 @@ func TestThePluginsWithADocumentationWebsiteLinkIt(t *testing.T) {
 
 func TestGroovyFiltersItsStagesAndOffersItsMirror(t *testing.T) {
 	// The notes of vfox-groovy mark its pre-releases and its incubator releases.
-	// VFOX_GROOVY_MIRROR is offered with the two mirrors that were checked: both
-	// keep only the current releases, and the Tsinghua mirror has no checksum files.
+	// VFOX_GROOVY_MIRROR is offered with dlcdn.apache.org only: it keeps only the
+	// current releases. The Tsinghua mirror lists them, but refused the downloads.
 	groovy := lookup(t, "groovy")
 	versions := []core.AvailableVersion{
 		{Version: "6.0.0"},
@@ -970,7 +970,7 @@ func TestGroovyFiltersItsStagesAndOffersItsMirror(t *testing.T) {
 	for _, preset := range mirror.Presets {
 		values = append(values, preset.Value)
 	}
-	wantValues := []string{"https://dlcdn.apache.org/groovy", "https://mirrors.tuna.tsinghua.edu.cn/apache/groovy"}
+	wantValues := []string{"https://dlcdn.apache.org/groovy"}
 	if !reflect.DeepEqual(values, wantValues) {
 		t.Errorf("mirror presets = %v, want %v", values, wantValues)
 	}

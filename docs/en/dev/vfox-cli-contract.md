@@ -383,7 +383,7 @@ options of vfox-php on Linux and macOS. Before PHP 7.4, PEAR is built by default
 same list. `PHP_CONFIGURE_OPTIONS` and `MAKEFLAGS` take
 free text, so the Options tab does not offer them: they are set in Settings, under
 Environment variables, as `KEY=VALUE`, and the application passes that list to every vfox
-command. vfox-dart, vfox-kotlin, vfox-dotnet, vfox-cmake, vfox-deno, vfox-scala and vfox-zig read none of these variables: their Options tab carries the guide, the names to install and the documentation only. vfox-groovy reads `VFOX_GROOVY_MIRROR`, which its Options tab offers with two mirrors of the Apache archive that keep only the current releases. vfox-elixir reads `VFOX_ELIXIR_MIRROR`, which its Options tab offers on Linux with the `hex` value for pre-built builds. vfox-erlang reads `USE_PREBUILT_OTP` (on Linux, its
+command. vfox-dart, vfox-kotlin, vfox-dotnet, vfox-cmake, vfox-deno, vfox-scala and vfox-zig read none of these variables: their Options tab carries the guide, the names to install and the documentation only. vfox-groovy reads `VFOX_GROOVY_MIRROR`, which its Options tab offers with one mirror of the Apache archive, dlcdn.apache.org, that keeps only the current releases. vfox-elixir reads `VFOX_ELIXIR_MIRROR`, which its Options tab offers on Linux with the `hex` value for pre-built builds. vfox-erlang reads `USE_PREBUILT_OTP` (on Linux, its
 Options tab offers `ubuntu-20.04`, `ubuntu-22.04` and `ubuntu-24.04`), while
 `OTP_CONFIGURE_ARGS` and `MAKEFLAGS` take free text and are set in Settings. vfox-clang
 reads `Conda_Forge`, which its Options tab offers with two mirrors, and `GITHUB_URL`, which

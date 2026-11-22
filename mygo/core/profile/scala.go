@@ -15,12 +15,12 @@
 package profile
 
 // The profile of vfox-scala (https://github.com/version-fox/vfox-scala), written
-// from its code at release 0.1.1, which its main branch shares.
+// from its code at release 0.1.2, which its main branch shares.
 
-// scalaProfile is the profile of vfox-scala. Scala 3 comes from GitHub, and the
-// Scala 2 releases from 2.10.4 to 2.13 from downloads.lightbend.com, which
-// refused every download when the profile was written; the tips say so. The
-// plugin reads no variable and keeps no notes.
+// scalaProfile is the profile of vfox-scala. Scala 3 and Scala 2.10.5 and later
+// come from GitHub, and the releases up to 2.10.4 come from scala-lang.org; the
+// tips say so. The install reads no variable, and link detection reads
+// SCALA_HOME, which the profile does not offer.
 func scalaProfile() Profile {
 	return Profile{
 		Plugin: "scala",
@@ -33,14 +33,14 @@ func scalaProfile() Profile {
 		),
 		Tips: []Text{
 			text(
-				"Scala 2.10.4 to 2.13 come from downloads.lightbend.com, which refused every download when this was checked.",
-				"Scala 2.10.4 至 2.13 的版本从 downloads.lightbend.com 下载，检查时该站拒绝了所有下载。"),
+				"Scala 2.10.4 and older download from scala-lang.org; Scala 2.10.5 and later, and all of Scala 3, download from GitHub.",
+				"Scala 2.10.4 及更早的版本从 scala-lang.org 下载；Scala 2.10.5 及之后的版本，以及全部 Scala 3，从 GitHub 下载。"),
 			text(
 				"The LTS release 3.9.0 installs as 3.9.0, not under the name the list shows.",
 				"LTS 版本 3.9.0 以 3.9.0 安装，而不是列表中显示的名称。"),
 			text(
-				"The plugin installs no JDK, and Scala needs one to run.",
-				"插件不安装 JDK，而 Scala 运行需要 JDK。"),
+				"The plugin installs no JDK, and Scala needs one to run. Scala 2.10.4 did not run on the JDK 25 that was checked.",
+				"插件不安装 JDK，而 Scala 运行需要 JDK。检查时，Scala 2.10.4 无法在所检查的 JDK 25 上运行。"),
 		},
 		Docs: []Link{
 			readme("vfox-scala", text("Plugin README", "插件说明")),
