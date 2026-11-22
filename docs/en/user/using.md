@@ -226,11 +226,12 @@ interfaces. Both were checked on Linux only.
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
   channel** option picks the conda channel that pixi installs clang from; its presets are
   prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
-  downloads pixi first, which takes about a minute.
+  downloads pixi first, which took 1 to 2 minutes, and then clang from the channel, which took 6 to 12 minutes, on a network of 250 to 850 kB/s.
 - **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
   the pixi download. It has no preset, so set it in *Settings → Environment variables* to
   a mirror that keeps GitHub's paths.
-- **Home directory.** A source build of Erlang/OTP stops before configure, once it has downloaded the source, when the path of `VFOX_HOME` contains an apostrophe, a double quote, a dollar sign, a backtick or a space; the refusal names the character. With `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path. Clang fails when the path of the home directory has a space in it.
+- **Detect and link.** `vfox link --detect clang` finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later, and it was checked on Linux only.
+- **Home directory.** A source build of Erlang/OTP stops before configure, once it has downloaded the source, when the path of `VFOX_HOME` contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline; the refusal names the character. With `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path.
 
 ### Elixir
 

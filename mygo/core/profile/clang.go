@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-clang (https://github.com/version-fox/vfox-clang),
-// written from its code at release 0.5.2, which its main branch shares.
+// written from its code at release 0.5.3, which its main branch shares.
 
 // clangProfile is the profile of vfox-clang. The plugin installs clang from
 // conda-forge with pixi, and reads two variables: Conda_Forge, the channel that
@@ -49,11 +49,14 @@ func clangProfile() Profile {
 		),
 		Tips: []Text{
 			text(
-				"Each install downloads pixi, then clang from the channel, which takes about a minute.",
-				"每次安装先下载 pixi，再从频道下载 clang，通常需要约一分钟。"),
+				"Each install downloads pixi, then clang from the channel, which is large: an install took 7 to 14 minutes on a network of 250 to 850 kB/s.",
+				"每次安装先下载 pixi，再从频道下载 clang。clang 的包较大：在 250 至 850 kB/s 的网络上，一次安装用了 7 至 14 分钟。"),
 			text(
 				"GITHUB_URL, set in Settings under Environment variables, moves the GitHub downloads to a mirror that keeps the GitHub paths.",
 				"在“设置”的“环境变量”中设置 GITHUB_URL，可把 GitHub 下载改到保持相同路径的镜像。"),
+			text(
+				"Detect and link finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later, and it was checked on Linux only.",
+				"探测并链接会找出机器上已有的 clang，如 conda、Homebrew 与系统 llvm 目录中的安装，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。"),
 		},
 		Docs: []Link{
 			readme("vfox-clang", text("Plugin README", "插件说明")),

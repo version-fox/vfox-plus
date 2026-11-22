@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-erlang (https://github.com/version-fox/vfox-erlang),
-// written from its code at release 1.2.3, which its main branch shares.
+// written from its code at release 1.2.4, which its main branch shares.
 
 // erlangProfile is the profile of vfox-erlang. With USE_PREBUILT_OTP set to an
 // Ubuntu release, the plugin installs a prebuilt build and lists the prebuilt
@@ -67,8 +67,8 @@ func erlangProfile(platform Platform) Profile {
 				"vfox keeps one search cache per plugin, and the cache does not depend on USE_PREBUILT_OTP. Turn the search cache off before you use prebuilt releases, as the plugin's prebuilt page says.",
 				"vfox 为每个插件保留一份搜索缓存，而且缓存与 USE_PREBUILT_OTP 无关。使用预编译构建前请关闭搜索缓存，见插件的预编译页面。"),
 			text(
-				"A source build stops before configure, once it has downloaded the source, when the path of VFOX_HOME contains an apostrophe, a double quote, a dollar sign, a backtick or a space, and the install says which character. A prebuilt build works with a space in the path.",
-				"源码编译在下载源码之后、configure 之前停止：VFOX_HOME 的路径含单引号、双引号、美元符号、反引号或空格时，安装会说明是哪个字符。预编译构建可以在含空格的路径下安装。"),
+				"A source build stops before configure, once it has downloaded the source, when the path of VFOX_HOME contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline, and the install says which character. A prebuilt build works with a space in the path.",
+				"源码编译在下载源码之后、configure 之前停止：VFOX_HOME 的路径含单引号、双引号、美元符号、反引号、空格、制表符或换行符时，安装会说明是哪个字符。预编译构建可以在含空格的路径下安装。"),
 			text(
 				"A prebuilt install is recorded under its release number, such as 29.1.2, so run it as erlang@29.1.2. vfox exec does not map an OTP- name to that install: erlang@OTP-29.1.2 is not found there, and without USE_PREBUILT_OTP vfox starts a source build of it.",
 				"预编译安装按发行版号记录，如 29.1.2，所以请用 erlang@29.1.2 运行它。vfox exec 不会把 OTP- 名称映射到该安装：在 vfox exec 中写 erlang@OTP-29.1.2 会找不到它，未设置 USE_PREBUILT_OTP 时 vfox 会开始一次源码构建。"),
