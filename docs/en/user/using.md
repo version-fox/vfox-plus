@@ -237,22 +237,24 @@ The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers thes
 three interfaces. It was checked on Linux only.
 
 - **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
-  does not install Erlang/OTP for Elixir, and an installed Erlang/OTP is not put on the `PATH`
-  of an Elixir build. Install it first with the erlang plugin, and run Elixir together with it,
-  for example `vfox exec erlang@OTP-28.4.2 elixir@1.20.5 -- elixir --version`. Run alone,
-  `vfox exec elixir@1.20.5 -- elixir --version` fails with `exec: erl: not found`.
+  does not install Erlang/OTP for Elixir. A source build uses the `erlc` of an Erlang/OTP that
+  vfox installed when `erlc` is not on `PATH`. Install Erlang/OTP first with the erlang plugin,
+  and run Elixir together with it, for example `vfox exec erlang@28.4.2 elixir@1.20.5 -- elixir --version`.
+  Run alone, `vfox exec elixir@1.20.5 -- elixir --version` fails with `exec: erl: not found`.
 - **Pre-built builds.** On Linux, the **Pre-built builds** option installs Elixir from the
-  pre-built builds of hex.pm instead of compiling it, and the version list then shows those
-  builds. Their names carry the Erlang/OTP major version, such as `1.20.5-otp-28`. Leave the
-  option empty to compile from the source. A source build takes about a minute and needs a
-  home directory whose path has no spaces; a pre-built build works with such a path.
+  pre-built builds of hex.pm instead of compiling it. Most of their names carry the Erlang/OTP
+  major version, such as `1.20.5-otp-29`. Some have no `-otp-N` suffix, such as `1.16`, and such
+  a build may not run with your Erlang/OTP. The option does not change `vfox search elixir`,
+  which lists the releases: `vfox search elixir hex` lists the pre-built builds. Leave the
+  option empty to compile from the source. A source build takes about a minute and needs a home
+  directory whose path has no spaces; a pre-built build works with such a path.
 - **Versions.** `latest` is the first line of the list: `1.20-latest` on Linux, which ran as
-  1.20.5 when checked. With pre-built builds, `latest` is the `main` branch, which is not a
-  release. Write a version in full, such as `1.20.5`; a partial name such as `1.16` is not
-  accepted.
-- **Changing the option.** vfox caches a plugin's version list for up to 12 hours, and the
-  cache does not depend on the option. After you change the option, the list can therefore
-  still show the builds of the old option for that time.
+  1.20.5 when checked. With pre-built builds, `latest` fails, so type a build name such as
+  `1.20.5-otp-29`. Write a version in full, such as `1.20.5`. For a source build, a partial
+  name such as `1.16` is not a release, because its tag does not exist.
+- **Searching.** `vfox search elixir` lists the releases whatever the option is, and
+  `vfox search elixir hex` lists the pre-built builds. The plugin's documentation says that vfox
+  keeps each list for up to 12 hours.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
   in English and in Simplified Chinese, and to its README.
 
