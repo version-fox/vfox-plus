@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-etcd (https://github.com/version-fox/vfox-etcd), written
-// from its code at release 0.2.2.
+// from its code at release 0.2.3.
 
 // etcdProfile is the profile of vfox-etcd. The plugin takes full release names,
 // with or without a v, and no partial name. latest is the first line of the list,
@@ -41,8 +41,8 @@ func etcdProfile() Profile {
 				"版本列表经 jsDelivr CDN 从插件的发行版读取。CDN 无法访问时搜索会失败，除非 vfox 仍保留着之前搜索得到的列表。",
 			),
 			text(
-				"BUILD_WITH_FAILPOINT=yes, set in Settings under Environment variables, builds the version you ask for from source with failpoints. It needs git, go and GNU make on the PATH, and it takes longer than an install from a release. It was checked on Linux only: 3.5.12 builds with failpoints, and 3.5.5 fails. Check the result with GOFAIL_HTTP. Only yes turns the build on: 1 and YES are refused, and no or an empty value installs the official build.",
-				"在“设置”的“环境变量”中设置 BUILD_WITH_FAILPOINT=yes，会按所选版本从源码构建，并启用 failpoint。需要 PATH 上有 git、go 和 GNU make，并且比安装发行版耗时更长。仅在 Linux 上检查过：3.5.12 能构建出带 failpoint 的版本，3.5.5 会失败。请用 GOFAIL_HTTP 检查结果。只有值 yes 会开启该构建：1 与 YES 会被拒绝，no 或留空则安装官方构建。",
+				"BUILD_WITH_FAILPOINT=yes, set in Settings under Environment variables, builds the version you ask for from source with failpoints. It needs git, go and GNU make on the PATH, and it takes longer than an install from a release. It was checked on Linux only: 3.5.12 builds with failpoints. A release without a gofail target, such as 3.5.5, is refused before anything is cloned, and the install names it; the failpoint page of the plugin's documents lists the releases that have one. Check the result with GOFAIL_HTTP. Only yes turns the build on: 1 and YES are refused, and no or an empty value installs the official build.",
+				"在“设置”的“环境变量”中设置 BUILD_WITH_FAILPOINT=yes，会按所选版本从源码构建，并启用 failpoint。需要 PATH 上有 git、go 和 GNU make，并且比安装发行版耗时更长。仅在 Linux 上检查过：3.5.12 能构建出带 failpoint 的版本。没有 gofail 目标的发行版（如 3.5.5）会在克隆之前被拒绝，安装时会指出该版本；哪些发行版有 gofail 目标，见插件文档的 failpoint 页面。请用 GOFAIL_HTTP 检查结果。只有值 yes 会开启该构建：1 与 YES 会被拒绝，no 或留空则安装官方构建。",
 			),
 		},
 		Docs: []Link{

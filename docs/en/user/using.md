@@ -310,7 +310,9 @@ interfaces, with the limits that their lists have today:
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
   you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
   takes longer than an install from a release. It was checked on Linux only: 3.5.12 builds with
-  failpoints, and 3.5.5 fails. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build
+  failpoints. A release without a gofail target, such as 3.5.5, is refused before anything is
+  cloned, and the install names it; the failpoint page of its documents lists the releases that
+  have one. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build
   on: `1` and `YES` are refused, and `no` or an empty value installs the official build. The
   **Options** tab offers no switch for it.
 - **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
