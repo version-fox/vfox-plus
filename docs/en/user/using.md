@@ -259,6 +259,7 @@ three interfaces. It was checked on Linux only.
 - **Searching.** `vfox search elixir` lists the releases whatever the option is, and
   `vfox search elixir hex` lists the pre-built builds. The plugin's documentation says that vfox
   keeps each list for up to 12 hours.
+- **Detect and link.** `vfox link --detect elixir` finds the Elixir installations already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. An installation whose `elixir` is not executable is listed but cannot be linked yet. It needs vfox 1.1.0 or later, and it was checked on Linux only.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
   in English and in Simplified Chinese, and to its README.
 

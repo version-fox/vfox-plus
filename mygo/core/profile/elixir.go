@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-elixir (https://github.com/version-fox/vfox-elixir),
-// written from its code at release 1.0.3.
+// written from its code at release 1.0.4.
 
 // elixirProfile is the profile of vfox-elixir. The plugin builds Elixir from its
 // source release, or installs a pre-built build from hex.pm when
@@ -66,6 +66,9 @@ func elixirProfile(platform Platform) Profile {
 			text(
 				"For a source build, a name such as 1.16 is not a release, because its tag does not exist. The pre-built list shows only names with an -otp-N suffix, such as 1.20.5-otp-29. A name without one, such as 1.20.5, is not listed; if you type it, the install warns that the build may not run with your Erlang/OTP, so prefer a name with its suffix.",
 				"对源码构建而言，1.16 这样的名称不是发行版，因为它的标签不存在。预编译列表只显示带 -otp-N 后缀的名称，如 1.20.5-otp-29；不带后缀的名称（如 1.20.5）不会列出，如果手动输入，安装会警告这个构建可能无法用你的 Erlang/OTP 运行，所以请优先使用带后缀的名称。"),
+			text(
+				"Detect and link finds the Elixir installations that are already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. An installation whose elixir command is not executable is listed, but it cannot be linked yet. It needs vfox 1.1.0 or later, and it was checked on Linux only.",
+				"探测并链接会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。elixir 命令不可执行的安装会被列出，但暂时无法链接。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。"),
 		},
 		Docs: []Link{
 			website("vfox-elixir", text("Documentation website", "文档网站")),

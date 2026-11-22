@@ -336,7 +336,7 @@ output streamed to the user.
 | Use (project)    | `vfox use --project <name>@<version>`                | project directory | Writes `.vfox.toml`, links `.vfox/sdks`, may edit `.gitignore`. |
 | Stop using       | `vfox unuse --global <name>`                         | `/` or project    | |
 | Link             | `vfox link <name>@<version> <path>`                  | `/`               | Uses the SDK at `path` (its `bin` directory) as `version`; `--force` repoints a linked version. Uninstalling removes the link only. |
-| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang, python, maven, php, dart, kotlin, dotnet, cmake, erlang, etcd, groovy, zig, clang) and links them; `-y` links everything without asking. |
+| Link detect      | `vfox link --detect <name> [--yes]`                  | `/`               | Lets the `Detect` hook of the plugin find SDKs (java, gradle, flutter, golang, python, maven, php, dart, kotlin, dotnet, cmake, erlang, etcd, groovy, zig, clang, elixir) and links them; `-y` links everything without asking. |
 | Alias set        | `vfox alias set <sdk> <alias> <version>`             | `/`               | Names an installed version, for example `java@j17`. |
 | Alias unset      | `vfox alias unset <sdk> <alias>`                     | `/`               | Removes the alias. |
 | Doctor adopt     | `vfox doctor --adopt [<sdk>[@<version>]]`            | `/`               | Records pre-receipt installs so drift can be detected later. |
