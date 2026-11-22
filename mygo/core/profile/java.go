@@ -173,11 +173,28 @@ func docs(repository, page string, title Text) Link {
 	return Link{Title: title, URL: Text{EN: base + page + ".md", ZH: base + "zh-CN/" + page + ".md"}}
 }
 
-// readme links the README of a plugin of the version-fox organisation, for a
-// plugin that has no documents folder. The page is the same in both languages.
+// chineseReadmes lists the plugins whose main branch has a README_CN.md. A
+// plugin that is not listed has no Chinese README, so both languages link its
+// README.md.
+var chineseReadmes = map[string]bool{
+	"vfox-deno":   true,
+	"vfox-elixir": true,
+	"vfox-erlang": true,
+	"vfox-etcd":   true,
+	"vfox-groovy": true,
+	"vfox-scala":  true,
+	"vfox-zig":    true,
+}
+
+// readme links the README of a plugin of the version-fox organisation. Simplified
+// Chinese readers get README_CN.md where the plugin has one.
 func readme(repository string, title Text) Link {
-	url := "https://github.com/version-fox/" + repository + "/blob/main/README.md"
-	return Link{Title: title, URL: Text{EN: url, ZH: url}}
+	english := "https://github.com/version-fox/" + repository + "/blob/main/README.md"
+	chinese := english
+	if chineseReadmes[repository] {
+		chinese = "https://github.com/version-fox/" + repository + "/blob/main/README_CN.md"
+	}
+	return Link{Title: title, URL: Text{EN: english, ZH: chinese}}
 }
 
 // website links the documentation website of a plugin of the version-fox

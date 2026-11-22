@@ -821,9 +821,9 @@ func TestFlutterNamesAreTakenApart(t *testing.T) {
 }
 
 // isPluginDocument tells whether a link goes to the documentation of the plugin:
-// a page of its docs folder with a Chinese counterpart, its README, which has no
-// translation, or its documentation site, whose English pages are under /en/
-// and whose root is the Chinese one.
+// a page of its docs folder with a Chinese counterpart, its README, with a
+// Chinese README_CN.md where the plugin has one, or its documentation site,
+// whose English pages are under /en/ and whose root is the Chinese one.
 func isPluginDocument(link Link, plugin string) bool {
 	repository := "https://github.com/version-fox/vfox-" + plugin + "/blob/main/"
 	site := "https://version-fox.github.io/vfox-" + plugin + "/"
@@ -831,11 +831,33 @@ func isPluginDocument(link Link, plugin string) bool {
 	case strings.HasPrefix(link.URL.EN, repository+"docs/"):
 		return strings.Contains(link.URL.ZH, "/docs/zh-CN/")
 	case link.URL.EN == repository+"README.md":
-		return link.URL.ZH == link.URL.EN
+		return link.URL.ZH == link.URL.EN || link.URL.ZH == repository+"README_CN.md"
 	case strings.HasPrefix(link.URL.EN, site+"en/"):
 		return link.URL.ZH == site
 	default:
 		return false
+	}
+}
+
+func TestReadmeLinksTheChineseReadmeWhereThereIsOne(t *testing.T) {
+	// vfox-clang has no README_CN.md, so both languages link its README.md.
+	want := map[string]string{
+		"erlang": "https://github.com/version-fox/vfox-erlang/blob/main/README_CN.md",
+		"clang":  "https://github.com/version-fox/vfox-clang/blob/main/README.md",
+	}
+	for plugin, zh := range want {
+		found := false
+		for _, link := range lookup(t, plugin).Docs {
+			if strings.HasSuffix(link.URL.EN, "/README.md") {
+				found = true
+				if link.URL.ZH != zh {
+					t.Errorf("the Chinese README of %s is %s, want %s", plugin, link.URL.ZH, zh)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s links no README", plugin)
+		}
 	}
 }
 
