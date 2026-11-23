@@ -121,6 +121,7 @@
 
 - **先装 Erlang/OTP。** Elixir 用 Erlang/OTP 编译，运行时也需要 PATH 上有 `erl`。vfox 不会为 Elixir 安装 Erlang/OTP。源码构建在 PATH 上没有 `erlc` 时，会使用 vfox 已安装的 Erlang/OTP 的 `erlc`。请先用 erlang 插件安装 Erlang/OTP，再与 Elixir 一起运行，例如 `vfox exec erlang@29.1.2 elixir@1.20.5 -- elixir --version`。单独运行 `vfox exec elixir@1.20.5 -- elixir --version` 会以 `exec: erl: not found` 失败。
 - **预编译构建。** 在 Linux 上，**预编译构建**选项用 hex.pm 的预编译构建安装 Elixir，而不从源码编译。构建名称带有它所需的 Erlang/OTP 版本，如 `1.20.5-otp-29`，`vfox search elixir hex` 只列出这样的名称。不带 `-otp-N` 后缀的名称（如 `1.20.5`）不会列出；如果手动输入，安装会打印警告，并且这个构建可能无法用你的 Erlang/OTP 运行。选项不改变 `vfox search elixir`，它列出的是发行版。选项留空则从源码编译：源码构建约需一分钟，`VFOX_HOME` 的路径中不能有空格，也不能有引号、美元符号或 & 这样的 shell 字符；预编译构建不受此限制。
+- **校验和。** 预编译构建会按 hex.pm 的 `builds.txt` 为它发布的 SHA-256 校验。索引中没有 SHA-256 的构建，会带警告安装，并且不做校验。
 - **版本。** `latest` 是列表的第一行：Linux 上是 `1.20-latest`，检查时它运行为 1.20.5。使用预编译构建时，`latest` 会在下载前停止，请输入 `1.20.5-otp-29` 这样的构建名称。请完整写出版本，如 `1.20.5`。源码构建中，`1.16` 这样的部分版本号不是发行版，因为它的标签不存在。
 - **搜索。** 无论选项如何，`vfox search elixir` 都列出发行版；`vfox search elixir hex` 列出预编译构建。插件文档说 vfox 对每次搜索的列表最多保留 12 小时。
 - **探测并链接。** `vfox link --detect elixir` 会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。

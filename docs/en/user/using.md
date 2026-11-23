@@ -259,6 +259,9 @@ three interfaces. It was checked on Linux only.
   which lists the releases. Leave the option empty to compile from the source. A source build takes
   about a minute, and the path of `VFOX_HOME` must not hold a space or another shell character, such
   as a quote, a dollar sign or an ampersand; a pre-built build works with such a path.
+- **Checksums.** A pre-built build is checked against the SHA-256 that hex.pm's `builds.txt`
+  publishes for it. A build that the index lists without a SHA-256 installs with a warning, and
+  is not checked.
 - **Versions.** `latest` is the first line of the list: `1.20-latest` on Linux, which ran as
   1.20.5 when checked. With pre-built builds, `latest` stops before the download, so type a build
   name such as `1.20.5-otp-29`. Write a version in full, such as `1.20.5`. For a source build, a
