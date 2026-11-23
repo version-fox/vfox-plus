@@ -109,9 +109,9 @@
 - **预编译的 Erlang/OTP。** 在 Linux 上，**预编译构建**选项选一个 Ubuntu 版本（20.04、22.04 或 24.04），就用它的预编译构建安装 Erlang/OTP，而不从源码编译。此时版本列表是预编译构建，按发行版号列出，如 `29.1.2`；最新的构建因版本而异，在 Ubuntu 20.04 上是 28.4.2。名称 `OTP-29.1.2` 也会安装该发行版的预编译构建。预编译安装按发行版号记录，所以请用 `erlang@29.1.2` 运行它：`vfox exec erlang@OTP-29.1.2` 找不到它，会开始安装它，未设置 `USE_PREBUILT_OTP` 时这是一次源码构建。选项留空则从源码编译，需要很长时间，并需要插件源码编译页面中列出的编译工具。选择了预编译构建时，`latest` 是列表中最新的发行版。搜索缓存按插件保存，与选项无关，所以使用预编译构建前请关闭它，见插件的预编译页面。
 - **Erlang 的设置。** `OTP_CONFIGURE_ARGS` 把参数传给 configure，如 `--without-javac`；`MAKEFLAGS` 设置 make 的选项，如 `-j8`。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置。
 - **文档。** **选项**页签链接到 vfox-erlang 的文档网站（英文与简体中文），以及它的预编译页面、源码编译页面和 README。
-- **Clang。** `latest` 安装列表中标为 latest 的版本。**Conda 频道**选项选择 pixi 安装 clang 所用的 conda 频道，预设为 prefix.dev 与清华镜像；留空则为 conda-forge。每次安装先下载 pixi，约需 1 至 2 分钟，再从频道下载 clang，在 250 至 850 kB/s 的网络上约需 6 至 12 分钟。在 GitHub 的 macOS 运行器上（网络很快），`latest` 的安装在 Apple 芯片上用了 3 秒，在 Intel 上用了 9 秒，安装的 clang 可以运行。
-- **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。
-- **pixi 的校验和。** Clang 安装时下载的 pixi 压缩包，没有与 pixi 在旁边发布的 SHA-256 核对，安装时会打印 `WARNING: Checksum is not provided, skip verify...`。这一缺口记录在 [vfox-clang #14](https://github.com/version-fox/vfox-clang/issues/14)。
+- **Clang。** `latest` 安装列表中标为 latest 的版本。**Conda 频道**选项选择 pixi 安装 clang 所用的 conda 频道，预设为 prefix.dev 与清华镜像；留空则为 conda-forge。每次安装先下载 pixi，约需 1 至 2 分钟，再从频道下载 clang，在 250 至 850 kB/s 的网络上约需 6 至 14 分钟。在 GitHub 的 macOS 运行器上（网络很快），`latest` 的安装在 Apple 芯片上用了 6 秒，在 Intel 上用了 15 秒，安装的 clang 可以运行。
+- **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。镜像最好也提供每个压缩包旁边的 `.sha256` 文件：没有它时，安装会提示未提供校验和；镜像返回其他错误时，安装会停止。
+- **pixi 的校验和。** Clang 安装时下载的 pixi 压缩包，会在解压之前按 pixi 在旁边发布的 SHA-256 校验。pixi 没有发布时，安装会打印 `WARNING: Checksum is not provided, skip verify...` 并跳过校验；读不到 SHA-256 时，安装停止。
 - **探测并链接。** `vfox link --detect clang` 会找出机器上已有的 clang，如 conda、Homebrew 与系统 llvm 目录中的安装，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本。在 Linux 上检查过；在 macOS 上只运行了探测（在 GitHub 的运行器上），它找到了 Homebrew 的 llvm，没有链接任何东西。
 - **家目录。** 源码编译 Erlang/OTP 时，下载源码之后、configure 之前，若 `VFOX_HOME` 的路径含单引号、双引号、美元符号、反引号、空格、制表符或换行符，会停止并说明是哪个字符。把 `VFOX_HOME` 设为不含这些字符的路径后，检查即可通过。预编译构建可以在含空格的路径下安装。
 

@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-clang (https://github.com/version-fox/vfox-clang),
-// written from its code at release 0.5.3, which its main branch shares.
+// written from its code at release 0.5.4, which its main branch shares.
 
 // clangProfile is the profile of vfox-clang. The plugin installs clang from
 // conda-forge with pixi, and reads two variables: Conda_Forge, the channel that
@@ -49,14 +49,17 @@ func clangProfile() Profile {
 		),
 		Tips: []Text{
 			text(
-				"Each install downloads pixi, then clang from the channel, which is large: an install took 7 to 14 minutes on a network of 250 to 850 kB/s.",
-				"每次安装先下载 pixi，再从频道下载 clang。clang 的包较大：在 250 至 850 kB/s 的网络上，一次安装用了 7 至 14 分钟。"),
+				"Each install downloads pixi, then clang from the channel, which is large: an install took 6 to 14 minutes on a network of 250 to 850 kB/s.",
+				"每次安装先下载 pixi，再从频道下载 clang。clang 的包较大：在 250 至 850 kB/s 的网络上，一次安装用了 6 至 14 分钟。"),
 			text(
-				"GITHUB_URL, set in Settings under Environment variables, moves the GitHub downloads to a mirror that keeps the GitHub paths.",
-				"在“设置”的“环境变量”中设置 GITHUB_URL，可把 GitHub 下载改到保持相同路径的镜像。"),
+				"GITHUB_URL, set in Settings under Environment variables, moves the GitHub downloads to a mirror that keeps the GitHub paths. A mirror should also serve the .sha256 file next to each archive: without it, the install warns that no checksum is provided, and an error from the mirror stops the install.",
+				"在“设置”的“环境变量”中设置 GITHUB_URL，可把 GitHub 下载改到保持相同路径的镜像。镜像最好也提供每个压缩包旁边的 .sha256 文件：没有它时，安装会提示未提供校验和；镜像返回其他错误时，安装会停止。"),
 			text(
-				"Detect and link finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later, and it was checked on Linux only.",
-				"探测并链接会找出机器上已有的 clang，如 conda、Homebrew 与系统 llvm 目录中的安装，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。"),
+				"The pixi archive is checked against the SHA-256 that pixi publishes beside it, before vfox unpacks it. When pixi publishes none, the install says that no checksum is provided and skips the check; when the SHA-256 cannot be read, the install stops.",
+				"pixi 的压缩包会在解压之前，按 pixi 在旁边发布的 SHA-256 校验。pixi 没有发布时，安装会说明未提供校验和，并跳过校验；读不到 SHA-256 时，安装停止。"),
+			text(
+				"Detect and link finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later. It was checked on Linux; on macOS only the detection ran, and it found Homebrew's llvm and linked nothing.",
+				"探测并链接会找出机器上已有的 clang，如 conda、Homebrew 与系统 llvm 目录中的安装，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本。在 Linux 上检查过；在 macOS 上只运行了探测，它找到了 Homebrew 的 llvm，没有链接任何东西。"),
 		},
 		Docs: []Link{
 			readme("vfox-clang", text("Plugin README", "插件说明")),
