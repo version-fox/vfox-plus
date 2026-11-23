@@ -227,12 +227,16 @@ install and run were also checked on macOS, on Apple silicon and on Intel.
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
   channel** option picks the conda channel that pixi installs clang from; its presets are
   prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
-  downloads pixi first, which took 1 to 2 minutes, and then clang from the channel, which took 6 to 12 minutes, on a network of 250 to 850 kB/s. On GitHub's macOS runners, which
-  have a fast network, an install of `latest` took 3 seconds on Apple silicon and 9 seconds on
-  Intel, and the clang it installed ran.
+  downloads pixi first, which took 1 to 2 minutes, and then clang from the channel, which took
+  6 to 12 minutes, on a network of 250 to 850 kB/s. On GitHub's macOS runners, which have a fast
+  network, an install of `latest` took 3 seconds on Apple silicon and 9 seconds on Intel, and the
+  clang it installed ran.
 - **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
   the pixi download. It has no preset, so set it in *Settings → Environment variables* to
   a mirror that keeps GitHub's paths.
+- **pixi checksum.** The pixi archive that an install downloads is not checked against the
+  SHA-256 that pixi publishes beside it, so the install prints `WARNING: Checksum is not provided,
+  skip verify...`. The gap is tracked in [vfox-clang #14](https://github.com/version-fox/vfox-clang/issues/14).
 - **Detect and link.** `vfox link --detect clang` finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later. It was checked on Linux. On macOS, on GitHub's runners, only the detection was run: it found Homebrew's llvm, and nothing was linked.
 - **Home directory.** A source build of Erlang/OTP stops before configure, once it has downloaded the source, when the path of `VFOX_HOME` contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline; the refusal names the character. With `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path.
 
