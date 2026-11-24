@@ -15,6 +15,8 @@
 package e2erun
 
 import (
+	"runtime"
+
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/appsession"
 )
 
@@ -47,8 +49,9 @@ var profilePlugins = []struct{ name, description string }{
 }
 
 // pluginsScenario is the application on that machine: the page of each plugin of the profiles, then the
-// options of Erlang/OTP, where the prebuilt builds of Ubuntu 24.04 are chosen and saved, and the install of a
-// zig from its list of versions, which is filtered to the one installed.
+// options of Erlang/OTP, where the prebuilt builds of Ubuntu 24.04 are chosen and saved on Linux, the only
+// platform that offers that variable, and the install of a zig from its list of versions, which is filtered
+// to the one installed.
 func pluginsScenario(s *appsession.Session) {
 	s.WaitForText("Versions in use")
 	s.Step("home")
@@ -64,11 +67,16 @@ func pluginsScenario(s *appsession.Session) {
 	s.Navigate(appsession.SDKs)
 	s.ClickItem("erlang")
 	s.ClickButton("Options")
-	s.WaitForText("Prebuilt build")
-	s.PressKey("change:USE_PREBUILT_OTP")
-	s.ClickButton("Ubuntu 24.04")
-	s.ClickButton("Save")
-	s.WaitForText("Ubuntu 24.04 · ubuntu-24.04")
+	if runtime.GOOS == "linux" {
+		s.WaitForText("Prebuilt build")
+		s.PressKey("change:USE_PREBUILT_OTP")
+		s.ClickButton("Ubuntu 24.04")
+		s.ClickButton("Save")
+		s.WaitForText("Ubuntu 24.04 · ubuntu-24.04")
+	} else {
+		// The other platforms do not offer the variable; their Options tab shows the notes of the profile.
+		s.WaitForText("Source builds take a long time.")
+	}
 	s.Step("options")
 
 	// The install of zig 0.17.1: the list of its versions is filtered to that one name, which is installed.
