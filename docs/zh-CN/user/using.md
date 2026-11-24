@@ -109,6 +109,7 @@
 - **预编译的 Erlang/OTP。** 在 Linux 上，**预编译构建**选项选一个 Ubuntu 版本（20.04、22.04 或 24.04），就用它的预编译构建安装 Erlang/OTP，而不从源码编译。此时版本列表是预编译构建，按发行版号列出，如 `29.1.2`；最新的构建因版本而异，在 Ubuntu 20.04 上是 28.4.2。名称 `OTP-29.1.2` 也会安装该发行版的预编译构建。预编译安装按发行版号记录，所以请用 `erlang@29.1.2` 运行它：`vfox exec erlang@OTP-29.1.2` 找不到它，会开始安装它，未设置 `USE_PREBUILT_OTP` 时这是一次源码构建。选项留空则从源码编译，需要很长时间，并需要插件源码编译页面中列出的编译工具。选择了预编译构建时，`latest` 是列表中最新的发行版。搜索缓存按插件保存，与选项无关，所以使用预编译构建前请关闭它，见插件的预编译页面。
 - **Erlang 的设置。** `OTP_CONFIGURE_ARGS` 把参数传给 configure，如 `--without-javac`；`MAKEFLAGS` 设置 make 的选项，如 `-j8`。请在*设置 → 环境变量*里以 `KEY=VALUE` 的形式设置。
 - **文档。** **选项**页签链接到 vfox-erlang 的文档网站（英文与简体中文），以及它的预编译页面、源码编译页面和 README。
+- **Windows。** 在 Windows 上，`vfox exec erlang@29.1.2 -- erl` 按裸名找不到 `erl`（[vfox#787](https://github.com/version-fox/vfox/issues/787)）。`-- erl.exe` 可以运行它。
 - **Clang。** `latest` 安装列表中标为 latest 的版本。**Conda 频道**选项选择 pixi 安装 clang 所用的 conda 频道，预设为 prefix.dev 与清华镜像；留空则为 conda-forge。每次安装先下载 pixi，约需 1 至 2 分钟，再从频道下载 clang，在 250 至 850 kB/s 的网络上约需 6 至 14 分钟。在 GitHub 的 macOS 运行器上（网络很快），`latest` 的安装在 Apple 芯片上用了 6 秒，在 Intel 上用了 15 秒，安装的 clang 可以运行。
 - **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。镜像最好也提供每个压缩包旁边的 `.sha256` 文件：没有它时，安装会提示未提供校验和；镜像返回其他错误时，安装会停止。
 - **pixi 的校验和。** Clang 安装时下载的 pixi 压缩包，会在解压之前按 pixi 在旁边发布的 SHA-256 校验。pixi 没有发布时，安装会打印 `WARNING: Checksum is not provided, skip verify...` 并跳过校验；读不到 SHA-256 时，安装停止。
@@ -117,14 +118,14 @@
 
 ### Elixir
 
-插件 [vfox-elixir](https://github.com/version-fox/vfox-elixir) 在三个界面里提供这些功能。它只在 Linux 上检查过。
+插件 [vfox-elixir](https://github.com/version-fox/vfox-elixir) 在三个界面里提供这些功能。它在 Linux（x86-64 与 arm64）、macOS（Apple 芯片与 Intel）与 Windows（x86-64 与 arm64）上检查过。在 Windows 上，列表是安装包的列表：`latest` 检查时安装的是 `1.19.5-elixir-otp-28`。
 
 - **先装 Erlang/OTP。** Elixir 用 Erlang/OTP 编译，运行时也需要 PATH 上有 `erl`。vfox 不会为 Elixir 安装 Erlang/OTP。源码构建在 PATH 上没有 `erlc` 时，会使用 vfox 已安装的 Erlang/OTP 的 `erlc`。请先用 erlang 插件安装 Erlang/OTP，再与 Elixir 一起运行，例如 `vfox exec erlang@29.1.2 elixir@1.20.5 -- elixir --version`。单独运行 `vfox exec elixir@1.20.5 -- elixir --version` 会以 `exec: erl: not found` 失败。
 - **预编译构建。** 在 Linux 上，**预编译构建**选项用 hex.pm 的预编译构建安装 Elixir，而不从源码编译。构建名称带有它所需的 Erlang/OTP 版本，如 `1.20.5-otp-29`，`vfox search elixir hex` 只列出这样的名称。不带 `-otp-N` 后缀的名称（如 `1.20.5`）不会列出；如果手动输入，安装会打印警告，并且这个构建可能无法用你的 Erlang/OTP 运行。选项不改变 `vfox search elixir`，它列出的是发行版。选项留空则从源码编译：源码构建约需一分钟，`VFOX_HOME` 的路径中不能有空格，也不能有引号、美元符号或 & 这样的 shell 字符；预编译构建不受此限制。
 - **校验和。** 预编译构建会按 hex.pm 的 `builds.txt` 为它发布的 SHA-256 校验。索引中没有 SHA-256 的构建，会带警告安装，并且不做校验。
 - **版本。** `latest` 是列表的第一行：Linux 上是 `1.20-latest`，检查时它运行为 1.20.5。使用预编译构建时，`latest` 会在下载前停止，请输入 `1.20.5-otp-29` 这样的构建名称。请完整写出版本，如 `1.20.5`。源码构建中，`1.16` 这样的部分版本号不是发行版，因为它的标签不存在。
 - **搜索。** 无论选项如何，`vfox search elixir` 都列出发行版；`vfox search elixir hex` 列出预编译构建。插件文档说 vfox 对每次搜索的列表最多保留 12 小时。
-- **探测并链接。** `vfox link --detect elixir` 会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。
+- **探测并链接。** `vfox link --detect elixir` 会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本。在 Linux 上检查过；在 macOS 与 Windows 上只运行了探测，那里没有其他 Elixir，所以没有找到可链接的安装。
 - **文档。** **选项**页签链接到 vfox-elixir 的文档网站（英文与简体中文），以及它的 README。
 
 ### etcd、Deno、Groovy、Scala 与 Zig
@@ -140,7 +141,8 @@
 - **Deno。** 列表从 0.36.0 开始，它是 Linux x86-64 上第一个有下载文件的发行版。插件在解压后为 Deno 设置可执行位，所以 0.36.0 可以运行。0.2.3 之前的插件安装的 0.36.0 没有可执行位：请重新安装它。
 - **Zig。** 列表需要 ziglang.org：它无法访问时，整个列表都会失败。machengine.org 是可选的：无法访问时，列表只显示官方发行版，并给出警告。列表中没有的名称会被拒绝，什么也不会安装。vfox 1.1.0 的 `exec` 不接受 `latest`、`nightly` 或 Mach 名称，请用 `vfox list` 显示的版本名；`vfox use` 可以接受这些名称。ziglang.org 没有发布的 Mach 构建从 pkg.hexops.org 下载，仍然按索引中的校验和检查。
 - **探测并链接。** `vfox link --detect zig` 会找出机器上已有的 Zig 安装，来自 asdf、mise、zvm、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。无法运行的 zig 不会被列出，vfox 管理的安装与 VFOX_HOME 下的任何内容也不会被列出。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。
-- **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT=yes` 开启，它会按所选版本从源码构建，并启用 failpoint。需要 PATH 上有 Git、Go 和 GNU Make，并且比安装发行版耗时更长。仅在 Linux 上检查过：3.5.12 能构建出带 failpoint 的版本。没有 gofail 目标的发行版（如 3.5.5）会在克隆之前被拒绝，安装时会指出该版本；哪些发行版有 gofail 目标，见插件文档的 failpoint 页面。请用 `GOFAIL_HTTP` 检查结果。只有值 `yes` 会开启该构建：`1` 与 `YES` 会被拒绝，`no` 或留空则安装官方构建。**选项**页签不为它提供开关。
+- **etcd。** 失败构建由 `BUILD_WITH_FAILPOINT=yes` 开启，它会按所选版本从源码构建，并启用 failpoint。需要 PATH 上有 Git、Go 和 GNU Make，并且比安装发行版耗时更长。在 Linux 与 macOS 上检查过：3.4.32、3.5.12、3.6.0 与 3.7.4 在 x86-64 Linux 上能构建出带 failpoint 的版本；3.5.12 在 arm64 Linux 与两种 Mac 上也能。没有 gofail 目标的发行版（如 3.5.5）会在克隆之前被拒绝，安装时会指出该版本；哪些发行版有 gofail 目标，见插件文档的 failpoint 页面。请用 `GOFAIL_HTTP` 检查结果。只有值 `yes` 会开启该构建：`1` 与 `YES` 会被拒绝，`no` 或留空则安装官方构建。**选项**页签不为它提供开关。
+- **Windows。** 在 Windows 上，`vfox exec` 按裸名找不到 `deno`、`etcd` 或 `zig`（[vfox#787](https://github.com/version-fox/vfox/issues/787)）。带 `.exe` 的名称可以运行它们，例如 `vfox exec deno@2.9.8 -- deno.exe --version`。
 - **文档。** etcd 的**选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文）、它的文档与 README。vfox-deno 与 vfox-groovy 的**选项**页签链接各自的文档（英文与简体中文）以及 README。
 
 ## 插件

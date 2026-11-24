@@ -224,6 +224,8 @@ install and run were also checked on macOS, on Apple silicon and on Intel.
   *Settings → Environment variables* as `KEY=VALUE`.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-erlang,
   in English and in Simplified Chinese, and to its prebuilt and source-build pages and its README.
+- **Windows.** On Windows, `vfox exec erlang@29.1.2 -- erl` does not find `erl` by its bare name
+  ([vfox#787](https://github.com/version-fox/vfox/issues/787)); `-- erl.exe` runs it.
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
   channel** option picks the conda channel that pixi installs clang from; its presets are
   prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
@@ -246,7 +248,9 @@ install and run were also checked on macOS, on Apple silicon and on Intel.
 ### Elixir
 
 The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers these extras in all
-three interfaces. It was checked on Linux only.
+three interfaces. It was checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on
+Windows (x86-64 and arm64). On Windows the list is the one of the installers: `latest` installs
+`1.19.5-elixir-otp-28` when checked.
 
 - **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
   does not install Erlang/OTP for Elixir. A source build uses the `erlc` of an Erlang/OTP that
@@ -272,7 +276,8 @@ three interfaces. It was checked on Linux only.
 - **Searching.** `vfox search elixir` lists the releases whatever the option is, and
   `vfox search elixir hex` lists the pre-built builds. The plugin's documentation says that vfox
   keeps each list for up to 12 hours.
-- **Detect and link.** `vfox link --detect elixir` finds the Elixir installations already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. It needs vfox 1.1.0 or later, and it was checked on Linux only.
+- **Detect and link.** `vfox link --detect elixir` finds the Elixir installations already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. It needs vfox 1.1.0 or later. It was checked on Linux; on macOS and on Windows the detection ran
+  and found nothing, since no other Elixir is installed on those runners.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
   in English and in Simplified Chinese, and to its README.
 
@@ -322,12 +327,15 @@ interfaces, with the limits that their lists have today:
 - **Detect and link.** `vfox link --detect zig` finds the Zig installations already on the machine, from asdf, mise, zvm, Scoop, the system directories and PATH, and links them instead of installing another copy. A zig that cannot run is not listed, and neither are the installs that vfox manages or anything under VFOX_HOME. It needs vfox 1.1.0 or later, and it was checked on Linux only.
 - **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
   you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
-  takes longer than an install from a release. It was checked on Linux only: 3.5.12 builds with
-  failpoints. A release without a gofail target, such as 3.5.5, is refused before anything is
+  takes longer than an install from a release. It was checked on Linux and on macOS: 3.4.32, 3.5.12, 3.6.0 and 3.7.4 build with failpoints on
+  x86-64 Linux, and 3.5.12 on arm64 Linux and on both kinds of Mac. A release without a gofail target, such as 3.5.5, is refused before anything is
   cloned, and the install names it; the failpoint page of its documents lists the releases that
   have one. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build
   on: `1` and `YES` are refused, and `no` or an empty value installs the official build. The
   **Options** tab offers no switch for it.
+- **Windows.** On Windows, `vfox exec` does not find `deno`, `etcd` or `zig` by its bare name
+  ([vfox#787](https://github.com/version-fox/vfox/issues/787)). The name with `.exe` runs them, for
+  example `vfox exec deno@2.9.8 -- deno.exe --version`.
 - **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
   English and in Simplified Chinese, then to its documents and its README. The **Options** tabs
   of vfox-deno and vfox-groovy link their documents, in English and in Simplified Chinese, and
