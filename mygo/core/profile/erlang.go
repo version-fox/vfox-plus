@@ -55,23 +55,29 @@ func erlangProfile(platform Platform) Profile {
 		),
 		Tips: []Text{
 			text(
-				"Building from source takes a long time and needs the tools that the plugin's source-build page lists.",
-				"从源码编译需要很长时间，并需要插件源码编译页面中列出的编译工具。"),
+				"Source builds take a long time.",
+				"源码编译需要很长时间。",
+			),
 			text(
-				"OTP_CONFIGURE_ARGS, set in Settings under Environment variables, passes arguments to configure, such as --without-javac.",
-				"在“设置”的“环境变量”中设置 OTP_CONFIGURE_ARGS，可把参数传给 configure，如 --without-javac。"),
+				"Set OTP_CONFIGURE_ARGS and MAKEFLAGS in Settings.",
+				"在“设置”中设置 OTP_CONFIGURE_ARGS 与 MAKEFLAGS。",
+			),
 			text(
-				"MAKEFLAGS, set in Settings under Environment variables, runs make in parallel, such as -j8.",
-				"在“设置”的“环境变量”中设置 MAKEFLAGS，可让 make 并行编译，如 -j8。"),
+				"Turn the search cache off first.",
+				"先关闭搜索缓存，再使用预编译构建。",
+			),
 			text(
-				"vfox keeps one search cache per plugin, and the cache does not depend on USE_PREBUILT_OTP. Turn the search cache off before you use prebuilt releases, as the plugin's prebuilt page says.",
-				"vfox 为每个插件保留一份搜索缓存，而且缓存与 USE_PREBUILT_OTP 无关。使用预编译构建前请关闭搜索缓存，见插件的预编译页面。"),
+				"Source builds refuse some characters in VFOX_HOME.",
+				"源码编译会拒绝 VFOX_HOME 中的某些字符。",
+			),
 			text(
-				"A source build stops before configure, once it has downloaded the source, when the path of VFOX_HOME contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline, and the install says which character. A prebuilt build works with a space in the path.",
-				"源码编译在下载源码之后、configure 之前停止：VFOX_HOME 的路径含单引号、双引号、美元符号、反引号、空格、制表符或换行符时，安装会说明是哪个字符。预编译构建可以在含空格的路径下安装。"),
+				"Run a prebuilt install as erlang@29.1.2.",
+				"预编译安装请用 erlang@29.1.2 运行。",
+			),
 			text(
-				"A prebuilt install is recorded under its release number, such as 29.1.2, so run it as erlang@29.1.2. vfox exec does not map an OTP- name to that install: erlang@OTP-29.1.2 is not found there, and without USE_PREBUILT_OTP vfox starts a source build of it.",
-				"预编译安装按发行版号记录，如 29.1.2，所以请用 erlang@29.1.2 运行它。vfox exec 不会把 OTP- 名称映射到该安装：在 vfox exec 中写 erlang@OTP-29.1.2 会找不到它，未设置 USE_PREBUILT_OTP 时 vfox 会开始一次源码构建。"),
+				"vfox exec does not map OTP- names.",
+				"vfox exec 不会映射 OTP- 名称。",
+			),
 		},
 		Docs: []Link{
 			website("vfox-erlang", text("Documentation website", "文档网站")),

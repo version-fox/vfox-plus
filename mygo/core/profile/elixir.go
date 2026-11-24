@@ -55,23 +55,37 @@ func elixirProfile(platform Platform) Profile {
 		),
 		Tips: []Text{
 			text(
-				"A source build uses the erlc of an Erlang/OTP that vfox installed when erlc is not on PATH. Without any Erlang/OTP, the install stops before the build and says so.",
-				"源码构建在 PATH 上没有 erlc 时，会使用 vfox 已安装的 Erlang/OTP 的 erlc。没有任何 Erlang/OTP 时，安装会在构建前停止并说明。"),
+				"vfox does not install Erlang/OTP.",
+				"vfox 不会安装 Erlang/OTP。",
+			),
 			text(
-				"A source build takes about a minute. The path of VFOX_HOME must not hold a space or another shell character, such as a quote, a dollar sign or an ampersand; the install then stops before make and says so. A pre-built build works with such a path.",
-				"源码构建约需一分钟。VFOX_HOME 的路径中不能有空格，也不能有引号、美元符号或 & 这样的 shell 字符；否则安装会在 make 之前停止并说明。预编译构建不受此限制。"),
+				"Source builds take about a minute.",
+				"源码构建约需一分钟。",
+			),
 			text(
-				"Running elixir alone fails with exec: erl: not found, so run it together with Erlang/OTP, for example vfox exec erlang@29.1.2 elixir@1.20.5 -- elixir --version.",
-				"单独运行 elixir 会以 exec: erl: not found 失败，所以请与 Erlang/OTP 一起运行，例如 vfox exec erlang@29.1.2 elixir@1.20.5 -- elixir --version。"),
+				"Source builds refuse spaces in VFOX_HOME.",
+				"源码构建会拒绝 VFOX_HOME 中的空格。",
+			),
 			text(
-				"For a source build, a name such as 1.16 is not a release, because its tag does not exist. The pre-built list shows only names with an -otp-N suffix, such as 1.20.5-otp-29. A name without one, such as 1.20.5, is not listed; if you type it, the install warns that the build may not run with your Erlang/OTP, so prefer a name with its suffix.",
-				"对源码构建而言，1.16 这样的名称不是发行版，因为它的标签不存在。预编译列表只显示带 -otp-N 后缀的名称，如 1.20.5-otp-29；不带后缀的名称（如 1.20.5）不会列出，如果手动输入，安装会警告这个构建可能无法用你的 Erlang/OTP 运行，所以请优先使用带后缀的名称。"),
+				"Run elixir with erlang@29.1.2 in exec.",
+				"在 exec 中与 erlang@29.1.2 一起运行 elixir。",
+			),
 			text(
-				"A pre-built build is checked against the SHA-256 that hex.pm's builds.txt publishes for it. A build that builds.txt lists without a SHA-256 installs with a warning, and is not checked.",
-				"预编译构建会按 hex.pm 的 builds.txt 为它发布的 SHA-256 校验。builds.txt 中没有 SHA-256 的构建，会带警告安装，并且不做校验。"),
+				"Names such as 1.16 are not releases.",
+				"1.16 这样的名称不是发行版。",
+			),
 			text(
-				"Detect and link finds the Elixir installations that are already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. It needs vfox 1.1.0 or later, and it was checked on Linux only.",
-				"探测并链接会找出机器上已有的 Elixir 安装，来自 asdf、mise、Homebrew、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。"),
+				"Pre-built builds are checked against builds.txt.",
+				"预编译构建会按 builds.txt 校验。",
+			),
+			text(
+				"Builds without a SHA-256 are not checked.",
+				"没有 SHA-256 的构建不做校验。",
+			),
+			text(
+				"Detect and link finds existing installs.",
+				"探测并链接会找出已有的安装。",
+			),
 		},
 		Docs: []Link{
 			website("vfox-elixir", text("Documentation website", "文档网站")),

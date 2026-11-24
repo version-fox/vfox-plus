@@ -36,24 +36,28 @@ func zigProfile() Profile {
 		),
 		Tips: []Text{
 			text(
-				"The list needs ziglang.org: when it cannot be reached, the whole list fails. machengine.org is optional: without it the list shows the official releases, with a warning.",
-				"列表需要 ziglang.org：它无法访问时，整个列表都会失败。machengine.org 是可选的：无法访问时，列表只显示官方发行版，并给出警告。",
+				"The list needs ziglang.org.",
+				"列表需要 ziglang.org。",
 			),
 			text(
-				"A name that the list does not show is refused, and nothing is installed.",
-				"列表中没有的名称会被拒绝，什么也不会安装。",
+				"machengine.org is optional.",
+				"machengine.org 可选。",
 			),
 			text(
-				"vfox 1.1.0 exec does not take latest, nightly or a Mach name. Give the version name that vfox list shows, such as 0.18.0-dev.1272+2ff397f75. vfox use takes these names.",
-				"vfox 1.1.0 的 exec 不接受 latest、nightly 或 Mach 名称。请用 vfox list 显示的版本名，如 0.18.0-dev.1272+2ff397f75。vfox use 可以接受这些名称。",
+				"Unlisted names are refused.",
+				"列表中没有的名称会被拒绝。",
 			),
 			text(
-				"A Mach build that ziglang.org does not publish, such as 2024.5.0-mach, is downloaded from pkg.hexops.org, and its checksum from the index is still checked.",
-				"ziglang.org 没有发布的 Mach 构建（如 2024.5.0-mach）从 pkg.hexops.org 下载，仍然按索引中的校验和检查。",
+				"vfox 1.1.0 exec takes version names only.",
+				"vfox 1.1.0 的 exec 只接受版本名。",
 			),
 			text(
-				"Detect and link finds the Zig installations that are already on the machine, from asdf, mise, zvm, Scoop, the system directories and PATH, and links them instead of installing another copy. A zig that cannot run is not listed, and neither are the installs that vfox manages or anything under VFOX_HOME. It needs vfox 1.1.0 or later, and it was checked on Linux only.",
-				"探测并链接会找出机器上已有的 Zig 安装，来自 asdf、mise、zvm、Scoop、系统目录与 PATH，并链接它们，而不再安装一份。无法运行的 zig 不会被列出，vfox 管理的安装与 VFOX_HOME 下的任何内容也不会被列出。需要 vfox 1.1.0 或更高版本，只在 Linux 上检查过。",
+				"Mach builds may come from pkg.hexops.org.",
+				"Mach 构建可能来自 pkg.hexops.org。",
+			),
+			text(
+				"Detect and link finds existing zig installs.",
+				"探测并链接会找出已有的 zig 安装。",
 			),
 		},
 		Docs: []Link{
