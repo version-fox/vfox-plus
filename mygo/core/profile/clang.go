@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-clang (https://github.com/version-fox/vfox-clang),
-// written from its code at release 0.5.4, which its main branch shares.
+// written from its code at release 0.5.5, which its main branch shares.
 
 // clangProfile is the profile of vfox-clang. The plugin installs clang from
 // conda-forge with pixi, and reads two variables: Conda_Forge, the channel that

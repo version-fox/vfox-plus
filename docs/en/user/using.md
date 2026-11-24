@@ -207,8 +207,8 @@ The plugins [vfox-erlang](https://github.com/version-fox/vfox-erlang) and
 [vfox-clang](https://github.com/version-fox/vfox-clang) offer these extras in all three
 interfaces. vfox-erlang was checked on Linux, on macOS (Apple silicon and Intel) and on Windows
 x86-64; its install fails on Windows arm64 ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48)). vfox-clang was
-checked on Linux, on macOS (Apple silicon and Intel) and on Windows x86-64; its install stops on
-Windows arm64 ([vfox-clang #17](https://github.com/version-fox/vfox-clang/issues/17)).
+checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on Windows (x86-64 and
+arm64).
 
 - **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu release,
   20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead of compiling
@@ -237,12 +237,14 @@ Windows arm64 ([vfox-clang #17](https://github.com/version-fox/vfox-clang/issues
   downloads pixi first, which took 1 to 2 minutes, and then clang from the channel, which took
   6 to 14 minutes, on a network of 250 to 850 kB/s. On GitHub's macOS runners, which have a fast
   network, an install of `latest` took 6 seconds on Apple silicon and 15 seconds on Intel, and the
-  clang it installed ran.
+  clang it installed ran. `vfox search clang` lists the versions that conda-forge publishes for your
+  platform, so the list is shorter on some platforms: on Windows arm64 only the latest version, and on
+  macOS arm64 two versions fewer than on Linux.
 - **Windows.** On Windows, `vfox exec clang@23.1.6 -- clang` runs the clang on the shell's PATH when
   there is one, such as the LLVM installer's, and not the clang that vfox installed; `-- clang.exe`
-  runs the installed one ([vfox#787](https://github.com/version-fox/vfox/issues/787)). On Windows arm64 the install stops with an error
-  from the plugin: it reads only the x86-64 Windows archive of pixi, and the README lists Windows x86_64
-  only ([vfox-clang #17](https://github.com/version-fox/vfox-clang/issues/17)).
+  runs the installed one ([vfox#787](https://github.com/version-fox/vfox/issues/787)). From vfox-clang 0.5.5 the
+  plugin installs clang on Windows arm64 too, from pixi's arm64 archive. On Windows arm64 `vfox search clang`
+  lists only the latest version.
 - **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
   the pixi download. It has no preset, so set it in *Settings → Environment variables* to
   a mirror that keeps GitHub's paths. A mirror should also serve the `.sha256` file next to each
@@ -347,7 +349,8 @@ zig versions in Scoop's apps directory and in Program Files were found, and vfox
   anything is cloned, and the install names it; the failpoint page of its documents lists the
   releases that have one. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build on:
   `1` and `YES` are refused, and `no` or an empty value installs the official build. The
-  **Options** tab offers no switch for it.
+  **Options** tab offers no switch for it. In 0.2.4 these refusals also print a Lua stack traceback below their message
+  ([vfox-etcd #31](https://github.com/version-fox/vfox-etcd/issues/31)).
 - **Failpoints on Windows.** On Windows the failpoint build is not made. The install prints that
   `BUILD_WITH_FAILPOINT` is only supported on Linux and macOS, and it installs the official Windows
   build of the version, which is checked against its published checksum and has no failpoints.
@@ -355,8 +358,8 @@ zig versions in Scoop's apps directory and in Program Files were found, and vfox
   ([vfox#787](https://github.com/version-fox/vfox/issues/787)). The name with `.exe` runs them, for
   example `vfox exec deno@2.9.8 -- deno.exe --version`.
 - **Windows arm64.** vfox-etcd has no build for Windows arm64: 3.5.12, 3.6.0 and 3.7.4 publish only the
-  amd64 Windows zip. Its install stops with a Lua error about the missing checksum, after it fetches
-  `SHA256SUMS` ([vfox-etcd #28](https://github.com/version-fox/vfox-etcd/issues/28)). Deno and Zig install their arm64 builds and run them,
+  amd64 Windows zip. Its install stops with a message that names the platform and the release page, and
+  prints no stack traceback ([vfox-etcd #28](https://github.com/version-fox/vfox-etcd/issues/28)). Deno and Zig install their arm64 builds and run them,
   checked with Deno 2.9.8 and Zig 0.17.1, with the `.exe` name as above. Groovy and Scala install and
   run on the Temurin JDK 21 that was installed for the check.
 - **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
