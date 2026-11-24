@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-etcd (https://github.com/version-fox/vfox-etcd), written
-// from its code at release 0.2.4.
+// from its code at release 0.2.5.
 
 // etcdProfile is the profile of vfox-etcd. The plugin takes full release names,
 // with or without a v, and no partial name. latest is the first line of the list,

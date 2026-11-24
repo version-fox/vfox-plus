@@ -349,7 +349,7 @@ zig versions in Scoop's apps directory and in Program Files were found, and vfox
   anything is cloned, and the install names it; the failpoint page of its documents lists the
   releases that have one. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build on:
   `1` and `YES` are refused, and `no` or an empty value installs the official build. The
-  **Options** tab offers no switch for it. In 0.2.4 these refusals also print a Lua stack traceback below their message
+  **Options** tab offers no switch for it. Since 0.2.5 these refusals print no Lua stack traceback
   ([vfox-etcd #31](https://github.com/version-fox/vfox-etcd/issues/31)).
 - **Failpoints on Windows.** On Windows the failpoint build is not made. The install prints that
   `BUILD_WITH_FAILPOINT` is only supported on Linux and macOS, and it installs the official Windows

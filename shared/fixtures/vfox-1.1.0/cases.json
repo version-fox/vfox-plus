@@ -1088,7 +1088,7 @@
           "homepage": "https://github.com/version-fox/vfox-etcd",
           "installPath": "/tmp/vfox-sb/home/.vfox/cache/etcd",
           "name": "etcd",
-          "version": "0.2.4"
+          "version": "0.2.5"
         }
       }
     },
