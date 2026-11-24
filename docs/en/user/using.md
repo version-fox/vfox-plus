@@ -348,6 +348,9 @@ zig versions in Scoop's apps directory and in Program Files were found, and vfox
   releases that have one. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build on:
   `1` and `YES` are refused, and `no` or an empty value installs the official build. The
   **Options** tab offers no switch for it.
+- **Failpoints on Windows.** On Windows the failpoint build is not made. The install prints that
+  `BUILD_WITH_FAILPOINT` is only supported on Linux and macOS, and it installs the official Windows
+  build of the version, which is checked against its published checksum and has no failpoints.
 - **Windows.** On Windows, `vfox exec` does not find `deno`, `etcd` or `zig` by its bare name
   ([vfox#787](https://github.com/version-fox/vfox/issues/787)). The name with `.exe` runs them, for
   example `vfox exec deno@2.9.8 -- deno.exe --version`.
