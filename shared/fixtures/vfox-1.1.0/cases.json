@@ -1088,7 +1088,7 @@
           "homepage": "https://github.com/version-fox/vfox-etcd",
           "installPath": "/tmp/vfox-sb/home/.vfox/cache/etcd",
           "name": "etcd",
-          "version": "0.2.3"
+          "version": "0.2.4"
         }
       }
     },
@@ -1436,7 +1436,7 @@
           "homepage": "https://github.com/version-fox/vfox-clang",
           "installPath": "/tmp/vfox-sb/home/.vfox/cache/clang",
           "name": "clang",
-          "version": "0.5.4"
+          "version": "0.5.5"
         }
       }
     },
