@@ -123,6 +123,8 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 3.15.2 与 3.14.4，其中 3.15.2 正在用。设置了 `VFOX_PLUS_FAKE_INVENTORY=python` 时，假 vfox 为 `list` 与 `current`
 返回它们。`cases.json` 列出了解析器必须从它们读出的内容。
 
+`vfxtool capture -plugins` 为 profile 里尚无捕获的八个插件补上捕获：etcd、Erlang/OTP、Deno、Groovy、Scala、Zig、clang 与 Elixir。每个插件捕获 `search-<插件>` 与 `info-<插件>`；另捕获它们那台机器的 `list-plugins` 与 `current-plugins`：Erlang/OTP 29.1.2 正在用，clang 23.1.6 与 etcd 3.7.4 也已安装。每个插件都从 `VFOX_PLUGIN_ZIPS` 指定的 zip（`<目录>/vfox-<插件>.zip`）添加，即 profile 所跟随的发行版。该模式把这些捕获加到已有的夹具里，其余保持不变。设置了 `VFOX_PLUS_FAKE_INVENTORY=plugins` 时，假 vfox 为 `list` 与 `current` 返回那台机器的输出；端到端场景 `plugins` 需要它。`cases.json` 记录它们的期望值。
+
 ## 跟进 vfox 新版
 
 1. 装新版 vfox 跑 `vfxtool capture`。需联网，约一分钟，写入 `vfox-<版本>/`。

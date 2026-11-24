@@ -579,7 +579,7 @@ What the icon costs in memory is in [Memory](memory.md#the-tray-icon). It is tes
   the event of the click, and the application does what they say. The shell hides the icon when the window comes
   back. Each time the window closes, the panel shows the one icon of the application, and the indicator of the
   appearance before is gone. The shell drops the icon when the application ends, and is still up after it all.
-- **Windows** by the `run-windows` job, which runs `vfxtool e2e-run fake`, `vfxtool e2e-run python` and `vfxtool e2e-run tray` on Windows
+- **Windows** by the `run-windows` job, which runs `vfxtool e2e-run fake`, `vfxtool e2e-run python`, `vfxtool e2e-run plugins` and `vfxtool e2e-run tray` on Windows
   Server 2025 (x64) and Windows 11 on ARM with the end-to-end build for Windows, on the desktop of the runner
   (`explorer.exe` runs there, with its taskbar). The window comes back and the application ends as the control
   file of the end-to-end build asks, since a click on an icon of the taskbar is not for a program to make. The

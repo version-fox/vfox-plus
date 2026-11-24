@@ -159,6 +159,7 @@ where you are, `SANDBOX_UBUNTU_MIRROR` for the Ubuntu archive and
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run python build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run plugins build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
@@ -352,7 +353,7 @@ adds 5 MB because only the rows in view are built.
 - **Linux on x86-64 is the platform that is run and tested in full.** mygo has its own backends
   for Windows and macOS, and the application compiles for them and for Linux on
   arm64 (`vfxtool build --goos windows --goarch amd64` and the like). Windows runs the
-  scenarios `fake`, `python` and `tray` in CI (the job `run-windows`). Windows 11
+  scenarios `fake`, `python`, `plugins` and `tray` in CI (the job `run-windows`). Windows 11
   is packaged as an unsigned `.msixbundle` (x64 and arm64) and validated in CI, and
   the release signs it; a CI package installs with `Add-AppxPackage -AllowUnsigned`. The census of
   the screens is taken on Windows (Server 2025 and 2022, and 11 on ARM) and on macOS (26 and 15, and 15 on Intel) in CI too

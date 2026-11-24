@@ -129,6 +129,7 @@ Go 模块与构建缓存。
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run python build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run plugins build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
@@ -265,7 +266,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 在 CI 的 `run-windows`
-  任务里跑 `fake`、`python` 与 `tray` 场景。Windows 11 打包为
+  任务里跑 `fake`、`python`、`plugins` 与 `tray` 场景。Windows 11 打包为
   未签名 `.msixbundle`（x64 与 arm64），CI 校验，发布时签名；CI 的包用 `Add-AppxPackage -AllowUnsigned` 安装
   屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
   一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔

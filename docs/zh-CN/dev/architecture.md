@@ -464,7 +464,7 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   像用户那样选择*打开 vfox+*和*退出 vfox+*，做法是让扩展发出点击事件，应用照做。窗口回来时 Shell 隐藏图标；
   每次关窗后，面板里只剩当前的这一个指示器，上一次的已经离开。应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
 - **Windows**：`run-windows` 任务在 Windows Server 2025（x64）与 Windows 11 ARM 上，用 Windows 的端到端构建，
-  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python` 与 `vfxtool e2e-run tray`。
+  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python`、`vfxtool e2e-run plugins` 与 `vfxtool e2e-run tray`。
   窗口回来、应用结束按端到端构建的控制文件的要求发生，因为点击任务栏的图标不是程序该做的事。图标的位置由应用向桌面
   询问（mygo 的 `Tray.Bounds`，即 `Shell_NotifyIconGetRect`），应用为它创建的每个图标把答案写进日志：在
   Windows Server 2025 上，图标两次创建都在通知区域得到了位置。桌面能不能说出图标在哪，由场景自己添加的一个普通图标
