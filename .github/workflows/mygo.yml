@@ -469,8 +469,10 @@ jobs:
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
       - name: Build the image of a GNOME Shell with no screen
         # Ubuntu's GNOME Shell and its AppIndicator extension, the library of the icon, and an
-        # ordinary user (shared/sandbox/gnome.Dockerfile).
-        run: docker build --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
+        # ordinary user (shared/sandbox/gnome.Dockerfile). Its packages come from Azure's mirror of
+        # the Ubuntu archive: the archive itself stalled the download until the job's 40 minutes ran
+        # out (run 45154694636, 2026-11-23).
+        run: docker build --build-arg UBUNTU_MIRROR=http://azure.archive.ubuntu.com/ubuntu/ --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
       - name: Run the icon in the tray on the shell
         # vfxtool gnome-session starts the shell and its extension inside the container, as root
         # (it makes the system bus that the shell wants) and then as the user of the session, and runs the
