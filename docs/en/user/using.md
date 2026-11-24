@@ -205,8 +205,7 @@ all three interfaces:
 
 The plugins [vfox-erlang](https://github.com/version-fox/vfox-erlang) and
 [vfox-clang](https://github.com/version-fox/vfox-clang) offer these extras in all three
-interfaces. vfox-erlang was checked on Linux, on macOS (Apple silicon and Intel) and on Windows
-x86-64; its install fails on Windows arm64 ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48)). vfox-clang was
+interfaces. vfox-erlang was checked on Linux, on macOS (Apple silicon and Intel) and on Windows x86-64 and arm64; on Windows arm64, Erlang/OTP 29.x is refused before the download, because its release has no 32-bit installer ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48), [#49](https://github.com/version-fox/vfox-erlang/issues/49)). vfox-clang was
 checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on Windows (x86-64 and
 arm64).
 
@@ -220,17 +219,19 @@ arm64).
   option empty to compile from the source, which takes a long time and needs the tools that the
   plugin's source-build page lists. With a prebuilt build selected, `latest` is the newest release
   in the list. The search cache is kept per plugin and does not depend on the option, so turn it
-  off before you use prebuilt releases, as the plugin's prebuilt page says.
+  off before you use prebuilt releases, as the plugin's prebuilt page says. A prebuilt archive is checked against the SHA-256 that Bob's `builds.txt` lists for it before it is unpacked, and the install prints `Verifying checksum`; a build with no SHA-256 listed installs with a warning.
 - **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
   `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
   *Settings → Environment variables* as `KEY=VALUE`.
 - **Documentation.** The **Options** tab links to the documentation website of vfox-erlang,
   in English and in Simplified Chinese, and to its prebuilt and source-build pages and its README.
 - **Windows.** On Windows x86-64, `vfox exec erlang@29.1.2 -- erl` does not find `erl` by its bare
-  name ([vfox#787](https://github.com/version-fox/vfox/issues/787)); `-- erl.exe` runs it. The install uses the official installer, which
-  the plugin does not check, so it warns that no checksum is provided. On Windows arm64 the install
-  fails: the plugin asks for `otp_win32_29.1.2.exe`, which the release does not publish
-  ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48)), so Erlang/OTP is not installed there and Elixir cannot run.
+  name ([vfox#787](https://github.com/version-fox/vfox/issues/787)); `-- erl.exe` runs it. The install uses the official
+  installer, which the plugin does not check, so it warns that no checksum is provided. Since 1.2.6,
+  `erlang@OTP-<version>` installs that release too. On Windows arm64 the plugin uses the 32-bit installer when the release
+  publishes it: `erlang@28.5.0.8` installs there, and `-- erl.exe` runs it. Erlang/OTP 29.x publishes only the 64-bit
+  installer, so on Windows arm64 `erlang@29.1.2` stops before the download with a message that says so
+  ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48); [#49](https://github.com/version-fox/vfox-erlang/issues/49) asked for this).
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
   channel** option picks the conda channel that pixi installs clang from; its presets are
   prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
@@ -263,9 +264,8 @@ Without `-y`, nothing is linked.
 
 The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers these extras in all
 three interfaces. It was checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on
-Windows x86-64. On Windows the list is the one of the installers: `latest` installs
-`1.19.5-elixir-otp-28`. On Windows arm64 the installer also completes, but vfox-erlang cannot install
-Erlang/OTP there ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48)), so Elixir cannot run through vfox.
+Windows x86-64 and arm64. On Windows the list is the one of the installers: `latest` installs
+`1.19.5-elixir-otp-28`. On Windows arm64 the installer completes too, and Elixir runs with an Erlang/OTP 28 release such as `erlang@28.5.0.8`: `vfox exec erlang@28.5.0.8 elixir@1.19.5-elixir-otp-28 -- elixir.bat -v` prints `Elixir 1.19.5 (compiled with Erlang/OTP 28)`, on x86-64 and on arm64. On Windows arm64 `erlang@29.1.2` is refused, because its release has no 32-bit installer ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48), [#49](https://github.com/version-fox/vfox-erlang/issues/49)).
 
 - **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
   does not install Erlang/OTP for Elixir. A source build uses the `erlc` of an Erlang/OTP that

@@ -1146,7 +1146,7 @@
           "homepage": "https://github.com/version-fox/vfox-erlang",
           "installPath": "/tmp/vfox-sb/home/.vfox/cache/erlang",
           "name": "erlang",
-          "version": "1.2.5"
+          "version": "1.2.7"
         }
       }
     },
