@@ -229,7 +229,7 @@ arm64).
   name ([vfox#787](https://github.com/version-fox/vfox/issues/787)); `-- erl.exe` runs it. The install uses the official
   installer, which the plugin does not check, so it warns that no checksum is provided. Since 1.2.6,
   `erlang@OTP-<version>` installs that release too. On Windows arm64 the plugin uses the 32-bit installer when the release
-  publishes it: `erlang@28.5.0.8` installs there, and `-- erl.exe` runs it. Erlang/OTP 29.x publishes only the 64-bit
+  publishes it: `erlang@28.5.0.9` installs there, and `-- erl.exe` runs it. Erlang/OTP 29.x publishes only the 64-bit
   installer, so on Windows arm64 `erlang@29.1.2` stops before the download with a message that says so
   ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48); [#49](https://github.com/version-fox/vfox-erlang/issues/49) asked for this).
 - **Clang.** `latest` installs the version that the list marks as latest. The **Conda
@@ -265,7 +265,7 @@ Without `-y`, nothing is linked.
 The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers these extras in all
 three interfaces. It was checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on
 Windows x86-64 and arm64. On Windows the list is the one of the installers: `latest` installs
-`1.19.5-elixir-otp-28`. On Windows arm64 the installer completes too, and Elixir runs with an Erlang/OTP 28 release such as `erlang@28.5.0.8`: `vfox exec erlang@28.5.0.8 elixir@1.19.5-elixir-otp-28 -- elixir.bat -v` prints `Elixir 1.19.5 (compiled with Erlang/OTP 28)`, on x86-64 and on arm64. On Windows arm64 `erlang@29.1.2` is refused, because its release has no 32-bit installer ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48), [#49](https://github.com/version-fox/vfox-erlang/issues/49)).
+`1.19.5-elixir-otp-28`. On Windows arm64 the installer completes too, and Elixir runs with an Erlang/OTP 28 release such as `erlang@28.5.0.9`: `vfox exec erlang@28.5.0.9 elixir@1.19.5-elixir-otp-28 -- elixir.bat -v` prints `Elixir 1.19.5 (compiled with Erlang/OTP 28)`, on x86-64 and on arm64. On Windows arm64 `erlang@29.1.2` is refused, because its release has no 32-bit installer ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48), [#49](https://github.com/version-fox/vfox-erlang/issues/49)).
 
 - **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
   does not install Erlang/OTP for Elixir. A source build uses the `erlc` of an Erlang/OTP that
