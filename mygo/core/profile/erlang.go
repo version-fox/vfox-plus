@@ -15,7 +15,7 @@
 package profile
 
 // The profile of vfox-erlang (https://github.com/version-fox/vfox-erlang),
-// written from its code at release 1.2.7, which its main branch shares.
+// written from its code at release 1.2.8, which its main branch shares.
 
 // erlangProfile is the profile of vfox-erlang. With USE_PREBUILT_OTP set to an
 // Ubuntu release, the plugin installs a prebuilt build and lists the prebuilt

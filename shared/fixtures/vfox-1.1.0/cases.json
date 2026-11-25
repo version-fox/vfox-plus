@@ -1101,31 +1101,31 @@
       "exitCode": 0,
       "expect": {
         "search": {
-          "count": 545,
+          "count": 548,
           "items": {
             "0": {
               "additions": [],
               "installed": false,
               "note": null,
-              "version": "29.1.2"
+              "version": "29.1.3"
             },
             "1": {
               "additions": [],
               "installed": false,
               "note": null,
-              "version": "29.1.1"
+              "version": "29.1.2"
             },
             "272": {
               "additions": [],
               "installed": false,
               "note": null,
-              "version": "22.3.4.15"
+              "version": "22.3.4.18"
             },
             "544": {
               "additions": [],
               "installed": false,
               "note": null,
-              "version": "17.0"
+              "version": "17.1"
             }
           }
         }
@@ -1146,7 +1146,7 @@
           "homepage": "https://github.com/version-fox/vfox-erlang",
           "installPath": "/tmp/vfox-sb/home/.vfox/cache/erlang",
           "name": "erlang",
-          "version": "1.2.7"
+          "version": "1.2.8"
         }
       }
     },

@@ -115,7 +115,7 @@
 - **Clang 的 GitHub 地址。** 插件用 `GITHUB_URL` 获取版本列表与 pixi 的下载。它没有预设，请在*设置 → 环境变量*里把它设为保持 GitHub 路径的镜像。镜像最好也提供每个压缩包旁边的 `.sha256` 文件：没有它时，安装会提示未提供校验和；镜像返回其他错误时，安装会停止。
 - **pixi 的校验和。** Clang 安装时下载的 pixi 压缩包，会在解压之前按 pixi 在旁边发布的 SHA-256 校验。pixi 没有发布时，安装会打印 `WARNING: Checksum is not provided, skip verify...` 并跳过校验；读不到 SHA-256 时，安装停止。
 - **探测并链接。** `vfox link --detect clang` 会找出机器上已有的 clang，如 conda、Homebrew 与系统 llvm 目录中的安装，并链接它们，而不再安装一份。需要 vfox 1.1.0 或更高版本。在 Linux、macOS 与 Windows 上检查过。在 macOS 上它找到了 Homebrew 的 llvm；在 Windows（x86-64 与 arm64）上它找到了 LLVM 安装程序装的 clang 与 Visual Studio 自带的 clang。不加 `-y` 时不会链接任何东西。
-- **家目录。** 源码编译 Erlang/OTP 时，下载源码之后、configure 之前，若 `VFOX_HOME` 的路径含单引号、双引号、美元符号、反引号、空格、制表符或换行符，会停止并说明是哪个字符。把 `VFOX_HOME` 设为不含这些字符的路径后，检查即可通过。预编译构建可以在含空格的路径下安装。
+- **家目录。** 源码编译 Erlang/OTP 时，若安装路径含单引号、双引号、美元符号、反引号、空格、制表符或换行符，会在下载之前停止并说明是哪个字符。安装路径位于 `VFOX_HOME` 下；未设置 `VFOX_HOME` 时，位于用户主目录下的 vfox 目录中。把 `VFOX_HOME` 设为不含这些字符的路径后，检查即可通过。预编译构建可以在含空格的路径下安装。
 
 ### Elixir
 

@@ -258,7 +258,7 @@ arm64).
 - **Detect and link.** `vfox link --detect clang` finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later. It was checked on Linux, on macOS and on Windows. On macOS the detection found Homebrew's llvm; on Windows,
 on x86-64 and arm64, it found the clang of the LLVM installer and the one that Visual Studio bundles.
 Without `-y`, nothing is linked.
-- **Home directory.** A source build of Erlang/OTP stops before configure, once it has downloaded the source, when the path of `VFOX_HOME` contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline; the refusal names the character. With `VFOX_HOME` set to a path that has none of those characters, the check passes. A prebuilt build works with a space in the path.
+- **Home directory.** A source build of Erlang/OTP is refused before the download starts when its install path contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline; the refusal names the character. The install path is under `VFOX_HOME`, or, when `VFOX_HOME` is not set, under vfox's directory in your home directory. With a path that has none of those characters, the check passes. A prebuilt build works with a space in the path.
 
 ### Elixir
 
