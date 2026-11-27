@@ -63,6 +63,7 @@
   任务结束时再问一次。没有可报告的内容时是一项 `doctorNoProblems` 加 `doctorCheck`（再问一次）；
   否则前五条结果各一项：其消息、`<插件>@<版本> · <严重程度>`，`sdk.no-receipt` 另有 `doctorAdopt`
   （`vfox doctor --adopt <插件>@<版本>`），`sdk.drift` 另有 `versionReinstall`；`doctorProblems` 给出总数。
+  vfox 关于发问进程本身的结果（它的 shell 未激活）不列在其中（下面的卡片说明如何激活终端）。
   询问失败时显示其消息与 `doctorCheck`。
 - 一张卡：终端用这些版本所需的那一行（`homeShellTitle`、`homeShellBody`）：
   `eval "$(vfox activate bash)"` 与复制按钮。

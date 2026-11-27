@@ -1014,6 +1014,29 @@
       }
     },
     {
+      "name": "doctor-json-not-activated",
+      "command": [
+        "doctor",
+        "--json"
+      ],
+      "exitCode": 1,
+      "expect": {
+        "doctor": {
+          "ok": false,
+          "count": 1,
+          "findings": [
+            {
+              "id": "path.not-activated",
+              "severity": "error",
+              "sdk": "",
+              "version": "",
+              "message": "vfox is not activated in this shell, so version changes do not reach it."
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "alias-list",
       "command": [
         "alias",

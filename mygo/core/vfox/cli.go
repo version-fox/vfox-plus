@@ -466,6 +466,11 @@ func (c *Client) UpdateAllPlugins() VfoxCommand {
 //
 // An optional sdk, and an optional version as `sdk@version`, narrow the
 // check to that SDK. An empty sdk checks everything.
+//
+// vfox exits with 1 when a finding is an error, with the report on standard
+// output all the same, so the report counts whatever the exit code says. What
+// vfox finds about the process that asked is left out (see
+// DoctorReport.AboutTheMachine).
 func (c *Client) DoctorReport(sdk, version string) (DoctorReport, error) {
 	args := []string{"doctor", "--json"}
 	if sdk != "" {
@@ -485,15 +490,18 @@ func (c *Client) DoctorReport(sdk, version string) (DoctorReport, error) {
 	} else if version != "" {
 		return DoctorReport{}, errors.New("A plugin name is required with a version") //nolint:staticcheck // Shown to the user as it is.
 	}
-	output, err := c.query(args, false)
+	output, err := c.query(args, true)
 	if err != nil {
 		return DoctorReport{}, err
 	}
 	report, ok := ParseDoctorReport(output.Stdout)
+	if output.ExitCode != 0 && (output.ExitCode != 1 || !ok) {
+		return DoctorReport{}, c.failure(args, output)
+	}
 	if !ok {
 		return DoctorReport{}, &VfoxError{Message: "Unrecognised doctor output", Arguments: args, Stdout: output.Stdout, Stderr: output.Stderr}
 	}
-	return report, nil
+	return report.AboutTheMachine(), nil
 }
 
 // DoctorAdopt records the current state of versions installed before vfox

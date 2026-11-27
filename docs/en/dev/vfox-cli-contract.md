@@ -298,9 +298,18 @@ java@j17 -> java@17.0.9-tem
 output says `No problems found.` or `Found … errors, … warnings and …
 notices.` with a `fix:` per finding; `--json` answers
 `{"ok": bool, "findings": [{id, severity, sdk, version, message, hints, fix,
-ignored}]}` and exits 1 only on unignored errors. `--adopt` records
-pre-receipt installs so drift can be detected later. Fixtures: `doctor`,
-`doctor-json`.
+ignored}]}` and exits 1 only on unignored errors, with the report on standard
+output all the same. The application therefore reads the report whether vfox
+exits with 0 or 1; another exit code, or 1 without a report, is a failure.
+`--adopt` records pre-receipt installs so drift can be detected later.
+
+The application runs vfox outside of an activated shell (see
+[Environment](#environment)), so vfox always finds `path.not-activated`: an
+`error` with exit code 1 on Linux and macOS, a `warn` on Windows. It describes
+the process that asks, not the terminals of the person, to whom the home page
+shows the activation line. The application leaves it out and works `ok` out
+again from the findings that are left. Fixtures: `doctor` and `doctor-json` (in
+an activated shell), `doctor-json-not-activated` (as the application runs it).
 
 `vfox alias list [<sdk>]` prints `<sdk>@<alias> -> <sdk>@<version>` per line,
 or `No aliases defined. …` when there are none. `vfox alias set <sdk> <alias>

@@ -76,6 +76,11 @@ func realScenario(s *appsession.Session, server, pluginSource string) {
 	installed, _ := os.ReadDir(filepath.Join(home, ".vfox", "plugin"))
 	s.Check(len(installed) == 0, "no plugin is installed yet")
 
+	// The real vfox finds that the application runs it outside of an activated shell,
+	// and exits with 1 for it, which is no problem of the machine.
+	s.Step("check the health")
+	s.WaitForText("No problems found.")
+
 	// Point vfox to the local registry through the vfox configuration editor.
 	s.Step("configure the registry")
 	s.Navigate(appsession.Settings)

@@ -232,7 +232,9 @@ vfox 1.1.0 的键：
 
 ### 健康、别名与链接版本
 
-`vfox doctor [--json] [<sdk>[@<version>]]` 检查问题；`--json` 输出 `{"ok", "findings"}`，仅未忽略的 error 才 exit 1。`--adopt` 记录旧安装以便后查漂移。夹具：`doctor`、`doctor-json`。
+`vfox doctor [--json] [<sdk>[@<version>]]` 检查问题；`--json` 输出 `{"ok", "findings"}`，仅未忽略的 error 才以 1 退出，报告照样写在标准输出。所以应用在退出码为 0 或 1 时都读取报告；其他退出码，或退出码 1 却没有报告，才算失败。`--adopt` 记录旧安装以便后查漂移。
+
+应用在未激活的 shell 里运行 vfox（见[环境](#环境)），所以 vfox 总会发现 `path.not-activated`：Linux、macOS 上是 `error` 且退出码为 1，Windows 上是 `warn`。它说的是发问的进程，而不是用户的终端（主页另有激活命令给用户看），所以应用去掉它，再按剩下的结果重新得出 `ok`。夹具：`doctor` 与 `doctor-json`（在已激活的 shell 里）、`doctor-json-not-activated`（应用运行时的情况）。
 
 `vfox alias list [<sdk>]` 每行 `<sdk>@<别名> -> <sdk>@<版本>`；`set` 命名已安装版本，`unset` 删除。夹具：`alias-list`。
 

@@ -79,8 +79,10 @@ Settings stay reachable in every case.
   with `doctorCheck`, which asks again. Otherwise there is one item for each of the
   first five findings: its message, `<plugin>@<version> · <severity>` and, for
   `sdk.no-receipt`, `doctorAdopt` (`vfox doctor --adopt <plugin>@<version>`), for
-  `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. A failure to ask
-  shows its message with `doctorCheck`.
+  `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. What vfox finds
+  about the process that asked, that its shell is not activated, is not among them
+  (the card below shows how to activate a terminal). A failure to ask shows its
+  message with `doctorCheck`.
 - A card with the line that a terminal needs to use these versions
   (`homeShellTitle`, `homeShellBody`): `eval "$(vfox activate bash)"` and a copy
   button.

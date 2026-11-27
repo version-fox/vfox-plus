@@ -119,10 +119,13 @@ OpenHarmony builds). They were captured with vfox-java 0.6.5, vfox-flutter 0.2.5
 vfox-nodejs 0.5.4, and the profiles of `core/profile` are tested against them: every
 version name of `search-java-all` carries a short name that the profile knows.
 
-`doctor`, `doctor-json` (`vfox doctor [--json]` with nothing installed),
-`alias-list` (no aliases) and `info-json` (`vfox info --json nodejs`) cover the
-new read-only commands of vfox 1.1.0. `vfox list` keeps only the version name
-when it carries `(linked → …)` and `[alias: …]` annotations.
+`doctor`, `doctor-json` (`vfox doctor [--json]` with nothing installed, in an
+activated shell, as `__VFOX_SHELL` says), `alias-list` (no aliases) and
+`info-json` (`vfox info --json nodejs`) cover the new read-only commands of vfox
+1.1.0. `doctor-json-not-activated` is `vfox doctor --json` outside of an activated
+shell, as the application runs it: it finds `path.not-activated` and exits with 1.
+The fake vfox answers with it when `__VFOX_SHELL` is empty. `vfox list` keeps only
+the version name when it carries `(linked → …)` and `[alias: …]` annotations.
 
 Their versions are faked, like those of Node.js and Maven that `list` shows: the tool
 creates a directory for each version, so that nothing is downloaded. `list-profiles` and

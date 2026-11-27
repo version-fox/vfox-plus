@@ -357,10 +357,16 @@ func run(vfox, mavenVersion string, print, errOut io.Writer, onlyPlugins bool) e
 	if err := r.capture("list-empty", nil, "list"); err != nil {
 		return err
 	}
-	if err := r.capture("doctor", nil, "doctor"); err != nil {
+	// As in an activated shell, where nothing is wrong, and as the application runs
+	// vfox, outside of one, where doctor finds that its caller is not activated.
+	activated := []string{"__VFOX_SHELL=bash"}
+	if err := r.capture("doctor", activated, "doctor"); err != nil {
 		return err
 	}
-	if err := r.capture("doctor-json", nil, "doctor", "--json"); err != nil {
+	if err := r.capture("doctor-json", activated, "doctor", "--json"); err != nil {
+		return err
+	}
+	if err := r.capture("doctor-json-not-activated", nil, "doctor", "--json"); err != nil {
 		return err
 	}
 	if err := r.capture("alias-list", nil, "alias", "list"); err != nil {

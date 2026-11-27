@@ -248,6 +248,23 @@ func TestRunCommandContract(t *testing.T) {
 	})
 }
 
+func TestRunCommandDoctorSaysThatItsCallerIsNotActivated(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "doctor-json", "healthy\n", "")
+	writeFixture(t, dir, "doctor-json-not-activated", "not activated\n", "")
+	fixtureEnv(t, dir)
+	for _, c := range []struct {
+		shell, want string
+		code        int
+	}{{"", "not activated\n", 1}, {"bash", "healthy\n", 0}} {
+		t.Setenv("__VFOX_SHELL", c.shell)
+		var out, errOut strings.Builder
+		if code := runCommand([]string{"doctor", "--json"}, &out, &errOut); code != c.code || out.String() != c.want {
+			t.Errorf("with the shell %q: exit code %d and %q, want %d and %q", c.shell, code, out.String(), c.code, c.want)
+		}
+	}
+}
+
 func TestRunCommandReplaysTheCapturesOfTheProfilePlugins(t *testing.T) {
 	dir := t.TempDir()
 	plugins := []string{"etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"}
