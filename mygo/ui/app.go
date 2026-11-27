@@ -370,6 +370,7 @@ func (a *App) listen() {
 	a.model.Installed.AddListener(a.invalidate)
 	a.model.Registry.AddListener(a.invalidate)
 	a.model.VfoxConfig.AddListener(a.invalidate)
+	a.model.Doctor.AddListener(a.invalidate)
 	a.model.Tasks.AddListener(a.invalidate)
 	a.model.Tasks.OnFinished(a.announce)
 }

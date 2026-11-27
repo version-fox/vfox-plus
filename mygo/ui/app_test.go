@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -786,6 +787,26 @@ func TestHomeShowsHealthAndChecksAgain(t *testing.T) {
 	ta.mustText("No problems found.")
 	ta.button("Check health")
 	ta.until("the doctor again", func() bool { return len(ta.runner.Calls("doctor --json")) >= 2 })
+}
+
+// The health check asks for a frame when it ends, which the window needs to show it: a check that
+// ended after everything else had loaded left the home page saying that it was still checking.
+func TestTheHealthCheckAsksForAFrameWhenItEnds(t *testing.T) {
+	ta := defaultApp(t)
+	ta.app.showWindow()
+	window := ta.desktop.windows[len(ta.desktop.windows)-1]
+	ta.runner.SlowDown("doctor --json", 100*time.Millisecond)
+	done := ta.app.model.Doctor.Load()
+	time.Sleep(20 * time.Millisecond)
+	before := window.invalidated.Load()
+	<-done
+	deadline := time.Now().Add(5 * time.Second)
+	for window.invalidated.Load() == before && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if window.invalidated.Load() == before {
+		t.Error("the check ended without asking for a frame")
+	}
 }
 
 func TestInstalledVersionsOfferReinstallAndAlias(t *testing.T) {
