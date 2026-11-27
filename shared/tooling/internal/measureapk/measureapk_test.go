@@ -284,6 +284,18 @@ func TestAppErrors(t *testing.T) {
 			t.Errorf("%s: appErrors = %v, want one error", name, got)
 		}
 	}
+	// A crash of uiautomator, which reads the screens for the tool, is not the app's; a crash of the app
+	// in the same log still is.
+	uiautomator := "11-20 10:00:04.000  5661  5661 E AndroidRuntime: FATAL EXCEPTION: main\n" +
+		"11-20 10:00:04.000  5661  5661 E AndroidRuntime: java.lang.RuntimeException: java.util.concurrent.TimeoutException: Timeout while connecting UiAutomation@3f16fb4\n" +
+		"11-20 10:00:04.000  5661  5661 E AndroidRuntime: \tat com.android.commands.uiautomator.DumpCommand.run(DumpCommand.java:78)\n"
+	if got := appErrors(cleanLog + uiautomator); len(got) != 0 {
+		t.Errorf("a crash of uiautomator counted as the app's: %v", got)
+	}
+	app := "11-20 10:00:05.000  2551  2551 E AndroidRuntime: FATAL EXCEPTION: main\n"
+	if got := appErrors(cleanLog + uiautomator + app); len(got) != 1 {
+		t.Errorf("a crash of the app next to one of uiautomator: %v", got)
+	}
 	// A warning of another tag, or an error of another tag, is not an error of the app.
 	if got := appErrors("11-20 10:00:03.000  2551  2551 E SurfaceSyncGroup: Failed to receive transaction ready\n"); len(got) != 0 {
 		t.Errorf("an error of the framework counted as the app's: %v", got)
