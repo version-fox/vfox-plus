@@ -1,0 +1,13 @@
+All installed sdk versions
+├─┬clang
+│ └──23.1.6
+├──deno
+├──elixir
+├─┬erlang
+│ └──29.1.2
+├─┬etcd
+│ └──3.7.4
+├──groovy
+├──scala
+└──zig
+

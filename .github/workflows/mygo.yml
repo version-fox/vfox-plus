@@ -197,7 +197,7 @@ jobs:
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
           # tray: the icon in the tray, against the stand-in for the host of the tray icons that
           # vfxtool makes: a runner has no panel.
-          for scenario in fake real python tray; do
+          for scenario in fake real python plugins tray; do
             xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
               "$RUNNER_TEMP/vfxtool" e2e-run "$scenario" "$RUNNER_TEMP/vfox-plus-e2e"
           done
@@ -469,8 +469,10 @@ jobs:
           "$RUNNER_TEMP/vfxtool" build --e2e --root mygo "$RUNNER_TEMP/vfox-plus-e2e"
       - name: Build the image of a GNOME Shell with no screen
         # Ubuntu's GNOME Shell and its AppIndicator extension, the library of the icon, and an
-        # ordinary user (shared/sandbox/gnome.Dockerfile).
-        run: docker build --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
+        # ordinary user (shared/sandbox/gnome.Dockerfile). Its packages come from Azure's mirror of
+        # the Ubuntu archive: the archive itself stalled the download until the job's 40 minutes ran
+        # out (run 45154694636, 2026-11-23).
+        run: docker build --build-arg UBUNTU_MIRROR=http://azure.archive.ubuntu.com/ubuntu/ --tag vfox-plus-gnome --file shared/sandbox/gnome.Dockerfile shared/sandbox
       - name: Run the icon in the tray on the shell
         # vfxtool gnome-session starts the shell and its extension inside the container, as root
         # (it makes the system bus that the shell wants) and then as the user of the session, and runs the
@@ -574,6 +576,14 @@ jobs:
           $dir = Join-Path $PWD "e2e/${{ matrix.arch }}"
           & "$dir/vfxtool.exe" e2e-run python "$dir/vfox-plus-e2e.exe"
           if ($LASTEXITCODE -ne 0) { throw "the python scenario failed with exit code $LASTEXITCODE" }
+      - name: Run the application on a machine with the plugins of the profiles
+        # The page of each plugin of the profiles, the options of Erlang/OTP and the install of a zig from its
+        # versions: the layout of the pages and the dialogs on Windows.
+        shell: pwsh
+        run: |
+          $dir = Join-Path $PWD "e2e/${{ matrix.arch }}"
+          & "$dir/vfxtool.exe" e2e-run plugins "$dir/vfox-plus-e2e.exe"
+          if ($LASTEXITCODE -ne 0) { throw "the plugins scenario failed with exit code $LASTEXITCODE" }
       - name: Run the icon in the tray
         # The application closes its window in the lightweight mode and runs on; the notification
         # area of the taskbar of the runner has to give its icon a place, the window comes back, and

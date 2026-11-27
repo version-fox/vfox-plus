@@ -11,7 +11,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 | 目录 | 职责 |
 | --- | --- |
-| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang、vfox-python、vfox-maven、vfox-php、vfox-dart、vfox-kotlin、vfox-dotnet 与 vfox-cmake 的特有之处）——无 UI |
+| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang、vfox-python、vfox-maven、vfox-php、vfox-dart、vfox-kotlin、vfox-dotnet、vfox-cmake、vfox-etcd、vfox-erlang、vfox-deno、vfox-groovy、vfox-scala、vfox-zig、vfox-clang 与 vfox-elixir 的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
 | [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面与对话框 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
@@ -129,6 +129,7 @@ Go 模块与构建缓存。
   VFOX_PLUS_E2E_VFOX=/path/to/vfox xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- \
     vfxtool e2e-run real build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run python build/vfox-plus-e2e
+  xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run plugins build/vfox-plus-e2e
   xvfb-run -a -s "-screen 0 1280x800x24" dbus-run-session -- vfxtool e2e-run tray build/vfox-plus-e2e
   ```
 
@@ -265,7 +266,7 @@ mygo 用处理器绘制，应用阻止 GTK 加载 OpenGL：GDK 打开 OpenGL 连
 - **输入法**走 GTK 3（IBus、Fcitx、Wayland text input）。
 - **Linux x86-64 跑全、测全、打包。**mygo 另有 Windows 与 macOS 后端，应用可为它们及
   Linux arm64 编译（`vfxtool build --goos windows --goarch amd64` 等）。Windows 在 CI 的 `run-windows`
-  任务里跑 `fake`、`python` 与 `tray` 场景。Windows 11 打包为
+  任务里跑 `fake`、`python`、`plugins` 与 `tray` 场景。Windows 11 打包为
   未签名 `.msixbundle`（x64 与 arm64），CI 校验，发布时签名；CI 的包用 `Add-AppxPackage -AllowUnsigned` 安装
   屏幕的普查在 CI 里也在 Windows（Server 2025 与 2022，以及 ARM 版 11）和 macOS（26 与 15，以及 Intel 上的 15）上取（`census` 任务）：
   一个平台的文字引擎和字体会把布局怎么样，要由那个平台的机器来说。`core` 已跨平台：进程终止（Unix `SIGTERM`、Windows kill）、`PATH` 分隔

@@ -157,7 +157,7 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
 第一版的 Web 界面就是这样只显示了 Java 的 OpenJDK 列表（[#43](https://github.com/version-fox/vfox-plus/issues/43)）。
 
-*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter`、`gradle`、`golang`、`python`、`maven`、`php`、`dart`、`kotlin`、`dotnet` 与 `cmake`：
+*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter`、`gradle`、`golang`、`python`、`maven`、`php`、`dart`、`kotlin`、`dotnet`、`cmake`、`etcd`、`erlang`、`deno`、`groovy`、`scala`、`zig`、`clang` 与 `elixir`：
 
 | 部分 | 内容 |
 | --- | --- |
@@ -167,7 +167,7 @@ vfox 对每个插件都用同样的方式列出、安装、选择与移除版本
 | 版本文件 | vfox 通过该插件读取的文件，以及 vfox 设置 `legacyVersionFile.strategy` 对它们是否有影响 |
 | 筛选维度 | 适合已列出版本的备注与名称的筛选：`LTS`、`JavaFX`、Flutter 的通道与架构 |
 | 命名 | 版本名称的构成，所以 `21.0.12.1+1-tem` 显示 Temurin，`3.47.7-x64` 显示 x64 |
-| 说明、须知、文档 | 几句关于名称的说明、容易让人意外的地方，以及该插件文档的链接 |
+| 说明、须知、文档 | 几句关于名称的说明、容易让人意外的地方，以及该插件文档的链接：插件文件夹里的页面、README，或文档网站。插件用 GitHub Pages 发布文档网站时，网站链接排在最前：英文页面在 `/en/` 下，简体中文页面在根路径 |
 
 档案里的文字用两种语言写在数据旁边，而不放进翻译目录，因为 Web 界面通过 HTTP 获取它们，页面本身也不带
 翻译目录。没有内置档案的插件也能免改代码获得筛选与镜像：从已列出的版本推断筛选维度（备注成为备注筛选，共享的 `-后缀` 成为变体筛选），从已安装插件的 Lua 源码扫描 `os.getenv("VFOX_*")` 得到环境变量，从 `metadata.lua` 的 `PLUGIN.legacyFilenames` 得到版本文件。插件仓库根目录的 `vfox-plus.json`（见 `core/profile/external.go`）可以用精心编写的文字覆盖这些推断，设置旁的 `profiles/<插件>.json` 则覆盖一切；内置注册表只保留仓库里精心维护的内容。档案属于插件本身，而不是 vfox 称呼它的名字：用 `vfox add --alias` 添加的插件，
@@ -464,7 +464,7 @@ KDE Plasma 和托盘是旧式（XEmbed）的桌面，请用户换到 GNOME，或
   像用户那样选择*打开 vfox+*和*退出 vfox+*，做法是让扩展发出点击事件，应用照做。窗口回来时 Shell 隐藏图标；
   每次关窗后，面板里只剩当前的这一个指示器，上一次的已经离开。应用结束时它把图标撤掉，这一切之后 Shell 仍在运行。
 - **Windows**：`run-windows` 任务在 Windows Server 2025（x64）与 Windows 11 ARM 上，用 Windows 的端到端构建，
-  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python` 与 `vfxtool e2e-run tray`。
+  在运行器的桌面上（那里有 `explorer.exe` 及其任务栏）运行 `vfxtool e2e-run fake`、`vfxtool e2e-run python`、`vfxtool e2e-run plugins` 与 `vfxtool e2e-run tray`。
   窗口回来、应用结束按端到端构建的控制文件的要求发生，因为点击任务栏的图标不是程序该做的事。图标的位置由应用向桌面
   询问（mygo 的 `Tray.Bounds`，即 `Shell_NotifyIconGetRect`），应用为它创建的每个图标把答案写进日志：在
   Windows Server 2025 上，图标两次创建都在通知区域得到了位置。桌面能不能说出图标在哪，由场景自己添加的一个普通图标

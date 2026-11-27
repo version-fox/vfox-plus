@@ -142,6 +142,14 @@ profiles with Python 3.15.2 and 3.14.4 installed, of which 3.15.2 is in use. The
 for `list` and `current` when `VFOX_PLUS_FAKE_INVENTORY=python` is set. `cases.json` lists what the
 parsers must read from them.
 
+`vfxtool capture -plugins` adds the eight plugins of the profiles that have no capture before: etcd, Erlang/OTP,
+Deno, Groovy, Scala, Zig, clang and Elixir. It captures `search-<plugin>` and `info-<plugin>` for each, and
+`list-plugins` and `current-plugins` of their machine: Erlang/OTP 29.1.2 in use, with clang 23.1.6 and etcd 3.7.4
+installed. Each plugin is added from the zip that `VFOX_PLUGIN_ZIPS` names (`<dir>/vfox-<plugin>.zip`), which is the
+release that its profile follows. The mode adds these captures to the fixtures that are there and leaves the others
+as they are. The fake vfox serves the list and current of that machine when `VFOX_PLUS_FAKE_INVENTORY=plugins` is set,
+which the end-to-end scenario `plugins` needs. `cases.json` holds their expected values.
+
 ## Updating for a new vfox release
 
 1. Install the new vfox release and run `vfxtool capture`. It needs

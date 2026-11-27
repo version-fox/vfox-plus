@@ -56,6 +56,10 @@ colour.
   the distributions of .NET and the release candidates of CMake), installation by name and
   download mirrors, see
   [Java, Node.js, Flutter, Gradle, Go and Python](using.md#java-nodejs-flutter-gradle-go-and-python).
+  vfox-erlang, vfox-clang, vfox-etcd, vfox-deno, vfox-groovy, vfox-scala, vfox-zig and
+  vfox-elixir have their own sections: [Erlang and Clang](using.md#erlang-and-clang),
+  [Elixir](using.md#elixir) and
+  [etcd, Deno, Groovy, Scala and Zig](using.md#etcd-deno-groovy-scala-and-zig).
 - Installs and uses a version in one step, links SDKs that are already on the
   machine, names aliases for versions and checks the health of vfox and the
   installed SDKs, which vfox 1.1.0 can do.

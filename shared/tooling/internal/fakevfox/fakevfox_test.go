@@ -248,6 +248,27 @@ func TestRunCommandContract(t *testing.T) {
 	})
 }
 
+func TestRunCommandReplaysTheCapturesOfTheProfilePlugins(t *testing.T) {
+	dir := t.TempDir()
+	plugins := []string{"etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"}
+	for _, p := range plugins {
+		writeFixture(t, dir, "search-"+p, "search-"+p+"\n", "")
+		writeFixture(t, dir, "info-"+p, "info-"+p+"\n", "")
+	}
+	fixtureEnv(t, dir)
+	for _, p := range plugins {
+		for _, c := range []struct{ command, want string }{
+			{"search " + p, "search-" + p + "\n"},
+			{"info " + p + " --format {{.Name}}", "info-" + p + "\n"},
+		} {
+			var out, errOut strings.Builder
+			if code := runCommand(strings.Fields(c.command), &out, &errOut); code != 0 || out.String() != c.want {
+				t.Errorf("%s: exit %d, stdout %q, want %q", c.command, code, out.String(), c.want)
+			}
+		}
+	}
+}
+
 func TestRunCommandReplaysTheCapturesOfJavaAndFlutter(t *testing.T) {
 	dir := t.TempDir()
 	for _, name := range []string{"search-java", "search-java-tem", "search-java-all", "search-flutter", "info-java", "info-flutter", "search-python", "info-python"} {

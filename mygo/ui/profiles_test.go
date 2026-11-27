@@ -105,10 +105,32 @@ func phpRunner() *testsupport.FakeProcessRunner {
 		On("search php", core.ProcessOutput{Stdout: "Available versions:\n - 8.5.12\n - 8.5.11\n - 8.5.10\n"})
 }
 
+// capturedPlugins are the plugins of the profiles whose searches and plugin information are captures
+// (vfxtool capture -plugins). Each is shown with the version that its machine has installed, which is
+// a version of its list.
+var capturedPlugins = map[string]string{
+	"etcd": "3.7.4", "erlang": "29.1.2", "deno": "2.9.8", "groovy": "6.0.0",
+	"scala": "3.10.1", "zig": "0.17.1", "clang": "23.1.6", "elixir": "1.20.5",
+}
+
+// capturedProfileRunner is vfox with one of capturedPlugins added after the others and installed at
+// version. Its searches and its plugin information are the captures themselves.
+func capturedProfileRunner(plugin, version string) *testsupport.FakeProcessRunner {
+	return testsupport.FixtureRunner().
+		On("info "+plugin+" --format "+vfox.PluginInfoTemplate, testsupport.FixtureOutput("info-"+plugin, 0)).
+		On("list", core.ProcessOutput{Stdout: "All installed sdk versions\n└─┬" + plugin + "\n  └──" + version + "\n"}).
+		On("current", core.ProcessOutput{Stdout: plugin + " -> v" + version + "\n"}).
+		On("alias list "+plugin, testsupport.FixtureOutput("alias-list", 0)).
+		On("search "+plugin, testsupport.FixtureOutput("search-"+plugin, 0))
+}
+
 // profileRunner is vfox with one of the plugins added after Maven and PHP
 // installed on the machine. Its answers are the few lines the census needs to
 // reach the options of the plugin and its install-by-name dialog.
 func profileRunner(plugin string) *testsupport.FakeProcessRunner {
+	if version, ok := capturedPlugins[plugin]; ok {
+		return capturedProfileRunner(plugin, version)
+	}
 	var version, pluginVersion, description, search string
 	switch plugin {
 	case "dart":

@@ -68,6 +68,7 @@ func Run(args []string) error {
 	fs := flag.NewFlagSet("capture", flag.ContinueOnError)
 	vfoxPath := fs.String("vfox", "", "path to the vfox binary")
 	mavenVersion := fs.String("maven-version", "", "Maven version to install")
+	plugins := fs.Bool("plugins", false, "capture only the searches and the plugin information of the profile plugins that the fixtures do not have yet; VFOX_PLUGIN_ZIPS names their zips")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func Run(args []string) error {
 	if maven == "" {
 		maven = envOr("MAVEN_VERSION", "3.9.16")
 	}
-	return run(vfox, maven, os.Stdout, os.Stderr)
+	return run(vfox, maven, os.Stdout, os.Stderr, *plugins)
 }
 
 // EscapeControls rewrites data the way capture.sh escape_controls does, so
@@ -289,7 +290,7 @@ func existsDir(path string) bool {
 	return err == nil && st.IsDir()
 }
 
-func run(vfox, mavenVersion string, print, errOut io.Writer) error {
+func run(vfox, mavenVersion string, print, errOut io.Writer, onlyPlugins bool) error {
 	if strings.ContainsRune(vfox, filepath.Separator) {
 		st, err := os.Stat(vfox)
 		if err != nil || st.IsDir() || st.Mode().Perm()&0o111 == 0 {
@@ -335,6 +336,16 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 	pluginDir := func(name string) string { return filepath.Join(home, ".vfox", "plugin", name) }
 	cacheDir := func(sdk, version string) string {
 		return filepath.Join(home, ".vfox", "cache", sdk, "v-"+version)
+	}
+
+	// -plugins adds the captures of the profile plugins to the fixtures that are there, and leaves
+	// every other capture as it is: running the whole capture again would change them too.
+	if onlyPlugins {
+		if err := r.capturePlugins(); err != nil {
+			return err
+		}
+		fmt.Fprintf(print, "Plugin fixtures written to %s\n", out)
+		return nil
 	}
 
 	if err := r.capture("version", nil, "--version"); err != nil {
@@ -633,6 +644,64 @@ func run(vfox, mavenVersion string, print, errOut io.Writer) error {
 		}
 	}
 
+	if err := r.capturePlugins(); err != nil {
+		return err
+	}
+
 	fmt.Fprintf(print, "Fixtures written to %s\n", out)
+	return nil
+}
+
+// profilePlugins are the plugins of the profiles that the captures above do not cover. Their searches
+// and their plugin information are captured last, so that no output above lists them.
+var profilePlugins = []string{"etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"}
+
+// capturePlugins adds each of profilePlugins and captures its search and its plugin information. A
+// plugin is added from the zip that VFOX_PLUGIN_ZIPS names for it, <dir>/vfox-<name>.zip, which is the
+// release that the profile follows. Without the variable it is added from the registry, which may list
+// an older release.
+func (r *runner) capturePlugins() error {
+	dir := os.Getenv("VFOX_PLUGIN_ZIPS")
+	for _, name := range profilePlugins {
+		add := []string{"add", name}
+		if dir != "" {
+			add = []string{"add", "--source", filepath.Join(dir, "vfox-"+name+".zip"), name}
+		}
+		if err := r.retry(add...); err != nil {
+			return err
+		}
+		if err := r.capture("search-"+name, nil, "search", name); err != nil {
+			return err
+		}
+		if err := r.capture("info-"+name, nil, "info", name, "--format", infoFormat); err != nil {
+			return err
+		}
+	}
+
+	// The machine of the screens of these plugins, and of the end-to-end scenario that drives them: Erlang/OTP
+	// 29.1.2 is in use, and clang 23.1.6 and etcd 3.7.4 are installed as well. The versions are faked, so that
+	// nothing is downloaded. The fake vfox serves these captures instead of list and current when it plays that
+	// machine (VFOX_PLUS_FAKE_INVENTORY=plugins).
+	for _, installed := range []struct{ sdk, version string }{
+		{"erlang", "29.1.2"}, {"clang", "23.1.6"}, {"etcd", "3.7.4"},
+	} {
+		if err := r.fakeInstall(installed.sdk, installed.version); err != nil {
+			return err
+		}
+	}
+	if err := r.runCmd([]string{"__VFOX_SHELL=bash"}, io.Discard, r.errOut, "use", "--global", "erlang@29.1.2"); err != nil {
+		return err
+	}
+	for _, listing := range []struct {
+		name string
+		args []string
+	}{
+		{"list-plugins", []string{"list"}},
+		{"current-plugins", []string{"current"}},
+	} {
+		if err := r.capture(listing.name, nil, listing.args...); err != nil {
+			return err
+		}
+	}
 	return nil
 }

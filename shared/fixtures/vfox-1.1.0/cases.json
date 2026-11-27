@@ -1033,6 +1033,514 @@
       ],
       "exitCode": 0,
       "expect": {}
+    },
+    {
+      "name": "search-etcd",
+      "command": [
+        "search",
+        "etcd"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 291,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "3.7.4"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "3.7.3"
+            },
+            "145": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "3.3.8"
+            },
+            "290": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "0.3.0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-etcd",
+      "command": [
+        "info",
+        "etcd",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "etcd vfox plugin, support for managing multiple etcd & etcdctl & etcdutl versions.",
+          "homepage": "https://github.com/version-fox/vfox-etcd",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/etcd",
+          "name": "etcd",
+          "version": "0.2.5"
+        }
+      }
+    },
+    {
+      "name": "search-erlang",
+      "command": [
+        "search",
+        "erlang"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 548,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "29.1.3"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "29.1.2"
+            },
+            "272": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "22.3.4.18"
+            },
+            "544": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "17.1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-erlang",
+      "command": [
+        "info",
+        "erlang",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Erlang/OTP vfox plugin, support for managing multiple Erlang/OTP versions in Windows & Unix-like systems.",
+          "homepage": "https://github.com/version-fox/vfox-erlang",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/erlang",
+          "name": "erlang",
+          "version": "1.2.8"
+        }
+      }
+    },
+    {
+      "name": "search-deno",
+      "command": [
+        "search",
+        "deno"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 309,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "2.9.8"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "2.9.7"
+            },
+            "154": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "1.34.1"
+            },
+            "308": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "0.36.0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-deno",
+      "command": [
+        "info",
+        "deno",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Deno plugin, https://deno.com/",
+          "homepage": "https://github.com/version-fox/vfox-deno",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/deno",
+          "name": "deno",
+          "version": "0.2.3"
+        }
+      }
+    },
+    {
+      "name": "search-groovy",
+      "command": [
+        "search",
+        "groovy"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 166,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "6.0.0"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": "pre-release",
+              "version": "6.0.0-RC-3"
+            },
+            "83": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "3.0.20"
+            },
+            "165": {
+              "additions": [],
+              "installed": false,
+              "note": "incubating",
+              "version": "2.4.5-incubating"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-groovy",
+      "command": [
+        "info",
+        "groovy",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Groovy plugin, https://groovy.apache.org/",
+          "homepage": "https://github.com/version-fox/vfox-groovy",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/groovy",
+          "name": "groovy",
+          "version": "0.1.2"
+        }
+      }
+    },
+    {
+      "name": "search-scala",
+      "command": [
+        "search",
+        "scala"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 145,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "3.10.1"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "3.10.0"
+            },
+            "72": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "2.12.18"
+            },
+            "144": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "2.5.0.final"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-scala",
+      "command": [
+        "info",
+        "scala",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Scala plugin, https://www.scala-lang.org/",
+          "homepage": "https://github.com/version-fox/vfox-scala",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/scala",
+          "name": "scala",
+          "version": "0.1.2"
+        }
+      }
+    },
+    {
+      "name": "search-zig",
+      "command": [
+        "search",
+        "zig"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 35,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": "latest",
+              "version": "0.17.1"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "0.17.0"
+            },
+            "17": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "0.7.1"
+            },
+            "34": {
+              "additions": [],
+              "installed": false,
+              "note": "0.3.0-mach, 2024.1.0-mach",
+              "version": "0.12.0-dev.2063+804cee3b9"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-zig",
+      "command": [
+        "info",
+        "zig",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Zig runtime environment.",
+          "homepage": "https://github.com/version-fox/vfox-zig",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/zig",
+          "name": "zig",
+          "version": "0.1.4"
+        }
+      }
+    },
+    {
+      "name": "search-clang",
+      "command": [
+        "search",
+        "clang"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 73,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": "latest",
+              "version": "23.1.6"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "22.1.3"
+            },
+            "36": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "18.1.1"
+            },
+            "72": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "9.0.1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-clang",
+      "command": [
+        "info",
+        "clang",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Clang plugin, https://clang.llvm.org/",
+          "homepage": "https://github.com/version-fox/vfox-clang",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/clang",
+          "name": "clang",
+          "version": "0.5.5"
+        }
+      }
+    },
+    {
+      "name": "search-elixir",
+      "command": [
+        "search",
+        "elixir"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "search": {
+          "count": 197,
+          "items": {
+            "0": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "1.20-latest"
+            },
+            "1": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "1.19-latest"
+            },
+            "98": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "1.8.2"
+            },
+            "196": {
+              "additions": [],
+              "installed": false,
+              "note": null,
+              "version": "0.5.0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "info-elixir",
+      "command": [
+        "info",
+        "elixir",
+        "--format",
+        "{{.Name}}{{\"\\x1f\"}}{{.Version}}{{\"\\x1f\"}}{{.Homepage}}{{\"\\x1f\"}}{{.InstallPath}}{{\"\\x1f\"}}{{.Description}}"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "pluginInfo": {
+          "description": "Elixir vfox plugin, support for managing multiple Elixir language versions in Windows & Unix-like system.",
+          "homepage": "https://github.com/version-fox/vfox-elixir",
+          "installPath": "/tmp/vfox-sb/home/.vfox/cache/elixir",
+          "name": "elixir",
+          "version": "1.0.6"
+        }
+      }
+    },
+    {
+      "name": "list-plugins",
+      "command": [
+        "list"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "list": {
+          "clang": [
+            "23.1.6"
+          ],
+          "deno": [],
+          "elixir": [],
+          "erlang": [
+            "29.1.2"
+          ],
+          "etcd": [
+            "3.7.4"
+          ],
+          "groovy": [],
+          "scala": [],
+          "zig": []
+        }
+      }
+    },
+    {
+      "name": "current-plugins",
+      "command": [
+        "current"
+      ],
+      "exitCode": 0,
+      "expect": {
+        "current": {
+          "clang": null,
+          "deno": null,
+          "elixir": null,
+          "erlang": "29.1.2",
+          "etcd": null,
+          "groovy": null,
+          "scala": null,
+          "zig": null
+        }
+      }
     }
   ]
 }

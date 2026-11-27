@@ -117,6 +117,10 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("version")
 	case joined == "list" && inventory == "profiles":
 		return reply("list-profiles")
+	case joined == "list" && inventory == "plugins":
+		return reply("list-plugins")
+	case joined == "current" && inventory == "plugins":
+		return reply("current-plugins")
 	case joined == "list" && inventory == "python":
 		return reply("list-python")
 	case joined == "list":
@@ -147,6 +151,8 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("search-flutter")
 	case joined == "search python":
 		return reply("search-python")
+	case len(args) == 2 && args[0] == "search" && profileFixtures[args[1]]:
+		return reply("search-" + args[1])
 	case strings.HasPrefix(joined, "search "):
 		fmt.Fprint(out, "Available versions:\n - 2.1.0 (LTS) [tool 2.1]\n - 2.0.0\n - 1.0.0\n")
 		return 0
@@ -160,6 +166,8 @@ func runCommand(args []string, out, errOut io.Writer) int {
 		return reply("info-python")
 	case strings.HasPrefix(joined, "info --json "):
 		return reply("info-json")
+	case len(args) == 4 && args[0] == "info" && args[2] == "--format" && profileFixtures[args[1]]:
+		return reply("info-" + args[1])
 	case isInfoFormat(joined):
 		// Plugin information for plugins without a captured fixture.
 		sdk := args[1]
@@ -235,6 +243,13 @@ func runCommand(args []string, out, errOut io.Writer) int {
 // no root.
 func isRoot(dir string) bool {
 	return dir != "." && filepath.Dir(dir) == dir
+}
+
+// profileFixtures are the plugins of the profiles whose searches and plugin information vfxtool capture
+// -plugins captures, so that the fake replays those captures for them.
+var profileFixtures = map[string]bool{
+	"etcd": true, "erlang": true, "deno": true, "groovy": true,
+	"scala": true, "zig": true, "clang": true, "elixir": true,
 }
 
 // isInfoFormat reports whether joined matches the shell pattern

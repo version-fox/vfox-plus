@@ -201,6 +201,180 @@ all three interfaces:
   version files, so its **Options** tab carries only the guide, the names and the
   documentation.
 
+### Erlang and Clang
+
+The plugins [vfox-erlang](https://github.com/version-fox/vfox-erlang) and
+[vfox-clang](https://github.com/version-fox/vfox-clang) offer these extras in all three
+interfaces. vfox-erlang was checked on Linux, on macOS (Apple silicon and Intel) and on Windows x86-64 and arm64; on Windows arm64, Erlang/OTP 29.x is refused before the download, because its release has no 32-bit installer ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48), [#49](https://github.com/version-fox/vfox-erlang/issues/49)). vfox-clang was
+checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on Windows (x86-64 and
+arm64).
+
+- **Prebuilt Erlang/OTP.** On Linux, the **Prebuilt build** option picks an Ubuntu release,
+  20.04, 22.04 or 24.04, and installs Erlang/OTP from its prebuilt build instead of compiling
+  it. The version list then holds the prebuilt builds under the release numbers, such as
+  `29.1.2`, and its newest build depends on the release: on Ubuntu 20.04 it is 28.4.2. The name
+  `OTP-29.1.2` also installs the prebuilt build of that release. vfox records the install under
+  the release number, so run it as `erlang@29.1.2`: `vfox exec erlang@OTP-29.1.2` does not find
+  it and starts an install of it, which is a source build without `USE_PREBUILT_OTP`. Leave the
+  option empty to compile from the source, which takes a long time and needs the tools that the
+  plugin's source-build page lists. With a prebuilt build selected, `latest` is the newest release
+  in the list. The search cache is kept per plugin and does not depend on the option, so turn it
+  off before you use prebuilt releases, as the plugin's prebuilt page says. A prebuilt archive is checked against the SHA-256 that Bob's `builds.txt` lists for it before it is unpacked, and the install prints `Verifying checksum`; a build with no SHA-256 listed installs with a warning.
+- **Erlang settings.** `OTP_CONFIGURE_ARGS` passes arguments to configure, such as
+  `--without-javac`, and `MAKEFLAGS` sets the options of make, such as `-j8`. Set them in
+  *Settings → Environment variables* as `KEY=VALUE`.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-erlang,
+  in English and in Simplified Chinese, and to its prebuilt and source-build pages and its README.
+- **Windows.** On Windows x86-64, `vfox exec erlang@29.1.2 -- erl` does not find `erl` by its bare
+  name ([vfox#787](https://github.com/version-fox/vfox/issues/787)); `-- erl.exe` runs it. The install uses the official
+  installer, which the plugin does not check, so it warns that no checksum is provided. Since 1.2.6,
+  `erlang@OTP-<version>` installs that release too. On Windows arm64 the plugin uses the 32-bit installer when the release
+  publishes it: `erlang@28.5.0.9` installs there, and `-- erl.exe` runs it. Erlang/OTP 29.x publishes only the 64-bit
+  installer, so on Windows arm64 `erlang@29.1.2` stops before the download with a message that says so
+  ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48); [#49](https://github.com/version-fox/vfox-erlang/issues/49) asked for this).
+- **Clang.** `latest` installs the version that the list marks as latest. The **Conda
+  channel** option picks the conda channel that pixi installs clang from; its presets are
+  prefix.dev and a Tsinghua mirror, and an empty option means conda-forge. Each install
+  downloads pixi first, which took 1 to 2 minutes, and then clang from the channel, which took
+  6 to 14 minutes, on a network of 250 to 850 kB/s. On GitHub's macOS runners, which have a fast
+  network, an install of `latest` took 6 seconds on Apple silicon and 15 seconds on Intel, and the
+  clang it installed ran. `vfox search clang` lists the versions that conda-forge publishes for your
+  platform, so the list is shorter on some platforms: on Windows arm64 only the latest version, and on
+  macOS arm64 two versions fewer than on Linux.
+- **Windows.** On Windows, `vfox exec clang@23.1.6 -- clang` runs the clang on the shell's PATH when
+  there is one, such as the LLVM installer's, and not the clang that vfox installed; `-- clang.exe`
+  runs the installed one ([vfox#787](https://github.com/version-fox/vfox/issues/787)). From vfox-clang 0.5.5 the
+  plugin installs clang on Windows arm64 too, from pixi's arm64 archive. On Windows arm64 `vfox search clang`
+  lists only the latest version.
+- **Clang's GitHub address.** The plugin reads `GITHUB_URL` for its version list and for
+  the pixi download. It has no preset, so set it in *Settings → Environment variables* to
+  a mirror that keeps GitHub's paths. A mirror should also serve the `.sha256` file next to each
+  archive: without it, the install warns that no checksum is provided, and an error from the mirror
+  stops the install.
+- **pixi checksum.** The pixi archive that an install downloads is checked against the SHA-256
+  that pixi publishes beside it, before vfox unpacks it. When pixi publishes none, the install
+  prints `WARNING: Checksum is not provided, skip verify...` and skips the check; when the SHA-256
+  cannot be read, the install stops.
+- **Detect and link.** `vfox link --detect clang` finds the clang installations that are already on the machine, such as those of conda, Homebrew and the system llvm directories, and links them instead of installing another copy. It needs vfox 1.1.0 or later. It was checked on Linux, on macOS and on Windows. On macOS the detection found Homebrew's llvm; on Windows,
+on x86-64 and arm64, it found the clang of the LLVM installer and the one that Visual Studio bundles.
+Without `-y`, nothing is linked.
+- **Home directory.** A source build of Erlang/OTP is refused before the download starts when its install path contains an apostrophe, a double quote, a dollar sign, a backtick, a space, a tab or a newline; the refusal names the character. The install path is under `VFOX_HOME`, or, when `VFOX_HOME` is not set, under vfox's directory in your home directory. With a path that has none of those characters, the check passes. A prebuilt build works with a space in the path.
+
+### Elixir
+
+The plugin [vfox-elixir](https://github.com/version-fox/vfox-elixir) offers these extras in all
+three interfaces. It was checked on Linux (x86-64 and arm64), on macOS (Apple silicon and Intel) and on
+Windows x86-64 and arm64. On Windows the list is the one of the installers: `latest` installs
+`1.19.5-elixir-otp-28`. On Windows arm64 the installer completes too, and Elixir runs with an Erlang/OTP 28 release such as `erlang@28.5.0.9`: `vfox exec erlang@28.5.0.9 elixir@1.19.5-elixir-otp-28 -- elixir.bat -v` prints `Elixir 1.19.5 (compiled with Erlang/OTP 28)`, on x86-64 and on arm64. On Windows arm64 `erlang@29.1.2` is refused, because its release has no 32-bit installer ([vfox-erlang #48](https://github.com/version-fox/vfox-erlang/issues/48), [#49](https://github.com/version-fox/vfox-erlang/issues/49)).
+
+- **Erlang/OTP first.** Elixir is built with Erlang/OTP and needs `erl` on `PATH` to run. vfox
+  does not install Erlang/OTP for Elixir. A source build uses the `erlc` of an Erlang/OTP that
+  vfox installed when `erlc` is not on `PATH`. Install Erlang/OTP first with the erlang plugin,
+  and run Elixir together with it, for example
+  `vfox exec erlang@29.1.2 elixir@1.20.5 -- elixir --version`. Run alone,
+  `vfox exec elixir@1.20.5 -- elixir --version` fails with `exec: erl: not found`.
+- **Pre-built builds.** On Linux, the **Pre-built builds** option installs Elixir from the
+  pre-built builds of hex.pm instead of compiling it. Their names carry the Erlang/OTP they need,
+  such as `1.20.5-otp-29`, and `vfox search elixir hex` lists only those names. A name without an
+  `-otp-N` suffix, such as `1.20.5`, is not listed; if you type one, the install prints a warning,
+  and the build may not run with your Erlang/OTP. The option does not change `vfox search elixir`,
+  which lists the releases. Leave the option empty to compile from the source. A source build takes
+  about a minute, and the path of `VFOX_HOME` must not hold a space or another shell character, such
+  as a quote, a dollar sign or an ampersand; a pre-built build works with such a path.
+- **Checksums.** A pre-built build is checked against the SHA-256 that hex.pm's `builds.txt`
+  publishes for it. A build that the index lists without a SHA-256 installs with a warning, and
+  is not checked.
+- **Versions.** `latest` is the first line of the list: `1.20-latest` on Linux, which ran as
+  1.20.5 when checked. With pre-built builds, `latest` stops before the download, so type a build
+  name such as `1.20.5-otp-29`. Write a version in full, such as `1.20.5`. For a source build, a
+  partial name such as `1.16` is not a release, because its tag does not exist.
+- **Searching.** `vfox search elixir` lists the releases whatever the option is, and
+  `vfox search elixir hex` lists the pre-built builds. The plugin's documentation says that vfox
+  keeps each list for up to 12 hours.
+- **Detect and link.** `vfox link --detect elixir` finds the Elixir installations already on the machine, from asdf, mise, Homebrew, Scoop, the system directories and PATH, and links them instead of installing another copy. It needs vfox 1.1.0 or later. It was checked on Linux; on macOS and on Windows the detection ran
+  and found nothing, since no other Elixir is installed on those runners.
+- **Documentation.** The **Options** tab links to the documentation website of vfox-elixir,
+  in English and in Simplified Chinese, and to its README.
+
+### etcd, Deno, Groovy, Scala and Zig
+
+The plugins [vfox-etcd](https://github.com/version-fox/vfox-etcd),
+[vfox-deno](https://github.com/version-fox/vfox-deno),
+[vfox-groovy](https://github.com/version-fox/vfox-groovy),
+[vfox-scala](https://github.com/version-fox/vfox-scala) and
+[vfox-zig](https://github.com/version-fox/vfox-zig) offer these extras in all three
+interfaces, with the limits that their lists have today:
+
+- **Names.** `latest` installs the first version of the list for Deno, Groovy, Scala and Zig,
+  and `nightly` installs the development build of the master branch of Zig. Groovy takes full
+  names such as `4.0.33`, but not partial names such as `4`, and its list sorts each
+  pre-release below its release. Scala takes full names such as `3.10.1`, but not partial
+  names such as `3` or `2.13`. Deno also takes a line such as `2` or `2.1`, which installs
+  the newest release of that line. Zig takes full names such as `0.17.1`, and the names of Mach
+  builds such as `mach-latest`, but not partial names such as `0.17`. etcd takes full names such
+  as `3.7.3`, with or without a `v`, but not partial names such as `3.5`. `latest` installs the
+  first line of its list, the newest release.
+- **Archive mirror.** The **Archive mirror** option of Groovy offers dlcdn.apache.org, another
+  copy of the Apache archive, for when archive.apache.org is slow. It keeps only the current
+  releases, so older versions do not appear in the list. A Tsinghua mirror is not offered: its
+  list works, but its downloads were refused when this was checked.
+- **Stages.** The **Stage** filter of Groovy picks the pre-releases or the incubator releases.
+- **Downloads.** Scala 2.10.4 and older download from scala-lang.org; Scala 2.10.5 and later,
+  and all of Scala 3, download from GitHub. A GitHub download is checked against the `.sha256`
+  file next to it when Scala publishes one, and the install says so when it does not. Scala
+  3.9.0, which the list shows as LTS, installs under its number.
+- **Java.** Groovy and Scala need a JDK to run, and the plugins install none. Scala 2.10.4 did
+  not run on the JDK 25 that was checked.
+- **Checksums.** Deno and Groovy check each archive against its checksum file when the release
+  has one: `.sha256sum` for Deno and `.sha256` for Groovy. They say so when a release has none.
+  etcd checks each archive against the `SHA256SUMS` file of its release. A release before 3.4.0
+  that publishes no such file, such as 0.3.0, is checked against checksums that the plugin pins,
+  and the install says so; a release from 3.4.0 on without the file is refused.
+- **Deno.** The list starts at 0.36.0, which is the first release with a download for Linux on
+  x86-64. The plugin sets the execute bit on Deno after it unpacks an archive, so 0.36.0 runs.
+  An install of 0.36.0 made by a plugin before 0.2.3 keeps the bit off: reinstall it.
+- **Zig.** The list needs ziglang.org: when it cannot be reached, the whole list fails.
+  machengine.org is optional: without it the list shows the official releases, with a warning.
+  A name that the list does not show is refused, and nothing is installed. vfox 1.1.0 `exec`
+  does not take `latest`, `nightly` or a Mach name, so give it the version name that `vfox list`
+  shows; `vfox use` takes these names. A Mach build that ziglang.org does not publish is
+  downloaded from pkg.hexops.org, and its checksum is still checked.
+- **Detect and link.** `vfox link --detect zig` finds the Zig installations already on the machine, from asdf, mise, zvm, Scoop, the system directories and PATH, and links them instead of installing another copy. A zig that cannot run is not listed, and neither are the installs that vfox manages or anything under VFOX_HOME. It needs vfox 1.1.0 or later. It was checked on Linux and on Windows (x86-64 and arm64): copies of two
+zig versions in Scoop's apps directory and in Program Files were found, and vfox's own install was left out.
+- **etcd.** The failpoint build, switched on by `BUILD_WITH_FAILPOINT=yes`, builds the version
+  you ask for from source with failpoints. It needs Git, Go and GNU Make on the `PATH`, and it
+  takes longer than an install from a release. It was checked on Linux and on macOS: 3.4.32,
+  3.5.12, 3.6.0 and 3.7.4 build with failpoints on x86-64 Linux, and 3.5.12 on arm64 Linux and
+  on both kinds of Mac. A release without a gofail target, such as 3.5.5, is refused before
+  anything is cloned, and the install names it; the failpoint page of its documents lists the
+  releases that have one. Check the result with `GOFAIL_HTTP`. Only `yes` turns the build on:
+  `1` and `YES` are refused, and `no` or an empty value installs the official build. The
+  **Options** tab offers no switch for it. Since 0.2.5 these refusals print no Lua stack traceback
+  ([vfox-etcd #31](https://github.com/version-fox/vfox-etcd/issues/31)).
+- **Failpoints on Windows.** On Windows the failpoint build is not made. The install prints that
+  `BUILD_WITH_FAILPOINT` is only supported on Linux and macOS, and it installs the official Windows
+  build of the version, which is checked against its published checksum and has no failpoints.
+- **Windows.** On Windows, `vfox exec` does not find `deno`, `etcd` or `zig` by its bare name
+  ([vfox#787](https://github.com/version-fox/vfox/issues/787)). The name with `.exe` runs them, for
+  example `vfox exec deno@2.9.8 -- deno.exe --version`.
+- **Windows arm64.** vfox-etcd has no build for Windows arm64: 3.5.12, 3.6.0 and 3.7.4 publish only the
+  amd64 Windows zip. Its install stops with a message that names the platform and the release page, and
+  prints no stack traceback ([vfox-etcd #28](https://github.com/version-fox/vfox-etcd/issues/28)). Deno and Zig install their arm64 builds and run them,
+  checked with Deno 2.9.8 and Zig 0.17.1, with the `.exe` name as above. Groovy and Scala install and
+  run on the Temurin JDK 21 that was installed for the check.
+- **Documentation.** The **Options** tab of vfox-etcd links to its documentation website, in
+  English and in Simplified Chinese, then to its documents and its README. The **Options** tabs
+  of vfox-deno and vfox-groovy link their documents, in English and in Simplified Chinese, and
+  their README.
+
+### vfox exec on Windows
+
+Git Bash, which comes with Git for Windows, rewrites an argument that starts with `/` before vfox
+receives it. So `vfox exec erlang@28.5.0.9 -- cmd.exe /c echo hi` prints the cmd banner: cmd gets
+`C:/` in place of `/c`. In Git Bash, write `//c` (`cmd.exe //c echo hi`), or set
+`MSYS_NO_PATHCONV=1` for that command. PowerShell and cmd pass `/c` on unchanged, and vfox passes
+its arguments on unchanged.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.
