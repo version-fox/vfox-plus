@@ -177,6 +177,7 @@ func docs(repository, page string, title Text) Link {
 // plugin that is not listed has no Chinese README, so both languages link its
 // README.md.
 var chineseReadmes = map[string]bool{
+	"vfox-clang":  true,
 	"vfox-deno":   true,
 	"vfox-elixir": true,
 	"vfox-erlang": true,

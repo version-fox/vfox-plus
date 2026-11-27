@@ -840,10 +840,10 @@ func isPluginDocument(link Link, plugin string) bool {
 }
 
 func TestReadmeLinksTheChineseReadmeWhereThereIsOne(t *testing.T) {
-	// vfox-clang has no README_CN.md, so both languages link its README.md.
+	// vfox-clang has a README_CN.md on main too, so Chinese readers get it.
 	want := map[string]string{
 		"erlang": "https://github.com/version-fox/vfox-erlang/blob/main/README_CN.md",
-		"clang":  "https://github.com/version-fox/vfox-clang/blob/main/README.md",
+		"clang":  "https://github.com/version-fox/vfox-clang/blob/main/README_CN.md",
 	}
 	for plugin, zh := range want {
 		found := false
