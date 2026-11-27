@@ -38,6 +38,7 @@
     "lightweight": "eco",
     "menu": "menu",
     "menuOpen": "menu_open",
+    "motion": "animation",
     "more": "more_vert",
     "notFound": "search_off",
     "openInNew": "open_in_new",

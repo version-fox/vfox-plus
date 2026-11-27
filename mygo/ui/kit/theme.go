@@ -78,10 +78,13 @@ type Theme struct {
 	Dark bool
 	// Motion holds the springs.
 	Motion MotionScheme
-	// ReducedMotion says that the desktop asks for less motion: springs jump to
-	// their targets (mygo does that for every animation) and indeterminate
-	// indicators stop.
+	// ReducedMotion says that nothing moves: the window shows every value at its
+	// target at once (ui.Context.DisableAnimations), and indeterminate indicators
+	// stop.
 	ReducedMotion bool
+	// MotionRegardless says that the interface moves even while the desktop asks
+	// for less motion (MoveRegardless).
+	MotionRegardless bool
 	// Transitions says that a view gives way to another one, that a section opens
 	// and that a check mark grows with a transition. The toolkit (egoist/mygo 0.8
 	// and later) draws the children of a transition in a layer of their own and
@@ -105,6 +108,19 @@ func NewTheme(seed uint32, dark, reducedMotion bool, textScale float32) *Theme {
 		// No transitions: their layers cost memory (see Theme.Transitions).
 		Transitions: false,
 	}
+}
+
+// MoveRegardless makes the interface move even while the desktop asks for less
+// motion: its springs say so, and its indicators go on.
+func (t *Theme) MoveRegardless() {
+	t.Motion = t.Motion.Regardless()
+	t.MotionRegardless = true
+}
+
+// Still reports that nothing moves, given whether the desktop asks for less
+// motion.
+func (t *Theme) Still(desktopAsks bool) bool {
+	return t.ReducedMotion || desktopAsks && !t.MotionRegardless
 }
 
 // UI is the theme of mygo's own widgets, the text fields, scroll bars and

@@ -87,7 +87,7 @@ func LoadingIndicator(c Ctx, l LoadingSpec) ui.Element {
 	if l.Color.A != 0 {
 		col = l.Color
 	}
-	reduced := c.Preferences().ReduceMotion || c.Env.Theme.ReducedMotion
+	still := c.Env.Theme.Still(c.Preferences().ReduceMotion)
 	if hasKey(l.ID) {
 		c.Key(l.ID)
 	}
@@ -104,7 +104,7 @@ func LoadingIndicator(c Ctx, l LoadingSpec) ui.Element {
 			p.Fill(r, background, min(r.W, r.H)/2)
 		}
 		var elapsed time.Duration
-		if !reduced {
+		if !still {
 			if start.IsZero() {
 				*start = p.Now()
 			}
@@ -185,7 +185,7 @@ func interval(t, begin, end float64, curve func(float64) float64) float64 {
 func WavyProgress(c Ctx, w WavySpec) ui.Element {
 	cs := c.Colors()
 	theme := c.Env.Theme
-	reduced := c.Preferences().ReduceMotion || theme.ReducedMotion
+	still := theme.Still(c.Preferences().ReduceMotion)
 	if hasKey(w.ID) {
 		c.Key(w.ID)
 	}
@@ -210,7 +210,7 @@ func WavyProgress(c Ctx, w WavySpec) ui.Element {
 	return box.Draw(func(p *ui.Painter, r ui.Rect) {
 		node.Rect = r
 		var clock float64
-		if !reduced {
+		if !still {
 			if start.IsZero() {
 				*start = p.Now()
 			}

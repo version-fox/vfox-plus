@@ -33,5 +33,20 @@ func popIn(c Ctx, el ui.Element, from, originX, originY float32, spring Spring) 
 		c.AnimationFrame()
 	}
 	el.TransformOrigin(originX, originY)
+	settlePose(c, el, pose, spring)
+}
+
+// settlePose moves el to the pose on the spring, while it paints. While the
+// desktop asks for less motion, a pose is taken at once, all but its fade, so a
+// spring that moves regardless takes its scale there itself, building each frame
+// until it rests.
+func settlePose(c Ctx, el ui.Element, pose ui.Pose, spring Spring) {
+	if spring.Regardless && c.Preferences().ReduceMotion {
+		scale := pose.Scale
+		if scale == 0 {
+			scale = 1
+		}
+		pose.Scale = el.AnimateTo("pose", scale, spring.Anim())
+	}
 	el.AnimatePose(pose, spring.Anim())
 }

@@ -824,6 +824,22 @@
   "@settingsColor": {
     "description": "Accent color setting."
   },
+  "settingsMotion": "Animation",
+  "@settingsMotion": {
+    "description": "How much the interface of the desktop moves."
+  },
+  "motionSystem": "System",
+  "@motionSystem": {
+    "description": "Move as the desktop asks: not at all when it asks for less motion."
+  },
+  "motionFull": "Full",
+  "@motionFull": {
+    "description": "Move even when the desktop asks for less motion."
+  },
+  "motionReduced": "Reduced",
+  "@motionReduced": {
+    "description": "Nothing moves."
+  },
   "settingsSystemColor": "Use the desktop accent color",
   "@settingsSystemColor": {
     "description": "Derive the colors from the accent color of the desktop."

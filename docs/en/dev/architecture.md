@@ -239,6 +239,7 @@ Settings of the GUI itself are stored as JSON:
 | `theme`            | string          | `"system"`   | `system`, `light` or `dark`.                               |
 | `useSystemColor`   | boolean         | `true`       | Derive the colours from the desktop accent colour.         |
 | `seedColor`        | integer (ARGB)  | `0xFFF28C1B` | Seed colour when the accent colour is not used.            |
+| `motion`           | string          | `"system"`   | `system`, `full` or `reduced`: how much the window moves (see [motion](design-system.md#motion)). |
 | `language`         | string          | `"system"`   | `system`, `english` or `simplifiedChinese`.                |
 | `vfoxExecutable`   | string          | absent       | Path of vfox; absent means "detect".                       |
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
@@ -355,8 +356,8 @@ Low memory use is a goal of the project. The application:
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
 - ships only the icons it uses (63 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
-- stops animations that are not visible, and asks for less motion on the desktop
-  whatever the platform asks (see [the design system](design-system.md#motion));
+- stops animations that are not visible, and draws no transitions on the desktop,
+  whose layers stay allocated (see [the design system](design-system.md#motion));
 - avoids caching data that vfox can produce again cheaply;
 - without its window, tells the system that it does not want the pages of its files for now
   (the resident set falls by 11 MB), and the Go scheduler uses at most four processors, which

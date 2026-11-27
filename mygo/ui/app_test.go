@@ -745,6 +745,29 @@ func TestTheAccentColourOfTheDesktopIsTheSeedOfTheScheme(t *testing.T) {
 	}
 }
 
+// The desktop moves as the settings say: as the desktop asks unless it is told to move in full, or not
+// at all.
+func TestSettingsSayHowMuchTheInterfaceMoves(t *testing.T) {
+	ta := defaultApp(t)
+	ta.button("Settings")
+	if theme := ta.app.env.Theme; theme.ReducedMotion || theme.MotionRegardless {
+		t.Errorf("the interface follows the desktop at the start: %+v", theme)
+	}
+	ta.click(kit.RoleButton, "Full")
+	ta.settle()
+	if theme := ta.app.env.Theme; !theme.MotionRegardless || theme.ReducedMotion || !theme.Motion.FastSpatial.Regardless {
+		t.Errorf("the interface moves in full: %+v", theme)
+	}
+	if got := ta.app.model.Settings.Settings().Motion; got != settings.MotionFull {
+		t.Errorf("the choice is kept, got %q", got)
+	}
+	ta.click(kit.RoleButton, "Reduced")
+	ta.settle()
+	if theme := ta.app.env.Theme; !theme.ReducedMotion || theme.MotionRegardless {
+		t.Errorf("nothing moves: %+v", theme)
+	}
+}
+
 func TestTheVersionOfTheApplicationIsTheOneInTheVersionFile(t *testing.T) {
 	content, err := os.ReadFile("../VERSION")
 	if err != nil {

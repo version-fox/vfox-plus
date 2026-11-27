@@ -202,6 +202,7 @@ GUI 自身设置存为 JSON：
 | `theme` | string | `"system"` | `system`、`light` 或 `dark`。 |
 | `useSystemColor` | boolean | `true` | 从桌面强调色派生颜色。 |
 | `seedColor` | integer (ARGB) | `0xFFF28C1B` | 不用强调色时的种子颜色。 |
+| `motion` | string | `"system"` | `system`、`full` 或 `reduced`：窗口动多少（见[动效](design-system.md#动效)）。 |
 | `language` | string | `"system"` | `system`、`english` 或 `simplifiedChinese`。 |
 | `vfoxExecutable` | string | 无 | vfox 路径；无表示自动探测。 |
 | `extraEnvironment` | object | `{}` | 给 vfox 的额外环境变量，如镜像。 |
@@ -288,7 +289,7 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 - 每个已完成任务只在内存保留最新 500 行（运行时保留 2000 行），已完成任务
   最多记 50 条；失败任务的完整日志落盘，只保留最新 20 个文件；
 - 只打包使用的图标（63 个符号，描边与填充各一，SVG 共约 70 KB，首次绘制时才解析）；
-- 不可见动画停止，桌面不论平台要求什么都减少动态效果（见[设计系统](design-system.md#动效)）；
+- 不可见动画停止，桌面不画转场，因为它的图层一直占着内存（见[设计系统](design-system.md#动效)）；
 - 不缓存 vfox 可廉价重产的数据；
 - 没有窗口时，告诉系统它暂时不要自己文件的页（常驻内存少 11 MB），Go 调度器最多用四个处理器，
   因为每个处理器都带着自己的内存缓存（见[内存页](memory.md#轻量模式)）。

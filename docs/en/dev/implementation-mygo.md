@@ -235,12 +235,13 @@ pages are built from its components.
   springs of the Material 3 Expressive motion scheme
   ([`motion.go`](../../../mygo/ui/kit/motion.go)), given to mygo's `AnimateTo`: exact
   solutions that keep their velocity when the target changes, drawn only while
-  they move, so the window is idle when nothing changes. The desktop asks for less
-  motion whatever the platform asks: every value jumps, and the views have no element
-  transitions, whose children are drawn in layers that cost memory (see
-  [memory](memory.md#motion-and-memory)). Dialogs, menus and pages appear at once. The
-  loading indicator and the wavy progress are drawn in the painter without building the
-  view again, and stop while the desktop asks for less motion.
+  they move, so the window is idle when nothing changes. The animation setting says
+  whether they move: as the desktop asks (by default), always, or never (see
+  [the design system](design-system.md#motion)). In every setting the views have no
+  element transitions, whose children are drawn in layers that cost memory (see
+  [memory](memory.md#motion-and-memory)): pages change at once. The loading indicator
+  and the wavy progress are drawn in the painter without building the view again, and
+  stop while nothing moves (`Theme.Still`).
 - **Overlays** — menus, tooltips, dialogs and snack bars — are mygo's popovers,
   tooltips, dialogs and toasts, which take care of the focus, Escape and the press
   outside; the kit styles them.

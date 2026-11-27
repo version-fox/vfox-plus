@@ -38,10 +38,25 @@ transition in a layer of its own, and composites a page that changes as a full-w
 image in every frame. The layers stay allocated after the transition. In CI, measured
 with one process, the Home page took 51 MB of PSS and the Versions page 59 MB with
 toolkit 0.7.3, and 77 MB and 89 MB with toolkit 0.9.0 and its transitions. So the
-desktop asks for less motion whatever the platform asks: every value of the toolkit
-jumps to its target, the indicators that animate stop, and the views have no
-transitions (see [the design system](design-system.md#motion)). The table above is
-measured that way.
+desktop draws no transitions, whatever its animation setting says. Its springs move
+by default; its **Reduced** setting moves nothing, and so does **System** where the
+desktop asks for less motion (see [the design system](design-system.md#motion)). The
+table above was measured with nothing moving; CI measures the default.
+
+What the springs cost, measured on 2026-11-27 on WSL2 with Xvfb (1280 × 800, no GPU),
+with the end-to-end build and the fake vfox: the medians of five runs of each setting,
+in MB of PSS for the application and all of its child processes.
+
+| Setting            | Home | Versions | After five dialogs and every page |
+| ------------------ | ---: | -------: | --------------------------------: |
+| Reduced            |   95 |       83 |                                94 |
+| System (it moves)  |   79 |       92 |                               111 |
+
+The Home page shows no difference that holds: the runs of one setting spread from 78
+to 125 MB. The list of versions takes about 9 MB more with the springs. Over forty
+openings of a dialog the memory levelled off, so use does not make it grow, and an
+idle window draws no frames in either setting. These numbers come from another system
+than the table above and are compared only with each other.
 
 ## The lightweight mode
 

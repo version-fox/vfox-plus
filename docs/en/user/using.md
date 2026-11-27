@@ -397,8 +397,10 @@ a task finishes while you look at another page, a message reports it.
 
 ## Settings
 
-- **Appearance**: light, dark or follow the system; use the desktop accent
-  colour or pick one of the swatches; the language (English or 简体中文).
+- **Appearance**: light, dark or follow the system; the **Animation** (follow
+  the system, full even when the system asks for less motion, or reduced, which
+  takes the least memory); use the desktop accent colour or pick one of the
+  swatches; the language (English or 简体中文).
 - **Other devices**: whether phones, the gateway and other computers on the network may
   connect, over HTTPS, and whether vfox-plus keeps running without its window for them
   (lightweight mode). See [Other devices and the lightweight mode](remote.md).

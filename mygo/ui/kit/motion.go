@@ -34,6 +34,9 @@ type Spring struct {
 	Damping float64
 	// Stiffness is the stiffness; higher settles faster.
 	Stiffness float64
+	// Regardless makes what the spring moves go there on it even while the
+	// desktop asks for less motion.
+	Regardless bool
 }
 
 // MotionScheme holds the six springs of a motion scheme.
@@ -45,21 +48,37 @@ type MotionScheme struct {
 // Expressive is the expressive scheme, which vfox-plus uses: bouncy spatial
 // springs.
 var Expressive = MotionScheme{
-	FastSpatial:    Spring{0.6, 800},
-	DefaultSpatial: Spring{0.8, 380},
-	SlowSpatial:    Spring{0.8, 200},
-	FastEffects:    Spring{1, 3800},
-	DefaultEffects: Spring{1, 1600},
-	SlowEffects:    Spring{1, 800},
+	FastSpatial:    Spring{Damping: 0.6, Stiffness: 800},
+	DefaultSpatial: Spring{Damping: 0.8, Stiffness: 380},
+	SlowSpatial:    Spring{Damping: 0.8, Stiffness: 200},
+	FastEffects:    Spring{Damping: 1, Stiffness: 3800},
+	DefaultEffects: Spring{Damping: 1, Stiffness: 1600},
+	SlowEffects:    Spring{Damping: 1, Stiffness: 800},
+}
+
+// Regardless is the scheme with springs that move what they move even while the
+// desktop asks for less motion.
+func (m MotionScheme) Regardless() MotionScheme {
+	for _, spring := range []*Spring{
+		&m.FastSpatial, &m.DefaultSpatial, &m.SlowSpatial, &m.FastEffects, &m.DefaultEffects, &m.SlowEffects,
+	} {
+		spring.Regardless = true
+	}
+	return m
 }
 
 // Anim is the spring as an animation of mygo's package ui. mygo's springs take
 // the damping coefficient, which is twice the product of the damping ratio and
 // the square root of the stiffness for a unit mass.
+//
+// While the desktop asks for less motion, mygo takes a value to its target at
+// once unless the animation says that it moves nothing (NonMotion), which is the
+// one way that it has to move all the same; so a spring that moves regardless says
+// so.
 func (s Spring) Anim() ui.Animation {
 	return ui.Animation{Spring: ui.SpringOptions{
 		Mass: 1, Stiffness: s.Stiffness, Damping: 2 * s.Damping * math.Sqrt(s.Stiffness),
-	}}
+	}, NonMotion: s.Regardless}
 }
 
 // Tolerance of a spring at rest, as in Flutter's physics.

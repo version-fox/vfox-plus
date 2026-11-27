@@ -216,7 +216,8 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 
 分段列表分组：
 
-- **外观**：主题（`themeSystem` / `themeLight` / `themeDark` 连接按钮组）、
+- **外观**：主题（`themeSystem` / `themeLight` / `themeDark` 连接按钮组）、动画（`settingsMotion`：
+  `motionSystem` / `motionFull` / `motionReduced` 连接按钮组，见[动效](design-system.md#动效)）、
   `settingsSystemColor`（开关）、8 个颜色 swatch（选其一即关桌面色；选中 swatch 变成
   花形）与语言（`languageSystem` / `English` / `简体中文`；语言名永远用本语言书写）。
 - **其他设备**：一个分区，其第一项开关让 Docker 网关、手机与其他电脑连接（`settingsRemote`，开关，先要求确认，
@@ -248,7 +249,8 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - 纯图标按钮都有 tooltip，同时作为无障碍名。
 - 选中项、开关、按钮组暴露选中状态。
 - 标题标记为标题。
-- 平台要求减少动态效果时全部动效瞬时或静止；桌面始终如此（见[设计系统](design-system.md#动效)）。
+- 平台要求减少动态效果时全部动效瞬时或静止，除非用户在桌面上选了完整动画（`motionFull`）；桌面上选了减弱动画
+  （`motionReduced`）时也如此（见[设计系统](design-system.md#动效)）。
 - 文本跟平台字号；布局换行不裁剪。
 
 ## 手机端应用

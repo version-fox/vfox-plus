@@ -292,10 +292,19 @@ A spring keeps its velocity when its target changes mid-flight, so interrupted
 animations stay smooth. Where an API only accepts a duration and a curve
 (dialogs), the spring is sampled into a curve over the time it needs to settle;
 page transitions, which bring their own curves, last as long as the slow effects
-spring needs to settle. The desktop asks for less motion whatever the platform
-asks: springs jump to their target and indeterminate indicators stop, and its views
-give way at once, since the layers that a transition draws its children in cost memory
-([memory](memory.md#motion-and-memory)).
+spring needs to settle.
+
+The desktop moves as its **Animation** setting (`motion` in the
+[settings](architecture.md#settings)) says: **System**, the default, moves on the
+springs unless the desktop asks for less motion; **Full** moves whatever the
+desktop asks; and **Reduced** moves nothing: springs jump to their target and
+indeterminate indicators stop. In no setting do its views give way with a
+transition: they change at once, since the layers that a transition draws its
+children in cost memory ([memory](memory.md#motion-and-memory)). While the desktop
+asks for less motion, mygo takes values to their targets at once, so in Full the
+springs mark their values as moving nothing (`NonMotion`), which is mygo's one
+way to move them all the same, and a dialog or a menu, whose pose mygo takes at
+once then, grows on a value of its own.
 
 The web interface is such an API: CSS has durations and curves, no springs. Its
 `--sp-*` variables are the six springs, each as `--sp-NAME-t`, the milliseconds
@@ -309,7 +318,8 @@ differ, and when a declaration has a duration or a curve of its own (the wavy
 progress and the loading indicator, which run until the work is done, are the
 exception). A browser without `linear()` keeps the Bézier curves that the page
 had before. The phone app takes the springs from the same theme. When the system asks for less
-motion, it follows that, as the desktop does: its springs jump to their target.
+motion, it follows that, as the desktop does in its System setting: its springs jump to their
+target.
 
 mygo: the springs and `AnimateTo` in `mygo/ui/kit/motion.go`, drawn only while
 they move, so the window is idle when nothing changes.

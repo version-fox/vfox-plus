@@ -306,7 +306,9 @@ dismissed and offer `taskView`, which opens Tasks.
 Grouped in segmented lists:
 
 - **Appearance**: theme (`themeSystem` / `themeLight` / `themeDark` as a
-  connected button group), `settingsSystemColor` (switch), eight colour swatches
+  connected button group), the animation (`settingsMotion`: `motionSystem` /
+  `motionFull` / `motionReduced` as a connected button group; see
+  [motion](design-system.md#motion)), `settingsSystemColor` (switch), eight colour swatches
   (choosing one turns the desktop colour off; the selected swatch morphs into a
   flower shape), and the language (`languageSystem` / `English` / `简体中文`;
   language names are always written in their own language).
@@ -354,7 +356,9 @@ Grouped in segmented lists:
 - Selected items, toggles and button groups expose their selected state.
 - Headers are marked as headers.
 - All motion stops or becomes instantaneous when the platform asks for reduced
-  motion; the desktop always does (see [the design system](design-system.md#motion)).
+  motion, unless the person chose full animation on the desktop (`motionFull`), and
+  on the desktop when they chose reduced animation (see
+  [the design system](design-system.md#motion)).
 - Text follows the platform text scale; layouts wrap rather than clip.
 
 ## Phone app
