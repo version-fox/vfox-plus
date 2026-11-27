@@ -26,12 +26,13 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 	"github.com/version-fox/vfox-plus/mygo/ui/mcu"
+	"github.com/version-fox/vfox-plus/mygo/ui/shapes"
 )
 
 // The desktop interface and the web interface are one design system
-// (docs/en/dev/design-system.md): the same colours and the same springs. The desktop has
-// them in code (mcu and kit) and the page in CSS. These tests fail when one of them moves
-// without the other, and they say what the other must be.
+// (docs/en/dev/design-system.md): the same colours, springs and avatar shapes. The desktop
+// has them in code (mcu, kit and shapes) and the page in CSS and SVG. These tests fail when
+// one of them moves without the other, and they say what the other must be.
 
 // hexOf is a colour the way the page writes it.
 func hexOf(argb uint32) string { return fmt.Sprintf("#%06x", argb&0xFFFFFF) }
@@ -168,6 +169,51 @@ func TestTheSpringsOfThePageAreTheExpressiveSprings(t *testing.T) {
 		if !strings.Contains(page, wantTime) || !strings.Contains(page, wantCurve) {
 			t.Errorf("the page does not have the spring %s of mygo/ui/kit (damping %v, stiffness %v); in :root and in the @supports block of its CSS they must be\n  %s\n  %s",
 				name, pageSprings[name].Damping, pageSprings[name].Stiffness, wantTime, wantCurve)
+		}
+	}
+}
+
+// svgNumber writes a coordinate of a path, to a thousandth, which is a quarter of a dp on
+// the largest avatar.
+func svgNumber(x float64) string {
+	text := strings.TrimRight(strings.TrimRight(strconv.FormatFloat(x, 'f', 3, 64), "0"), ".")
+	if text == "-0" {
+		return "0"
+	}
+	return text
+}
+
+// avatarClip is the line of the page that clips an avatar to the shape of the index in the
+// shape library: its outline in the unit square, which the box of the element fills.
+func avatarClip(index int, polygon *shapes.Polygon) string {
+	var path strings.Builder
+	for i, cubic := range polygon.Cubics {
+		if i == 0 {
+			path.WriteString("M" + svgNumber(cubic[0]) + " " + svgNumber(cubic[1]))
+		}
+		path.WriteString("C")
+		for j := 2; j < len(cubic); j++ {
+			if j > 2 {
+				path.WriteString(" ")
+			}
+			path.WriteString(svgNumber(cubic[j]))
+		}
+	}
+	path.WriteString("Z")
+	return fmt.Sprintf(`<clipPath id="av-shape-%d" clipPathUnits="objectBoundingBox"><path d="%s"/></clipPath>`, index, path.String())
+}
+
+func TestTheAvatarsOfThePageAreTheShapesOfTheDesktop(t *testing.T) {
+	page := string(webappHTML)
+	if got := strings.Count(page, `<clipPath id="av-shape-`); got != len(shapes.AvatarShapes) {
+		t.Errorf("the page has %d shapes of avatars, the shape library has %d", got, len(shapes.AvatarShapes))
+	}
+	for i, polygon := range shapes.AvatarShapes {
+		if line := avatarClip(i, polygon); !strings.Contains(page, line) {
+			t.Errorf("the page lacks the shape of avatar %d:\n%s", i, line)
+		}
+		if rule := fmt.Sprintf(".av-%d{clip-path:url(#av-shape-%d)}", i, i); !strings.Contains(page, rule) {
+			t.Errorf("the page lacks the rule %s", rule)
 		}
 	}
 }

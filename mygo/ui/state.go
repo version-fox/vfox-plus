@@ -39,6 +39,10 @@ type pageStates struct {
 
 	tasksList mui.ListState
 
+	// terminalShell is the shell whose activation the home page shows, as the person
+	// chose it; empty is the shell of the person.
+	terminalShell string
+
 	configRequested  bool
 	configFields     map[string]*configField
 	environmentReady bool

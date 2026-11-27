@@ -62,11 +62,42 @@ type Section[T any] struct {
 	Value   T      `json:"value"`
 }
 
-// VfoxStatus says whether vfox runs, and which version it is.
+// VfoxStatus says whether vfox runs, which version it is, and how the shells of the
+// computer activate it, the shell of its person first. A computer with an older vfox+
+// says nothing about its shells.
 type VfoxStatus struct {
-	Availability string `json:"availability"`
-	Version      string `json:"version,omitempty"`
-	Error        string `json:"error,omitempty"`
+	Availability string       `json:"availability"`
+	Version      string       `json:"version,omitempty"`
+	Error        string       `json:"error,omitempty"`
+	Activations  []Activation `json:"activations,omitempty"`
+}
+
+// Kinds of activations, in Activation.Kind.
+const (
+	// ActivationStartup: the command is a line for the startup file of the shell.
+	ActivationStartup = "startup"
+	// ActivationOnce: the command is run once in the shell, and changes its startup
+	// file itself.
+	ActivationOnce = "once"
+	// ActivationScript: the command shows a directory, into which the script at URL
+	// goes.
+	ActivationScript = "script"
+)
+
+// Activation is how a shell comes to use the versions that vfox selects.
+type Activation struct {
+	// Shell is the name that `vfox activate` knows the shell by.
+	Shell string `json:"shell"`
+	// Name is what the shell is called.
+	Name string `json:"name"`
+	// Kind says what the command is for.
+	Kind string `json:"kind"`
+	// File is the startup file of an ActivationStartup.
+	File string `json:"file,omitempty"`
+	// Command is the line or the command.
+	Command string `json:"command"`
+	// URL is the script of an ActivationScript.
+	URL string `json:"url,omitempty"`
 }
 
 // InstalledSdk is an installed plugin and the versions that it manages.

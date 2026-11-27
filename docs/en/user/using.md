@@ -13,8 +13,9 @@ move to the bottom bar.
   page.
 - The health of vfox and the installed SDKs (**Health**), with **Check health**,
   **Adopt** and **Reinstall** where `vfox doctor` finds drift or old installs.
-- How to use the versions in a terminal, with the line to add to `~/.bashrc`
-  and a copy button.
+- How to use the versions in a terminal: choose your shell (Bash, Zsh, fish,
+  PowerShell, Nushell or Clink; yours comes first) for the line to add to its
+  startup file, or the command to run, with a copy button.
 
 ## SDKs
 

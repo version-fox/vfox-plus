@@ -44,8 +44,19 @@ export interface Section<T> {
   error?: string;
 }
 
+/** How a shell comes to use the versions that vfox selects (vfox.Activation). */
+export interface Activation {
+  shell: string;
+  name: string;
+  /** A line for `file`, a command to run once, or the command that shows where the script at `url` goes. */
+  kind: "startup" | "once" | "script";
+  file?: string;
+  command: string;
+  url?: string;
+}
+
 export interface Inventory {
-  vfox: { version: string; availability: string };
+  vfox: { version: string; availability: string; activations?: Activation[] };
   installed: Section<InstalledSdk>;
   registry: Section<RegistryEntry>;
   config: Section<ConfigEntry>;

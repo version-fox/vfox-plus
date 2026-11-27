@@ -63,7 +63,12 @@ give the interface its character:
   of three colour pairs: primary fixed dim, secondary and tertiary container.
   Not secondary container, which marks selected list items, nor primary
   container, which some seeds (the vfox orange among them) make just as light.
-  Hovering spins the shape by 30° on the fast spatial spring.
+  Hovering spins the shape by 30° on the fast spatial spring. The web interface
+  gives a plugin the same shape and colours: it computes the same hash
+  (`kit.StableHash`, FNV-1a over the UTF-16 code units) and clips the avatar to
+  the SVG `clipPath` of the shape, which `mygo/gateway/webapp.html` holds. The
+  test `TestTheAvatarsOfThePageAreTheShapesOfTheDesktop` in `mygo/gateway` fails,
+  printing the line to paste, when one of them is not the shape of `ui/shapes`.
 - **Empty and error states** show their icon on a large shape.
 - **Colour swatches** morph from a circle into a flower, turning slightly, when
   selected.
@@ -138,11 +143,11 @@ person to understand, to judge or to act; what the layout already says is not sa
 ### Budgets
 
 The census of a screen is taken by `webheap -audit` for the web interface, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
-([how to take them](contributing.md#auditing-the-interface)). The test draws 39 scenes in
+([how to take them](contributing.md#auditing-the-interface)). The test draws 56 scenes in
 fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
 150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
-100 % and at 200 %, and 1280 dp wide. The 18 screens that are a dialog, a menu or a tooltip are drawn in three windows more, the
+100 % and at 200 %, and 1280 dp wide. The 26 screens that are a dialog, a menu or a tooltip are drawn in three windows more, the
 shortest that the application opens in, 360 by 480 dp, at 100 % and at 200 %, and a window as short and 1280 dp wide: the
 screen is reached in a window as tall as it needs, and the window is made shorter, as a person makes it, and a menu is opened
 from a button that has been scrolled to. What a dialog has below its fold is counted there, too: its content is scrolled to its end,

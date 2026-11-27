@@ -159,9 +159,16 @@ func (ta *testApp) setAddresses(addresses ...string) { ta.addresses.Store(&addre
 
 func newTestApp(t *testing.T, runner *testsupport.FakeProcessRunner, width, height int, store settings.SettingsStore) *testApp {
 	t.Helper()
+	return newTestAppOn(t, "linux", runner, width, height, store)
+}
+
+// newTestAppOn is newTestApp on the operating system goos, which decides what the
+// application says about the shells of the machine, whatever system runs the test.
+func newTestAppOn(t *testing.T, goos string, runner *testsupport.FakeProcessRunner, width, height int, store settings.SettingsStore) *testApp {
+	t.Helper()
 	environment := map[string]string{"HOME": t.TempDir(), "LANG": "en_US.UTF-8"}
 	model := state.NewAppModel(state.AppModelOptions{
-		Runner: runner, SettingsStore: store, Environment: environment,
+		Runner: runner, SettingsStore: store, Environment: environment, OS: goos,
 		Locator: vfox.NewVfoxLocator(map[string]string{}, func(path string) bool { return path == "/usr/bin/vfox" }),
 	})
 	settingsDir := t.TempDir()

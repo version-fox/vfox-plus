@@ -62,8 +62,10 @@
 | ![添加插件的对话框：Source URL 与 Alias 两个输入框，以及 Upload & add 下的 Choose a file 按钮](https://iili.io/oFvwMVR.png) | ![手机端 App 的任务标签页，还没有运行过任务](https://iili.io/oFvwNHX.png) | ![手机端 App 的设置标签页：This phone（有 Pair a new link 与 Disconnect）以及 Connections 一节](https://iili.io/oFvwsRe.png) |
 
 **主页**显示 vfox 的版本与刷新按钮、在用的 SDK，以及健康检查的前五条发现；发现提供**纳入**（Adopt）或
-**重装**（Reinstall）时，会显示相应按钮。下面是终端里要用的命令 `eval "$(vfox activate bash)"`，
-旁边有一个**复制**（Copy）按钮。
+**重装**（Reinstall）时，会显示相应按钮。下面的**在终端中使用这些版本**（Use the versions in a terminal）
+说明电脑上的终端怎样激活 vfox：选择 Shell（电脑自己用的排在最前），按命令上方的说明操作，点**复制**
+（Copy）。Clink 另有**获取 clink_vfox.lua**（Get clink_vfox.lua）。电脑上的 vfox+ 要和手机端 App 一样新，
+才有这张卡片。
 
 **SDK** 列出你已安装的插件及其当前版本，并可搜索。点开一个插件，即可看到它的详情，其中有三个页签：
 **已安装**（Installed），标出版本数；**可安装**（Available）；以及**选项**（Options），只有插件有选项时才出现。

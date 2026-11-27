@@ -178,6 +178,9 @@ type DropdownSpec struct {
 	Disabled bool
 	// Width is the width in dp; 240 by default.
 	Width float32
+	// Color is the colour of the field when its alpha is not zero, the highest surface
+	// container otherwise: a field on a card of that colour needs another one to show.
+	Color ui.Color
 }
 
 // Dropdown is a filled field that shows the chosen entry and opens a menu of all
@@ -216,9 +219,13 @@ func Dropdown(c Ctx, d DropdownSpec) ui.Element {
 		content = cs.OnSurface.Alpha(0.38)
 	}
 	turn := el.AnimateTo("turn", Flag(*open), c.Env.Theme.Motion.FastSpatial.Anim())
+	field := cs.SurfaceContainerHighest
+	if d.Color.A != 0 {
+		field = d.Color
+	}
 	// The field is 56 dp high, and as high as its label needs when the label goes on more lines than one, or the text is larger.
 	el.Width(width).MinHeight(56).PaddingX(16).PaddingY(4).Gap(8).Justify(ui.Start).Radius(CornerMedium).
-		Background(cs.SurfaceContainerHighest).TextColor(content)
+		Background(field).TextColor(content)
 	if *open || in.keyboard {
 		el.Border(2, cs.Primary)
 	}

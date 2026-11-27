@@ -17,6 +17,8 @@ package state
 import (
 	"fmt"
 	"maps"
+	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -34,6 +36,9 @@ type AppModelOptions struct {
 	SettingsStore settings.SettingsStore
 	// Environment is the environment of the application.
 	Environment map[string]string
+	// OS is the operating system that vfox runs on, as runtime.GOOS names it; empty
+	// takes the one of the application.
+	OS string
 	// Locator finds vfox; nil uses a locator that searches `PATH` and the
 	// usual places.
 	Locator *vfox.VfoxLocator
@@ -81,6 +86,9 @@ type AppModel struct {
 	// Profiles is what the application knows about particular plugins.
 	Profiles *profile.Registry
 
+	// activations are the ways to activate vfox in a shell of the machine.
+	activations []vfox.Activation
+
 	mu               sync.Mutex
 	stops            []Unsubscribe
 	lastAvailability VfoxAvailability
@@ -102,9 +110,14 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	if options.ProfilesDir != "" {
 		profile.LoadExternalProfiles(profiles, options.ProfilesDir)
 	}
+	goos := options.OS
+	if goos == "" {
+		goos = runtime.GOOS
+	}
 	model := &AppModel{
 		Cli:              vfox.NewClient(options.Runner, config),
 		Profiles:         profiles,
+		activations:      vfox.Activations(goos, options.Environment),
 		lastAvailability: VfoxUnknown,
 	}
 	model.Settings = NewSettingsController(options.SettingsStore)
@@ -142,6 +155,12 @@ func (m *AppModel) InstalledSdk(name string) (core.InstalledSdk, bool) {
 		}
 	}
 	return core.InstalledSdk{}, false
+}
+
+// Activations are the ways to activate vfox in the shells of the machine, the shell
+// of the person first.
+func (m *AppModel) Activations() []vfox.Activation {
+	return slices.Clone(m.activations)
 }
 
 // SdkDetail creates the controller for the detail view of name. Its search

@@ -74,7 +74,8 @@ own loading and error state, like the desktop interface:
 
 ```json
 {
-  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": ""},
+  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": "",
+    "activations": [{"shell": "bash", "name": "Bash", "kind": "startup", "file": "~/.bashrc", "command": "eval \"$(vfox activate bash)\""}]},
   "installed": {"loading": false, "value": [{"Name": "nodejs", "Versions": ["24.11.1"], "Current": "24.11.1", "HasCurrent": true}]},
   "registry": {"loading": false, "value": [{"Name": "nodejs", "Homepage": "https://…", "Official": true}]},
   "config": {"loading": false, "value": [{"Key": "proxy.enable", "Value": "false"}]},
@@ -84,7 +85,11 @@ own loading and error state, like the desktop interface:
 
 Field names follow the Go models (`core.InstalledSdk`, `core.AvailablePlugin`,
 `core.ConfigEntry`); `complete` reports whether all three sections finished
-within the load timeout (2 minutes).
+within the load timeout (2 minutes). `activations` are the ways to
+[activate vfox](vfox-cli-contract.md#activating-a-shell) in the shells of the
+computer that runs it, the shell of its user first (`vfox.Activation`): `kind`
+is `startup` (the command goes into `file`), `once` (run it once) or `script`
+(the command shows the directory that the script at `url` goes into).
 
 ## SDK detail
 

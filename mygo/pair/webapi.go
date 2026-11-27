@@ -48,11 +48,13 @@ func awaitLoad(done <-chan struct{}) bool {
 	}
 }
 
-// VfoxDTO is the availability of vfox for the web interface.
+// VfoxDTO is the availability of vfox for the web interface, and how the shells of
+// the machine activate it.
 type VfoxDTO struct {
-	Availability string `json:"availability"`
-	Version      string `json:"version,omitempty"`
-	Error        string `json:"error,omitempty"`
+	Availability string            `json:"availability"`
+	Version      string            `json:"version,omitempty"`
+	Error        string            `json:"error,omitempty"`
+	Activations  []vfox.Activation `json:"activations"`
 }
 
 // TaskDTO is one state-changing task for the web interface.
@@ -125,7 +127,7 @@ func taskDTO(task *state.VfoxTask, tailLines int) TaskDTO {
 
 // vfoxDTO reports the availability of vfox.
 func vfoxDTO(model *state.AppModel) VfoxDTO {
-	dto := VfoxDTO{Availability: string(model.Vfox.Availability())}
+	dto := VfoxDTO{Availability: string(model.Vfox.Availability()), Activations: model.Activations()}
 	if version, ok := model.Vfox.Version(); ok {
 		dto.Version = version
 	}

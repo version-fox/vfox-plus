@@ -54,7 +54,8 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 
 ```json
 {
-  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": ""},
+  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": "",
+    "activations": [{"shell": "bash", "name": "Bash", "kind": "startup", "file": "~/.bashrc", "command": "eval \"$(vfox activate bash)\""}]},
   "installed": {"loading": false, "value": [{"Name": "nodejs", "Versions": ["24.11.1"], "Current": "24.11.1", "HasCurrent": true}]},
   "registry": {"loading": false, "value": [{"Name": "nodejs", "Homepage": "https://…", "Official": true}]},
   "config": {"loading": false, "value": [{"Key": "proxy.enable", "Value": "false"}]},
@@ -63,7 +64,9 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 ```
 
 字段名沿用 Go 模型（`core.InstalledSdk`、`core.AvailablePlugin`、
-`core.ConfigEntry`）；`complete` 表示三节是否都在加载超时（2 分钟）内完成。
+`core.ConfigEntry`）；`complete` 表示三节是否都在加载超时（2 分钟）内完成。`activations` 是运行 vfox 的那台电脑上
+各 shell [激活 vfox](vfox-cli-contract.md#激活-shell) 的方法，该用户的 shell 排在最前（`vfox.Activation`）：`kind`
+为 `startup`（命令写入 `file`）、`once`（运行一次）或 `script`（命令给出 `url` 处脚本应放入的目录）。
 
 ## SDK 详情
 

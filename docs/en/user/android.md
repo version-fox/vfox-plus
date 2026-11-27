@@ -80,8 +80,11 @@ lists.
 
 **Home** shows the version of vfox with a refresh button, the SDKs in use, and the
 health check: its first five findings, with **Adopt** (纳入) or **Reinstall** (重装)
-where a finding offers them. Below them is the command for the terminal,
-`eval "$(vfox activate bash)"`, with a **Copy** (复制) button.
+where a finding offers them. Below them, **Use the versions in a terminal**
+(在终端中使用这些版本) says how a terminal of the computer activates vfox: choose the
+shell (the computer's own comes first), follow the line above the command, and tap
+**Copy** (复制). Clink also has **Get clink_vfox.lua** (获取 clink_vfox.lua). The
+card needs a computer whose vfox+ is as new as the app.
 
 **SDKs** lists the plugins that you have installed, with their current versions, and
 searches them. Open a plugin to see its detail, which has three tabs: **Installed**

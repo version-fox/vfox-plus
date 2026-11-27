@@ -33,10 +33,10 @@ func TestTheTwoLanguagesHaveTheSameKeys(t *testing.T) {
 }
 
 func TestTheWebCatalogsKeepTheWebKeys(t *testing.T) {
-	// The web's catalogs have 160 keys each; the phone's own messages are in
+	// The web's catalogs have 166 keys each; the phone's own messages are in
 	// phone.go and are not among them.
-	if len(english) != 160 || len(chinese) != 160 {
-		t.Fatalf("the web catalogs have %d and %d keys, want 160 each", len(english), len(chinese))
+	if len(english) != 166 || len(chinese) != 166 {
+		t.Fatalf("the web catalogs have %d and %d keys, want 166 each", len(english), len(chinese))
 	}
 	if !reflect.DeepEqual(sortedKeys(english), sortedKeys(chinese)) {
 		t.Fatal("the web catalogs have different keys")

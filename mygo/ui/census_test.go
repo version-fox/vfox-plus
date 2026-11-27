@@ -152,6 +152,8 @@ type censusScene struct {
 	php bool
 	// profile gives the machine one of the plugins added after PHP, whose screens need it.
 	profile string
+	// goos is the operating system of the machine, Linux when empty, which the screens that say something of the system need.
+	goos string
 	// tall says that the page is taller than the windows of the census are, as the settings are in the narrowest, and the lists of
 	// the plugins and of the distributions of Java: it is drawn in a window as tall as it is (censusWindow.heightFor), so that what
 	// it has below the fold is drawn and counted, too.
@@ -205,6 +207,12 @@ func optionsOf(plugin string) func(ta *testApp) {
 
 var censusScenes = []censusScene{
 	{name: "home", reach: func(ta *testApp) {}},
+	// Clink on Windows has the longest instruction of the home page, and a button.
+	{name: "home-clink", goos: "windows", tall: true, reach: func(ta *testApp) {
+		ta.reveal(kit.RoleButton, "PowerShell")
+		ta.click(kit.RoleButton, "PowerShell")
+		ta.click(kit.RoleMenuItem, "Clink")
+	}},
 	{name: "sdks", reach: func(ta *testApp) { ta.button("SDKs") }},
 	{name: "installed", reach: func(ta *testApp) { ta.button("SDKs"); ta.item("nodejs") }},
 	{name: "available", endless: true, toEnd: true, reach: func(ta *testApp) { ta.openAvailable("nodejs") }},
@@ -367,7 +375,11 @@ func censusApp(t *testing.T, scene censusScene, window censusWindow) *testApp {
 	if window.dark {
 		preferences.Theme = settings.ThemeDark
 	}
-	ta := newTestApp(t, runner, window.width, window.height, settings.NewMemorySettingsStore(preferences))
+	goos := scene.goos
+	if goos == "" {
+		goos = "linux"
+	}
+	ta := newTestAppOn(t, goos, runner, window.width, window.height, settings.NewMemorySettingsStore(preferences))
 	ta.endless = scene.endless
 	ta.setAddresses(censusAddresses...)
 	if window.scale > 0 {

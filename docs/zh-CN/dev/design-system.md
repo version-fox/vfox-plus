@@ -51,7 +51,10 @@ mygo：`mygo/ui/kit/draw.go` 的 `Corner*` 常量。
 - **插件头像**按插件名稳定哈希取形（9 边 cookie、4 叶草、sunny、soft burst、
   6 边 cookie、gem、五边形、花、puffy diamond、4 边 cookie、arch、8 叶草），配三组
   颜色之一：primary fixed dim、secondary 与 tertiary 容器。不用 secondary 容器（选中列表项）
-  与 primary 容器（vfox 橙等种子下太浅）。悬停旋转 30°，fast spatial 弹簧。
+  与 primary 容器（vfox 橙等种子下太浅）。悬停旋转 30°，fast spatial 弹簧。网页界面给插件同样的形状与颜色：
+  它算同一个哈希（`kit.StableHash`，对 UTF-16 码元做 FNV-1a），并把头像裁剪到该形状的 SVG `clipPath`（在
+  `mygo/gateway/webapp.html` 里）。`mygo/gateway` 的测试 `TestTheAvatarsOfThePageAreTheShapesOfTheDesktop`
+  在某个形状与 `ui/shapes` 不一致时失败，并打印要粘贴的那一行。
 - **空与错误状态**图标置于大形状上。
 - **颜色 swatch**选中从圆变成花，微转。
 - **加载指示器**在 soft burst、9 边 cookie、五边形、pill、sunny、4 边 cookie、oval 间形变。
@@ -106,10 +109,10 @@ mygo：`mygo/ui/kit/theme.go` 的 `Emph`。
 ### 预算
 
 一个屏幕的普查，网页界面由 `webheap -audit` 做，桌面应用由
-`TestTheScreensAreWithinTheBudgets` 做（[怎么做](contributing.md#审查界面)）。这个测试在十四种窗口里画 39 个场景：
+`TestTheScreensAreWithinTheBudgets` 做（[怎么做](contributing.md#审查界面)）。这个测试在十四种窗口里画 56 个场景：
 1280 dp 宽的浅色和深色，700、412 和 360 dp 宽（应用能打开的最窄窗口），系统把文字放大之后的六种：
 360 dp 宽的 130 % 和 150 %，412 dp 宽的 150 %，以及 360、700 和 1280 dp 宽的 200 %，还有三种中文窗口：360 dp 宽的 100 % 和 200 %，
-以及 1280 dp 宽。其中 18 个是对话框、菜单或提示的屏幕，还要再多画在三种窗口里：应用能打开的最矮窗口，360 × 480 dp 的 100 % 和 200 %，
+以及 1280 dp 宽。其中 26 个是对话框、菜单或提示的屏幕，还要再多画在三种窗口里：应用能打开的最矮窗口，360 × 480 dp 的 100 % 和 200 %，
 以及一个同样矮、1280 dp 宽的：场景先在够高的窗口里走到它的屏幕，再把窗口缩矮，就像人会做的那样，菜单则是从滚动到了的按钮上打开的。
 对话框折叠线以下的内容也在这里数到：它的内容会滚到末尾，也会滚到开头和末尾之间的位置，页面上的列表也一样。
 任何一个超出预算，测试就失败。

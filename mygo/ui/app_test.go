@@ -16,6 +16,7 @@ package ui
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -89,6 +90,37 @@ func TestHomeShowsWhatIsInUseAndTheLineForATerminal(t *testing.T) {
 	ta.snapshot("home")
 	ta.button("Refresh")
 	ta.until("the SDKs to be listed again", func() bool { return len(ta.runner.Calls("list")) >= 2 })
+}
+
+func TestHomeSaysHowToActivateTheShellThatIsChosen(t *testing.T) {
+	ta := defaultApp(t)
+	ta.mustText("Add this line to ~/.bashrc so that new shells use the versions chosen here.")
+	ta.click(kit.RoleButton, "Bash")
+	ta.click(kit.RoleMenuItem, "Nushell")
+	ta.mustText("Run this once in Nushell so that new shells use the versions chosen here.")
+	ta.mustText("vfox activate nushell $nu.default-config-dir | save --append $nu.config-path")
+	ta.button("Copy")
+	if want := []string{"vfox activate nushell $nu.default-config-dir | save --append $nu.config-path"}; !reflect.DeepEqual(ta.desktop.copied, want) {
+		t.Errorf("the command that is shown is copied, got %q", ta.desktop.copied)
+	}
+	if ta.text(`eval "$(vfox activate bash)"`) {
+		t.Error("the page shows the activation of one shell only")
+	}
+}
+
+func TestHomeOnWindowsActivatesPowerShellAndSaysWhatClinkNeeds(t *testing.T) {
+	ta := newTestAppOn(t, "windows", testsupport.FixtureRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+	ta.start()
+	ta.mustText(`Invoke-Expression "$(vfox activate pwsh)"`)
+	ta.mustText("Add this line to $PROFILE so that new shells use the versions chosen here.")
+	ta.click(kit.RoleButton, "PowerShell")
+	ta.click(kit.RoleMenuItem, "Clink")
+	ta.mustText("Run this to find the scripts folder, put clink_vfox.lua into it and restart Clink.")
+	ta.mustText("clink info | findstr scripts")
+	ta.button("Get clink_vfox.lua")
+	if want := []string{"https://github.com/version-fox/vfox/blob/main/internal/shell/clink_vfox.lua"}; !reflect.DeepEqual(ta.desktop.opened, want) {
+		t.Errorf("the script of vfox for Clink is opened, got %q", ta.desktop.opened)
+	}
 }
 
 // The tester draws in memory, as a window does where no GPU works, and the transitions

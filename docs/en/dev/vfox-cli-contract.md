@@ -407,7 +407,7 @@ shows in the list after the cache expires.
 
 | Command                                      | Why |
 | -------------------------------------------- | --- |
-| `vfox activate`, `vfox env`                  | Shell integration: they print shell code or a session environment. The GUI shows the line to add to `~/.bashrc` instead. |
+| `vfox activate`, `vfox env`                  | Shell integration: they print shell code or a session environment. The GUI shows how to [activate a shell](#activating-a-shell) instead. |
 | `vfox use --session`, `vfox exec`, `vfox cd` | Only meaningful inside a terminal session. |
 | `vfox upgrade`                               | Replaces the vfox executable, which a package manager or an installer usually owns; vfox is upgraded the way it was installed. |
 
@@ -430,7 +430,27 @@ the switch, exits with status 1 and leaves no current version. It never uses the
 session scope, which has no meaning without a shell. Fixtures: `use-global`, `use-without-hook`.
 
 Shells started *afterwards* pick up the global versions once vfox is activated
-in them (`eval "$(vfox activate bash)"`); the GUI tells the user so.
+in them; the GUI tells the user how, for their shell.
+
+### Activating a shell
+
+`vfox activate <shell>` knows `bash`, `zsh`, `fish`, `pwsh`, `nushell` and
+`clink`. What the [quick start](https://vfox.dev/guides/quick-start.html) says
+for each is what the GUI shows (`core/vfox`, `Activations`):
+
+| Shell      | Where it goes                | Command |
+| ---------- | ---------------------------- | ------- |
+| Bash       | `~/.bashrc`                  | `eval "$(vfox activate bash)"` |
+| Zsh        | `~/.zshrc`                   | `eval "$(vfox activate zsh)"` |
+| fish       | `~/.config/fish/config.fish` | `vfox activate fish \| source` |
+| PowerShell | `$PROFILE`                   | `Invoke-Expression "$(vfox activate pwsh)"` |
+| Nushell    | run once                     | `vfox activate nushell $nu.default-config-dir \| save --append $nu.config-path` |
+| Clink      | its scripts directory        | `clink info \| findstr scripts` shows the directory, which [`clink_vfox.lua`](https://github.com/version-fox/vfox/blob/main/internal/shell/clink_vfox.lua) goes into |
+
+The shells offered depend on the system of the machine that runs vfox: Windows
+has PowerShell, Bash (Git Bash), Clink and Nushell; macOS and Linux have Bash, Zsh,
+fish, Nushell and PowerShell. The first is the one that `SHELL` names (`nu` is
+Nushell), or PowerShell on Windows, Zsh on macOS and Bash elsewhere.
 
 ### Download progress
 

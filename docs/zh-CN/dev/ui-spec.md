@@ -45,6 +45,9 @@
 
 长耗时操作永不阻塞界面：都成为任务（见[任务](#任务)）。
 
+网页界面收不到应用的事件时，顶部出现一个小标签说明正在重新连接（`reconnecting`），事件恢复后消失。它是连接状态
+唯一的提示：它在的时候，页面上显示的内容可能是旧的。
+
 ## vfox 不可用
 
 定位 vfox 时各页（设置除外）显示加载指示器与 `vfoxCheckingTitle`。找不到可执行文件
@@ -65,8 +68,12 @@
   （`vfox doctor --adopt <插件>@<版本>`），`sdk.drift` 另有 `versionReinstall`；`doctorProblems` 给出总数。
   vfox 关于发问进程本身的结果（它的 shell 未激活）不列在其中（下面的卡片说明如何激活终端）。
   询问失败时显示其消息与 `doctorCheck`。
-- 一张卡：终端用这些版本所需的那一行（`homeShellTitle`、`homeShellBody`）：
-  `eval "$(vfox activate bash)"` 与复制按钮。
+- 一张卡：说明终端怎样用上这些版本（`homeShellTitle`）：一个本机 Shell 的下拉框，
+  `SHELL` 指出的那个排在最前，否则是系统惯用的（Windows 为 PowerShell，macOS 为 Zsh，其他为 Bash；见
+  [CLI 契约](vfox-cli-contract.md#激活-shell)）；对所选 Shell 给出一句说明、带复制按钮的命令，Clink 另有
+  打开其脚本的按钮（`homeShellGetScript`）。启动文件里的一行（`~/.bashrc`、`~/.zshrc`、
+  `~/.config/fish/config.fish`、`$PROFILE`）用 `homeShellBody`；Nushell 的命令只需运行一次，用
+  `homeShellOnce`；Clink 用 `homeShellScript`。所选项不记住。
 
 页面上没有列表里数量的统计，也没有通往导航已能到达的页面的快捷入口（Plugins；vfox 文档在设置里）。
 

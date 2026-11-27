@@ -55,6 +55,11 @@ Every view that loads data has four states:
 Long-running operations never block the interface: they become tasks (see
 [Tasks](#tasks)).
 
+While the web interface does not receive the events of the application, a chip at
+the top says that it reconnects (`reconnecting`); it goes away when they arrive
+again. The chip is the only sign of the connection: while it is there, what the
+pages show may be old.
+
 ## vfox unavailable
 
 While vfox is being located, every page except Settings shows the loading
@@ -83,9 +88,16 @@ Settings stay reachable in every case.
   about the process that asked, that its shell is not activated, is not among them
   (the card below shows how to activate a terminal). A failure to ask shows its
   message with `doctorCheck`.
-- A card with the line that a terminal needs to use these versions
-  (`homeShellTitle`, `homeShellBody`): `eval "$(vfox activate bash)"` and a copy
-  button.
+- A card that says how a terminal comes to use these versions (`homeShellTitle`):
+  a dropdown of the shells of the machine, the one that `SHELL` names first, or the
+  usual one of the system (PowerShell on Windows, Zsh on macOS, Bash elsewhere;
+  see [the CLI contract](vfox-cli-contract.md#activating-a-shell)), and for the
+  chosen shell an instruction, the command with a copy button and, for Clink, a
+  button that opens its script (`homeShellGetScript`). The instruction is
+  `homeShellBody` for a line of a startup file (`~/.bashrc`, `~/.zshrc`,
+  `~/.config/fish/config.fish`, `$PROFILE`), `homeShellOnce` for Nushell, whose
+  command is run once, and `homeShellScript` for Clink. The choice is not
+  remembered.
 
 The page has no counts of what its lists hold and no shortcut to a page that the
 navigation reaches (Plugins; the vfox documentation is in the settings).
