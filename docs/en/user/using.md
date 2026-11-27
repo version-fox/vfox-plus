@@ -367,6 +367,14 @@ zig versions in Scoop's apps directory and in Program Files were found, and vfox
   of vfox-deno and vfox-groovy link their documents, in English and in Simplified Chinese, and
   their README.
 
+### vfox exec on Windows
+
+Git Bash, which comes with Git for Windows, rewrites an argument that starts with `/` before vfox
+receives it. So `vfox exec erlang@28.5.0.9 -- cmd.exe /c echo hi` prints the cmd banner: cmd gets
+`C:/` in place of `/c`. In Git Bash, write `//c` (`cmd.exe //c echo hi`), or set
+`MSYS_NO_PATHCONV=1` for that command. PowerShell and cmd pass `/c` on unchanged, and vfox passes
+its arguments on unchanged.
+
 ## Plugins
 
 - Search the registry and filter official or community plugins.

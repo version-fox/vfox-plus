@@ -148,6 +148,10 @@
 - **Windows arm64。** vfox-etcd 没有 Windows arm64 构建：3.5.12、3.6.0 与 3.7.4 只发布 amd64 的 Windows zip。安装会停止，并给出一条消息，指明该平台没有构建并给出发行页面，不打印栈追踪（[vfox-etcd #28](https://github.com/version-fox/vfox-etcd/issues/28)）。Deno 与 Zig 会安装并运行它们的 arm64 构建（以 Deno 2.9.8 与 Zig 0.17.1 检查过），`.exe` 名称同上。Groovy 与 Scala 会安装，并在检查时安装的 Temurin JDK 21 上运行。
 - **文档。** etcd 的**选项**页签链接到 vfox-etcd 的文档网站（英文与简体中文）、它的文档与 README。vfox-deno 与 vfox-groovy 的**选项**页签链接各自的文档（英文与简体中文）以及 README。
 
+### Windows 上的 vfox exec
+
+Git Bash（随 Git for Windows 安装）会在 vfox 收到参数之前，改写以 `/` 开头的参数。因此 `vfox exec erlang@28.5.0.9 -- cmd.exe /c echo hi` 会打印 cmd 的横幅：cmd 收到的是 `C:/`，而不是 `/c`。在 Git Bash 中请写成 `//c`（`cmd.exe //c echo hi`），或为该命令设置 `MSYS_NO_PATHCONV=1`。PowerShell 与 cmd 原样传递 `/c`，vfox 也原样传递参数。
+
 ## 插件
 
 - 搜索仓库，按官方/社区过滤。
