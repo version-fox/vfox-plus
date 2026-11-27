@@ -63,6 +63,8 @@ type recorder struct {
 	// pagedOut counts the times that the application told the system that it does not want the
 	// pages of its files for now.
 	pagedOut atomic.Int32
+	// freed counts the times that the application freed the memory of the frames.
+	freed atomic.Int32
 }
 
 // fakeTray is an icon in the tray that shows nothing, and notes what the application asks of
@@ -194,8 +196,9 @@ func newTestAppOn(t *testing.T, goos string, runner *testsupport.FakeProcessRunn
 			recording.windows = append(recording.windows, window)
 			return window
 		},
-		quit:    func() { recording.quits++ },
-		pageOut: func() { recording.pagedOut.Add(1) },
+		quit:       func() { recording.quits++ },
+		pageOut:    func() { recording.pagedOut.Add(1) },
+		freeMemory: func() { recording.freed.Add(1) },
 		newTray: func(options trayOptions) (trayIcon, error) {
 			if recording.trayError != nil {
 				return nil, recording.trayError

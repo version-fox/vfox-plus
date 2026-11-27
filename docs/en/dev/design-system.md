@@ -324,6 +324,11 @@ target.
 mygo: the springs and `AnimateTo` in `mygo/ui/kit/motion.go`, drawn only while
 they move, so the window is idle when nothing changes.
 
+An animation does not change the size of a text from frame to frame: text that grows
+or shrinks, as the floating label of a field does, is drawn in one of its type sizes
+and scaled by a transform, since every size in between is a font of its own whose
+glyphs stay in memory ([memory](memory.md#motion-and-memory)).
+
 ### Transitions
 
 On the desktop and in the phone app none of these is drawn, for the memory that the layers cost (see

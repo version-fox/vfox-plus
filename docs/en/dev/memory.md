@@ -43,20 +43,34 @@ by default; its **Reduced** setting moves nothing, and so does **System** where 
 desktop asks for less motion (see [the design system](design-system.md#motion)). The
 table above was measured with nothing moving; CI measures the default.
 
-What the springs cost, measured on 2026-11-27 on WSL2 with Xvfb (1280 × 800, no GPU),
-with the end-to-end build and the fake vfox: the medians of five runs of each setting,
-in MB of PSS for the application and all of its child processes.
+The springs cost memory in two ways, which the application undoes:
 
-| Setting            | Home | Versions | After five dialogs and every page |
-| ------------------ | ---: | -------: | --------------------------------: |
-| Reduced            |   95 |       83 |                                94 |
-| System (it moves)  |   79 |       92 |                               111 |
+- **Text drawn in many sizes.** The floating label of a text field changed its font
+  size in every frame of its spring, 25 sizes in one move, and Cairo, Pango and
+  fontconfig, which draw the text on Linux, and the glyph atlas of the toolkit keep
+  what every size needs: a dialog with a field, opened a few times, left about 8 MB of
+  C memory and 4 MB of Go heap behind. The label now moves in its two sizes, drawn at
+  the larger one and scaled in between (see [the design system](design-system.md#motion)).
+- **The heap that the frames grew.** The collector of Go runs when the heap grows,
+  which a window at rest does not make it do. Two seconds after the last frame, as long
+  as the toolkit waits to give back its own, the application frees it
+  (`restAfterFrames`).
 
-The Home page shows no difference that holds: the runs of one setting spread from 78
-to 125 MB. The list of versions takes about 9 MB more with the springs. Over forty
-openings of a dialog the memory levelled off, so use does not make it grow, and an
-idle window draws no frames in either setting. These numbers come from another system
-than the table above and are compared only with each other.
+Measured on 2026-11-27 on WSL2 under Xvfb (X11, 1280 × 800, no GPU) with the
+end-to-end build and the fake vfox, the medians of five runs, in MB of PSS:
+
+| Setting                                | Home | Versions | After five dialogs and every page |
+| -------------------------------------- | ---: | -------: | --------------------------------: |
+| Reduced                                |   51 |       56 |                                62 |
+| System (it moves)                      |   51 |       56 |                                63 |
+| System, before the two changes         |   51 |       58 |                                76 |
+
+On the Wayland compositor of WSLg, GTK keeps more buffers while frames are drawn,
+which the application cannot reach: in three runs, the list of versions took 79 MB
+moving and 70 MB reduced, and after the dialogs 87 MB and 81 MB, where it took 99 MB
+before the two changes. An idle window draws no frames in either setting. These
+numbers come from other systems than the table above and are compared only with each
+other.
 
 ## The lightweight mode
 

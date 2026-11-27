@@ -80,6 +80,8 @@ type desktop struct {
 	// pageOut tells the system that the pages of the files that the process maps are not wanted
 	// for now: it is what the application does when it runs without a window.
 	pageOut func()
+	// freeMemory returns to the system the memory that the application holds and does not use.
+	freeMemory func()
 	// openURL opens a web address in the browser of the user.
 	openURL func(address string)
 	// copy puts text on the clipboard.
@@ -118,6 +120,8 @@ type App struct {
 	pending []func()
 	// trim is the timer that pages the files out once the window has stayed closed.
 	trim *time.Timer
+	// rest is the timer that frees the memory of the frames once none has been built for a while.
+	rest *time.Timer
 	// released is true while the application runs without its window, when the work that
 	// is meant for the window is dropped.
 	released bool
@@ -161,10 +165,11 @@ func New(options Options) (*App, error) {
 	}
 	a.desktop = desktop{
 		openURL: openURL, copy: copyText, choose: a.chooseFile,
-		newWindow: func(options mygo.WindowOptions) surface { return mygo.NewWindow(options) },
-		quit:      mygo.App.Quit,
-		newTray:   newNativeTray,
-		pageOut:   func() { pageOutFiles() },
+		newWindow:  func(options mygo.WindowOptions) surface { return mygo.NewWindow(options) },
+		quit:       mygo.App.Quit,
+		newTray:    newNativeTray,
+		pageOut:    func() { pageOutFiles() },
+		freeMemory: debug.FreeOSMemory,
 	}
 	a.env = kit.NewEnv(kit.NewTheme(settings.DefaultSeedColor, false, false, 1))
 	a.uiTheme = a.env.Theme.UI()
@@ -375,6 +380,24 @@ func (a *App) listen() {
 	a.model.Tasks.OnFinished(a.announce)
 }
 
+// restDelay is how long the window has to build no frame before the application frees what
+// drawing left behind.
+var restDelay = 2 * time.Second
+
+// restAfterFrames has the memory that the frames left in the Go heap returned to the system once
+// no frame has been built for restDelay. The runtime collects it only when the heap grows again,
+// which a window at rest does not make it do, so what an animation grew it by stays resident
+// (docs/en/dev/memory.md).
+func (a *App) restAfterFrames() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.rest == nil {
+		a.rest = time.AfterFunc(restDelay, a.desktop.freeMemory)
+		return
+	}
+	a.rest.Reset(restDelay)
+}
+
 // view builds the window: the shell, the dialogs and the snack bar.
 func (a *App) view(c *mui.Context) {
 	a.runPending()
@@ -394,6 +417,7 @@ func (a *App) view(c *mui.Context) {
 	a.env.LayoutDialogs(k)
 	a.env.LayoutSnackbars(k)
 	a.watchTasks()
+	a.restAfterFrames()
 }
 
 // watchTasks asks for a frame whenever a task changes, such as when it reports

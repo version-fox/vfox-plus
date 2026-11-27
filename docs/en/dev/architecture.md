@@ -358,6 +358,7 @@ Low memory use is a goal of the project. The application:
 - ships only the icons it uses (63 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
 - stops animations that are not visible, and draws no transitions on the desktop,
   whose layers stay allocated (see [the design system](design-system.md#motion));
+- frees what drawing grew the Go heap by two seconds after the last frame;
 - avoids caching data that vfox can produce again cheaply;
 - without its window, tells the system that it does not want the pages of its files for now
   (the resident set falls by 11 MB), and the Go scheduler uses at most four processors, which

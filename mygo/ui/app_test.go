@@ -769,6 +769,32 @@ func TestSettingsSayHowMuchTheInterfaceMoves(t *testing.T) {
 	}
 }
 
+// The memory that frames leave in the heap is freed once the window has built none for a while,
+// and not while it builds them.
+func TestTheMemoryOfTheFramesIsFreedOnceTheWindowRests(t *testing.T) {
+	previous := restDelay
+	restDelay = 200 * time.Millisecond
+	t.Cleanup(func() { restDelay = previous })
+	ta := defaultApp(t)
+	ta.frame()
+	freed := ta.desktop.freed.Load()
+	for range 8 {
+		time.Sleep(restDelay / 4)
+		ta.frame()
+	}
+	if got := ta.desktop.freed.Load(); got != freed {
+		t.Fatalf("freed %d times while frames were built", got-freed)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for ta.desktop.freed.Load() == freed && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	time.Sleep(2 * restDelay)
+	if got := ta.desktop.freed.Load(); got != freed+1 {
+		t.Errorf("freed %d times once the window rested, want once", got-freed)
+	}
+}
+
 func TestTheVersionOfTheApplicationIsTheOneInTheVersionFile(t *testing.T) {
 	content, err := os.ReadFile("../VERSION")
 	if err != nil {

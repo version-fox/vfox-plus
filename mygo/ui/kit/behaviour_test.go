@@ -890,6 +890,36 @@ func TestNothingMovesWhenTheThemeOrTheDesktopSaysSo(t *testing.T) {
 	}
 }
 
+// A size of its own in each frame of a moving label would be a font of its own in each frame, which the text engine
+// keeps (docs/en/dev/memory.md): the label of a field goes between its two sizes drawn in one of them and scaled.
+func TestTheLabelOfAFieldMovesInItsTwoSizes(t *testing.T) {
+	env := testEnv(t, false)
+	tester := ui.NewTester(view(env, func(c Ctx) {
+		TextField(c, TextFieldSpec{ID: "name", Label: "Version name"})
+	}), 400, 200)
+	tester.SetPreferences(ui.Preferences{ReduceMotion: false, TextScale: 1})
+	tester.Frame()
+	sizes := map[float32]int{}
+	collect := func() {
+		for _, n := range env.Reg.Nodes() {
+			if n.Role == RoleText && n.Text == "Version name" {
+				sizes[n.Size]++
+			}
+		}
+	}
+	collect()
+	if err := tester.Click("Version name"); err != nil {
+		t.Fatal(err)
+	}
+	for range 60 {
+		tester.Advance(10 * time.Millisecond)
+		collect()
+	}
+	if len(sizes) != 2 || sizes[16] == 0 || sizes[12] == 0 {
+		t.Errorf("the label is drawn in the sizes (and frames) %v, want 16 and 12 only", sizes)
+	}
+}
+
 func TestSpringsReachTheirTargetAndOnlyBounceWhenUnderdamped(t *testing.T) {
 	bouncy := Spring{Damping: 0.5, Stiffness: 400}
 	critical := Spring{Damping: 1, Stiffness: 400}
