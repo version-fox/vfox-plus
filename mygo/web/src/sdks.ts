@@ -15,12 +15,13 @@
  */
 
 import { api, confirmDlg, openExternal, showError, snack } from "./api";
-import type { VersionEntry } from "./api";
+import type { Variable, VersionEntry } from "./api";
 import { aliasesOf, avatar, el, esc, icon, txt } from "./dom";
 import type { VersionAlias } from "./dom";
 import { getLang, t } from "./i18n";
 import { refresh } from "./main";
 import { state, type DetailState } from "./state";
+import { canDetect, needsConfirmation } from "./plugin-profile";
 import { removePlugin } from "./plugins";
 import { runTask } from "./tasks";
 import { chip, openMenu, openSheet, partsLine, section, sectionStatus, spinner, stateBlock, tagList, wireStateRetry } from "./ui";
@@ -418,7 +419,10 @@ function renderAvailable(body: HTMLElement): void {
   el("addMore").onclick = (ev) =>
     openMenu(ev.currentTarget as Element, [
       { id: "by-name", icon: "terminal", label: t("installByName"), onclick: () => openInstallByName("") },
-      { id: "link-detect", icon: "link", label: t("linkDetect"), onclick: () => runTask({ operation: "linkDetect", sdk: d.name, yes: true }) },
+      // A plugin without the Detect hook cannot find what is installed already.
+      ...(canDetect(d.profile)
+        ? [{ id: "link-detect", icon: "link", label: t("linkDetect"), onclick: () => runTask({ operation: "linkDetect", sdk: d.name, yes: true }) }]
+        : []),
       { id: "link-manual", icon: "folder", label: t("linkManual"), onclick: () => openLinkManual() },
     ]);
   if (d.versions === null && !d.error && !d.loading) loadVersions();
@@ -831,6 +835,16 @@ function renderOptions(body: HTMLElement): void {
         .map((v) => {
           const preset = (v.presets || []).find((x) => x.value === v.value);
           const sub = v.value ? (preset ? txt(preset.name, getLang()) + " · " : "") + v.value : t("unset");
+          const control =
+            v.kind === "toggle"
+              ? '<button class="switch" role="switch" data-toggle="' +
+                esc(v.key) +
+                '" aria-checked="' +
+                (v.value === v.on) +
+                '" aria-label="' +
+                esc(txt(v.label, getLang())) +
+                '"></button>'
+              : "<button class='btn tonal' data-var='" + esc(v.key) + "'>" + esc(t("change")) + "</button>";
           return (
             "<div class='item'><span style='flex:1;min-width:0'><b>" +
             esc(txt(v.label, getLang())) +
@@ -840,11 +854,9 @@ function renderOptions(body: HTMLElement): void {
             esc(v.key) +
             "</code><br>" +
             esc(sub) +
-            "</span></span><button class='btn tonal' data-var='" +
-            esc(v.key) +
-            "'>" +
-            esc(t("change")) +
-            "</button></div>"
+            "</span></span>" +
+            control +
+            "</div>"
           );
         })
         .join(""),
@@ -915,6 +927,20 @@ function renderOptions(body: HTMLElement): void {
       ((b as HTMLButtonElement).onclick = () => {
         const v = p.variables.find((x) => x.key === (b as HTMLButtonElement).dataset.var);
         if (v) openVariable(v);
+      }),
+  );
+  body.querySelectorAll("[data-toggle]").forEach(
+    (b) =>
+      ((b as HTMLButtonElement).onclick = async () => {
+        const v = p.variables.find((x) => x.key === (b as HTMLButtonElement).dataset.toggle);
+        if (!v) return;
+        const next = v.value === v.on ? v.off || "" : v.on || "";
+        try {
+          if (needsConfirmation(v, next) && !(await confirmValue(v, next))) return;
+          await setVariable(d, v, next);
+        } catch (e) {
+          showError(e instanceof Error ? e.message : String(e));
+        }
       }),
   );
   body.querySelectorAll("[data-doc]").forEach(
@@ -1024,27 +1050,41 @@ function openAliasSet(initialVersion?: string): void {
   });
 }
 
-function openVariable(variable: {
-  label: { en: string; zh: string };
-  help: { en: string; zh: string };
-  key: string;
-  kind: string;
-  example: string;
-  value: string;
-  presets: { value: string; name: { en: string; zh: string } }[];
-}): void {
+// setVariable sets a variable of the plugin of the details, or takes it away
+// with an empty value, and shows the options with it.
+async function setVariable(d: DetailState, variable: Variable, value: string): Promise<void> {
+  const r = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/variables", {
+    method: "PUT",
+    body: JSON.stringify({ key: variable.key, value: value.trim() }),
+  })) as { value: string };
+  variable.value = r.value || "";
+  snack(t("saved"));
+  if (state.detail === d && d.tab === "options") renderTab(false);
+}
+
+// confirmValue asks before a value from a profile that the application did not
+// ship is set.
+function confirmValue(variable: Variable, value: string): Promise<boolean> {
+  const body = t("variableConfirmBody")
+    .replace("{key}", () => variable.key)
+    .replace("{value}", () => value.trim());
+  return confirmDlg(t("variableConfirmTitle"), body, t("variableConfirmAction"), false);
+}
+
+function openVariable(variable: Variable): void {
   const d = state.detail;
   if (!d) return;
   openSheet(txt(variable.label, getLang()), "download", (box, close) => {
+    const typed = variable.kind === "url" || variable.kind === "text";
     box.innerHTML =
       '<p class="muted t-body" style="margin:0">' +
       esc(txt(variable.help, getLang())) +
       '</p><p class="muted t-label"><code>' +
       esc(variable.key) +
       "</code></p>" +
-      (variable.kind === "url"
+      (typed
         ? '<div class="field"><label for="varIn">' +
-          esc(t("address")) +
+          esc(t(variable.kind === "url" ? "address" : "variableValue")) +
           '</label><input id="varIn" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' +
           esc(variable.example || "") +
           '"><div class="muted t-label" id="varHelp"></div></div>'
@@ -1089,15 +1129,20 @@ function openVariable(variable: {
       document.querySelectorAll("#varChips .chip").forEach((b) => b.setAttribute("aria-pressed", String((b as HTMLButtonElement).dataset.value === cur)));
     };
     const submit = async () => {
-      try {
-        const r = (await api("/api/sdks/" + encodeURIComponent(d.name) + "/variables", {
-          method: "PUT",
-          body: JSON.stringify({ key: variable.key, value: value.trim() }),
-        })) as { value: string };
-        variable.value = r.value || "";
+      const chosen = value.trim();
+      // The question takes the place of the sheet.
+      if (needsConfirmation(variable, chosen)) {
         close();
-        snack(t("saved"));
-        if (state.detail === d && d.tab === "options") renderTab(false);
+        try {
+          if (await confirmValue(variable, chosen)) await setVariable(d, variable, chosen);
+        } catch (e) {
+          showError(e instanceof Error ? e.message : String(e));
+        }
+        return;
+      }
+      try {
+        await setVariable(d, variable, chosen);
+        close();
       } catch (e) {
         help.textContent = e instanceof Error ? e.message : String(e);
         help.classList.add("bad");

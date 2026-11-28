@@ -1,0 +1,68 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "kotlin",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest release on the Kotlin release page",
+        "zh": "Kotlin 发布页面上最新的版本"
+      }
+    }
+  ],
+  "guide": {
+    "en": "Write a Kotlin release in full, such as 2.1.0 or 1.9.24. There are no distributions or suffixes: the version you type is the compiler you get. latest installs the newest release on the Kotlin release page; if that page cannot be read, search and install say why instead of guessing a version.",
+    "zh": "完整写出 Kotlin 的发行版号，如 2.1.0 或 1.9.24。没有发行版，也没有后缀：输入什么版本就得到什么编译器。latest 安装 Kotlin 发布页面上最新的版本；若该页面无法读取，搜索与安装会报出原因，而不会猜测版本。"
+  },
+  "tips": [
+    {
+      "en": "kotlinc and kotlinc-native are JVM launchers: a Java runtime 17 or newer must be on PATH. The plugin does not install Java.",
+      "zh": "kotlinc 与 kotlinc-native 都是 JVM 启动器：PATH 上必须有 Java 17 或更高版本的运行时。插件不会安装 Java。"
+    },
+    {
+      "en": "Kotlin/Native is bundled on hosts JetBrains publishes a prebuilt compiler for; other hosts, such as Linux arm64, get the JVM compiler only.",
+      "zh": "在 JetBrains 提供预编译编译器的平台上会一并安装 Kotlin/Native；其他平台（如 Linux arm64）只安装 JVM 编译器。"
+    },
+    {
+      "en": "Releases before 1.9.0-RC have no checksum.",
+      "zh": "1.9.0-RC 之前的版本没有校验和，vfox 无法校验，安装仍会成功。"
+    },
+    {
+      "en": "Detect and link adopts compilers from SDKMAN, asdf, mise, Homebrew, IDE bundles, system directories and KOTLIN_HOME, and needs vfox 1.1.0 or later.",
+      "zh": "探测并链接可纳入 SDKMAN、asdf、mise、Homebrew、IDE 自带、系统目录以及 KOTLIN_HOME 中的编译器，需要 vfox 1.1.0 或更高版本。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-kotlin/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-kotlin/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Use a compiler that is already installed",
+        "zh": "使用本机已有的编译器"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-kotlin/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-kotlin/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-kotlin/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-kotlin/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    }
+  ]
+}

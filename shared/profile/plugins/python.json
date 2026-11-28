@@ -1,0 +1,281 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "python",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest CPython release in the list that is not free-threaded; on Linux and macOS it can be a pre-release",
+        "zh": "列表中最新的非自由线程版 CPython 版本；在 Linux 和 macOS 上可能是预发布版"
+      }
+    },
+    {
+      "name": "3.13",
+      "meaning": {
+        "en": "The newest 3.13.x release, never a free-threaded or pre-release build",
+        "zh": "最新的 3.13.x 版本，不包括自由线程版和预发布版"
+      }
+    },
+    {
+      "name": "3.13t",
+      "meaning": {
+        "en": "The newest free-threaded 3.13.x release",
+        "zh": "最新的 3.13.x 自由线程版"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "key": "VFOX_PYTHON_MIRROR",
+      "label": {
+        "en": "python.org mirror",
+        "zh": "python.org 镜像"
+      },
+      "help": {
+        "en": "A mirror of www.python.org/ftp/python, for the Windows installers and for the source archives of a source build. The list of versions still comes from the pyenv index, or from python.org on Windows. On Linux and macOS, a mirror keeps CPython on a source build unless the uv-build mirror is set too.",
+        "zh": "www.python.org/ftp/python 的镜像，用于 Windows 安装包，以及源码构建所用的源码包。版本列表仍来自 pyenv 索引，Windows 上则来自 python.org。在 Linux 和 macOS 上，设置镜像后 CPython 会走源码构建，除非同时设置 uv-build 镜像。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://mirrors.huaweicloud.com/python/",
+          "name": {
+            "en": "Huawei Cloud",
+            "zh": "华为云"
+          }
+        },
+        {
+          "value": "https://registry.npmmirror.com/-/binary/python/",
+          "name": "npmmirror"
+        }
+      ],
+      "example": "https://mirrors.huaweicloud.com/python/"
+    },
+    {
+      "key": "VFOX_PYTHON_USE_UV_BUILD",
+      "label": {
+        "en": "Install method",
+        "zh": "安装方式"
+      },
+      "help": {
+        "en": "By default, on Linux and macOS, a CPython release that the uv-build index lists installs as a prebuilt archive, and the others are built from source. Windows keeps the python.org installers. 0: build from source on Linux and macOS. 1: uv-build only, on every platform; a release the index does not list is an error.",
+        "zh": "默认情况下，在 Linux 和 macOS 上，uv-build 索引列出的 CPython 版本安装预编译的压缩包，其余版本从源码构建；Windows 保持使用 python.org 安装包。0：在 Linux 和 macOS 上从源码构建。1：所有平台都只使用 uv-build，索引没有列出的版本会报错。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "0",
+          "name": {
+            "en": "Source build on Linux and macOS",
+            "zh": "Linux 和 macOS 上从源码构建"
+          }
+        },
+        {
+          "value": "1",
+          "name": {
+            "en": "uv-build only",
+            "zh": "仅 uv-build"
+          }
+        }
+      ]
+    },
+    {
+      "key": "VFOX_PYTHON_UV_BUILD_MIRROR",
+      "label": {
+        "en": "uv-build mirror",
+        "zh": "uv-build 镜像"
+      },
+      "help": {
+        "en": "A mirror of the GitHub releases of python-build-standalone, where the uv-build archives come from. The index and its checksums still come from vault.vfox.dev.",
+        "zh": "python-build-standalone 在 GitHub 发布页的镜像，uv-build 压缩包从这里下载。索引和校验和仍来自 vault.vfox.dev。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://registry.npmmirror.com/-/binary/python-build-standalone/",
+          "name": "npmmirror"
+        }
+      ],
+      "example": "https://registry.npmmirror.com/-/binary/python-build-standalone/"
+    },
+    {
+      "when": {
+        "os": [
+          "linux"
+        ]
+      },
+      "key": "VFOX_PYTHON_UV_LIBC",
+      "label": {
+        "en": "C library",
+        "zh": "C 库"
+      },
+      "help": {
+        "en": "On Linux the plugin detects glibc and musl itself. Set this only where detection is wrong or fails: uv-build then takes the build for gnu or musl. Without a known C library, the default install method builds from source.",
+        "zh": "在 Linux 上，插件会自行识别 glibc 与 musl。只有识别错误或失败时才需要设置：uv-build 会改用 gnu 或 musl 版本。无法识别 C 库时，默认安装方式会改为源码构建。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "gnu",
+          "name": "gnu (glibc)"
+        },
+        {
+          "value": "musl",
+          "name": "musl"
+        }
+      ],
+      "advanced": true
+    },
+    {
+      "when": {
+        "os": [
+          "windows"
+        ]
+      },
+      "key": "VFOX_PYTHON_REGISTER_PY_LAUNCHER",
+      "label": {
+        "en": "Python launcher",
+        "zh": "Python 启动器"
+      },
+      "help": {
+        "en": "Installs are registered with the Python launcher, so that py -0p lists them. Set it to 0 to turn the registration off.",
+        "zh": "安装的 Python 会注册到 Python 启动器，使 py -0p 能够列出它们。设为 0 则关闭注册。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "1",
+          "name": {
+            "en": "On",
+            "zh": "开启"
+          }
+        },
+        {
+          "value": "0",
+          "name": {
+            "en": "Off",
+            "zh": "关闭"
+          }
+        }
+      ]
+    }
+  ],
+  "legacyFiles": [
+    ".python-version"
+  ],
+  "legacyStrategy": true,
+  "facets": [
+    {
+      "id": "implementation",
+      "label": {
+        "en": "Implementation",
+        "zh": "实现"
+      },
+      "kind": "note",
+      "values": [
+        "GraalPy",
+        "GraalPy Community"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "A version is a CPython release as the list shows it, such as 3.12.2, 3.14.0a4 or 3.14.0a4t. A partial name such as 3.12 installs the newest release of that line; GraalPy is named in full, such as graalpy-24.2.0.",
+    "zh": "版本就是列表里显示的名称，如 3.12.2、3.14.0a4 或 3.14.0a4t。3.12 这样的部分版本号会安装该版本线上最新的版本；GraalPy 要写完整名称，如 graalpy-24.2.0。"
+  },
+  "tips": [
+    {
+      "en": "On Linux and macOS, uv-build installs the CPython releases its index lists; others are built from source.",
+      "zh": "在 Linux 和 macOS 上，uv-build 直接安装索引列出的 CPython 版本，其他版本从源码构建。"
+    },
+    {
+      "en": "A partial name without t never selects a free-threaded build or a pre-release.",
+      "zh": "不带 t 的部分版本号既不会选中自由线程版，也不会选中预发布版。"
+    },
+    {
+      "en": "With uv-build only, GraalPy cannot be installed.",
+      "zh": "选择“仅 uv-build”时无法安装 GraalPy。"
+    },
+    {
+      "en": "On Windows, installers come from python.org.",
+      "zh": "在 Windows 上，安装包来自 python.org。"
+    },
+    {
+      "en": "A linked Python keeps its source in its name, such as 3.12.3-system.",
+      "zh": "链接的 Python 会在名称中保留来源，如 3.12.3-system。"
+    },
+    {
+      "en": "GITHUB_TOKEN raises the GitHub rate limit.",
+      "zh": "设置 GITHUB_TOKEN 或 GH_TOKEN 可以提高 GitHub 的访问速率限制。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "uv and uv-build",
+        "zh": "uv 与 uv-build"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/uv.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/uv.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Mirror",
+        "zh": "镜像"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/mirror.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/mirror.md"
+      }
+    },
+    {
+      "title": "GraalPy",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/graalpy.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/graalpy.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Use a Python that is already installed",
+        "zh": "使用本机已有的 Python"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Platforms",
+        "zh": "平台"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/platforms.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/platforms.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Windows Python launcher",
+        "zh": "Windows Python 启动器"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-python/blob/main/docs/windows-launcher.md",
+        "zh": "https://github.com/version-fox/vfox-python/blob/main/docs/zh-CN/windows-launcher.md"
+      }
+    }
+  ]
+}

@@ -298,9 +298,18 @@ java@j17 -> java@17.0.9-tem
 output says `No problems found.` or `Found … errors, … warnings and …
 notices.` with a `fix:` per finding; `--json` answers
 `{"ok": bool, "findings": [{id, severity, sdk, version, message, hints, fix,
-ignored}]}` and exits 1 only on unignored errors. `--adopt` records
-pre-receipt installs so drift can be detected later. Fixtures: `doctor`,
-`doctor-json`.
+ignored}]}` and exits 1 only on unignored errors, with the report on standard
+output all the same. The application therefore reads the report whether vfox
+exits with 0 or 1; another exit code, or 1 without a report, is a failure.
+`--adopt` records pre-receipt installs so drift can be detected later.
+
+The application runs vfox outside of an activated shell (see
+[Environment](#environment)), so vfox always finds `path.not-activated`: an
+`error` with exit code 1 on Linux and macOS, a `warn` on Windows. It describes
+the process that asks, not the terminals of the person, to whom the home page
+shows the activation line. The application leaves it out and works `ok` out
+again from the findings that are left. Fixtures: `doctor` and `doctor-json` (in
+an activated shell), `doctor-json-not-activated` (as the application runs it).
 
 `vfox alias list [<sdk>]` prints `<sdk>@<alias> -> <sdk>@<version>` per line,
 or `No aliases defined. …` when there are none. `vfox alias set <sdk> <alias>
@@ -398,7 +407,7 @@ shows in the list after the cache expires.
 
 | Command                                      | Why |
 | -------------------------------------------- | --- |
-| `vfox activate`, `vfox env`                  | Shell integration: they print shell code or a session environment. The GUI shows the line to add to `~/.bashrc` instead. |
+| `vfox activate`, `vfox env`                  | Shell integration: they print shell code or a session environment. The GUI shows how to [activate a shell](#activating-a-shell) instead. |
 | `vfox use --session`, `vfox exec`, `vfox cd` | Only meaningful inside a terminal session. |
 | `vfox upgrade`                               | Replaces the vfox executable, which a package manager or an installer usually owns; vfox is upgraded the way it was installed. |
 
@@ -421,7 +430,27 @@ the switch, exits with status 1 and leaves no current version. It never uses the
 session scope, which has no meaning without a shell. Fixtures: `use-global`, `use-without-hook`.
 
 Shells started *afterwards* pick up the global versions once vfox is activated
-in them (`eval "$(vfox activate bash)"`); the GUI tells the user so.
+in them; the GUI tells the user how, for their shell.
+
+### Activating a shell
+
+`vfox activate <shell>` knows `bash`, `zsh`, `fish`, `pwsh`, `nushell` and
+`clink`. What the [quick start](https://vfox.dev/guides/quick-start.html) says
+for each is what the GUI shows (`core/vfox`, `Activations`):
+
+| Shell      | Where it goes                | Command |
+| ---------- | ---------------------------- | ------- |
+| Bash       | `~/.bashrc`                  | `eval "$(vfox activate bash)"` |
+| Zsh        | `~/.zshrc`                   | `eval "$(vfox activate zsh)"` |
+| fish       | `~/.config/fish/config.fish` | `vfox activate fish \| source` |
+| PowerShell | `$PROFILE`                   | `Invoke-Expression "$(vfox activate pwsh)"` |
+| Nushell    | run once                     | `vfox activate nushell $nu.default-config-dir \| save --append $nu.config-path` |
+| Clink      | its scripts directory        | `clink info \| findstr scripts` shows the directory, which [`clink_vfox.lua`](https://github.com/version-fox/vfox/blob/main/internal/shell/clink_vfox.lua) goes into |
+
+The shells offered depend on the system of the machine that runs vfox: Windows
+has PowerShell, Bash (Git Bash), Clink and Nushell; macOS and Linux have Bash, Zsh,
+fish, Nushell and PowerShell. The first is the one that `SHELL` names (`nu` is
+Nushell), or PowerShell on Windows, Zsh on macOS and Bash elsewhere.
 
 ### Download progress
 

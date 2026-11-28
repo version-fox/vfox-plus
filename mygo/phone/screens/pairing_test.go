@@ -52,8 +52,12 @@ const pairTestToken = "good-token"
 // pairTestSession is the session that the fake computer gives a phone that pairs.
 const pairTestSession = "session-of-the-test"
 
-// pairTestInventory is the inventory of the fake computer: vfox 0.6.0, with Go in use.
-const pairTestInventory = `{"vfox":{"availability":"ready","version":"0.6.0"},` +
+// pairTestInventory is the inventory of the fake computer: vfox 0.6.0, which three shells
+// activate, Bash first, with Go in use.
+const pairTestInventory = `{"vfox":{"availability":"ready","version":"0.6.0","activations":[` +
+	`{"shell":"bash","name":"Bash","kind":"startup","file":"~/.bashrc","command":"eval \"$(vfox activate bash)\""},` +
+	`{"shell":"nushell","name":"Nushell","kind":"once","command":"vfox activate nushell"},` +
+	`{"shell":"clink","name":"Clink","kind":"script","command":"clink info","url":"https://example.org/clink_vfox.lua"}]},` +
 	`"installed":{"loading":false,"value":[{"Name":"go","Versions":["1.22.0"],"Current":"1.22.0","HasCurrent":true},` +
 	`{"Name":"node","Versions":["20.1.0"],"Current":"","HasCurrent":false}]},` +
 	`"registry":{"loading":false,"value":[]},"config":{"loading":false,"value":[]},"complete":true}`

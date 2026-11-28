@@ -54,7 +54,8 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 
 ```json
 {
-  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": ""},
+  "vfox": {"availability": "available|missing|broken", "version": "1.1.0", "error": "",
+    "activations": [{"shell": "bash", "name": "Bash", "kind": "startup", "file": "~/.bashrc", "command": "eval \"$(vfox activate bash)\""}]},
   "installed": {"loading": false, "value": [{"Name": "nodejs", "Versions": ["24.11.1"], "Current": "24.11.1", "HasCurrent": true}]},
   "registry": {"loading": false, "value": [{"Name": "nodejs", "Homepage": "https://…", "Official": true}]},
   "config": {"loading": false, "value": [{"Key": "proxy.enable", "Value": "false"}]},
@@ -63,7 +64,9 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 ```
 
 字段名沿用 Go 模型（`core.InstalledSdk`、`core.AvailablePlugin`、
-`core.ConfigEntry`）；`complete` 表示三节是否都在加载超时（2 分钟）内完成。
+`core.ConfigEntry`）；`complete` 表示三节是否都在加载超时（2 分钟）内完成。`activations` 是运行 vfox 的那台电脑上
+各 shell [激活 vfox](vfox-cli-contract.md#激活-shell) 的方法，该用户的 shell 排在最前（`vfox.Activation`）：`kind`
+为 `startup`（命令写入 `file`）、`once`（运行一次）或 `script`（命令给出 `url` 处脚本应放入的目录）。
 
 ## SDK 详情
 
@@ -75,16 +78,16 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
 | `PUT /api/sdks/<name>/search` | 选择插件列出什么：`{value}`，档案里某个选择项的值；插件的默认值也是一个选择，空值即默认值。应用把选择保存在设置里，从此插件列出的就是它，各个界面一致，重启后仍在。回答 `{value}`，即现在的选择。未知的值与没有 value 的请求体回答 400，搜索不带参数的插件（以及没有档案的插件）回答 404。 |
 | `GET /api/sdks/<name>/aliases` | 版本别名（`vfox.VersionAlias[]`）：`{sdk, alias, target, display}`。超时回答 504。 |
 | `GET /api/doctor[?sdk=<name>[&version=<version>]]` | 健康检查（`vfox.DoctorReport`）：`{ok, findings: [{id, severity, sdk, version, message, hints, fix, ignored}]}`。超时回答 504。 |
-| `PUT /api/sdks/<name>/variables` | 设置档案里列出的一个环境变量：`{key, value}`，值为空即取消。插件不读取的变量、它不接受的值与没有 key 的请求体回答 400 并附原因，没有档案的插件回答 404。值会加入设置里的额外环境。 |
+| `PUT /api/sdks/<name>/variables` | 设置档案里列出的一个环境变量：`{key, value}`，值为空即取消。插件不读取的变量、它不接受的值与没有 key 的请求体回答 400 并附原因，没有档案的插件回答 404。值会加入设置里的额外环境。值在变量的 `unvetted` 列表里时，客户端先展示并询问，再发送。 |
 
 ### 插件配置档案
 
-`GET /api/sdks/<name>/profile` 回答应用对该插件了解的内容（`mygo/core/profile`，见[架构](architecture.md#插件配置档案)）。
+`GET /api/sdks/<name>/profile` 回答应用对该插件了解的内容（见[插件配置档案](profiles.md)；档案如何查找、哪些部分靠推断见[架构](architecture.md#插件配置档案)）。
 每段文字都有两种语言，`{"en": …, "zh": …}`（`zh` 与 `en` 相同时省略），页面按自己的语言设置选择：
 
 ```json
 {
-  "plugin": "java", "naming": "java",
+  "plugin": "java",
   "search": {"label": {"en": "Distribution", "zh": "发行版"}, "default": "open", "current": "tem",
              "choices": [{"value": "tem", "name": {"en": "Temurin"}, "maker": {"en": "Eclipse Adoptium"}, "aliases": ["temurin"], "popular": true}]},
   "shorthands": [{"name": "21-tem", "meaning": {"en": "The newest Temurin 21", "zh": "最新的 Temurin 21"}}],
@@ -93,12 +96,15 @@ Chromium 系浏览器据此提示把 Web 界面安装为应用。它无需会话
   "legacyFiles": [".sdkmanrc"], "legacyStrategy": false,
   "facets": [{"id": "support", "label": {"en": "Support"}, "values": ["LTS"]}],
   "guide": {"en": "…"}, "tips": [{"en": "…"}], "docs": [{"title": {"en": "Versions and names"}, "url": {"en": "https://…"}}],
+  "capabilities": {"detect": true},
   "installed": {"21.0.12.1+1-tem": {"version": "21.0.12.1+1", "source": {"value": "tem", "name": {"en": "Temurin"}}, "flavors": []}}
 }
 ```
 
 `variables[].value` 是 vfox 现在运行时用的值，`installed` 把已安装版本的名称拆开。`search.current` 是插件现在列出的选择项的值。
-`naming` 是 `java`、`flutter` 或 `plain`。
+变量的 `kind` 是 `url`、`choice`、`toggle`（带 `on` 与 `off`，空的 `off` 表示取消变量）或 `text`；`unvetted` 列出来自应用未内置档案的值。
+`capabilities.detect` 为 false 表示插件无法检测本机已装的版本，这时不提供 `linkDetect`；缺少 `capabilities` 时客户端按 true 处理。
+旧版应用发送的 `naming`，新客户端会忽略。
 
 用别名添加的插件（`vfox add --alias coffee java`）在 `/api/sdks/<name>/…` 的每个路径里都以别名称呼，并带有它所自出插件的档案：
 服务器用 `vfox info` 问出它是哪个插件。它的搜索选择以别名为键保存。

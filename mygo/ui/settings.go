@@ -122,6 +122,23 @@ func (a *App) appearanceSection(k kit.Ctx) {
 			},
 		},
 		{
+			ID: "motion", Title: a.T("settingsMotion"), Leading: icon(k, "motion"), Wrap: a.wideSettingsWrap(k),
+			Trailing: func() {
+				kit.ButtonGroup(k, kit.ButtonGroupSpec{
+					ID: "motion-group", Selected: string(current.Motion),
+					OnSelect: func(value string) {
+						a.updateSettings(func(s *settings.AppSettings) { s.Motion = settings.MotionPreference(value) })
+					},
+					Segments: []kit.Segment{
+						{Value: string(settings.MotionSystem), Label: a.T("motionSystem")},
+						{Value: string(settings.MotionFull), Label: a.T("motionFull")},
+						{Value: string(settings.MotionReduced), Label: a.T("motionReduced")},
+					},
+					MaxWidth: a.settingsContentWidth(k), Collapse: true,
+				})
+			},
+		},
+		{
 			ID: "system-color", Title: a.T("settingsSystemColor"), Leading: icon(k, "palette"),
 			Trailing: func() {
 				kit.Switch(k, kit.SwitchSpec{

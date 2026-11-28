@@ -27,7 +27,7 @@ func linux() Platform { return Platform{OS: "linux", Arch: "amd64"} }
 
 func lookup(t *testing.T, plugin string) Profile {
 	t.Helper()
-	profile, ok := NewRegistry(linux()).Lookup(plugin)
+	profile, ok := sourceRegistry(t, linux()).Lookup(plugin)
 	if !ok {
 		t.Fatalf("no profile for %s", plugin)
 	}
@@ -47,7 +47,7 @@ func TestTextFollowsTheLanguage(t *testing.T) {
 }
 
 func TestRegistryKnowsThePluginsOfTheOrganisation(t *testing.T) {
-	registry := NewRegistry(linux())
+	registry := sourceRegistry(t, linux())
 	for _, plugin := range []string{"java", "nodejs", "flutter", "gradle", "golang", "python", "maven", "php", "dart", "kotlin", "dotnet", "cmake", "etcd", "erlang", "deno", "groovy", "scala", "zig", "clang", "elixir"} {
 		if profile, ok := registry.Lookup(plugin); !ok || profile.Plugin != plugin {
 			t.Errorf("Lookup(%q) = %v, %v", plugin, profile.Plugin, ok)
@@ -109,7 +109,7 @@ func TestJavaOffersEveryDistributionOfFoojay(t *testing.T) {
 }
 
 func TestJavaOnLoong64OffersTheLoongnixJdks(t *testing.T) {
-	registry := NewRegistry(Platform{OS: "linux", Arch: "loong64"})
+	registry := sourceRegistry(t, Platform{OS: "linux", Arch: "loong64"})
 	java, _ := registry.Lookup("java")
 	var values []string
 	for _, choice := range java.Search.Choices {
@@ -280,19 +280,24 @@ func TestEveryPluginSaysWhatItDoes(t *testing.T) {
 }
 
 func TestEveryDistributionIsDescribedInBothLanguages(t *testing.T) {
-	for _, choice := range javaDistributions {
+	java := lookup(t, "java")
+	loong, ok := sourceRegistry(t, Platform{OS: "linux", Arch: "loong64"}).Lookup("java")
+	if !ok {
+		t.Fatal("no profile for java")
+	}
+	for _, choice := range append(append([]Choice(nil), java.Search.Choices...), loong.Search.Choices...) {
 		if choice.Name.EN == "" || choice.Maker.EN == "" {
 			t.Errorf("%s lacks a name or a maker", choice.Value)
 		}
+		// Sentences are translated; names of products are not.
+		if choice.Everything && (choice.Name.ZH == "" || choice.Maker.ZH == "") {
+			t.Errorf("%s stands for several distributions and needs a translation", choice.Value)
+		}
 	}
-	// Sentences are translated; names of products are not.
-	for _, choice := range append([]Choice{javaEverything}, javaLoongnix...) {
+	for _, choice := range loong.Search.Choices {
 		if choice.Maker.ZH == "" {
 			t.Errorf("%s needs a translation of what it is", choice.Value)
 		}
-	}
-	if javaEverything.Name.ZH == "" || javaLoongnix[0].Name.ZH == "" {
-		t.Error("the choices that stand for several distributions need translated names")
 	}
 }
 
@@ -464,7 +469,7 @@ func TestPythonOffersTheVariablesOfItsPlatform(t *testing.T) {
 		"windows": withExtra("VFOX_PYTHON_REGISTER_PY_LAUNCHER"),
 	}
 	for goos, expected := range want {
-		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("python")
+		profile, ok := sourceRegistry(t, Platform{OS: goos, Arch: "amd64"}).Lookup("python")
 		if !ok {
 			t.Fatal("no profile for python")
 		}
@@ -484,7 +489,7 @@ func TestPHPOffersItsBuildOptionsOnUnixOnly(t *testing.T) {
 	unix := []string{"PHP_WITH_PEAR", "PHP_WITH_MHASH", "PHP_WITHOUT_PCRE_JIT"}
 	want := map[string][]string{"linux": unix, "darwin": unix, "windows": nil}
 	for goos, expected := range want {
-		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("php")
+		profile, ok := sourceRegistry(t, Platform{OS: goos, Arch: "amd64"}).Lookup("php")
 		if !ok {
 			t.Fatal("no profile for php")
 		}
@@ -529,12 +534,12 @@ func TestPHPFiltersTheWindowsBuilds(t *testing.T) {
 	// The Windows list says which build each release is, as TS or NTS. The
 	// Linux and macOS lists say nothing, so the profile offers no filter there.
 	for _, goos := range []string{"linux", "darwin"} {
-		profile, _ := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("php")
+		profile, _ := sourceRegistry(t, Platform{OS: goos, Arch: "amd64"}).Lookup("php")
 		if len(profile.Facets) != 0 {
 			t.Errorf("%s has no build to filter by: %+v", goos, profile.Facets)
 		}
 	}
-	php, ok := NewRegistry(Platform{OS: "windows", Arch: "amd64"}).Lookup("php")
+	php, ok := sourceRegistry(t, Platform{OS: "windows", Arch: "amd64"}).Lookup("php")
 	if !ok {
 		t.Fatal("no profile for php")
 	}
@@ -710,7 +715,7 @@ func TestCMakeFiltersTheReleaseCandidates(t *testing.T) {
 	if values := cmake.Values(core.AvailableVersion{Version: "4.5.0"}); values != nil {
 		t.Errorf("a release is no candidate: %v", values)
 	}
-	if facets := EffectiveFacets(cmake, true, versions); len(facets) != 1 || facets[0].ID != "candidate" {
+	if facets := EffectiveFacets(cmake, versions); len(facets) != 1 || facets[0].ID != "candidate" {
 		t.Errorf("effective facets = %+v", facets)
 	}
 	// Every candidate that the list has had is a value: CMake has not had a
@@ -910,7 +915,7 @@ func TestErlangOffersItsPrebuiltBuildsOnLinuxOnly(t *testing.T) {
 	// plugin reads no variable on Windows, and the macOS builds were not checked.
 	want := map[string][]string{"linux": {"ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04"}, "darwin": nil, "windows": nil}
 	for goos, expected := range want {
-		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("erlang")
+		profile, ok := sourceRegistry(t, Platform{OS: goos, Arch: "amd64"}).Lookup("erlang")
 		if !ok {
 			t.Fatal("no profile for erlang")
 		}
@@ -1003,7 +1008,7 @@ func TestElixirOffersThePrebuiltBuildsOnLinuxOnly(t *testing.T) {
 	// Windows runs before the hex check, and the macOS builds were not checked.
 	want := map[string][]string{"linux": {"hex"}, "darwin": nil, "windows": nil}
 	for goos, expected := range want {
-		profile, ok := NewRegistry(Platform{OS: goos, Arch: "amd64"}).Lookup("elixir")
+		profile, ok := sourceRegistry(t, Platform{OS: goos, Arch: "amd64"}).Lookup("elixir")
 		if !ok {
 			t.Fatal("no profile for elixir")
 		}

@@ -31,10 +31,6 @@ func init() {
 			"vfox {version}",
 			"vfox {version}",
 		},
-		"homeShellHint": {
-			"Run this in your shell to use vfox.",
-			"在终端中运行这一行，以使用 vfox。",
-		},
 		"copyCommand": {
 			"Copy",
 			"复制",

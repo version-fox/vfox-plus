@@ -80,6 +80,8 @@ type desktop struct {
 	// pageOut tells the system that the pages of the files that the process maps are not wanted
 	// for now: it is what the application does when it runs without a window.
 	pageOut func()
+	// freeMemory returns to the system the memory that the application holds and does not use.
+	freeMemory func()
 	// openURL opens a web address in the browser of the user.
 	openURL func(address string)
 	// copy puts text on the clipboard.
@@ -118,6 +120,8 @@ type App struct {
 	pending []func()
 	// trim is the timer that pages the files out once the window has stayed closed.
 	trim *time.Timer
+	// rest is the timer that frees the memory of the frames once none has been built for a while.
+	rest *time.Timer
 	// released is true while the application runs without its window, when the work that
 	// is meant for the window is dropped.
 	released bool
@@ -129,16 +133,10 @@ type App struct {
 
 // themeKey is what the theme depends on: the theme is built again when it
 // changes.
-// lessMotion is the motion that the desktop asks for, whatever the platform asks: every value of the
-// toolkit jumps to its target, and the indicators that animate in the painter stop. Measured with the
-// end-to-end build on the CPU that draws the window, the motion costs memory that stays allocated,
-// most of all the layers of the transitions of toolkit 0.8 and later (docs/en/dev/memory.md).
-const lessMotion = true
-
 type themeKey struct {
 	seed      uint32
 	dark      bool
-	reduced   bool
+	motion    settings.MotionPreference
 	textScale float32
 }
 
@@ -167,10 +165,11 @@ func New(options Options) (*App, error) {
 	}
 	a.desktop = desktop{
 		openURL: openURL, copy: copyText, choose: a.chooseFile,
-		newWindow: func(options mygo.WindowOptions) surface { return mygo.NewWindow(options) },
-		quit:      mygo.App.Quit,
-		newTray:   newNativeTray,
-		pageOut:   func() { pageOutFiles() },
+		newWindow:  func(options mygo.WindowOptions) surface { return mygo.NewWindow(options) },
+		quit:       mygo.App.Quit,
+		newTray:    newNativeTray,
+		pageOut:    func() { pageOutFiles() },
+		freeMemory: debug.FreeOSMemory,
 	}
 	a.env = kit.NewEnv(kit.NewTheme(settings.DefaultSeedColor, false, false, 1))
 	a.uiTheme = a.env.Theme.UI()
@@ -376,8 +375,27 @@ func (a *App) listen() {
 	a.model.Installed.AddListener(a.invalidate)
 	a.model.Registry.AddListener(a.invalidate)
 	a.model.VfoxConfig.AddListener(a.invalidate)
+	a.model.Doctor.AddListener(a.invalidate)
 	a.model.Tasks.AddListener(a.invalidate)
 	a.model.Tasks.OnFinished(a.announce)
+}
+
+// restDelay is how long the window has to build no frame before the application frees what
+// drawing left behind.
+var restDelay = 2 * time.Second
+
+// restAfterFrames has the memory that the frames left in the Go heap returned to the system once
+// no frame has been built for restDelay. The runtime collects it only when the heap grows again,
+// which a window at rest does not make it do, so what an animation grew it by stays resident
+// (docs/en/dev/memory.md).
+func (a *App) restAfterFrames() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.rest == nil {
+		a.rest = time.AfterFunc(restDelay, a.desktop.freeMemory)
+		return
+	}
+	a.rest.Reset(restDelay)
 }
 
 // view builds the window: the shell, the dialogs and the snack bar.
@@ -389,7 +407,7 @@ func (a *App) view(c *mui.Context) {
 	a.syncTheme(desktopDark, c.Preferences())
 	a.syncLanguage()
 	c.SetTheme(a.uiTheme)
-	if lessMotion {
+	if a.env.Theme.ReducedMotion {
 		c.DisableAnimations()
 	}
 	k := a.env.Begin(c)
@@ -399,6 +417,7 @@ func (a *App) view(c *mui.Context) {
 	a.env.LayoutDialogs(k)
 	a.env.LayoutSnackbars(k)
 	a.watchTasks()
+	a.restAfterFrames()
 }
 
 // watchTasks asks for a frame whenever a task changes, such as when it reports
@@ -435,13 +454,15 @@ func (a *App) syncTheme(desktopDark bool, preferences mui.Preferences) {
 	case settings.ThemeSystem:
 		dark = desktopDark
 	}
-	reduced := lessMotion
-	key := themeKey{seed: seed, dark: dark, reduced: reduced, textScale: preferences.TextScale}
+	key := themeKey{seed: seed, dark: dark, motion: current.Motion, textScale: preferences.TextScale}
 	if a.themeKey == key {
 		return
 	}
 	a.themeKey = key
-	a.env.Theme = kit.NewTheme(seed, dark, reduced, preferences.TextScale)
+	a.env.Theme = kit.NewTheme(seed, dark, current.Motion == settings.MotionReduced, preferences.TextScale)
+	if current.Motion == settings.MotionFull {
+		a.env.Theme.MoveRegardless()
+	}
 	a.uiTheme = a.env.Theme.UI()
 }
 

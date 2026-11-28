@@ -1,0 +1,214 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "flutter",
+  "naming": {
+    "rules": [
+      {
+        "pattern": "[-+]ohos-",
+        "flavors": [
+          "OpenHarmony"
+        ]
+      },
+      {
+        "pattern": "(?i)^(?<version>.*)-(?<flavor>x64|arm64)$",
+        "labels": {
+          "x64": "x64",
+          "arm64": "arm64"
+        }
+      }
+    ]
+  },
+  "shorthands": [
+    {
+      "name": "stable",
+      "meaning": {
+        "en": "The release the stable channel points to today",
+        "zh": "stable 通道当前指向的版本"
+      }
+    },
+    {
+      "name": "beta",
+      "meaning": {
+        "en": "The release the beta channel points to today",
+        "zh": "beta 通道当前指向的版本"
+      }
+    },
+    {
+      "name": "stable-x64",
+      "meaning": {
+        "en": "The x64 build of the stable release; -arm64 likewise",
+        "zh": "stable 版本的 x64 构建；-arm64 同理"
+      }
+    },
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The first line of the list: the newest stable release, with its architecture suffix",
+        "zh": "列表的第一行：最新的 stable 版本，带架构后缀"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "key": "FLUTTER_STORAGE_BASE_URL",
+      "label": {
+        "en": "Flutter storage mirror",
+        "zh": "Flutter 存储镜像"
+      },
+      "help": {
+        "en": "Where the release index and the archives come from, and where the flutter tool itself downloads from. It has to stay set for the flutter command as well.",
+        "zh": "发行版索引和压缩包的来源，flutter 工具自己的下载也走这里。运行 flutter 命令时它也需要保持设置。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://storage.flutter-io.cn",
+          "name": {
+            "en": "CFUG (China Flutter User Group)",
+            "zh": "Flutter 中文社区（CFUG）"
+          }
+        },
+        {
+          "value": "https://mirrors.cernet.edu.cn/flutter",
+          "name": {
+            "en": "CERNET",
+            "zh": "中国教育和科研计算机网（CERNET）"
+          }
+        }
+      ],
+      "example": "https://storage.flutter-io.cn"
+    },
+    {
+      "key": "VFOX_FLUTTER_GITHUB_MIRROR",
+      "label": {
+        "en": "GitHub mirror",
+        "zh": "GitHub 镜像"
+      },
+      "help": {
+        "en": "For the installs from source, on Linux and Windows for ARM64: the address goes in front of the GitHub address of the clone.",
+        "zh": "用于源码安装（Linux 和 Windows 的 ARM64）：地址会加在克隆所用的 GitHub 地址前面。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://gh-proxy.org/",
+          "name": "gh-proxy"
+        }
+      ],
+      "example": "https://gh-proxy.org/"
+    }
+  ],
+  "facets": [
+    {
+      "id": "channel",
+      "label": {
+        "en": "Channel",
+        "zh": "通道"
+      },
+      "kind": "note",
+      "values": [
+        "stable",
+        "beta",
+        "dev",
+        "OpenHarmony"
+      ]
+    },
+    {
+      "id": "architecture",
+      "label": {
+        "en": "Architecture",
+        "zh": "架构"
+      },
+      "kind": "suffix",
+      "values": [
+        "x64",
+        "arm64"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "A release as the list shows it: 3.47.4, or a beta such as 3.50.0-0.1.pre. -x64 or -arm64 after it asks for that architecture; stable and beta stand for the release their channel points to. Names match whole: 3.47 does not select the newest 3.47.x.",
+    "zh": "写列表里的发行版名称：3.47.4，或 3.50.0-0.1.pre 这样的 beta 版。后面加 -x64 或 -arm64 可指定架构；stable 和 beta 代表通道当前指向的版本。名称必须完整匹配：3.47 不会选中最新的 3.47.x。"
+  },
+  "tips": [
+    {
+      "en": "Do not run flutter upgrade inside an SDK that vfox manages: it changes the SDK in place. Install the newer version instead.",
+      "zh": "不要在 vfox 管理的 SDK 里运行 flutter upgrade：它会原地改动 SDK。请安装更新的版本。"
+    },
+    {
+      "en": "Write the architecture suffix always or never: on an x64 machine 3.47.4 and 3.47.4-x64 are two installs.",
+      "zh": "要么总是写架构后缀，要么总是不写：在 x64 机器上 3.47.4 和 3.47.4-x64 是两份安装。"
+    },
+    {
+      "en": "ARM64 builds for Linux and Windows, and the OpenHarmony builds, are git checkouts and need git.",
+      "zh": "Linux 和 Windows 的 ARM64 版本以及 OpenHarmony 构建以 git 检出的方式安装，需要装有 git。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Channels",
+        "zh": "通道"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/channels.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/channels.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Architecture selection",
+        "zh": "架构选择"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/arm64.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/arm64.md"
+      }
+    },
+    {
+      "title": "OpenHarmony",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/ohos.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/ohos.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Mirror",
+        "zh": "镜像"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/mirror.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/mirror.md"
+      }
+    },
+    {
+      "title": "flutter upgrade",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/flutter-upgrade.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/flutter-upgrade.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-flutter/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-flutter/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    }
+  ]
+}

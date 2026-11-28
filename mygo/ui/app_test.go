@@ -16,8 +16,10 @@ package ui
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -89,6 +91,37 @@ func TestHomeShowsWhatIsInUseAndTheLineForATerminal(t *testing.T) {
 	ta.snapshot("home")
 	ta.button("Refresh")
 	ta.until("the SDKs to be listed again", func() bool { return len(ta.runner.Calls("list")) >= 2 })
+}
+
+func TestHomeSaysHowToActivateTheShellThatIsChosen(t *testing.T) {
+	ta := defaultApp(t)
+	ta.mustText("Add this line to ~/.bashrc so that new shells use the versions chosen here.")
+	ta.click(kit.RoleButton, "Bash")
+	ta.click(kit.RoleMenuItem, "Nushell")
+	ta.mustText("Run this once in Nushell so that new shells use the versions chosen here.")
+	ta.mustText("vfox activate nushell $nu.default-config-dir | save --append $nu.config-path")
+	ta.button("Copy")
+	if want := []string{"vfox activate nushell $nu.default-config-dir | save --append $nu.config-path"}; !reflect.DeepEqual(ta.desktop.copied, want) {
+		t.Errorf("the command that is shown is copied, got %q", ta.desktop.copied)
+	}
+	if ta.text(`eval "$(vfox activate bash)"`) {
+		t.Error("the page shows the activation of one shell only")
+	}
+}
+
+func TestHomeOnWindowsActivatesPowerShellAndSaysWhatClinkNeeds(t *testing.T) {
+	ta := newTestAppOn(t, "windows", testsupport.FixtureRunner(), windowWidth, windowHeight, settings.NewMemorySettingsStore(settings.DefaultSettings()))
+	ta.start()
+	ta.mustText(`Invoke-Expression "$(vfox activate pwsh)"`)
+	ta.mustText("Add this line to $PROFILE so that new shells use the versions chosen here.")
+	ta.click(kit.RoleButton, "PowerShell")
+	ta.click(kit.RoleMenuItem, "Clink")
+	ta.mustText("Run this to find the scripts folder, put clink_vfox.lua into it and restart Clink.")
+	ta.mustText("clink info | findstr scripts")
+	ta.button("Get clink_vfox.lua")
+	if want := []string{"https://github.com/version-fox/vfox/blob/main/internal/shell/clink_vfox.lua"}; !reflect.DeepEqual(ta.desktop.opened, want) {
+		t.Errorf("the script of vfox for Clink is opened, got %q", ta.desktop.opened)
+	}
 }
 
 // The tester draws in memory, as a window does where no GPU works, and the transitions
@@ -713,6 +746,55 @@ func TestTheAccentColourOfTheDesktopIsTheSeedOfTheScheme(t *testing.T) {
 	}
 }
 
+// The desktop moves as the settings say: as the desktop asks unless it is told to move in full, or not
+// at all.
+func TestSettingsSayHowMuchTheInterfaceMoves(t *testing.T) {
+	ta := defaultApp(t)
+	ta.button("Settings")
+	if theme := ta.app.env.Theme; theme.ReducedMotion || theme.MotionRegardless {
+		t.Errorf("the interface follows the desktop at the start: %+v", theme)
+	}
+	ta.click(kit.RoleButton, "Full")
+	ta.settle()
+	if theme := ta.app.env.Theme; !theme.MotionRegardless || theme.ReducedMotion || !theme.Motion.FastSpatial.Regardless {
+		t.Errorf("the interface moves in full: %+v", theme)
+	}
+	if got := ta.app.model.Settings.Settings().Motion; got != settings.MotionFull {
+		t.Errorf("the choice is kept, got %q", got)
+	}
+	ta.click(kit.RoleButton, "Reduced")
+	ta.settle()
+	if theme := ta.app.env.Theme; !theme.ReducedMotion || theme.MotionRegardless {
+		t.Errorf("nothing moves: %+v", theme)
+	}
+}
+
+// The memory that frames leave in the heap is freed once the window has built none for a while,
+// and not while it builds them.
+func TestTheMemoryOfTheFramesIsFreedOnceTheWindowRests(t *testing.T) {
+	previous := restDelay
+	restDelay = 200 * time.Millisecond
+	t.Cleanup(func() { restDelay = previous })
+	ta := defaultApp(t)
+	ta.frame()
+	freed := ta.desktop.freed.Load()
+	for range 8 {
+		time.Sleep(restDelay / 4)
+		ta.frame()
+	}
+	if got := ta.desktop.freed.Load(); got != freed {
+		t.Fatalf("freed %d times while frames were built", got-freed)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for ta.desktop.freed.Load() == freed && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	time.Sleep(2 * restDelay)
+	if got := ta.desktop.freed.Load(); got != freed+1 {
+		t.Errorf("freed %d times once the window rested, want once", got-freed)
+	}
+}
+
 func TestTheVersionOfTheApplicationIsTheOneInTheVersionFile(t *testing.T) {
 	content, err := os.ReadFile("../VERSION")
 	if err != nil {
@@ -731,6 +813,26 @@ func TestHomeShowsHealthAndChecksAgain(t *testing.T) {
 	ta.mustText("No problems found.")
 	ta.button("Check health")
 	ta.until("the doctor again", func() bool { return len(ta.runner.Calls("doctor --json")) >= 2 })
+}
+
+// The health check asks for a frame when it ends, which the window needs to show it: a check that
+// ended after everything else had loaded left the home page saying that it was still checking.
+func TestTheHealthCheckAsksForAFrameWhenItEnds(t *testing.T) {
+	ta := defaultApp(t)
+	ta.app.showWindow()
+	window := ta.desktop.windows[len(ta.desktop.windows)-1]
+	ta.runner.SlowDown("doctor --json", 100*time.Millisecond)
+	done := ta.app.model.Doctor.Load()
+	time.Sleep(20 * time.Millisecond)
+	before := window.invalidated.Load()
+	<-done
+	deadline := time.Now().Add(5 * time.Second)
+	for window.invalidated.Load() == before && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if window.invalidated.Load() == before {
+		t.Error("the check ended without asking for a frame")
+	}
 }
 
 func TestInstalledVersionsOfferReinstallAndAlias(t *testing.T) {

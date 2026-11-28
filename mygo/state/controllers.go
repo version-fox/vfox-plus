@@ -18,6 +18,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"reflect"
+	"slices"
 	"strings"
 	"sync"
 
@@ -343,131 +346,102 @@ type SdkDetailController struct {
 	// Aliases are the version aliases of the plugin (`vfox alias list <name>`),
 	// loaded on demand for the options tab.
 	Aliases *AsyncResource[[]vfox.VersionAlias]
+	// Files are what the files of the installed plugin say, loaded on demand: the
+	// profile that it ships, the variables and version files that it reads and
+	// whether it finds installs that are already on the machine.
+	Files *AsyncResource[profile.PluginFiles]
 
 	cli      *vfox.Client
 	profiles *profile.Registry
 	memory   SearchMemory
 
-	mu        sync.Mutex
-	known     profile.Profile
-	hasKnown  bool
-	query     string
-	filter    VersionFilter
-	search    string
+	// resolving serializes the lookups of the profile.
+	resolving  sync.Mutex
+	mu         sync.Mutex
+	resolution profile.Resolution
+	query      string
+	filter     VersionFilter
+	search     string
+	// chosen is whether search was set, rather than remembered.
+	chosen    bool
 	selection profile.Selection
 	stops     []Unsubscribe
-	// groups are the groups of the list that starts at groupsOf and has groupsLen versions.
-	groups    []profile.Group
-	groupsOf  *core.AvailableVersion
-	groupsLen int
+	// listed is what was worked out for the last list of versions.
+	listed listedFacets
+}
+
+// listedFacets are the facets of a list of versions, which starts at first and
+// has count of them, and the groups of their values.
+type listedFacets struct {
+	first  *core.AvailableVersion
+	count  int
+	facets []profile.Facet
+	groups []profile.Group
 }
 
 // NewSdkDetailController creates the controller for the detail view of name.
 // profiles may be nil, which is the same as a registry that knows no plugin;
 // memory may be nil, and then a choice is forgotten with the controller.
 //
-// The profile is the one of the plugin that has the name; a plugin that was
-// added under an alias has none until its metadata says which plugin it is (see
-// Profile). The search starts at the choice that the memory holds.
+// The profile is the one of the plugin that has the name (see
+// profile.Registry.Resolve). It is looked up again when the metadata of the
+// plugin says which plugin it is, such as for one that was added under an
+// alias, when its files are read, which may hold a profile of their own, and
+// when the profiles change. The search starts at the choice that the memory
+// holds.
 func NewSdkDetailController(cli *vfox.Client, name string, profiles *profile.Registry, memory SearchMemory) *SdkDetailController {
 	c := &SdkDetailController{Name: name, filter: VersionFilterAll, cli: cli, profiles: profiles, memory: memory}
-	c.known, c.hasKnown = profiles.Lookup(name)
-	c.search = c.rememberedSearch()
 	c.Info = NewAsyncResource(func() (core.PluginInfo, error) { return cli.PluginInfo(name) })
 	c.Versions = NewAsyncResource(func() ([]core.AvailableVersion, error) {
 		return cli.SearchVersions(name, c.SearchArguments()...)
 	})
 	c.Aliases = NewAsyncResource(func() ([]vfox.VersionAlias, error) { return cli.Aliases(name) })
-	c.stops = []Unsubscribe{c.Versions.AddListener(c.NotifyListeners), c.Info.AddListener(c.onInfo), c.Aliases.AddListener(c.NotifyListeners)}
+	c.Files = NewAsyncResource(func() (profile.PluginFiles, error) { return c.readFiles(), nil })
+	c.stops = []Unsubscribe{
+		c.Versions.AddListener(c.NotifyListeners), c.Info.AddListener(c.resolve), c.Files.AddListener(c.resolve),
+		c.Aliases.AddListener(c.NotifyListeners), profiles.OnChange(c.resolve),
+	}
+	// Looked up once the changes are listened to, so that none is missed.
+	c.applyProfile()
 	return c
 }
 
-// Profile returns what the application knows about the plugin, and whether it
-// knows something.
-//
-// vfox names a plugin that was added under an alias (`vfox add --alias`) by the
-// alias, while the plugin still says what it is: the profile of such a plugin
-// is found once the Info is loaded, by the name that the plugin declares.
-func (c *SdkDetailController) Profile() (profile.Profile, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.known, c.hasKnown
+// readFiles reads the files of the installed plugin, from the directory that
+// the environment of vfox says. The plugin is installed under the name that
+// vfox knows it by (the alias when there is one); the name that it declares is
+// tried when there is no such directory.
+func (c *SdkDetailController) readFiles() profile.PluginFiles {
+	if c.cli == nil {
+		return profile.PluginFiles{}
+	}
+	environment := vfox.VfoxEnvironment(c.cli.LaunchConfig(), false)
+	names := []string{c.Name}
+	if info, ok := c.Info.Value(); ok && info.Name != "" && info.Name != c.Name {
+		names = append(names, info.Name)
+	}
+	for _, name := range names {
+		directory := profile.PluginDir(environment, name)
+		if directory == "" {
+			continue
+		}
+		if info, err := os.Stat(directory); err != nil || !info.IsDir() {
+			continue
+		}
+		files := profile.ReadPlugin(os.DirFS(directory))
+		for _, problem := range files.Problems {
+			log.Printf("the profile of the plugin %s: %s", name, problem)
+		}
+		return files
+	}
+	return profile.PluginFiles{}
 }
 
-// EffectiveProfile returns the curated profile when there is one, and an
-// inferred one otherwise: the description and homepage become the guide and
-// the documentation, the listed versions the facets, and the installed
-// plugin directory the legacy files and the environment variables. It lets
-// interfaces offer filters and mirrors for plugins without a built-in or
-// external profile, without a code change.
-func (c *SdkDetailController) EffectiveProfile() (profile.Profile, bool) {
-	c.mu.Lock()
-	known, hasKnown := c.known, c.hasKnown
-	c.mu.Unlock()
-	if hasKnown {
-		return known, true
-	}
-	info, hasInfo := c.Info.Value()
-	versions, _ := c.Versions.Value()
-	inferred := profile.InferredProfile(c.Name, info, versions)
-	if !hasInfo {
-		// Without metadata there is no homepage for docs; still return the
-		// inferred facets so that filtering works while info loads.
-		if len(inferred.Facets) == 0 && len(versions) == 0 {
-			return profile.Profile{Plugin: c.Name}, false
-		}
-		return inferred, len(inferred.Facets) > 0 || inferred.Guide.EN != ""
-	}
-	if c.cli != nil {
-		environment := c.cli.LaunchConfig().BaseEnvironment
-		// The plugin is installed under the name vfox knows it by (the
-		// alias when there is one); fall back to the name the plugin
-		// declares.
-		names := []string{c.Name}
-		if info.Name != "" && info.Name != c.Name {
-			names = append(names, info.Name)
-		}
-		for _, name := range names {
-			if directory := profile.PluginDir(environment, name); directory != "" {
-				if legacy, envKeys := profile.ScanPluginDir(directory); len(legacy) > 0 || len(envKeys) > 0 {
-					if len(inferred.LegacyFiles) == 0 {
-						inferred.LegacyFiles = append([]string(nil), legacy...)
-					}
-					if len(inferred.Variables) == 0 {
-						inferred.Variables = profile.InferredVariables(envKeys)
-					}
-					break
-				}
-			}
-		}
-	}
-	return inferred, true
-}
-
-// onInfo finds the profile of a plugin that its name does not give away.
-func (c *SdkDetailController) onInfo() {
-	info, ok := c.Info.Value()
-	if !ok {
-		return
-	}
-	c.mu.Lock()
-	if c.hasKnown {
-		c.mu.Unlock()
-		return
-	}
-	known, found := c.profiles.Lookup(info.Name)
-	if !found {
-		c.mu.Unlock()
-		return
-	}
-	c.known, c.hasKnown = known, true
-	search := c.rememberedSearch()
-	changed := search != c.search
-	c.search = search
-	c.mu.Unlock()
-	if changed {
-		// What is listed, or being listed, answers another search: list the right one when
-		// somebody asked for a list, who would wait for it for ever otherwise.
+// resolve looks the profile up again (see applyProfile). When the search that
+// the list answers changes with it, what is listed, or being listed, answers
+// another search: it lists the right one when somebody asked for a list, who
+// would wait for it for ever otherwise.
+func (c *SdkDetailController) resolve() {
+	if c.applyProfile() {
 		asked := c.Versions.HasValue() || c.Versions.IsLoading() || c.Versions.Error() != nil
 		c.Versions.Reset()
 		if asked {
@@ -477,15 +451,94 @@ func (c *SdkDetailController) onInfo() {
 	c.NotifyListeners()
 }
 
+// applyProfile keeps what the registry says about the plugin, from its name,
+// the name that its metadata declares and the profile that it ships, and
+// reports whether the search that is listed changes with it.
+func (c *SdkDetailController) applyProfile() bool {
+	// One at a time: a lookup from older metadata must not follow a newer one.
+	c.resolving.Lock()
+	defer c.resolving.Unlock()
+	var declared string
+	if info, ok := c.Info.Value(); ok {
+		declared = info.Name
+	}
+	var own *profile.Document
+	if files, ok := c.Files.Value(); ok {
+		own = files.Profile
+	}
+	resolution := c.profiles.Resolve(c.Name, declared, own)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if reflect.DeepEqual(resolution, c.resolution) {
+		return false
+	}
+	before := c.resolution.Profile.Search.Arguments(c.search)
+	c.resolution = resolution
+	if _, offered := resolution.Profile.Search.Choice(c.search); !c.chosen || !offered {
+		c.search, c.chosen = c.rememberedSearch(), false
+	}
+	c.listed = listedFacets{}
+	return !slices.Equal(before, resolution.Profile.Search.Arguments(c.search))
+}
+
+// Profile returns what the profiles say about the plugin, and whether any
+// describes it.
+func (c *SdkDetailController) Profile() (profile.Profile, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.resolution.Profile, c.resolution.Found
+}
+
+// EffectiveProfile returns what an interface shows of the plugin: its profile,
+// and the filters that its versions give when the profile has none. Unless the
+// application or its online directory describes the plugin, what no profile
+// carries is inferred from what vfox reports and from the files of the plugin:
+// the description and homepage become the guide and the documentation, and the
+// legacy files and environment variables those that the plugin reads. It lets
+// interfaces offer filters and mirrors for every plugin, without a code change.
+func (c *SdkDetailController) EffectiveProfile() (profile.Profile, bool) {
+	c.mu.Lock()
+	resolution := c.resolution
+	c.mu.Unlock()
+	versions, _ := c.Versions.Value()
+	known := resolution.Profile
+	if resolution.Curated {
+		known.Facets = c.facets(versions)
+		return known, true
+	}
+	info, hasInfo := c.Info.Value()
+	if !resolution.Found && !hasInfo && len(versions) == 0 {
+		return profile.Profile{Plugin: c.Name}, false
+	}
+	inferred := profile.InferredProfile(c.Name, info, nil)
+	inferred.Facets = c.facets(versions)
+	if files, ok := c.Files.Value(); ok {
+		inferred.LegacyFiles = slices.Clone(files.LegacyFiles)
+		inferred.Variables = profile.InferredVariables(files.EnvKeys)
+	}
+	if !resolution.Found {
+		return inferred, true
+	}
+	return resolution.Filled(inferred), true
+}
+
+// CanDetect reports whether the plugin may find installs that are already on
+// the machine (`vfox link --detect`): unless its files say that it cannot.
+func (c *SdkDetailController) CanDetect() bool {
+	files, ok := c.Files.Value()
+	return !ok || files.Detect.Offered()
+}
+
 // rememberedSearch is the choice that the memory holds for the plugin, when
 // the profile offers it, in the form that the controller keeps: empty for the
 // default. The caller holds the lock, or has not published the controller yet.
 func (c *SdkDetailController) rememberedSearch() string {
-	if c.memory == nil || !c.hasKnown || c.known.Search == nil {
+	search := c.resolution.Profile.Search
+	if c.memory == nil || search == nil {
 		return ""
 	}
-	choice, ok := c.known.Search.Choice(c.memory.RememberedSearch(c.Name))
-	if !ok || choice.Value == c.known.Search.Default {
+	choice, ok := search.Choice(c.memory.RememberedSearch(c.Name))
+	if !ok || choice.Value == search.Default {
 		return ""
 	}
 	return choice.Value
@@ -498,11 +551,12 @@ func (c *SdkDetailController) rememberedSearch() string {
 func (c *SdkDetailController) Search() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if !c.hasKnown || c.known.Search == nil {
+	search := c.resolution.Profile.Search
+	if search == nil {
 		return ""
 	}
 	if c.search == "" {
-		return c.known.Search.Default
+		return search.Default
 	}
 	return c.search
 }
@@ -512,7 +566,7 @@ func (c *SdkDetailController) Search() string {
 func (c *SdkDetailController) SearchArguments() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.known.Search.Arguments(c.search)
+	return c.resolution.Profile.Search.Arguments(c.search)
 }
 
 // SetSearch chooses what the next search lists, by the value of one of the
@@ -541,25 +595,26 @@ func (c *SdkDetailController) ChooseSearch(value string) error {
 // empty for the default of the plugin.
 func (c *SdkDetailController) setSearch(value string) (string, error) {
 	c.mu.Lock()
-	if !c.hasKnown || c.known.Search == nil {
+	search := c.resolution.Profile.Search
+	if search == nil {
 		c.mu.Unlock()
 		return "", fmt.Errorf("%s takes no search argument", c.Name)
 	}
-	choice, ok := c.known.Search.Choice(value)
+	choice, ok := search.Choice(value)
 	if !ok {
 		c.mu.Unlock()
 		return "", fmt.Errorf("%s does not list %q", c.Name, value)
 	}
 	stored := choice.Value
-	if stored == c.known.Search.Default {
+	if stored == search.Default {
 		stored = ""
 	}
 	changed := stored != c.search
-	c.search = stored
+	c.search, c.chosen = stored, true
 	if changed {
 		// Nothing of the earlier list stays, so that it can be freed.
 		c.selection = nil
-		c.groups, c.groupsOf, c.groupsLen = nil, nil, 0
+		c.listed = listedFacets{}
 	}
 	c.mu.Unlock()
 	if changed {
@@ -569,8 +624,7 @@ func (c *SdkDetailController) setSearch(value string) (string, error) {
 }
 
 // Groups returns the filters that suit the versions that are listed, with the
-// values that some of them have. The interface asks for them on every frame, and
-// they only change with the list, so they are worked out once per list.
+// values that some of them have.
 func (c *SdkDetailController) Groups() []profile.Group {
 	versions, _ := c.Versions.Value()
 	if len(versions) == 0 {
@@ -578,21 +632,32 @@ func (c *SdkDetailController) Groups() []profile.Group {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	// The cached groups belong to the curated facets when there are any, and
-	// to the inferred ones otherwise. hasKnown only goes from false to true
-	// (see onInfo), so the cache stays valid.
-	if c.groupsOf == &versions[0] && c.groupsLen == len(versions) {
-		return c.groups
+	return c.listedLocked(versions).groups
+}
+
+// facets are the facets of the profile, or, when it has none, those that the
+// versions give.
+func (c *SdkDetailController) facets(versions []core.AvailableVersion) []profile.Facet {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(versions) == 0 {
+		return c.resolution.Profile.Facets
 	}
-	var facets []profile.Facet
-	if c.hasKnown && len(c.known.Facets) > 0 {
-		c.groups = c.known.Groups(versions)
-	} else {
-		facets = profile.InferFacets(versions)
-		c.groups = profile.Profile{Facets: facets}.Groups(versions)
+	return c.listedLocked(versions).facets
+}
+
+// listedLocked works out the facets and the groups of a list, once for each: the
+// interface asks for them on every frame, and they only change with the list and
+// with the profile (see applyProfile). The caller holds the lock.
+func (c *SdkDetailController) listedLocked(versions []core.AvailableVersion) listedFacets {
+	if c.listed.first != &versions[0] || c.listed.count != len(versions) {
+		facets := profile.EffectiveFacets(c.resolution.Profile, versions)
+		c.listed = listedFacets{
+			first: &versions[0], count: len(versions), facets: facets,
+			groups: profile.Profile{Facets: facets}.Groups(versions),
+		}
 	}
-	c.groupsOf, c.groupsLen = &versions[0], len(versions)
-	return c.groups
+	return c.listed
 }
 
 // Selection returns the values that the user chose in the groups.
@@ -666,29 +731,19 @@ func (c *SdkDetailController) SetFilter(value VersionFilter) {
 func (c *SdkDetailController) VisibleVersions(installed map[string]bool) []core.AvailableVersion {
 	c.mu.Lock()
 	query, filter, selection := c.query, c.filter, c.selection
-	known, hasKnown := c.known, c.hasKnown
 	c.mu.Unlock()
 	versions, _ := c.Versions.Value()
 	needle := strings.ToLower(strings.TrimSpace(query))
-	var inferred profile.Profile
-	var useInferred bool
-	if !hasKnown && !selection.Empty() {
-		inferred = profile.Profile{Facets: profile.InferFacets(versions)}
-		useInferred = len(inferred.Facets) > 0
+	// The same facets as the groups that were chosen from.
+	var filtering profile.Profile
+	if !selection.Empty() {
+		filtering.Facets = c.facets(versions)
 	}
 	var result []core.AvailableVersion
 	for _, version := range versions {
-		if !matchesFilter(version, filter, installed) || !matchesQuery(version, needle) {
-			continue
+		if matchesFilter(version, filter, installed) && matchesQuery(version, needle) && filtering.Matches(selection, version) {
+			result = append(result, version)
 		}
-		if hasKnown {
-			if !known.Matches(selection, version) {
-				continue
-			}
-		} else if useInferred && !inferred.Matches(selection, version) {
-			continue
-		}
-		result = append(result, version)
 	}
 	return result
 }
@@ -717,5 +772,6 @@ func (c *SdkDetailController) Dispose() {
 	c.Info.Dispose()
 	c.Versions.Dispose()
 	c.Aliases.Dispose()
+	c.Files.Dispose()
 	c.Notifier.Dispose()
 }

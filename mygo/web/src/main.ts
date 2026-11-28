@@ -16,7 +16,6 @@
 
 import "./theme.css";
 import { api, showError } from "./api";
-import { el } from "./dom";
 import { setLang, systemLang, t } from "./i18n";
 import { currentRoute, switchTab } from "./router";
 import { setLive, state, type TabName } from "./state";
@@ -82,7 +81,9 @@ export function renderChrome(): void {
   });
   (document.getElementById("sdkSearch") as HTMLInputElement).placeholder = t("searchSdks");
   (document.getElementById("pluginSearch") as HTMLInputElement).placeholder = t("searchPlugins");
-  el("liveText").textContent = state.live ? "live" : "…";
+  setText("offlineText", t("reconnecting"));
+  setText("h-shell", t("shellTitle"));
+  setText("shellScriptLabel", t("shellGetScript"));
   const pageTitle = document.getElementById("pageTitle");
   if (pageTitle) pageTitle.textContent = t(state.tab === "sdks" ? "sdks" : state.tab || "home");
 }
@@ -92,8 +93,6 @@ export async function refresh(full: boolean): Promise<void> {
   try {
     const inv = await api("/api/inventory");
     state.inventory = inv;
-    const v = document.getElementById("vfoxVer");
-    if (v) v.textContent = inv.vfox.version ? "vfox " + inv.vfox.version : inv.vfox.availability || "";
     renderHome(inv);
     renderSdks();
     renderPlugins();
@@ -193,8 +192,12 @@ document.querySelectorAll(".dest").forEach((b) => {
       window.setTimeout(() => (document.getElementById("addSource") as HTMLInputElement).focus(), 60);
     };
 });
-(document.getElementById("railToggle") as HTMLButtonElement).onclick = () =>
-  document.getElementById("rail")?.classList.toggle("expanded");
+(document.getElementById("railToggle") as HTMLButtonElement).onclick = (event) => {
+  const expanded = !!document.getElementById("rail")?.classList.toggle("expanded");
+  const toggle = event.currentTarget as HTMLButtonElement;
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.querySelector("use")?.setAttribute("href", expanded ? "#i-menu-open" : "#i-menu");
+};
 addEventListener("hashchange", route);
 addEventListener("popstate", route);
 route();

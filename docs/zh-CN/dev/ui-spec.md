@@ -45,6 +45,9 @@
 
 长耗时操作永不阻塞界面：都成为任务（见[任务](#任务)）。
 
+网页界面收不到应用的事件时，顶部出现一个小标签说明正在重新连接（`reconnecting`），事件恢复后消失。它是连接状态
+唯一的提示：它在的时候，页面上显示的内容可能是旧的。
+
 ## vfox 不可用
 
 定位 vfox 时各页（设置除外）显示加载指示器与 `vfoxCheckingTitle`。找不到可执行文件
@@ -63,9 +66,14 @@
   任务结束时再问一次。没有可报告的内容时是一项 `doctorNoProblems` 加 `doctorCheck`（再问一次）；
   否则前五条结果各一项：其消息、`<插件>@<版本> · <严重程度>`，`sdk.no-receipt` 另有 `doctorAdopt`
   （`vfox doctor --adopt <插件>@<版本>`），`sdk.drift` 另有 `versionReinstall`；`doctorProblems` 给出总数。
+  vfox 关于发问进程本身的结果（它的 shell 未激活）不列在其中（下面的卡片说明如何激活终端）。
   询问失败时显示其消息与 `doctorCheck`。
-- 一张卡：终端用这些版本所需的那一行（`homeShellTitle`、`homeShellBody`）：
-  `eval "$(vfox activate bash)"` 与复制按钮。
+- 一张卡：说明终端怎样用上这些版本（`homeShellTitle`）：一个本机 Shell 的下拉框，
+  `SHELL` 指出的那个排在最前，否则是系统惯用的（Windows 为 PowerShell，macOS 为 Zsh，其他为 Bash；见
+  [CLI 契约](vfox-cli-contract.md#激活-shell)）；对所选 Shell 给出一句说明、带复制按钮的命令，Clink 另有
+  打开其脚本的按钮（`homeShellGetScript`）。启动文件里的一行（`~/.bashrc`、`~/.zshrc`、
+  `~/.config/fish/config.fish`、`$PROFILE`）用 `homeShellBody`；Nushell 的命令只需运行一次，用
+  `homeShellOnce`；Clink 用 `homeShellScript`。所选项不记住。
 
 页面上没有列表里数量的统计，也没有通往导航已能到达的页面的快捷入口（Plugins；vfox 文档在设置里）。
 
@@ -110,10 +118,11 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - **搜索按钮** `availableChoiceButton`（“发行版：Temurin”；选择项的标签来自档案，图标 `registry`）。
   档案里有这样的搜索时（`java`），它会打开[选择对话框](#选择与名称)来决定搜索列出什么；所选值成为
   `vfox search` 的参数，按插件保存在设置里（`searches`），所以重启后仍在，Web 界面里也一样，之前选择的列表立即消失；
-- 行尾是图标按钮 `availableMoreWays`，菜单里是列表没有提供的其他添加方式，每个插件都有：
+- 行尾是图标按钮 `availableMoreWays`，菜单里是列表没有提供的其他添加方式：
   - `availableInstallByName` 打开[按名称安装对话框](#选择与名称)；
   - `linkDetect` 排队 `vfox link --detect --yes <插件>`：由插件找出机器上已有的 SDK，
-    vfox 把它们链接进来，不必再下载一遍。插件不会探测时，任务里会这么说；
+    vfox 把它们链接进来，不必再下载一遍。插件文件表明它不会探测时，不提供这一项（见[插件配置档案](profiles.md#档案从哪里来)）；
+    文件看不出来时，由任务说明；
   - `linkManual` 打开[链接对话框](#选择与名称)，用于用户指明目录里的 SDK。
 
 列表加载中或失败时这一行仍在，方便改选，也方便添加列表里没有的 SDK。随后是：
@@ -136,7 +145,7 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - `optionsVariables`：插件读取的每个环境变量一项（Java 与 Flutter 的 GitHub 镜像、Node.js 的下载镜像、
   Flutter 的存储镜像、Node.js 的 C 库，后者带 `optionsVariableAdvanced` 标签），显示变量名、值（若是
   已检查过的镜像则带镜像名）或 `optionsVariableUnset`（默认），以及 `optionsVariableChange`，打开
-  [变量对话框](#选择与名称)；
+  [变量对话框](#选择与名称)。开关类变量改为在行尾放开关；
 - `optionsLegacy`：vfox 配置里的开关 `configLegacyEnable`，标题下以标签显示插件让 vfox 读取的版本文件
   （`.sdkmanrc`；`.node-version` 与 `.nvmrc`）；策略有影响时（Node.js）再加 `configLegacyStrategy`。
   不读版本文件的插件没有这一节，不受策略影响的插件没有策略的选项；
@@ -174,9 +183,12 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
   对话框那一行的版本，否则是当前版本）。两者都遵守版本名称的规则。确认后排队
   `vfox alias set <插件> <别名> <版本>`；`aliasUnset` 排队 `vfox alias unset <插件> <别名>`。
 - **变量**（`variable…`）：变量的说明与名称；地址类变量有等宽字段 `variableAddress`（地址必须以 `http://`
-  或 `https://` 开头，`variableInvalidAddress`）；`variablePresets` 下每个已检查的值一个 Chip，再加一个
-  取消变量的 Chip `variableDefaultOption`。选择类变量（`musl`、`glibc`）只能取这些值
-  （`variableInvalidChoice`）。值会写入设置里的额外环境变量，设置页也会显示。
+  或 `https://` 开头，`variableInvalidAddress`），文本类变量有等宽字段 `variableValue`（单行，`variableInvalidText`）；
+  `variablePresets` 下档案里的每个值一个 Chip，再加一个取消变量的 Chip `variableDefaultOption`。选择类变量（`musl`、
+  `glibc`）只能取这些值（`variableInvalidChoice`）。值会写入设置里的额外环境变量，设置页也会显示。
+- **确认取值**（`variableConfirm…`）：设置应用没有内置的值（来自插件自带档案、在线目录或用户文件）之前，弹出带
+  `warning` 图标的对话框，显示 `KEY=value`（`variableConfirmBody`），提供 `variableConfirmAction` 与取消。用户手动
+  输入的值是自己的选择，不再询问。
 
 ## Plugins
 
@@ -208,7 +220,8 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 
 分段列表分组：
 
-- **外观**：主题（`themeSystem` / `themeLight` / `themeDark` 连接按钮组）、
+- **外观**：主题（`themeSystem` / `themeLight` / `themeDark` 连接按钮组）、动画（`settingsMotion`：
+  `motionSystem` / `motionFull` / `motionReduced` 连接按钮组，见[动效](design-system.md#动效)）、
   `settingsSystemColor`（开关）、8 个颜色 swatch（选其一即关桌面色；选中 swatch 变成
   花形）与语言（`languageSystem` / `English` / `简体中文`；语言名永远用本语言书写）。
 - **其他设备**：一个分区，其第一项开关让 Docker 网关、手机与其他电脑连接（`settingsRemote`，开关，先要求确认，
@@ -240,7 +253,8 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - 纯图标按钮都有 tooltip，同时作为无障碍名。
 - 选中项、开关、按钮组暴露选中状态。
 - 标题标记为标题。
-- 平台要求减少动态效果时全部动效瞬时或静止；桌面始终如此（见[设计系统](design-system.md#动效)）。
+- 平台要求减少动态效果时全部动效瞬时或静止，除非用户在桌面上选了完整动画（`motionFull`）；桌面上选了减弱动画
+  （`motionReduced`）时也如此（见[设计系统](design-system.md#动效)）。
 - 文本跟平台字号；布局换行不裁剪。
 
 ## 手机端应用

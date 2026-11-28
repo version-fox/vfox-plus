@@ -413,6 +413,51 @@ func TestDoctorAliasInfoQueries(t *testing.T) {
 	}
 }
 
+// TestDoctorReportOutsideOfAnActivatedShell reads what the real vfox answers to the
+// application, which runs it outside of an activated shell: it exits with 1 and finds that
+// its caller is not activated.
+func TestDoctorReportOutsideOfAnActivatedShell(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner().
+		On("doctor --json", testsupport.FixtureOutput("doctor-json-not-activated", 1))
+	report, err := vfox.NewClient(runner, testConfig()).DoctorReport("", "")
+	if err != nil || !report.OK || report.Findings == nil || len(report.Findings) != 0 {
+		t.Errorf("got %#v %v", report, err)
+	}
+}
+
+func TestDoctorReportKeepsTheFindingsOfTheMachine(t *testing.T) {
+	runner := testsupport.NewFakeProcessRunner().On("doctor --json java", core.ProcessOutput{
+		ExitCode: 1,
+		Stdout: `{"ok":false,"findings":[` +
+			`{"id":"path.not-activated","severity":"error","message":"not activated"},` +
+			`{"id":"sdk.link-dangling","severity":"error","sdk":"java","version":"17-system","message":"dangling"}]}`,
+	})
+	report, err := vfox.NewClient(runner, testConfig()).DoctorReport("java", "")
+	if err != nil || report.OK || len(report.Findings) != 1 || report.Findings[0].ID != "sdk.link-dangling" {
+		t.Errorf("got %#v %v", report, err)
+	}
+}
+
+func TestDoctorReportFailures(t *testing.T) {
+	healthy := testsupport.FixtureOutput("doctor-json", 0).Stdout
+	for name, test := range map[string]struct {
+		output core.ProcessOutput
+		want   string
+	}{
+		"an error without a report":    {core.ProcessOutput{ExitCode: 1, Stderr: "nosuch not supported\n"}, "nosuch not supported"},
+		"another exit code":            {core.ProcessOutput{ExitCode: 2, Stdout: healthy, Stderr: "crashed\n"}, "crashed"},
+		"output that is not a report":  {core.ProcessOutput{Stdout: "No problems found.\n"}, "Unrecognised doctor output"},
+		"an exit code and no output":   {core.ProcessOutput{ExitCode: 1}, "vfox exited with code 1"},
+		"a signal that ended the call": {core.ProcessOutput{ExitCode: -15}, "vfox exited with code -15"},
+	} {
+		runner := testsupport.NewFakeProcessRunner().On("doctor --json", test.output)
+		_, err := vfox.NewClient(runner, testConfig()).DoctorReport("", "")
+		if err == nil || err.Error() != test.want {
+			t.Errorf("%s: got %v, want %q", name, err, test.want)
+		}
+	}
+}
+
 func TestAddPlugin(t *testing.T) {
 	cli := vfox.NewClient(testsupport.FixtureRunner(), testConfig())
 	command, err := cli.AddPlugin("nodejs", "", "")

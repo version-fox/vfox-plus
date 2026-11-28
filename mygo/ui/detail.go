@@ -81,6 +81,7 @@ func (a *App) detailFor(name string) *detailState {
 	// settings; it does not search until the available versions are asked for. The aliases are asked for
 	// now, because the installed versions, which are what opens first, say them.
 	controller.Info.Load()
+	controller.Files.Load()
 	controller.Aliases.Load()
 	d.stops = append(d.stops,
 		controller.AddListener(a.invalidate),
@@ -89,6 +90,7 @@ func (a *App) detailFor(name string) *detailState {
 		a.model.Tasks.OnFinished(func(task *state.VfoxTask) {
 			if task.Command.Sdk == name && task.Command.Operation == vfox.OperationUpdatePlugin {
 				controller.Info.Load()
+				controller.Files.Load()
 			}
 			if task.Command.Sdk == name && (task.Command.Operation == vfox.OperationAliasSet || task.Command.Operation == vfox.OperationAliasUnset) {
 				controller.Aliases.Load()

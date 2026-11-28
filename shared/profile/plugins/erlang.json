@@ -1,0 +1,119 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "erlang",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest release in the list",
+        "zh": "列表中最新的发行版"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "when": {
+        "os": [
+          "linux"
+        ]
+      },
+      "key": "USE_PREBUILT_OTP",
+      "label": {
+        "en": "Prebuilt build",
+        "zh": "预编译构建"
+      },
+      "help": {
+        "en": "Installs Erlang/OTP from the prebuilt build of this Ubuntu release, instead of compiling it, and lists the prebuilt builds. Empty compiles from the source.",
+        "zh": "用这个 Ubuntu 版本的预编译构建安装 Erlang/OTP，而不是编译源码，版本列表也改为预编译构建。留空则从源码编译。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "ubuntu-20.04",
+          "name": "Ubuntu 20.04"
+        },
+        {
+          "value": "ubuntu-22.04",
+          "name": "Ubuntu 22.04"
+        },
+        {
+          "value": "ubuntu-24.04",
+          "name": "Ubuntu 24.04"
+        }
+      ]
+    }
+  ],
+  "guide": {
+    "en": "Write the release as the list shows it, such as 29.1.2. With a prebuilt build selected, OTP-29.1.2 also installs the prebuilt build of that release.",
+    "zh": "按列表中的样子写版本，如 29.1.2。选择了预编译构建后，OTP-29.1.2 也会安装该发行版的预编译构建。"
+  },
+  "tips": [
+    {
+      "en": "Source builds take a long time.",
+      "zh": "源码编译需要很长时间。"
+    },
+    {
+      "en": "Set OTP_CONFIGURE_ARGS and MAKEFLAGS in Settings.",
+      "zh": "在“设置”中设置 OTP_CONFIGURE_ARGS 与 MAKEFLAGS。"
+    },
+    {
+      "en": "Turn the search cache off first.",
+      "zh": "先关闭搜索缓存，再使用预编译构建。"
+    },
+    {
+      "en": "Source builds refuse some characters in VFOX_HOME.",
+      "zh": "源码编译会拒绝 VFOX_HOME 中的某些字符。"
+    },
+    {
+      "en": "Run a prebuilt install as erlang@29.1.2.",
+      "zh": "预编译安装请用 erlang@29.1.2 运行。"
+    },
+    {
+      "en": "vfox exec does not map OTP- names.",
+      "zh": "vfox exec 不会映射 OTP- 名称。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Documentation website",
+        "zh": "文档网站"
+      },
+      "url": {
+        "en": "https://version-fox.github.io/vfox-erlang/en/",
+        "zh": "https://version-fox.github.io/vfox-erlang/"
+      }
+    },
+    {
+      "title": {
+        "en": "Prebuilt builds",
+        "zh": "预编译构建"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-erlang/blob/main/docs/prebuilt.md",
+        "zh": "https://github.com/version-fox/vfox-erlang/blob/main/docs/zh-CN/prebuilt.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Building from source",
+        "zh": "从源码编译"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-erlang/blob/main/docs/source-build.md",
+        "zh": "https://github.com/version-fox/vfox-erlang/blob/main/docs/zh-CN/source-build.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Plugin README",
+        "zh": "插件说明"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-erlang/blob/main/README.md",
+        "zh": "https://github.com/version-fox/vfox-erlang/blob/main/README_CN.md"
+      }
+    }
+  ]
+}

@@ -55,6 +55,11 @@ Every view that loads data has four states:
 Long-running operations never block the interface: they become tasks (see
 [Tasks](#tasks)).
 
+While the web interface does not receive the events of the application, a chip at
+the top says that it reconnects (`reconnecting`); it goes away when they arrive
+again. The chip is the only sign of the connection: while it is there, what the
+pages show may be old.
+
 ## vfox unavailable
 
 While vfox is being located, every page except Settings shows the loading
@@ -79,11 +84,20 @@ Settings stay reachable in every case.
   with `doctorCheck`, which asks again. Otherwise there is one item for each of the
   first five findings: its message, `<plugin>@<version> · <severity>` and, for
   `sdk.no-receipt`, `doctorAdopt` (`vfox doctor --adopt <plugin>@<version>`), for
-  `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. A failure to ask
-  shows its message with `doctorCheck`.
-- A card with the line that a terminal needs to use these versions
-  (`homeShellTitle`, `homeShellBody`): `eval "$(vfox activate bash)"` and a copy
-  button.
+  `sdk.drift`, `versionReinstall`; `doctorProblems` counts them all. What vfox finds
+  about the process that asked, that its shell is not activated, is not among them
+  (the card below shows how to activate a terminal). A failure to ask shows its
+  message with `doctorCheck`.
+- A card that says how a terminal comes to use these versions (`homeShellTitle`):
+  a dropdown of the shells of the machine, the one that `SHELL` names first, or the
+  usual one of the system (PowerShell on Windows, Zsh on macOS, Bash elsewhere;
+  see [the CLI contract](vfox-cli-contract.md#activating-a-shell)), and for the
+  chosen shell an instruction, the command with a copy button and, for Clink, a
+  button that opens its script (`homeShellGetScript`). The instruction is
+  `homeShellBody` for a line of a startup file (`~/.bashrc`, `~/.zshrc`,
+  `~/.config/fish/config.fish`, `$PROFILE`), `homeShellOnce` for Nushell, whose
+  command is run once, and `homeShellScript` for Clink. The choice is not
+  remembered.
 
 The page has no counts of what its lists hold and no shortcut to a page that the
 navigation reaches (Plugins; the vfox documentation is in the settings).
@@ -149,11 +163,13 @@ has a back button.
   survives a restart and is the same in the web interface, and the list of the earlier
   choice goes away at once;
 - at its end, the icon button `availableMoreWays` with the menu of the other ways
-  to add an SDK, which every plugin has:
+  to add an SDK:
   - `availableInstallByName` opens the [install by name dialog](#choices-and-names);
   - `linkDetect` queues `vfox link --detect --yes <plugin>`: the plugin finds the
     SDKs that are already on the machine and vfox links them, instead of
-    downloading them again. A plugin that cannot detect says so in the task;
+    downloading them again. A plugin whose files show that it cannot detect does
+    not offer it (see [profiles](profiles.md#where-profiles-come-from)); one whose
+    files do not tell says so in the task;
   - `linkManual` opens the [link dialog](#choices-and-names), for an SDK in a
     directory that the user names.
 
@@ -189,7 +205,8 @@ are its chips):
   storage mirror of Flutter, the C library of Node.js, tagged
   `optionsVariableAdvanced`), with the variable name, its value (with the name
   of the mirror, if it is one that was checked) or `optionsVariableUnset` (Default), and
-  `optionsVariableChange`, which opens the [variable dialog](#choices-and-names);
+  `optionsVariableChange`, which opens the [variable dialog](#choices-and-names).
+  A variable that is on or off has a switch at the end of its item instead;
 - `optionsLegacy`: the switch `configLegacyEnable` of the vfox configuration, with
   the version files that the plugin lets vfox read as tags under its title
   (`.sdkmanrc`; `.node-version` and `.nvmrc`), and, where the strategy matters
@@ -245,11 +262,17 @@ Dialogs scale in on a spring.
   queues `vfox alias unset <plugin> <alias>`.
 - **Variable** (`variable…`): the help of the variable and its name; for an
   address, a monospaced field `variableAddress` (an address needs `http://` or
-  `https://`, `variableInvalidAddress`); `variablePresets`, a chip for every
-  value that was checked, and a chip `variableDefaultOption` that takes the
+  `https://`, `variableInvalidAddress`), and for a text a monospaced field
+  `variableValue` (one line, `variableInvalidText`); `variablePresets`, a chip for
+  every value of the profile, and a chip `variableDefaultOption` that takes the
   variable away. The chips of a choice (`musl`, `glibc`) are its only values
   (`variableInvalidChoice`). The value goes to the extra environment of the
   settings, which the settings page shows too.
+- **Confirm a value** (`variableConfirm…`): before a value that the application
+  did not ship is set (from the plugin's own profile, the online directory or a
+  file of the user), a dialog with the `warning` icon shows `KEY=value`
+  (`variableConfirmBody`), with `variableConfirmAction` and Cancel. A value that
+  the user types is theirs and asks nothing.
 
 ## Plugins
 
@@ -292,7 +315,9 @@ dismissed and offer `taskView`, which opens Tasks.
 Grouped in segmented lists:
 
 - **Appearance**: theme (`themeSystem` / `themeLight` / `themeDark` as a
-  connected button group), `settingsSystemColor` (switch), eight colour swatches
+  connected button group), the animation (`settingsMotion`: `motionSystem` /
+  `motionFull` / `motionReduced` as a connected button group; see
+  [motion](design-system.md#motion)), `settingsSystemColor` (switch), eight colour swatches
   (choosing one turns the desktop colour off; the selected swatch morphs into a
   flower shape), and the language (`languageSystem` / `English` / `简体中文`;
   language names are always written in their own language).
@@ -340,7 +365,9 @@ Grouped in segmented lists:
 - Selected items, toggles and button groups expose their selected state.
 - Headers are marked as headers.
 - All motion stops or becomes instantaneous when the platform asks for reduced
-  motion; the desktop always does (see [the design system](design-system.md#motion)).
+  motion, unless the person chose full animation on the desktop (`motionFull`), and
+  on the desktop when they chose reduced animation (see
+  [the design system](design-system.md#motion)).
 - Text follows the platform text scale; layouts wrap rather than clip.
 
 ## Phone app

@@ -22,6 +22,8 @@
 //     the npm package that it pins (see icons.go);
 //   - icons.json: the symbols of the icons, by meaning (shared/icons.json);
 //   - i18n/*.arb: the catalogues of shared/i18n, as they are;
+//   - profiles/*.json: the profiles of the plugins in shared/profile/plugins, as
+//     they are;
 //   - tray.png: the icon of the tray, the fox of the application icon on its own
 //     (package appicon), which the repository holds no picture of;
 //   - licenses.txt: the licenses of what the application is built from.
@@ -66,7 +68,7 @@ func Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	root, err := resolveRoot(cfg.root)
+	root, err := ResolveRoot(cfg.root)
 	if err != nil {
 		return err
 	}
@@ -92,8 +94,8 @@ func Run(args []string) error {
 		return err
 	}
 
-	// rm -rf assets/icons assets/i18n; mkdir -p assets/icons assets/i18n.
-	for _, name := range []string{"icons", "i18n"} {
+	// rm -rf assets/icons assets/i18n assets/profiles, then make them again.
+	for _, name := range []string{"icons", "i18n", "profiles"} {
 		dir := filepath.Join(assets, name)
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("remove %s: %w", dir, err)
@@ -110,6 +112,9 @@ func Run(args []string) error {
 		return err
 	}
 	if err := copyFiles(filepath.Join(shared, "i18n"), "*.arb", filepath.Join(assets, "i18n")); err != nil {
+		return err
+	}
+	if err := copyFiles(filepath.Join(shared, "profile", "plugins"), "*.json", filepath.Join(assets, "profiles")); err != nil {
 		return err
 	}
 	if err := writeTrayIcon(filepath.Join(assets, "tray.png")); err != nil {
@@ -241,8 +246,9 @@ func writeLicenses(noticePath, licensePath string, source iconSource, output str
 	return nil
 }
 
-// resolveRoot returns the mygo module directory, like build.resolveRoot.
-func resolveRoot(flagRoot string) (string, error) {
+// ResolveRoot returns the mygo module directory: flagRoot when given, else the one
+// that is found from the current directory or from the program.
+func ResolveRoot(flagRoot string) (string, error) {
 	if flagRoot != "" {
 		abs, err := filepath.Abs(flagRoot)
 		if err != nil {

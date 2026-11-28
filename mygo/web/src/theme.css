@@ -188,7 +188,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .dest .bdg{position:absolute;top:2px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--m3-error);color:var(--m3-on-error);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
 .dest .bdg[hidden]{display:none}
 .rail.expanded .dest .bdg{right:8px;top:calc(50% - 9px)}
-.rail .fab{margin-top:auto;align-self:center;display:flex;align-items:center;gap:8px;height:56px;min-width:56px;padding:0 16px;border-radius:16px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.rail .fab{margin:4px 0 8px;align-self:center;display:flex;align-items:center;gap:8px;height:56px;min-width:56px;padding:0 16px;border-radius:16px;background:var(--m3-primary-container);color:var(--m3-on-primary-container);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
 .rail .fab:hover{border-radius:20px}
 .rail .fab span:last-child{display:none}
 .rail.expanded .fab span:last-child{display:inline;font-weight:500}
@@ -199,15 +199,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .iconbtn:active{border-radius:12px}
 .iconbtn.sm{width:40px;height:40px}
 .iconbtn.toggled{color:var(--m3-primary)}
-/* top bar */
-.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(10px + var(--sai-top)) calc(20px + var(--sai-right)) 10px 20px;background:var(--m3-surface);border-bottom:1px solid var(--m3-outline-variant)}
-.topbar h1{font-size:16px;font-weight:500;margin:0}
-.topbar .sp{flex:1}
-.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--m3-on-surface-variant)}
-.live .dot{width:9px;height:9px;border-radius:50%;background:var(--m3-outline)}
-.live.on .dot{background:#1a7f37}
-@media (prefers-color-scheme:dark){.live.on .dot{background:#6fdc8c}}
-.ver{font-size:12px;color:var(--m3-on-surface-variant)}
+/* the top bar names the page on phones; on wider screens the page names itself */
+.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;background:var(--m3-surface)}
+.topbar h1{font-size:28px;line-height:36px;font-weight:500;margin:0}
+@media (min-width:701px){.topbar{display:none}}
+/* shown while the page has lost the application */
+.offline{position:fixed;top:calc(12px + var(--sai-top));left:0;right:0;margin:0 auto;width:max-content;z-index:20;display:flex;align-items:center;gap:8px;height:32px;padding:0 16px;border-radius:16px;background:var(--m3-error-container);color:var(--m3-on-error-container);font-weight:500;animation:riseIn var(--sp-default-spatial-t) var(--sp-default-spatial)}
+.offline[hidden]{display:none}
 /* pages */
 main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + var(--sai-bottom)) 20px;max-width:1120px;margin:0 auto;width:100%}
 .page{display:none}
@@ -228,6 +226,8 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .btn.danger{background:transparent;color:var(--m3-error);border:1px solid var(--m3-outline-variant)}
 .btn.text{background:transparent;color:var(--m3-primary);padding:0 12px}
 .btn:disabled{opacity:.45;cursor:default}
+a.btn{text-decoration:none}
+.btn[hidden]{display:none}
 /* segmented buttons */
 /* A segmented control never outgrows its container: the buttons that do not fit in a line go on to the next one, whole,
    and those of a line share its width. */
@@ -242,7 +242,7 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .search{display:flex;align-items:center;gap:8px;background:var(--m3-surface-container-highest);border-radius:28px;padding:4px 16px 4px 12px;margin-bottom:12px}
 .search input{flex:1;background:none;border:0;padding:10px 0;outline:none;min-width:0}
 /* segmented lists: 20 outer / 4 inner, inner grows to 12 on hover */
-.list{display:flex;flex-direction:column}
+.list{display:flex;flex-direction:column;gap:2px}
 .list .item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--m3-surface-container);padding:12px 16px;color:var(--m3-on-surface);transition:border-radius var(--sp-fast-spatial-t) var(--sp-fast-spatial),background-color var(--sp-fast-effects-t) var(--sp-fast-effects)}
 .list .item:first-child{border-radius:20px 20px 4px 4px}
 .list .item:last-child{border-radius:4px 4px 20px 20px}
@@ -254,25 +254,29 @@ main{flex:1;min-width:0;padding:20px calc(20px + var(--sai-right)) calc(20px + v
 .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 /* content-visibility: the cards below the screen are not laid out, so that opening the page takes one frame */
 .pcard{background:var(--m3-surface-container);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px;content-visibility:auto;contain-intrinsic-size:auto 150px}
-/* avatars: expressive shapes by hash, 3 tone pairs */
-.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:22px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+/* avatars: the initial on a shape of the shape library picked by a hash of the name, in one of three colour pairs, as on the
+   desktop; hovering spins the shape by 30 degrees. The secondary container marks selected list items, so no avatar has it. */
+/* the element is the shape, and its initial turns back as the shape spins, so that it stays upright */
+.avatar{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
+.avatar>span{transition:transform var(--sp-fast-spatial-t) var(--sp-fast-spatial)}
 .avatar:hover{transform:rotate(30deg)}
+.avatar:hover>span{transform:rotate(-30deg)}
 .avatar.lg{width:72px;height:72px;font-size:28px}
-.av-p{background:var(--m3-primary-fixed);color:var(--m3-on-primary-fixed)}
-.av-s{background:var(--m3-secondary-fixed);color:var(--m3-on-secondary-fixed)}
-.av-t{background:var(--m3-tertiary-fixed);color:var(--m3-on-tertiary-fixed)}
-.av-0{border-radius:50% 38% 55% 45%/48% 55% 45% 52%}
-.av-1{border-radius:38% 62% 42% 58%/58% 42% 58% 42%}
-.av-2{border-radius:62% 38% 60% 40%/40% 60% 38% 62%}
-.av-3{border-radius:45% 55% 38% 62%/62% 38% 62% 38%}
-.av-4{border-radius:55% 45% 62% 38%/42% 58% 40% 60%}
-.av-5{border-radius:42% 58% 48% 52%/55% 42% 58% 45%}
-.av-6{border-radius:58% 42% 55% 45%/45% 52% 48% 55%}
-.av-7{border-radius:40% 60% 45% 55%/52% 45% 60% 40%}
-.av-8{border-radius:52% 48% 40% 60%/45% 55% 42% 58%}
-.av-9{border-radius:48% 52% 58% 42%/58% 40% 55% 48%}
-.av-10{border-radius:60% 40% 45% 55%/42% 58% 48% 52%}
-.av-11{border-radius:45% 55% 52% 48%/50% 48% 52% 50%}
+.av-p{background:var(--m3-primary-fixed-dim);color:var(--m3-on-primary-fixed)}
+.av-s{background:var(--m3-secondary);color:var(--m3-on-secondary)}
+.av-t{background:var(--m3-tertiary-container);color:var(--m3-on-tertiary-container)}
+.av-0{clip-path:url(#av-shape-0)}
+.av-1{clip-path:url(#av-shape-1)}
+.av-2{clip-path:url(#av-shape-2)}
+.av-3{clip-path:url(#av-shape-3)}
+.av-4{clip-path:url(#av-shape-4)}
+.av-5{clip-path:url(#av-shape-5)}
+.av-6{clip-path:url(#av-shape-6)}
+.av-7{clip-path:url(#av-shape-7)}
+.av-8{clip-path:url(#av-shape-8)}
+.av-9{clip-path:url(#av-shape-9)}
+.av-10{clip-path:url(#av-shape-10)}
+.av-11{clip-path:url(#av-shape-11)}
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 10px;border-radius:8px;background:var(--m3-surface-container-highest);color:var(--m3-on-surface-variant)}
 .tag.cur{background:var(--m3-primary);color:var(--m3-on-primary);border-radius:12px}
 /* empty & error states: icon on large shape */
@@ -400,12 +404,9 @@ pre.log{background:#111;color:#e8e8e8;border-radius:12px;padding:12px;max-height
 input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
 @media (max-width:700px){
   .rail{display:none}
-  /* app bar: flat, large title, status as a dot only */
-  .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left));border-bottom:0;background:var(--m3-surface)}
-  .topbar h1{font-size:28px;line-height:36px;font-weight:500}
+  /* app bar: flat, large title */
+  .topbar{padding:calc(12px + var(--sai-top)) calc(16px + var(--sai-right)) 4px calc(16px + var(--sai-left))}
   body:has(#tab-sdks.active.detail-open) .topbar h1{display:none}
-  .live,.ver{display:none}
-  .live .dot{width:10px;height:10px}
   main{padding:8px calc(16px + var(--sai-right)) calc(168px + var(--sai-bottom)) calc(16px + var(--sai-left))}
   /* navigation bar: 80dp, pill indicator, labels always shown */
   .navbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--m3-surface-container);padding:12px calc(8px + var(--sai-right)) calc(16px + var(--sai-bottom)) calc(8px + var(--sai-left));justify-content:space-around}
@@ -429,11 +430,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   /* fields take the width of the screen instead of their size= */
   .row>input:not([type=file]){flex:1 1 200px;min-width:0}
   .row>input[type=file],textarea{width:100%}
-  /* home: version line instead of a hero card, tiles in one row */
-  #homeTitle{display:none}
-  #tab-home>.pane{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-  #tab-home>.pane>.row{margin:0 0 0 auto!important}
-  #homeSub{font-size:14px}
   /* terminal hint and cards: tonal containers where there is content to group */
   #snacks{bottom:calc(176px + var(--sai-bottom))}
   #error{bottom:calc(176px + var(--sai-bottom))}
@@ -446,12 +442,8 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 
 
 /* ---------- the desktop's layout, at web widths ---------- */
-/* A page names itself once. The top bar keeps the page name on phones only,
-   where the content's own title is hidden to save the row. */
-@media (min-width:701px){
-  .topbar h1{display:none}
-  .topbar{justify-content:flex-end}
-}
+/* A page names itself once: the top bar names it on phones, where the content's own
+   title is hidden to save the row, and the content names it on wider screens. */
 .pagetitle{font-size:28px;line-height:36px;font-weight:500;margin:0 0 12px}
 .pagehead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .pagehead .sp{flex:1}
@@ -460,8 +452,6 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .pagehead .muted{margin-top:2px}
 .sectionlabel{font-size:12px;font-weight:500;color:var(--m3-primary);margin:16px 4px 6px}
 .grow{flex:1;min-width:0}
-.hero .t-title-l{line-height:1.2}
-.hero .row{align-items:flex-start}
 .seal{display:inline-flex;align-items:center;color:var(--m3-primary)}
 .taskrow:first-child{border-radius:20px 20px 4px 4px}
 .taskrow:last-child{border-radius:4px 4px 20px 20px}
@@ -470,16 +460,27 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .icon-tile{width:40px;height:40px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:var(--m3-secondary-container);color:var(--m3-on-secondary-container)}
 .icon-tile .ic{width:22px;height:22px}
 .pane>.row:first-child{margin-bottom:6px}
-.shell{display:flex;align-items:center;gap:12px;background:var(--m3-surface-container-low);border-radius:20px;padding:10px 10px 10px 12px;margin-top:12px}
+/* how a terminal activates vfox: the shells, what to do for the chosen one, and its command */
+.shellcard{display:flex;flex-direction:column;align-items:flex-start;gap:12px;background:var(--m3-surface-container-highest);border-radius:16px;padding:16px;margin-top:24px}
+.shellcard[hidden]{display:none}
+.shellcard .seg{background:var(--m3-surface-container-low)}
+.shellhead{display:flex;align-items:center;gap:12px}
+.shellhead .ic{color:var(--m3-primary)}
+.shellhead h2{margin:0}
+/* the title of the card at every width: on a phone .t-title-m is the label of a section */
+.shellhead .t-title-m{font-size:16px;font-weight:700;letter-spacing:normal;color:var(--m3-on-surface)}
+.shellcard p{margin:0;overflow-wrap:anywhere}
+.shell{align-self:stretch;display:flex;align-items:center;gap:12px;background:var(--m3-surface-container-lowest);border-radius:12px;padding:4px 4px 4px 16px}
 .shell code{flex:1;min-width:0;overflow-wrap:anywhere}
 .shell .iconbtn{flex:none}
 .shell .iconbtn:active{background:var(--m3-surface-container-high)}
+.taskrow+.tasklog{margin-top:-2px}
 .list .item:active{background:var(--m3-surface-container-high)}
 .spin{animation:spin var(--sp-default-spatial-t) var(--sp-default-spatial)}
 .filterline{display:flex;align-items:center;gap:12px;margin:8px 4px 8px;min-height:32px}
 .filterline #vChips{flex:1;min-width:0;margin:0}
 .filterline #vCount{margin-left:auto;white-space:nowrap}
-.searchrow{align-items:center;gap:12px}
+.searchrow{align-items:center;gap:12px;margin-bottom:12px}
 .searchrow .search{margin:0}
 .rowitem{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--m3-outline-variant)}
 .rowitem:last-child{border-bottom:0}
@@ -519,20 +520,16 @@ input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .pagetitle{display:none}
   .pagehead{margin-bottom:8px}
   .pagehead .grow .t-body{display:none}
+  .homehead .grow .t-body{display:block}
   .sectionlabel{margin:12px 4px 4px}
   .rowitem{flex-wrap:wrap}
 }
 /* ---------- phones: one column, the page title lives in the top bar ---------- */
 @media (max-width:700px){
-  #tab-home>.pane{display:block}
-  #tab-home>.pane .row{margin:0!important}
-  .hero{padding:0 0 6px!important}
-  .hero .grow{display:flex;align-items:center;gap:10px;min-height:36px}
-  .hero .t-title-l{display:none}
-  .hero .iconbtn{margin-left:auto}
   .list .item{padding:14px 14px}
   .pagehead{gap:6px;justify-content:flex-end;margin:0 0 4px}
   .pagehead .grow{display:none}
+  .homehead .grow{display:block}
   .pagehead .iconbtn{width:36px;height:36px}
   .pagehead .btn{min-height:36px;padding:0 12px}
   .searchrow{flex-direction:column;align-items:stretch;gap:8px}

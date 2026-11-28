@@ -23,10 +23,6 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// activationCommand is the line that makes a shell use the versions that vfox+
-// chooses.
-const activationCommand = `eval "$(vfox activate bash)"`
-
 // The links that the user interface opens.
 const (
 	linkVfoxInstall = "https://vfox.dev/guides/quick-start.html"
@@ -189,8 +185,28 @@ func (a *App) doctorCard(k kit.Ctx) {
 	}
 }
 
+// shellCard says how a terminal comes to use the versions that vfox+ chooses: in the
+// shell of the person, or in another one that they choose.
 func (a *App) shellCard(k kit.Ctx) mui.Element {
 	cs := k.Colors()
+	activations := a.model.Activations()
+	chosen := activations[0]
+	shells := make([]kit.Choice, len(activations))
+	for i, activation := range activations {
+		shells[i] = kit.Choice{Value: activation.Shell, Label: activation.Name}
+		if activation.Shell == a.pages.terminalShell {
+			chosen = activation
+		}
+	}
+	var instruction string
+	switch chosen.Kind {
+	case vfox.ActivationOnce:
+		instruction = a.T("homeShellOnce", "shell", chosen.Name)
+	case vfox.ActivationScript:
+		instruction = a.T("homeShellScript")
+	default:
+		instruction = a.T("homeShellBody", "file", chosen.File)
+	}
 	return kit.Card(k, kit.CardSpec{
 		ID: "shell", Color: cs.SurfaceContainerHighest, Radius: kit.CornerLarge,
 		Children: func() {
@@ -199,20 +215,34 @@ func (a *App) shellCard(k kit.Ctx) mui.Element {
 					kit.Icon(k, "terminal", 24, cs.Primary, 0)
 					kit.Label(k, a.T("homeShellTitle"), kit.Emph(kit.TitleMedium), cs.OnSurface, kit.Heading()).Grow(1).Shrink(1)
 				})
-				kit.Label(k, a.T("homeShellBody"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant).Margin(gapS, 0, 0, 0)
+				mui.Row(k.Context).Margin(gapM, 0, 0, 0).Children(func() {
+					kit.Dropdown(k, kit.DropdownSpec{
+						ID: "activation-shell", Value: chosen.Shell, Choices: shells, Color: cs.SurfaceContainerLowest,
+						OnSelect: func(shell string) { a.pages.terminalShell = shell },
+					}).Shrink(1)
+				})
+				kit.Label(k, instruction, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Breakable()).Margin(gapM, 0, 0, 0)
 				kit.Card(k, kit.CardSpec{
 					ID: "command", Color: cs.SurfaceContainerLowest, Radius: kit.CornerMedium,
 					Children: func() {
 						mui.Row(k.Context).Padding(0, gapXS, 0, gapL).Children(func() {
-							kit.Label(k, activationCommand, kit.Type(kit.BodyMedium), cs.OnSurface, kit.Selectable(), kit.Monospace()).
+							kit.Label(k, chosen.Command, kit.Type(kit.BodyMedium), cs.OnSurface, kit.Selectable(), kit.Monospace(), kit.Breakable()).
 								Grow(1).Shrink(1)
 							kit.IconButton(k, kit.IconButtonSpec{ID: "copy-activation", Icon: "copy", Tooltip: a.T("actionCopy"), OnClick: func() {
-								a.copy(activationCommand)
+								a.copy(chosen.Command)
 								a.notify(a.T("actionCopied"))
 							}})
 						})
 					},
 				}).Margin(gapM, 0, 0, 0)
+				if chosen.Kind == vfox.ActivationScript {
+					mui.Row(k.Context).Margin(gapS, 0, 0, 0).Children(func() {
+						kit.Button(k, kit.ButtonSpec{
+							ID: "activation-script", Kind: kit.TextButton, Label: a.T("homeShellGetScript"), Icon: "openInNew",
+							OnClick: func() { a.openURL(chosen.URL) },
+						})
+					})
+				}
 			})
 		},
 	})

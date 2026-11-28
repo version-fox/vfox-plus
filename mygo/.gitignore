@@ -5,6 +5,7 @@
 # Collected by `vfxtool prepare`; see there.
 /assets/i18n/
 /assets/icons/
+/assets/profiles/
 /assets/icons.json
 /assets/tray.png
 /assets/licenses.txt

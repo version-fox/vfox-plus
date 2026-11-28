@@ -125,17 +125,73 @@ func TestAHealthyVfoxSaysSo(t *testing.T) {
 	pairWaitFor(t, tt, i18n.TextIn(i18n.English, "doctorNoProblems"))
 }
 
-// TestTheCommandCardCopiesTheLineOfVfox checks the line that puts vfox in the shell, and
-// the copy: the clipboard holds the line, and the button shows the copy for a while.
-func TestTheCommandCardCopiesTheLineOfVfox(t *testing.T) {
+// TestTheShellCardSaysHowToActivateTheChosenShell checks how a terminal of the computer
+// activates vfox: the first shell it names at the start, then what to do for the one that
+// is chosen, whose command the copy puts on the clipboard.
+func TestTheShellCardSaysHowToActivateTheChosenShell(t *testing.T) {
 	fd := newPairDesktop(t)
 	tt := homePaired(t, fd)
-	pairWaitFor(t, tt, homeCommand)
+	const bash = `eval "$(vfox activate bash)"`
+	pairWaitFor(t, tt, bash)
+	if want := "Add this line to ~/.bashrc so that new shells use the versions chosen here."; !hasText(tt, want) {
+		t.Errorf("the card has no %q; the frame shows %q", want, tt.Texts())
+	}
+	homeCopy(t, tt, bash)
+
+	homeChooseShell(t, tt, "Bash", "Nushell")
+	pairWaitFor(t, tt, "Run this once in Nushell so that new shells use the versions chosen here.")
+	if hasText(tt, bash) {
+		t.Error("the card shows the activation of one shell only")
+	}
+	homeCopy(t, tt, "vfox activate nushell")
+
+	homeChooseShell(t, tt, "Nushell", "Clink")
+	pairWaitFor(t, tt, i18n.TextIn(i18n.English, "shellScript"))
+	pairSavePicture(t, tt, "home-shell")
+	if err := tt.Click("Get clink_vfox.lua"); err != nil {
+		t.Fatalf("Click(Get clink_vfox.lua): %v", err)
+	}
+	tt.Frame()
+	if got := tt.OpenedURLs(); len(got) != 1 || got[0] != "https://example.org/clink_vfox.lua" {
+		t.Errorf("the phone opened %q, want the script for Clink", got)
+	}
+}
+
+// homeCopy copies the command that the shell card shows, which must be command.
+func homeCopy(t *testing.T, tt *ui.Tester, command string) {
+	t.Helper()
 	if err := tt.Click("Copy"); err != nil {
 		t.Fatalf("Click(Copy): %v", err)
 	}
 	tt.Frame()
-	if got := tt.Clipboard(); got != homeCommand {
-		t.Errorf("the clipboard holds %q, want %q", got, homeCommand)
+	if got := tt.Clipboard(); got != command {
+		t.Errorf("the clipboard holds %q, want %q", got, command)
+	}
+}
+
+// homeChooseShell chooses another shell in the dropdown, which shows the one that is chosen.
+func homeChooseShell(t *testing.T, tt *ui.Tester, from, to string) {
+	t.Helper()
+	if err := tt.Click(from); err != nil {
+		t.Fatalf("Click(%s): %v", from, err)
+	}
+	tt.Frame()
+	if err := tt.Click(to); err != nil {
+		t.Fatalf("Click(%s): %v", to, err)
+	}
+	tt.Frame()
+}
+
+// TestAComputerThatSaysNothingOfItsShellsHasNoShellCard checks a computer with an older
+// vfox+, whose inventory has no activations: the phone guesses none.
+func TestAComputerThatSaysNothingOfItsShellsHasNoShellCard(t *testing.T) {
+	fd := newPairDesktop(t)
+	fd.inventory = `{"vfox":{"availability":"ready","version":"0.6.0"},` +
+		`"installed":{"loading":false,"value":[]},"registry":{"loading":false,"value":[]},` +
+		`"config":{"loading":false,"value":[]},"complete":true}`
+	tt := homePaired(t, fd)
+	pairWaitFor(t, tt, i18n.TextIn(i18n.English, "activeEmpty"))
+	if title := i18n.TextIn(i18n.English, "shellTitle"); hasText(tt, title) {
+		t.Errorf("the home tab has the card %q without any shell", title)
 	}
 }

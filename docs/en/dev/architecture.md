@@ -163,57 +163,48 @@ nothing of the others, and `state` only knows `core`.
 ## Plugin profiles
 
 vfox lists, installs, selects and removes versions the same way for every plugin,
-but the plugins of the version-fox organisation offer more, and none of it shows
-in the output of vfox: `vfox search java tem` lists one distribution of Java
-where `vfox search java` lists OpenJDK only, `nodejs@24` installs the newest
-Node.js 24 and `flutter@stable` the release of a channel, and each plugin reads
-environment variables that move its downloads to a mirror and version files such
-as `.nvmrc`. Without knowing this, an interface can only offer what every plugin
-has in common, which is how the web interface of the first version came to show
-the OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
+but plugins offer more, and none of it shows in the output of vfox: `vfox search
+java tem` lists one distribution of Java where `vfox search java` lists OpenJDK
+only, `nodejs@24` installs the newest Node.js 24, and plugins read environment
+variables that move their downloads to a mirror and version files such as
+`.nvmrc`. Without knowing this, an interface can only offer what every plugin has
+in common, which is how the web interface of the first version came to show the
+OpenJDK list of Java and nothing else ([#43](https://github.com/version-fox/vfox-plus/issues/43)).
 
-A *profile* (`core/profile`) writes it down, as plain data that the three
-interfaces share, for `java`, `nodejs`, `flutter`, `gradle`, `golang`, `python`,
-`maven`, `php`, `dart`, `kotlin`, `dotnet`, `cmake`, `etcd`, `erlang`, `deno`, `groovy`,
-`scala`, `zig`, `clang` and `elixir`:
+A *profile* writes it down as data, which the three interfaces share: the choices
+of a search, the shorthands of an install, the variables, the version files, the
+filters, how version names read, and a guide, tips and links in both languages.
+[Plugin profiles](profiles.md) describes the format, its sources (the user, the
+plugin's own `lib/vfox-plus.json`, the online directory, the application and
+inference) and its security rules. In the code:
 
-| Part | What it is |
-| --- | --- |
-| Search | What follows the plugin name in `vfox search`: for `java` the 31 distributions of Foojay and `all` (on Linux for loong64 the Loongnix JDKs instead), with the one vfox uses without an argument |
-| Shorthands | Names that `vfox install <plugin>@<name>` accepts besides the listed versions |
-| Variables | The environment variables the plugin reads, with the mirrors that were checked, and what each takes (an `http://` or `https://` address, or one of a few values) |
-| Version files | The files vfox reads through the plugin, and whether the vfox setting `legacyVersionFile.strategy` matters for them |
-| Facets | The filters that suit the notes and the names of the listed versions: `LTS`, `JavaFX`, the channels and the architectures of Flutter |
-| Naming | How a version name is put together, so that `21.0.12.1+1-tem` shows Temurin and `3.47.7-x64` shows x64 |
-| Guide, tips, docs | A few sentences on the names, the things that surprise people and links to the documentation of the plugin: a page of its docs folder, its README, or its documentation website. A plugin that publishes a website with GitHub Pages has it linked first, in English under `/en/` and in Simplified Chinese at the root |
+- `core/profile` reads, checks and merges the files, and is plain Go without a UI
+  framework; `core/profile/builtin` holds the files that the application ships,
+  which `vfxtool prepare` copies from `shared/profile/plugins` into the assets.
+- `state.AppModel.Profiles` is the registry. The application of `main.go` makes it
+  with the shipped files, the files of the user and the cache of the online
+  directory (`profile.Catalog`), which the model refreshes in the background; the
+  end-to-end build leaves the directory out.
+- `state.SdkDetailController` looks the profile of a plugin up by the name that
+  vfox knows it by, then by the name that `vfox info` reports (a plugin added
+  with `vfox add --alias` keeps its profile), reads the files of the installed
+  plugin (`Files`: its own profile, what its Lua reads and whether it can detect
+  installs), and looks again when either arrives or the registry changes. A search
+  that changes with it lists again. `EffectiveProfile` is what an interface
+  shows, with the inferred parts and the filters of the listed versions.
+- The controller carries the chosen search and the chosen facets. `SetSearch`
+  forgets the earlier list and the facets (the list loads when somebody asks for
+  it); `ChooseSearch` is the same for a choice of the user and also hands it to a
+  `SearchMemory`, which `AppModel` implements with the `searches` setting, so that
+  the choice survives the details and a restart and is the same in every
+  interface. `AppModel.SetPluginVariable` checks a value against its variable and
+  stores it in the extra environment of the settings, which every vfox process
+  runs with; the interfaces ask first for a value that the application did not
+  ship (`Variable.NeedsConfirmation`).
 
 The texts of a profile are written in both languages next to the data, not in
-the catalogues, because the web interface gets them over HTTP and the page does not
-carry the catalogues. A plugin without a curated profile still
-gets filters and mirrors without a code change: facets are inferred from the
-listed versions (notes become a note filter, shared `-suffix` tails a variant
-filter), environment variables from scanning the installed plugin for
-`os.getenv("VFOX_*")`, and legacy files from `PLUGIN.legacyFilenames` in its
-`metadata.lua`. A `vfox-plus.json` at the root of the plugin repository (see
-`core/profile/external.go`) overlays these inferences with curated texts, and
-`profiles/<plugin>.json` next to the settings overlays everything; the built-in
-registry only holds what is curated in the repository.
-A profile belongs to the plugin, whatever name vfox knows it by. vfox calls a plugin
-that was added with `vfox add --alias` by the alias, and `vfox info` still says which
-plugin it is, so the controller of the details looks the profile up by the name of the
-plugin first and, when that has none, by the name that the information reports once it
-has loaded (the page of the details shows the options tab at that moment, and the web
-API waits for the information). The registry is `state.AppModel.Profiles`; the
-end-to-end tests register a profile for their offline test plugin.
-
-`SdkDetailController` carries the chosen search and the chosen facets. `SetSearch`
-forgets the earlier list and the facets (the list loads when somebody asks for it);
-`ChooseSearch` is the same for a choice of the user and also hands it to a
-`SearchMemory`, which `AppModel` implements with the `searches` setting, so that the
-choice survives the details and a restart and is the same in every interface; the
-controller starts at the choice that the memory holds, when the profile still offers
-it. `AppModel.SetPluginVariable` checks a value against its variable and stores it in
-the extra environment of the settings, which every vfox process runs with.
+the catalogues, because the web interface gets them over HTTP and the page does
+not carry the catalogues.
 
 ## Talking to vfox
 
@@ -239,6 +230,7 @@ Settings of the GUI itself are stored as JSON:
 | `theme`            | string          | `"system"`   | `system`, `light` or `dark`.                               |
 | `useSystemColor`   | boolean         | `true`       | Derive the colours from the desktop accent colour.         |
 | `seedColor`        | integer (ARGB)  | `0xFFF28C1B` | Seed colour when the accent colour is not used.            |
+| `motion`           | string          | `"system"`   | `system`, `full` or `reduced`: how much the window moves (see [motion](design-system.md#motion)). |
 | `language`         | string          | `"system"`   | `system`, `english` or `simplifiedChinese`.                |
 | `vfoxExecutable`   | string          | absent       | Path of vfox; absent means "detect".                       |
 | `extraEnvironment` | object          | `{}`         | Extra environment variables for vfox, e.g. mirrors.        |
@@ -355,8 +347,9 @@ Low memory use is a goal of the project. The application:
   streams) and forgets finished tasks past 50; a failed task keeps its full
   log on disk, pruned to the newest 20 files;
 - ships only the icons it uses (63 symbols, outlined and filled, about 70 KB of SVG, parsed when first drawn);
-- stops animations that are not visible, and asks for less motion on the desktop
-  whatever the platform asks (see [the design system](design-system.md#motion));
+- stops animations that are not visible, and draws no transitions on the desktop,
+  whose layers stay allocated (see [the design system](design-system.md#motion));
+- frees what drawing grew the Go heap by two seconds after the last frame;
 - avoids caching data that vfox can produce again cheaply;
 - without its window, tells the system that it does not want the pages of its files for now
   (the resident set falls by 11 MB), and the Go scheduler uses at most four processors, which

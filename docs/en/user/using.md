@@ -13,8 +13,9 @@ move to the bottom bar.
   page.
 - The health of vfox and the installed SDKs (**Health**), with **Check health**,
   **Adopt** and **Reinstall** where `vfox doctor` finds drift or old installs.
-- How to use the versions in a terminal, with the line to add to `~/.bashrc`
-  and a copy button.
+- How to use the versions in a terminal: choose your shell (Bash, Zsh, fish,
+  PowerShell, Nushell or Clink; yours comes first) for the line to add to its
+  startup file, or the command to run, with a copy button.
 
 ## SDKs
 
@@ -109,6 +110,13 @@ The **Options** tab holds what is particular to the plugin:
   tool shadows the one of vfox, the health card names it and what to do
   (`path.mode`, `path.preserve`).
 - **Documentation**: the pages of the plugin that explain it, in your language.
+
+What the tab shows comes from the plugin's [profile](../dev/profiles.md). The
+application brings those of the version-fox plugins and updates them from the
+online directory (at most once a day, through the update mirror, if you set one),
+a plugin may bring its own, and files of yours in `profiles/` next to the settings
+override them. A value that the application itself does not offer, such as a
+mirror that only a plugin names, is shown and confirmed before it is set.
 
 ### Maven and PHP
 
@@ -396,8 +404,10 @@ a task finishes while you look at another page, a message reports it.
 
 ## Settings
 
-- **Appearance**: light, dark or follow the system; use the desktop accent
-  colour or pick one of the swatches; the language (English or 简体中文).
+- **Appearance**: light, dark or follow the system; the **Animation** (follow
+  the system, full even when the system asks for less motion, or reduced, which
+  takes the least memory); use the desktop accent colour or pick one of the
+  swatches; the language (English or 简体中文).
 - **Other devices**: whether phones, the gateway and other computers on the network may
   connect, over HTTPS, and whether vfox-plus keeps running without its window for them
   (lightweight mode). See [Other devices and the lightweight mode](remote.md).

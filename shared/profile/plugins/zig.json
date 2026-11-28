@@ -1,0 +1,83 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "zig",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest stable release",
+        "zh": "最新的稳定版"
+      }
+    },
+    {
+      "name": "nightly",
+      "meaning": {
+        "en": "The development build of the master branch of Zig",
+        "zh": "Zig master 分支的开发版"
+      }
+    }
+  ],
+  "guide": {
+    "en": "Write the release as ziglang.org lists it, such as 0.17.1. latest installs the newest stable release, and nightly the newest development build. A Mach build installs by the name in its note, such as mach-latest.",
+    "zh": "按 ziglang.org 列出的样子写版本，如 0.17.1。latest 安装最新的稳定版，nightly 安装最新的开发版。Mach 的构建按其备注中的名称安装，如 mach-latest。"
+  },
+  "tips": [
+    {
+      "en": "The list needs ziglang.org.",
+      "zh": "列表需要 ziglang.org。"
+    },
+    {
+      "en": "machengine.org is optional.",
+      "zh": "machengine.org 可选。"
+    },
+    {
+      "en": "Unlisted names are refused.",
+      "zh": "列表中没有的名称会被拒绝。"
+    },
+    {
+      "en": "vfox 1.1.0 exec takes version names only.",
+      "zh": "vfox 1.1.0 的 exec 只接受版本名。"
+    },
+    {
+      "en": "Mach builds may come from pkg.hexops.org.",
+      "zh": "Mach 构建可能来自 pkg.hexops.org。"
+    },
+    {
+      "en": "Detect and link finds existing zig installs.",
+      "zh": "探测并链接会找出已有的 zig 安装。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions",
+        "zh": "版本"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-zig/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-zig/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Linking installed versions",
+        "zh": "链接已安装的版本"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-zig/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-zig/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Plugin README",
+        "zh": "插件说明"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-zig/blob/main/README.md",
+        "zh": "https://github.com/version-fox/vfox-zig/blob/main/README_CN.md"
+      }
+    }
+  ]
+}

@@ -681,7 +681,7 @@ func (d *desktop) profile(w http.ResponseWriter, name string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	writeJSON(w, http.StatusOK, remote.Profile{
-		Plugin: name, Naming: remote.NamingPlain,
+		Plugin: name,
 		Search: &remote.ProfileSearch{Default: "lts", Current: d.search[name], Choices: []remote.Choice{{Value: "lts"}}},
 		Variables: []remote.Variable{{
 			Key: "VFOX_MIRROR", Kind: remote.VariableURL, Value: d.variables[name+" VFOX_MIRROR"],

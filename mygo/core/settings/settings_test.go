@@ -38,6 +38,7 @@ func decode(t *testing.T, text string) interface{} {
 func TestSettingsRoundTrip(t *testing.T) {
 	original := settings.AppSettings{
 		Theme: settings.ThemeDark, UseSystemColor: false, SeedColor: 0xFF123456,
+		Motion:           settings.MotionReduced,
 		Language:         settings.LanguageSimplifiedChinese,
 		VfoxExecutable:   "/opt/vfox",
 		ExtraEnvironment: map[string]string{"A": "1"},
@@ -68,7 +69,7 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"lightweight"`, `"webRemote"`, `"searches"`, `"updateMirror"`}
+	keys := []string{`"theme"`, `"useSystemColor"`, `"seedColor"`, `"motion"`, `"language"`, `"extraEnvironment"`, `"railExpanded"`, `"lightweight"`, `"webRemote"`, `"searches"`, `"updateMirror"`}
 	previous := -1
 	for _, key := range keys {
 		index := strings.Index(text, key)
@@ -86,11 +87,12 @@ func TestSettingsWriteTheKeysOfTheSpecificationInOrder(t *testing.T) {
 
 func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 	parsed := settings.SettingsFromJSON(decode(t, `{"theme":"purple","useSystemColor":"yes",`+
-		`"seedColor":"#fff","language":42,"vfoxExecutable":"",`+
+		`"seedColor":"#fff","motion":"wild","language":42,"vfoxExecutable":"",`+
 		`"extraEnvironment":{"A":"1","B":2},"railExpanded":1,"webInterface":"yes","lightweight":1,`+
 		`"webRemote":"on","webPort":"8080","webCertificate":7,"remoteAccess":"yes","future":true}`))
 	if parsed.Theme != settings.ThemeSystem || !parsed.UseSystemColor ||
-		parsed.SeedColor != settings.DefaultSeedColor || parsed.Language != settings.LanguageSystem ||
+		parsed.SeedColor != settings.DefaultSeedColor || parsed.Motion != settings.MotionSystem ||
+		parsed.Language != settings.LanguageSystem ||
 		parsed.VfoxExecutable != "" || !reflect.DeepEqual(parsed.ExtraEnvironment, map[string]string{"A": "1"}) ||
 		parsed.RailExpanded || parsed.Lightweight || parsed.WebRemote ||
 		parsed.WebPort != 0 || parsed.WebCertificate != "" {
@@ -111,6 +113,23 @@ func TestSettingsIgnoreMalformedValuesAndKeepUnknownKeys(t *testing.T) {
 	}
 	if got := settings.SettingsFromJSON(decode(t, `{"seedColor":true}`)); got.SeedColor != settings.DefaultSeedColor {
 		t.Errorf("a boolean is not a colour: %#v", got)
+	}
+}
+
+func TestSettingsKeepHowMuchTheInterfaceMoves(t *testing.T) {
+	for text, want := range map[string]settings.MotionPreference{
+		`{}`:                   settings.MotionSystem,
+		`{"motion":"system"}`:  settings.MotionSystem,
+		`{"motion":"full"}`:    settings.MotionFull,
+		`{"motion":"reduced"}`: settings.MotionReduced,
+		`{"motion":true}`:      settings.MotionSystem,
+	} {
+		if got := settings.SettingsFromJSON(decode(t, text)).Motion; got != want {
+			t.Errorf("%s: got %q, want %q", text, got, want)
+		}
+	}
+	if settings.DefaultSettings().Equal(settings.SettingsFromJSON(decode(t, `{"motion":"full"}`))) {
+		t.Error("settings that differ in motion are not equal")
 	}
 }
 

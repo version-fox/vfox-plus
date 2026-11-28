@@ -54,16 +54,19 @@ func (a *App) availableActions(k kit.Ctx, d *detailState) {
 	known, hasKnown := controller.Profile()
 	menu := []kit.MenuItem{
 		{Label: a.T("availableInstallByName"), Icon: "terminal", OnClick: func() { a.askInstallName(d.name, known, hasKnown, "") }},
-		{Label: a.T("linkDetect"), Icon: "link", OnClick: func() {
+	}
+	// A plugin without the Detect hook cannot find what is installed already.
+	if controller.CanDetect() {
+		menu = append(menu, kit.MenuItem{Label: a.T("linkDetect"), Icon: "link", OnClick: func() {
 			command, err := a.model.Cli.LinkDetect(d.name, true)
 			if err != nil {
 				a.notify(describeError(err))
 				return
 			}
 			a.run(command, nil)
-		}},
-		{Label: a.T("linkManual"), Icon: "folder", OnClick: func() { a.askLinkPath(d.name) }},
+		}})
 	}
+	menu = append(menu, kit.MenuItem{Label: a.T("linkManual"), Icon: "folder", OnClick: func() { a.askLinkPath(d.name) }})
 	mui.Row(k.Context).Gap(gapM).AlignItems(mui.Center).Margin(0, gapL, gapS, gapXL).Children(func() {
 		if hasKnown && known.Search != nil {
 			search := known.Search
@@ -372,62 +375,107 @@ func (a *App) variablesSection(k kit.Ctx, p profile.Profile) {
 	kit.GroupHeader(k, a.T("optionsVariables"), nil)
 	var items []kit.ListItemSpec
 	for _, variable := range p.Variables {
-		value := a.model.PluginVariable(variable.Key)
-		subtitle := a.T("optionsVariableUnset")
-		if value != "" {
-			subtitle = value
-			if preset, ok := variable.PresetFor(value); ok {
-				subtitle = a.text(preset.Name) + " · " + value
-			}
-		}
-		items = append(items, kit.ListItemSpec{
-			ID: "variable:" + variable.Key, Wrap: a.itemWraps(),
-			TitleWidget: func(foreground mui.Color) {
-				mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {
-					kit.Label(k, a.text(variable.Label), kit.Type(kit.BodyLarge), foreground)
-					if variable.Advanced {
-						kit.Tag(k, kit.TagSpec{Label: a.T("optionsVariableAdvanced")})
-					}
-				})
-			},
-			Name: a.text(variable.Label),
-			SubtitleWidget: func(secondary mui.Color) {
-				mui.Column(k.Context).AlignItems(mui.Start).Children(func() {
-					// The name of the variable is one word that has no space to break at, and the value is a few words or an address:
-					// both break where the room ends, at the size of the text of the system.
-					kit.Label(k, variable.Key, kit.Type(kit.BodyMedium), secondary, kit.Breakable())
-					kit.Label(k, subtitle, kit.Type(kit.BodyMedium), secondary, kit.Lines(2), kit.Breakable())
-				})
-			},
-			Trailing: func() {
-				kit.Button(k, kit.ButtonSpec{
-					ID: "change:" + variable.Key, Kind: kit.TonalButton, Label: a.T("optionsVariableChange"),
-					OnClick: func() { a.askVariable(p, variable) },
-				})
-			},
-		})
+		items = append(items, a.variableItem(k, p, variable))
 	}
 	kit.ListGroup(k, items...)
 }
 
+// variableItem is an environment variable of a plugin: a switch for one that is
+// on or off, and otherwise a button that changes it.
+func (a *App) variableItem(k kit.Ctx, p profile.Profile, variable profile.Variable) kit.ListItemSpec {
+	value := a.model.PluginVariable(variable.Key)
+	subtitle := a.T("optionsVariableUnset")
+	if value != "" {
+		subtitle = value
+		if preset, ok := variable.PresetFor(value); ok {
+			subtitle = a.text(preset.Name) + " · " + value
+		}
+	}
+	item := kit.ListItemSpec{
+		ID: "variable:" + variable.Key, Wrap: a.itemWraps(),
+		TitleWidget: func(foreground mui.Color) {
+			mui.Row(k.Context).Wrap().Gap(gapS).Children(func() {
+				kit.Label(k, a.text(variable.Label), kit.Type(kit.BodyLarge), foreground)
+				if variable.Advanced {
+					kit.Tag(k, kit.TagSpec{Label: a.T("optionsVariableAdvanced")})
+				}
+			})
+		},
+		Name: a.text(variable.Label),
+		SubtitleWidget: func(secondary mui.Color) {
+			mui.Column(k.Context).AlignItems(mui.Start).Children(func() {
+				// The name of the variable is one word that has no space to break at, and the value is a few words or an address:
+				// both break where the room ends, at the size of the text of the system.
+				kit.Label(k, variable.Key, kit.Type(kit.BodyMedium), secondary, kit.Breakable())
+				kit.Label(k, subtitle, kit.Type(kit.BodyMedium), secondary, kit.Lines(2), kit.Breakable())
+			})
+		},
+		Trailing: func() {
+			kit.Button(k, kit.ButtonSpec{
+				ID: "change:" + variable.Key, Kind: kit.TonalButton, Label: a.T("optionsVariableChange"),
+				OnClick: func() { a.askVariable(p, variable) },
+			})
+		},
+	}
+	if variable.Kind == profile.VariableToggle {
+		on := value == variable.On
+		toggle := func() {
+			next := variable.On
+			if on {
+				next = variable.Off
+			}
+			a.setVariable(p, variable, next)
+		}
+		// A switch is narrow: it stays at the end of the item.
+		item.Wrap = false
+		item.Trailing = func() {
+			kit.Switch(k, kit.SwitchSpec{ID: "toggle:" + variable.Key, On: on, Label: a.text(variable.Label), OnChange: func(bool) { toggle() }})
+		}
+		item.OnClick = toggle
+	}
+	return item
+}
+
+// setVariable sets a variable of a plugin to a value that it takes, after a
+// question for a value from a profile that the application does not ship.
+func (a *App) setVariable(p profile.Profile, variable profile.Variable, value string) {
+	apply := func() {
+		if err := a.model.SetPluginVariable(p, variable.Key, value); err != nil {
+			a.notify(describeError(err))
+			return
+		}
+		a.notify(a.T("settingsSaved"))
+	}
+	if !variable.NeedsConfirmation(value) {
+		apply()
+		return
+	}
+	a.confirm("variable-confirm", confirmation{
+		Title: a.T("variableConfirmTitle"), Icon: "warning",
+		Body:         a.T("variableConfirmBody", "key", variable.Key, "value", strings.TrimSpace(value)),
+		ConfirmLabel: a.T("variableConfirmAction"), OnConfirm: apply,
+	})
+}
+
 // askVariable sets an environment variable that the plugin reads: a mirror
-// address that is typed or picked from the ones that were checked, or one of the
-// values of a choice.
+// address or a text that is typed or picked from the ones that were checked, or
+// one of the values of a choice.
 func (a *App) askVariable(p profile.Profile, variable profile.Variable) {
 	text, problem := a.model.PluginVariable(variable.Key), ""
 	a.env.ShowDialog("variable", func(k kit.Ctx, closeDialog func()) kit.DialogSpec {
 		cs := k.Colors()
 		submit := func() {
-			err := a.model.SetPluginVariable(p, variable.Key, text)
 			var invalid *profile.ValueError
-			switch {
+			switch err := variable.Validate(text); {
 			case errors.As(err, &invalid) && invalid.Reason == profile.ReasonChoice:
 				problem = a.T("variableInvalidChoice")
+			case errors.As(err, &invalid) && invalid.Reason == profile.ReasonText:
+				problem = a.T("variableInvalidText")
 			case err != nil:
 				problem = a.T("variableInvalidAddress")
 			default:
 				closeDialog()
-				a.notify(a.T("settingsSaved"))
+				a.setVariable(p, variable, text)
 			}
 		}
 		return kit.DialogSpec{
@@ -435,9 +483,13 @@ func (a *App) askVariable(p profile.Profile, variable profile.Variable) {
 			Content: func() {
 				kit.Label(k, a.text(variable.Help), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 				kit.Label(k, variable.Key, kit.Type(kit.LabelMedium), cs.OnSurfaceVariant, kit.Monospace()).Margin(gapS, 0, 0, 0)
-				if variable.Kind == profile.VariableURL {
+				if variable.Kind == profile.VariableURL || variable.Kind == profile.VariableText {
+					label := a.T("variableAddress")
+					if variable.Kind == profile.VariableText {
+						label = a.T("variableValue")
+					}
 					kit.TextField(k, kit.TextFieldSpec{
-						ID: "value", Label: a.T("variableAddress"), Hint: variable.Example, Error: problem, AutoFocus: true, Text: &text,
+						ID: "value", Label: label, Hint: variable.Example, Error: problem, AutoFocus: true, Text: &text,
 						Monospace: true, OnSubmit: func(string) { submit() }, OnChange: func(string) { problem = "" },
 					}).Margin(gapL, 0, 0, 0)
 				} else if problem != "" {

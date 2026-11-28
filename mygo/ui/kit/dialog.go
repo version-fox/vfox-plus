@@ -123,7 +123,7 @@ func (d *dialogEntry) layout(c Ctx) bool {
 		if visible {
 			pose = ui.Pose{}
 		}
-		panel.AnimatePose(pose, motion.DefaultSpatial.Anim())
+		settlePose(c, panel, pose, motion.DefaultSpatial)
 
 		maxWidth := spec.MaxWidth
 		if maxWidth == 0 {

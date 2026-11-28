@@ -94,7 +94,7 @@ func (r *Root) sdkVariables(k kit.Ctx, name string, variables []remote.Variable,
 // too.
 func (r *Root) sdkVariableRow(k kit.Ctx, name string, variable remote.Variable, chinese bool) kit.ListItemSpec {
 	title := variable.Label.In(chinese)
-	return kit.ListItemSpec{
+	item := kit.ListItemSpec{
 		ID:      variable.Key,
 		Name:    title,
 		OnClick: func() { r.sdkOpenVariable(name, variable) },
@@ -123,6 +123,22 @@ func (r *Root) sdkVariableRow(k kit.Ctx, name string, variable remote.Variable, 
 			})
 		},
 	}
+	// A variable that is on or off is a switch.
+	if variable.Kind == remote.VariableToggle {
+		on := variable.Value == variable.On
+		toggle := func() {
+			next := variable.On
+			if on {
+				next = variable.Off
+			}
+			r.sdkChangeVariable(k.Env, name, variable, next)
+		}
+		item.OnClick = toggle
+		item.Trailing = func() {
+			kit.Switch(k, kit.SwitchSpec{ID: "sdkToggle/" + variable.Key, On: on, Label: title, OnChange: func(bool) { toggle() }})
+		}
+	}
+	return item
 }
 
 // sdkVariableValue says what a variable is set to: the name of the preset that holds

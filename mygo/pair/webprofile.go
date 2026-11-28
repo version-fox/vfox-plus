@@ -64,13 +64,20 @@ type presetDTO struct {
 }
 
 type variableDTO struct {
-	Key      string      `json:"key"`
-	Label    textDTO     `json:"label"`
-	Help     textDTO     `json:"help"`
-	Kind     string      `json:"kind"`
-	Presets  []presetDTO `json:"presets"`
-	Example  string      `json:"example,omitempty"`
-	Advanced bool        `json:"advanced,omitempty"`
+	Key     string      `json:"key"`
+	Label   textDTO     `json:"label"`
+	Help    textDTO     `json:"help"`
+	Kind    string      `json:"kind"`
+	Presets []presetDTO `json:"presets"`
+	// On and Off are the values of a toggle; an empty Off takes the variable
+	// away.
+	On       string `json:"on,omitempty"`
+	Off      string `json:"off,omitempty"`
+	Example  string `json:"example,omitempty"`
+	Advanced bool   `json:"advanced,omitempty"`
+	// Unvetted are the values of the profile that the application did not ship:
+	// the page shows one and asks before it sets it.
+	Unvetted []string `json:"unvetted,omitempty"`
 	// Value is what vfox runs with now, empty when the variable is not set.
 	Value string `json:"value"`
 }
@@ -92,18 +99,25 @@ type partsDTO struct {
 	Flavors []string   `json:"flavors,omitempty"`
 }
 
+// capabilitiesDTO is what the plugin can do, by its files.
+type capabilitiesDTO struct {
+	// Detect: the plugin may find installs that are on the machine already, which
+	// the page offers to link.
+	Detect bool `json:"detect"`
+}
+
 type profileDTO struct {
-	Plugin         string         `json:"plugin"`
-	Naming         string         `json:"naming"`
-	Search         *searchDTO     `json:"search,omitempty"`
-	Shorthands     []shorthandDTO `json:"shorthands"`
-	Variables      []variableDTO  `json:"variables"`
-	LegacyFiles    []string       `json:"legacyFiles"`
-	LegacyStrategy bool           `json:"legacyStrategy"`
-	Facets         []facetDTO     `json:"facets"`
-	Guide          textDTO        `json:"guide"`
-	Tips           []textDTO      `json:"tips"`
-	Docs           []linkDTO      `json:"docs"`
+	Plugin         string          `json:"plugin"`
+	Search         *searchDTO      `json:"search,omitempty"`
+	Shorthands     []shorthandDTO  `json:"shorthands"`
+	Variables      []variableDTO   `json:"variables"`
+	LegacyFiles    []string        `json:"legacyFiles"`
+	LegacyStrategy bool            `json:"legacyStrategy"`
+	Facets         []facetDTO      `json:"facets"`
+	Guide          textDTO         `json:"guide"`
+	Tips           []textDTO       `json:"tips"`
+	Docs           []linkDTO       `json:"docs"`
+	Capabilities   capabilitiesDTO `json:"capabilities"`
 	// Installed takes the names of the installed versions apart, by name.
 	Installed map[string]partsDTO `json:"installed,omitempty"`
 }
@@ -129,27 +143,22 @@ func partsOf(p profile.Profile, name string) (partsDTO, bool) {
 	return dto, true
 }
 
-func namingName(n profile.Naming) string {
-	switch n {
-	case profile.NamingJava:
-		return "java"
-	case profile.NamingFlutter:
-		return "flutter"
-	default:
-		return "plain"
-	}
+// profileOf returns the effective profile of the plugin that the details
+// are of (see SdkDetailController.EffectiveProfile), once its files are read.
+// vfox names a plugin that was added under an alias by the alias, so a plugin
+// without a profile under its own name is asked which plugin it is.
+func profileOf(detail *state.SdkDetailController) (profile.Profile, bool) {
+	loadProfileSources(detail)
+	return detail.EffectiveProfile()
 }
 
-// profileOf returns the effective profile of the plugin that the details
-// are of: the curated one when there is one, the inferred one otherwise (see
-// SdkDetailController.EffectiveProfile). vfox names a plugin that was added
-// under an alias by the alias, so a plugin without a profile under its own
-// name is asked which plugin it is.
-func profileOf(detail *state.SdkDetailController) (profile.Profile, bool) {
+// loadProfileSources waits for what the profile of the plugin is looked up
+// with: which plugin it is, when its name says nothing, and its files.
+func loadProfileSources(detail *state.SdkDetailController) {
 	if _, known := detail.Profile(); !known {
 		awaitLoad(detail.Info.EnsureLoaded())
 	}
-	return detail.EffectiveProfile()
+	awaitLoad(detail.Files.EnsureLoaded())
 }
 
 // newProfileDTO describes the profile for the web interface, with the values of
@@ -158,9 +167,9 @@ func profileOf(detail *state.SdkDetailController) (profile.Profile, bool) {
 // calls it when it was added under an alias.
 func newProfileDTO(model *state.AppModel, detail *state.SdkDetailController, p profile.Profile) profileDTO {
 	dto := profileDTO{
-		Plugin: p.Plugin, Naming: namingName(p.Naming), LegacyFiles: orEmpty(p.LegacyFiles), LegacyStrategy: p.LegacyStrategy,
+		Plugin: p.Plugin, LegacyFiles: orEmpty(p.LegacyFiles), LegacyStrategy: p.LegacyStrategy,
 		Guide: textOf(p.Guide), Shorthands: []shorthandDTO{}, Variables: []variableDTO{}, Facets: []facetDTO{},
-		Tips: []textDTO{}, Docs: []linkDTO{},
+		Tips: []textDTO{}, Docs: []linkDTO{}, Capabilities: capabilitiesDTO{Detect: detail.CanDetect()},
 	}
 	if p.Search != nil {
 		search := &searchDTO{
@@ -176,13 +185,10 @@ func newProfileDTO(model *state.AppModel, detail *state.SdkDetailController, p p
 		dto.Shorthands = append(dto.Shorthands, shorthandDTO{Name: shorthand.Name, Meaning: textOf(shorthand.Meaning)})
 	}
 	for _, variable := range p.Variables {
-		kind := "url"
-		if variable.Kind == profile.VariableChoice {
-			kind = "choice"
-		}
 		converted := variableDTO{
-			Key: variable.Key, Label: textOf(variable.Label), Help: textOf(variable.Help), Kind: kind, Example: variable.Example,
-			Advanced: variable.Advanced, Value: model.PluginVariable(variable.Key), Presets: []presetDTO{},
+			Key: variable.Key, Label: textOf(variable.Label), Help: textOf(variable.Help), Kind: variable.Kind.String(),
+			On: variable.On, Off: variable.Off, Example: variable.Example, Advanced: variable.Advanced, Unvetted: variable.Unvetted,
+			Value: model.PluginVariable(variable.Key), Presets: []presetDTO{},
 		}
 		for _, preset := range variable.Presets {
 			converted.Presets = append(converted.Presets, presetDTO{Value: preset.Value, Name: textOf(preset.Name)})

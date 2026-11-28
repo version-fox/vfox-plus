@@ -117,6 +117,29 @@ func TestParseDoctorReport(t *testing.T) {
 	}
 }
 
+func TestAboutTheMachineLeavesOutTheCallerAndWorksOutOKAgain(t *testing.T) {
+	caller := vfox.DoctorFinding{ID: "path.not-activated", Severity: "error"}
+	ignored := vfox.DoctorFinding{ID: "sdk.link-dangling", Severity: "error", Ignored: true}
+	warning := vfox.DoctorFinding{ID: "path.shadowed", Severity: "warn"}
+	got := vfox.DoctorReport{Findings: []vfox.DoctorFinding{caller, ignored, warning}}.AboutTheMachine()
+	if want := []vfox.DoctorFinding{ignored, warning}; !got.OK || !reflect.DeepEqual(got.Findings, want) {
+		t.Errorf("got %#v", got)
+	}
+	dangling := vfox.DoctorFinding{ID: "sdk.link-dangling", Severity: "error"}
+	got = vfox.DoctorReport{Findings: []vfox.DoctorFinding{caller, dangling}}.AboutTheMachine()
+	if got.OK || !reflect.DeepEqual(got.Findings, []vfox.DoctorFinding{dangling}) {
+		t.Errorf("an error that is left and not ignored is not OK: %#v", got)
+	}
+	// Without a finding about the caller, the answer is the one of vfox. An interface lists
+	// the findings, so there is a list even without any.
+	if got := (vfox.DoctorReport{Findings: []vfox.DoctorFinding{warning}}).AboutTheMachine(); got.OK {
+		t.Errorf("got %#v", got)
+	}
+	if got := (vfox.DoctorReport{OK: true}).AboutTheMachine(); !got.OK || got.Findings == nil {
+		t.Errorf("got %#v", got)
+	}
+}
+
 func TestParseVersionDetailJSON(t *testing.T) {
 	detail, ok := vfox.ParseVersionDetailJSON("{\"name\":\"java\",\"version\":\"17-system\",\"installed\":true,\"origin\":\"linked\",\"target\":\"/opt/jdk\",\"home\":\"/tmp/home/.vfox/cache/java/v-17-system/java-17-system\"}")
 	if !ok || detail.Name != "java" || detail.Origin != "linked" || detail.Target != "/opt/jdk" {

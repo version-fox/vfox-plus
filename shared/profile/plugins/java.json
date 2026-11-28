@@ -1,0 +1,774 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "java",
+  "search": [
+    {
+      "when": {
+        "os": [
+          "linux"
+        ],
+        "arch": [
+          "loong64"
+        ]
+      },
+      "label": {
+        "en": "Distribution",
+        "zh": "发行版"
+      },
+      "default": "loongnix",
+      "choices": [
+        {
+          "value": "loongnix",
+          "aliases": [
+            "all"
+          ],
+          "name": {
+            "en": "Loongnix JDKs",
+            "zh": "龙芯 Loongnix JDK"
+          },
+          "maker": {
+            "en": "Both ABIs of Loongson's archive",
+            "zh": "龙芯归档的两种 ABI"
+          },
+          "popular": true,
+          "everything": true
+        },
+        {
+          "value": "lnxabi1",
+          "aliases": [
+            "loongnix_abi1"
+          ],
+          "name": "Loongnix ABI1",
+          "maker": {
+            "en": "Linux 4.19 UAPI: Loongnix 20, Loongnix Server 8.4",
+            "zh": "Linux 4.19 UAPI：Loongnix 20、Loongnix Server 8.4"
+          },
+          "popular": true
+        },
+        {
+          "value": "lnxabi2",
+          "aliases": [
+            "loongnix_abi2"
+          ],
+          "name": "Loongnix ABI2",
+          "maker": {
+            "en": "Linux 5.10 UAPI: Debian 12, openEuler",
+            "zh": "Linux 5.10 UAPI：Debian 12、openEuler"
+          },
+          "popular": true
+        }
+      ]
+    },
+    {
+      "label": {
+        "en": "Distribution",
+        "zh": "发行版"
+      },
+      "default": "open",
+      "choices": [
+        {
+          "value": "open",
+          "aliases": [
+            "openjdk"
+          ],
+          "name": "OpenJDK",
+          "maker": {
+            "en": "Builds of jdk.java.net, the default",
+            "zh": "jdk.java.net 上的构建，默认"
+          },
+          "popular": true
+        },
+        {
+          "value": "tem",
+          "aliases": [
+            "temurin"
+          ],
+          "name": "Temurin",
+          "maker": "Eclipse Adoptium",
+          "popular": true
+        },
+        {
+          "value": "zulu",
+          "aliases": [
+            "zulu"
+          ],
+          "name": "Zulu",
+          "maker": "Azul",
+          "popular": true
+        },
+        {
+          "value": "librca",
+          "aliases": [
+            "liberica"
+          ],
+          "name": "Liberica",
+          "maker": "BellSoft",
+          "popular": true
+        },
+        {
+          "value": "amzn",
+          "aliases": [
+            "corretto"
+          ],
+          "name": "Corretto",
+          "maker": {
+            "en": "Amazon",
+            "zh": "亚马逊"
+          },
+          "popular": true
+        },
+        {
+          "value": "ms",
+          "aliases": [
+            "microsoft"
+          ],
+          "name": "Microsoft Build of OpenJDK",
+          "maker": {
+            "en": "Microsoft",
+            "zh": "微软"
+          },
+          "popular": true
+        },
+        {
+          "value": "oracle",
+          "aliases": [
+            "oracle"
+          ],
+          "name": "Oracle JDK",
+          "maker": "Oracle",
+          "popular": true
+        },
+        {
+          "value": "graal",
+          "aliases": [
+            "graalvm"
+          ],
+          "name": "Oracle GraalVM",
+          "maker": "Oracle",
+          "popular": true
+        },
+        {
+          "value": "all",
+          "name": {
+            "en": "All distributions",
+            "zh": "全部发行版"
+          },
+          "maker": {
+            "en": "Every distribution at once, about 2,500 versions",
+            "zh": "一次列出所有发行版，约 2500 个版本"
+          },
+          "popular": true,
+          "everything": true
+        },
+        {
+          "value": "adpt",
+          "aliases": [
+            "aoj"
+          ],
+          "name": {
+            "en": "AdoptOpenJDK with HotSpot",
+            "zh": "AdoptOpenJDK（HotSpot）"
+          },
+          "maker": "AdoptOpenJDK"
+        },
+        {
+          "value": "adptj9",
+          "aliases": [
+            "aoj_openj9"
+          ],
+          "name": {
+            "en": "AdoptOpenJDK with OpenJ9",
+            "zh": "AdoptOpenJDK（OpenJ9）"
+          },
+          "maker": "AdoptOpenJDK"
+        },
+        {
+          "value": "albba",
+          "aliases": [
+            "dragonwell"
+          ],
+          "name": "Dragonwell",
+          "maker": {
+            "en": "Alibaba",
+            "zh": "阿里巴巴"
+          }
+        },
+        {
+          "value": "bsg",
+          "aliases": [
+            "bisheng"
+          ],
+          "name": {
+            "en": "BiSheng JDK",
+            "zh": "毕昇 JDK"
+          },
+          "maker": {
+            "en": "Huawei",
+            "zh": "华为"
+          }
+        },
+        {
+          "value": "eliya",
+          "aliases": [
+            "eliya"
+          ],
+          "name": "Eliya JDK",
+          "maker": "Asymm Systems"
+        },
+        {
+          "value": "gln",
+          "aliases": [
+            "gluon_graalvm"
+          ],
+          "name": "Gluon GraalVM",
+          "maker": "Gluon"
+        },
+        {
+          "value": "graalce",
+          "aliases": [
+            "graalvm_community"
+          ],
+          "name": {
+            "en": "GraalVM Community Edition",
+            "zh": "GraalVM 社区版"
+          },
+          "maker": {
+            "en": "GraalVM project",
+            "zh": "GraalVM 项目"
+          }
+        },
+        {
+          "value": "grl8",
+          "aliases": [
+            "graalvm_ce8"
+          ],
+          "name": {
+            "en": "GraalVM CE for JDK 8",
+            "zh": "GraalVM CE（JDK 8）"
+          },
+          "maker": {
+            "en": "GraalVM project",
+            "zh": "GraalVM 项目"
+          }
+        },
+        {
+          "value": "grl11",
+          "aliases": [
+            "graalvm_ce11"
+          ],
+          "name": {
+            "en": "GraalVM CE for JDK 11",
+            "zh": "GraalVM CE（JDK 11）"
+          },
+          "maker": {
+            "en": "GraalVM project",
+            "zh": "GraalVM 项目"
+          }
+        },
+        {
+          "value": "grl16",
+          "aliases": [
+            "graalvm_ce16"
+          ],
+          "name": {
+            "en": "GraalVM CE for JDK 16",
+            "zh": "GraalVM CE（JDK 16）"
+          },
+          "maker": {
+            "en": "GraalVM project",
+            "zh": "GraalVM 项目"
+          }
+        },
+        {
+          "value": "grl17",
+          "aliases": [
+            "graalvm_ce17"
+          ],
+          "name": {
+            "en": "GraalVM CE for JDK 17",
+            "zh": "GraalVM CE（JDK 17）"
+          },
+          "maker": {
+            "en": "GraalVM project",
+            "zh": "GraalVM 项目"
+          }
+        },
+        {
+          "value": "grl19",
+          "aliases": [
+            "graalvm_ce19"
+          ],
+          "name": {
+            "en": "GraalVM CE for JDK 19",
+            "zh": "GraalVM CE（JDK 19）"
+          },
+          "maker": {
+            "en": "GraalVM project",
+            "zh": "GraalVM 项目"
+          }
+        },
+        {
+          "value": "jb",
+          "aliases": [
+            "jetbrains"
+          ],
+          "name": "JetBrains Runtime",
+          "maker": "JetBrains"
+        },
+        {
+          "value": "kona",
+          "aliases": [
+            "kona"
+          ],
+          "name": "Kona JDK",
+          "maker": {
+            "en": "Tencent",
+            "zh": "腾讯"
+          }
+        },
+        {
+          "value": "nik",
+          "aliases": [
+            "liberica_native"
+          ],
+          "name": "Liberica Native Image Kit",
+          "maker": "BellSoft"
+        },
+        {
+          "value": "mandrel",
+          "aliases": [
+            "mandrel"
+          ],
+          "name": "Mandrel",
+          "maker": "Red Hat"
+        },
+        {
+          "value": "ojdkbld",
+          "aliases": [
+            "ojdk_build"
+          ],
+          "name": "OJDKBuild",
+          "maker": {
+            "en": "Community",
+            "zh": "社区"
+          }
+        },
+        {
+          "value": "opnlgc",
+          "aliases": [
+            "openlogic"
+          ],
+          "name": "OpenLogic OpenJDK",
+          "maker": "OpenLogic"
+        },
+        {
+          "value": "rdht",
+          "aliases": [
+            "redhat"
+          ],
+          "name": "Red Hat build of OpenJDK",
+          "maker": "Red Hat"
+        },
+        {
+          "value": "sapmchn",
+          "aliases": [
+            "sap_machine"
+          ],
+          "name": "SapMachine",
+          "maker": "SAP"
+        },
+        {
+          "value": "sem",
+          "aliases": [
+            "semeru"
+          ],
+          "name": {
+            "en": "Semeru Runtimes, open edition",
+            "zh": "Semeru Runtimes 开放版"
+          },
+          "maker": "IBM"
+        },
+        {
+          "value": "semcrt",
+          "aliases": [
+            "semeru_certified"
+          ],
+          "name": {
+            "en": "Semeru Runtimes, certified edition",
+            "zh": "Semeru Runtimes 认证版"
+          },
+          "maker": "IBM"
+        },
+        {
+          "value": "trava",
+          "aliases": [
+            "trava"
+          ],
+          "name": "TravaOpenJDK",
+          "maker": {
+            "en": "Community",
+            "zh": "社区"
+          }
+        }
+      ]
+    }
+  ],
+  "naming": {
+    "sources": [
+      {
+        "value": "open",
+        "name": "OpenJDK"
+      },
+      {
+        "value": "tem",
+        "name": "Temurin"
+      },
+      {
+        "value": "zulu",
+        "name": "Zulu"
+      },
+      {
+        "value": "librca",
+        "name": "Liberica"
+      },
+      {
+        "value": "amzn",
+        "name": "Corretto"
+      },
+      {
+        "value": "ms",
+        "name": "Microsoft Build of OpenJDK"
+      },
+      {
+        "value": "oracle",
+        "name": "Oracle JDK"
+      },
+      {
+        "value": "graal",
+        "name": "Oracle GraalVM"
+      },
+      {
+        "value": "adpt",
+        "name": {
+          "en": "AdoptOpenJDK with HotSpot",
+          "zh": "AdoptOpenJDK（HotSpot）"
+        }
+      },
+      {
+        "value": "adptj9",
+        "name": {
+          "en": "AdoptOpenJDK with OpenJ9",
+          "zh": "AdoptOpenJDK（OpenJ9）"
+        }
+      },
+      {
+        "value": "albba",
+        "name": "Dragonwell"
+      },
+      {
+        "value": "bsg",
+        "name": {
+          "en": "BiSheng JDK",
+          "zh": "毕昇 JDK"
+        }
+      },
+      {
+        "value": "eliya",
+        "name": "Eliya JDK"
+      },
+      {
+        "value": "gln",
+        "name": "Gluon GraalVM"
+      },
+      {
+        "value": "graalce",
+        "name": {
+          "en": "GraalVM Community Edition",
+          "zh": "GraalVM 社区版"
+        }
+      },
+      {
+        "value": "grl8",
+        "name": {
+          "en": "GraalVM CE for JDK 8",
+          "zh": "GraalVM CE（JDK 8）"
+        }
+      },
+      {
+        "value": "grl11",
+        "name": {
+          "en": "GraalVM CE for JDK 11",
+          "zh": "GraalVM CE（JDK 11）"
+        }
+      },
+      {
+        "value": "grl16",
+        "name": {
+          "en": "GraalVM CE for JDK 16",
+          "zh": "GraalVM CE（JDK 16）"
+        }
+      },
+      {
+        "value": "grl17",
+        "name": {
+          "en": "GraalVM CE for JDK 17",
+          "zh": "GraalVM CE（JDK 17）"
+        }
+      },
+      {
+        "value": "grl19",
+        "name": {
+          "en": "GraalVM CE for JDK 19",
+          "zh": "GraalVM CE（JDK 19）"
+        }
+      },
+      {
+        "value": "jb",
+        "name": "JetBrains Runtime"
+      },
+      {
+        "value": "kona",
+        "name": "Kona JDK"
+      },
+      {
+        "value": "nik",
+        "name": "Liberica Native Image Kit"
+      },
+      {
+        "value": "mandrel",
+        "name": "Mandrel"
+      },
+      {
+        "value": "ojdkbld",
+        "name": "OJDKBuild"
+      },
+      {
+        "value": "opnlgc",
+        "name": "OpenLogic OpenJDK"
+      },
+      {
+        "value": "rdht",
+        "name": "Red Hat build of OpenJDK"
+      },
+      {
+        "value": "sapmchn",
+        "name": "SapMachine"
+      },
+      {
+        "value": "sem",
+        "name": {
+          "en": "Semeru Runtimes, open edition",
+          "zh": "Semeru Runtimes 开放版"
+        }
+      },
+      {
+        "value": "semcrt",
+        "name": {
+          "en": "Semeru Runtimes, certified edition",
+          "zh": "Semeru Runtimes 认证版"
+        }
+      },
+      {
+        "value": "trava",
+        "name": "TravaOpenJDK"
+      },
+      {
+        "value": "loongnix",
+        "name": {
+          "en": "Loongnix JDKs",
+          "zh": "龙芯 Loongnix JDK"
+        }
+      },
+      {
+        "value": "lnxabi1",
+        "name": "Loongnix ABI1"
+      },
+      {
+        "value": "lnxabi2",
+        "name": "Loongnix ABI2"
+      }
+    ],
+    "defaultSource": "open",
+    "rules": [
+      {
+        "pattern": "^(?<version>.*?)(?:-(?<source>{sources}))?(?:-(?<flavor>fx))?$",
+        "labels": {
+          "fx": "JavaFX"
+        }
+      }
+    ]
+  },
+  "shorthands": [
+    {
+      "name": "21-tem",
+      "meaning": {
+        "en": "The newest Temurin 21",
+        "zh": "最新的 Temurin 21"
+      }
+    },
+    {
+      "name": "21.0.8-tem",
+      "meaning": {
+        "en": "The newest build of Temurin 21.0.8",
+        "zh": "Temurin 21.0.8 的最新构建"
+      }
+    },
+    {
+      "name": "temurin-21",
+      "meaning": {
+        "en": "The same as 21-tem, with the distribution first",
+        "zh": "与 21-tem 相同，发行版写在前面"
+      }
+    },
+    {
+      "name": "21-zulu-fx",
+      "meaning": {
+        "en": "The newest Zulu 21 with JavaFX",
+        "zh": "带 JavaFX 的最新 Zulu 21"
+      }
+    },
+    {
+      "name": "28.ea-open",
+      "meaning": {
+        "en": "The newest early-access build of OpenJDK 28; searches list releases only",
+        "zh": "OpenJDK 28 的最新抢先体验版；搜索只列出正式版"
+      }
+    },
+    {
+      "name": "21",
+      "meaning": {
+        "en": "OpenJDK from jdk.java.net, which stops at 21.0.2",
+        "zh": "jdk.java.net 上的 OpenJDK，21 只到 21.0.2"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "key": "VFOX_JAVA_GITHUB_MIRROR",
+      "label": {
+        "en": "GitHub mirror",
+        "zh": "GitHub 镜像"
+      },
+      "help": {
+        "en": "Most distributions download from GitHub. A mirror address goes in front of the GitHub address, so it must take the full address after its own, as gh-proxy does.",
+        "zh": "大多数发行版从 GitHub 下载。镜像地址会加在 GitHub 地址前面，所以镜像必须能接受完整的 GitHub 地址，如 gh-proxy。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://gh-proxy.org/",
+          "name": "gh-proxy"
+        }
+      ],
+      "example": "https://gh-proxy.org/"
+    }
+  ],
+  "legacyFiles": [
+    ".sdkmanrc"
+  ],
+  "facets": [
+    {
+      "id": "support",
+      "label": {
+        "en": "Support",
+        "zh": "支持"
+      },
+      "kind": "note",
+      "values": [
+        "LTS"
+      ]
+    },
+    {
+      "id": "flavor",
+      "label": {
+        "en": "Flavor",
+        "zh": "类型"
+      },
+      "kind": "note",
+      "values": [
+        "JavaFX"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "Write <version>-<distribution>, such as 21.0.8-tem: the short name (tem) or the long one (temurin), and -fx after it for JavaFX. Without a distribution it is OpenJDK from jdk.java.net.",
+    "zh": "写成 <版本>-<发行版>，如 21.0.8-tem：发行版用简称（tem）或全称（temurin），末尾加 -fx 表示带 JavaFX。不写发行版时是 jdk.java.net 的 OpenJDK。"
+  },
+  "tips": [
+    {
+      "en": "OpenJDK from jdk.java.net keeps only the newest releases: name a distribution for an older one.",
+      "zh": "jdk.java.net 的 OpenJDK 只保留最新的版本：要装较旧的版本，请写上发行版。"
+    },
+    {
+      "en": "Set VFOX_JAVA_JDKS_LINKS before installing to expose the JDK to Gradle and IntelliJ IDEA in ~/.jdks.",
+      "zh": "安装前设置 VFOX_JAVA_JDKS_LINKS，可以把 JDK 暴露给 Gradle 与 IntelliJ IDEA（~/.jdks）。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Distributions",
+        "zh": "发行版"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/distributions.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/distributions.md"
+      }
+    },
+    {
+      "title": "JavaFX",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/javafx.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/javafx.md"
+      }
+    },
+    {
+      "title": ".sdkmanrc",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/sdkmanrc.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/sdkmanrc.md"
+      }
+    },
+    {
+      "title": {
+        "en": "GitHub mirror",
+        "zh": "GitHub 镜像"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/mirror.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/mirror.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Platforms",
+        "zh": "平台"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/platforms.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/platforms.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-java/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-java/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    }
+  ]
+}

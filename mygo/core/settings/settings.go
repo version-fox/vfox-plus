@@ -38,6 +38,20 @@ const (
 	ThemeDark   ThemePreference = "dark"
 )
 
+// MotionPreference is how much the interface moves; System follows the
+// desktop, which may ask for less motion.
+type MotionPreference string
+
+// The motion preferences.
+const (
+	// MotionSystem moves unless the desktop asks for less motion.
+	MotionSystem MotionPreference = "system"
+	// MotionFull moves whatever the desktop asks.
+	MotionFull MotionPreference = "full"
+	// MotionReduced does not move, which takes the least memory.
+	MotionReduced MotionPreference = "reduced"
+)
+
 // LanguagePreference is the user's language choice; System follows the
 // desktop locale.
 type LanguagePreference string
@@ -74,6 +88,8 @@ type AppSettings struct {
 	UseSystemColor bool
 	// ARGB seed of the colour scheme when UseSystemColor is off.
 	SeedColor uint32
+	// How much the interface moves.
+	Motion MotionPreference
 	// The user interface language.
 	Language LanguagePreference
 	// Path of the vfox executable chosen by the user, or empty to detect it.
@@ -165,6 +181,7 @@ func DefaultSettings() AppSettings {
 		Theme:            ThemeSystem,
 		UseSystemColor:   true,
 		SeedColor:        DefaultSeedColor,
+		Motion:           MotionSystem,
 		Language:         LanguageSystem,
 		ExtraEnvironment: map[string]string{},
 		Searches:         map[string]string{},
@@ -176,7 +193,7 @@ func DefaultSettings() AppSettings {
 // retired: the application shows no web interface on this computer any more. They
 // are read only so that they are not kept as unknown keys, and they are never written.
 var knownKeys = map[string]bool{
-	"theme": true, "useSystemColor": true, "seedColor": true, "language": true,
+	"theme": true, "useSystemColor": true, "seedColor": true, "motion": true, "language": true,
 	"vfoxExecutable": true, "extraEnvironment": true, "railExpanded": true,
 	"webInterface": true, "lightweight": true, "webRemote": true, "webPort": true,
 	"webCertificate": true, "webKey": true, "webPublicAddress": true,
@@ -214,6 +231,12 @@ func SettingsFromJSON(data interface{}) AppSettings {
 	// JSON numbers decode as float64; a boolean is not a colour.
 	if seed, ok := object["seedColor"].(float64); ok && seed == float64(uint32(seed)) && seed >= 0 {
 		settings.SeedColor = uint32(seed)
+	}
+	if motion, ok := object["motion"].(string); ok {
+		switch MotionPreference(motion) {
+		case MotionSystem, MotionFull, MotionReduced:
+			settings.Motion = MotionPreference(motion)
+		}
 	}
 	if language, ok := object["language"].(string); ok {
 		switch LanguagePreference(language) {
@@ -288,6 +311,7 @@ func settingsJSON(settings AppSettings) string {
 	fmt.Fprintf(&out, "%q:%q,", "theme", string(settings.Theme))
 	fmt.Fprintf(&out, "%q:%v,", "useSystemColor", settings.UseSystemColor)
 	fmt.Fprintf(&out, "%q:%d,", "seedColor", settings.SeedColor)
+	fmt.Fprintf(&out, "%q:%q,", "motion", string(settings.Motion))
 	fmt.Fprintf(&out, "%q:%q", "language", string(settings.Language))
 	if settings.VfoxExecutable != "" {
 		quoted, _ := json.Marshal(settings.VfoxExecutable)
@@ -351,7 +375,7 @@ func (s AppSettings) MarshalJSON() ([]byte, error) {
 // value. The unknown keys compare by their JSON encoding.
 func (s AppSettings) Equal(other AppSettings) bool {
 	if s.Theme != other.Theme || s.UseSystemColor != other.UseSystemColor ||
-		s.SeedColor != other.SeedColor || s.Language != other.Language ||
+		s.SeedColor != other.SeedColor || s.Motion != other.Motion || s.Language != other.Language ||
 		s.VfoxExecutable != other.VfoxExecutable || s.RailExpanded != other.RailExpanded ||
 		s.Lightweight != other.Lightweight ||
 		s.WebRemote != other.WebRemote || s.EffectiveWebPort() != other.EffectiveWebPort() ||

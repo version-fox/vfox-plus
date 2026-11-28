@@ -26,21 +26,20 @@ import (
 	"github.com/version-fox/vfox-plus/mygo/ui/kit"
 )
 
-// homeCommand is the line that puts vfox in the shell. It is a command, not a text of
-// the interface, so it is not translated.
-const homeCommand = `eval "$(vfox activate bash)"`
-
 // homeCopiedFor is how long the copy button shows that the command was copied.
 const homeCopiedFor = 1200 * time.Millisecond
 
-// homeState is what the home tab keeps between frames: when the command was copied.
+// homeState is what the home tab keeps between frames: the shell the person chose, and
+// the command that was copied and when.
 type homeState struct {
-	copied time.Time
+	shell   string
+	command string
+	copied  time.Time
 }
 
 // homeTab is the home tab. It shows the version of vfox with a refresh, the SDKs that
-// are in use, the health of vfox and of the SDKs, and the line that puts vfox in the
-// shell. Each part reads its resource without waiting; the reads load what they need.
+// are in use, the health of vfox and of the SDKs, and how a terminal activates vfox.
+// Each part reads its resource without waiting; the reads load what they need.
 func (r *Root) homeTab(k kit.Ctx) {
 	inventory := r.service.Inventory()
 	column := ui.Column(k.Context).Fill()
@@ -51,7 +50,7 @@ func (r *Root) homeTab(k kit.Ctx) {
 			ui.Column(k.Context).Padding(8, 16, 24, 16).Gap(16).Children(func() {
 				r.homeActive(k, inventory)
 				r.homeHealth(k)
-				r.homeShellCard(k, state)
+				r.homeShellCard(k, inventory, state)
 			})
 		})
 	})
@@ -131,39 +130,106 @@ func (r *Root) homeActive(k kit.Ctx, inventory app.Resource[remote.Inventory]) {
 	kit.ListGroup(k, items...)
 }
 
-// homeShellCard is the card with the line that puts vfox in the shell, and the button
-// that copies it. The button shows a check mark for a moment after the copy.
-func (r *Root) homeShellCard(k kit.Ctx, state *homeState) {
+// homeActivation is the activation of the chosen shell, or the first one, which is the
+// shell of the person at the computer.
+func homeActivation(activations []remote.Activation, shell string) remote.Activation {
+	for _, activation := range activations {
+		if activation.Shell == shell {
+			return activation
+		}
+	}
+	return activations[0]
+}
+
+// homeInstruction says what to do with the command of an activation.
+func homeInstruction(activation remote.Activation) string {
+	switch activation.Kind {
+	case remote.ActivationOnce:
+		return strings.ReplaceAll(i18n.Text("shellOnce"), "{shell}", activation.Name)
+	case remote.ActivationScript:
+		return i18n.Text("shellScript")
+	}
+	return strings.ReplaceAll(i18n.Text("shellStartup"), "{file}", activation.File)
+}
+
+// homeShellCard says how a terminal of the computer comes to use the versions that vfox
+// selects: the shells of its system, what to do for the chosen one, and the command with
+// the button that copies it. The button shows a check mark for a moment after the copy.
+// There is no card for a computer that says nothing about its shells.
+func (r *Root) homeShellCard(k kit.Ctx, inventory app.Resource[remote.Inventory], state *homeState) {
+	value, loaded := inventory.Value()
+	if !loaded || len(value.Vfox.Activations) == 0 {
+		return
+	}
 	cs := k.Colors()
 	services := k.Services()
-	copied := !state.copied.IsZero() && time.Since(state.copied) < homeCopiedFor
-	icon, tooltip := "copy", i18n.Text("copyCommand")
+	activations := value.Vfox.Activations
+	chosen := homeActivation(activations, state.shell)
+	shells := make([]kit.Choice, len(activations))
+	for i, activation := range activations {
+		shells[i] = kit.Choice{Value: activation.Shell, Label: activation.Name}
+	}
+	copied := state.command == chosen.Command && time.Since(state.copied) < homeCopiedFor
+	icon := "copy"
 	if copied {
 		icon = "check"
 	}
 	kit.Card(k, kit.CardSpec{
-		ID:      "shellCommand",
-		Color:   cs.SurfaceContainerHigh,
-		Radius:  16,
+		ID:      "shell",
+		Color:   cs.SurfaceContainerHighest,
+		Radius:  kit.CornerLarge,
 		Content: cs.OnSurface,
-		Name:    i18n.Text("homeShellHint"),
+		Name:    i18n.Text("shellTitle"),
 		Children: func() {
-			ui.Column(k.Context).Padding(16).Gap(8).Children(func() {
-				kit.Label(k, i18n.Text("homeShellHint"), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
-				ui.Row(k.Context).Gap(8).Children(func() {
-					kit.Label(k, homeCommand, kit.Type(kit.BodyLarge), cs.OnSurface, kit.Monospace(), kit.Breakable(), kit.Selectable()).Grow(1).Shrink(1)
-					kit.IconButton(k, kit.IconButtonSpec{
-						ID:      "copyCommand",
-						Icon:    icon,
-						Tooltip: tooltip,
-						OnClick: func() {
-							services.WriteClipboard(homeCommand)
-							state.copied = time.Now()
-							// The window is drawn again when the mark goes back to a copy.
-							time.AfterFunc(homeCopiedFor, services.Invalidate)
-						},
-					})
+			ui.Column(k.Context).Padding(16).Gap(12).Children(func() {
+				ui.Row(k.Context).Gap(12).Children(func() {
+					kit.Icon(k, "terminal", 24, cs.Primary, 0)
+					kit.Label(k, i18n.Text("shellTitle"), kit.Emph(kit.TitleMedium), cs.OnSurface, kit.Heading()).Grow(1).Shrink(1)
 				})
+				ui.Row(k.Context).Children(func() {
+					kit.Dropdown(k, kit.DropdownSpec{
+						ID:       "activationShell",
+						Value:    chosen.Shell,
+						Choices:  shells,
+						Color:    cs.SurfaceContainerLowest,
+						OnSelect: func(shell string) { state.shell = shell },
+					}).Shrink(1)
+				})
+				kit.Label(k, homeInstruction(chosen), kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Breakable())
+				kit.Card(k, kit.CardSpec{
+					ID:      "command",
+					Color:   cs.SurfaceContainerLowest,
+					Radius:  kit.CornerMedium,
+					Content: cs.OnSurface,
+					Children: func() {
+						ui.Row(k.Context).Padding(4, 4, 4, 16).Gap(8).Children(func() {
+							kit.Label(k, chosen.Command, kit.Type(kit.BodyMedium), cs.OnSurface, kit.Monospace(), kit.Breakable(), kit.Selectable()).
+								Grow(1).Shrink(1)
+							kit.IconButton(k, kit.IconButtonSpec{
+								ID:      "copyCommand",
+								Icon:    icon,
+								Tooltip: i18n.Text("copyCommand"),
+								OnClick: func() {
+									services.WriteClipboard(chosen.Command)
+									state.command, state.copied = chosen.Command, time.Now()
+									// The window is drawn again when the mark goes back to a copy.
+									time.AfterFunc(homeCopiedFor, services.Invalidate)
+								},
+							})
+						})
+					},
+				})
+				if chosen.Kind == remote.ActivationScript {
+					ui.Row(k.Context).Children(func() {
+						kit.Button(k, kit.ButtonSpec{
+							ID:      "activationScript",
+							Kind:    kit.TextButton,
+							Label:   i18n.Text("shellGetScript"),
+							Icon:    "openInNew",
+							OnClick: func() { r.sdkOpenLink(services, chosen.URL) },
+						})
+					})
+				}
 			})
 		},
 	})

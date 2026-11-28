@@ -49,10 +49,10 @@ export const state = {
   langMode: "system" as string,
 };
 
+// setLive notes whether the events of the application arrive; while they do not,
+// the page says that it reconnects.
 export function setLive(v: boolean): void {
   state.live = v;
-  const live = document.getElementById("live");
-  if (live) live.className = "live" + (v ? " on" : "");
-  const text = document.getElementById("liveText");
-  if (text) text.textContent = v ? "live" : "…";
+  const offline = document.getElementById("offline");
+  if (offline) offline.hidden = v;
 }

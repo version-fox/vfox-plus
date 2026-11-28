@@ -107,8 +107,8 @@ tab 与换行外的控制字符写成 `\x` 加两位小写十六进制（回车�
 还有架构后缀与 OpenHarmony 构建）。它们用 vfox-java 0.6.5、vfox-flutter 0.2.5 与 vfox-nodejs 0.5.4 捕获，`core/profile` 的
 档案据此测试：`search-java-all` 里每个版本名带的简称，档案都认识。
 
-`doctor`、`doctor-json`（无安装时的 `vfox doctor [--json]`）、`alias-list`（无别名）与 `info-json`
-（`vfox info --json nodejs`）覆盖 vfox 1.1.0 新增只读命令。`vfox list` 带 `(linked → …)` 与 `[alias: …]` 后缀时解析只取版本号。
+`doctor`、`doctor-json`（无安装时、在已激活的 shell 里的 `vfox doctor [--json]`，由 `__VFOX_SHELL` 表明）、`alias-list`（无别名）与 `info-json`
+（`vfox info --json nodejs`）覆盖 vfox 1.1.0 新增只读命令。`doctor-json-not-activated` 是在未激活的 shell 里（即应用运行 vfox 的方式）的 `vfox doctor --json`：它发现 `path.not-activated` 并以 1 退出；`__VFOX_SHELL` 为空时假 vfox 用它回答。`vfox list` 带 `(linked → …)` 与 `[alias: …]` 后缀时解析只取版本号。
 
 它们的版本是伪造的，和 `list` 里的 Node.js、Maven 一样：工具为每个版本建一个目录，不下载任何东西。
 `list-profiles` 与 `current-profiles` 是一台装了 Java（正在用 21.0.12.1+1-tem，另有 25.0.4+9-librca-fx 与

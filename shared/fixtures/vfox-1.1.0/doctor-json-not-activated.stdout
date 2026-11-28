@@ -1,0 +1,14 @@
+{
+  "ok": false,
+  "findings": [
+    {
+      "id": "path.not-activated",
+      "severity": "error",
+      "message": "vfox is not activated in this shell, so version changes do not reach it.",
+      "hints": [
+        "Add the activation line for your shell to its startup file, for example: eval \\"$(vfox activate bash)\\"",
+        "See https://vfox.dev/guides/quick-start.html"
+      ]
+    }
+  ]
+}

@@ -15,10 +15,12 @@
  */
 
 import { api, copyText } from "./api";
-import type { Inventory } from "./api";
+import type { Activation, Inventory } from "./api";
 import { avatar, el, esc, icon } from "./dom";
 import { t } from "./i18n";
+import { webAddress } from "./links";
 import { refresh } from "./main";
+import { activationText, chosenActivation } from "./shell";
 import { runTask } from "./tasks";
 
 // ---------------- home ----------------
@@ -50,6 +52,36 @@ export function renderHome(inv: Inventory): void {
         (location.hash = "#/sdk/" + encodeURIComponent((b as HTMLButtonElement).dataset.sdk || ""))),
   );
   renderDoctor();
+  renderShell(inv.vfox.activations || []);
+}
+
+// ---------------- the terminal ----------------
+// The shell that the person chose; empty is the first one, which is theirs.
+let chosenShell = "";
+let activations: Activation[] = [];
+
+function renderShell(list: Activation[]): void {
+  activations = list;
+  const card = el("shellCard");
+  const chosen = chosenActivation(list, chosenShell);
+  card.hidden = !chosen;
+  if (!chosen) return;
+  const seg = el("shellSeg");
+  const shells = list.map((a) => a.shell).join();
+  if (seg.dataset.shells !== shells) {
+    seg.dataset.shells = shells;
+    seg.innerHTML = list
+      .map((a) => '<button type="button" data-shell="' + esc(a.shell) + '">' + esc(a.name) + "</button>")
+      .join("");
+  }
+  seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.shell === chosen.shell)));
+  el("shellBody").textContent = activationText(chosen);
+  el("shellCmd").textContent = chosen.command;
+  const script = el<HTMLAnchorElement>("shellScript");
+  const address = chosen.kind === "script" && chosen.url ? webAddress(chosen.url) : null;
+  script.hidden = !address;
+  if (address) script.href = address;
+  else script.removeAttribute("href");
 }
 
 async function renderDoctor(): Promise<void> {
@@ -104,6 +136,12 @@ async function renderDoctor(): Promise<void> {
 }
 
 export function initHome(): void {
+  el("shellSeg").onclick = (event) => {
+    const shell = (event.target as HTMLElement).closest("button")?.dataset.shell;
+    if (!shell) return;
+    chosenShell = shell;
+    renderShell(activations);
+  };
   el("homeRefresh").onclick = () => {
     const spin = el("homeRefresh").querySelector(".ic");
     spin?.classList.add("spin");

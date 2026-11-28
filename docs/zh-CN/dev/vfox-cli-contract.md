@@ -232,7 +232,9 @@ vfox 1.1.0 的键：
 
 ### 健康、别名与链接版本
 
-`vfox doctor [--json] [<sdk>[@<version>]]` 检查问题；`--json` 输出 `{"ok", "findings"}`，仅未忽略的 error 才 exit 1。`--adopt` 记录旧安装以便后查漂移。夹具：`doctor`、`doctor-json`。
+`vfox doctor [--json] [<sdk>[@<version>]]` 检查问题；`--json` 输出 `{"ok", "findings"}`，仅未忽略的 error 才以 1 退出，报告照样写在标准输出。所以应用在退出码为 0 或 1 时都读取报告；其他退出码，或退出码 1 却没有报告，才算失败。`--adopt` 记录旧安装以便后查漂移。
+
+应用在未激活的 shell 里运行 vfox（见[环境](#环境)），所以 vfox 总会发现 `path.not-activated`：Linux、macOS 上是 `error` 且退出码为 1，Windows 上是 `warn`。它说的是发问的进程，而不是用户的终端（主页另有激活命令给用户看），所以应用去掉它，再按剩下的结果重新得出 `ok`。夹具：`doctor` 与 `doctor-json`（在已激活的 shell 里）、`doctor-json-not-activated`（应用运行时的情况）。
 
 `vfox alias list [<sdk>]` 每行 `<sdk>@<别名> -> <sdk>@<版本>`；`set` 命名已安装版本，`unset` 删除。夹具：`alias-list`。
 
@@ -278,7 +280,7 @@ vfox 1.1.0 的键：
 
 | 命令 | 原因 |
 | --- | --- |
-| `vfox activate`、`vfox env` | Shell 集成：打印 shell 代码或会话环境。GUI 只展示加到 `~/.bashrc` 的行。 |
+| `vfox activate`、`vfox env` | Shell 集成：打印 shell 代码或会话环境。GUI 只展示[激活 shell](#激活-shell) 的方法。 |
 | `vfox use --session`、`vfox exec`、`vfox cd` | 只在终端会话有意义。 |
 | `vfox upgrade` | 替换 vfox 可执行文件，归包管理器或安装器管；vfox 按安装方式升级。 |
 
@@ -297,7 +299,25 @@ vfox 只检查 `__VFOX_SHELL` 非空。`--global` 或 `--project` 下 `use` 只�
 （只给它们）。卸载当前版本只有带它才会切换到另一已安装版本；没有它则 vfox 打印切换信息、以状态 1 退出，且没有当前版本。session 域无 shell 无意义，从不用。夹具：`use-global`、
 `use-without-hook`。
 
-*之后*打开的 shell 在激活 vfox 后（`eval "$(vfox activate bash)"`）生效；GUI 告知用户。
+*之后*打开的 shell 在激活 vfox 后生效；GUI 按用户的 shell 告知做法。
+
+### 激活 Shell
+
+`vfox activate <shell>` 认识 `bash`、`zsh`、`fish`、`pwsh`、`nushell` 与 `clink`。GUI 展示的就是
+[快速开始](https://vfox.dev/guides/quick-start.html)里各自的做法（`core/vfox` 的 `Activations`）：
+
+| Shell      | 放在哪里                     | 命令 |
+| ---------- | ---------------------------- | ---- |
+| Bash       | `~/.bashrc`                  | `eval "$(vfox activate bash)"` |
+| Zsh        | `~/.zshrc`                   | `eval "$(vfox activate zsh)"` |
+| fish       | `~/.config/fish/config.fish` | `vfox activate fish \| source` |
+| PowerShell | `$PROFILE`                   | `Invoke-Expression "$(vfox activate pwsh)"` |
+| Nushell    | 运行一次                     | `vfox activate nushell $nu.default-config-dir \| save --append $nu.config-path` |
+| Clink      | 它的脚本目录                 | `clink info \| findstr scripts` 给出目录，把 [`clink_vfox.lua`](https://github.com/version-fox/vfox/blob/main/internal/shell/clink_vfox.lua) 放进去 |
+
+列出哪些 shell 取决于运行 vfox 的系统：Windows 有 PowerShell、Bash（Git Bash）、Clink 与 Nushell；
+macOS 与 Linux 有 Bash、Zsh、fish、Nushell 与 PowerShell。排在最前的是 `SHELL` 指出的那个（`nu` 即
+Nushell），否则 Windows 为 PowerShell，macOS 为 Zsh，其他为 Bash。
 
 ### 下载进度
 

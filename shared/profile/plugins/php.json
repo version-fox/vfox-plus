@@ -1,0 +1,246 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "php",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest PHP release in the list; on Windows its thread-safe build",
+        "zh": "列表中最新的 PHP 发行版；在 Windows 上为线程安全版"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "when": {
+        "os": [
+          "linux",
+          "darwin"
+        ]
+      },
+      "key": "PHP_WITH_PEAR",
+      "label": {
+        "en": "PEAR",
+        "zh": "PEAR"
+      },
+      "help": {
+        "en": "PHP 7.4 and later are built without PEAR, which provides the pear and pecl commands. Set this to yes to build with it; configure then prints a deprecation warning. On PHP 5.3 to 7.3, PEAR is built by default and PHP_WITHOUT_PEAR turns it off.",
+        "zh": "PHP 7.4 及以后构建时默认不包含 PEAR，即 pear 与 pecl 命令。设为 yes 则包含，configure 随后会打印一条弃用警告。PHP 5.3 至 7.3 默认包含 PEAR，用 PHP_WITHOUT_PEAR 可以关闭。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "no",
+          "name": {
+            "en": "Without PEAR, the default",
+            "zh": "不包含 PEAR，即默认值"
+          }
+        },
+        {
+          "value": "yes",
+          "name": {
+            "en": "With PEAR",
+            "zh": "包含 PEAR"
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "os": [
+          "linux",
+          "darwin"
+        ]
+      },
+      "key": "PHP_WITH_MHASH",
+      "label": {
+        "en": "mhash",
+        "zh": "mhash"
+      },
+      "help": {
+        "en": "PHP 8.4 and later are built without the mhash functions by default. Set this to yes to build with them; configure then prints a deprecation warning. The hash_* functions are there either way, and the variable has no effect before PHP 8.4.",
+        "zh": "PHP 8.4 及以后构建时默认不包含 mhash 函数。设为 yes 则包含，configure 随后会打印一条弃用警告。hash_* 函数始终可用；此变量在 PHP 8.4 之前不起作用。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "no",
+          "name": {
+            "en": "Without mhash, the default",
+            "zh": "不包含 mhash，即默认值"
+          }
+        },
+        {
+          "value": "yes",
+          "name": {
+            "en": "With mhash",
+            "zh": "包含 mhash"
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "os": [
+          "linux",
+          "darwin"
+        ]
+      },
+      "key": "PHP_WITHOUT_PCRE_JIT",
+      "label": {
+        "en": "PCRE JIT",
+        "zh": "PCRE JIT"
+      },
+      "help": {
+        "en": "Whether a PHP built from source includes the PCRE JIT, which PHP has on by default. Unset or no keeps it on; yes builds without it.",
+        "zh": "从源码构建的 PHP 是否包含 PCRE JIT（PHP 默认开启）。未设置或为 no 时保持开启；为 yes 时不包含。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "no",
+          "name": {
+            "en": "JIT on, the default",
+            "zh": "开启 JIT，即默认值"
+          }
+        },
+        {
+          "value": "yes",
+          "name": {
+            "en": "JIT off",
+            "zh": "关闭 JIT"
+          }
+        }
+      ]
+    }
+  ],
+  "facets": [
+    {
+      "when": {
+        "os": [
+          "windows"
+        ]
+      },
+      "id": "build",
+      "label": {
+        "en": "Build",
+        "zh": "构建"
+      },
+      "kind": "note",
+      "values": [
+        "TS",
+        "NTS"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "Write the release as vfox search php lists it, such as 8.5.12. A line such as 8.4 installs its newest release. On Linux and macOS, -zts names the thread-safe build of a release. On Windows a plain version is the thread-safe build, and -nts names the non-thread-safe one.",
+    "zh": "写 vfox search php 列出的发行版，如 8.5.12。8.4 这样的版本线会安装其中最新的版本。在 Linux 和 macOS 上，-zts 指某个发行版的线程安全构建。在 Windows 上，不带后缀的版本是线程安全构建，-nts 指非线程安全构建。"
+  },
+  "tips": [
+    {
+      "when": {
+        "os": [
+          "linux",
+          "darwin"
+        ]
+      },
+      "en": "On Linux and macOS PHP is compiled from source, which takes a while.",
+      "zh": "在 Linux 和 macOS 上 PHP 从源码编译，需要一段时间。"
+    },
+    {
+      "when": {
+        "os": [
+          "linux",
+          "darwin"
+        ]
+      },
+      "en": "Missing packages are named before compiling.",
+      "zh": "编译前会列出缺少的软件包。"
+    },
+    {
+      "when": {
+        "os": [
+          "linux",
+          "darwin"
+        ]
+      },
+      "en": "Set PHP_CONFIGURE_OPTIONS and MAKEFLAGS in Settings, under Environment variables.",
+      "zh": "PHP_CONFIGURE_OPTIONS 与 MAKEFLAGS 接受任意文本：在“设置”的“环境变量”中以 KEY=VALUE 的形式设置。"
+    },
+    {
+      "when": {
+        "os": [
+          "windows"
+        ]
+      },
+      "en": "On Windows the install adds the Visual C++ 2015-2022 runtime when it is missing, after Windows asks for permission.",
+      "zh": "在 Windows 上，缺少 Visual C++ 2015-2022 运行库时，安装会在 Windows 请求授权后将其添加。"
+    },
+    {
+      "en": "php@8.4 skips -zts and -nts builds.",
+      "zh": "php@8.4 不会选中 -zts 或 -nts 构建。"
+    },
+    {
+      "en": "Detect and link needs vfox 1.1.0 or later.",
+      "zh": "探测并链接需要 vfox 1.1.0 或更高版本。"
+    },
+    {
+      "en": "Composer comes with every install.",
+      "zh": "每次安装都自带 Composer。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-php/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-php/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Build options",
+        "zh": "构建选项"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-php/blob/main/docs/configuration.md",
+        "zh": "https://github.com/version-fox/vfox-php/blob/main/docs/zh-CN/configuration.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Platforms",
+        "zh": "平台"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-php/blob/main/docs/platforms.md",
+        "zh": "https://github.com/version-fox/vfox-php/blob/main/docs/zh-CN/platforms.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Use a PHP that is already installed",
+        "zh": "使用本机已有的 PHP"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-php/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-php/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-php/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-php/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    }
+  ]
+}

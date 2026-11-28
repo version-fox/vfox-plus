@@ -31,6 +31,8 @@ const (
 	ReasonAddress Reason = iota + 1
 	// ReasonChoice: the value is none of the values the variable takes.
 	ReasonChoice
+	// ReasonText: the value is not one line of text, or it is too long.
+	ReasonText
 )
 
 // ValueError reports a value that a variable does not take.
@@ -40,10 +42,14 @@ type ValueError struct {
 }
 
 func (e *ValueError) Error() string {
-	if e.Reason == ReasonChoice {
+	switch e.Reason {
+	case ReasonChoice:
 		return fmt.Sprintf("%s takes one of its listed values", e.Key)
+	case ReasonText:
+		return fmt.Sprintf("%s takes one line of at most %d characters", e.Key, maxValue)
+	default:
+		return fmt.Sprintf("%s must be an address that starts with http:// or https://", e.Key)
 	}
-	return fmt.Sprintf("%s must be an address that starts with http:// or https://", e.Key)
 }
 
 // Validate checks a value of the variable. An empty value is fine: it takes the
@@ -53,22 +59,33 @@ func (v Variable) Validate(value string) error {
 	if value == "" {
 		return nil
 	}
-	if v.Kind == VariableChoice {
-		for _, preset := range v.Presets {
-			if preset.Value == value {
-				return nil
-			}
+	refuse := func(reason Reason) error { return &ValueError{Key: v.Key, Reason: reason} }
+	switch v.Kind {
+	case VariableChoice:
+		if _, ok := v.PresetFor(value); ok {
+			return nil
 		}
-		return &ValueError{Key: v.Key, Reason: ReasonChoice}
+		return refuse(ReasonChoice)
+	case VariableToggle:
+		if value == v.On || value == v.Off {
+			return nil
+		}
+		return refuse(ReasonChoice)
+	case VariableText:
+		if !isPlainValue(value) {
+			return refuse(ReasonText)
+		}
+		return nil
+	default:
+		if strings.ContainsAny(value, " \t\r\n") || !isPlainValue(value) {
+			return refuse(ReasonAddress)
+		}
+		parsed, err := url.Parse(value)
+		if err != nil || parsed.Host == "" || parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return refuse(ReasonAddress)
+		}
+		return nil
 	}
-	if strings.ContainsAny(value, " \t\r\n") {
-		return &ValueError{Key: v.Key, Reason: ReasonAddress}
-	}
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Host == "" || parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return &ValueError{Key: v.Key, Reason: ReasonAddress}
-	}
-	return nil
 }
 
 // Variable returns the variable of the profile with the given name.
@@ -90,4 +107,19 @@ func (v Variable) PresetFor(value string) (Preset, bool) {
 		}
 	}
 	return Preset{}, false
+}
+
+// values are every value that the profile offers for the variable.
+func (v Variable) values() []string {
+	var values []string
+	for _, preset := range v.Presets {
+		values = append(values, preset.Value)
+	}
+	if v.Kind == VariableToggle {
+		values = append(values, v.On)
+		if v.Off != "" {
+			values = append(values, v.Off)
+		}
+	}
+	return values
 }

@@ -48,11 +48,13 @@ func awaitLoad(done <-chan struct{}) bool {
 	}
 }
 
-// VfoxDTO is the availability of vfox for the web interface.
+// VfoxDTO is the availability of vfox for the web interface, and how the shells of
+// the machine activate it.
 type VfoxDTO struct {
-	Availability string `json:"availability"`
-	Version      string `json:"version,omitempty"`
-	Error        string `json:"error,omitempty"`
+	Availability string            `json:"availability"`
+	Version      string            `json:"version,omitempty"`
+	Error        string            `json:"error,omitempty"`
+	Activations  []vfox.Activation `json:"activations"`
 }
 
 // TaskDTO is one state-changing task for the web interface.
@@ -125,7 +127,7 @@ func taskDTO(task *state.VfoxTask, tailLines int) TaskDTO {
 
 // vfoxDTO reports the availability of vfox.
 func vfoxDTO(model *state.AppModel) VfoxDTO {
-	dto := VfoxDTO{Availability: string(model.Vfox.Availability())}
+	dto := VfoxDTO{Availability: string(model.Vfox.Availability()), Activations: model.Activations()}
 	if version, ok := model.Vfox.Version(); ok {
 		dto.Version = version
 	}
@@ -233,9 +235,11 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		}
 		writeJSON(writer, info)
 	case "versions":
-		// The plugin of an alias says what it is once its metadata is in;
-		// the profile below is effective after the versions are listed.
+		// The plugin of an alias says what it is once its metadata is in, and a
+		// plugin may bring a profile of its own with its files; the profile below
+		// is effective after the versions are listed.
 		awaitLoad(detail.Info.EnsureLoaded())
+		awaitLoad(detail.Files.EnsureLoaded())
 		// Without a `search` the plugin lists the choice that the user made, the default
 		// of the plugin if they made none. `search` names another one, by the value of a
 		// choice of the profile (the short name of a distribution for java), for this

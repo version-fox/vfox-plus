@@ -1,0 +1,129 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "groovy",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest release in the list. A pre-release sorts below the release it precedes",
+        "zh": "列表中最新的正式版。预发布版排在它所属的正式版之后"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "key": "VFOX_GROOVY_MIRROR",
+      "label": {
+        "en": "Archive mirror",
+        "zh": "归档镜像"
+      },
+      "help": {
+        "en": "Reads the archive from dlcdn.apache.org, another copy of the Apache archive that keeps the same layout, for when archive.apache.org is slow. Empty reads archive.apache.org.",
+        "zh": "从 dlcdn.apache.org 读取，它是保持相同布局的 Apache 归档副本，适用于 archive.apache.org 较慢的情况。留空则读取 archive.apache.org。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://dlcdn.apache.org/groovy",
+          "name": "dlcdn.apache.org"
+        }
+      ],
+      "example": "https://dlcdn.apache.org/groovy"
+    }
+  ],
+  "facets": [
+    {
+      "id": "stage",
+      "label": {
+        "en": "Stage",
+        "zh": "阶段"
+      },
+      "kind": "note",
+      "values": [
+        "pre-release",
+        "incubating"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "Write the version as the list shows it, such as 4.0.33 or 6.0.0-RC-2. latest installs the newest release. A partial name such as 4 or 6 is not a version the plugin takes.",
+    "zh": "按列表中的样子写版本，如 4.0.33 或 6.0.0-RC-2。latest 安装最新的正式版。4 或 6 这样的部分版本号不是插件接受的版本。"
+  },
+  "tips": [
+    {
+      "en": "The plugin installs no JDK, and Groovy needs one to run.",
+      "zh": "插件不安装 JDK，而 Groovy 运行需要 JDK。"
+    },
+    {
+      "en": "With dlcdn.apache.org, the list holds only the current releases, so older versions do not show.",
+      "zh": "使用 dlcdn.apache.org 时，列表只有当前的发行版，较旧的版本不会出现。"
+    },
+    {
+      "en": "A release without a .sha256 file installs without a checksum check, and vfox says so.",
+      "zh": "没有 .sha256 文件的发行版安装时不做校验和检查，vfox 会说明这一点。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions",
+        "zh": "版本"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-groovy/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-groovy/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Mirror",
+        "zh": "镜像"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-groovy/blob/main/docs/mirror.md",
+        "zh": "https://github.com/version-fox/vfox-groovy/blob/main/docs/zh-CN/mirror.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Platforms",
+        "zh": "平台"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-groovy/blob/main/docs/platforms.md",
+        "zh": "https://github.com/version-fox/vfox-groovy/blob/main/docs/zh-CN/platforms.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Use a Groovy that is already installed",
+        "zh": "使用本机已有的 Groovy"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-groovy/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-groovy/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-groovy/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-groovy/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Plugin README",
+        "zh": "插件说明"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-groovy/blob/main/README.md",
+        "zh": "https://github.com/version-fox/vfox-groovy/blob/main/README_CN.md"
+      }
+    }
+  ]
+}

@@ -576,6 +576,35 @@ type DoctorReport struct {
 	Findings []DoctorFinding `json:"findings"`
 }
 
+// findingPathNotActivated is what `vfox doctor` finds when the shell that runs
+// it did not go through `vfox activate`: an error, and a warning on Windows.
+const findingPathNotActivated = "path.not-activated"
+
+// AboutTheMachine returns the report without the findings that describe the
+// process that asked for it. When it leaves one out, it works out OK again from
+// the findings that are left, as vfox does: no error among those that are not
+// ignored. A report that has none is as vfox answered.
+//
+// The application runs vfox outside of an activated shell on purpose (see
+// VfoxEnvironment), so vfox always finds that its caller is not activated.
+// That says nothing about the terminals of the person, whom the home page shows
+// the line that activates them.
+func (r DoctorReport) AboutTheMachine() DoctorReport {
+	result := DoctorReport{OK: r.OK, Findings: make([]DoctorFinding, 0, len(r.Findings))}
+	failing := false
+	for _, finding := range r.Findings {
+		if finding.ID == findingPathNotActivated {
+			continue
+		}
+		result.Findings = append(result.Findings, finding)
+		failing = failing || finding.Severity == "error" && !finding.Ignored
+	}
+	if len(result.Findings) < len(r.Findings) {
+		result.OK = !failing
+	}
+	return result
+}
+
 // VersionAlias is one alias that `vfox alias list` reports:
 // `<sdk>@<alias> -> <sdk>@<version>`.
 type VersionAlias struct {

@@ -15,10 +15,15 @@
 package state
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"maps"
+	"runtime"
+	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/profile"
@@ -34,6 +39,9 @@ type AppModelOptions struct {
 	SettingsStore settings.SettingsStore
 	// Environment is the environment of the application.
 	Environment map[string]string
+	// OS is the operating system that vfox runs on, as runtime.GOOS names it; empty
+	// takes the one of the application.
+	OS string
 	// Locator finds vfox; nil uses a locator that searches `PATH` and the
 	// usual places.
 	Locator *vfox.VfoxLocator
@@ -44,15 +52,16 @@ type AppModelOptions struct {
 	// files while it runs. Successful and cancelled tasks delete theirs when
 	// they finish; failed tasks keep theirs, pruned to the newest files.
 	TaskLogDir string
-	// Profiles is what the application knows about particular plugins; nil
-	// takes the profiles of the plugins of the version-fox organisation, for
-	// the platform the application runs on.
+	// Profiles is what the application knows about particular plugins: with the
+	// profiles that it ships (see core/profile/builtin), for the platform that
+	// vfox runs on. Nil knows only what the other sources say.
 	Profiles *profile.Registry
-	// ProfilesDir, when set, holds external profiles as
-	// profiles/<plugin>.json (see profile.LoadExternalProfiles). They overlay
-	// the built-in ones, so new plugins are adapted by shipping data, not by
-	// changing the application.
+	// ProfilesDir, when set, holds the profiles of the user, which count before
+	// every other (see profile.LoadUserProfiles).
 	ProfilesDir string
+	// Catalog, when set, is the online directory of profiles, which the model
+	// refreshes at most once a day.
+	Catalog *profile.Catalog
 }
 
 // AppModel is the application state: every controller, wired together.
@@ -81,10 +90,20 @@ type AppModel struct {
 	// Profiles is what the application knows about particular plugins.
 	Profiles *profile.Registry
 
+	// activations are the ways to activate vfox in a shell of the machine.
+	activations []vfox.Activation
+
+	catalog *profile.Catalog
+	// context ends when the model is disposed, with the work in the background.
+	context context.Context
+	cancel  context.CancelFunc
+
 	mu               sync.Mutex
 	stops            []Unsubscribe
 	lastAvailability VfoxAvailability
 	appliedSettings  *settings.AppSettings
+	// catalogDue is when the online directory is looked at again.
+	catalogDue time.Time
 }
 
 // NewAppModel creates the application state.
@@ -97,16 +116,30 @@ func NewAppModel(options AppModelOptions) *AppModel {
 	config.BaseEnvironment = options.Environment
 	profiles := options.Profiles
 	if profiles == nil {
-		profiles = profile.NewRegistry(profile.CurrentPlatform())
+		profiles = profile.NewRegistry(profile.CurrentPlatform(), nil)
 	}
 	if options.ProfilesDir != "" {
-		profile.LoadExternalProfiles(profiles, options.ProfilesDir)
+		documents, problems := profile.LoadUserProfiles(options.ProfilesDir)
+		logProfileProblems(problems)
+		profiles.SetUser(documents)
+	}
+	if options.Catalog != nil {
+		documents, problems := options.Catalog.Load()
+		logProfileProblems(problems)
+		profiles.SetCatalog(documents)
+	}
+	goos := options.OS
+	if goos == "" {
+		goos = runtime.GOOS
 	}
 	model := &AppModel{
 		Cli:              vfox.NewClient(options.Runner, config),
 		Profiles:         profiles,
+		activations:      vfox.Activations(goos, options.Environment),
+		catalog:          options.Catalog,
 		lastAvailability: VfoxUnknown,
 	}
+	model.context, model.cancel = context.WithCancel(context.Background())
 	model.Settings = NewSettingsController(options.SettingsStore)
 	model.Vfox = NewVfoxController(model.Cli, locator, options.Environment)
 	model.Installed = NewAsyncResource(model.Cli.InstalledSdks)
@@ -127,10 +160,63 @@ func NewAppModel(options AppModelOptions) *AppModel {
 // Start loads the settings and points the vfox client at them, without
 // probing vfox: the first page that needs vfox triggers the probe through
 // Vfox.EnsureChecked, and every settings change that affects vfox re-probes
-// through Apply at once. It does not block.
+// through Apply at once. It also looks at the online directory of profiles, in
+// the background. It does not block.
 func (m *AppModel) Start() {
 	m.Settings.Load()
 	m.configure()
+	m.refreshCatalog()
+}
+
+// catalogAge is how long the cache of the online directory of profiles counts
+// as fresh, and catalogRetry how long a fetch that failed waits.
+const (
+	catalogAge   = 24 * time.Hour
+	catalogRetry = time.Hour
+)
+
+// refreshCatalog fetches the online directory of profiles in the background,
+// through the mirror of the settings, when its cache is older than a day.
+func (m *AppModel) refreshCatalog() {
+	if m.catalog == nil {
+		return
+	}
+	now := time.Now()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if now.Before(m.catalogDue) || m.context.Err() != nil {
+		return
+	}
+	m.catalogDue = now.Add(catalogAge)
+	go func() {
+		if m.catalog.Fresh(catalogAge, now) {
+			return
+		}
+		ctx, cancel := context.WithTimeout(m.context, time.Minute)
+		defer cancel()
+		changed, err := m.catalog.Refresh(ctx, m.Settings.Settings().UpdateMirror)
+		if err != nil {
+			log.Printf("refreshing the online profiles: %v", err)
+			m.mu.Lock()
+			m.catalogDue = time.Now().Add(catalogRetry)
+			m.mu.Unlock()
+			return
+		}
+		if changed {
+			documents, problems := m.catalog.Load()
+			logProfileProblems(problems)
+			m.Profiles.SetCatalog(documents)
+		}
+	}()
+}
+
+// logProfileProblems writes down what of the profiles cannot be read.
+func logProfileProblems(problems []profile.Problem) {
+	for _, problem := range problems {
+		if !problem.Warning {
+			log.Printf("a plugin profile: %s", problem)
+		}
+	}
 }
 
 // InstalledSdk returns the installed SDK called name, if it is installed.
@@ -144,10 +230,17 @@ func (m *AppModel) InstalledSdk(name string) (core.InstalledSdk, bool) {
 	return core.InstalledSdk{}, false
 }
 
+// Activations are the ways to activate vfox in the shells of the machine, the shell
+// of the person first.
+func (m *AppModel) Activations() []vfox.Activation {
+	return slices.Clone(m.activations)
+}
+
 // SdkDetail creates the controller for the detail view of name. Its search
 // starts at the choice that the user made for the plugin, and the choices that
 // they make are kept in the settings.
 func (m *AppModel) SdkDetail(name string) *SdkDetailController {
+	m.refreshCatalog()
 	return NewSdkDetailController(m.Cli, name, m.Profiles, m)
 }
 
@@ -328,6 +421,7 @@ func (m *AppModel) onTaskFinished(task *VfoxTask) {
 
 // Dispose releases every resource.
 func (m *AppModel) Dispose() {
+	m.cancel()
 	for _, stop := range m.stops {
 		stop()
 	}

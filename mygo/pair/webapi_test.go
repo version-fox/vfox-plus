@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
+	"github.com/version-fox/vfox-plus/mygo/core/profile/profiletest"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
@@ -41,6 +43,8 @@ func testModel(t *testing.T, runner *testsupport.FakeProcessRunner) *state.AppMo
 		Runner:        runner,
 		SettingsStore: settings.NewMemorySettingsStore(settings.DefaultSettings()),
 		Environment:   map[string]string{"HOME": "/home/u"},
+		OS:            "linux",
+		Profiles:      profiletest.Registry(t, profile.CurrentPlatform()),
 		Locator: vfox.NewVfoxLocator(map[string]string{},
 			func(path string) bool { return path == "/usr/bin/vfox" }),
 	})
@@ -120,7 +124,7 @@ func TestWebInventory(t *testing.T) {
 	if status != http.StatusOK {
 		t.Fatalf("got %d: %s", status, body)
 	}
-	for _, want := range []string{`"availability":"ready"`, "maven", "nodejs", "proxy", `"complete":true`} {
+	for _, want := range []string{`"availability":"ready"`, "maven", "nodejs", "proxy", `"complete":true`, `"activations":[{"shell":"`, `"vfox activate fish | source"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("got %s", body)
 		}

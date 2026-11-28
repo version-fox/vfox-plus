@@ -1,0 +1,223 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "nodejs",
+  "shorthands": [
+    {
+      "name": "24",
+      "meaning": {
+        "en": "The newest 24.x release",
+        "zh": "最新的 24.x 版本"
+      }
+    },
+    {
+      "name": "24.21",
+      "meaning": {
+        "en": "The newest 24.21.x release",
+        "zh": "最新的 24.21.x 版本"
+      }
+    },
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest release of any line, LTS or not",
+        "zh": "所有版本线中最新的版本，不论是否 LTS"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "key": "VFOX_NODEJS_MIRROR",
+      "label": {
+        "en": "Download mirror",
+        "zh": "下载镜像"
+      },
+      "help": {
+        "en": "A mirror of nodejs.org/dist: it serves the version list, the checksums and the packages. A mirror that lags behind lists fewer releases.",
+        "zh": "nodejs.org/dist 的镜像，提供版本列表、校验和与安装包。落后的镜像会少列出一些版本。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://npmmirror.com/mirrors/node",
+          "name": "npmmirror"
+        },
+        {
+          "value": "https://mirrors.huaweicloud.com/nodejs",
+          "name": {
+            "en": "Huawei Cloud",
+            "zh": "华为云"
+          }
+        },
+        {
+          "value": "https://mirrors.tuna.tsinghua.edu.cn/nodejs-release",
+          "name": {
+            "en": "Tsinghua University (TUNA)",
+            "zh": "清华大学 TUNA"
+          }
+        },
+        {
+          "value": "https://mirrors.ustc.edu.cn/node",
+          "name": {
+            "en": "USTC",
+            "zh": "中国科学技术大学"
+          }
+        },
+        {
+          "value": "https://mirrors.aliyun.com/nodejs-release",
+          "name": {
+            "en": "Alibaba Cloud",
+            "zh": "阿里云"
+          }
+        },
+        {
+          "value": "https://mirrors.cloud.tencent.com/nodejs-release",
+          "name": {
+            "en": "Tencent Cloud",
+            "zh": "腾讯云"
+          }
+        },
+        {
+          "value": "https://mirror.nju.edu.cn/nodejs-release",
+          "name": {
+            "en": "Nanjing University",
+            "zh": "南京大学"
+          }
+        },
+        {
+          "value": "https://mirrors.bfsu.edu.cn/nodejs-release",
+          "name": {
+            "en": "Beijing Foreign Studies University",
+            "zh": "北京外国语大学"
+          }
+        }
+      ],
+      "example": "https://npmmirror.com/mirrors/node"
+    },
+    {
+      "key": "VFOX_NODEJS_LIBC",
+      "label": {
+        "en": "C library",
+        "zh": "C 库"
+      },
+      "help": {
+        "en": "The plugin detects musl systems such as Alpine itself. Set this only on a system it gets wrong: musl forces the musl builds, glibc the others.",
+        "zh": "插件会自行识别 Alpine 等 musl 系统。只有识别错误时才需要设置：musl 强制使用 musl 构建，glibc 强制使用其他构建。"
+      },
+      "kind": "choice",
+      "presets": [
+        {
+          "value": "musl",
+          "name": "musl"
+        },
+        {
+          "value": "glibc",
+          "name": "glibc"
+        }
+      ],
+      "advanced": true
+    }
+  ],
+  "legacyFiles": [
+    ".node-version",
+    ".nvmrc"
+  ],
+  "legacyStrategy": true,
+  "facets": [
+    {
+      "id": "support",
+      "label": {
+        "en": "Support",
+        "zh": "支持"
+      },
+      "kind": "note",
+      "values": [
+        "LTS"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "24, 24.21 or 24.21.0 install the newest release of that line; latest the newest of any line. There is no lts alias: name the line.",
+    "zh": "写 24、24.21 或 24.21.0，安装该系列里最新的版本；latest 是所有系列里最新的。没有 lts 别名，请写系列号。"
+  },
+  "tips": [
+    {
+      "en": "Global npm packages stay with the release that installed them: install them again after switching.",
+      "zh": "用 npm install -g 安装的包留在当时的版本里，切换版本后要重新安装。"
+    },
+    {
+      "en": "Node.js 25 and later does not ship Corepack.",
+      "zh": "Node.js 25 及更高版本不再自带 Corepack。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": "LTS",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/lts.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/lts.md"
+      }
+    },
+    {
+      "title": ".nvmrc, .node-version",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/nvmrc.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/nvmrc.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Mirror",
+        "zh": "镜像"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/mirror.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/mirror.md"
+      }
+    },
+    {
+      "title": {
+        "en": "npm and global packages",
+        "zh": "npm 与全局包"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/npm.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/npm.md"
+      }
+    },
+    {
+      "title": "pnpm",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/pnpm.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/pnpm.md"
+      }
+    },
+    {
+      "title": "musl (Alpine)",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/musl.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/musl.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-nodejs/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    }
+  ]
+}

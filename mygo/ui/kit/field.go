@@ -92,6 +92,31 @@ func (st *fieldState) buffer(text *string, value string) *string {
 	return &st.text
 }
 
+// floatingLabel draws the label of a field at progress from 0, at rest in the middle of the field in the size of its
+// line, to 1, small above the line. top is the padding of the field above the room that the label is placed in, and lines
+// says how many lines the label takes in a style.
+//
+// On the way it is the label at rest, drawn smaller by a transform and moved so that it ends where the floating one is.
+// A size of its own in every frame would be a font of its own in every frame, whose glyphs the text engine and the
+// libraries that draw them keep: a few fields focused left several MB of them behind (docs/en/dev/memory.md).
+func floatingLabel(c Ctx, text string, color ui.Color, progress, height, top, textScale float32, lines func(TextStyle) int) {
+	big, small := Type(BodyLarge), Type(BodySmall)
+	const floatTop = 8
+	style, y := small, float32(floatTop)
+	var shrink float32 = 1
+	if progress != 1 {
+		taken := float32(lines(big))
+		ratio := small.Size / big.Size
+		centred := (height - big.Line*textScale*taken) / 2
+		end := floatTop - (big.Line*ratio-small.Line)*textScale*taken/2
+		style, y, shrink = big, Lerp(centred, end, progress), Lerp(1, ratio, progress)
+	}
+	label := Label(c, text, style, color, Lines(lines(style)), Breakable()).Absolute().Top(y - top).Left(0).Right(0).PassThrough()
+	if shrink != 1 {
+		label.TransformOrigin(0, 0).Scale(shrink, shrink)
+	}
+}
+
 // TextField is a Material 3 filled text field.
 func TextField(c Ctx, f TextFieldSpec) ui.Element {
 	cs := c.Colors()
@@ -241,12 +266,7 @@ func TextField(c Ctx, f TextFieldSpec) ui.Element {
 				if hasLabel {
 					// The floating label. It is placed from the top of the field, and this room begins below the padding of it; at rest it is
 					// centred, and both go on as many lines as they need, which the room of the field leaves.
-					big, small := Type(BodyLarge), Type(BodySmall)
-					label := big.WithSize(Lerp(big.Size, small.Size, labelProgress))
-					taken := labelLines(label)
-					centred := (height - label.Line*scale*float32(taken)) / 2
-					Label(c, f.Label, label, labelColor, Lines(taken), Breakable()).Absolute().Top(Lerp(centred, 8, labelProgress) - padding[0]).
-						Left(0).Right(0).PassThrough()
+					floatingLabel(c, f.Label, labelColor, labelProgress, height, padding[0], scale, labelLines)
 				}
 			})
 			if f.Trailing != nil {

@@ -151,34 +151,28 @@ Material 3 Expressive 组件在 `ui/kit`，基于 mygo 元素与无样式部件�
 
 ## 插件配置档案
 
-vfox 对每个插件都用同样的方式列出、安装、选择与移除版本，但 version-fox 组织的插件提供的更多，
-这些在 vfox 的输出里一点也看不出来：`vfox search java tem` 列出 Java 的一个发行版，而 `vfox search java`
-只列出 OpenJDK；`nodejs@24` 安装最新的 Node.js 24，`flutter@stable` 安装某个通道的版本；每个插件还会读取
-把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
+vfox 对每个插件都用同样的方式列出、安装、选择与移除版本，但插件提供的更多，这些在 vfox 的输出里一点也看不出来：
+`vfox search java tem` 列出 Java 的一个发行版，而 `vfox search java` 只列出 OpenJDK；`nodejs@24` 安装最新的
+Node.js 24；插件还会读取把下载指向镜像的环境变量与 `.nvmrc` 之类的版本文件。不了解这些，界面只能提供所有插件共有的功能，
 第一版的 Web 界面就是这样只显示了 Java 的 OpenJDK 列表（[#43](https://github.com/version-fox/vfox-plus/issues/43)）。
 
-*配置档案*（`core/profile`）把这些写成三个界面共用的纯数据，覆盖 `java`、`nodejs`、`flutter`、`gradle`、`golang`、`python`、`maven`、`php`、`dart`、`kotlin`、`dotnet`、`cmake`、`etcd`、`erlang`、`deno`、`groovy`、`scala`、`zig`、`clang` 与 `elixir`：
+*配置档案*把这些写成三个界面共用的数据：搜索的选项、安装的简写、变量、版本文件、筛选、版本名的读法，以及两种语言的说明、
+须知和链接。[插件配置档案](profiles.md)说明格式、来源（用户、插件自带的 `lib/vfox-plus.json`、在线目录、应用内置与推断）
+和安全规则。代码里：
 
-| 部分 | 内容 |
-| --- | --- |
-| 搜索 | `vfox search` 里插件名后面的参数：`java` 有 Foojay 的 31 个发行版与 `all`（Linux loong64 上改为 Loongnix JDK），以及 vfox 不带参数时用的那个 |
-| 简写 | `vfox install <插件>@<名称>` 除列出的版本外接受的名称 |
-| 变量 | 插件读取的环境变量，附已检查过的镜像，以及每个变量接受什么（`http://` 或 `https://` 地址，或少数几个值） |
-| 版本文件 | vfox 通过该插件读取的文件，以及 vfox 设置 `legacyVersionFile.strategy` 对它们是否有影响 |
-| 筛选维度 | 适合已列出版本的备注与名称的筛选：`LTS`、`JavaFX`、Flutter 的通道与架构 |
-| 命名 | 版本名称的构成，所以 `21.0.12.1+1-tem` 显示 Temurin，`3.47.7-x64` 显示 x64 |
-| 说明、须知、文档 | 几句关于名称的说明、容易让人意外的地方，以及该插件文档的链接：插件文件夹里的页面、README，或文档网站。插件用 GitHub Pages 发布文档网站时，网站链接排在最前：英文页面在 `/en/` 下，简体中文页面在根路径 |
+- `core/profile` 读取、检查并合并档案，是无 UI 框架的纯 Go；`core/profile/builtin` 是应用内置的档案，由
+  `vfxtool prepare` 从 `shared/profile/plugins` 复制进资源。
+- `state.AppModel.Profiles` 是注册表。`main.go` 用内置档案、用户档案和在线目录缓存（`profile.Catalog`）创建它，
+  模型在后台刷新在线目录；端到端构建不带在线目录。
+- `state.SdkDetailController` 先按 vfox 里的名称查找插件的档案，再按 `vfox info` 报告的名称查找（用
+  `vfox add --alias` 添加的插件仍有档案）；读取已安装插件的文件（`Files`：自带档案、Lua 读取的设置、能否检测已装版本），
+  两者到达或注册表变化时重新查找；搜索随之改变时重新列出版本。界面显示的是 `EffectiveProfile`，包含推断部分与按版本列表生成的筛选。
+- 控制器保存所选的搜索与筛选。`SetSearch` 会忘掉之前的列表与筛选（有人要列表时才加载）；`ChooseSearch` 对用户所做的
+  选择同样处理，并交给 `SearchMemory`，`AppModel` 用 `searches` 设置实现它，所以选择在详情关闭和重启后仍在，各个界面
+  也一致。`AppModel.SetPluginVariable` 按变量检查值，存入设置里的额外环境变量，每个 vfox 进程都带着它运行；对应用没有
+  内置的值，界面会先询问（`Variable.NeedsConfirmation`）。
 
-档案里的文字用两种语言写在数据旁边，而不放进翻译目录，因为 Web 界面通过 HTTP 获取它们，页面本身也不带
-翻译目录。没有内置档案的插件也能免改代码获得筛选与镜像：从已列出的版本推断筛选维度（备注成为备注筛选，共享的 `-后缀` 成为变体筛选），从已安装插件的 Lua 源码扫描 `os.getenv("VFOX_*")` 得到环境变量，从 `metadata.lua` 的 `PLUGIN.legacyFilenames` 得到版本文件。插件仓库根目录的 `vfox-plus.json`（见 `core/profile/external.go`）可以用精心编写的文字覆盖这些推断，设置旁的 `profiles/<插件>.json` 则覆盖一切；内置注册表只保留仓库里精心维护的内容。档案属于插件本身，而不是 vfox 称呼它的名字：用 `vfox add --alias` 添加的插件，
-vfox 以别名称呼它，但 `vfox info` 仍会说出它是哪个插件，所以详情的控制器先按插件名查找档案，该名字没有档案时，
-再按插件信息加载后报告的名字查找（详情页此时才出现“选项”标签，Web API 会等待插件信息）。注册表是
-`state.AppModel.Profiles`；端到端测试为它们的离线测试插件注册了一份档案。
-
-`SdkDetailController` 保存所选的搜索与所选筛选维度。`SetSearch` 会忘掉之前的列表与筛选维度（有人要列表时才
-加载）；`ChooseSearch` 对用户所做的选择同样处理，并把它交给 `SearchMemory`，`AppModel` 用 `searches` 设置
-实现它，所以选择在详情关闭和重启后仍在，各个界面也一致；档案仍提供该选择时，控制器从记住的选择开始。
-`AppModel.SetPluginVariable` 按变量检查一个值，并把它存入设置里的额外环境变量，每个 vfox 进程都带着它运行。
+档案里的文字用两种语言写在数据旁边，而不放进翻译目录，因为 Web 界面通过 HTTP 获取它们，页面本身也不带翻译目录。
 
 ## 与 vfox 对话
 
@@ -202,6 +196,7 @@ GUI 自身设置存为 JSON：
 | `theme` | string | `"system"` | `system`、`light` 或 `dark`。 |
 | `useSystemColor` | boolean | `true` | 从桌面强调色派生颜色。 |
 | `seedColor` | integer (ARGB) | `0xFFF28C1B` | 不用强调色时的种子颜色。 |
+| `motion` | string | `"system"` | `system`、`full` 或 `reduced`：窗口动多少（见[动效](design-system.md#动效)）。 |
 | `language` | string | `"system"` | `system`、`english` 或 `simplifiedChinese`。 |
 | `vfoxExecutable` | string | 无 | vfox 路径；无表示自动探测。 |
 | `extraEnvironment` | object | `{}` | 给 vfox 的额外环境变量，如镜像。 |
@@ -288,7 +283,8 @@ Windows `.msix` 与 `.msixbundle` 无额外运行时依赖：Go 可执行文件�
 - 每个已完成任务只在内存保留最新 500 行（运行时保留 2000 行），已完成任务
   最多记 50 条；失败任务的完整日志落盘，只保留最新 20 个文件；
 - 只打包使用的图标（63 个符号，描边与填充各一，SVG 共约 70 KB，首次绘制时才解析）；
-- 不可见动画停止，桌面不论平台要求什么都减少动态效果（见[设计系统](design-system.md#动效)）；
+- 不可见动画停止，桌面不画转场，因为它的图层一直占着内存（见[设计系统](design-system.md#动效)）；
+- 最后一帧两秒后，归还绘制时撑大的 Go 堆；
 - 不缓存 vfox 可廉价重产的数据；
 - 没有窗口时，告诉系统它暂时不要自己文件的页（常驻内存少 11 MB），Go 调度器最多用四个处理器，
   因为每个处理器都带着自己的内存缓存（见[内存页](memory.md#轻量模式)）。

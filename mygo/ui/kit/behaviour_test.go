@@ -821,6 +821,105 @@ func TestTheDesktopSwitchesItsViewsAtOnce(t *testing.T) {
 	}
 }
 
+// A theme that moves regardless moves also while the desktop asks for less motion: its springs say
+// that their values move nothing, which is what mygo goes on animating, and a pose, which mygo takes
+// at once then, grows on its spring all the same.
+func TestAThemeThatMovesRegardlessMovesWhateverTheDesktopAsks(t *testing.T) {
+	for _, regardless := range []bool{false, true} {
+		env := testEnv(t, false)
+		if regardless {
+			env.Theme.MoveRegardless()
+		}
+		target := float32(0)
+		pose := ui.Pose{Scale: 0.5}
+		var value float32
+		tester := ui.NewTester(view(env, func(c Ctx) {
+			box := ui.Box(c.Context).Size(200, 200).Background(c.Colors().Primary)
+			value = box.AnimateTo("value", target, c.Env.Theme.Motion.DefaultSpatial.Anim())
+			settlePose(c, box, pose, c.Env.Theme.Motion.DefaultSpatial)
+		}), 200, 200)
+		tester.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: 1})
+		tester.Frame()
+		corner := func() bool { return env.Theme.Colors.Primary == pixelAt(tester.Image(), 4, 4) }
+		if corner() {
+			t.Fatalf("regardless %v: a box that is posed at half its size leaves its corner bare", regardless)
+		}
+		target, pose = 1, ui.Pose{}
+		tester.Frame()
+		tester.Advance(30 * time.Millisecond)
+		if moving := value < 0.9; moving != regardless {
+			t.Errorf("regardless %v: the value is %v 30 ms after its target changed", regardless, value)
+		}
+		if moving := !corner(); moving != regardless {
+			t.Errorf("regardless %v: the box covers its corner 30 ms after its pose changed: %v", regardless, !moving)
+		}
+		tester.Advance(2 * time.Second)
+		if value != 1 || !corner() {
+			t.Errorf("regardless %v: the value is %v and the corner covered %v at rest", regardless, value, corner())
+		}
+	}
+}
+
+// pixelAt is the colour of a pixel of a picture.
+func pixelAt(img *image.RGBA, x, y int) ui.Color {
+	p := img.RGBAAt(x, y)
+	return ui.Color{R: p.R, G: p.G, B: p.B, A: p.A}
+}
+
+func TestNothingMovesWhenTheThemeOrTheDesktopSaysSo(t *testing.T) {
+	system, reduced, full := NewTheme(testSeed, false, false, 1), NewTheme(testSeed, false, true, 1), NewTheme(testSeed, false, false, 1)
+	full.MoveRegardless()
+	for name, c := range map[string]struct {
+		theme       *Theme
+		desktopAsks bool
+		still       bool
+	}{
+		"system":                  {system, false, false},
+		"system, less motion":     {system, true, true},
+		"reduced":                 {reduced, false, true},
+		"reduced, less motion":    {reduced, true, true},
+		"full":                    {full, false, false},
+		"full, less motion asked": {full, true, false},
+	} {
+		if got := c.theme.Still(c.desktopAsks); got != c.still {
+			t.Errorf("%s: still %v, want %v", name, got, c.still)
+		}
+	}
+	if Expressive.FastSpatial.Regardless || !full.Motion.SlowEffects.Anim().NonMotion || system.Motion.SlowEffects.Anim().NonMotion {
+		t.Error("only the springs of a theme that moves regardless say so, and the scheme stays as it is")
+	}
+}
+
+// A size of its own in each frame of a moving label would be a font of its own in each frame, which the text engine
+// keeps (docs/en/dev/memory.md): the label of a field goes between its two sizes drawn in one of them and scaled.
+func TestTheLabelOfAFieldMovesInItsTwoSizes(t *testing.T) {
+	env := testEnv(t, false)
+	tester := ui.NewTester(view(env, func(c Ctx) {
+		TextField(c, TextFieldSpec{ID: "name", Label: "Version name"})
+	}), 400, 200)
+	tester.SetPreferences(ui.Preferences{ReduceMotion: false, TextScale: 1})
+	tester.Frame()
+	sizes := map[float32]int{}
+	collect := func() {
+		for _, n := range env.Reg.Nodes() {
+			if n.Role == RoleText && n.Text == "Version name" {
+				sizes[n.Size]++
+			}
+		}
+	}
+	collect()
+	if err := tester.Click("Version name"); err != nil {
+		t.Fatal(err)
+	}
+	for range 60 {
+		tester.Advance(10 * time.Millisecond)
+		collect()
+	}
+	if len(sizes) != 2 || sizes[16] == 0 || sizes[12] == 0 {
+		t.Errorf("the label is drawn in the sizes (and frames) %v, want 16 and 12 only", sizes)
+	}
+}
+
 func TestSpringsReachTheirTargetAndOnlyBounceWhenUnderdamped(t *testing.T) {
 	bouncy := Spring{Damping: 0.5, Stiffness: 400}
 	critical := Spring{Damping: 1, Stiffness: 400}

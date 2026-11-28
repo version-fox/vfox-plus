@@ -25,19 +25,24 @@ export function icon(name: string, cls?: string): string {
   return '<svg class="ic' + (cls ? " " + cls : "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
 }
 
-function hashName(name: string): number {
-  let h = 0;
-  for (const c of name) h = (h * 31 + c.codePointAt(0)!) >>> 0;
+// stableHash is the hash of a name that picks the shape and the colours of its avatar, the same
+// as on the desktop (kit.StableHash): FNV-1a over the UTF-16 code units.
+export function stableHash(name: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < name.length; i++) {
+    h ^= name.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
   return h;
 }
 
 export function avatar(name: string, lg?: boolean): string {
-  const h = hashName(name);
+  const h = stableHash(name);
   const tones = ["av-p", "av-s", "av-t"];
   return (
-    '<span class="avatar ' + tones[h % 3] + " av-" + (h % 12) + (lg ? " lg" : "") + '" aria-hidden="true">' +
+    '<span class="avatar ' + tones[h % 3] + " av-" + (h % 12) + (lg ? " lg" : "") + '" aria-hidden="true"><span>' +
     esc((name || "?")[0].toUpperCase()) +
-    "</span>"
+    "</span></span>"
   );
 }
 

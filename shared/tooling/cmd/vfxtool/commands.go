@@ -37,6 +37,7 @@ import (
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/phoneframe"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/phonelink"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/prepare"
+	"github.com/version-fox/vfox-plus/shared/tooling/internal/profiles"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/release"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/runtask"
 	"github.com/version-fox/vfox-plus/shared/tooling/internal/sandbox"
@@ -51,6 +52,7 @@ func init() {
 	commands["golicenses"] = golicenses.Run
 	commands["build"] = build.Run
 	commands["prepare"] = prepare.Run
+	commands["profile"] = profiles.Run
 	commands["coverage"] = coverage.Run
 	commands["measure"] = measure.Run
 	commands["measure-lightweight"] = measurelightweight.Run

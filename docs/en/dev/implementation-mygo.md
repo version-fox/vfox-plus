@@ -15,7 +15,7 @@ project, in Go:
 
 | Directory | What it does |
 | --- | --- |
-| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the plugin profiles (`core/profile`: what is particular to vfox-java, vfox-nodejs, vfox-flutter, vfox-gradle, vfox-golang, vfox-python, vfox-maven, vfox-php, vfox-dart, vfox-kotlin, vfox-dotnet, vfox-cmake, vfox-etcd, vfox-erlang, vfox-deno, vfox-groovy, vfox-scala, vfox-zig, vfox-clang and vfox-elixir) — no UI |
+| [`core/`](../../../mygo/core) | The models, the process runner, the vfox client and the parsers of its output, the settings store, the translation catalogues with their ICU messages, the [plugin profiles](profiles.md) (`core/profile`: reading, merging and checking what is particular to each plugin, from the files of `shared/profile`, the plugins and the user) — no UI |
 | [`state/`](../../../mygo/state) | The observable controllers, the task queue (one state-changing command at a time, streamed output, download progress, cancellation, retry) |
 | [`ui/`](../../../mygo/ui) | The application: the window, the shell with its navigation, the pages and the dialogs |
 | [`ui/kit/`](../../../mygo/ui/kit) | The toolkit: the Material 3 Expressive components, built on mygo's elements and headless widgets |
@@ -235,12 +235,13 @@ pages are built from its components.
   springs of the Material 3 Expressive motion scheme
   ([`motion.go`](../../../mygo/ui/kit/motion.go)), given to mygo's `AnimateTo`: exact
   solutions that keep their velocity when the target changes, drawn only while
-  they move, so the window is idle when nothing changes. The desktop asks for less
-  motion whatever the platform asks: every value jumps, and the views have no element
-  transitions, whose children are drawn in layers that cost memory (see
-  [memory](memory.md#motion-and-memory)). Dialogs, menus and pages appear at once. The
-  loading indicator and the wavy progress are drawn in the painter without building the
-  view again, and stop while the desktop asks for less motion.
+  they move, so the window is idle when nothing changes. The animation setting says
+  whether they move: as the desktop asks (by default), always, or never (see
+  [the design system](design-system.md#motion)). In every setting the views have no
+  element transitions, whose children are drawn in layers that cost memory (see
+  [memory](memory.md#motion-and-memory)): pages change at once. The loading indicator
+  and the wavy progress are drawn in the painter without building the view again, and
+  stop while nothing moves (`Theme.Still`).
 - **Overlays** — menus, tooltips, dialogs and snack bars — are mygo's popovers,
   tooltips, dialogs and toasts, which take care of the focus, Escape and the press
   outside; the kit styles them.

@@ -20,15 +20,20 @@ import (
 	"strings"
 )
 
-// logEntry is one line of `logcat -v threadtime`: its level (V, D, I, W, E, F or S), its tag and
-// its message.
+// logEntry is one line of `logcat -v threadtime`: the process that wrote it, its level (V, D, I, W,
+// E, F or S), its tag and its message.
 type logEntry struct {
-	level, tag, message string
+	process, level, tag, message string
 }
 
 // logLine matches one line of `logcat -v threadtime`: the date, the time, the process and the
 // thread, then the level, the tag, and the message.
-var logLine = regexp.MustCompile(`^\S+\s+\S+\s+\d+\s+\d+\s+([VDIWEFS])\s+([^:]+?)\s*:\s?(.*)$`)
+var logLine = regexp.MustCompile(`^\S+\s+\S+\s+(\d+)\s+\d+\s+([VDIWEFS])\s+([^:]+?)\s*:\s?(.*)$`)
+
+// uiautomatorFrame is in the stack of a crash of uiautomator, the command of the device that reads the
+// screens for the tool. On a slow emulator it fails now and then, with a timeout while it connects
+// (`Timeout while connecting UiAutomation`), and the next read succeeds; its crash is not the app's.
+const uiautomatorFrame = "com.android.commands.uiautomator."
 
 // emulatorGLNoise matches the messages that the software GL of the emulator writes into the log of
 // the app at the error level under the tag mygo: it reports the bindings of the attributes of its
@@ -41,22 +46,30 @@ func parseLog(text string) []logEntry {
 	var entries []logEntry
 	for _, line := range strings.Split(text, "\n") {
 		if match := logLine.FindStringSubmatch(strings.TrimRight(line, "\r")); match != nil {
-			entries = append(entries, logEntry{level: match[1], tag: match[2], message: match[3]})
+			entries = append(entries, logEntry{process: match[1], level: match[2], tag: match[3], message: match[4]})
 		}
 	}
 	return entries
 }
 
 // appErrors returns the errors of the application that the log shows, one line each: a fatal
-// message of any tag, an error of the Android runtime (a crash), and an error that the app writes
-// to its standard error, which the system logs at the error level under the tag mygo (the
-// standard output is logged at the info level). An empty result means the app logged no error.
+// message of any tag, an error of the Android runtime (a crash) that is not uiautomator's, and an
+// error that the app writes to its standard error, which the system logs at the error level under the
+// tag mygo (the standard output is logged at the info level). An empty result means the app logged no
+// error.
 func appErrors(text string) []string {
+	entries := parseLog(text)
+	uiautomator := map[string]bool{}
+	for _, e := range entries {
+		if e.tag == "AndroidRuntime" && strings.Contains(e.message, uiautomatorFrame) {
+			uiautomator[e.process] = true
+		}
+	}
 	var problems []string
-	for _, e := range parseLog(text) {
+	for _, e := range entries {
 		switch {
 		case e.level == "F",
-			e.tag == "AndroidRuntime" && e.level == "E",
+			e.tag == "AndroidRuntime" && e.level == "E" && !uiautomator[e.process],
 			e.tag == "mygo" && e.level == "E" && !emulatorGLNoise.MatchString(e.message):
 			problems = append(problems, fmt.Sprintf("%s/%s: %s", e.level, e.tag, e.message))
 		}

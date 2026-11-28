@@ -177,11 +177,17 @@ func (r *Root) settingsQuitItem(k kit.Ctx) kit.ListItemSpec {
 	}
 }
 
-// settingsConfirm asks the user to confirm an action, in a dialog with a cancel button
+// settingsConfirm asks the user to confirm an action of the settings (see
+// confirmDialog).
+func settingsConfirm(k kit.Ctx, id, icon, title, body, okLabel string, danger bool, ok func()) {
+	confirmDialog(k.Env, id, icon, title, body, okLabel, danger, ok)
+}
+
+// confirmDialog asks the user to confirm an action, in a dialog with a cancel button
 // and the action's own button. The action runs only for the second; a dangerous one is
 // drawn in the colour of errors.
-func settingsConfirm(k kit.Ctx, id, icon, title, body, okLabel string, danger bool, ok func()) {
-	k.Env.ShowDialog(id, func(c kit.Ctx, closeDialog func()) kit.DialogSpec {
+func confirmDialog(env *kit.Env, id, icon, title, body, okLabel string, danger bool, ok func()) {
+	env.ShowDialog(id, func(c kit.Ctx, closeDialog func()) kit.DialogSpec {
 		return kit.DialogSpec{
 			Icon: icon, IconError: danger, Title: title,
 			Content: func() {

@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { aliasesOf, avatar, esc, icon, txt } from "./dom";
+import { aliasesOf, avatar, esc, icon, stableHash, txt } from "./dom";
 
 // The page writes both double- and single-quoted attributes, so esc must
 // neutralize both quotes along with & < and > (replaces the Go regex test
@@ -51,6 +51,18 @@ describe("avatar", () => {
   });
   it("shows the uppercased first letter", () => {
     expect(avatar("flutter")).toContain(">F<");
+  });
+  // The values of kit.StableHash (mygo/ui/kit/avatar.go), which give a plugin the shape and the colours that it has on
+  // the desktop.
+  it.each([
+    ["nodejs", 527731554, "av-p av-6"],
+    ["maven", 2799867016, "av-s av-4"],
+    ["java", 136295781, "av-p av-9"],
+    ["flutter", 391927001, "av-t av-5"],
+    ["Ünicode-€-𝔘", 1243642932, "av-p av-0"],
+  ])("gives %s the avatar of the desktop", (name, hash, classes) => {
+    expect(stableHash(name)).toBe(hash);
+    expect(avatar(name)).toContain('class="avatar ' + classes + '"');
   });
 });
 

@@ -179,6 +179,12 @@ func runCommand(args []string, out, errOut io.Writer) int {
 	case joined == "doctor":
 		return reply("doctor")
 	case joined == "doctor --json" || strings.HasPrefix(joined, "doctor --json "):
+		// vfox finds that a caller outside of an activated shell is not activated,
+		// and exits with 1 for it.
+		if os.Getenv("__VFOX_SHELL") == "" {
+			reply("doctor-json-not-activated")
+			return 1
+		}
 		return reply("doctor-json")
 	case joined == "doctor --adopt" || strings.HasPrefix(joined, "doctor --adopt "):
 		fmt.Fprintln(out, "Adopted the current state.")

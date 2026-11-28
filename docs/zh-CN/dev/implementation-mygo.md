@@ -11,7 +11,7 @@ Material 3 Expressive 观感的部件；其元素与无样式部件之上全部�
 
 | 目录 | 职责 |
 | --- | --- |
-| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、插件配置档案（`core/profile`：vfox-java、vfox-nodejs、vfox-flutter、vfox-gradle、vfox-golang、vfox-python、vfox-maven、vfox-php、vfox-dart、vfox-kotlin、vfox-dotnet、vfox-cmake、vfox-etcd、vfox-erlang、vfox-deno、vfox-groovy、vfox-scala、vfox-zig、vfox-clang 与 vfox-elixir 的特有之处）——无 UI |
+| [`core/`](../../../mygo/core) | 模型、进程运行器、vfox 客户端及其输出解析、设置存储、带 ICU 消息的翻译目录、[插件配置档案](profiles.md)（`core/profile`：从 `shared/profile`、插件和用户的文件读取、合并并检查各插件的特有之处）——无 UI |
 | [`state/`](../../../mygo/state) | 可观察控制器、任务队列（一次一个改变状态的命令，流式输出、下载进度、取消、重试） |
 | [`ui/`](../../../mygo/ui) | 应用：窗口、带导航的 shell、页面与对话框 |
 | [`ui/kit/`](../../../mygo/ui/kit) | 工具包：基于 mygo 元素与无样式部件的 Material 3 Expressive 组件 |
@@ -186,9 +186,10 @@ mygo 每帧有变化即调用一次 state 的 view 函数，视图重建窗口�
   动作回调在帧构建后由 mygo 执行。
 - **动效**是每动画值一阻尼弹簧，Material 3 Expressive 动效方案的 spatial 与 effects
   弹簧（[`motion.go`](../../../mygo/ui/kit/motion.go)），交 mygo `AnimateTo`：精确解，中途变目标保持
-  速度，只在动时绘制，静止窗口空闲。桌面不论平台要求什么都减少动态效果：值直达，视图不做
-  元素转场（转场的子元素画在图层里，占内存，见[内存](memory.md#动效与内存)）。对话框、菜单与
-  页面即时出现。加载与波浪进度在 painter 中绘制、不重建视图，减少动态效果时静止。
+  速度，只在动时绘制，静止窗口空闲。动不动由动画设置决定：跟随桌面（默认）、总是动、从不动
+  （见[设计系统](design-system.md#动效)）。任何设置下视图都不做元素转场（转场的子元素画在图层里，占内存，
+  见[内存](memory.md#动效与内存)）：页面即时切换。加载与波浪进度在 painter 中绘制、不重建视图，
+  什么都不动时静止（`Theme.Still`）。
 - **浮层**——菜单、tooltip、对话框、snack bar——是 mygo popover、tooltip、dialog 与
   toast，管焦点、Escape 与外部按压；kit 定样式。
 - **列表**虚拟：只构建可见行，记行高，千像素跳跃与单步同价。Node.js 版本列表 877 项。

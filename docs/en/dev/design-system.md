@@ -63,7 +63,12 @@ give the interface its character:
   of three colour pairs: primary fixed dim, secondary and tertiary container.
   Not secondary container, which marks selected list items, nor primary
   container, which some seeds (the vfox orange among them) make just as light.
-  Hovering spins the shape by 30° on the fast spatial spring.
+  Hovering spins the shape by 30° on the fast spatial spring. The web interface
+  gives a plugin the same shape and colours: it computes the same hash
+  (`kit.StableHash`, FNV-1a over the UTF-16 code units) and clips the avatar to
+  the SVG `clipPath` of the shape, which `mygo/gateway/webapp.html` holds. The
+  test `TestTheAvatarsOfThePageAreTheShapesOfTheDesktop` in `mygo/gateway` fails,
+  printing the line to paste, when one of them is not the shape of `ui/shapes`.
 - **Empty and error states** show their icon on a large shape.
 - **Colour swatches** morph from a circle into a flower, turning slightly, when
   selected.
@@ -138,11 +143,11 @@ person to understand, to judge or to act; what the layout already says is not sa
 ### Budgets
 
 The census of a screen is taken by `webheap -audit` for the web interface, and by `TestTheScreensAreWithinTheBudgets` for the desktop application
-([how to take them](contributing.md#auditing-the-interface)). The test draws 39 scenes in
+([how to take them](contributing.md#auditing-the-interface)). The test draws 56 scenes in
 fourteen windows: 1280 dp wide in the light and in the dark theme, 700, 412 and 360 dp wide (the
 narrowest that the application opens in), with the text that the system makes larger, 130 % and
 150 % at 360 dp, 150 % at 412 dp, and 200 % at 360, 700 and 1280 dp, and in Chinese, 360 dp wide at
-100 % and at 200 %, and 1280 dp wide. The 18 screens that are a dialog, a menu or a tooltip are drawn in three windows more, the
+100 % and at 200 %, and 1280 dp wide. The 26 screens that are a dialog, a menu or a tooltip are drawn in three windows more, the
 shortest that the application opens in, 360 by 480 dp, at 100 % and at 200 %, and a window as short and 1280 dp wide: the
 screen is reached in a window as tall as it needs, and the window is made shorter, as a person makes it, and a menu is opened
 from a button that has been scrolled to. What a dialog has below its fold is counted there, too: its content is scrolled to its end,
@@ -287,10 +292,19 @@ A spring keeps its velocity when its target changes mid-flight, so interrupted
 animations stay smooth. Where an API only accepts a duration and a curve
 (dialogs), the spring is sampled into a curve over the time it needs to settle;
 page transitions, which bring their own curves, last as long as the slow effects
-spring needs to settle. The desktop asks for less motion whatever the platform
-asks: springs jump to their target and indeterminate indicators stop, and its views
-give way at once, since the layers that a transition draws its children in cost memory
-([memory](memory.md#motion-and-memory)).
+spring needs to settle.
+
+The desktop moves as its **Animation** setting (`motion` in the
+[settings](architecture.md#settings)) says: **System**, the default, moves on the
+springs unless the desktop asks for less motion; **Full** moves whatever the
+desktop asks; and **Reduced** moves nothing: springs jump to their target and
+indeterminate indicators stop. In no setting do its views give way with a
+transition: they change at once, since the layers that a transition draws its
+children in cost memory ([memory](memory.md#motion-and-memory)). While the desktop
+asks for less motion, mygo takes values to their targets at once, so in Full the
+springs mark their values as moving nothing (`NonMotion`), which is mygo's one
+way to move them all the same, and a dialog or a menu, whose pose mygo takes at
+once then, grows on a value of its own.
 
 The web interface is such an API: CSS has durations and curves, no springs. Its
 `--sp-*` variables are the six springs, each as `--sp-NAME-t`, the milliseconds
@@ -304,10 +318,16 @@ differ, and when a declaration has a duration or a curve of its own (the wavy
 progress and the loading indicator, which run until the work is done, are the
 exception). A browser without `linear()` keeps the Bézier curves that the page
 had before. The phone app takes the springs from the same theme. When the system asks for less
-motion, it follows that, as the desktop does: its springs jump to their target.
+motion, it follows that, as the desktop does in its System setting: its springs jump to their
+target.
 
 mygo: the springs and `AnimateTo` in `mygo/ui/kit/motion.go`, drawn only while
 they move, so the window is idle when nothing changes.
+
+An animation does not change the size of a text from frame to frame: text that grows
+or shrinks, as the floating label of a field does, is drawn in one of its type sizes
+and scaled by a transform, since every size in between is a font of its own whose
+glyphs stay in memory ([memory](memory.md#motion-and-memory)).
 
 ### Transitions
 
