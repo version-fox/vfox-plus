@@ -118,10 +118,11 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - **搜索按钮** `availableChoiceButton`（“发行版：Temurin”；选择项的标签来自档案，图标 `registry`）。
   档案里有这样的搜索时（`java`），它会打开[选择对话框](#选择与名称)来决定搜索列出什么；所选值成为
   `vfox search` 的参数，按插件保存在设置里（`searches`），所以重启后仍在，Web 界面里也一样，之前选择的列表立即消失；
-- 行尾是图标按钮 `availableMoreWays`，菜单里是列表没有提供的其他添加方式，每个插件都有：
+- 行尾是图标按钮 `availableMoreWays`，菜单里是列表没有提供的其他添加方式：
   - `availableInstallByName` 打开[按名称安装对话框](#选择与名称)；
   - `linkDetect` 排队 `vfox link --detect --yes <插件>`：由插件找出机器上已有的 SDK，
-    vfox 把它们链接进来，不必再下载一遍。插件不会探测时，任务里会这么说；
+    vfox 把它们链接进来，不必再下载一遍。插件文件表明它不会探测时，不提供这一项（见[插件配置档案](profiles.md#档案从哪里来)）；
+    文件看不出来时，由任务说明；
   - `linkManual` 打开[链接对话框](#选择与名称)，用于用户指明目录里的 SDK。
 
 列表加载中或失败时这一行仍在，方便改选，也方便添加列表里没有的 SDK。随后是：
@@ -144,7 +145,7 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
 - `optionsVariables`：插件读取的每个环境变量一项（Java 与 Flutter 的 GitHub 镜像、Node.js 的下载镜像、
   Flutter 的存储镜像、Node.js 的 C 库，后者带 `optionsVariableAdvanced` 标签），显示变量名、值（若是
   已检查过的镜像则带镜像名）或 `optionsVariableUnset`（默认），以及 `optionsVariableChange`，打开
-  [变量对话框](#选择与名称)；
+  [变量对话框](#选择与名称)。开关类变量改为在行尾放开关；
 - `optionsLegacy`：vfox 配置里的开关 `configLegacyEnable`，标题下以标签显示插件让 vfox 读取的版本文件
   （`.sdkmanrc`；`.node-version` 与 `.nvmrc`）；策略有影响时（Node.js）再加 `configLegacyStrategy`。
   不读版本文件的插件没有这一节，不受策略影响的插件没有策略的选项；
@@ -182,9 +183,12 @@ fade through。完全没有插件时列表（此时是 `sdksEmptyTitle` 与它�
   对话框那一行的版本，否则是当前版本）。两者都遵守版本名称的规则。确认后排队
   `vfox alias set <插件> <别名> <版本>`；`aliasUnset` 排队 `vfox alias unset <插件> <别名>`。
 - **变量**（`variable…`）：变量的说明与名称；地址类变量有等宽字段 `variableAddress`（地址必须以 `http://`
-  或 `https://` 开头，`variableInvalidAddress`）；`variablePresets` 下每个已检查的值一个 Chip，再加一个
-  取消变量的 Chip `variableDefaultOption`。选择类变量（`musl`、`glibc`）只能取这些值
-  （`variableInvalidChoice`）。值会写入设置里的额外环境变量，设置页也会显示。
+  或 `https://` 开头，`variableInvalidAddress`），文本类变量有等宽字段 `variableValue`（单行，`variableInvalidText`）；
+  `variablePresets` 下档案里的每个值一个 Chip，再加一个取消变量的 Chip `variableDefaultOption`。选择类变量（`musl`、
+  `glibc`）只能取这些值（`variableInvalidChoice`）。值会写入设置里的额外环境变量，设置页也会显示。
+- **确认取值**（`variableConfirm…`）：设置应用没有内置的值（来自插件自带档案、在线目录或用户文件）之前，弹出带
+  `warning` 图标的对话框，显示 `KEY=value`（`variableConfirmBody`），提供 `variableConfirmAction` 与取消。用户手动
+  输入的值是自己的选择，不再询问。
 
 ## Plugins
 

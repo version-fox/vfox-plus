@@ -111,6 +111,13 @@ The **Options** tab holds what is particular to the plugin:
   (`path.mode`, `path.preserve`).
 - **Documentation**: the pages of the plugin that explain it, in your language.
 
+What the tab shows comes from the plugin's [profile](../dev/profiles.md). The
+application brings those of the version-fox plugins and updates them from the
+online directory (at most once a day, through the update mirror, if you set one),
+a plugin may bring its own, and files of yours in `profiles/` next to the settings
+override them. A value that the application itself does not offer, such as a
+mirror that only a plugin names, is shown and confirmed before it is set.
+
 ### Maven and PHP
 
 The plugins [vfox-maven](https://github.com/version-fox/vfox-maven) and

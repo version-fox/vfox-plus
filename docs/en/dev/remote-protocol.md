@@ -101,18 +101,19 @@ is `startup` (the command goes into `file`), `once` (run it once) or `script`
 | `PUT /api/sdks/<name>/search` | Choose what the plugin lists: `{value}`, the value of a choice of its profile; the default of the plugin is a choice too, and an empty value means it. The application keeps the choice in the settings, so that it is what the plugin lists from now on, in every interface and after a restart. Answers `{value}`, the choice now. An unknown value and a body without a value answer 400, a plugin whose search takes no argument (and one without a profile) 404. |
 | `GET /api/sdks/<name>/aliases` | Version aliases (`vfox.VersionAlias[]`): `{sdk, alias, target, display}`. Timeouts answer 504. |
 | `GET /api/doctor[?sdk=<name>[&version=<version>]]` | Health (`vfox.DoctorReport`): `{ok, findings: [{id, severity, sdk, version, message, hints, fix, ignored}]}`. Timeouts answer 504. |
-| `PUT /api/sdks/<name>/variables` | Set one environment variable that the profile lists: `{key, value}`, an empty value takes it away. A variable the plugin does not read, a value it does not take and a body without a key answer 400 with the reason, a plugin without a profile 404. The value joins the extra environment of the settings. |
+| `PUT /api/sdks/<name>/variables` | Set one environment variable that the profile lists: `{key, value}`, an empty value takes it away. A variable the plugin does not read, a value it does not take and a body without a key answer 400 with the reason, a plugin without a profile 404. The value joins the extra environment of the settings. A client shows a value that is among the variable's `unvetted` ones and asks before it sends it. |
 
 ### Plugin profiles
 
 `GET /api/sdks/<name>/profile` answers what the application knows about the plugin
-(`mygo/core/profile`, see [the architecture](architecture.md#plugin-profiles)). Every
+(see [plugin profiles](profiles.md); the profile is looked up and its parts are
+inferred as [the architecture](architecture.md#plugin-profiles) says). Every
 text comes in both languages, `{"en": …, "zh": …}` (`zh` is left out where it would repeat
 `en`), so that the page chooses by its own language setting:
 
 ```json
 {
-  "plugin": "java", "naming": "java",
+  "plugin": "java",
   "search": {"label": {"en": "Distribution", "zh": "发行版"}, "default": "open", "current": "tem",
              "choices": [{"value": "tem", "name": {"en": "Temurin"}, "maker": {"en": "Eclipse Adoptium"}, "aliases": ["temurin"], "popular": true}]},
   "shorthands": [{"name": "21-tem", "meaning": {"en": "The newest Temurin 21", "zh": "最新的 Temurin 21"}}],
@@ -121,13 +122,18 @@ text comes in both languages, `{"en": …, "zh": …}` (`zh` is left out where i
   "legacyFiles": [".sdkmanrc"], "legacyStrategy": false,
   "facets": [{"id": "support", "label": {"en": "Support"}, "values": ["LTS"]}],
   "guide": {"en": "…"}, "tips": [{"en": "…"}], "docs": [{"title": {"en": "Versions and names"}, "url": {"en": "https://…"}}],
+  "capabilities": {"detect": true},
   "installed": {"21.0.12.1+1-tem": {"version": "21.0.12.1+1", "source": {"value": "tem", "name": {"en": "Temurin"}}, "flavors": []}}
 }
 ```
 
 `variables[].value` is what vfox runs with now, and `installed` takes the names of the
 installed versions apart. `search.current` is the value of the choice that the plugin lists.
-`naming` is `java`, `flutter` or `plain`.
+A variable's `kind` is `url`, `choice`, `toggle` (with `on` and `off`, where an empty `off`
+takes the variable away) or `text`, and `unvetted` lists the values that come from a profile
+that the application did not ship. `capabilities.detect` is false for a plugin that cannot
+find installs on the machine, for which `linkDetect` is not offered; a client takes a missing
+`capabilities` as true. A newer client ignores the `naming` that older applications send.
 
 A plugin that was added under an alias (`vfox add --alias coffee java`) is named by the
 alias in every path of `/api/sdks/<name>/…`, and has the profile of the plugin it was made

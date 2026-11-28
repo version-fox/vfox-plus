@@ -163,11 +163,13 @@ has a back button.
   survives a restart and is the same in the web interface, and the list of the earlier
   choice goes away at once;
 - at its end, the icon button `availableMoreWays` with the menu of the other ways
-  to add an SDK, which every plugin has:
+  to add an SDK:
   - `availableInstallByName` opens the [install by name dialog](#choices-and-names);
   - `linkDetect` queues `vfox link --detect --yes <plugin>`: the plugin finds the
     SDKs that are already on the machine and vfox links them, instead of
-    downloading them again. A plugin that cannot detect says so in the task;
+    downloading them again. A plugin whose files show that it cannot detect does
+    not offer it (see [profiles](profiles.md#where-profiles-come-from)); one whose
+    files do not tell says so in the task;
   - `linkManual` opens the [link dialog](#choices-and-names), for an SDK in a
     directory that the user names.
 
@@ -203,7 +205,8 @@ are its chips):
   storage mirror of Flutter, the C library of Node.js, tagged
   `optionsVariableAdvanced`), with the variable name, its value (with the name
   of the mirror, if it is one that was checked) or `optionsVariableUnset` (Default), and
-  `optionsVariableChange`, which opens the [variable dialog](#choices-and-names);
+  `optionsVariableChange`, which opens the [variable dialog](#choices-and-names).
+  A variable that is on or off has a switch at the end of its item instead;
 - `optionsLegacy`: the switch `configLegacyEnable` of the vfox configuration, with
   the version files that the plugin lets vfox read as tags under its title
   (`.sdkmanrc`; `.node-version` and `.nvmrc`), and, where the strategy matters
@@ -259,11 +262,17 @@ Dialogs scale in on a spring.
   queues `vfox alias unset <plugin> <alias>`.
 - **Variable** (`variable…`): the help of the variable and its name; for an
   address, a monospaced field `variableAddress` (an address needs `http://` or
-  `https://`, `variableInvalidAddress`); `variablePresets`, a chip for every
-  value that was checked, and a chip `variableDefaultOption` that takes the
+  `https://`, `variableInvalidAddress`), and for a text a monospaced field
+  `variableValue` (one line, `variableInvalidText`); `variablePresets`, a chip for
+  every value of the profile, and a chip `variableDefaultOption` that takes the
   variable away. The chips of a choice (`musl`, `glibc`) are its only values
   (`variableInvalidChoice`). The value goes to the extra environment of the
   settings, which the settings page shows too.
+- **Confirm a value** (`variableConfirm…`): before a value that the application
+  did not ship is set (from the plugin's own profile, the online directory or a
+  file of the user), a dialog with the `warning` icon shows `KEY=value`
+  (`variableConfirmBody`), with `variableConfirmAction` and Cancel. A value that
+  the user types is theirs and asks nothing.
 
 ## Plugins
 

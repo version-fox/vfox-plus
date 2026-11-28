@@ -69,6 +69,10 @@
 - **纳入、漂移与盖住**：机器上已有 JDK、Gradle、Flutter、Go 或 Python 时，**探测并链接**纳入管理，不必重下；SDK 被原地改动时主页**健康**与 `vfox use` 报告漂移（**重装**，旧安装用**纳入**）；别的工具盖住 vfox 的版本时健康检查指明是谁与做法（`path.mode`、`path.preserve`）。
 - **文档**：该插件讲解自身的页面，使用你的语言。
 
+页签的内容来自插件的[配置档案](../dev/profiles.md)。应用内置 version-fox 组织插件的档案，并从在线目录更新（最多每天
+一次，设置了更新镜像时经镜像访问）；插件也可以自带档案；设置文件旁 `profiles/` 里你自己的文件优先于它们。应用本身没有
+提供的值（例如只有插件提到的镜像），设置前会先展示并请你确认。
+
 ### Maven 与 PHP
 
 插件 [vfox-maven](https://github.com/version-fox/vfox-maven) 与 [vfox-php](https://github.com/version-fox/vfox-php) 的功能同样不止列出版本：桌面应用与 Web 界面都有，手机端 App 也有：
