@@ -6,7 +6,7 @@ require (
 	// Starts Chrome and speaks the DevTools Protocol for the screenshots of
 	// `vfxtool webheap` (MIT;
 	// see docs/en/dev/architecture.md#dependencies).
-	github.com/chromedp/cdproto v0.160.4
+	github.com/chromedp/cdproto v0.160.10
 	github.com/chromedp/chromedp v0.24.0
 	github.com/godbus/dbus/v5 v5.2.4
 	github.com/google/go-github/v93 v93.0.0
