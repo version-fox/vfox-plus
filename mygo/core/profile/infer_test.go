@@ -15,8 +15,6 @@
 package profile
 
 import (
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -72,40 +70,31 @@ func TestScanEnvKeysKeepsPluginSettings(t *testing.T) {
 }
 
 func TestInferredVariablesAreEditable(t *testing.T) {
-	variables := InferredVariables([]string{"VFOX_GRADLE_MIRRORS"})
-	if len(variables) != 1 || variables[0].Kind != VariableURL {
+	variables := InferredVariables([]string{"VFOX_GRADLE_MIRRORS", "VFOX_GRADLE_OPTIONS", "HTTP_PROXY"})
+	if len(variables) != 2 || variables[0].Kind != VariableURL || variables[1].Kind != VariableText {
 		t.Fatalf("got %+v", variables)
 	}
 	if err := variables[0].Validate("https://repo.huaweicloud.com/gradle"); err != nil {
 		t.Errorf("mirror rejected: %v", err)
 	}
-}
-
-func TestPluginHomeRespectsVfoxHome(t *testing.T) {
-	home := PluginHome(map[string]string{"VFOX_HOME": "/data/vfox"})
-	if home != "/data/vfox" {
-		t.Errorf("got %q", home)
-	}
-	directory := t.TempDir()
-	legacy := filepath.Join(directory, ".version-fox")
-	if err := os.MkdirAll(legacy, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	if got := PluginHome(map[string]string{"HOME": directory}); got != legacy {
-		t.Errorf("legacy home = %q, want %q", got, legacy)
+	// A setting that is no address takes any line of text.
+	if err := variables[1].Validate("--quiet --offline"); err != nil {
+		t.Errorf("text rejected: %v", err)
 	}
 }
 
-func TestPluginDirKeepsTheNameInsideThePluginRoot(t *testing.T) {
-	environment := map[string]string{"VFOX_HOME": "/data/vfox"}
-	if got := PluginDir(environment, "java"); got != filepath.Join("/data/vfox", "plugin", "java") {
-		t.Errorf("got %q", got)
-	}
-	// A name from the user (an alias they typed, a segment of a URL) must
-	// never escape the plugin directory: no separators, no ".." anywhere.
-	for _, name := range []string{"", ".", "..", "a/b", `a\b`, "a/../b", "a..b"} {
-		if got := PluginDir(environment, name); got != "" {
-			t.Errorf("PluginDir(%q) = %q, want empty", name, got)
+func TestAGenericVariableNamesItsPlugin(t *testing.T) {
+	for _, c := range []struct {
+		plugin, key string
+		want        bool
+	}{
+		{"gradle", "VFOX_GRADLE_MIRRORS", true},
+		{"", "VFOX_GRADLE_MIRRORS", true},
+		{"nodejs", "VFOX_GRADLE_MIRRORS", false},
+		{"gradle", "PATH", false},
+	} {
+		if _, ok := GenericVariableForPlugin(c.plugin, c.key); ok != c.want {
+			t.Errorf("GenericVariableForPlugin(%q, %q) = %v", c.plugin, c.key, ok)
 		}
 	}
 }

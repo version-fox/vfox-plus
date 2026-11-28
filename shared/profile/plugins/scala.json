@@ -1,0 +1,44 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "scala",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The first version in the list, the newest release",
+        "zh": "列表中的第一个版本，即最新的发行版"
+      }
+    }
+  ],
+  "guide": {
+    "en": "Write the version as scala-lang.org lists it, such as 3.10.1. latest installs the first version in the list; a partial name such as 3 or 2.13 is not a version the plugin takes.",
+    "zh": "按 scala-lang.org 列出的样子写版本，如 3.10.1。latest 安装列表中的第一个版本；3 或 2.13 这样的部分版本号不是插件接受的版本。"
+  },
+  "tips": [
+    {
+      "en": "Scala 2.10.4 and older download from scala-lang.org; Scala 2.10.5 and later, and all of Scala 3, download from GitHub.",
+      "zh": "Scala 2.10.4 及更早的版本从 scala-lang.org 下载；Scala 2.10.5 及之后的版本，以及全部 Scala 3，从 GitHub 下载。"
+    },
+    {
+      "en": "The LTS release 3.9.0 installs as 3.9.0, not under the name the list shows.",
+      "zh": "LTS 版本 3.9.0 以 3.9.0 安装，而不是列表中显示的名称。"
+    },
+    {
+      "en": "The plugin installs no JDK, and Scala needs one to run. Scala 2.10.4 did not run on the JDK 25 that was checked.",
+      "zh": "插件不安装 JDK，而 Scala 运行需要 JDK。检查时，Scala 2.10.4 无法在所检查的 JDK 25 上运行。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Plugin README",
+        "zh": "插件说明"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-scala/blob/main/README.md",
+        "zh": "https://github.com/version-fox/vfox-scala/blob/main/README_CN.md"
+      }
+    }
+  ]
+}

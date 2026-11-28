@@ -30,6 +30,7 @@ import (
 
 	"github.com/version-fox/vfox-plus/mygo/core"
 	"github.com/version-fox/vfox-plus/mygo/core/profile"
+	"github.com/version-fox/vfox-plus/mygo/core/profile/builtin"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/pair"
 	"github.com/version-fox/vfox-plus/mygo/state"
@@ -72,7 +73,9 @@ func main() {
 		Environment:   environment,
 		TaskLockPath:  filepath.Join(settingsDir, "tasks.lock"),
 		TaskLogDir:    taskLogDir,
+		Profiles:      profile.NewRegistry(profile.CurrentPlatform(), builtin.Documents()),
 		ProfilesDir:   profile.ProfilesDir(settingsPath),
+		Catalog:       onlineProfiles(),
 	})
 	// Other devices may connect once the user allows them in the settings, and the
 	// application serves them for as long as it runs. The settings are loaded before

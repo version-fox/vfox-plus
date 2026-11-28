@@ -115,10 +115,16 @@ func (r *Root) sdkOpenVariable(name string, variable remote.Variable) {
 			close()
 		}
 		submit := func() {
+			key, text := variable.Key, strings.TrimSpace(value)
+			// The question takes the place of the dialog.
+			if variable.NeedsConfirmation(text) {
+				close()
+				r.sdkChangeVariable(c.Env, name, variable, text)
+				return
+			}
 			if !save.begin() {
 				return
 			}
-			key, text := variable.Key, strings.TrimSpace(value)
 			r.Do(func(ctx context.Context) error {
 				notice := save.end(r.service.SetVariable(ctx, name, key, text))
 				r.invalidate()
@@ -134,10 +140,14 @@ func (r *Root) sdkOpenVariable(name string, variable remote.Variable) {
 						kit.Label(c, help, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant)
 					}
 					kit.Label(c, variable.Key, kit.Type(kit.BodyMedium), cs.OnSurfaceVariant, kit.Monospace())
-					if variable.Kind == remote.VariableURL {
+					if variable.Kind == remote.VariableURL || variable.Kind == remote.VariableText {
+						label := i18n.Text("address")
+						if variable.Kind == remote.VariableText {
+							label = i18n.Text("variableValue")
+						}
 						kit.TextField(c, kit.TextFieldSpec{
 							ID:        "sdkVariableValue",
-							Label:     i18n.Text("address"),
+							Label:     label,
 							Hint:      variable.Example,
 							Text:      &value,
 							Monospace: true,
@@ -181,6 +191,26 @@ func (r *Root) sdkOpenVariable(name string, variable remote.Variable) {
 			},
 		}
 	})
+}
+
+// sdkChangeVariable sets a variable of the plugin name to value, after a
+// question for a value from a profile that the application of the computer did
+// not ship.
+func (r *Root) sdkChangeVariable(env *kit.Env, name string, variable remote.Variable, value string) {
+	set := func() {
+		r.Do(func(ctx context.Context) error {
+			err := r.service.SetVariable(ctx, name, variable.Key, value)
+			r.invalidate()
+			return err
+		}, "saved")
+	}
+	if !variable.NeedsConfirmation(value) {
+		set()
+		return
+	}
+	body := strings.NewReplacer("{key}", variable.Key, "{value}", value).Replace(i18n.Text("variableConfirmBody"))
+	confirmDialog(env, "sdkVariableConfirm/"+name+"/"+variable.Key, "warning",
+		i18n.Text("variableConfirmTitle"), body, i18n.Text("variableConfirmAction"), false, set)
 }
 
 // sdkConfirmUninstall asks before a version is uninstalled, and then queues it.

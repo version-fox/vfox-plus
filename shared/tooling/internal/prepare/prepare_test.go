@@ -160,6 +160,7 @@ func TestRunCollectsTheAssets(t *testing.T) {
 	write("mygo/NOTICE.txt", "notices\n")
 	write("LICENSE", "Apache License text\n")
 	write("shared/i18n/app_en.arb", "{}")
+	write("shared/profile/plugins/testsdk.json", `{"schema": 2, "plugin": "testsdk"}`)
 	write("shared/icons.json", `{"source": {"package": "`+source.Package+`", "version": "`+source.Version+`", "sha512": "`+source.SHA512+`"},
 		"icons": {"home": "home", "folder": "folder_open"}}`)
 	cache := filepath.Join(t.TempDir(), "cache")
@@ -186,7 +187,7 @@ func TestRunCollectsTheAssets(t *testing.T) {
 	if requests.Load() != 1 {
 		t.Errorf("%d requests", requests.Load())
 	}
-	for _, name := range []string{"icons/home.svg", "icons/home-fill.svg", "icons/folder_open.svg", "icons/folder_open-fill.svg", "icons.json", "i18n/app_en.arb", "tray.png", "licenses.txt"} {
+	for _, name := range []string{"icons/home.svg", "icons/home-fill.svg", "icons/folder_open.svg", "icons/folder_open-fill.svg", "icons.json", "i18n/app_en.arb", "profiles/testsdk.json", "tray.png", "licenses.txt"} {
 		if _, err := os.Stat(filepath.Join(repo, "mygo", "assets", filepath.FromSlash(name))); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}

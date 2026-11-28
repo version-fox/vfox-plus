@@ -15,6 +15,7 @@
 package profile
 
 import (
+	"regexp"
 	"strings"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
@@ -31,6 +32,9 @@ const (
 	// FacetSuffix: the last part of the version, after the last `-`, such as
 	// the architecture of `3.47.4-x64`.
 	FacetSuffix
+	// FacetPattern: the text of the version that the pattern of the facet
+	// captures: its group `value`, its first group, or the whole match.
+	FacetPattern
 )
 
 // Facet is a filter that suits the versions of a plugin: a group of values of
@@ -46,6 +50,8 @@ type Facet struct {
 	// Values are the values the facet knows, in the order they are offered, as
 	// they are written; they are compared ignoring case.
 	Values []string
+	// Pattern finds the value of a version name, for FacetPattern.
+	Pattern *regexp.Regexp
 }
 
 // Group is a facet with the values that some of the listed versions have.
@@ -175,6 +181,9 @@ func (f Facet) has(version core.AvailableVersion, value string) bool {
 	case FacetSuffix:
 		_, suffix, found := cutLast(version.Version, "-")
 		return found && strings.EqualFold(suffix, value)
+	case FacetPattern:
+		captured, found := f.capture(version.Version)
+		return found && strings.EqualFold(captured, value)
 	default:
 		for _, token := range NoteTokens(version.Note) {
 			if strings.EqualFold(token, value) {
@@ -183,6 +192,24 @@ func (f Facet) has(version core.AvailableVersion, value string) bool {
 		}
 		return false
 	}
+}
+
+// capture is what the pattern of the facet finds in the name.
+func (f Facet) capture(name string) (string, bool) {
+	if f.Pattern == nil {
+		return "", false
+	}
+	match := f.Pattern.FindStringSubmatch(name)
+	if match == nil {
+		return "", false
+	}
+	if i := f.Pattern.SubexpIndex("value"); i > 0 {
+		return match[i], true
+	}
+	if len(match) > 1 {
+		return match[1], true
+	}
+	return match[0], true
 }
 
 // NoteTokens splits the note of a version at the commas and semicolons that are

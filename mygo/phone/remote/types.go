@@ -14,6 +14,11 @@
 
 package remote
 
+import (
+	"slices"
+	"strings"
+)
+
 // The types of the answers of the remote API. Their JSON keys are those that the
 // server writes (mygo/pair/webapi.go, webprofile.go and web.go). Some models of
 // the desktop core have no JSON tags, so the server writes their Go field names;
@@ -167,19 +172,11 @@ type Choice struct {
 	Everything bool     `json:"everything,omitempty"`
 }
 
-// Naming values of Profile.Naming.
-const (
-	NamingPlain   = "plain"
-	NamingJava    = "java"
-	NamingFlutter = "flutter"
-)
-
-// Profile describes a plugin: what its versions are called, the choices that
-// change what it lists, the variables it reads and the facets of its versions.
-// GET /api/sdks/<name>/profile answers it, or 404 when the plugin has none.
+// Profile describes a plugin: the choices that change what it lists, the
+// variables it reads and the facets of its versions. GET
+// /api/sdks/<name>/profile answers it, or 404 when the plugin has none.
 type Profile struct {
 	Plugin         string                  `json:"plugin"`
-	Naming         string                  `json:"naming"`
 	Search         *ProfileSearch          `json:"search,omitempty"`
 	Shorthands     []Shorthand             `json:"shorthands"`
 	Variables      []Variable              `json:"variables"`
@@ -190,6 +187,20 @@ type Profile struct {
 	Tips           []Text                  `json:"tips"`
 	Docs           []Link                  `json:"docs"`
 	Installed      map[string]VersionParts `json:"installed,omitempty"`
+	// Capabilities is what the plugin can do; a desktop that does not say is
+	// older (see CanDetect).
+	Capabilities *Capabilities `json:"capabilities,omitempty"`
+}
+
+// Capabilities is what a plugin can do, as its files tell.
+type Capabilities struct {
+	Detect bool `json:"detect"`
+}
+
+// CanDetect reports whether the plugin may find installs that are on the
+// machine already, which are offered to be linked.
+func (p *Profile) CanDetect() bool {
+	return p == nil || p.Capabilities == nil || p.Capabilities.Detect
 }
 
 // ProfileSearch is the choice of what the plugin lists. Current is the value
@@ -211,19 +222,35 @@ type Shorthand struct {
 const (
 	VariableURL    = "url"
 	VariableChoice = "choice"
+	VariableToggle = "toggle"
+	VariableText   = "text"
 )
 
 // Variable is an environment variable of a plugin. Value is what vfox runs with
-// now, empty when the variable is not set.
+// now, empty when the variable is not set. On and Off are the values of a
+// toggle, of which an empty Off takes the variable away. Unvetted are the values
+// of the profile that the application did not ship: they are shown, and asked
+// about, before they are set.
 type Variable struct {
 	Key      string   `json:"key"`
 	Label    Text     `json:"label"`
 	Help     Text     `json:"help"`
 	Kind     string   `json:"kind"`
 	Presets  []Preset `json:"presets"`
+	On       string   `json:"on,omitempty"`
+	Off      string   `json:"off,omitempty"`
 	Example  string   `json:"example,omitempty"`
 	Advanced bool     `json:"advanced,omitempty"`
+	Unvetted []string `json:"unvetted,omitempty"`
 	Value    string   `json:"value"`
+}
+
+// NeedsConfirmation reports whether the value comes from a profile that the
+// application did not ship, so that it is shown, and asked about, before it is
+// set. An empty value takes the variable away, which asks nothing.
+func (v Variable) NeedsConfirmation(value string) bool {
+	value = strings.TrimSpace(value)
+	return value != "" && slices.Contains(v.Unvetted, value)
 }
 
 // Preset is a value that a variable offers.

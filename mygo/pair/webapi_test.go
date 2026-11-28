@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"github.com/version-fox/vfox-plus/mygo/core"
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
+	"github.com/version-fox/vfox-plus/mygo/core/profile/profiletest"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
@@ -42,6 +44,7 @@ func testModel(t *testing.T, runner *testsupport.FakeProcessRunner) *state.AppMo
 		SettingsStore: settings.NewMemorySettingsStore(settings.DefaultSettings()),
 		Environment:   map[string]string{"HOME": "/home/u"},
 		OS:            "linux",
+		Profiles:      profiletest.Registry(t, profile.CurrentPlatform()),
 		Locator: vfox.NewVfoxLocator(map[string]string{},
 			func(path string) bool { return path == "/usr/bin/vfox" }),
 	})

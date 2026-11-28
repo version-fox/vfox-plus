@@ -133,15 +133,22 @@ export interface VersionEntry {
   parts?: { source?: { name: { en: string; zh: string } } };
 }
 
+// An environment variable that a plugin reads: an address ("url"), one of the
+// presets ("choice"), a switch ("toggle", on and off, an empty off taking it
+// away) or any line of text ("text"). The unvetted values come from a profile
+// that the application did not ship: they are asked about before they are set.
 export interface Variable {
   key: string;
   label: { en: string; zh: string };
   help: { en: string; zh: string };
   value: string;
   kind: string;
-  example: string;
-  advanced: boolean;
+  on?: string;
+  off?: string;
+  example?: string;
+  advanced?: boolean;
   presets: { value: string; name: { en: string; zh: string } }[];
+  unvetted?: string[];
 }
 
 export interface Profile {
@@ -155,6 +162,8 @@ export interface Profile {
   tips: { en: string; zh: string }[];
   docs: { url: string; title: { en: string; zh: string } }[];
   installed: Record<string, { source?: { name: { en: string; zh: string } }; flavors?: string[] } | undefined> | null;
+  // What the plugin can do; an older application does not say.
+  capabilities?: { detect: boolean };
 }
 
 export interface PluginInfo {

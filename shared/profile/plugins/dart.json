@@ -1,0 +1,108 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "dart",
+  "shorthands": [
+    {
+      "name": "stable",
+      "meaning": {
+        "en": "The newest version published on the stable channel",
+        "zh": "stable 通道上发布的最新版本"
+      }
+    },
+    {
+      "name": "dev",
+      "meaning": {
+        "en": "The newest version published on the dev channel",
+        "zh": "dev 通道上发布的最新版本"
+      }
+    },
+    {
+      "name": "beta",
+      "meaning": {
+        "en": "The newest version published on the beta channel",
+        "zh": "beta 通道上发布的最新版本"
+      }
+    },
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The highest version in the list, which may be a dev build; use stable for the newest stable SDK",
+        "zh": "列表中版本号最大的版本，可能是 dev 构建；最新的稳定版请用 stable"
+      }
+    }
+  ],
+  "facets": [
+    {
+      "id": "channel",
+      "label": {
+        "en": "Channel",
+        "zh": "通道"
+      },
+      "kind": "note",
+      "values": [
+        "stable",
+        "dev",
+        "beta"
+      ]
+    }
+  ],
+  "guide": {
+    "en": "Write the release as vfox search dart lists it, such as 3.14.0. The note on an entry is the channel it came from, and a version published on several channels is listed once for each of them. A channel name instead installs the newest version on that channel, resolved when you install, and the SDK is stored under that version number.",
+    "zh": "写 vfox search dart 列出的版本，如 3.14.0。每条记录后面的注记是它所属的通道；同时发布在多个通道上的版本会为每个通道各列一次。写通道名则安装该通道上最新的版本，在安装时解析，SDK 以解析出的版本号存储。"
+  },
+  "tips": [
+    {
+      "en": "A channel is resolved at install time: installing stable again later can pick up a newer version.",
+      "zh": "通道在安装时解析：以后再次安装 stable 可能得到更新的版本。"
+    },
+    {
+      "en": "The plugin does not install arm64 builds, although the official Dart archive has arm64 SDKs for Linux, macOS and Windows; it errors instead of installing a mismatched SDK.",
+      "zh": "插件不安装 arm64 构建，尽管 Dart 的官方归档里有 Linux、macOS 和 Windows 的 arm64 SDK；插件会报错，而不安装不匹配的 SDK。"
+    },
+    {
+      "en": "Detect and link finds Flutter's bundled SDK.",
+      "zh": "探测并链接可找到 Flutter 自带的 SDK。"
+    },
+    {
+      "en": "Detect and link needs vfox 1.1.0.",
+      "zh": "探测并链接需要 vfox 1.1.0。"
+    },
+    {
+      "en": "Only PATH is set: no mirrors or version files.",
+      "zh": "只设置 PATH：没有镜像，也没有版本文件。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and channels",
+        "zh": "版本与通道"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-dart/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-dart/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Dart SDKs already installed",
+        "zh": "本机已有的 Dart SDK"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-dart/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-dart/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Platform support",
+        "zh": "平台支持"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-dart/blob/main/docs/platforms.md",
+        "zh": "https://github.com/version-fox/vfox-dart/blob/main/docs/zh-CN/platforms.md"
+      }
+    }
+  ]
+}

@@ -30,6 +30,8 @@ import (
 	"github.com/egoist/mygo"
 	mui "github.com/egoist/mygo/ui"
 
+	"github.com/version-fox/vfox-plus/mygo/core/profile"
+	"github.com/version-fox/vfox-plus/mygo/core/profile/profiletest"
 	"github.com/version-fox/vfox-plus/mygo/core/settings"
 	"github.com/version-fox/vfox-plus/mygo/core/vfox"
 	"github.com/version-fox/vfox-plus/mygo/internal/testsupport"
@@ -170,7 +172,7 @@ func newTestAppOn(t *testing.T, goos string, runner *testsupport.FakeProcessRunn
 	t.Helper()
 	environment := map[string]string{"HOME": t.TempDir(), "LANG": "en_US.UTF-8"}
 	model := state.NewAppModel(state.AppModelOptions{
-		Runner: runner, SettingsStore: store, Environment: environment, OS: goos,
+		Runner: runner, SettingsStore: store, Environment: environment, OS: goos, Profiles: profiletest.Registry(t, profile.CurrentPlatform()),
 		Locator: vfox.NewVfoxLocator(map[string]string{}, func(path string) bool { return path == "/usr/bin/vfox" }),
 	})
 	settingsDir := t.TempDir()

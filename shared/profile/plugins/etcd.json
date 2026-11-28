@@ -1,0 +1,120 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "etcd",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The first line of the list, the newest release",
+        "zh": "列表第一行，即最新的发行版"
+      }
+    }
+  ],
+  "guide": {
+    "en": "Write the version as the release names it, such as 3.7.3. A v in front, as in v3.5.12, also works. A partial version such as 3.5 is refused.",
+    "zh": "按发行版的名称写版本，如 3.7.3。前面加 v（如 v3.5.12）也可以。3.5 这样的部分版本号会被拒绝。"
+  },
+  "tips": [
+    {
+      "en": "Older releases use pinned checksums.",
+      "zh": "更早的发行版使用插件固定的校验和。"
+    },
+    {
+      "en": "Releases from 3.4.0 need a checksum file.",
+      "zh": "3.4.0 及以后的发行版需要校验和文件。"
+    },
+    {
+      "en": "The list comes from the jsDelivr CDN.",
+      "zh": "版本列表来自 jsDelivr CDN。"
+    },
+    {
+      "en": "BUILD_WITH_FAILPOINT=yes builds with failpoints.",
+      "zh": "BUILD_WITH_FAILPOINT=yes 会从源码构建带 failpoint 的版本。"
+    },
+    {
+      "en": "Only yes turns the build on.",
+      "zh": "只有 yes 才会开启该构建。"
+    },
+    {
+      "en": "The build needs git, go and make.",
+      "zh": "该构建需要 git、go 与 make。"
+    },
+    {
+      "en": "Releases without a gofail target are refused.",
+      "zh": "没有 gofail 目标的发行版会被拒绝。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Documentation website",
+        "zh": "文档网站"
+      },
+      "url": {
+        "en": "https://version-fox.github.io/vfox-etcd/en/",
+        "zh": "https://version-fox.github.io/vfox-etcd/"
+      }
+    },
+    {
+      "title": {
+        "en": "Versions",
+        "zh": "版本"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-etcd/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-etcd/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Platforms",
+        "zh": "平台"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-etcd/blob/main/docs/platforms.md",
+        "zh": "https://github.com/version-fox/vfox-etcd/blob/main/docs/zh-CN/platforms.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Failpoint builds",
+        "zh": "failpoint 构建"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-etcd/blob/main/docs/failpoint.md",
+        "zh": "https://github.com/version-fox/vfox-etcd/blob/main/docs/zh-CN/failpoint.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Linking installed versions",
+        "zh": "链接已安装的版本"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-etcd/blob/main/docs/link.md",
+        "zh": "https://github.com/version-fox/vfox-etcd/blob/main/docs/zh-CN/link.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-etcd/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-etcd/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Plugin README",
+        "zh": "插件说明"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-etcd/blob/main/README.md",
+        "zh": "https://github.com/version-fox/vfox-etcd/blob/main/README_CN.md"
+      }
+    }
+  ]
+}

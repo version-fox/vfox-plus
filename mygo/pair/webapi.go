@@ -235,9 +235,11 @@ func (s *Server) serveSdks(writer http.ResponseWriter, request *http.Request) {
 		}
 		writeJSON(writer, info)
 	case "versions":
-		// The plugin of an alias says what it is once its metadata is in;
-		// the profile below is effective after the versions are listed.
+		// The plugin of an alias says what it is once its metadata is in, and a
+		// plugin may bring a profile of its own with its files; the profile below
+		// is effective after the versions are listed.
 		awaitLoad(detail.Info.EnsureLoaded())
+		awaitLoad(detail.Files.EnsureLoaded())
 		// Without a `search` the plugin lists the choice that the user made, the default
 		// of the plugin if they made none. `search` names another one, by the value of a
 		// choice of the profile (the short name of a distribution for java), for this

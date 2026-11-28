@@ -505,3 +505,22 @@ func TestAPluginWithoutAProfileHasNoChoiceAndNoFilters(t *testing.T) {
 		t.Error("a plugin with no profile shows a search choice")
 	}
 }
+
+func TestAPluginThatCannotDetectOffersNoDetection(t *testing.T) {
+	f := availNewComputer(t)
+	profile := availGoProfile()
+	profile.Capabilities = &remote.Capabilities{Detect: false}
+	f.profiles["go"] = profile
+	f.versions["go"] = availGoVersions()
+	f.inventory = availGoInventory()
+	root := availRoot(t, f)
+	tt := ui.NewTester(root.View, 480, 900)
+	availOpenVersions(t, root, tt, "3 versions")
+	if err := tt.Click("More ways to add"); err != nil {
+		t.Fatalf("Click(More ways to add): %v", err)
+	}
+	tt.Frame()
+	if err := tt.Click("Detect and link"); err == nil {
+		t.Error("a plugin without the Detect hook cannot find installs")
+	}
+}

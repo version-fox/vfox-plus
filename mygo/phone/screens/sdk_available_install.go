@@ -33,34 +33,31 @@ import (
 // by name, detects and links, or links an SDK that is on the computer.
 func (r *Root) availMoreButton(k kit.Ctx, name string, profile *remote.Profile, landed *atomic.Bool) {
 	env := k.Env
-	kit.IconButton(k, kit.IconButtonSpec{
-		ID:      "moreWays",
-		Icon:    "add",
-		Tooltip: i18n.Text("moreWays"),
-		Menu: []kit.MenuItem{
-			{
-				Label: i18n.Text("installByName"),
-				Icon:  "terminal",
-				OnClick: func() {
-					r.availOpenInstallName(env, name, profile, landed, "")
-				},
+	menu := []kit.MenuItem{{
+		Label: i18n.Text("installByName"),
+		Icon:  "terminal",
+		OnClick: func() {
+			r.availOpenInstallName(env, name, profile, landed, "")
+		},
+	}}
+	// A plugin without the Detect hook cannot find what is installed already.
+	if profile.CanDetect() {
+		menu = append(menu, kit.MenuItem{
+			Label: i18n.Text("linkDetect"),
+			Icon:  "link",
+			OnClick: func() {
+				r.availStart(landed, remote.TaskRequest{Operation: remote.RequestLinkDetect, Sdk: name, Yes: true})
 			},
-			{
-				Label: i18n.Text("linkDetect"),
-				Icon:  "link",
-				OnClick: func() {
-					r.availStart(landed, remote.TaskRequest{Operation: remote.RequestLinkDetect, Sdk: name, Yes: true})
-				},
-			},
-			{
-				Label: i18n.Text("linkManual"),
-				Icon:  "folder",
-				OnClick: func() {
-					r.availOpenLink(env, name, landed)
-				},
-			},
+		})
+	}
+	menu = append(menu, kit.MenuItem{
+		Label: i18n.Text("linkManual"),
+		Icon:  "folder",
+		OnClick: func() {
+			r.availOpenLink(env, name, landed)
 		},
 	})
+	kit.IconButton(k, kit.IconButtonSpec{ID: "moreWays", Icon: "add", Tooltip: i18n.Text("moreWays"), Menu: menu})
 }
 
 // availNameForm is what the install-by-name dialog keeps while it is open: the name

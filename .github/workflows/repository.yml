@@ -110,6 +110,6 @@ jobs:
           fi
       - name: Validate shared JSON resources
         run: |
-          for file in shared/icons.json shared/i18n/*.arb shared/fixtures/*/cases.json; do
+          for file in shared/icons.json shared/i18n/*.arb shared/fixtures/*/cases.json shared/profile/*.json shared/profile/plugins/*.json; do
             jq empty "$file" || { echo "::error file=$file::Invalid JSON"; exit 1; }
           done

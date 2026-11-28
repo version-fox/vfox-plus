@@ -46,7 +46,6 @@ func sdkDetailFake(t *testing.T) *sdkFake {
 	fake.Infos["java"] = remote.PluginInfo{Name: "java", Homepage: "file:///etc/passwd"}
 	fake.Profiles["go"] = remote.Profile{
 		Plugin: "go",
-		Naming: remote.NamingPlain,
 		Installed: map[string]remote.VersionParts{
 			"1.22.0": {
 				Version: "1.22.0",
@@ -595,4 +594,47 @@ func TestSDKPageAsksAgainWhenTheOptionsFail(t *testing.T) {
 	if err := tt.Click("Retry"); err != nil {
 		t.Fatalf("the failure has no retry button: %v", err)
 	}
+}
+
+func TestSDKPageAsksBeforeItSetsAValueTheApplicationDidNotShip(t *testing.T) {
+	fake := sdkDetailFake(t)
+	profile := fake.Profiles["go"]
+	profile.Variables = []remote.Variable{{
+		Key: "VFOX_GO_QUIET", Label: remote.Text{EN: "Quiet builds"}, Help: remote.Text{EN: "Say little."},
+		Kind: remote.VariableToggle, On: "1", Unvetted: []string{"1"},
+	}}
+	fake.Profiles["go"] = profile
+	root := sdkRoot(t, fake)
+	tt := sdkWindow(root)
+	root.App().Push(app.Page{Kind: app.PageSDK, Name: "go"})
+	sdkSettle(tt)
+	sdkWaitText(t, tt, "Installed (2)")
+	if err := tt.Click("Options"); err != nil {
+		t.Fatalf("Click(Options): %v", err)
+	}
+	sdkSettle(tt)
+	sdkWaitText(t, tt, "Quiet builds")
+	if err := tt.Click("Quiet builds"); err != nil {
+		t.Fatalf("Click(Quiet builds): %v", err)
+	}
+	sdkSettle(tt)
+	sdkWaitText(t, tt, "Use this value?")
+	sdkShot(t, tt, "page-variable-confirm")
+	if requests := fake.Requests("PUT", "/api/sdks/go/variables"); len(requests) != 0 {
+		t.Fatalf("set before the answer: %v", requests)
+	}
+	if err := tt.Click("Use value"); err != nil {
+		t.Fatalf("Click(Use value): %v", err)
+	}
+	sdkWait(t, tt, "the variable is not set", func() bool {
+		return len(fake.Requests("PUT", "/api/sdks/go/variables")) == 1
+	})
+	var sent struct{ Key, Value string }
+	if err := json.Unmarshal([]byte(fake.Requests("PUT", "/api/sdks/go/variables")[0].Body), &sent); err != nil {
+		t.Fatal(err)
+	}
+	if sent.Key != "VFOX_GO_QUIET" || sent.Value != "1" {
+		t.Errorf("sent %+v", sent)
+	}
+	sdkWaitText(t, tt, "Saved")
 }

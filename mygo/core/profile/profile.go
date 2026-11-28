@@ -16,33 +16,35 @@
 // plugins, beyond what every plugin has in common.
 //
 // vfox lists, installs, selects and removes versions the same way for every
-// plugin, but the plugins of the version-fox organisation offer more than
-// that: vfox-java lists the JDKs of one of 31 distributions when
-// `vfox search java <distribution>` names it, vfox-nodejs installs the newest
-// release of a line for `nodejs@24`, vfox-flutter installs the release a
-// channel points to for `flutter@stable`, vfox-gradle installs `latest`,
-// vfox-golang installs `latest` and the full release names of go.dev, and
-// each of them reads environment
-// variables that move its downloads to a mirror, and legacy version files
-// such as `.nvmrc`. None of this is visible in the output of vfox, so a
-// profile writes it down: the arguments of a search, the shorthands of an
-// install, the variables, the version files, the filters that suit the notes
-// of a plugin, and how its version names are put together.
+// plugin, but plugins offer more than that: vfox-java lists the JDKs of one of
+// 31 distributions when `vfox search java <distribution>` names it,
+// vfox-nodejs installs the newest release of a line for `nodejs@24`,
+// vfox-flutter installs the release a channel points to for `flutter@stable`,
+// and plugins read environment variables that move their downloads to a mirror,
+// and legacy version files such as `.nvmrc`. None of this is visible in the
+// output of vfox, so a profile writes it down: the arguments of a search, the
+// shorthands of an install, the variables, the version files, the filters that
+// suit the notes of a plugin, and how its version names are put together.
+//
+// A profile is a JSON file (format 2, docs/en/dev/profiles.md), which no one
+// has to compile: the application ships those of the plugins of the
+// version-fox organisation (shared/profile/plugins), updates them from the
+// repository, reads the one that a plugin ships as lib/vfox-plus.json, and
+// the user's own override every other. The sections of the files that describe
+// one plugin are merged (see Merge), and a plugin that none describes still
+// gets filters and variables inferred from what it reports (infer.go).
 //
 // A profile is plain data without a user interface framework. The desktop
-// interface, the web interface and the phone app show the
-// same profiles; the texts that a profile carries are written in both
-// languages of the application next to the data they describe, because the
-// web interface and the phone app get them over HTTP. Plugins without a profile are listed,
-// installed and selected as before, with facets and variables inferred from
-// what the plugin reports (see infer.go) and with optional profile files
-// (see external.go) overlaying the built-in ones without a code change.
+// interface, the web interface and the phone app show the same profiles; the
+// texts that a profile carries are written in both languages of the application
+// next to the data they describe, because the web interface and the phone app
+// get them over HTTP.
 package profile
 
 import (
 	"runtime"
+	"slices"
 	"strings"
-	"sync"
 )
 
 // Text is a text in the two languages of the application. ZH may be empty
@@ -72,31 +74,16 @@ func CurrentPlatform() Platform {
 	return Platform{OS: runtime.GOOS, Arch: runtime.GOARCH}
 }
 
-// Naming is how the version names of a plugin are put together.
-type Naming int
-
-// The namings.
-const (
-	// NamingPlain: the plugin's version names have no structure that the
-	// application reads.
-	NamingPlain Naming = iota
-	// NamingJava: `<version>[-<distribution>][-fx]`, for example
-	// `21.0.12.1+1-tem` or `25.0.4+9-librca-fx`; no distribution means OpenJDK.
-	NamingJava
-	// NamingFlutter: `<version>[-<architecture>]`, and `-ohos-` or `+ohos-` for
-	// an OpenHarmony build.
-	NamingFlutter
-)
-
-// Profile is what the application knows about one plugin.
+// Profile is what the application knows about one plugin, on one platform.
 type Profile struct {
 	// Plugin is the name of the plugin, as `vfox add` installs it.
 	Plugin string
-	// Naming tells how to take version names apart.
-	Naming Naming
 	// Search is what `vfox search <plugin> <argument>` takes, or nil when the
 	// plugin ignores arguments.
 	Search *Search
+	// Naming tells how to take version names apart, or nil when they have no
+	// structure that the application reads.
+	Naming *Naming
 	// Shorthands are names that `vfox install <plugin>@<name>` accepts besides
 	// the versions that a search lists.
 	Shorthands []Shorthand
@@ -207,47 +194,6 @@ func (c Choice) Matches(query string) bool {
 	return false
 }
 
-// Registry is the profiles that the application knows.
-//
-// It is safe for use from several goroutines.
-type Registry struct {
-	mu       sync.RWMutex
-	profiles map[string]Profile
-}
-
-// NewRegistry creates a registry with the profiles of the plugins of the
-// version-fox organisation: java, nodejs, flutter, gradle, golang, python, maven,
-// php, dart, kotlin, dotnet, cmake, etcd, erlang, deno, groovy, scala, zig, clang
-// and elixir. The platform decides what a search of java offers: the Loongnix JDKs on
-// Linux for loong64, the distributions of Foojay everywhere else; and which build
-// options of php exist: those of the source builds of Linux and macOS.
-func NewRegistry(platform Platform) *Registry {
-	registry := &Registry{profiles: make(map[string]Profile)}
-	for _, profile := range []Profile{javaProfile(platform), nodejsProfile(), flutterProfile(), gradleProfile(), golangProfile(), pythonProfile(platform), mavenProfile(), phpProfile(platform), dartProfile(), kotlinProfile(), dotnetProfile(), cmakeProfile(), etcdProfile(), erlangProfile(platform), denoProfile(), groovyProfile(), scalaProfile(), zigProfile(), clangProfile(), elixirProfile(platform)} {
-		registry.profiles[profile.Plugin] = profile
-	}
-	return registry
-}
-
-// Lookup returns the profile of the plugin, if there is one. The slices of the
-// profile belong to the registry: do not change them.
-func (r *Registry) Lookup(plugin string) (Profile, bool) {
-	if r == nil {
-		return Profile{}, false
-	}
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	profile, ok := r.profiles[plugin]
-	return profile, ok
-}
-
-// Register adds a profile, or replaces the one of the same plugin.
-func (r *Registry) Register(profile Profile) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.profiles[profile.Plugin] = profile
-}
-
 // VariableKind tells what a variable holds.
 type VariableKind int
 
@@ -257,7 +203,26 @@ const (
 	VariableURL VariableKind = iota
 	// VariableChoice: one of the values of the presets.
 	VariableChoice
+	// VariableToggle: a switch, which is on with the value On and off with the
+	// value Off, or unset when Off is empty.
+	VariableToggle
+	// VariableText: any text of one line, such as build options.
+	VariableText
 )
+
+// String is the name of the kind in profile files and in the web API.
+func (k VariableKind) String() string {
+	switch k {
+	case VariableChoice:
+		return "choice"
+	case VariableToggle:
+		return "toggle"
+	case VariableText:
+		return "text"
+	default:
+		return "url"
+	}
+}
 
 // Variable is an environment variable that a plugin reads.
 type Variable struct {
@@ -272,10 +237,24 @@ type Variable struct {
 	// Presets are values to choose from. For VariableChoice they are the only
 	// values; for VariableURL they are mirrors that were checked.
 	Presets []Preset
+	// On and Off are the values of a VariableToggle.
+	On, Off string
 	// Example is shown in an empty field.
 	Example string
 	// Advanced marks a variable that is for unusual systems and for tests.
 	Advanced bool
+	// Unvetted are the values that this profile offers and the profile of the
+	// application does not: they come from the plugin, the online directory or
+	// a file of the user, so the interfaces show them and ask before applying
+	// them (see NeedsConfirmation).
+	Unvetted []string
+}
+
+// NeedsConfirmation reports whether the value comes from a profile that the
+// application did not ship, so that an interface shows it and asks before it
+// applies it.
+func (v Variable) NeedsConfirmation(value string) bool {
+	return slices.Contains(v.Unvetted, strings.TrimSpace(value))
 }
 
 // Preset is a value of a variable, and what to call it.

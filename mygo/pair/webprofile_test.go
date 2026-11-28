@@ -168,7 +168,6 @@ func TestWebProfileDescribesWhatThePluginOffers(t *testing.T) {
 	}
 	var answer struct {
 		Plugin string
-		Naming string
 		Search struct {
 			Label   struct{ EN, ZH string }
 			Default string
@@ -194,7 +193,7 @@ func TestWebProfileDescribesWhatThePluginOffers(t *testing.T) {
 		}
 	}
 	decodeJSON(t, body, &answer)
-	if answer.Plugin != "java" || answer.Naming != "java" || answer.Search.Default != "open" || len(answer.Search.Choices) != 32 {
+	if answer.Plugin != "java" || answer.Search.Default != "open" || len(answer.Search.Choices) != 32 {
 		t.Errorf("got %+v", answer)
 	}
 	if answer.Search.Current != "open" {
@@ -243,7 +242,6 @@ func TestWebProfileOfPythonOffersItsOptionsAndTheGraalPyFilter(t *testing.T) {
 	}
 	var answer struct {
 		Plugin         string
-		Naming         string
 		LegacyFiles    []string
 		LegacyStrategy bool
 		Shorthands     []struct{ Name string }
@@ -255,7 +253,7 @@ func TestWebProfileOfPythonOffersItsOptionsAndTheGraalPyFilter(t *testing.T) {
 		Docs []struct{ URL struct{ EN, ZH string } }
 	}
 	decodeJSON(t, body, &answer)
-	if answer.Plugin != "python" || answer.Naming != "plain" || !answer.LegacyStrategy {
+	if answer.Plugin != "python" || !answer.LegacyStrategy {
 		t.Errorf("got %+v", answer)
 	}
 	if len(answer.LegacyFiles) != 1 || answer.LegacyFiles[0] != ".python-version" {

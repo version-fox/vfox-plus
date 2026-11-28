@@ -504,6 +504,34 @@
   "@variableInvalidChoice": {
     "description": "Shown when a value is none of those a variable takes."
   },
+  "variableValue": "Value",
+  "@variableValue": {
+    "description": "Label of the field that takes the value of a variable that is any text."
+  },
+  "variableInvalidText": "Enter one line of at most 2048 characters.",
+  "@variableInvalidText": {
+    "description": "Shown when the value of a variable that takes text has several lines or is too long."
+  },
+  "variableConfirmTitle": "Use this value?",
+  "@variableConfirmTitle": {
+    "description": "Title of the question before a value from a profile that the application does not ship is set."
+  },
+  "variableConfirmBody": "This value comes from a profile that the app does not ship: the plugin's own, the online directory's or yours. vfox will run with {key}={value}",
+  "@variableConfirmBody": {
+    "description": "Question before a value from a profile that the application does not ship is set, such as a download mirror.",
+    "placeholders": {
+      "key": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "variableConfirmAction": "Use value",
+  "@variableConfirmAction": {
+    "description": "Button that sets a value from a profile that the application does not ship, after the question."
+  },
   "optionsLegacy": "Version files",
   "@optionsLegacy": {
     "description": "Heading of the files that vfox reads through a plugin to find the version of a project."

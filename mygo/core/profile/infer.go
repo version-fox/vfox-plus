@@ -15,31 +15,23 @@
 package profile
 
 import (
-	"os"
-	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
 	core "github.com/version-fox/vfox-plus/mygo/core"
 )
 
-// Generic adaptation for plugins without a built-in profile.
+// What can be told about a plugin that no profile of the application describes,
+// from what vfox reports and from its files:
 //
-// The built-in profiles of java, nodejs, flutter and gradle stay curated,
-// but any other plugin — including future third-party ones — works without
-// a code change:
-//
-//   - facets are inferred from the versions a search lists (notes become a
-//     note filter, shared suffixes after the last `-` a variant filter),
-//   - environment variables are inferred by scanning the Lua sources of the
-//     installed plugin for os.getenv("VFOX_*"), and legacy version files by
-//     reading PLUGIN.legacyFilenames from its metadata.lua,
-//   - an optional JSON profile (see external.go) overlays these inferences
-//     with curated texts, and the built-in registry overlays that.
-//
-// This mirrors what https://mise-versions.jdx.dev does for mise: the tool
-// list needs no per-tool UI code, because backends are declarative data.
+//   - facets from the versions a search lists (notes become a note filter,
+//     shared suffixes after the last `-` a variant filter),
+//   - environment variables from the os.getenv calls of its Lua sources, and
+//     legacy version files from PLUGIN.legacyFilenames of its metadata.lua
+//     (see ReadPlugin),
+//   - the guide and the documentation from its description and homepage.
 
 // InferFacets builds filter facets from listed versions, without any
 // plugin-specific knowledge. Notes that plugins attach to versions
@@ -78,38 +70,29 @@ func InferFacets(versions []core.AvailableVersion) []Facet {
 		}
 	}
 	var facets []Facet
-	if len(noteOrder) >= 2 && len(noteOrder) <= 20 {
+	// A single note is still worth offering: it answers "which of these are
+	// LTS?".
+	if len(noteOrder) >= 1 && len(noteOrder) <= 20 {
 		sort.Strings(noteOrder)
 		facets = append(facets, Facet{
 			ID:     "note",
 			Label:  Text{EN: "Note", ZH: "备注"},
 			Kind:   FacetNote,
-			Values: append([]string(nil), noteOrder...),
-		})
-	} else if len(noteOrder) == 1 {
-		// A single note is still worth offering: it answers "which of these
-		// are LTS?".
-		facets = append(facets, Facet{
-			ID:     "note",
-			Label:  Text{EN: "Note", ZH: "备注"},
-			Kind:   FacetNote,
-			Values: append([]string(nil), noteOrder...),
+			Values: slices.Clone(noteOrder),
 		})
 	}
-	if len(suffixSeen) >= 2 {
+	if len(suffixSeen) >= 2 && len(suffixSeen) <= 10 {
 		var values []string
 		for _, display := range suffixSeen {
 			values = append(values, display)
 		}
-		if len(values) >= 2 && len(values) <= 10 {
-			sort.Strings(values)
-			facets = append(facets, Facet{
-				ID:     "variant",
-				Label:  Text{EN: "Variant", ZH: "变体"},
-				Kind:   FacetSuffix,
-				Values: values,
-			})
-		}
+		sort.Strings(values)
+		facets = append(facets, Facet{
+			ID:     "variant",
+			Label:  Text{EN: "Variant", ZH: "变体"},
+			Kind:   FacetSuffix,
+			Values: values,
+		})
 	}
 	return facets
 }
@@ -131,13 +114,21 @@ func isVariantSuffix(suffix string) bool {
 	return letter
 }
 
-// InferredProfile builds a minimal profile for a plugin without a built-in
-// or external one, from what vfox already reports: its description and
-// homepage become the guide and the documentation link, its listed versions
-// the facets. Variables and legacy files stay empty here; they come from
-// ScanPluginDir when the plugin is installed locally.
+// EffectiveFacets returns the facets to filter versions by: those of the
+// profile when it has any, those inferred from the versions otherwise.
+func EffectiveFacets(profile Profile, versions []core.AvailableVersion) []Facet {
+	if len(profile.Facets) > 0 {
+		return profile.Facets
+	}
+	return InferFacets(versions)
+}
+
+// InferredProfile builds a minimal profile for a plugin that no profile
+// describes, from what vfox already reports: its description and homepage
+// become the guide and the documentation link, its listed versions the facets.
+// Variables and legacy files come from its files (see ReadPlugin).
 func InferredProfile(plugin string, info core.PluginInfo, versions []core.AvailableVersion) Profile {
-	profile := Profile{Plugin: plugin, Naming: NamingPlain}
+	profile := Profile{Plugin: plugin}
 	if info.Description != "" {
 		profile.Guide = Text{EN: info.Description}
 	} else {
@@ -151,16 +142,6 @@ func InferredProfile(plugin string, info core.PluginInfo, versions []core.Availa
 	}
 	profile.Facets = InferFacets(versions)
 	return profile
-}
-
-// EffectiveFacets returns the facets to filter versions by: the ones of the
-// profile when it has any, the inferred ones otherwise. It lets interfaces
-// offer filters for plugins without a built-in profile.
-func EffectiveFacets(profile Profile, hasProfile bool, versions []core.AvailableVersion) []Facet {
-	if hasProfile && len(profile.Facets) > 0 {
-		return profile.Facets
-	}
-	return InferFacets(versions)
 }
 
 // getenvPattern finds os.getenv("NAME") in Lua sources.
@@ -193,17 +174,15 @@ func ParseLegacyFilenames(metadata string) []string {
 }
 
 // ScanEnvKeys extracts the environment variables a plugin reads from its Lua
-// sources. Only names that look like plugin settings are kept: VFOX_*,
-// FLUTTER_*, or names containing MIRROR, MIRRORS, URL, BASE_URL or PROXY.
-// Generic names such as PATH and HOME are left out: they are not settings of
-// the plugin.
+// sources. Only names that look like plugin settings are kept (see
+// IsPluginEnvKey).
 func ScanEnvKeys(sources map[string]string) []string {
 	seen := make(map[string]bool)
 	var result []string
 	for _, content := range sources {
 		for _, match := range getenvPattern.FindAllStringSubmatch(content, -1) {
 			key := match[1]
-			if seen[key] || !isPluginEnvKey(key) {
+			if seen[key] || !IsPluginEnvKey(key) {
 				continue
 			}
 			seen[key] = true
@@ -214,7 +193,14 @@ func ScanEnvKeys(sources map[string]string) []string {
 	return result
 }
 
-func isPluginEnvKey(key string) bool {
+// IsPluginEnvKey reports whether key looks like a setting a vfox plugin reads:
+// VFOX_*, FLUTTER_*, or a name that says a mirror, a base address, a store, a
+// proxy or GitHub, and that is not reserved (see IsReservedVariable): PATH and
+// HOME are not settings of a plugin.
+func IsPluginEnvKey(key string) bool {
+	if IsReservedVariable(key) {
+		return false
+	}
 	upper := strings.ToUpper(key)
 	if strings.HasPrefix(upper, "VFOX_") || strings.HasPrefix(upper, "FLUTTER_") {
 		return true
@@ -227,84 +213,52 @@ func isPluginEnvKey(key string) bool {
 	return false
 }
 
-// IsPluginEnvKey reports whether key looks like a setting a vfox plugin
-// reads, such as VFOX_GRADLE_MIRRORS. It is the same check ScanEnvKeys uses
-// to keep plugin settings and leave out PATH and HOME.
-func IsPluginEnvKey(key string) bool { return isPluginEnvKey(key) }
-
-// GenericVariable returns an editable variable for a plugin setting without
-// a curated profile: a URL setting when the name suggests one, a free-form
-// choice otherwise. It lets SetPluginVariable accept mirrors of third-party
-// plugins that no profile names yet.
+// GenericVariable returns an editable variable for a plugin setting that no
+// profile describes: an address when the name says one, any line of text
+// otherwise. It lets SetPluginVariable accept mirrors of third-party plugins
+// that no profile names.
 func GenericVariable(key string) (Variable, bool) {
-	if !isPluginEnvKey(key) {
+	if !IsPluginEnvKey(key) {
 		return Variable{}, false
 	}
-	if looksLikeURLSetting(key) {
-		return Variable{
-			Key:   key,
-			Label: Text{EN: humanizeEnvKey(key)},
-			Help: Text{
-				EN: "Read by the plugin from the environment of vfox. Leave it empty to use the default.",
-				ZH: "插件从 vfox 进程的环境里读取。留空则使用默认值。",
-			},
-			Kind:    VariableURL,
-			Example: "https://",
-		}, true
-	}
-	return Variable{
+	variable := Variable{
 		Key:   key,
 		Label: Text{EN: humanizeEnvKey(key)},
 		Help: Text{
 			EN: "Read by the plugin from the environment of vfox. Leave it empty to use the default.",
 			ZH: "插件从 vfox 进程的环境里读取。留空则使用默认值。",
 		},
-		Kind: VariableChoice,
-	}, true
+		Kind: VariableText,
+	}
+	if looksLikeURLSetting(key) {
+		variable.Kind, variable.Example = VariableURL, "https://"
+	}
+	return variable, true
 }
 
 // GenericVariableForPlugin is GenericVariable for the plugin: the key must
 // name the plugin (VFOX_GRADLE_MIRRORS for gradle) so that the mirror of one
-// plugin is not set on another. An empty plugin accepts any plugin setting,
-// for plugins without a profile yet.
+// plugin is not set on another. An empty plugin accepts any plugin setting.
 func GenericVariableForPlugin(plugin, key string) (Variable, bool) {
 	variable, ok := GenericVariable(key)
 	if !ok {
 		return Variable{}, false
 	}
 	plugin = strings.ToUpper(strings.TrimSpace(plugin))
-	if plugin == "" {
-		return variable, true
-	}
-	if strings.Contains(strings.ToUpper(key), plugin) {
+	if plugin == "" || strings.Contains(strings.ToUpper(key), plugin) {
 		return variable, true
 	}
 	return Variable{}, false
 }
 
-// InferredVariables turns scanned environment keys into editable variables.
-// Names with MIRROR, URL, BASE_URL, STORAGE or PROXY take addresses;
-// anything else takes one of no preset values, so the interface offers a
-// plain text field. Labels and help are generic: an external profile file
-// (see external.go) replaces them with curated texts without a code change.
+// InferredVariables turns scanned environment keys into editable variables (see
+// GenericVariable).
 func InferredVariables(keys []string) []Variable {
 	var result []Variable
 	for _, key := range keys {
-		label := Text{EN: humanizeEnvKey(key)}
-		help := Text{
-			EN: "Read by the plugin from the environment of vfox. Leave it empty to use the default.",
-			ZH: "插件从 vfox 进程的环境里读取。留空则使用默认值。",
+		if variable, ok := GenericVariable(key); ok {
+			result = append(result, variable)
 		}
-		kind := VariableURL
-		if !looksLikeURLSetting(key) {
-			// A free-form value: no presets, so the interface offers text.
-			kind = VariableChoice
-		}
-		variable := Variable{Key: key, Label: label, Help: help, Kind: kind}
-		if kind == VariableURL {
-			variable.Example = "https://"
-		}
-		result = append(result, variable)
 	}
 	return result
 }
@@ -330,88 +284,4 @@ func humanizeEnvKey(key string) string {
 		}
 	}
 	return strings.Join(words, " ")
-}
-
-// PluginHome returns the directory that holds the plugins of vfox: VFOX_HOME
-// when it is set, the legacy ~/.version-fox when it exists, ~/.vfox
-// otherwise (under %USERPROFILE% on Windows).
-func PluginHome(environment map[string]string) string {
-	if home := strings.TrimSpace(environment["VFOX_HOME"]); home != "" {
-		return home
-	}
-	home := pluginUserHome(environment)
-	if home == "" {
-		return ""
-	}
-	legacy := filepath.Join(home, ".version-fox")
-	if info, err := os.Stat(legacy); err == nil && info.IsDir() {
-		return legacy
-	}
-	return filepath.Join(home, ".vfox")
-}
-
-func pluginUserHome(environment map[string]string) string {
-	if home := strings.TrimSpace(environment["HOME"]); home != "" {
-		return home
-	}
-	return strings.TrimSpace(environment["USERPROFILE"])
-}
-
-// PluginDir returns the directory of the installed plugin name.
-//
-// The name comes from the user (an alias they typed, a segment of a URL), so
-// it is checked before it joins a path: anything but a single directory name
-// gives "", so that `..` or a separator can never escape the plugin directory
-// (see the CodeQL finding on ScanPluginDir: the walk below must stay inside
-// the installed plugin). What vfox itself accepts as a name
-// (`core/vfox`.IsValidPluginName) always passes here.
-func PluginDir(environment map[string]string, plugin string) string {
-	home := PluginHome(environment)
-	if home == "" || !isPluginDirName(plugin) {
-		return ""
-	}
-	root := filepath.Join(home, "plugin")
-	directory := filepath.Join(root, plugin)
-	// Belt and braces: the joined directory stays inside the plugin root.
-	rel, err := filepath.Rel(root, directory)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return ""
-	}
-	return directory
-}
-
-// isPluginDirName reports whether name is a single directory name: not empty
-// and holding no separator and no ".." anywhere (so "a/../b" and "a..b" are
-// both out), as the CodeQL help for go/path-injection recommends. Anything
-// that vfox itself accepts as a name is either a single clean segment, which
-// passes, or contains ".." or a separator, which does not need inference.
-func isPluginDirName(name string) bool {
-	if name == "" || name == "." {
-		return false
-	}
-	return !strings.Contains(name, "/") && !strings.Contains(name, "\\") && !strings.Contains(name, "..")
-}
-
-// ScanPluginDir reads the installed plugin for generic adaptation: its
-// legacy version files from metadata.lua and the environment variables its
-// Lua sources read. Missing files give empty results, never an error.
-func ScanPluginDir(directory string) (legacy []string, envKeys []string) {
-	if directory == "" {
-		return nil, nil
-	}
-	if content, err := os.ReadFile(filepath.Join(directory, "metadata.lua")); err == nil { //nolint:gosec // The path is the installed plugin.
-		legacy = ParseLegacyFilenames(string(content))
-	}
-	sources := make(map[string]string)
-	_ = filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !strings.HasSuffix(strings.ToLower(info.Name()), ".lua") {
-			return nil
-		}
-		if content, err := os.ReadFile(path); err == nil { //nolint:gosec // The path is the installed plugin.
-			sources[path] = string(content)
-		}
-		return nil
-	})
-	envKeys = ScanEnvKeys(sources)
-	return legacy, envKeys
 }

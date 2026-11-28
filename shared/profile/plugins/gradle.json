@@ -1,0 +1,104 @@
+{
+  "$schema": "../schema.json",
+  "schema": 2,
+  "plugin": "gradle",
+  "shorthands": [
+    {
+      "name": "latest",
+      "meaning": {
+        "en": "The newest release that gradle.org lists",
+        "zh": "gradle.org 上列出的最新版本"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "key": "VFOX_GRADLE_MIRRORS",
+      "label": {
+        "en": "Download mirror",
+        "zh": "下载镜像"
+      },
+      "help": {
+        "en": "A mirror of services.gradle.org/distributions: the address that gradle-<version>-bin.zip sits under. The version list itself always comes from gradle.org.",
+        "zh": "services.gradle.org/distributions 的镜像：gradle-<版本>-bin.zip 所在的地址。版本列表始终来自 gradle.org。"
+      },
+      "kind": "url",
+      "presets": [
+        {
+          "value": "https://repo.huaweicloud.com/gradle",
+          "name": {
+            "en": "Huawei Cloud",
+            "zh": "华为云"
+          }
+        },
+        {
+          "value": "https://mirror.nju.edu.cn/gradle",
+          "name": {
+            "en": "Nanjing University",
+            "zh": "南京大学"
+          }
+        },
+        {
+          "value": "https://mirrors.cernet.edu.cn/gradle",
+          "name": {
+            "en": "CERNET",
+            "zh": "中国教育和科研计算机网（CERNET）"
+          }
+        }
+      ],
+      "example": "https://repo.huaweicloud.com/gradle"
+    }
+  ],
+  "legacyFiles": [
+    "gradle/wrapper/gradle-wrapper.properties"
+  ],
+  "guide": {
+    "en": "Write the release as vfox search gradle lists it: 8.7, 8.14.3, 9.0.0. A bare major such as 8 does not install; latest installs the newest. Release candidates install by name (9.0.0-rc-1) but are never listed.",
+    "zh": "写 vfox search gradle 列出的发行版名称：8.7、8.14.3、9.0.0。单独的主版本号（如 8）无法安装；latest 安装最新版。候选版可以按名称安装（如 9.0.0-rc-1），但不会出现在列表里。"
+  },
+  "tips": [
+    {
+      "en": "Gradle runs on a JVM: install a JDK first (java@21-tem).",
+      "zh": "Gradle 需要在 JVM 上运行，请先装 JDK（如 java@21-tem）。"
+    }
+  ],
+  "docs": [
+    {
+      "title": {
+        "en": "Versions and names",
+        "zh": "版本与命名"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-gradle/blob/main/docs/versions.md",
+        "zh": "https://github.com/version-fox/vfox-gradle/blob/main/docs/zh-CN/versions.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Mirror",
+        "zh": "镜像"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-gradle/blob/main/docs/mirror.md",
+        "zh": "https://github.com/version-fox/vfox-gradle/blob/main/docs/zh-CN/mirror.md"
+      }
+    },
+    {
+      "title": "Java toolchains",
+      "url": {
+        "en": "https://github.com/version-fox/vfox-gradle/blob/main/docs/java-toolchains.md",
+        "zh": "https://github.com/version-fox/vfox-gradle/blob/main/docs/zh-CN/java-toolchains.md"
+      }
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh": "问题排查"
+      },
+      "url": {
+        "en": "https://github.com/version-fox/vfox-gradle/blob/main/docs/troubleshooting.md",
+        "zh": "https://github.com/version-fox/vfox-gradle/blob/main/docs/zh-CN/troubleshooting.md"
+      }
+    }
+  ]
+}

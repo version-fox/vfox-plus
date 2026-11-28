@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/version-fox/vfox-plus/main/shared/profile/schema.json",
+  "title": "vfox plus plugin profile, format 2",
+  "description": "What vfox plus knows about a vfox plugin: docs/en/dev/profiles.md. A plugin ships one as lib/vfox-plus.json.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": 2 },
+    "plugin": { "$ref": "#/$defs/pluginName" },
+    "search": {
+      "oneOf": [
+        { "$ref": "#/$defs/search" },
+        { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/search" } }
+      ]
+    },
+    "naming": {
+      "oneOf": [
+        { "const": "plain" },
+        {
+          "type": "object",
+          "properties": {
+            "sources": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "oneOf": [
+                  { "$ref": "#/$defs/name" },
+                  {
+                    "type": "object",
+                    "properties": { "value": { "$ref": "#/$defs/name" }, "name": { "$ref": "#/$defs/text" } },
+                    "required": ["value"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "defaultSource": { "$ref": "#/$defs/name" },
+            "rules": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 20,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pattern": { "$ref": "#/$defs/pattern" },
+                  "flavors": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/name" } },
+                  "labels": { "type": "object", "maxProperties": 100, "additionalProperties": { "type": "string" } }
+                },
+                "required": ["pattern"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["rules"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "shorthands": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "properties": {
+          "when": { "$ref": "#/$defs/when" },
+          "name": { "$ref": "#/$defs/versionName" },
+          "meaning": { "$ref": "#/$defs/text" }
+        },
+        "required": ["name", "meaning"],
+        "additionalProperties": false
+      }
+    },
+    "variables": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/variable" }
+    },
+    "legacyFiles": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+    },
+    "legacyStrategy": { "type": "boolean" },
+    "facets": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "properties": {
+          "when": { "$ref": "#/$defs/when" },
+          "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "label": { "$ref": "#/$defs/text" },
+          "kind": { "enum": ["note", "suffix", "pattern"] },
+          "values": { "type": "array", "minItems": 1, "maxItems": 200, "items": { "$ref": "#/$defs/name" } },
+          "pattern": { "$ref": "#/$defs/pattern" }
+        },
+        "required": ["id", "values"],
+        "if": { "properties": { "kind": { "const": "pattern" } }, "required": ["kind"] },
+        "then": { "required": ["pattern"] },
+        "additionalProperties": false
+      }
+    },
+    "guide": { "$ref": "#/$defs/text" },
+    "tips": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "properties": { "when": { "$ref": "#/$defs/when" }, "en": { "type": "string" }, "zh": { "type": "string" } },
+            "required": ["en"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "docs": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "properties": {
+          "when": { "$ref": "#/$defs/when" },
+          "title": { "$ref": "#/$defs/text" },
+          "url": { "$ref": "#/$defs/addresses" }
+        },
+        "required": ["title", "url"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "pluginName": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "versionName": {
+      "description": "A version name or an argument of vfox search: no leading dash, no spaces, and for shorthands no @.",
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[^-\\s@][^\\s@]*$"
+    },
+    "pattern": { "description": "A regular expression of Go (RE2).", "type": "string", "minLength": 1, "maxLength": 512 },
+    "text": {
+      "description": "A text of every language, or one by language.",
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 4000 },
+        {
+          "type": "object",
+          "properties": { "en": { "type": "string", "maxLength": 4000 }, "zh": { "type": "string", "maxLength": 4000 } },
+          "required": ["en"]
+        }
+      ]
+    },
+    "https": { "type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048 },
+    "addresses": {
+      "oneOf": [
+        { "$ref": "#/$defs/https" },
+        {
+          "type": "object",
+          "properties": { "en": { "$ref": "#/$defs/https" }, "zh": { "$ref": "#/$defs/https" } },
+          "required": ["en"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "stringOrStrings": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+    "when": {
+      "description": "The platforms that a part is for, as GOOS and GOARCH name them; a missing list stands for every one.",
+      "type": "object",
+      "properties": { "os": { "$ref": "#/$defs/stringOrStrings" }, "arch": { "$ref": "#/$defs/stringOrStrings" } },
+      "additionalProperties": false
+    },
+    "search": {
+      "type": "object",
+      "properties": {
+        "when": { "$ref": "#/$defs/when" },
+        "label": { "$ref": "#/$defs/text" },
+        "default": { "$ref": "#/$defs/versionName" },
+        "choices": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": { "$ref": "#/$defs/versionName" },
+              "name": { "$ref": "#/$defs/text" },
+              "maker": { "$ref": "#/$defs/text" },
+              "aliases": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/name" } },
+              "popular": { "type": "boolean" },
+              "everything": { "type": "boolean" }
+            },
+            "required": ["value"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["label", "default", "choices"],
+      "additionalProperties": false
+    },
+    "variable": {
+      "type": "object",
+      "properties": {
+        "when": { "$ref": "#/$defs/when" },
+        "key": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$", "maxLength": 128 },
+        "label": { "$ref": "#/$defs/text" },
+        "help": { "$ref": "#/$defs/text" },
+        "kind": { "enum": ["url", "choice", "toggle", "text"] },
+        "presets": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": { "value": { "type": "string", "minLength": 1, "maxLength": 2048 }, "name": { "$ref": "#/$defs/text" } },
+            "required": ["value"],
+            "additionalProperties": false
+          }
+        },
+        "on": { "type": "string", "maxLength": 2048 },
+        "off": { "type": "string", "maxLength": 2048 },
+        "example": { "type": "string", "maxLength": 2048 },
+        "advanced": { "type": "boolean" }
+      },
+      "required": ["key"],
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "choice" } }, "required": ["kind"] },
+          "then": { "required": ["presets"], "properties": { "presets": { "minItems": 1 } } }
+        },
+        {
+          "if": { "not": { "properties": { "kind": { "enum": ["choice", "toggle", "text"] } }, "required": ["kind"] } },
+          "then": { "properties": { "presets": { "items": { "properties": { "value": { "$ref": "#/$defs/https" } } } } } }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}
